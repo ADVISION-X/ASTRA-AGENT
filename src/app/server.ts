@@ -17,6 +17,7 @@ if (configuredPlatformTarget !== "tiktok-web") {
 }
 const browserProfileRef = process.env.GRASSEYE_BROWSER_PROFILE_REF?.trim();
 const browserUserDataDir = process.env.GRASSEYE_BROWSER_USER_DATA_DIR?.trim();
+const browserProfileDirectory = process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY?.trim();
 if (!browserProfileRef || !browserUserDataDir) {
   throw new Error("GrassEye real-platform startup requires explicit GRASSEYE_BROWSER_PROFILE_REF and GRASSEYE_BROWSER_USER_DATA_DIR. Silent default browser profiles are forbidden because they cannot prove authorized login reuse.");
 }
@@ -46,6 +47,7 @@ const workbench = new GrassEyeWorkbench({
   ...(process.env.GRASSEYE_REAL_PLATFORM_URL ? { realPlatformUrl: process.env.GRASSEYE_REAL_PLATFORM_URL } : {}),
   browserProfileRef,
   browserUserDataDir,
+  ...(browserProfileDirectory ? { browserProfileDirectory } : {}),
   dataDir: process.env.GRASSEYE_DATA_DIR ?? defaultDataDir,
 });
 

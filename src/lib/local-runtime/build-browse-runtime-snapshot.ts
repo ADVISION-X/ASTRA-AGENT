@@ -26,6 +26,7 @@ export type BrowseRuntimeSnapshot = {
   browserExecutable: string | null;
   browserProfileRef: string;
   browserProfileStatus: string;
+  browserProfileDirectory: string;
   browserProfileProvisioning: string;
   browserProfileVerificationStatus: string;
   browserProfileVerificationReason: string | null;
@@ -116,6 +117,7 @@ export function buildBrowseRuntimeSnapshot(input: {
     browserExecutable: browserSnapshot.browserExecutable,
     browserProfileRef: browserSnapshot.browserProfileRef,
     browserProfileStatus: browserSnapshot.profileStatus,
+    browserProfileDirectory: browserSnapshot.profileDirectory,
     browserProfileProvisioning: browserSnapshot.profileProvisioning,
     browserProfileVerificationStatus: browserSnapshot.profileVerificationStatus,
     browserProfileVerificationReason: browserSnapshot.profileVerificationReason,

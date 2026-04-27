@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-27T21:46:01.029Z",
+  "generatedAt": "2026-04-27T22:10:41.628Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 23,
-    "passed": 23,
-    "failed": 0,
-    "blocking": 0
+    "passed": 22,
+    "failed": 1,
+    "blocking": 1
   },
   "results": [
     {
@@ -252,7 +252,15 @@
       "inspector": "GrassEye Local Browser Session Owner Inspector",
       "inspectorId": "local-browser-session-owner",
       "capabilityDomain": "local-browser-session",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1",
+          "file": "src/lib/browser/local-browser-session.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Local browser session helper must resolve the governed persistent profile path, Chrome profile directory, and forbid headless by default."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -270,19 +278,19 @@
           "name": "local-browser-session-blueprint",
           "classification": "PASS",
           "passed": true,
-          "summary": "Blueprint defines real Chrome persistent profile startup and cookie boundaries."
+          "summary": "Blueprint defines real Chrome persistent profile startup, current-browser handoff, and Local State profile directory resolution boundaries."
         },
         {
           "name": "local-browser-session-type-contract",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browser session types expose profile metadata without raw cookie fields."
+          "summary": "Browser session types expose profile metadata, including profile directory, without raw cookie fields."
         },
         {
           "name": "local-browser-session-runtime-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Runtime uses governed persistent Chrome profile wiring and exposes profile metadata."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Runtime browser session wiring is missing a governed real Chrome, explicit profile proof, or current-browser handoff boundary."
         },
         {
           "name": "local-browser-session-forbidden-apis",
@@ -297,10 +305,10 @@
           "summary": "Repository excludes test artifacts and committed browser profile directories."
         }
       ],
-      "summary": "local browser session governance enforces real Chrome persistent profile usage without cookie exposure",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
+      "summary": "local browser session governance is missing a persistent-profile or privacy boundary",
+      "passed": false,
+      "classification": "CODE VIOLATION",
+      "violationCount": 1
     },
     {
       "inspector": "GrassEye Local App Shell Owner Inspector",

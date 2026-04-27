@@ -216,6 +216,7 @@ export function renderOperatorConsole(snapshot: OperatorSnapshot, options: Rende
   const browserExecutableDisplay = sanitizeDisplayText(snapshot.mode.browserExecutable ?? t("mode.notConnected"), hiddenPathLabel);
   const browserProfileRefDisplay = snapshot.mode.browserProfileRef;
   const browserProfileStatusDisplay = snapshot.mode.browserProfileStatus;
+  const browserProfileDirectoryDisplay = snapshot.mode.browserProfileDirectory;
   const browserProfileProvisioningDisplay = snapshot.mode.browserProfileProvisioning;
   const browserProfileVerificationStatusDisplay = snapshot.mode.browserProfileVerificationStatus;
   const browserProfileVerificationReasonDisplay = sanitizeDisplayText(snapshot.mode.browserProfileVerificationReason ?? t("runtime.noActiveErrors"), hiddenPathLabel);
@@ -377,6 +378,7 @@ export function renderOperatorConsole(snapshot: OperatorSnapshot, options: Rende
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserExecutable"))}</div><div class="metric-value mono break-all">${escapeHtml(browserExecutableDisplay)}</div></div>
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileRef"))}</div><div class="metric-value mono">${escapeHtml(browserProfileRefDisplay)}</div></div>
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileStatus"))}</div><div class="metric-value">${escapeHtml(browserProfileStatusDisplay)}</div></div>
+          <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileDirectory"))}</div><div class="metric-value mono">${escapeHtml(browserProfileDirectoryDisplay)}</div></div>
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileProvisioning"))}</div><div class="metric-value">${escapeHtml(browserProfileProvisioningDisplay)}</div></div>
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileVerificationStatus"))}</div><div class="metric-value">${escapeHtml(browserProfileVerificationStatusDisplay)}</div></div>
           <div class="metric"><div class="metric-label">${escapeHtml(t("metric.browserProfileVerificationReason"))}</div><div class="metric-value">${escapeHtml(browserProfileVerificationReasonDisplay)}</div></div>

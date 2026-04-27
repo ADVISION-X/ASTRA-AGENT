@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -36,6 +36,7 @@ const DEFAULT_CHROME_EXECUTABLE_PATHS: Record<NodeJS.Platform, string[]> = {
 
 const BROWSER_PROFILE_ROOT = path.resolve(process.cwd(), ".grasseye-local", "browser-profiles");
 const DEFAULT_PROFILE_REJECTION_REASON = "silent default managed profile is forbidden for real-platform proof; supply explicit browser profile ref and userDataDir";
+const DEFAULT_CHROME_PROFILE_DIRECTORY = "Default";
 
 const resolveProfileProvisioning = (input: {
   userDataDir?: string;
@@ -58,6 +59,35 @@ const resolveProfileVerification = (profileProvisioning: BrowserProfileProvision
 export const getLocalBrowserProfileDir = (platform: string): string =>
   path.join(BROWSER_PROFILE_ROOT, platform);
 
+const readLastUsedChromeProfileDirectory = (userDataDir: string): string | null => {
+  const localStatePath = path.join(userDataDir, "Local State");
+  if (!existsSync(localStatePath)) {
+    return null;
+  }
+
+  try {
+    const localState = JSON.parse(readFileSync(localStatePath, "utf8")) as {
+      profile?: { last_used?: unknown };
+    };
+    const lastUsed = localState.profile?.last_used;
+    return typeof lastUsed === "string" && lastUsed.trim().length > 0 ? lastUsed.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+export const resolveLocalChromeProfileDirectory = (input: {
+  userDataDir: string;
+  profileDirectory?: string;
+}): string => {
+  const configuredProfileDirectory = input.profileDirectory?.trim() || process.env.GRASSEYE_CHROME_PROFILE_DIRECTORY?.trim();
+  if (configuredProfileDirectory) {
+    return configuredProfileDirectory;
+  }
+
+  return readLastUsedChromeProfileDirectory(input.userDataDir) ?? DEFAULT_CHROME_PROFILE_DIRECTORY;
+};
+
 export const resolveLocalChromeExecutablePath = (): string | null => {
   const configuredPath = process.env.GRASSEYE_CHROME_EXECUTABLE?.trim();
   if (configuredPath && existsSync(configuredPath)) {
@@ -79,20 +109,27 @@ export const createLocalBrowserSessionConfig = (input: {
   userDataDir?: string;
   chromeExecutablePath?: string | null;
   profileRef?: string;
+  profileDirectory?: string;
   createdAt?: string;
 }): LocalBrowserSessionConfig => {
   const createdAt = input.createdAt ?? new Date().toISOString();
   const profileProvisioning = resolveProfileProvisioning(input);
   const profileVerification = resolveProfileVerification(profileProvisioning);
+  const userDataDir = input.userDataDir ?? getLocalBrowserProfileDir(input.platform);
+  const profileDirectory = resolveLocalChromeProfileDirectory({
+    userDataDir,
+    ...(input.profileDirectory ? { profileDirectory: input.profileDirectory } : {}),
+  });
   return LocalBrowserSessionConfigSchema.parse({
     browserMode: "real_chrome_persistent",
     platform: input.platform,
     chromeExecutablePath: input.chromeExecutablePath ?? resolveLocalChromeExecutablePath(),
     profileRef: input.profileRef ?? `${input.platform}:persistent-local-profile`,
-    userDataDir: input.userDataDir ?? getLocalBrowserProfileDir(input.platform),
+    userDataDir,
+    profileDirectory,
     profileProvisioning,
     profileVerificationStatus: profileVerification.profileVerificationStatus,
-    profileVerificationReason: profileVerification.profileVerificationReason,
+    profileVerificationReason: profileVerification.profileVerificationReason ?? `resolved browser profile directory ${profileDirectory}`,
     headlessAllowed: false,
     createdAt,
     updatedAt: createdAt,
@@ -103,6 +140,7 @@ export const createOperatorVerifiedLocalBrowserSessionConfig = (input: {
   platform: string;
   userDataDir: string;
   profileRef: string;
+  profileDirectory?: string;
   chromeExecutablePath?: string | null;
   createdAt?: string;
 }): LocalBrowserSessionConfig => createLocalBrowserSessionConfig(input);
@@ -118,6 +156,7 @@ export const createInitialLocalBrowserSessionState = (
     browserProfileRef: config.profileRef,
     browserExecutablePath: config.chromeExecutablePath,
     profileStatus: getBrowserProfileStatus(config.userDataDir),
+    profileDirectory: config.profileDirectory,
     profileProvisioning: config.profileProvisioning,
     profileVerificationStatus: config.profileVerificationStatus,
     profileVerificationReason: config.profileVerificationReason,

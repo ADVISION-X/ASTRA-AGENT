@@ -194,6 +194,7 @@ export class PlaywrightBrowserController implements BrowserController {
         executablePath,
         headless: false,
         viewport: { width: 1440, height: 960 },
+        args: [`--profile-directory=${this.options.sessionConfig.profileDirectory}`],
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

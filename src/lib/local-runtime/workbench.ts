@@ -22,6 +22,7 @@ type GrassEyeWorkbenchOptions = {
   browserHeadless?: boolean;
   browserProfileRef: string;
   browserUserDataDir: string;
+  browserProfileDirectory?: string;
 };
 
 export class GrassEyeWorkbench {
@@ -44,6 +45,7 @@ export class GrassEyeWorkbench {
       platform: options.platformTarget,
       profileRef: options.browserProfileRef,
       userDataDir: options.browserUserDataDir,
+      ...(options.browserProfileDirectory ? { profileDirectory: options.browserProfileDirectory } : {}),
     });
 
     this.browserController = new PlaywrightBrowserController({
@@ -155,6 +157,7 @@ export class GrassEyeWorkbench {
     browserExecutable: string | null;
     browserProfileRef: string;
     browserProfileStatus: string;
+    browserProfileDirectory: string;
     browserProfileProvisioning: string;
     browserProfileVerificationStatus: string;
     browserProfileVerificationReason: string | null;
@@ -180,6 +183,7 @@ export class GrassEyeWorkbench {
       browserExecutable: session.browserExecutable,
       browserProfileRef: session.browserProfileRef,
       browserProfileStatus: session.profileStatus,
+      browserProfileDirectory: session.profileDirectory,
       browserProfileProvisioning: session.profileProvisioning,
       browserProfileVerificationStatus: session.profileVerificationStatus,
       browserProfileVerificationReason: session.profileVerificationReason,

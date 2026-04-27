@@ -14,7 +14,10 @@ const TYPES_PATH = "src/types/local-browser-session.ts";
 const HELPER_PATH = "src/lib/browser/local-browser-session.ts";
 const CONTROLLER_PATH = "src/lib/browser/playwright-browser-controller.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
+const SERVER_PATH = "src/app/server.ts";
 const RUNTIME_PATH = "src/types/runtime.ts";
+const STARTUP_ENTRY_PATH = "scripts/startup/launch-grasseye.mjs";
+const STARTUP_OPEN_HELPER_PATH = "scripts/startup/lib/open-main-page.mjs";
 const GITIGNORE_PATH = ".gitignore";
 const GOVERNED_ROOTS = ["src/lib/browser/", "src/lib/local-runtime/", "src/features/platform-action/", "src/features/agent/"] as const;
 const SCRIPT_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"] as const;
@@ -90,6 +93,49 @@ const hasHeadlessFalse = (sourceFile: SourceFile): boolean =>
     return Boolean(initializer && Node.isFalseLiteral(initializer));
   });
 
+const getImportedNamedBindings = (sourceFile: SourceFile, moduleSpecifier: string): Set<string> => {
+  const importDeclaration = sourceFile.getImportDeclarations().find((item) => item.getModuleSpecifierValue() === moduleSpecifier);
+  if (!importDeclaration) {
+    return new Set();
+  }
+
+  return new Set(importDeclaration.getNamedImports().map((namedImport) => namedImport.getName()));
+};
+
+const findCallByIdentifier = (sourceFile: SourceFile, identifierName: string) =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === identifierName;
+  }) ?? null;
+
+const getObjectLiteralArgument = (expression: import("ts-morph").CallExpression | import("ts-morph").NewExpression | null, index = 0) => {
+  const argument = expression?.getArguments()[index];
+  return argument && Node.isObjectLiteralExpression(argument) ? argument : null;
+};
+
+const getPropertyInitializerText = (objectLiteral: import("ts-morph").ObjectLiteralExpression | null, propertyName: string): string | null => {
+  const property = objectLiteral?.getProperty(propertyName);
+  if (!property) {
+    return null;
+  }
+
+  if (Node.isShorthandPropertyAssignment(property)) {
+    return property.getName();
+  }
+
+  if (!Node.isPropertyAssignment(property)) {
+    return null;
+  }
+
+  return property.getInitializer()?.getText() ?? null;
+};
+
+const variableReadsEnv = (sourceFile: SourceFile, variableName: string, envKey: string): boolean => {
+  const declaration = sourceFile.getVariableDeclaration(variableName);
+  const initializer = declaration?.getInitializer();
+  return Boolean(initializer?.getText().includes(`process.env.${envKey}`));
+};
+
 export default async function inspectLocalBrowserSession(context: InspectorContext) {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "local-browser-session",
@@ -97,7 +143,7 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     inspectorEntry: "scripts/audit/domains/local-browser-session/inspector.ts",
   });
 
-  const [law, blueprint, gitignore, repoFiles, helperText, controllerText, workbenchText, runtimeText] = await Promise.all([
+  const [law, blueprint, gitignore, repoFiles, helperText, controllerText, workbenchText, runtimeText, startupEntryText, startupOpenHelperText] = await Promise.all([
     readTextFile(pathFromRepoRoot(LAW_PATH)),
     readTextFile(pathFromRepoRoot(BLUEPRINT_PATH)),
     readTextFile(pathFromRepoRoot(GITIGNORE_PATH)),
@@ -106,16 +152,30 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     readTextFile(pathFromRepoRoot(CONTROLLER_PATH)),
     readTextFile(pathFromRepoRoot(WORKBENCH_PATH)),
     readTextFile(pathFromRepoRoot(RUNTIME_PATH)),
+    readTextFile(pathFromRepoRoot(STARTUP_ENTRY_PATH)),
+    readTextFile(pathFromRepoRoot(STARTUP_OPEN_HELPER_PATH)),
   ]);
 
   const findings = [...base.findings];
   const project = getAuditProject();
   const typesSource = getSourceFileOrThrow(project, TYPES_PATH);
   const controllerSource = getSourceFileOrThrow(project, CONTROLLER_PATH);
+  const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
+  const serverSource = getSourceFileOrThrow(project, SERVER_PATH);
   const controllerPath = toRelativeSourcePath(controllerSource);
 
   const lawPassed = includesAll(law, ["persistent local user profile", "must not store raw cookies", "Headless mode must be disabled by default"]);
-  const blueprintPassed = includesAll(blueprint, ["real_chrome_persistent", ".grasseye-local/browser-profiles/<platform>/", "GrassEye 不读取 cookies"]);
+  const blueprintPassed = includesAll(blueprint, [
+    "real_chrome_persistent",
+    ".grasseye-local/browser-profiles/<platform>/",
+    "GrassEye 不读取 cookies",
+    "当前本地浏览器 handoff 是固定页面打开的简单主路径",
+    "open <url>",
+    "HANDOFF_FIXED_URL_TO_CURRENT_LOCAL_BROWSER",
+    "handoff_fixed_url_to_current_local_browser",
+    "profile.last_used",
+    "browserProfileDirectory",
+  ]);
   if (!lawPassed) {
     findings.push(createFinding({ lawId: LAW_ID, file: LAW_PATH, line: 1, severity: "error", message: "Local browser session law is missing a persistent-profile or cookie-boundary requirement." }));
   }
@@ -131,13 +191,13 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     findings.push(createFinding({ lawId: LAW_ID, file: TYPES_PATH, line: 1, severity: "fatal", message: "BrowserMode must include real_chrome_persistent." }));
   }
 
-  for (const requiredField of ["browserMode", "platform", "chromeExecutablePath", "profileRef", "userDataDir", "headlessAllowed", "createdAt", "updatedAt"]) {
+  for (const requiredField of ["browserMode", "platform", "chromeExecutablePath", "profileRef", "userDataDir", "profileDirectory", "profileProvisioning", "profileVerificationStatus", "profileVerificationReason", "headlessAllowed", "createdAt", "updatedAt"]) {
     if (!configFields.has(requiredField)) {
       findings.push(createFinding({ lawId: LAW_ID, file: TYPES_PATH, line: 1, severity: "error", message: `LocalBrowserSessionConfigSchema is missing ${requiredField}.` }));
     }
   }
 
-  for (const requiredField of ["browserMode", "browserProfileRef", "profileStatus", "loginState", "currentUrl", "lastLoginCheckAt", "reviewRequiredReason"]) {
+  for (const requiredField of ["browserMode", "browserProfileRef", "profileStatus", "profileDirectory", "profileProvisioning", "profileVerificationStatus", "profileVerificationReason", "loginState", "currentUrl", "lastLoginCheckAt", "reviewRequiredReason"]) {
     if (!stateFields.has(requiredField)) {
       findings.push(createFinding({ lawId: LAW_ID, file: TYPES_PATH, line: 1, severity: "error", message: `LocalBrowserSessionStateSchema is missing ${requiredField}.` }));
     }
@@ -149,8 +209,60 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     }
   }
 
-  if (!includesAll(helperText, [".grasseye-local", "browser-profiles", 'browserMode: "real_chrome_persistent"', "headlessAllowed: false"])) {
-    findings.push(createFinding({ lawId: LAW_ID, file: HELPER_PATH, line: 1, severity: "error", message: "Local browser session helper must resolve the governed persistent profile path and forbid headless by default." }));
+  if (!includesAll(helperText, [".grasseye-local", "browser-profiles", 'browserMode: "real_chrome_persistent"', "headlessAllowed: false", "Local State", "profile.last_used"])) {
+    findings.push(createFinding({ lawId: LAW_ID, file: HELPER_PATH, line: 1, severity: "error", message: "Local browser session helper must resolve the governed persistent profile path, Chrome profile directory, and forbid headless by default." }));
+  }
+
+  if (!includesAll(startupEntryText, ['import { openMainPage } from "./lib/open-main-page.mjs";', "await openMainPage(baseUrl);"])) {
+    findings.push(createFinding({ lawId: LAW_ID, file: STARTUP_ENTRY_PATH, line: 1, severity: "error", message: "Startup entry must hand off the fixed page through openMainPage so current local browser reuse stays simple." }));
+  }
+
+  if (!includesAll(startupOpenHelperText, ['if (platform === "darwin")', '{ command: "open", args: [url] }'])) {
+    findings.push(createFinding({ lawId: LAW_ID, file: STARTUP_OPEN_HELPER_PATH, line: 1, severity: "error", message: "Startup open helper must use macOS open <url> handoff for current local browser page opening." }));
+  }
+
+  const workbenchImports = getImportedNamedBindings(workbenchSource, "../browser/local-browser-session.js");
+  if (!workbenchImports.has("createOperatorVerifiedLocalBrowserSessionConfig") || workbenchImports.has("createLocalBrowserSessionConfig")) {
+    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must import only the operator-verified browser session config helper." }));
+  }
+
+  const verifiedConfigCall = findCallByIdentifier(workbenchSource, "createOperatorVerifiedLocalBrowserSessionConfig");
+  const verifiedConfigArg = getObjectLiteralArgument(verifiedConfigCall);
+  if (!verifiedConfigCall || !verifiedConfigArg) {
+    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must call createOperatorVerifiedLocalBrowserSessionConfig with an object literal." }));
+  } else {
+    if (getPropertyInitializerText(verifiedConfigArg, "profileRef") !== "options.browserProfileRef") {
+      findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must pass options.browserProfileRef into the verified browser session helper." }));
+    }
+    if (getPropertyInitializerText(verifiedConfigArg, "userDataDir") !== "options.browserUserDataDir") {
+      findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must pass options.browserUserDataDir into the verified browser session helper." }));
+    }
+    if (!workbenchText.includes("browserProfileDirectory")) {
+      findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must expose browserProfileDirectory through runtime surfaces." }));
+    }
+  }
+
+  if (findCallByIdentifier(workbenchSource, "createLocalBrowserSessionConfig")) {
+    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must not silently fall back to createLocalBrowserSessionConfig in real-platform mode." }));
+  }
+
+  const workbenchConstruction = serverSource.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) => expression.getExpression().getText() === "GrassEyeWorkbench") ?? null;
+  const workbenchOptions = getObjectLiteralArgument(workbenchConstruction, 0);
+  if (!variableReadsEnv(serverSource, "browserProfileRef", "GRASSEYE_BROWSER_PROFILE_REF") || !variableReadsEnv(serverSource, "browserUserDataDir", "GRASSEYE_BROWSER_USER_DATA_DIR") || !variableReadsEnv(serverSource, "browserProfileDirectory", "GRASSEYE_BROWSER_PROFILE_DIRECTORY")) {
+    findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "fatal", message: "Server startup must read explicit browser profile environment variables before constructing the workbench." }));
+  }
+  if (!workbenchConstruction || !workbenchOptions) {
+    findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "fatal", message: "Server must construct GrassEyeWorkbench with an object literal that carries explicit browser profile fields." }));
+  } else {
+    if (getPropertyInitializerText(workbenchOptions, "browserProfileRef") !== "browserProfileRef") {
+      findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "error", message: "Server must pass explicit browserProfileRef into the workbench." }));
+    }
+    if (getPropertyInitializerText(workbenchOptions, "browserUserDataDir") !== "browserUserDataDir") {
+      findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "error", message: "Server must pass explicit browserUserDataDir into the workbench." }));
+    }
+    if (!workbenchText.includes("browserProfileDirectory") || !serverSource.getFullText().includes("browserProfileDirectory")) {
+      findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "error", message: "Server and workbench must thread browserProfileDirectory into the runtime boundary." }));
+    }
   }
 
   if (!hasCallPath(controllerSource, ["chromium", "launchPersistentContext"])) {
@@ -161,15 +273,15 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     findings.push(createFinding({ lawId: LAW_ID, file: CONTROLLER_PATH, line: getNodeLine(controllerSource), severity: "error", message: "Real-platform browser controller must launch with headless: false." }));
   }
 
-  if (!includesAll(controllerText, ["executablePath", "forbids headless browser launch"])) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: 1, severity: "error", message: "Real-platform browser controller must target a real Chrome executable and reject headless mode." }));
+  if (!includesAll(controllerText, ["executablePath", "forbids headless browser launch", "--profile-directory="])) {
+    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: 1, severity: "error", message: "Real-platform browser controller must target a real Chrome executable, reject headless mode, and launch with an explicit profile directory." }));
   }
 
-  if (!includesAll(workbenchText, ["createLocalBrowserSessionConfig", "sessionConfig:", "browserProfileRef", "browserProfileStatus", "loginState"])) {
+  if (!includesAll(workbenchText, ["sessionConfig:", "browserProfileRef", "browserProfileDirectory", "browserProfileStatus", "browserProfileVerificationStatus", "loginState"])) {
     findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must expose browser session metadata through mode or snapshot surfaces." }));
   }
 
-  if (!includesAll(runtimeText, ["browserMode", "browserProfileRef", "browserProfileStatus", "loginState"])) {
+  if (!includesAll(runtimeText, ["browserMode", "browserProfileRef", "browserProfileDirectory", "browserProfileStatus", "browserProfileProvisioning", "browserProfileVerificationStatus", "browserProfileVerificationReason", "loginState"])) {
     findings.push(createFinding({ lawId: LAW_ID, file: RUNTIME_PATH, line: 1, severity: "error", message: "Runtime snapshot types must expose browser session metadata." }));
   }
 
@@ -209,9 +321,9 @@ export default async function inspectLocalBrowserSession(context: InspectorConte
     phases: [
       ...base.phases,
       createPhase("local-browser-session-law", lawPassed ? "PASS" : "CODE VIOLATION", lawPassed, lawPassed ? "Local browser session law defines persistent-profile and cookie privacy boundaries." : "Local browser session law is missing required boundaries."),
-      createPhase("local-browser-session-blueprint", blueprintPassed ? "PASS" : "CODE VIOLATION", blueprintPassed, blueprintPassed ? "Blueprint defines real Chrome persistent profile startup and cookie boundaries." : "Blueprint is missing required startup or privacy guidance."),
-      createPhase("local-browser-session-type-contract", findings.some((finding) => finding.file === TYPES_PATH) ? "CODE VIOLATION" : "PASS", !findings.some((finding) => finding.file === TYPES_PATH), !findings.some((finding) => finding.file === TYPES_PATH) ? "Browser session types expose profile metadata without raw cookie fields." : "Browser session types are incomplete or expose forbidden fields."),
-      createPhase("local-browser-session-runtime-boundary", findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, RUNTIME_PATH].includes(finding.file)) ? "CODE VIOLATION" : "PASS", !findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, RUNTIME_PATH].includes(finding.file)), !findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, RUNTIME_PATH].includes(finding.file)) ? "Runtime uses governed persistent Chrome profile wiring and exposes profile metadata." : "Runtime browser session wiring is missing a governed real Chrome or profile metadata boundary."),
+      createPhase("local-browser-session-blueprint", blueprintPassed ? "PASS" : "CODE VIOLATION", blueprintPassed, blueprintPassed ? "Blueprint defines real Chrome persistent profile startup, current-browser handoff, and Local State profile directory resolution boundaries." : "Blueprint is missing required startup or privacy guidance."),
+      createPhase("local-browser-session-type-contract", findings.some((finding) => finding.file === TYPES_PATH) ? "CODE VIOLATION" : "PASS", !findings.some((finding) => finding.file === TYPES_PATH), !findings.some((finding) => finding.file === TYPES_PATH) ? "Browser session types expose profile metadata, including profile directory, without raw cookie fields." : "Browser session types are incomplete or expose forbidden fields."),
+      createPhase("local-browser-session-runtime-boundary", findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, RUNTIME_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH].includes(finding.file)) ? "CODE VIOLATION" : "PASS", !findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, RUNTIME_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH].includes(finding.file)), !findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, RUNTIME_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH].includes(finding.file)) ? "Runtime uses governed persistent Chrome profile wiring, explicit profile proof, and current-browser fixed-page handoff." : "Runtime browser session wiring is missing a governed real Chrome, explicit profile proof, or current-browser handoff boundary."),
       createPhase("local-browser-session-forbidden-apis", findings.some((finding) => finding.message.includes("must not use")) ? "FAKE ENFORCEMENT" : "PASS", !findings.some((finding) => finding.message.includes("must not use")), !findings.some((finding) => finding.message.includes("must not use")) ? "Governed browser session code avoids storageState, cookie reads, cookie injection, and browser storage dumps." : "Governed browser session code still uses forbidden login persistence APIs."),
       createPhase("local-browser-session-repo-boundary", forbiddenTests.length === 0 && committedProfiles.length === 0 && gitignore.includes(".grasseye-local/browser-profiles/") ? "PASS" : "CODE VIOLATION", forbiddenTests.length === 0 && committedProfiles.length === 0 && gitignore.includes(".grasseye-local/browser-profiles/"), forbiddenTests.length === 0 && committedProfiles.length === 0 && gitignore.includes(".grasseye-local/browser-profiles/") ? "Repository excludes test artifacts and committed browser profile directories." : "Repository or gitignore still allows forbidden browser session artifacts."),
     ],

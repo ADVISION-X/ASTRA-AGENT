@@ -71,6 +71,7 @@ export type BrowseRuntimeSnapshot = {
   browserExecutable: string | null;
   browserProfileRef: string;
   browserProfileStatus: string;
+  browserProfileDirectory: string;
   browserProfileProvisioning: string;
   browserProfileVerificationStatus: string;
   browserProfileVerificationReason: string | null;

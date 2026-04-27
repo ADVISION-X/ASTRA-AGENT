@@ -20,6 +20,16 @@ function logError(message) {
   process.stderr.write(`[launch] ${message}\n`);
 }
 
+function assertExplicitBrowserProfileEnv() {
+  const profileRef = process.env.GRASSEYE_BROWSER_PROFILE_REF?.trim();
+  const userDataDir = process.env.GRASSEYE_BROWSER_USER_DATA_DIR?.trim();
+  if (!profileRef || !userDataDir) {
+    throw new Error(
+      "Real-platform launch requires explicit GRASSEYE_BROWSER_PROFILE_REF and GRASSEYE_BROWSER_USER_DATA_DIR. Silent default browser profiles are forbidden because they cannot prove authorized login reuse.",
+    );
+  }
+}
+
 function parseFlags(argv) {
   return {
     updateRequested: argv.includes("--update"),
@@ -73,6 +83,7 @@ async function ensureDependencies(root, flags) {
 }
 
 async function performLaunch(flags, root) {
+  assertExplicitBrowserProfileEnv();
   log("Checking dependency readiness.");
   await ensureDependencies(root, flags);
 

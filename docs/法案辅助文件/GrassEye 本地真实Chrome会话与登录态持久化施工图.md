@@ -19,12 +19,32 @@ GrassEye 只复用 profile，不读取 cookies。
 GrassEye 必须支持 real_chrome_persistent 模式：
 
 - 使用系统真实 Chrome executable。
-- 使用专用持久化 userDataDir。
+- 使用真实 Chrome userDataDir 根目录，并锁定具体 profile directory。
 - 建议路径：.grasseye-local/browser-profiles/<platform>/。
 - 该路径必须 gitignored。
 - 用户第一次运行时手动登录。
 - 后续运行复用同一 profile。
+- 如果操作者未显式提供 profile directory，允许从 Chrome Local State 中解析 `profile.last_used` 作为最近使用 profile。
 - Workbench 必须显示 profile status。
+
+### 3.1 当前本地浏览器 handoff 是固定页面打开的简单主路径
+
+- 对固定页面打开和本地 workbench 页面唤起，优先复用当前本地浏览器应用，而不是为“打开一个 URL”额外新造受控 profile。
+- macOS 启动 handoff 的简单主路径是系统 open 命令：`open <url>`。
+- `open <url>` 的目标是把固定页面内容交给当前本地浏览器会话处理，从而继承操作者已经存在的登录态、窗口组和浏览器偏好。
+- 这条 handoff 只负责“打开到当前本地浏览器会话”，不等于读取 cookies，也不等于 DOM/BOM 接管页面。
+- 如果只是为了打开 TikTok、打开 workbench、打开固定入口页，不得把问题复杂化成“先复制一个受控 profile 再打开 URL”。
+- 受控持久化 profile 只用于明确声明的专用浏览器会话，不得冒充“当前已经登录的浏览器”。
+
+### 3.2 浏览器打开责任分层
+
+- 固定 URL 打开：走当前本地浏览器 handoff，macOS 使用 `open <url>`。
+- 已授权 profile 证明：必须来自操作者明确提供的本地 profile 引用和路径，不能靠静默默认推断。
+- 受控真实 Chrome 会话如果要复用操作者当前登录身份，除了 userDataDir 根目录，还必须知道具体 profile directory。
+- `userDataDir` 只代表 Chrome 用户数据根目录，不足以证明进入的是当前登录的那个 profile。
+- 当操作者只提供 Chrome 根目录时，运行时可以读取 Local State 的 `profile.last_used` 来解析最近使用 profile directory，但不得读取 cookies。
+- GrassEye 不得把 `.grasseye-local/browser-profiles/<platform>/` 默认解释为“当前操作者正在使用的已登录浏览器”。
+- 如果运行链需要专用 profile，那是单独的受控会话选择问题，不是固定页面打开问题。
 
 ## 4. Profile 与 cookies 边界
 
@@ -42,6 +62,7 @@ GrassEye 必须支持 real_chrome_persistent 模式：
 
 CHECK_REAL_CHROME_AVAILABLE
 -> CHECK_PROFILE_DIR
+-> HANDOFF_FIXED_URL_TO_CURRENT_LOCAL_BROWSER
 -> LAUNCH_REAL_CHROME_WITH_PERSISTENT_PROFILE
 -> OPEN_TARGET_PAGE
 -> DETECT_LOGIN_STATE
@@ -73,6 +94,7 @@ CHECK_REAL_CHROME_AVAILABLE
 - browserMode
 - browserExecutable
 - browserProfileRef
+- browserProfileDirectory
 - browserProfileStatus
 - loginState
 - lastLoginCheckAt
@@ -85,6 +107,7 @@ CHECK_REAL_CHROME_AVAILABLE
 
 - check_real_chrome_available
 - check_profile_dir
+- handoff_fixed_url_to_current_local_browser
 - launch_real_chrome_with_profile
 - open_target_page
 - detect_login_state
