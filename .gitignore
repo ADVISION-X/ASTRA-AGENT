@@ -1,0 +1,7 @@
+.DS_Store
+dist/
+node_modules/
+.grasseye-data/
+.grasseye-local/
+.grasseye-local/browser-profiles/
+.grasseye-demo-data/

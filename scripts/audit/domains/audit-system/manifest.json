@@ -1,0 +1,15 @@
+{
+  "inspectorId": "audit-system-owner",
+  "capabilityDomain": "audit-system",
+  "owner": true,
+  "entry": "scripts/audit/domains/audit-system/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-AUDIT-SYSTEM-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 执法系统施工图.md"
+  ]
+}

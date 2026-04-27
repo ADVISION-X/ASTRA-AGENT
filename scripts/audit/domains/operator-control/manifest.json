@@ -1,0 +1,12 @@
+{
+  "inspectorId": "operator-control-owner",
+  "capabilityDomain": "operator-control",
+  "owner": true,
+  "entry": "scripts/audit/domains/operator-control/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-OPERATOR-CONTROL-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-operator-control.instructions.md"
+  ]
+}

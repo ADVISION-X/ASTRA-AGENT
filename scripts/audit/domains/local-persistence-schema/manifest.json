@@ -1,0 +1,15 @@
+{
+  "inspectorId": "local-persistence-schema-owner",
+  "capabilityDomain": "local-persistence-schema",
+  "owner": true,
+  "entry": "scripts/audit/domains/local-persistence-schema/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 本地取证存储结构施工图.md"
+  ]
+}

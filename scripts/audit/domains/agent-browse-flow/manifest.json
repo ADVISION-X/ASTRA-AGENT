@@ -1,0 +1,15 @@
+{
+  "inspectorId": "agent-browse-flow-owner",
+  "capabilityDomain": "agent-browse-flow",
+  "owner": true,
+  "entry": "scripts/audit/domains/agent-browse-flow/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-AGENT-BROWSE-FLOW-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-agent-browse-flow.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Agent 浏览决策树与AI询问契约施工图.md"
+  ]
+}

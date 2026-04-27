@@ -1,0 +1,12 @@
+{
+  "inspectorId": "type-safety-owner",
+  "capabilityDomain": "type-safety",
+  "owner": true,
+  "entry": "scripts/audit/domains/type-safety/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-TYPE-SAFETY-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "inspectorId": "local-browser-session-owner",
+  "capabilityDomain": "local-browser-session",
+  "owner": true,
+  "entry": "scripts/audit/domains/local-browser-session/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-LOCAL-BROWSER-SESSION-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md"
+  ]
+}

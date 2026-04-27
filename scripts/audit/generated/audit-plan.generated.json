@@ -1,0 +1,203 @@
+{
+  "generatedAt": "2026-04-27T21:45:58.450Z",
+  "phase": "phase-02-local-workbench",
+  "phaseGateFile": "scripts/audit/phase-gates/phase-02-local-workbench.json",
+  "owners": [
+    {
+      "capabilityDomain": "audit-system",
+      "inspectorId": "audit-system-owner",
+      "entry": "scripts/audit/domains/audit-system/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-AUDIT-SYSTEM-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "code-purity",
+      "inspectorId": "code-purity-owner",
+      "entry": "scripts/audit/domains/code-purity/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-CODE-PURITY-001-V1",
+        "GRASSEYE-CODE-PURITY-002-V1",
+        "GRASSEYE-CODE-PURITY-003-V1",
+        "GRASSEYE-CODE-PURITY-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "code-topology",
+      "inspectorId": "code-topology-owner",
+      "entry": "scripts/audit/domains/code-topology/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-CODE-TOPOLOGY-001-V1",
+        "GRASSEYE-CODE-TOPOLOGY-002-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "type-safety",
+      "inspectorId": "type-safety-owner",
+      "entry": "scripts/audit/domains/type-safety/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-TYPE-SAFETY-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "security-privacy",
+      "inspectorId": "security-privacy-owner",
+      "entry": "scripts/audit/domains/security-privacy/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-SECURITY-PRIVACY-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-browser-session",
+      "inspectorId": "local-browser-session-owner",
+      "entry": "scripts/audit/domains/local-browser-session/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-app-shell",
+      "inspectorId": "local-app-shell-owner",
+      "entry": "scripts/audit/domains/local-app-shell/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCAL-APP-SHELL-001-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-003-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "localization",
+      "inspectorId": "localization-owner",
+      "entry": "scripts/audit/domains/localization/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCALIZATION-001-V1",
+        "GRASSEYE-LOCALIZATION-002-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-ai-runtime",
+      "inspectorId": "local-ai-runtime-owner",
+      "entry": "scripts/audit/domains/local-ai-runtime/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCAL-AI-RUNTIME-001-V1",
+        "GRASSEYE-LOCAL-AI-RUNTIME-002-V1",
+        "GRASSEYE-LOCAL-AI-RUNTIME-003-V1",
+        "GRASSEYE-LOCAL-AI-RUNTIME-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "agent-runtime",
+      "inspectorId": "agent-runtime-owner",
+      "entry": "scripts/audit/domains/agent-runtime/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-AGENT-RUNTIME-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "agent-browse-flow",
+      "inspectorId": "agent-browse-flow-owner",
+      "entry": "scripts/audit/domains/agent-browse-flow/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-AGENT-BROWSE-FLOW-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "evidence-packet",
+      "inspectorId": "evidence-packet-owner",
+      "entry": "scripts/audit/domains/evidence-packet/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-EVIDENCE-PACKET-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "multi-frame-evidence",
+      "inspectorId": "multi-frame-evidence-owner",
+      "entry": "scripts/audit/domains/multi-frame-evidence/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-MULTI-FRAME-EVIDENCE-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "platform-action",
+      "inspectorId": "platform-action-owner",
+      "entry": "scripts/audit/domains/platform-action/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-PLATFORM-ACTION-001-V1",
+        "GRASSEYE-PLATFORM-ACTION-002-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "visual-action-capability",
+      "inspectorId": "visual-action-capability-owner",
+      "entry": "scripts/audit/domains/visual-action-capability/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-VISUAL-ACTION-CAPABILITY-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "vision-boundary",
+      "inspectorId": "vision-boundary-owner",
+      "entry": "scripts/audit/domains/vision-boundary/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-VISION-BOUNDARY-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "comment-intelligence",
+      "inspectorId": "comment-intelligence-owner",
+      "entry": "scripts/audit/domains/comment-intelligence/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-COMMENT-INTELLIGENCE-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "product-signal",
+      "inspectorId": "product-signal-owner",
+      "entry": "scripts/audit/domains/product-signal/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-PRODUCT-SIGNAL-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "structured-logging",
+      "inspectorId": "structured-logging-owner",
+      "entry": "scripts/audit/domains/structured-logging/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-STRUCTURED-LOGGING-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-persistence-schema",
+      "inspectorId": "local-persistence-schema-owner",
+      "entry": "scripts/audit/domains/local-persistence-schema/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-data",
+      "inspectorId": "local-data-owner",
+      "entry": "scripts/audit/domains/local-data/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-LOCAL-DATA-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "operator-control",
+      "inspectorId": "operator-control-owner",
+      "entry": "scripts/audit/domains/operator-control/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-OPERATOR-CONTROL-001-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "visual-only-runtime",
+      "inspectorId": "visual-only-runtime-owner",
+      "entry": "scripts/audit/domains/visual-only-runtime/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-VISUAL-ONLY-RUNTIME-001-V1"
+      ]
+    }
+  ]
+}

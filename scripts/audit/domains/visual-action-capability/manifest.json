@@ -1,0 +1,15 @@
+{
+  "inspectorId": "visual-action-capability-owner",
+  "capabilityDomain": "visual-action-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/visual-action-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-VISUAL-ACTION-CAPABILITY-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-visual-action-capability.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 视觉目标与坐标动作能力施工图.md"
+  ]
+}

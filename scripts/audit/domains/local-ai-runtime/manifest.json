@@ -1,0 +1,21 @@
+{
+  "inspectorId": "local-ai-runtime-owner",
+  "capabilityDomain": "local-ai-runtime",
+  "owner": true,
+  "entry": "scripts/audit/domains/local-ai-runtime/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-LOCAL-AI-RUNTIME-001-V1",
+    "GRASSEYE-LOCAL-AI-RUNTIME-002-V1",
+    "GRASSEYE-LOCAL-AI-RUNTIME-003-V1",
+    "GRASSEYE-LOCAL-AI-RUNTIME-004-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md",
+    "docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
+  ]
+}

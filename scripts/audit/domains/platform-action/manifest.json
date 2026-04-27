@@ -1,0 +1,16 @@
+{
+  "inspectorId": "platform-action-owner",
+  "capabilityDomain": "platform-action",
+  "owner": true,
+  "entry": "scripts/audit/domains/platform-action/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-PLATFORM-ACTION-001-V1", "GRASSEYE-PLATFORM-ACTION-002-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-platform-action.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 平台适配与页面动作施工图.md",
+    "docs/法案辅助文件/GrassEye 视觉坐标操作模式施工图.md"
+  ]
+}

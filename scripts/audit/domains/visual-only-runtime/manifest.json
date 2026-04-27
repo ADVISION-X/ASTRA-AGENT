@@ -1,0 +1,15 @@
+{
+  "inspectorId": "visual-only-runtime-owner",
+  "capabilityDomain": "visual-only-runtime",
+  "owner": true,
+  "entry": "scripts/audit/domains/visual-only-runtime/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": ["GRASSEYE-VISUAL-ONLY-RUNTIME-001-V1"],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-visual-only-runtime.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 视觉唯一运行模式施工图.md"
+  ]
+}

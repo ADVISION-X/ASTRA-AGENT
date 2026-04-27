@@ -1,0 +1,44 @@
+{
+  "name": "grasseye-local-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GrassEye phase-three real-platform local workbench",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/src/app/server.js",
+    "launch": "node scripts/startup/launch-grasseye.mjs",
+    "start:local": "node scripts/startup/launch-grasseye.mjs",
+    "dev": "tsx src/app/server.ts",
+    "audit:build": "tsx scripts/audit/build-audit-artifacts.ts",
+    "audit": "tsx scripts/audit/runner.ts",
+    "verify:local-browser-session": "node scripts/verify/verify-local-browser-session.mjs",
+    "verify:local-persistence-schema": "node scripts/verify/verify-local-persistence-schema.mjs",
+    "verify:visual-only-runtime": "node scripts/verify/verify-visual-only-runtime.mjs",
+    "verify:visual-action-capability": "node scripts/verify/verify-visual-action-capability.mjs",
+    "verify:structured-logging": "npm run build && node scripts/verify/verify-structured-logging.mjs",
+    "verify:evidence-packet": "node scripts/verify/verify-evidence-packet.mjs",
+    "verify:browse-flow": "node scripts/verify/verify-browse-flow.mjs",
+    "verify:multi-frame-evidence": "node scripts/verify/verify-multi-frame-evidence.mjs",
+    "verify:browse-live-proof": "npm run build && node scripts/verify/verify-browse-live-proof.mjs",
+    "verify:coordinate": "node scripts/verify/verify-coordinate-mode.mjs",
+    "verify:delivery": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/verify/verify-delivery.mjs",
+    "verify:phase3": "npm run typecheck && npm run verify:visual-only-runtime && npm run verify:structured-logging && npm run verify:local-browser-session && npm run verify:local-persistence-schema && npm run verify:visual-action-capability && npm run verify:multi-frame-evidence && npm run audit:build && npm run audit && npm run verify:evidence-packet && npm run verify:browse-flow && npm run verify:browse-live-proof && npm run verify:coordinate && npm run verify:delivery",
+    "ci:full": "npm run typecheck && npm run verify:visual-only-runtime && npm run verify:structured-logging && npm run verify:local-browser-session && npm run verify:local-persistence-schema && npm run verify:visual-action-capability && npm run verify:multi-frame-evidence && npm run audit:build && npm run audit",
+    "lint": "npm run typecheck"
+  },
+  "dependencies": {
+    "playwright": "^1.59.1",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "ts-morph": "^28.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "phase": "phase-02-local-workbench",
+  "activeCapabilityDomains": [
+    "audit-system",
+    "code-purity",
+    "code-topology",
+    "type-safety",
+    "security-privacy",
+    "local-browser-session",
+    "local-app-shell",
+    "localization",
+    "local-ai-runtime",
+    "agent-runtime",
+    "agent-browse-flow",
+    "evidence-packet",
+    "multi-frame-evidence",
+    "platform-action",
+    "visual-action-capability",
+    "vision-boundary",
+    "comment-intelligence",
+    "product-signal",
+    "structured-logging",
+    "local-persistence-schema",
+    "local-data",
+    "operator-control",
+    "visual-only-runtime"
+  ]
+}

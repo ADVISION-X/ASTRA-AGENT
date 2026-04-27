@@ -1,0 +1,18 @@
+{
+  "inspectorId": "localization-owner",
+  "capabilityDomain": "localization",
+  "owner": true,
+  "entry": "scripts/audit/domains/localization/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-LOCALIZATION-001-V1",
+    "GRASSEYE-LOCALIZATION-002-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-localization.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 本地化施工图.md"
+  ]
+}

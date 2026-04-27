@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "phase": "phase-03",
+  "executionPosture": "local-only",
+  "allowCloudFallback": false,
+  "allowPaidApi": false,
+  "allowMockForAcceptance": false,
+  "roles": {
+    "vision": {
+      "role": "vision",
+      "provider": "local",
+      "runtime": "ollama",
+      "model": "qwen2.5vl:3b",
+      "executionMode": "local-only",
+      "promptVersion": "v1",
+      "schemaVersion": "vision.productPresence.schema.v1",
+      "failureBehavior": "operatorReview",
+      "requiredForPhase": "phase-03",
+      "allowMock": false,
+      "allowCloudFallback": false
+    },
+    "ocr": {
+      "role": "ocr",
+      "provider": "local",
+      "runtime": "local-ocr",
+      "model": "apple-vision-or-paddleocr",
+      "executionMode": "local-only",
+      "promptVersion": "comments.ocr_cleanup.v1",
+      "schemaVersion": "ocr-text.v1",
+      "failureBehavior": "operatorReview",
+      "requiredForPhase": "phase-03",
+      "allowMock": false,
+      "allowCloudFallback": false
+    },
+    "commentUnderstanding": {
+      "role": "commentUnderstanding",
+      "provider": "local",
+      "runtime": "ollama",
+      "model": "qwen2.5:3b",
+      "executionMode": "local-only",
+      "promptVersion": "comments.intent_analysis.v1",
+      "schemaVersion": "comment-signal.v1",
+      "failureBehavior": "operatorReview",
+      "requiredForPhase": "phase-03",
+      "allowMock": false,
+      "allowCloudFallback": false
+    },
+    "productSignal": {
+      "role": "productSignal",
+      "provider": "local",
+      "runtime": "ollama",
+      "model": "qwen2.5:3b",
+      "executionMode": "local-only",
+      "promptVersion": "product.signal_summary.v1",
+      "schemaVersion": "product-opportunity-candidate.v1",
+      "failureBehavior": "candidateReview",
+      "requiredForPhase": "phase-03",
+      "allowMock": false,
+      "allowCloudFallback": false
+    }
+  }
+}
