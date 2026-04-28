@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrassEye Agent Workbench — Agent 取证驾驶舱</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0f1117;
+  --bg2:       #161b25;
+  --bg3:       #1e2535;
+  --bg4:       #252d3f;
+  --border:    #2c3650;
+  --border2:   #3a4a68;
+  --text:      #c9d1e0;
+  --text2:     #8898b8;
+  --text3:     #5a6a88;
+  --accent:    #3d8ef0;
+  --accent2:   #1e5db8;
+  --green:     #22c55e;
+  --yellow:    #f59e0b;
+  --red:       #ef4444;
+  --orange:    #f97316;
+  --purple:    #a855f7;
+  --teal:      #14b8a6;
+  --font:      'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --font2:     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --radius:    4px;
+  --radius2:   6px;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font2); font-size: 13px; line-height: 1.5; overflow-x: hidden; }
+a { color: var(--accent); text-decoration: none; }
+code { font-family: var(--font); font-size: 11px; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ===== LAYOUT ===== */
+.layout-root {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 268px 1fr 268px;
+  grid-template-areas:
+    "header  header  header"
+    "sidebar main    kpi"
+    "logbar  logbar  logbar";
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+  grid-area: header;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 52px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.header-brand { display: flex; flex-direction: column; flex-shrink: 0; }
+.header-brand .name { font-size: 14px; font-weight: 700; color: #e2e8f0; letter-spacing: 0.03em; }
+.header-brand .sub  { font-size: 10px; color: var(--text3); }
+.header-divider { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+.status-block { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  font-family: var(--font);
+}
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-running  { background: rgba(34,197,94,0.12);  color: var(--green);  }
+.badge-paused   { background: rgba(245,158,11,0.12); color: var(--yellow); }
+.badge-review   { background: rgba(239,68,68,0.12);  color: var(--red);    }
+.badge-stopped  { background: rgba(90,106,136,0.18); color: var(--text2);  }
+.badge-ok       { background: rgba(34,197,94,0.10);  color: var(--green);  }
+.badge-error    { background: rgba(239,68,68,0.10);  color: var(--red);    }
+.badge-warn     { background: rgba(245,158,11,0.10); color: var(--yellow); }
+.badge-info     { background: rgba(61,142,240,0.12); color: var(--accent); }
+.badge-dim      { background: rgba(90,106,136,0.14); color: var(--text3);  }
+.meta-group { display: flex; align-items: center; gap: 12px; }
+.meta-item { display: flex; flex-direction: column; }
+.meta-item .label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.meta-item .value { font-family: var(--font); font-size: 11px; color: var(--text2); }
+.header-actions { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
+button {
+  padding: 5px 11px; border-radius: var(--radius); border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text); font-size: 12px; cursor: pointer;
+  font-family: var(--font2); transition: background 0.15s;
+}
+button:hover { background: var(--bg4); }
+button.btn-primary { background: var(--accent2); border-color: var(--accent); color: #fff; }
+button.btn-primary:hover { background: var(--accent); }
+button.btn-danger  { background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red); }
+button.btn-warn    { background: rgba(245,158,11,0.10); border-color: var(--yellow); color: var(--yellow); }
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== MAIN ===== */
+.main {
+  grid-area: main;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== KPI COL ===== */
+.kpi-col {
+  grid-area: kpi;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== LOG BAR ===== */
+.logbar {
+  grid-area: logbar;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 210px;
+}
+.logbar-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logbar-header .title { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; }
+.filter-chips { display: flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto; }
+.chip {
+  padding: 2px 8px; border-radius: 12px; font-size: 10px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text2);
+  white-space: nowrap; transition: all 0.12s;
+}
+.chip.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+.log-stream {
+  flex: 1; overflow-y: auto; padding: 5px 12px;
+  font-family: var(--font); font-size: 11px; line-height: 1.65;
+}
+.log-row { display: flex; gap: 8px; align-items: flex-start; padding: 1px 0; border-bottom: 1px solid rgba(44,54,80,0.35); }
+.log-row:last-child { border-bottom: none; }
+.log-row .ts    { color: var(--text3); flex-shrink: 0; width: 64px; }
+.log-row .lt    { flex-shrink: 0; width: 76px; }
+.log-row .rid   { color: var(--purple); flex-shrink: 0; width: 58px; }
+.log-row .step  { color: var(--teal); flex-shrink: 0; width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-row .msg   { color: var(--text3); flex: 1; }
+.log-row .res   { flex-shrink: 0; width: 55px; text-align: right; }
+.log-type-runtime  { color: var(--accent); }
+.log-type-action   { color: var(--orange); }
+.log-type-ai       { color: var(--purple); }
+.log-type-evidence { color: var(--teal); }
+.log-type-review   { color: var(--yellow); }
+.log-type-error    { color: var(--red); }
+.result-ok   { color: var(--green); }
+.result-fail { color: var(--red); }
+.result-skip { color: var(--text3); }
+
+/* ===== CARD ===== */
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 9px 11px;
+}
+.card-title {
+  font-size: 10px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 7px; display: flex; align-items: center; gap: 6px;
+}
+.card-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+/* ===== PLATFORM LIST ===== */
+.platform-item {
+  padding: 5px 7px; border-radius: var(--radius); border: 1px solid transparent;
+  cursor: pointer; display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px;
+  transition: all 0.12s; opacity: 1;
+}
+.platform-item.disabled { opacity: 0.55; cursor: default; }
+.platform-item.active { border-color: var(--accent); background: rgba(61,142,240,0.08); }
+.platform-item:not(.disabled):hover { background: var(--bg4); }
+.platform-name { font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+.platform-caps { display: flex; gap: 4px; flex-wrap: wrap; }
+.cap-tag {
+  font-size: 9px; padding: 1px 5px; border-radius: 3px;
+  background: var(--bg4); color: var(--text3); border: 1px solid var(--border);
+}
+.cap-tag.ok  { color: var(--green);  background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); }
+.cap-tag.off { color: var(--text3);  background: var(--bg4); }
+.cap-tag.future { color: var(--text3); background: var(--bg4); font-style: italic; }
+
+/* ===== FIELD ROWS ===== */
+.field-row { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; padding: 2px 0; }
+.field-label { font-size: 10px; color: var(--text3); flex-shrink: 0; }
+.field-value { font-family: var(--font); font-size: 11px; color: var(--text2); text-align: right; word-break: break-all; }
+.field-value.green  { color: var(--green); }
+.field-value.yellow { color: var(--yellow); }
+.field-value.red    { color: var(--red); }
+.field-value.accent { color: var(--accent); }
+.field-value.purple { color: var(--purple); }
+
+/* ===== FRAME CARDS ===== */
+.frame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.frame-card { border: 1px solid var(--border); border-radius: var(--radius2); background: var(--bg4); overflow: hidden; }
+.frame-thumb {
+  width: 100%; aspect-ratio: 9/16; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text3); position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.frame-thumb .placeholder-icon { font-size: 22px; opacity: 0.13; }
+.frame-label {
+  position: absolute; top: 4px; left: 4px;
+  background: rgba(0,0,0,0.7); color: var(--text2);
+  font-size: 9px; padding: 1px 5px; border-radius: 3px;
+}
+.frame-meta { padding: 5px 7px; display: flex; flex-direction: column; gap: 2px; }
+.frame-meta .row { display: flex; justify-content: space-between; font-size: 9px; }
+.frame-meta .row .k { color: var(--text3); }
+.frame-meta .row .v { font-family: var(--font); color: var(--text2); }
+
+/* ===== CONTACT SHEET ===== */
+.contact-sheet {
+  width: 100%; aspect-ratio: 16/4.5;
+  background: var(--bg); border: 1px dashed var(--border2);
+  border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.cs-frames { display: flex; gap: 6px; padding: 6px; height: 100%; align-items: center; }
+.cs-frame {
+  flex: 1; height: 90%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 9px; color: var(--text3);
+}
+.cs-frame span { font-size: 10px; opacity: 0.3; }
+.cs-badge {
+  position: absolute; top: 5px; right: 8px;
+  font-size: 9px; font-family: var(--font); color: var(--teal);
+  background: rgba(20,184,166,0.1); padding: 1px 6px; border-radius: 3px;
+}
+
+/* ===== ACTION CARDS ===== */
+.action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.action-card {
+  border: 1px solid var(--border); border-radius: var(--radius2);
+  background: var(--bg4); padding: 7px 9px;
+}
+.action-card.status-ready   { border-left: 3px solid var(--green); }
+.action-card.status-success { border-left: 3px solid var(--teal);  }
+.action-card.status-blocked { border-left: 3px solid var(--text3); opacity: 0.7; }
+.action-card.status-failed  { border-left: 3px solid var(--red);   }
+.action-type { font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.action-meta { display: flex; flex-direction: column; gap: 2px; }
+.action-meta .row { display: flex; justify-content: space-between; font-size: 9px; }
+.action-meta .row .k { color: var(--text3); }
+.action-meta .row .v { font-family: var(--font); color: var(--text2); }
+
+/* ===== KPI CARD ===== */
+.kpi-card {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2);
+  padding: 7px 9px; display: flex; flex-direction: column; gap: 2px;
+}
+.kpi-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+.kpi-value { font-family: var(--font); font-size: 19px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.kpi-value.green  { color: var(--green);  }
+.kpi-value.yellow { color: var(--yellow); }
+.kpi-value.red    { color: var(--red);    }
+.kpi-value.accent { color: var(--accent); }
+.kpi-sub { font-size: 9px; color: var(--text3); font-family: var(--font); }
+.pct-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 2px; }
+.pct-bar .fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+/* ===== REVIEW ITEMS ===== */
+.review-item {
+  border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius2);
+  background: rgba(239,68,68,0.04); padding: 7px 9px; margin-bottom: 6px;
+}
+.review-item .ri-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 4px; }
+.review-item .ri-type { font-family: var(--font); font-size: 11px; font-weight: 700; color: var(--red); }
+.review-item .ri-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.review-item .ri-actions button { padding: 2px 8px; font-size: 10px; }
+.review-item .ri-meta { display: flex; flex-direction: column; gap: 2px; }
+.review-item .ri-meta .row { font-size: 10px; display: flex; gap: 6px; }
+.review-item .ri-meta .row .k { color: var(--text3); flex-shrink: 0; }
+.review-item .ri-meta .row .v { color: var(--text2); font-family: var(--font); }
+.review-item .ri-suggestion { font-size: 10px; color: var(--yellow); margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(245,158,11,0.15); }
+.review-item .ri-caution { font-size: 9px; color: var(--text3); font-family: var(--font); margin-top: 2px; }
+
+/* ===== TABS ===== */
+.tabs-container { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius2); overflow: hidden; }
+.tabs-nav { display: flex; border-bottom: 1px solid var(--border); background: var(--bg3); overflow-x: auto; }
+.tab-btn {
+  padding: 7px 13px; font-size: 11px; font-weight: 600; color: var(--text3);
+  border: none; background: transparent; cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: all 0.12s; font-family: var(--font2);
+}
+.tab-btn:hover { color: var(--text); background: var(--bg4); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg2); }
+.tab-pane { display: none; padding: 10px; }
+.tab-pane.active { display: block; }
+
+/* ===== TABLE ===== */
+.data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.data-table th {
+  text-align: left; padding: 5px 8px;
+  background: var(--bg3); color: var(--text3);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em;
+  border-bottom: 1px solid var(--border); white-space: nowrap; font-weight: 600;
+}
+.data-table td {
+  padding: 5px 8px; border-bottom: 1px solid rgba(44,54,80,0.5);
+  color: var(--text2); font-family: var(--font); vertical-align: top;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ===== STEP BAR ===== */
+.step-bar {
+  background: var(--bg4); border: 1px solid var(--border2); border-radius: var(--radius2);
+  padding: 7px 11px; display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+}
+.step-item { display: flex; flex-direction: column; gap: 1px; }
+.step-item .sl { font-size: 9px; color: var(--text3); text-transform: uppercase; }
+.step-item .sv { font-family: var(--font); font-size: 12px; color: var(--text); }
+
+/* ===== SECTION HEADING ===== */
+.section-heading {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 0 0 5px 0; border-bottom: 1px solid var(--border); margin-bottom: 7px;
+  display: flex; align-items: center; gap: 6px;
+}
+.section-heading .accent { color: var(--accent); }
+
+/* ===== VISUAL ONLY BANNER ===== */
+.vo-banner {
+  background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25);
+  border-radius: var(--radius); padding: 5px 10px;
+  font-size: 10px; color: var(--purple); font-family: var(--font);
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ===== GUARANTEE STRIP ===== */
+.guarantee-strip { display: flex; gap: 5px; flex-wrap: wrap; padding: 5px 0; }
+.guarantee-tag {
+  font-size: 9px; font-family: var(--font);
+  padding: 2px 7px; border-radius: 3px;
+  border: 1px solid rgba(61,142,240,0.25);
+  color: var(--accent); background: rgba(61,142,240,0.06);
+}
+
+/* ===== TOGGLE ===== */
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+.toggle-label { font-size: 10px; color: var(--text2); }
+.toggle-switch {
+  width: 28px; height: 15px; border-radius: 8px; background: var(--border2);
+  position: relative; cursor: pointer; flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--accent2); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: 0.15s;
+}
+.toggle-switch.on::after { left: 15px; }
+
+/* ===== INPUTS ===== */
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=number] {
+  background: var(--bg4); border: 1px solid var(--border); color: var(--text2);
+  border-radius: var(--radius); padding: 3px 6px; font-size: 11px; font-family: var(--font2);
+  width: 60px; text-align: right;
+}
+
+/* ===== EXPORT PANEL ===== */
+.export-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.export-row:last-child { border-bottom: none; }
+.export-row .el { font-size: 10px; color: var(--text3); flex: 1; }
+.export-row .ev { font-family: var(--font); font-size: 11px; color: var(--text2); }
+
+/* ===== INFO NOTICE ===== */
+.info-notice {
+  font-size: 9px; color: var(--text3); font-family: var(--font);
+  padding: 3px 8px; background: rgba(90,106,136,0.1); border-radius: 3px;
+  border: 1px solid rgba(90,106,136,0.2);
+}
+
+/* ===== RUNTIME PROOF CHAIN ===== */
+.proof-chain { display: flex; flex-direction: column; gap: 3px; }
+.proof-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 8px; border-radius: 3px; font-size: 10px; font-family: var(--font);
+}
+.proof-step.done    { color: var(--text2); background: rgba(34,197,94,0.05); }
+.proof-step.pending { color: var(--yellow); background: rgba(245,158,11,0.06); }
+.proof-step.failed  { color: var(--red);    background: rgba(239,68,68,0.06); }
+.proof-step.skipped { color: var(--text3);  background: transparent; }
+.proof-icon { flex-shrink: 0; width: 14px; text-align: center; }
+.proof-ts   { color: var(--text3); font-size: 9px; margin-left: auto; }
+.proof-eid  { color: var(--text3); font-size: 9px; margin-left: 6px; }
+
+/* ===== LOCAL PERSISTENCE ===== */
+.persist-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 10px; }
+.persist-row .pk { color: var(--text3); }
+.persist-row .pv { font-family: var(--font); font-size: 10px; }
+.pv-ok   { color: var(--green); }
+.pv-warn { color: var(--yellow); }
+.pv-err  { color: var(--red); }
+
+/* ===== DEMO STATE BAR ===== */
+.demo-state-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(61,142,240,0.06); border: 1px solid rgba(61,142,240,0.2);
+  border-radius: var(--radius2); padding: 5px 10px;
+}
+.demo-state-bar .dsl { font-size: 10px; color: var(--text3); flex-shrink: 0; }
+.demo-btn {
+  padding: 3px 10px; border-radius: 12px; font-size: 10px; font-family: var(--font2);
+  border: 1px solid var(--border); background: var(--bg3); color: var(--text2); cursor: pointer;
+  transition: all 0.12s;
+}
+.demo-btn.active { background: var(--accent2); border-color: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<div class="layout-root">
+
+<!-- ============================================================ HEADER -->
+<header class="header">
+  <div class="header-brand">
+    <span class="name">GrassEye Agent Workbench</span>
+    <span class="sub">Agent 取证驾驶舱 · Phase 03 · Visual Only Runtime</span>
+  </div>
+  <div class="header-divider"></div>
+  <div class="status-block">
+    <span class="badge badge-running" id="runtime-status-badge">Running</span>
+  </div>
+  <div class="header-divider"></div>
+  <div class="meta-group">
+    <div class="meta-item">
+      <span class="label">Session</span>
+      <span class="value">sess_a3f7e1c</span>
+    </div>
+    <div class="meta-item">
+      <span class="label">Round</span>
+      <span class="value" id="hdr-round">rnd_041</span>
+    </div>
+    <div class="meta-item">
+      <span class="label">Platform</span>
+      <span class="value">TikTok Web</span>
+    </div>
+    <div class="meta-item">
+      <span class="label">Elapsed</span>
+      <span class="value" id="elapsed">00:18:32</span>
+    </div>
+    <div class="meta-item">
+      <span class="label">Videos Seen</span>
+      <span class="value">46 / 200</span>
+    </div>
+  </div>
+  <div class="header-divider"></div>
+  <div class="header-actions">
+    <button class="btn-primary" onclick="setStatus('running')">▶ Start Run</button>
+    <button class="btn-warn" onclick="setStatus('paused')">⏸ Pause</button>
+    <button class="btn-danger" onclick="setStatus('stopped')">■ Stop</button>
+    <div class="header-divider"></div>
+    <button onclick="alert('Open Chrome — prototype only')">⎈ Open Chrome</button>
+    <button onclick="alert('Check Login — prototype only')">⚑ Check Login</button>
+  </div>
+</header>
+
+<!-- ============================================================ SIDEBAR -->
+<aside class="sidebar">
+
+  <!-- Platform Selection -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Platform Selection</div>
+    <div>
+      <div class="platform-item active" onclick="selectPlatform(this)">
+        <div class="platform-name">TikTok Web <span class="badge badge-running" style="font-size:9px">Active · Current Target</span></div>
+        <div class="platform-caps">
+          <span class="cap-tag ok">adapter ready</span>
+          <span class="cap-tag ok">visual-action verified</span>
+          <span class="cap-tag ok">comments verified</span>
+          <span class="cap-tag ok">next-video verified</span>
+          <span class="cap-tag ok">login logged_in</span>
+        </div>
+      </div>
+      <div class="platform-item disabled">
+        <div class="platform-name">Facebook Reels <span class="badge badge-dim" style="font-size:9px">Future / Not Implemented</span></div>
+        <div class="platform-caps">
+          <span class="cap-tag future">adapter not_ready</span>
+          <span class="cap-tag future">visual-action not_verified</span>
+          <span class="cap-tag future">comments not_verified</span>
+          <span class="cap-tag future">next-video not_verified</span>
+          <span class="cap-tag future">login unknown</span>
+        </div>
+      </div>
+      <div class="platform-item disabled">
+        <div class="platform-name">YouTube Shorts <span class="badge badge-dim" style="font-size:9px">Future / Not Implemented</span></div>
+        <div class="platform-caps">
+          <span class="cap-tag future">adapter not_ready</span>
+          <span class="cap-tag future">visual-action not_verified</span>
+          <span class="cap-tag future">comments not_verified</span>
+          <span class="cap-tag future">next-video not_verified</span>
+          <span class="cap-tag future">login unknown</span>
+        </div>
+      </div>
+      <div class="platform-item disabled">
+        <div class="platform-name">Custom URL <span class="badge badge-dim" style="font-size:9px">Experimental / Disabled</span></div>
+        <div class="platform-caps">
+          <span class="cap-tag off">adapter—</span>
+          <span class="cap-tag off">visual-action—</span>
+          <span class="cap-tag off">comments—</span>
+          <span class="cap-tag off">next-video—</span>
+          <span class="cap-tag off">login—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser Session -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--green)"></span>Browser Session</div>
+    <div class="field-row"><span class="field-label">Browser Mode</span><span class="field-value accent">Real Chrome Persistent Profile</span></div>
+    <div class="field-row"><span class="field-label">Profile Ref</span><span class="field-value">grasseye-profile-01</span></div>
+    <div class="field-row"><span class="field-label">Profile Status</span><span class="field-value green">ready</span></div>
+    <div class="field-row"><span class="field-label">Login State</span><span class="field-value green">logged_in</span></div>
+    <div class="field-row"><span class="field-label">Last Login Check</span><span class="field-value">2026-04-28 09:43</span></div>
+    <div class="field-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px">
+      <span class="field-label" style="color:var(--text3);font-size:9px">⚠ No cookie / session / token display</span>
+    </div>
+  </div>
+
+  <!-- Local AI -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Local AI</div>
+    <div class="field-row"><span class="field-label">Vision Model</span><span class="field-value green">moondream2 · ready</span></div>
+    <div class="field-row"><span class="field-label">OCR Status</span><span class="field-value green">tesseract-wasm · ready</span></div>
+    <div class="field-row"><span class="field-label">Comment Understanding</span><span class="field-value green">llama3-8b · ready</span></div>
+    <div class="field-row"><span class="field-label">Presence Prompt Ver</span><span class="field-value">v1.4.2</span></div>
+    <div class="field-row"><span class="field-label">Local AI Health</span><span class="field-value green">healthy</span></div>
+    <div class="info-notice" style="margin-top:6px">Local AI Only · No cloud AI fallback</div>
+  </div>
+
+  <!-- Run Settings -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--yellow)"></span>Run Settings</div>
+    <div class="field-row">
+      <span class="field-label">Max Videos</span>
+      <input type="number" value="200">
+    </div>
+    <div class="field-row">
+      <span class="field-label">Max Minutes</span>
+      <input type="number" value="60">
+    </div>
+    <div class="field-row">
+      <span class="field-label">Confidence Threshold</span>
+      <span class="field-value green">0.75 <span style="color:var(--text3);font-size:9px">(default)</span></span>
+    </div>
+    <div style="padding:3px 0">
+      <input type="range" min="0" max="100" value="75" title="Product Confidence Threshold: 0.75 default">
+    </div>
+    <div class="field-row"><span class="field-label">Multi-frame Sampling</span><span class="field-value">3s / 6s / 10s</span></div>
+    <div class="field-row"><span class="field-label">maxCommentScreenshots</span><span class="field-value">3</span></div>
+    <div class="field-row"><span class="field-label">maxVisibleComments</span><span class="field-value">20</span></div>
+    <div class="toggle-row" style="margin-top:4px">
+      <span class="toggle-label">Allow Like/Save Marker</span>
+      <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Allow Not Interested</span>
+      <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+    </div>
+  </div>
+
+  <!-- Local Persistence Status -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Local Persistence</div>
+    <div class="persist-row"><span class="pk">SQLite Store</span><span class="pv pv-ok">connected</span></div>
+    <div class="persist-row"><span class="pk">Evidence Store</span><span class="pv pv-ok">writable</span></div>
+    <div class="persist-row"><span class="pk">Browser Profile</span><span class="pv pv-ok">separated</span></div>
+    <div class="persist-row"><span class="pk">Export Store</span><span class="pv pv-ok">ready</span></div>
+    <div class="persist-row"><span class="pk">.gitignore Protection</span><span class="pv pv-ok">active</span></div>
+    <div class="persist-row" style="margin-top:3px;padding-top:3px;border-top:1px solid var(--border)">
+      <span class="pk" style="font-size:9px">.grasseye-local/evidence/</span>
+    </div>
+  </div>
+
+  <!-- Runtime Guarantees -->
+  <div class="card" style="padding:8px 10px">
+    <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Runtime Guarantees</div>
+    <div class="guarantee-strip">
+      <span class="guarantee-tag">Visual Only Runtime</span>
+      <span class="guarantee-tag">Real Chrome Persistent Profile</span>
+      <span class="guarantee-tag">Local AI Only</span>
+      <span class="guarantee-tag">No DOM/BOM page reading</span>
+      <span class="guarantee-tag">No cookie export</span>
+      <span class="guarantee-tag">No cloud AI fallback</span>
+      <span class="guarantee-tag">No final product decision by Agent</span>
+      <span class="guarantee-tag">Browse Ledger for non-product videos</span>
+      <span class="guarantee-tag">Evidence Packet for product videos</span>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ============================================================ MAIN -->
+<main class="main">
+
+  <!-- Demo State Switcher -->
+  <div class="demo-state-bar">
+    <span class="dsl">Demo State:</span>
+    <button class="demo-btn active" onclick="loadDemoState('product_no', this)">product_no path</button>
+    <button class="demo-btn" onclick="loadDemoState('product_yes', this)">product_yes path</button>
+    <button class="demo-btn" onclick="loadDemoState('uncertain', this)">uncertain path</button>
+    <span style="margin-left:auto;font-size:9px;color:var(--text3);font-family:var(--font)">Prototype only — each state is logically self-consistent</span>
+  </div>
+
+  <!-- Runtime Proof Chain -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Runtime Proof Chain · <span id="proof-round" style="font-family:var(--font);color:var(--purple)">rnd_041</span></div>
+    <div class="proof-chain" id="proof-chain"><!-- injected by JS --></div>
+  </div>
+
+  <!-- Current Round / Step -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>Current Round · <span id="round-id" style="font-family:var(--font);color:var(--purple)">rnd_041</span></div>
+    <div class="step-bar" id="round-step-bar"><!-- injected by JS --></div>
+  </div>
+
+  <!-- Multi-frame Evidence -->
+  <div class="card">
+    <div class="section-heading"><span class="accent">Multi-frame Evidence</span> · inputMode: multi_frame_contact_sheet</div>
+    <div class="frame-grid" id="frame-grid"><!-- injected by JS --></div>
+
+    <!-- Contact Sheet Preview -->
+    <div style="margin-top:9px">
+      <div class="field-label" style="margin-bottom:4px">Contact Sheet Preview</div>
+      <div class="contact-sheet">
+        <div class="cs-frames" id="cs-frames"><!-- injected by JS --></div>
+        <span class="cs-badge" id="cs-badge">validFrameCount: 3 / 3 · complete</span>
+      </div>
+    </div>
+
+    <!-- AI Product Presence -->
+    <div style="margin-top:9px">
+      <div class="section-heading">AI Product Presence</div>
+      <div class="step-bar" id="ai-presence-bar" style="background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.2)"><!-- injected by JS --></div>
+    </div>
+  </div>
+
+  <!-- Visual Action Capability Panel -->
+  <div class="card">
+    <div class="section-heading"><span class="accent">Visual Action Capability</span></div>
+    <div class="vo-banner" style="margin-bottom:8px">
+      ⬡ Visual Only Runtime &nbsp;·&nbsp; No DOM/BOM page reading &nbsp;·&nbsp; No selector primary path &nbsp;·&nbsp; Coordinate action via bounding box geometry
+    </div>
+
+    <!-- Visual Target -->
+    <div style="margin-bottom:8px">
+      <div class="field-label" style="margin-bottom:4px;font-size:10px;color:var(--text2)">Visual Target · Current</div>
+      <div class="step-bar" id="visual-target-bar"><!-- injected by JS --></div>
+    </div>
+
+    <div class="action-grid" id="action-grid"><!-- injected by JS --></div>
+  </div>
+
+  <!-- Data Records Tabs -->
+  <div class="tabs-container">
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab(event,'tab-evidence-packets')">Evidence Packets</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-browse-ledger')">Browse Ledger</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-action-logs')">Action Logs</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-ai-results')">AI Results</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-evidence-files')">Evidence Files</button>
+      <button class="tab-btn" onclick="switchTab(event,'tab-export-sets')">Export Sets</button>
+    </div>
+
+    <!-- Tab 1: Evidence Packets -->
+    <div id="tab-evidence-packets" class="tab-pane active">
+      <div class="info-notice" style="margin-bottom:7px">Evidence Packet for product videos · product_yes_high_confidence only · ≥ 0.75</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>packetId</th><th>roundId</th><th>videoVisitId</th><th>sourceUrl</th>
+            <th>decision</th><th>confidence</th><th>candidateType</th>
+            <th>dataQualityFlags</th><th>exportIncluded</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>pkt_0031</td><td>rnd_031</td><td>vv_0031</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">tiktok.com/@…/video/7381…</td>
+            <td><span class="badge badge-ok">product_yes</span></td>
+            <td style="color:var(--green)">0.93</td><td>physical_product</td>
+            <td style="color:var(--green)">clean</td><td style="color:var(--green)">✓</td>
+          </tr>
+          <tr>
+            <td>pkt_0028</td><td>rnd_028</td><td>vv_0028</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">tiktok.com/@…/video/7378…</td>
+            <td><span class="badge badge-ok">product_yes</span></td>
+            <td style="color:var(--green)">0.87</td><td>physical_product</td>
+            <td style="color:var(--yellow)">partial_comment</td><td style="color:var(--green)">✓</td>
+          </tr>
+          <tr>
+            <td>pkt_0019</td><td>rnd_019</td><td>vv_0019</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">tiktok.com/@…/video/7369…</td>
+            <td><span class="badge badge-ok">product_yes</span></td>
+            <td style="color:var(--teal)">0.78</td><td>service_product</td>
+            <td style="color:var(--green)">clean</td><td style="color:var(--green)">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 2: Browse Ledger -->
+    <div id="tab-browse-ledger" class="tab-pane">
+      <div class="info-notice" style="margin-bottom:7px">Browse Ledger for non-product videos · Summary only · Not included in advanced AI feed by default · product_no_high_confidence: lightweightOnly=true</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ledgerEntryId</th><th>roundId</th><th>videoVisitId</th><th>browseOutcome</th>
+            <th>productPresence</th><th>confidence</th><th>skipReason</th><th>lightweightOnly</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>le_0041</td><td>rnd_041</td><td>vv_0041</td>
+            <td><span class="badge badge-dim">no_product</span></td>
+            <td>product_no</td><td style="color:var(--text2)">0.88</td><td>dance_content</td>
+            <td style="color:var(--teal)">true</td>
+          </tr>
+          <tr>
+            <td>le_0040</td><td>rnd_040</td><td>vv_0040</td>
+            <td><span class="badge badge-dim">no_product</span></td>
+            <td>product_no</td><td>0.12</td><td>lifestyle_only</td>
+            <td style="color:var(--teal)">true</td>
+          </tr>
+          <tr>
+            <td>le_0038</td><td>rnd_038</td><td>vv_0038</td>
+            <td><span class="badge badge-dim">no_product</span></td>
+            <td>product_no</td><td>0.08</td><td>talking_head</td>
+            <td style="color:var(--teal)">true</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text3)">le_0036_uncertain</td><td style="color:var(--text3)">rnd_036</td><td style="color:var(--text3)">vv_0036</td>
+            <td><span class="badge badge-warn">uncertain</span></td>
+            <td style="color:var(--yellow)">uncertain</td><td style="color:var(--yellow)">0.58</td>
+            <td style="color:var(--yellow)">operator_review_pending</td>
+            <td style="color:var(--teal)">true</td>
+          </tr>
+          <tr>
+            <td>le_0035</td><td>rnd_035</td><td>vv_0035</td>
+            <td><span class="badge badge-dim">no_product</span></td>
+            <td>product_no</td><td>0.17</td><td>talking_head</td>
+            <td style="color:var(--teal)">true</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="info-notice" style="margin-top:7px">⚠ Current round rnd_042 is <strong>pending_round</strong> — not yet finalized into Browse Ledger or Evidence Packet.</div>
+    </div>
+
+    <!-- Tab 3: Action Logs -->
+    <div id="tab-action-logs" class="tab-pane">
+      <table class="data-table">
+        <thead>
+          <tr><th>actionLogId</th><th>actionType</th><th>actionPurpose</th><th>targetType</th><th>result</th><th>failureReason</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>al_0041_05</td><td>scroll</td><td>continue_discovery</td><td>swipe_area</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0041_04</td><td>click</td><td>reduce_non_product_recommendations</td><td>not_interested_btn</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0041_02</td><td>wait</td><td>wait_for_video_stability</td><td>—</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0031_04</td><td>screenshot</td><td>collect_comment_evidence</td><td>comment_area</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0031_03</td><td>click</td><td>collect_comment_evidence</td><td>comments_button</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0031_02</td><td>click</td><td>recommendation_tuning_marker</td><td>like_button</td>
+            <td><span class="badge badge-ok">success</span></td><td>—</td>
+          </tr>
+          <tr>
+            <td>al_0039_03</td><td>click</td><td>reduce_non_product_recommendations</td><td>not_interested_btn</td>
+            <td><span class="badge badge-error">failed</span></td><td>visual_target_low_conf_0.41</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 4: AI Results -->
+    <div id="tab-ai-results" class="tab-pane">
+      <table class="data-table">
+        <thead>
+          <tr><th>aiResultId</th><th>taskType</th><th>inputMode</th><th>validFrameCount</th><th>confidence</th><th>mustReview</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ai_0041_01</td><td>product_presence</td><td>multi_frame_contact_sheet</td>
+            <td>3</td><td style="color:var(--text2)">0.88</td><td>false</td>
+          </tr>
+          <tr>
+            <td>ai_0031_01</td><td>product_presence</td><td>multi_frame_contact_sheet</td>
+            <td>3</td><td style="color:var(--green)">0.93</td><td>false</td>
+          </tr>
+          <tr>
+            <td>ai_0028_02</td><td>comment_understanding</td><td>ocr_text</td>
+            <td>—</td><td style="color:var(--teal)">0.82</td><td>false</td>
+          </tr>
+          <tr>
+            <td>ai_0028_01</td><td>product_presence</td><td>multi_frame_contact_sheet</td>
+            <td>3</td><td style="color:var(--green)">0.87</td><td>false</td>
+          </tr>
+          <tr>
+            <td>ai_0036_01</td><td>product_presence</td><td>multi_frame_contact_sheet</td>
+            <td>2</td><td style="color:var(--yellow)">0.58</td><td style="color:var(--yellow)">true</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 5: Evidence Files -->
+    <div id="tab-evidence-files" class="tab-pane">
+      <table class="data-table">
+        <thead>
+          <tr><th>evidenceId</th><th>evidenceType</th><th>storageRef</th><th>screenshotHash</th><th>width</th><th>height</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ev_0041_f3s</td><td>frame_screenshot</td><td>evidence/video-frames/0041/f3s.png</td><td>a3f1c8e2…</td><td>1280</td><td>720</td></tr>
+          <tr><td>ev_0041_f6s</td><td>frame_screenshot</td><td>evidence/video-frames/0041/f6s.png</td><td>b2d4f9a1…</td><td>1280</td><td>720</td></tr>
+          <tr><td>ev_0041_f10s</td><td>frame_screenshot</td><td>evidence/video-frames/0041/f10s.png</td><td>c7e3b2f4…</td><td>1280</td><td>720</td></tr>
+          <tr><td>ev_0041_cs</td><td>contact_sheet</td><td>evidence/contact-sheets/0041/contact-sheet.png</td><td>d9a1c4e6…</td><td>1280</td><td>480</td></tr>
+          <tr><td>ev_0031_cs</td><td>contact_sheet</td><td>evidence/contact-sheets/0031/contact-sheet.png</td><td>e4a7c1b9…</td><td>1280</td><td>480</td></tr>
+          <tr><td>ev_0031_pre_oc</td><td>action_pre</td><td>evidence/video-frames/0031/pre_oc.png</td><td>c9e2a4f7…</td><td>1280</td><td>720</td></tr>
+          <tr><td>ev_0031_post_oc</td><td>action_post</td><td>evidence/video-frames/0031/post_oc.png</td><td>d1f3b2e8…</td><td>1280</td><td>720</td></tr>
+          <tr><td>ev_0028_cmt_01</td><td>comment_screenshot</td><td>evidence/comment-screenshots/0028/comment-01.png</td><td>f2b8e3d1…</td><td>520</td><td>900</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tab 6: Export Sets -->
+    <div id="tab-export-sets" class="tab-pane">
+      <div class="info-notice" style="margin-bottom:7px">Browse Ledger 默认只作为 summary，不进入高级 AI 默认投喂明细。Evidence Packet export only.</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>exportId</th><th>packetCount</th><th>browseSummary</th><th>excludedBrowseLedgerByDefault</th><th>storageRef</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>exp_20260428_01</td><td>3</td><td>46 videos / 18 min</td>
+            <td style="color:var(--yellow)">true</td><td>exports/exp_20260428_01/</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Export Panel -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Export Panel · Current Export Set</div>
+    <div class="export-row">
+      <span class="el">Evidence Packets</span>
+      <span class="ev" style="color:var(--green)">3 packets ready</span>
+    </div>
+    <div class="export-row">
+      <span class="el">Browse Summary</span>
+      <span class="ev">46 videos, 18 min · Browse Ledger summary only</span>
+    </div>
+    <div class="export-row">
+      <span class="el">Note</span>
+      <span class="ev" style="color:var(--text3);font-size:9px">Browse Ledger 默认只作为 summary，不进入高级 AI 默认投喂明细</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-primary" onclick="alert('Export JSON — prototype only')">Export JSON</button>
+      <button onclick="alert('Export JSONL — prototype only')">Export JSONL</button>
+      <button onclick="alert('Export ZIP — prototype only')">Export ZIP</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ============================================================ KPI COL -->
+<aside class="kpi-col">
+
+  <div class="section-heading" style="border:none;padding:0;margin-bottom:2px">KPI Dashboard</div>
+
+  <div class="kpi-card">
+    <div class="kpi-label">Total Seen</div>
+    <div class="kpi-value accent">46</div>
+    <div class="kpi-sub">/ 200 target</div>
+    <div class="pct-bar"><div class="fill" style="width:23%"></div></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Product Packets</div>
+    <div class="kpi-value green">3</div>
+    <div class="kpi-sub">evidence packets created</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Browse Ledger</div>
+    <div class="kpi-value">43</div>
+    <div class="kpi-sub">non-product entries</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Product Rate</div>
+    <div class="kpi-value" style="font-size:18px;color:var(--teal)">6.5%</div>
+    <div class="kpi-sub">3 / 46 videos</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">AI Success %</div>
+    <div class="kpi-value green">95.7%</div>
+    <div class="kpi-sub">44 / 46 AI calls ok</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Multi-frame Valid %</div>
+    <div class="kpi-value green">87.0%</div>
+    <div class="kpi-sub">40 / 46 full sets</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Visual Target Success %</div>
+    <div class="kpi-value" style="color:var(--teal)">91.1%</div>
+    <div class="kpi-sub">41 / 45 targets found</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Coordinate Action Success %</div>
+    <div class="kpi-value" style="color:var(--teal)">88.9%</div>
+    <div class="kpi-sub">40 / 45 actions ok</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Scroll Next Success %</div>
+    <div class="kpi-value green">97.8%</div>
+    <div class="kpi-sub">45 / 46 scrolls ok</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Comment Capture %</div>
+    <div class="kpi-value" style="color:var(--teal)">66.7%</div>
+    <div class="kpi-sub">2 / 3 product rounds</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Review Required</div>
+    <div class="kpi-value yellow">2</div>
+    <div class="kpi-sub">pending operator action</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Local AI Unavailable</div>
+    <div class="kpi-value red">0</div>
+    <div class="kpi-sub">no fallback · local only</div>
+  </div>
+
+  <!-- Review Required Panel -->
+  <div style="margin-top:2px">
+    <div class="section-heading">Review Required <span class="badge badge-review" style="font-size:9px;margin-left:4px">2</span></div>
+
+    <div class="review-item">
+      <div class="ri-header">
+        <span class="ri-type">geometry_mismatch</span>
+        <div class="ri-actions">
+          <button class="btn-primary" style="padding:2px 7px;font-size:9px" onclick="alert('Mark Reviewed — prototype only')">Mark Reviewed</button>
+          <button style="padding:2px 7px;font-size:9px" onclick="alert('Skip Round — prototype only')">Skip Round</button>
+          <button class="btn-danger" style="padding:2px 7px;font-size:9px" onclick="alert('Stop Run — prototype only')">Stop Run</button>
+        </div>
+      </div>
+      <div class="ri-meta">
+        <div class="row"><span class="k">roundId</span><span class="v">rnd_039</span></div>
+        <div class="row"><span class="k">evidenceRef</span><span class="v">ev_0039_pre_click</span></div>
+        <div class="row"><span class="k">reason</span><span class="v">bounding box confidence 0.41 &lt; threshold 0.75</span></div>
+      </div>
+      <div class="ri-suggestion">⇒ Operator: verify geometry guard screenshot, adjust confidence threshold or skip round</div>
+      <div class="ri-caution">Resume only after operator confirmation</div>
+    </div>
+
+    <div class="review-item">
+      <div class="ri-header">
+        <span class="ri-type">visual_target_low_confidence</span>
+        <div class="ri-actions">
+          <button class="btn-primary" style="padding:2px 7px;font-size:9px" onclick="alert('Mark Reviewed — prototype only')">Mark Reviewed</button>
+          <button style="padding:2px 7px;font-size:9px" onclick="alert('Skip Round — prototype only')">Skip Round</button>
+          <button class="btn-danger" style="padding:2px 7px;font-size:9px" onclick="alert('Stop Run — prototype only')">Stop Run</button>
+        </div>
+      </div>
+      <div class="ri-meta">
+        <div class="row"><span class="k">roundId</span><span class="v">rnd_036</span></div>
+        <div class="row"><span class="k">evidenceRef</span><span class="v">evidence/video-frames/0036/f6s.png</span></div>
+        <div class="row"><span class="k">reason</span><span class="v">not_interested_btn target conf 0.38</span></div>
+      </div>
+      <div class="ri-suggestion">⇒ Operator: check if platform UI changed, review screenshot, update visual target catalog</div>
+      <div class="ri-caution">Resume only after operator confirmation</div>
+    </div>
+
+    <div style="padding:5px 0;font-size:9px;color:var(--text3)">
+      Other types: login_required · captcha_detected · local_ai_unavailable · scroll_next_failed — none triggered
+    </div>
+  </div>
+
+</aside>
+
+<!-- ============================================================ LOG BAR -->
+<footer class="logbar">
+  <div class="logbar-header">
+    <span class="title">Structured Log Stream</span>
+    <div class="filter-chips">
+      <span class="chip active" onclick="filterLog(event,'all')">All</span>
+      <span class="chip" onclick="filterLog(event,'runtime')">Runtime Events</span>
+      <span class="chip" onclick="filterLog(event,'action')">Action Logs</span>
+      <span class="chip" onclick="filterLog(event,'ai')">AI</span>
+      <span class="chip" onclick="filterLog(event,'evidence')">Evidence</span>
+      <span class="chip" onclick="filterLog(event,'review')">Review</span>
+      <span class="chip" onclick="filterLog(event,'error')">Errors</span>
+    </div>
+    <span style="margin-left:auto;font-size:9px;color:var(--text3);font-family:var(--font)">Structured logs prove runtime truth</span>
+  </div>
+  <div class="log-stream" id="log-stream"></div>
+</footer>
+
+</div><!-- end layout-root -->
+
+<script>
+// ============================================================
+// Static prototype — no real backend, no API, no DOM/BOM page reading
+// ============================================================
+
+// ---- Runtime status ----
+function setStatus(s) {
+  const badge = document.getElementById('runtime-status-badge');
+  const map = {
+    running: ['Running',         'badge-running'],
+    paused:  ['Paused',          'badge-paused'],
+    stopped: ['Stopped',         'badge-stopped'],
+    review:  ['Review Required', 'badge-review'],
+  };
+  badge.className = 'badge ' + map[s][1];
+  badge.textContent = map[s][0];
+}
+
+// ---- Platform select (TikTok only active) ----
+function selectPlatform(el) {
+  if (el.classList.contains('disabled')) return;
+  document.querySelectorAll('.platform-item').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ---- Tab switching ----
+function switchTab(ev, tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  ev.currentTarget.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ---- Log filter ----
+function filterLog(ev, type) {
+  document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+  ev.currentTarget.classList.add('active');
+  document.querySelectorAll('.log-row').forEach(r => {
+    r.style.display = (type === 'all' || r.dataset.type === type) ? '' : 'none';
+  });
+}
+
+// ============================================================
+// DEMO STATE DATA — Three logically self-consistent states
+// ============================================================
+const DEMO_STATES = {
+  product_no: {
+    round: 'rnd_041',
+    currentStep: 'finalize_browse_ledger_completed',
+    currentUrl: 'https://www.tiktok.com/@trending.dance/video/7380…',
+    videoVisitId: 'vv_0041',
+    geometryStatus: 'verified',
+    videoStable: 'stable',
+    productPresence: 'product_no',
+    presenceColor: 'var(--text2)',
+    confidence: '0.88',
+    nextStep: 'scroll_next_video',
+    nextColor: 'var(--teal)',
+    aiDecision: 'product_no',
+    aiDecisionColor: 'var(--text2)',
+    aiReason: 'No product visible. Dance / lifestyle content across all 3 frames.',
+    aiUncertainty: '—',
+    frames: [
+      { label:'Frame 3s', id:'ev_0041_f3s', hash:'a3f1c8e2…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 6s', id:'ev_0041_f6s', hash:'b2d4f9a1…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 10s',id:'ev_0041_f10s',hash:'c7e3b2f4…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+    ],
+    csFrames: 3, csLabel: 'validFrameCount: 3 / 3 · complete',
+    vtTarget: 'swipe_area', vtBB:'[0,600,1280,220]', vtClick:'(640,710)', vtConf:'0.95', vtConf_c:'var(--green)', vtSrc:'ev_0041_f6s', vtGuard:'pass', vtPolicy:'allowed', vtVerif:'screenshot_diff',
+    actions: [
+      { type:'open_comments',         status:'blocked',  badge:'badge-dim',   badgeTxt:'blocked',  purpose:'collect_comment_evidence',             conf:'—',   be:'—',                 ae:'—',                fail:'not_product_round' },
+      { type:'screenshot_comments',   status:'blocked',  badge:'badge-dim',   badgeTxt:'blocked',  purpose:'collect_comment_evidence',             conf:'—',   be:'—',                 ae:'—',                fail:'not_product_round' },
+      { type:'like_or_save_marker',   status:'blocked',  badge:'badge-dim',   badgeTxt:'blocked',  purpose:'recommendation_tuning_marker',         conf:'—',   be:'—',                 ae:'—',                fail:'product_no_decision' },
+      { type:'click_not_interested',  status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'reduce_non_product_recommendations',   conf:'0.89',be:'ev_0041_pre_ni',    ae:'ev_0041_post_ni',  fail:'—' },
+      { type:'scroll_next_video',     status:'ready',    badge:'badge-info',  badgeTxt:'ready',    purpose:'continue_discovery',                   conf:'0.95',be:'—',                 ae:'—',                fail:'—' },
+      { type:'wait_video_stable',     status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'wait_for_video_stability',             conf:'n/a', be:'—',                 ae:'ev_0041_stable',   fail:'—' },
+    ],
+    proofChain: [
+      { step:'open_target_page_completed',          done:true,  ts:'09:42:01', eid:'ev_0041_nav' },
+      { step:'detect_login_or_safety_completed',    done:true,  ts:'09:42:03', eid:'' },
+      { step:'wait_feed_ready_completed',           done:true,  ts:'09:42:05', eid:'' },
+      { step:'wait_video_stable_completed',         done:true,  ts:'09:42:07', eid:'ev_0041_stable' },
+      { step:'multi_frame_capture_completed',       done:true,  ts:'09:42:10', eid:'ev_0041_f3s,f6s,f10s' },
+      { step:'ask_ai_product_presence_completed',   done:true,  ts:'09:42:13', eid:'ai_0041_01' },
+      { step:'branch_decision_completed',           done:true,  ts:'09:42:13', eid:'product_no·0.88' },
+      { step:'finalize_browse_ledger_completed',    done:true,  ts:'09:42:14', eid:'le_0041' },
+      { step:'finalize_evidence_packet_completed',  done:false, ts:'—',        eid:'n/a (product_no)' },
+      { step:'scroll_next_video_completed',         done:false, ts:'—',        eid:'ready' },
+      { step:'next_video_wait_started',             done:false, ts:'—',        eid:'pending' },
+    ],
+  },
+
+  product_yes: {
+    round: 'rnd_031',
+    currentStep: 'finalize_evidence_packet_completed',
+    currentUrl: 'https://www.tiktok.com/@shop.trending/video/7381…',
+    videoVisitId: 'vv_0031',
+    geometryStatus: 'verified',
+    videoStable: 'stable',
+    productPresence: 'product_yes',
+    presenceColor: 'var(--green)',
+    confidence: '0.93',
+    nextStep: 'scroll_next_video',
+    nextColor: 'var(--teal)',
+    aiDecision: 'product_yes',
+    aiDecisionColor: 'var(--green)',
+    aiReason: 'Clear product visible in frame 3s and 6s: consumer electronics packaging, logo readable.',
+    aiUncertainty: '—',
+    frames: [
+      { label:'Frame 3s', id:'ev_0031_f3s', hash:'e3a1f9b2…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 6s', id:'ev_0031_f6s', hash:'f4b2e0c3…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 10s',id:'ev_0031_f10s',hash:'g5c3d1e4…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+    ],
+    csFrames: 3, csLabel: 'validFrameCount: 3 / 3 · complete',
+    vtTarget: 'comments_button', vtBB:'[820,641,64,64]', vtClick:'(852,673)', vtConf:'0.91', vtConf_c:'var(--green)', vtSrc:'ev_0031_f6s', vtGuard:'pass', vtPolicy:'allowed', vtVerif:'screenshot_diff',
+    actions: [
+      { type:'open_comments',         status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'collect_comment_evidence',             conf:'0.91',be:'ev_0031_pre_oc',    ae:'ev_0031_post_oc',  fail:'—' },
+      { type:'screenshot_comments',   status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'collect_comment_evidence',             conf:'0.87',be:'ev_0031_post_oc',   ae:'ev_0031_cmt_01',   fail:'—' },
+      { type:'like_or_save_marker',   status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'recommendation_tuning_marker',         conf:'0.83',be:'ev_0031_pre_like',  ae:'ev_0031_post_like',fail:'—' },
+      { type:'click_not_interested',  status:'blocked',  badge:'badge-dim',   badgeTxt:'blocked',  purpose:'reduce_non_product_recommendations',   conf:'—',   be:'—',                 ae:'—',                fail:'product_yes_decision' },
+      { type:'scroll_next_video',     status:'ready',    badge:'badge-info',  badgeTxt:'ready',    purpose:'continue_discovery',                   conf:'0.95',be:'—',                 ae:'—',                fail:'—' },
+      { type:'wait_video_stable',     status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'wait_for_video_stability',             conf:'n/a', be:'—',                 ae:'ev_0031_stable',   fail:'—' },
+    ],
+    proofChain: [
+      { step:'open_target_page_completed',          done:true,  ts:'09:38:01', eid:'ev_0031_nav' },
+      { step:'detect_login_or_safety_completed',    done:true,  ts:'09:38:03', eid:'' },
+      { step:'wait_feed_ready_completed',           done:true,  ts:'09:38:05', eid:'' },
+      { step:'wait_video_stable_completed',         done:true,  ts:'09:38:07', eid:'ev_0031_stable' },
+      { step:'multi_frame_capture_completed',       done:true,  ts:'09:38:10', eid:'ev_0031_f3s,f6s,f10s' },
+      { step:'ask_ai_product_presence_completed',   done:true,  ts:'09:38:13', eid:'ai_0031_01' },
+      { step:'branch_decision_completed',           done:true,  ts:'09:38:13', eid:'product_yes·0.93' },
+      { step:'finalize_browse_ledger_completed',    done:false, ts:'—',        eid:'n/a (product_yes)' },
+      { step:'finalize_evidence_packet_completed',  done:true,  ts:'09:38:22', eid:'pkt_0031' },
+      { step:'scroll_next_video_completed',         done:false, ts:'—',        eid:'ready' },
+      { step:'next_video_wait_started',             done:false, ts:'—',        eid:'pending' },
+    ],
+  },
+
+  uncertain: {
+    round: 'rnd_036',
+    currentStep: 'ask_ai_product_presence_completed',
+    currentUrl: 'https://www.tiktok.com/@creator.mixed/video/7375…',
+    videoVisitId: 'vv_0036',
+    geometryStatus: 'verified',
+    videoStable: 'stable',
+    productPresence: 'uncertain',
+    presenceColor: 'var(--yellow)',
+    confidence: '0.58',
+    nextStep: 'review_required',
+    nextColor: 'var(--red)',
+    aiDecision: 'uncertain',
+    aiDecisionColor: 'var(--yellow)',
+    aiReason: 'Possible product in frame 3s but obstructed. Frame 10s low quality. Operator review needed.',
+    aiUncertainty: 'partial_view · low_frame_quality',
+    frames: [
+      { label:'Frame 3s', id:'ev_0036_f3s', hash:'h1d4e7c2…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 6s', id:'ev_0036_f6s', hash:'i2e5f8d3…', status:'captured', statusColor:'var(--green)', flag:'clean', flagColor:'var(--green)', dim:false },
+      { label:'Frame 10s',id:'ev_0036_f10s',hash:'j3f6g9e4…', status:'captured', statusColor:'var(--yellow)', flag:'low_quality', flagColor:'var(--yellow)', dim:true },
+    ],
+    csFrames: 2, csLabel: 'validFrameCount: 2 / 3 · low_quality on frame10s',
+    vtTarget: '— (review_required)', vtBB:'—', vtClick:'—', vtConf:'—', vtConf_c:'var(--text3)', vtSrc:'—', vtGuard:'paused', vtPolicy:'review_required', vtVerif:'—',
+    actions: [
+      { type:'open_comments',         status:'blocked',  badge:'badge-warn',  badgeTxt:'blocked',  purpose:'collect_comment_evidence',             conf:'—',   be:'—',  ae:'—',  fail:'review_required' },
+      { type:'screenshot_comments',   status:'blocked',  badge:'badge-warn',  badgeTxt:'blocked',  purpose:'collect_comment_evidence',             conf:'—',   be:'—',  ae:'—',  fail:'review_required' },
+      { type:'like_or_save_marker',   status:'blocked',  badge:'badge-warn',  badgeTxt:'blocked',  purpose:'recommendation_tuning_marker',         conf:'—',   be:'—',  ae:'—',  fail:'review_required' },
+      { type:'click_not_interested',  status:'blocked',  badge:'badge-warn',  badgeTxt:'blocked',  purpose:'reduce_non_product_recommendations',   conf:'—',   be:'—',  ae:'—',  fail:'review_required' },
+      { type:'scroll_next_video',     status:'blocked',  badge:'badge-warn',  badgeTxt:'blocked',  purpose:'continue_discovery',                   conf:'—',   be:'—',  ae:'—',  fail:'review_required' },
+      { type:'wait_video_stable',     status:'success',  badge:'badge-ok',    badgeTxt:'success',  purpose:'wait_for_video_stability',             conf:'n/a', be:'—',  ae:'ev_0036_stable', fail:'—' },
+    ],
+    proofChain: [
+      { step:'open_target_page_completed',          done:true,    ts:'09:41:01', eid:'ev_0036_nav' },
+      { step:'detect_login_or_safety_completed',    done:true,    ts:'09:41:03', eid:'' },
+      { step:'wait_feed_ready_completed',           done:true,    ts:'09:41:05', eid:'' },
+      { step:'wait_video_stable_completed',         done:true,    ts:'09:41:07', eid:'ev_0036_stable' },
+      { step:'multi_frame_capture_completed',       done:true,    ts:'09:41:10', eid:'ev_0036_f3s,f6s,f10s' },
+      { step:'ask_ai_product_presence_completed',   done:true,    ts:'09:41:14', eid:'ai_0036_01' },
+      { step:'branch_decision_completed',           done:'review',ts:'09:41:14', eid:'uncertain·0.58 → review_required' },
+      { step:'finalize_browse_ledger_completed',    done:false,   ts:'—',        eid:'pending operator decision' },
+      { step:'finalize_evidence_packet_completed',  done:false,   ts:'—',        eid:'pending operator decision' },
+      { step:'scroll_next_video_completed',         done:false,   ts:'—',        eid:'blocked' },
+      { step:'next_video_wait_started',             done:false,   ts:'—',        eid:'blocked' },
+    ],
+  },
+};
+
+// ============================================================
+// Render helpers
+// ============================================================
+function renderStepBar(s) {
+  return `
+    <div class="step-item"><span class="sl">currentStep</span><span class="sv" style="color:var(--teal)">${s.currentStep}</span></div>
+    <div class="step-item" style="max-width:230px"><span class="sl">currentUrl</span><span class="sv" style="font-size:10px;color:var(--text2)">${s.currentUrl}</span></div>
+    <div class="step-item"><span class="sl">videoVisitId</span><span class="sv" style="color:var(--accent)">${s.videoVisitId}</span></div>
+    <div class="step-item"><span class="sl">geometryStatus</span><span class="sv" style="color:var(--green)">${s.geometryStatus}</span></div>
+    <div class="step-item"><span class="sl">videoStable</span><span class="sv" style="color:var(--green)">${s.videoStable}</span></div>
+    <div class="step-item"><span class="sl">productPresence</span><span class="sv" style="color:${s.presenceColor}">${s.productPresence}</span></div>
+    <div class="step-item"><span class="sl">confidence</span><span class="sv">${s.confidence}</span></div>
+    <div class="step-item"><span class="sl">nextStep</span><span class="sv" style="color:${s.nextColor}">${s.nextStep}</span></div>
+  `;
+}
+
+function renderFrameGrid(frames) {
+  return frames.map(f => `
+    <div class="frame-card">
+      <div class="frame-thumb" ${f.dim ? 'style="opacity:0.5"' : ''}>
+        <span class="placeholder-icon">▣</span>
+        <span class="frame-label">${f.label}</span>
+      </div>
+      <div class="frame-meta">
+        <div class="row"><span class="k">evidenceId</span><span class="v">${f.id}</span></div>
+        <div class="row"><span class="k">hash</span><span class="v">${f.hash}</span></div>
+        <div class="row"><span class="k">status</span><span class="v" style="color:${f.statusColor}">${f.status}</span></div>
+        <div class="row"><span class="k">dataQualityFlag</span><span class="v" style="color:${f.flagColor}">${f.flag}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCsFrames(count) {
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    const dim = i >= count;
+    html += `<div class="cs-frame" style="${dim?'opacity:0.3':''}"><span>▣</span>${['3s','6s','10s'][i]}</div>`;
+  }
+  return html;
+}
+
+function renderAiBar(s) {
+  return `
+    <div class="step-item"><span class="sl">decision</span><span class="sv" style="color:${s.aiDecisionColor}">${s.aiDecision}</span></div>
+    <div class="step-item"><span class="sl">confidence</span><span class="sv">${s.confidence}</span></div>
+    <div class="step-item" style="flex:1"><span class="sl">reason</span><span class="sv" style="font-size:10px;color:var(--text2)">${s.aiReason}</span></div>
+    <div class="step-item"><span class="sl">uncertainty</span><span class="sv" style="color:var(--yellow)">${s.aiUncertainty}</span></div>
+    <div class="step-item"><span class="sl">promptId</span><span class="sv">pp_v1.4.2</span></div>
+    <div class="step-item"><span class="sl">schemaVersion</span><span class="sv">3.1</span></div>
+  `;
+}
+
+function renderVtBar(s) {
+  return `
+    <div class="step-item"><span class="sl">targetType</span><span class="sv">${s.vtTarget}</span></div>
+    <div class="step-item"><span class="sl">boundingBox</span><span class="sv" style="font-size:10px">${s.vtBB}</span></div>
+    <div class="step-item"><span class="sl">clickPoint</span><span class="sv">${s.vtClick}</span></div>
+    <div class="step-item"><span class="sl">confidence</span><span class="sv" style="color:${s.vtConf_c}">${s.vtConf}</span></div>
+    <div class="step-item"><span class="sl">sourceEvidence</span><span class="sv">${s.vtSrc}</span></div>
+    <div class="step-item"><span class="sl">geometryGuard</span><span class="sv" style="color:var(--green)">${s.vtGuard}</span></div>
+    <div class="step-item"><span class="sl">actionPolicy</span><span class="sv">${s.vtPolicy}</span></div>
+    <div class="step-item"><span class="sl">verification</span><span class="sv" style="color:var(--teal)">${s.vtVerif}</span></div>
+  `;
+}
+
+function renderActionGrid(actions) {
+  const statusBg = { success:'status-success', ready:'status-ready', blocked:'status-blocked', failed:'status-failed' };
+  return actions.map(a => `
+    <div class="action-card ${statusBg[a.status] || ''}">
+      <div class="action-type">${a.type}</div>
+      <div class="badge ${a.badge}" style="margin-bottom:4px">${a.badgeTxt}</div>
+      <div class="action-meta">
+        <div class="row"><span class="k">purpose</span><span class="v">${a.purpose}</span></div>
+        <div class="row"><span class="k">targetConf</span><span class="v">${a.conf}</span></div>
+        <div class="row"><span class="k">beforeEvidence</span><span class="v">${a.be}</span></div>
+        <div class="row"><span class="k">afterEvidence</span><span class="v">${a.ae}</span></div>
+        <div class="row"><span class="k">failureReason</span><span class="v">${a.fail}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderProofChain(chain) {
+  return chain.map(p => {
+    let cls, icon;
+    if (p.done === true)      { cls = 'done';    icon = '✓'; }
+    else if (p.done === false){ cls = 'skipped';  icon = '○'; }
+    else                      { cls = 'pending';  icon = '⏳'; }
+    return `
+      <div class="proof-step ${cls}">
+        <span class="proof-icon">${icon}</span>
+        <span style="flex:1">${p.step}</span>
+        <span class="proof-ts">${p.ts}</span>
+        <span class="proof-eid">${p.eid}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// Load demo state
+// ============================================================
+function loadDemoState(key, btn) {
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const s = DEMO_STATES[key];
+  document.getElementById('hdr-round').textContent       = s.round;
+  document.getElementById('round-id').textContent        = s.round;
+  document.getElementById('proof-round').textContent     = s.round;
+  document.getElementById('round-step-bar').innerHTML    = renderStepBar(s);
+  document.getElementById('frame-grid').innerHTML        = renderFrameGrid(s.frames);
+  document.getElementById('cs-frames').innerHTML         = renderCsFrames(s.csFrames);
+  document.getElementById('cs-badge').textContent        = s.csLabel;
+  document.getElementById('ai-presence-bar').innerHTML   = renderAiBar(s);
+  document.getElementById('visual-target-bar').innerHTML = renderVtBar(s);
+  document.getElementById('action-grid').innerHTML       = renderActionGrid(s.actions);
+  document.getElementById('proof-chain').innerHTML       = renderProofChain(s.proofChain);
+}
+
+// ============================================================
+// Structured log data — canonical actionPurpose values
+// ============================================================
+const LOG_DATA = [
+  { ts:'09:42:14', type:'runtime',  rid:'rnd_041', step:'finalize_browse_ledger_completed',    purpose:'record_non_product',                       result:'ok',    refs:'le_0041' },
+  { ts:'09:42:13', type:'runtime',  rid:'rnd_041', step:'branch_decision_completed',           purpose:'product_no · 0.88',                        result:'ok',    refs:'ai_0041_01' },
+  { ts:'09:42:13', type:'ai',       rid:'rnd_041', step:'ask_ai_product_presence_completed',   purpose:'product_presence_check',                   result:'ok',    refs:'ai_0041_01' },
+  { ts:'09:42:10', type:'evidence', rid:'rnd_041', step:'multi_frame_capture_completed',       purpose:'capture_3s_6s_10s',                        result:'ok',    refs:'ev_0041_f3s,f6s,f10s' },
+  { ts:'09:42:07', type:'runtime',  rid:'rnd_041', step:'wait_video_stable_completed',         purpose:'wait_for_video_stability',                 result:'ok',    refs:'ev_0041_stable' },
+  { ts:'09:42:05', type:'runtime',  rid:'rnd_041', step:'wait_feed_ready_completed',           purpose:'ensure_feed_loaded',                       result:'ok',    refs:'' },
+  { ts:'09:42:03', type:'runtime',  rid:'rnd_041', step:'detect_login_or_safety_completed',    purpose:'check_login_state',                        result:'ok',    refs:'' },
+  { ts:'09:42:01', type:'runtime',  rid:'rnd_041', step:'open_target_page_completed',          purpose:'navigate_to_video',                        result:'ok',    refs:'ev_0041_nav' },
+  { ts:'09:41:55', type:'action',   rid:'rnd_040', step:'scroll_next_video_completed',         purpose:'continue_discovery',                       result:'ok',    refs:'ev_0040_post_sc' },
+  { ts:'09:41:52', type:'action',   rid:'rnd_040', step:'click_not_interested_completed',      purpose:'reduce_non_product_recommendations',       result:'ok',    refs:'ev_0040_post_ni' },
+  { ts:'09:41:14', type:'review',   rid:'rnd_036', step:'review_required_emitted',             purpose:'operator_action_needed',                   result:'open',  refs:'ev_0036_f6s' },
+  { ts:'09:41:03', type:'error',    rid:'rnd_039', step:'click_not_interested_failed',         purpose:'reduce_non_product_recommendations',       result:'fail',  refs:'ev_0039_pre_click' },
+  { ts:'09:38:22', type:'evidence', rid:'rnd_031', step:'evidence_packet_created',             purpose:'record_product_candidate',                 result:'ok',    refs:'pkt_0031' },
+  { ts:'09:38:20', type:'ai',       rid:'rnd_031', step:'ask_ai_product_presence_completed',   purpose:'product_presence_check',                   result:'ok',    refs:'ai_0031_01' },
+  { ts:'09:38:15', type:'action',   rid:'rnd_031', step:'like_or_save_marker_completed',       purpose:'recommendation_tuning_marker',             result:'ok',    refs:'ev_0031_post_like' },
+  { ts:'09:38:13', type:'action',   rid:'rnd_031', step:'open_comments_completed',             purpose:'collect_comment_evidence',                 result:'ok',    refs:'ev_0031_post_oc' },
+];
+
+function renderLogs(rows) {
+  const typeColor = {
+    runtime:'log-type-runtime', action:'log-type-action', ai:'log-type-ai',
+    evidence:'log-type-evidence', review:'log-type-review', error:'log-type-error'
+  };
+  const resultClass = r => r === 'ok' ? 'result-ok' : r === 'fail' || r === 'error' ? 'result-fail' : 'result-skip';
+  return rows.map(l => `
+    <div class="log-row" data-type="${l.type}">
+      <span class="ts">${l.ts}</span>
+      <span class="lt ${typeColor[l.type]||''}">${l.type}</span>
+      <span class="rid">${l.rid}</span>
+      <span class="step">${l.step}</span>
+      <span class="msg">${l.purpose}</span>
+      <span class="res ${resultClass(l.result)}">${l.result}</span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// Init
+// ============================================================
+document.getElementById('log-stream').innerHTML = renderLogs(LOG_DATA);
+loadDemoState('product_no', document.querySelector('.demo-btn'));
+
+// Elapsed timer (prototype display only)
+let elapsed = 18 * 60 + 32;
+setInterval(() => {
+  elapsed++;
+  const m = String(Math.floor(elapsed / 60)).padStart(2,'0');
+  const s2 = String(elapsed % 60).padStart(2,'0');
+  const el = document.getElementById('elapsed');
+  if (el) el.textContent = `00:${m}:${s2}`;
+}, 1000);
+</script>
+
+</body>
+</html>

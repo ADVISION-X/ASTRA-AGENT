@@ -5,7 +5,14 @@ import { pathFromRepoRoot, toRepoRelativePath } from "../../../core/paths.js";
 import { createPhase } from "../../../core/result.js";
 import type { Finding, InspectorPhase } from "../../../core/schema.js";
 import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, LAW_PHASE_SUMMARIES, type PurityPhaseSummary } from "./purity-constants.js";
+import { isStructuralPurityCandidate } from "./purity-file-classification.js";
 import { inspectSourceFile } from "./inspect-source-file.js";
+
+const debug = (message: string): void => {
+  if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
+    process.stdout.write(`[code-purity-owner] ${message}\n`);
+  }
+};
 
 const createPurityProject = (): Project =>
   new Project({
@@ -47,6 +54,9 @@ const createPhaseForLaw = (summary: PurityPhaseSummary, findings: Finding[]): In
 export const inspectCodePurity = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
   const relativePaths = await getActiveRelativePaths();
+  debug(`activeRoots=${ACTIVE_ROOTS.join(",")}`);
+  debug(`activeFiles=${ACTIVE_FILES.join(",")}`);
+  debug(`scannedCandidates=${relativePaths.length}`);
   const project = createPurityProject();
   const sourceFiles = relativePaths
     .map((relativePath) => project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath)))
@@ -64,6 +74,8 @@ export const inspectCodePurity = async (): Promise<{ findings: Finding[]; phases
   for (const sourceFile of sourceFiles) {
     inspectSourceFile(sourceFile, findings, toRepoRelativePath(sourceFile.getFilePath()));
   }
+
+  debug(`findings=${findings.length}`);
 
   const phases: InspectorPhase[] = [
     createPhase("scope-activation", "PASS", true, `code-purity scans ${sourceFiles.length} active files under ${BLUEPRINT_PATH}`),

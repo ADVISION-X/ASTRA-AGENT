@@ -2,32 +2,33 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { waitForHealth } from "./lib/health-check.mjs";
-import { openMainPage } from "./lib/open-main-page.mjs";
-import { clearPortListeners, releaseLocalService, startLocalService, stopLocalService } from "./lib/process-control.mjs";
+import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
+import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
+import { openCommanderConsole } from "./lib/open-commander-console.mjs";
+import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
+import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
 const healthUrl = `${baseUrl}/api/runtime/health`;
+const terminalLogger = createTerminalStructuredLogger();
 
-function log(message) {
-  process.stdout.write(`[launch] ${message}\n`);
+function toFailureReason(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
-function logError(message) {
-  process.stderr.write(`[launch] ${message}\n`);
+function logEvent(phase, component, eventType, status, message, extra = {}) {
+  terminalLogger.event({ phase, component, eventType, status, message, ...extra });
 }
 
-function assertExplicitBrowserProfileEnv() {
-  const profileRef = process.env.GRASSEYE_BROWSER_PROFILE_REF?.trim();
-  const userDataDir = process.env.GRASSEYE_BROWSER_USER_DATA_DIR?.trim();
-  if (!profileRef || !userDataDir) {
-    throw new Error(
-      "Real-platform launch requires explicit GRASSEYE_BROWSER_PROFILE_REF and GRASSEYE_BROWSER_USER_DATA_DIR. Silent default browser profiles are forbidden because they cannot prove authorized login reuse.",
-    );
-  }
+function logPass(phase, component, eventType, status, message, extra = {}) {
+  terminalLogger.pass({ phase, component, eventType, status, message, ...extra });
+}
+
+function logFail(phase, component, eventType, status, message, extra = {}) {
+  terminalLogger.fail({ phase, component, eventType, status, message, ...extra });
 }
 
 function parseFlags(argv) {
@@ -48,21 +49,20 @@ function registerSignalHandlers(shutdown) {
 }
 
 async function ensureDependencies(root, flags) {
+  const startedAt = Date.now();
+  logEvent("STARTUP", "bootstrap", "dependency_check", "started", "checking dependency readiness");
   const dependencyState = await assessDependencyState({
     rootDir: root,
     updateRequested: flags.updateRequested,
   });
 
-  log(`Node ${dependencyState.nodeVersion}, npm ${dependencyState.npmVersion}`);
+  logEvent("STARTUP", "bootstrap", "dependency_runtime", "detected", `node=${dependencyState.nodeVersion} npm=${dependencyState.npmVersion}`);
 
   if (dependencyState.requiresInstall) {
-    log("Dependency state is stale or incomplete; running npm install.");
-    for (const reason of dependencyState.reasons) {
-      log(`- ${reason}`);
-    }
+    logEvent("STARTUP", "bootstrap", "dependency_install", "started", "dependency state requires repair", {
+      refs: dependencyState.reasons,
+    });
     await installDependencies({ rootDir: root });
-  } else {
-    log("Dependency state is ready.");
   }
 
   if (flags.updateRequested) {
@@ -72,7 +72,7 @@ async function ensureDependencies(root, flags) {
       );
     }
 
-    log("Operator requested a controlled dependency refresh; running npm update.");
+    logEvent("STARTUP", "bootstrap", "dependency_update", "started", "running controlled dependency refresh");
     await installDependencies({ rootDir: root, updateRequested: true });
   }
 
@@ -80,41 +80,87 @@ async function ensureDependencies(root, flags) {
   if (finalState.requiresInstall) {
     throw new Error(`Dependency state is still not ready after repair: ${finalState.reasons.join(" ")}`);
   }
+
+  logPass("STARTUP", "bootstrap", "dependency_check", "passed", "dependency readiness passed", {
+    durationMs: Date.now() - startedAt,
+  });
 }
 
 async function performLaunch(flags, root) {
-  assertExplicitBrowserProfileEnv();
-  log("Checking dependency readiness.");
   await ensureDependencies(root, flags);
 
-  log(`Clearing startup port ownership on ${host}:${port}.`);
-  await clearPortListeners({ host, port, logger: log });
+  const portStart = Date.now();
+  logEvent("STARTUP", "bootstrap", "port_clear", "started", `clearing ${host}:${port}`);
+  await clearPortListeners({
+    host,
+    port,
+    logger: (message) => logEvent("STARTUP", "bootstrap", "port_clear_detail", "event", message),
+  });
+  logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
+    durationMs: Date.now() - portStart,
+  });
 
-  log("Starting GrassEye local service.");
-  const serviceHandle = await startLocalService({ rootDir: root });
+  const serviceStart = Date.now();
+  logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
+  const serviceHandle = await startLocalService({
+    rootDir: root,
+    preStartScripts: [],
+    onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
+    onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
+  });
+  logPass("SERVICE", "app_server", "app_server", "ready", `local app shell process started for ${baseUrl}`, {
+    durationMs: Date.now() - serviceStart,
+  });
 
-  log(`Waiting for health check at ${healthUrl}.`);
+  const aiStart = Date.now();
+  logEvent("AI", "local_ai_runtime", "local_ai_readiness", "checking", "checking local AI runtime readiness");
+  const localAiResult = await ensureLocalAiRuntimeReady({
+    logger: (message) => logEvent("AI", "local_ai_runtime", "local_ai_detail", "event", message),
+  });
+  logPass("AI", "local_ai_runtime", "local_ai_readiness", "passed", `local AI runtime reachable with ${localAiResult.availableModels.length} models`, {
+    durationMs: Date.now() - aiStart,
+  });
+
+  const healthStart = Date.now();
+  logEvent("COMMANDER", "commander_console", "health_check", "started", `waiting for health at ${healthUrl}`);
   const healthReport = await waitForHealth({ url: healthUrl, serviceProcess: serviceHandle.child });
-  log(`Health check passed with ${Array.isArray(healthReport.components) ? healthReport.components.length : 0} components.`);
+  const pageReport = await probeCommanderConsolePage({ url: baseUrl });
+  logPass("COMMANDER", "commander_console", "console_reachable", "passed", `Commander Console reachable at ${baseUrl}`, {
+    refs: [`components=${Array.isArray(healthReport.components) ? healthReport.components.length : 0}`, `contentType=${pageReport.contentType}`],
+    durationMs: Date.now() - healthStart,
+  });
 
   await openReadyPage(flags);
-  log(`GrassEye launch is ready. Local service is available at ${baseUrl}.`);
-  releaseLocalService(serviceHandle.child);
+  logEvent("RUNTIME", "startup_entrypoint", "waiting_for_human_command", "ready", `waiting for human command at ${baseUrl}`);
   return serviceHandle;
 }
 
 async function openReadyPage(flags) {
   if (flags.skipOpen) {
-    log(`Skipping browser open. Main page: ${baseUrl}`);
+    logEvent("COMMANDER", "commander_console", "open_console", "skipped", `automatic open skipped; commander console url=${baseUrl}`);
     return;
   }
 
+  const log = (message) => {
+    terminalLogger.event({
+      phase: "COMMANDER",
+      component: "commander_console",
+      eventType: "open_console_detail",
+      status: "event",
+      message,
+    });
+  };
+
   try {
-    await openMainPage(baseUrl);
-    log(`Opened ${baseUrl}`);
+    const openResult = await openCommanderConsole(baseUrl);
+    log(`Opened ${baseUrl} in ${openResult.browserName} (${openResult.browserPath})`);
+    logPass("COMMANDER", "commander_console", "open_console", "passed", `opened Commander Console via ${openResult.browserName}`, {
+      refs: [`browserPath=${openResult.browserPath}`],
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logError(`Failed to open the page automatically. Open ${baseUrl} manually. ${message}`);
+    logFail("COMMANDER", "commander_console", "open_console", "failed", `automatic open failed; open ${baseUrl} manually`, {
+      failureReason: toFailureReason(error),
+    });
   }
 }
 
@@ -128,20 +174,29 @@ async function main() {
       return;
     }
     shuttingDown = true;
-    log(`Stopping local service with ${signal}.`);
+    logEvent("SERVICE", "app_server", "shutdown", "started", `stopping local service with ${signal}`);
     if (serviceHandle) {
       await stopLocalService(serviceHandle.child, signal);
     }
+    logPass("SERVICE", "app_server", "shutdown", "passed", `local service stopped with ${signal}`);
   };
 
   registerSignalHandlers(shutdown);
 
   try {
     serviceHandle = await performLaunch(flags, rootDir);
+    const exit = await serviceHandle.waitForExit();
+    if (!shuttingDown) {
+      logFail("SERVICE", "app_server", "unexpected_exit", "failed", "local service exited unexpectedly", {
+        failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
+      });
+      process.exitCode = exit.code ?? 1;
+    }
     return;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logError(message);
+    logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
+      failureReason: toFailureReason(error),
+    });
     await shutdown("SIGTERM");
     process.exitCode = 1;
   }

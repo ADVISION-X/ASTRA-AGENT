@@ -6,6 +6,11 @@ import {
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
 
+export const VisionProductPresenceMissingFrameSchema = z.object({
+  frameLabel: VideoFrameSamplePointLabelSchema,
+  unavailableReason: z.string().min(1),
+});
+
 export const VisionProductPresencePromptIdSchema = z.literal("vision.productPresence.v1");
 export const VisionProductPresenceTaskTypeSchema = z.literal("vision.productPresence");
 export const VisionProductPresencePromptVersionSchema = z.literal("v1");
@@ -30,6 +35,9 @@ export const VisionProductPresenceRequestInputSchema = z.object({
   samplingStrategy: MultiFrameSamplingStrategySchema,
   sampledFrameCount: z.number().int().positive(),
   validFrameCount: z.number().int().nonnegative(),
+  expectedFrameCount: z.number().int().positive().default(3),
+  fallbackReason: z.string().min(1).nullable().default(null),
+  missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   summary: z.string().min(1),
   tags: z.array(z.string().min(1)).default([]),
 });
@@ -53,6 +61,9 @@ export const VisionProductPresencePayloadSchema = z.object({
   screenshotEvidenceId: z.string().min(1).nullable().default(null),
   sampledFrameCount: z.number().int().positive(),
   validFrameCount: z.number().int().nonnegative(),
+  expectedFrameCount: z.number().int().positive().default(3),
+  fallbackReason: z.string().min(1).nullable().default(null),
+  missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   isProductVideo: z.boolean().nullable(),
   confidence: z.number().min(0).max(1),
   visibleProductTypes: z.array(z.string().min(1)),

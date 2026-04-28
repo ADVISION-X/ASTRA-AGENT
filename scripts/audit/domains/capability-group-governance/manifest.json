@@ -1,0 +1,28 @@
+{
+  "inspectorId": "capability-group-governance-owner",
+  "capabilityDomain": "capability-group-governance",
+  "owner": true,
+  "entry": "scripts/audit/domains/capability-group-governance/inspector.ts",
+  "engine": "law",
+  "supportsEvidenceModes": ["law", "fs"],
+  "allowedLawIds": [
+    "GRASSEYE-CAPABILITY-GROUP-001-V1",
+    "GRASSEYE-CAPABILITY-GROUP-002-V1",
+    "GRASSEYE-CAPABILITY-GROUP-003-V1",
+    "GRASSEYE-CAPABILITY-GROUP-004-V1",
+    "GRASSEYE-CAPABILITY-GROUP-005-V1",
+    "GRASSEYE-CAPABILITY-GROUP-006-V1",
+    "GRASSEYE-CODE-TOPOLOGY-001-V1",
+    "GRASSEYE-CODE-TOPOLOGY-002-V1",
+    "GRASSEYE-CODE-TOPOLOGY-003-V1",
+    "GRASSEYE-CODE-TOPOLOGY-004-V2"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
+    "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md"
+  ]
+}

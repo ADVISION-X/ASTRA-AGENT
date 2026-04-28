@@ -1,0 +1,28 @@
+{
+  "inspectorId": "open-capability-owner",
+  "capabilityDomain": "open-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/open-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-OPEN-CAPABILITY-001-V1",
+    "GRASSEYE-OPEN-CAPABILITY-002-V1",
+    "GRASSEYE-OPEN-CAPABILITY-003-V1",
+    "GRASSEYE-OPEN-CAPABILITY-004-V1",
+    "GRASSEYE-PLATFORM-ACTION-001-V1",
+    "GRASSEYE-PLATFORM-ACTION-002-V1",
+    "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-platform-action.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Open 能力组施工图.md",
+    "docs/法案辅助文件/GrassEye 平台适配与页面动作施工图.md",
+    "docs/法案辅助文件/GrassEye 视觉坐标组合链说明.md",
+    "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md"
+  ]
+}

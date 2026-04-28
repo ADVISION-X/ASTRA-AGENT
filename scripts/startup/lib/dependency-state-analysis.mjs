@@ -3,11 +3,18 @@ import { constants as fsConstants } from "node:fs";
 
 import { packageNameToPath } from "./dependency-package-utils.mjs";
 
+function debugDependencyState(message) {
+  if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
+    process.stdout.write(`[startup:dependency-state] ${message}\n`);
+  }
+}
+
 async function pathExists(filePath) {
   try {
     await access(filePath, fsConstants.F_OK);
     return true;
-  } catch {
+  } catch (error) {
+    debugDependencyState(`pathExists fallback for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

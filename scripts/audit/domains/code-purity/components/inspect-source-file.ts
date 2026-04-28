@@ -5,116 +5,8 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
 import { getExpressionPath, getNodeLine } from "../../../core/ts-morph.js";
+import { inspectStructuralPurity } from "./inspect-structural-purity.js";
 import { collectCommentTokens, hasTodoHygiene, isCommentedOutCode, isTodoComment } from "./purity-comment-analysis.js";
-import { fileLineLimit } from "./purity-constants.js";
-import { getFunctionMetrics, getFunctionName, getFunctionNodes, getLogicalLineCount, isExportedFunction } from "./purity-function-analysis.js";
-
-const inspectFileLength = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
-  const physicalLines = sourceFile.getEndLineNumber();
-  const maxLines = fileLineLimit(relativePath);
-  if (physicalLines <= maxLines) {
-    return;
-  }
-
-  findings.push(
-    createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-001-V1",
-      file: relativePath,
-      line: 1,
-      severity: "error",
-      message: `Source file exceeds the active code-purity line limit of ${maxLines}.`,
-      detail: `physicalLines=${physicalLines}`,
-      hint: "Split by capability owner instead of expanding the file.",
-    }),
-  );
-};
-
-const pushFunctionFinding = (
-  findings: Finding[],
-  input: { relativePath: string; line: number; functionName: string; message: string; detail: string },
-): void => {
-  findings.push(
-    createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-002-V1",
-      file: input.relativePath,
-      line: input.line,
-      severity: "error",
-      message: `Function ${input.functionName} ${input.message}`,
-      detail: input.detail,
-    }),
-  );
-};
-
-const inspectFunctionLength = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
-  for (const functionNode of getFunctionNodes(sourceFile)) {
-    const line = getNodeLine(functionNode);
-    const functionName = getFunctionName(functionNode, relativePath);
-    const logicalLines = getLogicalLineCount(functionNode);
-    const lineLimit = isExportedFunction(functionNode) ? 55 : 40;
-    if (logicalLines > lineLimit) {
-      pushFunctionFinding(findings, {
-        relativePath,
-        line,
-        functionName,
-        message: `exceeds the active logical line limit of ${lineLimit}.`,
-        detail: `logicalLines=${logicalLines}`,
-      });
-    }
-
-    const parameterCount = functionNode.getParameters().length;
-    if (parameterCount > 4) {
-      pushFunctionFinding(findings, {
-        relativePath,
-        line,
-        functionName,
-        message: "exceeds the parameter limit of 4.",
-        detail: `parameters=${parameterCount}`,
-      });
-    }
-  }
-};
-
-const inspectFunctionComplexity = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
-  for (const functionNode of getFunctionNodes(sourceFile)) {
-    const line = getNodeLine(functionNode);
-    const functionName = getFunctionName(functionNode, relativePath);
-    const metrics = getFunctionMetrics(functionNode);
-    if (metrics.maxDepth > 3) {
-      pushFunctionFinding(findings, {
-        relativePath,
-        line,
-        functionName,
-        message: "exceeds the maximum nesting depth of 3.",
-        detail: `nestingDepth=${metrics.maxDepth}`,
-      });
-    }
-
-    if (metrics.complexity > 10) {
-      pushFunctionFinding(findings, {
-        relativePath,
-        line,
-        functionName,
-        message: "exceeds the cyclomatic complexity limit of 10.",
-        detail: `cyclomaticComplexity=${metrics.complexity}`,
-      });
-    }
-
-    if (metrics.cognitive > 15) {
-      pushFunctionFinding(findings, {
-        relativePath,
-        line,
-        functionName,
-        message: "exceeds the cognitive complexity limit of 15.",
-        detail: `cognitiveComplexity=${metrics.cognitive}`,
-      });
-    }
-  }
-};
-
-const inspectFunctions = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
-  inspectFunctionLength(sourceFile, findings, relativePath);
-  inspectFunctionComplexity(sourceFile, findings, relativePath);
-};
 
 const inspectConsoleScatter = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
   for (const callExpression of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
@@ -187,8 +79,7 @@ const inspectRefactorDirection = (findings: Finding[], relativePath: string): vo
 };
 
 export const inspectSourceFile = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
-  inspectFileLength(sourceFile, findings, relativePath);
-  inspectFunctions(sourceFile, findings, relativePath);
+  inspectStructuralPurity(sourceFile, findings, relativePath);
   inspectCleanup(sourceFile, findings, relativePath);
   inspectRefactorDirection(findings, relativePath);
 };

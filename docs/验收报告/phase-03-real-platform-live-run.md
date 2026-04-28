@@ -8,7 +8,7 @@
 
 - 平台目标：`tiktok-web`
 - 启动端口：`4273`
-- 服务启动命令：`GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run launch -- --no-open`
+- 服务启动命令：`GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run grasseye:start -- --no-open`
 - 任务启动接口：`POST http://127.0.0.1:4273/api/tasks/start`
 
 ## 已确认结果

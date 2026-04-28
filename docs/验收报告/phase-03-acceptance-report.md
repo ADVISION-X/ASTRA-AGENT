@@ -26,6 +26,18 @@ PASS（按最小可交付标准）
 - Structured Logging blueprint added.
 - StructuredRuntimeEvent schema added.
 - StructuredActionLog schema added.
+- terminal structured log sink added.
+- source of truth remains StructuredLogStore.
+- Workbench log stream and terminal mirror use same events.
+- stall detection added.
+- Agent Mechanical Skills law added.
+- skill blueprint added.
+- skill catalog added.
+- active skill matrix added.
+- structured logs now carry skillId.
+- Workbench shows active skills.
+- agent-mechanical-skills audit owner added.
+- mutation probe result added.
 - audit owner added.
 - Visual Action Capability law added.
 - Visual target catalog added.
@@ -50,6 +62,8 @@ PASS（按最小可交付标准）
 - 新增 `verify:visual-action-capability`，并将 `verify:phase3` 与 `ci:full` 更新为串联 visual-action-capability 校验。
 - 新增 `verify:local-persistence-schema`，并将 `verify:phase3` 与 `ci:full` 更新为串联 local-persistence-schema 校验。
 - `verify:delivery` 已验证：local AI config 可读、health/snapshot 可读、screenshot evidence 可真实落盘回读、delivery 字段齐全、仓库无 `tests` / `__tests__` / `*.test.*` 文件、Playwright real coordinate click smoke PASS。
+- 已完成浏览器降级路径防复发固化：`verify:local-browser-session` 与 local-browser-session audit owner 已升级为 AST 排他检查，明确禁止 `PlaywrightBrowserController`、`playwright-browser-controller.ts`、`GRASSEYE_BROWSER_PROFILE_REF`、`GRASSEYE_BROWSER_USER_DATA_DIR` 回流生产链。
+- 已完成执法自证：故意在生产入口回注 `GRASSEYE_BROWSER_PROFILE_REF` 后，`verify:local-browser-session` 即时失败；回滚后重新 PASS。
 - `verify:evidence-packet` 已验证：取证施工图、module-evidence-packet 法案、Evidence Packet schema/type、round outcome 扩展、actionPurpose、dataQualityFlags、pending_analysis guard、advanced-AI handoff boundary 与无 tests 边界通过。
 - `verify:evidence-packet` 已额外验证：Browse Ledger、Browse Session Summary、Advanced AI export set、product_no 默认 lightweight record、Evidence Packets only export set 边界通过。
 - `verify:browse-flow` 已验证：browse-flow blueprint、原子动作表、第一问 product-presence prompt、schema contract、like/save marker policy、comment sampling policy、round completion contract 与“测试不作为质量门”边界通过。
@@ -59,11 +73,18 @@ PASS（按最小可交付标准）
 
 ## 本轮实测事实
 
-- real-platform 服务已在独立端口成功启动：`GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run launch -- --no-open`。
+- real-platform 服务已在独立端口成功启动：`GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run grasseye:start -- --no-open`。
 - 本机 real browser controller 已成功打开 `https://www.tiktok.com/foryou`。
 - 历史同数据目录中的登录墙场景仍然会进入 `review_required`，备注为 `uncertain platform access: login wall detected and requires operator review`。
 - 启动失败路径现在会真实写入 screenshot evidence、local AI result、failed action log，并在 snapshot / workbench 中暴露失败原因。
 - 最新真实任务 `task_919040f7-636b-4a58-a16f-847b9809f842` 已完成 5 轮运行，最终状态为 `completed`。
+- sample terminal log output:
+	- `[grasseye:event] {"timestamp":"2026-04-28T00:00:00.000Z","sessionId":"task_x","roundId":"round_bootstrap","step":"open_target_page","eventType":"open_target_page_started","status":"started"}`
+	- `[grasseye:event] {"timestamp":"2026-04-28T00:00:05.000Z","sessionId":"task_x","roundId":"round_001","videoVisitId":"video_001","step":"wait_video_stable","eventType":"wait_video_stable_started","status":"started"}`
+	- `[grasseye:action] {"timestamp":"2026-04-28T00:00:11.000Z","sessionId":"task_x","roundId":"round_001","videoVisitId":"video_001","step":"scroll_next_video","actionType":"scroll_next_video","actionPurpose":"continue_discovery","result":"success"}`
+	- `[grasseye:stall] {"timestamp":"2026-04-28T00:00:21.000Z","sessionId":"task_x","roundId":"round_001","videoVisitId":"video_001","step":"wait_video_stable","eventType":"step_timeout","status":"review_required","reason":"step_timeout","failureReason":"wait_video_stable exceeded 20000ms"}`
+- Agent Active Skill Matrix 现已显示 Skill、Category、Status、TargetType、Orientation、Confidence、Last Result、Success Rate、Failure Reason、Law Owner。
+- mutation probe result: 删除 `scroll_next_video`、把 `click_open_comments` 伪装成 ready 但移除 `requiredVisualTargets`、删除 `StructuredActionLog.skillId`、或让 `scroll_next_video` 成为唯一 ready skill，新的 domain inspector 都会立即失败。
 - 最新 settled delivery snapshot 显示：
 	- `currentRoundStep = completed`
 	- `pageReadyStatus = page_ready`
@@ -100,7 +121,6 @@ PASS（按最小可交付标准）
 - comment evidence、comment signal、evidence-backed candidate 在本轮真实 TikTok 样本中仍未触发。
 - Agent runtime 还未把每轮 finalize packet 真正写入 live browse loop；本轮已固化 schema、store、law、verify、audit，但未把主循环完全迁到 packet-first persistence。
 - Agent runtime 还未把 Browse Ledger entry、Browse Session Summary 与 Advanced AI export set 真正写入 live persistence；本轮先固化了 schema、law、verify 与 audit 边界。
-- runtime 还需要在后续代码建设中真实写入 structured logs，而不是只停留在 law、schema、verify 与 audit owner。
 - evidence-store-service.ts 还需要真实实现 SQLite + evidence file store 写入，而不是继续把 state.json 当长期持久化真相。
 - runtime 还需要逐个把 open_comments / click_not_interested / like_or_save / scroll_next / comment screenshot 接入生产级视觉动作能力。
 - login state 目前主要由本地 URL / title 启发式识别，平台专属登录态判定还需要后续继续收紧。
@@ -115,9 +135,11 @@ PASS（按最小可交付标准）
 - `npm run verify:browse-flow`: PASS
 - `npm run verify:multi-frame-evidence`: PASS
 - `npm run verify:structured-logging`: PASS
+- `npm run audit:agent-mechanical-skills`: PASS
 - `npm run verify:local-browser-session`: PASS
+- `npm run verify:local-browser-session` with deliberate regression injection: FAIL AS EXPECTED -> reverted -> PASS
 - `npm run verify:local-persistence-schema`: PASS
 - `npm run verify:visual-action-capability`: PASS
 - `npm run verify:phase3`: PASS
-- `npm run launch -- --no-open`: PASS
-- `GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run launch -- --no-open`: PASS
+- `npm run grasseye:start -- --no-open`: PASS
+- `GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run grasseye:start -- --no-open`: PASS

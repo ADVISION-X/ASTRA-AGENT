@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Security Privacy"
 description: "Use when defining credential handling, cookie or session boundaries, sensitive screenshot minimization, or privacy red lines for GrassEye."
-applyTo: ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md, src/lib/browser/**, src/features/local-data/**, src/lib/local-ai/**"
+applyTo: ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md, src/lib/browser/**, src/lib/local-ai/**"
 ---
 
 # GrassEye Security Privacy

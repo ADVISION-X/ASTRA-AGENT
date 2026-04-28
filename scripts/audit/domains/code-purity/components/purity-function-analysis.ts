@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type CatchClause, type Node as MorphNode, type ParameterDeclaration, type SourceFile, type Type } from "ts-morph";
 
 import { FUNCTION_DECISION_KINDS, type PurityFunctionNode } from "./purity-constants.js";
 
@@ -94,4 +94,54 @@ export const getFunctionMetrics = (functionNode: PurityFunctionNode) => {
   }
 
   return { maxDepth, complexity, cognitive };
+};
+
+const isBooleanLikeType = (type: Type): boolean => {
+  if (type.isBoolean() || type.isBooleanLiteral()) {
+    return true;
+  }
+
+  if (!type.isUnion()) {
+    return false;
+  }
+
+  return type.getUnionTypes().every((member) =>
+    member.isBoolean() || member.isBooleanLiteral() || member.getText() === "undefined",
+  );
+};
+
+const isBooleanLikeParameter = (parameter: ParameterDeclaration): boolean => {
+  const typeNode = parameter.getTypeNode();
+  if (typeNode?.getKind() === SyntaxKind.BooleanKeyword) {
+    return true;
+  }
+
+  const initializer = parameter.getInitializer();
+  if (initializer && (Node.isTrueLiteral(initializer) || Node.isFalseLiteral(initializer))) {
+    return true;
+  }
+
+  return isBooleanLikeType(parameter.getType());
+};
+
+export const getBooleanLikeParameterCount = (functionNode: PurityFunctionNode): number =>
+  functionNode.getParameters().filter((parameter) => isBooleanLikeParameter(parameter)).length;
+
+export const isSilentCatchClause = (catchClause: CatchClause): boolean => {
+  const block = catchClause.getBlock();
+  if (block.getStatements().length === 0) {
+    return true;
+  }
+
+  const hasThrow = block.getDescendantsOfKind(SyntaxKind.ThrowStatement).length > 0;
+  if (hasThrow) {
+    return false;
+  }
+
+  const hasCall = block.getDescendantsOfKind(SyntaxKind.CallExpression).length > 0;
+  if (hasCall) {
+    return false;
+  }
+
+  return true;
 };

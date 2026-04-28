@@ -71,7 +71,8 @@ const readLastUsedChromeProfileDirectory = (userDataDir: string): string | null 
     };
     const lastUsed = localState.profile?.last_used;
     return typeof lastUsed === "string" && lastUsed.trim().length > 0 ? lastUsed.trim() : null;
-  } catch {
+  } catch (error) {
+    process.stderr.write(`[local-browser-session] failed to read Local State profile.last_used: ${error instanceof Error ? error.message : String(error)}\n`);
     return null;
   }
 };

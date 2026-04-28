@@ -28,13 +28,16 @@
 12. 不自动评论、私信、关注。
 13. 不导出 cookie/session/token。
 14. `npm run typecheck` 通过。
+15. `npm run verify:local-browser-session` 必须以 AST 排他方式禁止已删除浏览器降级路径回流。
 16. `npm run audit:build` 通过。
 17. `npm run audit` 通过。
 18. `npm run build` 通过。
-19. `npm run launch` 通过。
-20. 第三阶段验收报告落盘。
-21. 真实平台实测记录落盘。
-22. 最终报告输出 PASS / NOT PASS。
+19. `npm run grasseye:start` 通过。
+20. `npm run ci:full` 通过。
+21. 必须至少进行一次“故意注入生产回归 -> 执法失败 -> 立即回滚 -> 恢复绿灯”的自证流程。
+22. 第三阶段验收报告落盘。
+23. 真实平台实测记录落盘。
+24. 最终报告输出 PASS / NOT PASS。
 
 如果任何一项未完成，你不能宣布第三阶段完成。
 
@@ -85,6 +88,12 @@
 
 如现有法案不足，优先使用施工图或最小法案补强，不得把法案变成垃圾桶。
 
+法案文件已冻结时：
+
+- 禁止修改法案文件本身。
+- 只能通过施工图、方案文件、TODO、验收记录与执法脚本补齐防复发闭环。
+- 已删除生产降级路径必须作为排他性禁入项写进 verify / audit，不得再以 fallback、waiver、allowlist 形式回流。
+
 ---
 
 ## 四、禁止事项
@@ -109,6 +118,8 @@
 - 用 fixture 结果冒充真实平台结果。
 - 用测试假装真实实测完成。
 - fake PASS。
+- 为了让 audit 通过而删除 owner、manifest、audit plan owner 或 verify 入口。
+- 通过 dynamic import、require、barrel export、wrapper、alias、fallback 把已删除浏览器降级路径偷偷带回生产链。
 
 如果遇到登录、验证码、异常风控：
 
@@ -149,7 +160,16 @@ docs/法案辅助文件/*.md
 npm run typecheck
 npm run audit
 npm run build
-npm run launch
+npm run grasseye:start
+
+如果本轮目标涉及“删除旧降级路径后防止复发”，还必须追加：
+
+```bash
+npm run verify:local-browser-session
+npm run ci:full
+```
+
+并在最终收尾前完成一次故意生产回归注入，证明执法脚本会失败。
 ```
 
 如果第二阶段当前状态阻塞第三阶段，先修阻塞项，但不要无限扫尾。
@@ -381,7 +401,7 @@ npm run typecheck
 npm run audit:build
 npm run audit
 npm run build
-npm run launch
+npm run grasseye:start
 ```
 
 如果新增：
@@ -507,7 +527,7 @@ npm run typecheck
 npm run audit:build
 npm run audit
 npm run build
-npm run launch
+npm run grasseye:start
 ```
 
 ## 10. 真实发现项

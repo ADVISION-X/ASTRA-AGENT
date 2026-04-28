@@ -1,0 +1,21 @@
+{
+  "inspectorId": "orchestration-capability-owner",
+  "capabilityDomain": "orchestration-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/orchestration-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V1",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V2"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
+  ]
+}

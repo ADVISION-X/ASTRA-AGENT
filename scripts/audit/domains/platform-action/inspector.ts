@@ -1,90 +1,211 @@
-import { createPhase } from "../../core/result.js";
-import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
-import { pathFromRepoRoot } from "../../core/paths.js";
-import { scanFilesForPatterns } from "../_shared/scan-for-patterns.js";
-import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { fileExists } from "../../core/filesystem.js";
+import { createFinding, createPhase } from "../../core/result.js";
+import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import type { Finding, InspectorPhase } from "../../core/schema.js";
+import {
+  createAuditProject,
+  getSourceFileOrThrow,
+  hasInterfaceMethod,
+} from "../_shared/ast-helpers.js";
 
-export default createPendingDomainInspector({
-  inspector: "GrassEye Platform Action Owner Inspector",
-  inspectorId: "platform-action-owner",
-  capabilityDomain: "platform-action",
-  inspectorEntry: "scripts/audit/domains/platform-action/inspector.ts",
-  ownedPaths: ["src/features/platform-action", "src/lib/browser"],
-  pendingSummary: "platform-action implementation pending; manual-first law only; no adapter-level enforcement yet",
-  implementedSummary: "platform-action is implemented through a vision-first coordinate real-platform boundary",
-  extraChecks: async () => {
-    const sourceFiles = await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts"] });
-    const realAdapterSource = await readTextFile(pathFromRepoRoot("src/features/platform-action/adapters/tiktok-platform-adapter.ts")).catch(() => "");
-    const browserSource = await readTextFile(pathFromRepoRoot("src/lib/browser/browser-controller.ts"));
-    const fixtureAdapterExists = await fileExists(pathFromRepoRoot("src/features/platform-action/adapters/fixture-platform-adapter.ts"));
-    const visualTargetSource = await readTextFile(pathFromRepoRoot("src/features/platform-action/visual-target.ts")).catch(() => "");
-    const geometryGuardSource = await readTextFile(pathFromRepoRoot("src/features/platform-action/screen-geometry-guard.ts")).catch(() => "");
-    const coordinatePolicySource = await readTextFile(pathFromRepoRoot("src/features/platform-action/coordinate-action-policy.ts")).catch(() => "");
-    const visionAdapterSource = await readTextFile(pathFromRepoRoot("src/features/platform-action/adapters/vision-coordinate-platform-adapter.ts")).catch(() => "");
-    const findings = await scanFilesForPatterns(sourceFiles, [
-      {
-        lawId: "GRASSEYE-PLATFORM-ACTION-001-V1",
-        severity: "error",
-        pattern: /account pool|proxy pool|fingerprint spoof|captcha bypass|account switching|stealth|anti-detect/i,
-        message: "Forbidden abuse keyword found in source tree.",
-      },
-    ]);
+const LAW_ID = "GRASSEYE-PLATFORM-ACTION-001-V1";
+const ROOT = "src/features/platform-action";
+const PLATFORM_ADAPTER_PATH = `${ROOT}/platform-adapter.ts`;
+const TIKTOK_ACTIONS_PATH = `${ROOT}/adapters/tiktok-platform-actions.ts`;
+const TIKTOK_ADAPTER_PATH = `${ROOT}/adapters/tiktok-platform-adapter.ts`;
+const VERIFY_ROOT = "scripts/verify";
 
-    const realBoundaryPassed =
-      realAdapterSource.includes("BrowserController") &&
-      realAdapterSource.includes("openFeed") &&
-      realAdapterSource.includes("openComments") &&
-      realAdapterSource.includes("captureCommentRegion") &&
-      realAdapterSource.includes("executeCoordinateAction") &&
-      !realAdapterSource.includes("readVisibleTexts");
-    const browserBoundaryPassed =
-      browserSource.includes("click") &&
-      browserSource.includes("getGeometrySnapshot") &&
-      browserSource.includes("point:") &&
-      browserSource.includes("screenshotRegion") &&
-      browserSource.includes("scroll") &&
-      browserSource.includes("open(input") &&
-      !browserSource.includes("readVisibleTexts");
-    const adapterBoundaryPassed = realBoundaryPassed && browserBoundaryPassed;
-    const coordinateModePassed =
-      (visualTargetSource.includes("sourceScreenshotEvidenceId") || visualTargetSource.includes("sourceScreenshotEvidenceRef")) &&
-      geometryGuardSource.includes("browser geometry drift detected") &&
-      coordinatePolicySource.includes("minimumConfidence") &&
-      visionAdapterSource.includes("executeVisionCoordinateAction") &&
-      realAdapterSource.includes("VisionCoordinatePlatformAdapter") &&
-      realAdapterSource.includes("executeCoordinateAction") &&
-      realAdapterSource.includes("Visual-only Coordinate Runtime") &&
-      !realAdapterSource.includes("operator-approved dom fallback") &&
-      !fixtureAdapterExists;
+const FORBIDDEN_PLATFORM_METHODS = [
+  "prepareOpenedPage",
+  "observeCurrentVideo",
+  "captureVideoRegion",
+  "clickNotInterested",
+  "likeOrSaveCandidate",
+  "openComments",
+  "captureCommentRegion",
+  "continueNext",
+] as const;
+
+const HIDDEN_ORCHESTRATOR_IMPORT_MARKERS = [
+  "capabilities/open",
+  "capabilities/screenshot",
+  "capabilities/visual-target",
+  "capabilities/geometry-guard",
+  "capabilities/mouse-click",
+  "capabilities/mouse-scroll",
+  "capabilities/page-state",
+  "capabilities/post-action-verification",
+  "lib/browser/browser-controller",
+] as const;
+
+const isLegacyPlatformSpecifier = (specifier: string): boolean =>
+  specifier.includes("features/platform-action") || specifier.includes("/platform-action/");
+
+export const inspectPlatformActionBoundary = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+    const findings: Finding[] = [];
+    const project = createAuditProject();
+    const legacyRootExists = await fileExists(pathFromRepoRoot(ROOT));
+    const verifyRootExists = await fileExists(pathFromRepoRoot(VERIFY_ROOT));
+
+    if (legacyRootExists) {
+      findings.push(
+        createFinding({
+          lawId: LAW_ID,
+          file: ROOT,
+          line: 1,
+          severity: "fatal",
+          message: "Retired platform-action root still exists and must be physically removed.",
+        }),
+      );
+    }
+
+    if (await fileExists(pathFromRepoRoot(PLATFORM_ADAPTER_PATH))) {
+      const platformAdapter = getSourceFileOrThrow(project, PLATFORM_ADAPTER_PATH);
+      const forbiddenMethods = FORBIDDEN_PLATFORM_METHODS.filter((methodName) =>
+        hasInterfaceMethod(platformAdapter, "PlatformAdapter", methodName),
+      );
+      if (forbiddenMethods.length > 0) {
+        findings.push(
+          createFinding({
+            lawId: LAW_ID,
+            file: PLATFORM_ADAPTER_PATH,
+            line: 1,
+            severity: "fatal",
+            message: `PlatformAdapter still owns forbidden action methods: ${forbiddenMethods.join(", ")}.`,
+          }),
+        );
+      }
+    }
+
+    if (await fileExists(pathFromRepoRoot(TIKTOK_ACTIONS_PATH))) {
+      const actionSource = getSourceFileOrThrow(project, TIKTOK_ACTIONS_PATH);
+      const exportedActions = FORBIDDEN_PLATFORM_METHODS.filter((methodName) => Boolean(actionSource.getFunction(methodName)));
+      if (exportedActions.length > 0) {
+        findings.push(
+          createFinding({
+            lawId: LAW_ID,
+            file: TIKTOK_ACTIONS_PATH,
+            line: 1,
+            severity: "fatal",
+            message: `Legacy TikTok action module still owns governed action functions: ${exportedActions.join(", ")}.`,
+          }),
+        );
+      }
+    }
+
+    if (await fileExists(pathFromRepoRoot(TIKTOK_ADAPTER_PATH))) {
+      const adapterSource = getSourceFileOrThrow(project, TIKTOK_ADAPTER_PATH);
+      const adapterClass = adapterSource.getClass("TikTokPlatformAdapter");
+      const adapterMethods = FORBIDDEN_PLATFORM_METHODS.filter((methodName) => Boolean(adapterClass?.getMethod(methodName)));
+      if (adapterMethods.length > 0) {
+        findings.push(
+          createFinding({
+            lawId: LAW_ID,
+            file: TIKTOK_ADAPTER_PATH,
+            line: 1,
+            severity: "fatal",
+            message: `TikTokPlatformAdapter still aggregates forbidden action methods: ${adapterMethods.join(", ")}.`,
+          }),
+        );
+      }
+
+      const hiddenImports = adapterSource.getImportDeclarations().filter((declaration) => {
+        const specifier = declaration.getModuleSpecifierValue();
+        return HIDDEN_ORCHESTRATOR_IMPORT_MARKERS.some((marker) => specifier.includes(marker));
+      });
+      if (hiddenImports.length > 0) {
+        findings.push(
+          createFinding({
+            lawId: LAW_ID,
+            file: TIKTOK_ADAPTER_PATH,
+            line: 1,
+            severity: "fatal",
+            message: "TikTokPlatformAdapter still imports governed action owners as a hidden orchestrator.",
+          }),
+        );
+      }
+    }
+
+    const importViolations: string[] = [];
+    for (const sourceFile of project.getSourceFiles()) {
+      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
+      if (!relativePath.startsWith("src/")) {
+        continue;
+      }
+
+      for (const importDeclaration of sourceFile.getImportDeclarations()) {
+        if (isLegacyPlatformSpecifier(importDeclaration.getModuleSpecifierValue())) {
+          importViolations.push(relativePath);
+        }
+      }
+
+      for (const exportDeclaration of sourceFile.getExportDeclarations()) {
+        const specifier = exportDeclaration.getModuleSpecifierValue() ?? "";
+        if (isLegacyPlatformSpecifier(specifier)) {
+          importViolations.push(relativePath);
+        }
+      }
+    }
+
+    if (importViolations.length > 0) {
+      findings.push(
+        createFinding({
+          lawId: LAW_ID,
+          file: importViolations[0]!,
+          line: 1,
+          severity: "fatal",
+          message: "Import or export graph still references the retired platform-action root.",
+        }),
+      );
+    }
+
+    if (verifyRootExists) {
+      findings.push(
+        createFinding({
+          lawId: LAW_ID,
+          file: VERIFY_ROOT,
+          line: 1,
+          severity: "fatal",
+          message: "Verify scripts must not act as enforcement truth for platform-action retirement.",
+        }),
+      );
+    }
 
     return {
       findings,
       phases: [
         createPhase(
-          "platform-adapter-boundary",
-          adapterBoundaryPassed ? "PASS" : "LAW-SCRIPT DRIFT",
-          adapterBoundaryPassed,
-          adapterBoundaryPassed
-            ? "Platform actions flow through the governed real-platform adapter and local browser controller boundary."
-            : "Platform adapter, browser controller, or fixture-removal boundary is incomplete.",
+          "platform-profile-root-removal",
+          !legacyRootExists ? "PASS" : "CODE VIOLATION",
+          !legacyRootExists,
+          !legacyRootExists
+            ? "Retained platform material no longer depends on a surviving platform-action root."
+            : "Platform-action root still survives.",
         ),
         createPhase(
-          "vision-coordinate-mode-boundary",
-          coordinateModePassed ? "PASS" : "LAW-SCRIPT DRIFT",
-          coordinateModePassed,
-          coordinateModePassed
-            ? "Real-platform action flow exposes visual target, geometry guard, coordinate policy, and visual-only runtime markers."
-            : "Coordinate-mode platform action boundary is missing required visual-only governed markers.",
+          "platform-profile-forbidden-shape",
+          !legacyRootExists ? "PASS" : "CODE VIOLATION",
+          !legacyRootExists,
+          !legacyRootExists
+            ? "Platform action ownership methods are absent from the old boundary."
+            : "Platform action ownership methods still exist under the old boundary.",
         ),
         createPhase(
-          "anti-abuse-scan",
-          findings.length === 0 ? "PASS" : "CODE VIOLATION",
-          findings.length === 0,
-          findings.length === 0
-            ? "No obvious abuse-tool keywords were found in source files."
-            : "Forbidden platform-abuse patterns were found in source files.",
+          "platform-profile-boundary-attack",
+          importViolations.length === 0 ? "PASS" : "CODE VIOLATION",
+          importViolations.length === 0,
+          importViolations.length === 0
+            ? "Action execution no longer routes through the retired platform-action import graph."
+            : "Action execution still routes through the retired platform-action import graph.",
+        ),
+        createPhase(
+          "platform-profile-anti-escape",
+          !verifyRootExists ? "PASS" : "CODE VIOLATION",
+          !verifyRootExists,
+          !verifyRootExists
+            ? "No verify-script escape hatch is present for platform-action retirement."
+            : "Verify-script escape hatch still exists for platform-action retirement.",
         ),
       ],
     };
-  },
-});
+};

@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Index"
-description: "Use when routing GrassEye phase-one work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
+description: "Use when routing GrassEye phase-three work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
@@ -26,7 +26,10 @@ Index only locates the narrowest current authority.
 ## Routing Rules
 
 - Load GRASSEYE-KERNEL before any module match.
+- Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug runtime proof.
+- Index may route only to the 13 active ability groups and active support laws.
 - Match the narrowest domain by path and task keywords.
+- Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
 - Do not activate absent historical paths.
 - Do not use broad patterns to revive future capabilities.
 - When two modules appear close, choose the one that directly owns the decision or record boundary.
@@ -37,29 +40,33 @@ Index only locates the narrowest current authority.
 
 | Path or trigger | Load module | Routing note |
 | -- | -- | -- |
-| src/app, src/features/agent, observe, classify, act, record, pause, stop | module-agent-runtime.instructions.md | Runtime loop authority only |
-| browse flow, product presence, next video, wait video stable, identify current video, comment sampling, round outcome, like marker, recommendation tuning marker, first AI question | module-agent-browse-flow.instructions.md | Browse decision-chain authority only |
-| multi-frame evidence, contact sheet, sample video frames, frame_3s, frame_6s, frame_10s, validFrameCount, samplingStrategy | module-multi-frame-evidence.instructions.md | Multi-frame product-presence evidence authority only |
-| evidence packet, forensics handoff, advanced ai handoff, data quality flags, action purpose, packetId, videoVisitId, packet schema | module-evidence-packet.instructions.md | Evidence packet and advanced-AI handoff authority only |
-| src/features/vision, screenshot classification, confidence, suggested action, visual target, target bbox, target confidence | module-vision-boundary.instructions.md | Vision judgment boundary only |
-| visual action, visual target, coordinate action, geometry guard, post-action verification, target catalog, bounded fallback | module-visual-action-capability.instructions.md | Visual target to safe action authority only |
-| src/features/platform-action, src/lib/browser, scroll, open video, like, save, open comments, not interested, platform adapter, browser controller, DOM click, coordinate click, selector, vision-first coordinate mode, coordinate action, browser geometry guard, screen capture, OS input, post-action screenshot verification, DOM fallback, selector fallback | module-platform-action.instructions.md | Platform action and platform adapter boundary only |
-| src/features/comments, src/lib/ocr, comments OCR, purchase intent, pain point, complaint signal | module-comment-intelligence.instructions.md | Comment evidence only |
-| src/features/product-signal, opportunity record, product signal, score, evidence summary | module-product-signal.instructions.md | Opportunity signal only |
-| src/features/local-data, src/lib/storage, dedupe, retention, export, delete, traceability | module-local-data.instructions.md | Local data authority only |
-| local persistence, sqlite, grasseye.sqlite, evidence file store, export set storage, storageRef, structured store, local persistence schema | module-local-persistence-schema.instructions.md | Local persistence schema authority only |
-| real chrome, persistent profile, browser profile, local browser session, login state reuse, profileRef, userDataDir, chrome executable, headless default, incognito | module-local-browser-session.instructions.md | Local real browser session boundary only |
-| structured log, structured logging, runtime event, action log, live proof, log schema, sessionId, roundId, videoVisitId | module-structured-logging.instructions.md | Structured runtime truth and proof boundary only |
-| src/features/operator-control, src/app/operator, review, manual override, candidate pool | module-operator-control.instructions.md | Operator authority only |
-| localization, i18n, locale, language switch, English, Chinese, 中文, UI copy, dictionary, translation key | module-localization.instructions.md | Operator-facing localization boundary only |
+| commander console, human command, mission dashboard, runtime proof timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
+| ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix | module-capability-group-governance.instructions.md | Shared ability-group governance only |
+| orchestration ability group, mission state, mission command execution, operational map, map registry, step state, branch, runtime loop, observe, classify, act, record, orchestrator, facebook-product-discovery-map, tiktok-product-discovery-map | module-orchestration-capability.instructions.md | Legacy runtime-loop vocabulary remaps to Orchestration mission-map authority |
+| nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
+| ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
+| src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
+| src/capabilities/screenshot, screenshot ability group, screenshot capability, imageKind, coordinateSpace, scaleMapping, ai_input, evidence_original, evidence_optimized, capture-region, optimize-lossless, prepare-ai-input | module-screenshot-capability.instructions.md | Screenshot capability authority only |
+| visual target, target bbox, target confidence, target catalog, candidate selection, clickPoint | module-visual-target-capability.instructions.md | Visual target authority only |
+| geometry guard, coordinate action, coordinate safety, coordinate-space validation, scale mapping, executable geometry, normalized geometry | module-geometry-guard-capability.instructions.md | Route coordinate-action vocabulary to Geometry Guard first for safety ownership |
+| src/capabilities/mouse-click, mouse click, click capability, primitive click, browser click, screen click | module-mouse-click-capability.instructions.md | Mouse click primitive authority only |
+| src/capabilities/mouse-scroll, mouse scroll ability group, scroll capability, wheel scroll, scroll magnitude, region-wheel-scroll, browser-viewport-scroll, desktop-screen-scroll | module-mouse-scroll-capability.instructions.md | Mouse scroll capability authority only |
+| post-action verification, action result verification, verification decision, result proof, after-click verification, after-scroll verification | module-post-action-verification-capability.instructions.md | Verification truth only |
+| page state, page readiness, login wall, modal overlay, platform page kind, comment panel state, safety page | module-page-state-capability.instructions.md | Page-state truth only |
+| multi-frame evidence, contact sheet, sample video frames, frame_3s, frame_6s, frame_10s, validFrameCount, samplingStrategy | module-screenshot-capability.instructions.md | Shared multi-frame packaging now starts from Screenshot and continues through AI and Forensics |
+| evidence packet, browse ledger, failed record, runtime snapshot, forensics handoff, record envelope, record ref, artifact ref, packet schema, operator snapshot, review record | module-forensics-persistence-capability.instructions.md | Forensics record ownership only |
+| platform profile, platform metadata, rate limit, adapter hint, view hint, identity rules, URL rules | module-open-capability.instructions.md | Platform profile and hints now route through Open capability as a sub-contract |
+| local data, storage port, storage adapter, dedupe, retention, export, delete, traceability | module-forensics-persistence-capability.instructions.md | Route retired local-data vocabulary to the active Forensics write boundary |
+| local persistence, sqlite, grasseye.sqlite, evidence file store, export set storage, storageRef, structured store, local persistence schema | module-forensics-persistence-capability.instructions.md | Local persistence schema now routes through Forensics child boundary |
+| real chrome, persistent profile, browser profile, local browser session, login state reuse, profileRef, userDataDir, chrome executable, headless default, incognito | module-open-capability.instructions.md | Local real browser session now routes through Open child boundary |
+| structured log, structured logging, runtime event, action log, debug runtime proof, log schema, sessionId, roundId, videoVisitId | module-forensics-persistence-capability.instructions.md | Structured runtime proof now routes through Forensics child boundary |
 | credentials, cookies, session, token, privacy, sensitive screenshot, authorized account | module-security-privacy.instructions.md | Security and privacy only |
-| file placement, domain ownership, new directory, move files, topology, canonical path, phase goal, TODO plan, Codex prompt, acceptance report, archive, docs path, runtime data path | module-code-topology.instructions.md | Path ownership only |
-| file length, function length, code purity, atomicity, nesting depth, complexity, dead code, commented-out code, debug leftovers, TODO hygiene, compatibility bridge, giant function, god file | module-code-purity.instructions.md | Code internal purity and maintainability only |
+| startup script, launch script, bootstrap, dependency check, auto open page, health-gated launch, unique startup source, grasseye:start | module-commander-console-capability.instructions.md | Startup bootstrap now routes through Commander Console child boundary |
+| localhost console, desktop app, macOS app, local app shell, local workbench, public exposure | module-commander-console-capability.instructions.md | Local app shell now routes through Commander Console child boundary |
+| file placement, domain ownership, new directory, move files, topology, canonical path, phase goal, TODO plan, Codex prompt, acceptance report, archive, docs path, runtime data path | module-capability-group-governance.instructions.md | Topology contract now lives under capability-group governance |
+| file length, function length, code purity, atomicity, nesting depth, complexity, dead code, commented-out code, debug leftovers, TODO hygiene, compatibility bridge, giant function, god file | module-audit-system.instructions.md | Purity red lines are enforced under audit-system rather than an independent owner |
 | src/types, strict mode, unknown, schema validation, action payload, no any | module-type-safety.instructions.md | Type boundary only |
-| src/lib/local-ai, local model, local AI, model router, prompt registry, prompt version, AI output schema, paid API, cloud AI fallback, model config, local model config, model role, vision model, OCR engine, model provider, ollama, llama.cpp, PaddleOCR, Apple Vision | module-local-ai-runtime.instructions.md | Local AI execution and prompt contract boundary only |
-| localhost console, desktop app, macOS app, local app shell, local runtime, Electron, Tauri, SwiftUI, local workbench, public exposure | module-local-app-shell.instructions.md | Local application form and runtime shell boundary only |
-| startup script, launch script, bootstrap, dependency check, auto open page, health-gated launch | module-local-app-shell.instructions.md | Startup lifecycle boundary only |
-| scripts/startup, startup helper path, launch script placement, bootstrap path | module-code-topology.instructions.md | Startup file placement only |
+| src/lib/local-ai, local model, local AI, model router, prompt registry, prompt version, AI output schema, paid API, cloud AI fallback, model config, local model config, model role, vision model, OCR engine, model provider, ollama, llama.cpp, PaddleOCR, Apple Vision | module-ai-capability.instructions.md | Local model runtime now routes through AI capability as a child sub-contract |
 | test file, tests directory, npm test, mock gate, quality gate authority | module-audit-system.instructions.md | Audit authority over quality gates only |
 | scripts/audit, owner boundary, report format, generated artifacts, inspector | module-audit-system.instructions.md | Audit governance only |
 
@@ -72,3 +79,4 @@ This index does not govern:
 - Comment interpretation rules.
 - Opportunity scoring criteria.
 - Platform action legality beyond routing to the owning module.
+- Deleted owner names such as agent-runtime, agent-mechanical-skills, agent-browse-flow, evidence-packet, vision-boundary, visual-only-runtime, visual-action-capability, comment-intelligence, product-signal, and operator-control.

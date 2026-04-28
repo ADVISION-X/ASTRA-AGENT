@@ -5,16 +5,28 @@ import { Node, Project, SyntaxKind } from "ts-morph";
 import { createFinding, createPhase } from "../../core/result.js";
 import { fileExists, readJsonFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { getAuditProject, getExpressionPath, getNodeLine, getSourceFileOrThrow, toRelativeSourcePath } from "../../core/ts-morph.js";
-import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 const STARTUP_ENTRY = "scripts/startup/launch-grasseye.mjs";
 const STARTUP_HELPERS = [
   "scripts/startup/lib/dependency-check.mjs",
   "scripts/startup/lib/process-control.mjs",
   "scripts/startup/lib/health-check.mjs",
-  "scripts/startup/lib/open-main-page.mjs",
+  "scripts/startup/lib/local-ai-runtime-readiness.mjs",
+  "scripts/startup/lib/open-commander-console.mjs",
+  "scripts/startup/lib/terminal-structured-log.mjs",
 ] as const;
+const SERVER_HELPER = "src/app/create-workbench-server.ts";
+const RUNTIME_API_HELPER = "src/app/runtime-api-handlers.ts";
+const SHELL_RENDER_PATH = "src/lib/local-app-shell/render-commander-console-page.ts";
+const LEGACY_CONSOLE_PATH = "src/features/operator-control/console-view.ts";
+const ILLEGAL_LOCAL_RUNTIME_EXECUTION_PATHS = new Set([
+  "src/lib/local-runtime/runtime-executor.ts",
+  "src/lib/local-runtime/runtime-bootstrap.ts",
+  "src/lib/local-runtime/runtime-state.ts",
+  "src/lib/local-runtime/runtime-step-support.ts",
+]);
 
 const createStartupProject = (): Project => {
   const project = new Project({
@@ -68,27 +80,52 @@ const getPropertyPath = (initializer: import("ts-morph").Expression | undefined)
   return getExpressionPath(initializer);
 };
 
-export default createPendingDomainInspector({
-  inspector: "GrassEye Local App Shell Owner Inspector",
-  inspectorId: "local-app-shell-owner",
-  capabilityDomain: "local-app-shell",
-  inspectorEntry: "scripts/audit/domains/local-app-shell/inspector.ts",
-  ownedPaths: ["src/app/server.ts", "src/lib/local-runtime"],
-  pendingSummary: "local-app-shell implementation is partial; local console or local runtime shell enforcement is still manual-first",
-  implementedSummary: "local app shell is implemented as a localhost workbench with local runtime surfaces",
-  extraChecks: async () => {
-    const findings = [];
+export const inspectLocalAppShellBoundary = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+    const findings: Finding[] = [];
     const auditProject = getAuditProject();
     const startupProject = createStartupProject();
     const serverSource = getSourceFileOrThrow(auditProject, "src/app/server.ts");
-    const consoleViewSource = getSourceFileOrThrow(auditProject, "src/features/operator-control/console-view.ts");
+    const serverHelperSource = getSourceFileOrThrow(auditProject, SERVER_HELPER);
+    const runtimeApiSource = getSourceFileOrThrow(auditProject, RUNTIME_API_HELPER);
+    const shellRenderSource = getSourceFileOrThrow(auditProject, SHELL_RENDER_PATH);
     const workbenchSource = getSourceFileOrThrow(auditProject, "src/lib/local-runtime/workbench.ts");
     const launchSource = startupProject.getSourceFile(pathFromRepoRoot(STARTUP_ENTRY));
     const relativeServerPath = toRelativeSourcePath(serverSource);
-    const relativeConsoleViewPath = toRelativeSourcePath(consoleViewSource);
+    const relativeServerHelperPath = toRelativeSourcePath(serverHelperSource);
+    const relativeRuntimeApiPath = toRelativeSourcePath(runtimeApiSource);
+    const relativeShellRenderPath = toRelativeSourcePath(shellRenderSource);
     const relativeWorkbenchPath = toRelativeSourcePath(workbenchSource);
+    const illegalMissionRuntimeSources = auditProject
+      .getSourceFiles()
+      .filter((sourceFile) => ILLEGAL_LOCAL_RUNTIME_EXECUTION_PATHS.has(toRelativeSourcePath(sourceFile)));
 
     const packageJson = await readJsonFile<{ scripts?: Record<string, string> }>(pathFromRepoRoot("package.json"));
+    const legacyConsoleExists = await fileExists(pathFromRepoRoot(LEGACY_CONSOLE_PATH));
+
+    if (legacyConsoleExists) {
+      findings.push(
+        createFinding({
+          lawId: "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+          file: LEGACY_CONSOLE_PATH,
+          line: 1,
+          severity: "fatal",
+          message: "Deleted historical operator-control console path must not remain in the active shell boundary.",
+        }),
+      );
+    }
+
+    if (illegalMissionRuntimeSources.length > 0) {
+      findings.push(
+        createFinding({
+          lawId: "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+          file: "src/lib/local-runtime/runtime-executor.ts",
+          line: 1,
+          severity: "fatal",
+          message: "src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, and runtime-step-support.ts form an illegal shell-side execution chain and must be physically removed.",
+          detail: illegalMissionRuntimeSources.map((sourceFile) => toRelativeSourcePath(sourceFile)).join(", "),
+        }),
+      );
+    }
 
     const hostDeclaration = serverSource.getVariableDeclaration("host");
     const hostInitializer = hostDeclaration?.getInitializerIfKind(SyntaxKind.BinaryExpression);
@@ -125,11 +162,13 @@ export default createPendingDomainInspector({
     }
 
     const serverText = serverSource.getFullText();
-    if (!serverText.includes('url.pathname === "/api/runtime/snapshot"')) {
+    const serverHelperText = serverHelperSource.getFullText();
+    const runtimeApiText = runtimeApiSource.getFullText();
+    if (!runtimeApiText.includes('url.pathname === "/api/runtime/snapshot"')) {
       findings.push(
         createFinding({
           lawId: "GRASSEYE-LOCAL-APP-SHELL-001-V1",
-          file: relativeServerPath,
+          file: relativeRuntimeApiPath,
           line: 1,
           severity: "error",
           message: "Server shell must preserve the JSON snapshot endpoint under /api/runtime/snapshot.",
@@ -137,27 +176,27 @@ export default createPendingDomainInspector({
       );
     }
 
-    if (!serverText.includes('url.pathname === "/"') || !serverText.includes("renderOperatorConsole(")) {
+    if (!serverHelperText.includes('url.pathname === "/"') || !serverHelperText.includes("renderCommanderConsolePage(")) {
       findings.push(
         createFinding({
           lawId: "GRASSEYE-LOCAL-APP-SHELL-001-V1",
-          file: relativeServerPath,
+          file: relativeServerHelperPath,
           line: 1,
           severity: "error",
-          message: "Root route must render the operator console HTML rather than a JSON response.",
+          message: "Root route must render the Commander Console shell HTML rather than a JSON response.",
         }),
       );
     }
 
-    const consoleViewText = consoleViewSource.getFullText();
-    if (consoleViewText.includes('<pre id="snapshot">') || consoleViewText.includes("JSON.stringify(snapshot, null, 2)")) {
+    const shellRenderText = shellRenderSource.getFullText();
+    if (shellRenderText.includes('<pre id="snapshot">') || shellRenderText.includes("JSON.stringify(snapshot, null, 2)")) {
       findings.push(
         createFinding({
           lawId: "GRASSEYE-LOCAL-APP-SHELL-002-V1",
-          file: relativeConsoleViewPath,
+          file: relativeShellRenderPath,
           line: 1,
           severity: "error",
-          message: "Operator console must not render raw snapshot JSON as the root-page body.",
+          message: "Commander Console shell must not render raw snapshot JSON as the root-page body.",
         }),
       );
     }
@@ -192,11 +231,11 @@ export default createPendingDomainInspector({
 
     const forbiddenShellMarkers = [".grasseye-demo-data", "/api/demo/", "/fixture/platform", "fixture-demo", "renderFixturePlatformPage"];
     for (const marker of forbiddenShellMarkers) {
-      if (serverText.includes(marker) || consoleViewText.includes(marker) || workbenchSource.getFullText().includes(marker)) {
+      if (serverText.includes(marker) || shellRenderText.includes(marker) || workbenchSource.getFullText().includes(marker)) {
         findings.push(
           createFinding({
             lawId: "GRASSEYE-LOCAL-APP-SHELL-001-V1",
-            file: serverText.includes(marker) ? relativeServerPath : (consoleViewText.includes(marker) ? relativeConsoleViewPath : relativeWorkbenchPath),
+            file: serverText.includes(marker) ? relativeServerPath : (shellRenderText.includes(marker) ? relativeShellRenderPath : relativeWorkbenchPath),
             line: 1,
             severity: "error",
             message: `Local app shell must not retain simulated runtime marker: ${marker}`,
@@ -206,31 +245,28 @@ export default createPendingDomainInspector({
     }
 
     const requiredConsoleSurfaceMarkers = [
-      "snapshot.mode",
-      "snapshot.runtime.components",
+      "createTranslator(",
       "buildLocaleHref(",
-      "snapshot.mode.executionMode",
-      "snapshot.mode.geometryGuard",
-      "snapshot.mode.viewport",
-      "snapshot.mode.calibration",
+      "issueCommand(",
+      "markCandidate(",
+      "window.__grasseyeCommanderConsolePayload",
     ];
     for (const marker of requiredConsoleSurfaceMarkers) {
-      if (!consoleViewText.includes(marker)) {
+      if (!shellRenderText.includes(marker)) {
         findings.push(
           createFinding({
             lawId: "GRASSEYE-LOCAL-APP-SHELL-002-V1",
-            file: relativeConsoleViewPath,
+            file: relativeShellRenderPath,
             line: 1,
             severity: "error",
-            message: `Root operator console must preserve the local shell surface marker: ${marker}`,
+            message: `Root Commander Console shell must preserve the local render surface marker: ${marker}`,
           }),
         );
       }
     }
 
     const requiredWorkbenchImports = [
-      { moduleSpecifier: "../../features/local-data/evidence-store-service.js", importedName: "EvidenceStoreService" },
-      { moduleSpecifier: "../local-ai/local-ai-gateway.js", importedName: "LocalAiGateway" },
+      { moduleSpecifier: "../../capabilities/ai/index.js", importedName: "createAiAbilityGroup" },
     ];
     for (const requiredImport of requiredWorkbenchImports) {
       if (!hasNamedImport(workbenchSource, requiredImport.moduleSpecifier, requiredImport.importedName)) {
@@ -246,7 +282,7 @@ export default createPendingDomainInspector({
       }
     }
 
-    const hasRealBrowserBoundary = hasNamedImport(workbenchSource, "../browser/playwright-browser-controller.js", "PlaywrightBrowserController");
+    const hasRealBrowserBoundary = hasNamedImport(workbenchSource, "../browser/current-chrome-browser-controller.js", "CurrentChromeBrowserController");
     if (!hasRealBrowserBoundary) {
       findings.push(
         createFinding({
@@ -302,8 +338,7 @@ export default createPendingDomainInspector({
     }
 
     const requiredScripts = {
-      launch: "node scripts/startup/launch-grasseye.mjs",
-      "start:local": "node scripts/startup/launch-grasseye.mjs",
+      "grasseye:start": "node scripts/startup/launch-grasseye.mjs",
     };
     for (const [scriptName, expectedCommand] of Object.entries(requiredScripts)) {
       if (packageJson.scripts?.[scriptName] !== expectedCommand) {
@@ -327,7 +362,9 @@ export default createPendingDomainInspector({
         { moduleSpecifier: "./lib/process-control.mjs", importedName: "startLocalService" },
         { moduleSpecifier: "./lib/process-control.mjs", importedName: "stopLocalService" },
         { moduleSpecifier: "./lib/health-check.mjs", importedName: "waitForHealth" },
-        { moduleSpecifier: "./lib/open-main-page.mjs", importedName: "openMainPage" },
+        { moduleSpecifier: "./lib/local-ai-runtime-readiness.mjs", importedName: "ensureLocalAiRuntimeReady" },
+        { moduleSpecifier: "./lib/open-commander-console.mjs", importedName: "openCommanderConsole" },
+        { moduleSpecifier: "./lib/terminal-structured-log.mjs", importedName: "createTerminalStructuredLogger" },
       ];
       for (const requiredImport of requiredLaunchImports) {
         if (!hasNamedImport(launchSource, requiredImport.moduleSpecifier, requiredImport.importedName)) {
@@ -355,12 +392,12 @@ export default createPendingDomainInspector({
         ? getIdentifierCallWithin(performLaunchFunction, "waitForHealth")
         : getIdentifierCall(launchSource, "waitForHealth");
       const openMainPageCall = openReadyPageFunction
-        ? getIdentifierCallWithin(openReadyPageFunction, "openMainPage")
-        : getIdentifierCall(launchSource, "openMainPage");
+        ? getIdentifierCallWithin(openReadyPageFunction, "openCommanderConsole")
+        : getIdentifierCall(launchSource, "openCommanderConsole");
       const openCall = performLaunchFunction
         ? getIdentifierCallWithin(performLaunchFunction, "openReadyPage") ??
-          getIdentifierCallWithin(performLaunchFunction, "openMainPage")
-        : getIdentifierCall(launchSource, "openMainPage");
+          getIdentifierCallWithin(performLaunchFunction, "openCommanderConsole")
+        : getIdentifierCall(launchSource, "openCommanderConsole");
 
       if (!clearPortCall) {
         findings.push(
@@ -405,7 +442,7 @@ export default createPendingDomainInspector({
             file: STARTUP_ENTRY,
             line: 1,
             severity: "error",
-            message: "Launch entry must open the main page after health passes.",
+            message: "Launch entry must open Commander Console after health passes.",
           }),
         );
       }
@@ -513,5 +550,4 @@ export default createPendingDomainInspector({
         ),
       ],
     };
-  },
-});
+};

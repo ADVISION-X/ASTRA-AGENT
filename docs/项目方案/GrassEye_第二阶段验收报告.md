@@ -21,8 +21,8 @@
 | `npm run verify:phase2` | PASS | typecheck + tests 组合验证通过 |
 | `npm run ci:full` | PASS | typecheck + tests + audit 全链路验证通过 |
 | `npm run build` | PASS | 生成 dist 构建产物 |
-| `npm start` | PASS | 本地服务成功监听 `http://127.0.0.1:4173` |
-| `npm run launch` | PASS | 通过受治理启动入口完成依赖检查、健康门、页面打开 |
+| `npm run internal:app-server` | PASS | 本地服务成功监听 `http://127.0.0.1:4173` |
+| `npm run grasseye:start` | PASS | 通过受治理启动入口完成依赖检查、健康门、页面打开 |
 | `curl http://127.0.0.1:4173/ \\| head -n 40` | PASS | 根页面返回 HTML workbench，而不是 JSON dump |
 | `curl http://127.0.0.1:4173/api/runtime/health` | PASS | 返回 runtime health JSON |
 | `curl http://127.0.0.1:4173/api/runtime/snapshot \\| head -n 20` | PASS | snapshot 保持在 `/api/**` JSON 边界内 |
@@ -35,7 +35,7 @@
 
 | 验收对象 | 结果 | 证据 |
 |---|---|---|
-| Local Workbench | PASS | `npm start` 与 `npm run launch` 均成功，根页面返回 HTML 工作台 |
+| Local Workbench | PASS | `npm run internal:app-server` 与 `npm run grasseye:start` 均成功，根页面返回 HTML 工作台 |
 | Single Platform Loop | PASS | `npm run demo:phase2` 完成单平台 fixture 闭环并产出候选 |
 | Local AI | PASS | Local AI Gateway + Prompt Registry + schema validation 已实现，测试通过 |
 | No Cloud Fallback | PASS | 源码搜索未发现 cloud/paid fallback 关键词；audit local-ai-runtime PASS |
@@ -98,7 +98,7 @@
 
 1. 修复了 server 模板字符串与入口文件损坏问题，恢复可启动的本地控制台。
 2. 修复了 JSON state store 并发读写导致的半截 JSON 问题，改为串行化写入与原子替换。
-3. 修复了生产启动脚本路径错误，确保 `npm start` 指向真实 dist 入口。
+3. 修复了生产启动脚本路径错误，确保 `npm run internal:app-server` 指向真实 dist 入口。
 4. 修复了 server 入口在带空格仓库路径下的 `import.meta.url` 判断，确保构建产物可启动。
 5. 修复了 vision classification 对 `no product` / `non-product` 的误判，并补充回归测试。
 6. 修复了 demo 默认复用历史数据目录导致的脏验收结果，改为默认临时数据目录。

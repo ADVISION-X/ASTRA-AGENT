@@ -1,0 +1,21 @@
+{
+  "inspectorId": "screenshot-capability-owner",
+  "capabilityDomain": "screenshot-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-SCREENSHOT-CAPABILITY-001-V1",
+    "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
+    "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1",
+    "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md",
+    "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
+  ]
+}

@@ -1,168 +1,170 @@
 ---
 name: "GrassEye Local AI Runtime"
-description: "Use when defining local AI execution authority, local model routing, prompt registry boundaries, or AI output contract governance."
-applyTo: ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md, src/lib/local-ai/**, src/features/vision/**, src/features/comments/**, src/features/product-signal/**"
+description: "Use when defining local AI runtime adapters, model-role routing, prompt registry internals, or AI output contract governance inside the AI Ability Group."
+applyTo: ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md, src/lib/local-ai/**, src/capabilities/ai/**, docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md, docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
 ---
 
 # GrassEye Local AI Runtime
 
-Scope: governs local AI execution authority, model-role routing, prompt registry boundaries, and AI output contracts.
-Boundary: this module governs only how GrassEye may invoke and trust local AI results.
-Excludes: browser actions, OCR implementation details, product scoring rules, model installation, and UI presentation.
-Authority: this file is authoritative only for the local-ai-runtime capability domain.
-
----
+Scope: governs local AI runtime adapters, model-role routing, prompt registry internals, and AI output contracts.
+Boundary: this module governs only how the AI Ability Group may invoke and trust local AI results as a child sub-contract, not as an independent owner.
+Excludes: browser actions, OCR engine installation, product approval, and UI presentation.
+Authority: this file is authoritative only for the ai-capability domain as the local-model-runtime child sub-contract.
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-001-V1
 
 status: active
 tier: P0
-capabilityDomain: local-ai-runtime
+capabilityDomain: ai-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: GrassEye phase-one AI execution must stay local-first and must not automatically fall back to paid or cloud AI APIs.
+summary: local-ai-runtime is an AI child sub-contract and internal runtime adapter, not an active owner.
 
 ### 主题
 
-本地 AI 主权与外部 API 禁止边界
+AI 内部运行时边界
 
 ### 法条
 
-GrassEye phase-one AI execution must use local AI as the governed execution path for visual classification, OCR-supported understanding, comment intelligence, and product-signal reasoning.
+Local AI runtime is an internal adapter boundary owned by the AI Ability Group; it does not own AI public sovereignty.
 
 Required direction:
-- Local AI is the default governed AI execution path for phase one.
-- Paid API, cloud AI API, or remote model fallback must not be called automatically.
-- Any non-local AI use must require explicit operator approval and a separate governed decision path.
-- Local AI failures must route to skip, retry, or operator review rather than silent cloud fallback.
+- Public callers must enter through the AI Ability Group public contract before local runtime internals execute.
+- src/lib/local-ai remains the internal runtime surface.
+- Local AI execution stays local-first.
+- src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts is the only AI-owned runtime adapter allowed to translate public AI contracts into LocalAi runtime contracts.
+- Only the internal bridge may import LocalAiGateway, prompt-registry, LocalAiTaskRequest, LocalAiTaskResult, LocalAiTaskType, or legacy LocalAi task-name literals on behalf of the AI root.
 
 ### 禁止
 
 FORBIDDEN:
-- Automatic fallback from local AI to paid API or cloud AI API.
-- Hidden external AI calls inside vision, comment, product-signal, or helper layers.
-- Uploading screenshots, OCR text, comments, or product evidence to unauthorized external AI services.
-- Treating remote AI as an invisible substitute for local model failure.
-
----
+- local-ai-runtime being treated as a public ability owner.
+- business domains calling local models directly.
+- hidden cloud or paid fallback.
+- exporting LocalAiTaskRequest, LocalAiTaskResult, or LocalAiTaskType as public AI sovereignty.
+- prompt-contract facades or legacy LocalAi result translators surviving under src/capabilities/ai.
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-002-V1
 
 status: active
 tier: P0
-capabilityDomain: local-ai-runtime
+capabilityDomain: ai-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: local AI calls must go through explicit model-role routing and may not be scattered across business code.
+summary: model-role routing must stay explicit and traceable.
 
 ### 主题
 
-本地模型分工与调用入口
+模型分工与追踪
 
 ### 法条
 
-Local AI calls must be routed through a governed local-AI boundary that separates model roles and keeps business domains from calling models ad hoc.
+Local AI calls must be routed through explicit model-role mapping under the AI Ability Group.
 
 Required direction:
-- Vision classification, OCR text extraction or OCR-supported cleanup, comment understanding, and product-signal reasoning must have explicit model-role boundaries.
-- Business domains must request AI work through the governed local-AI boundary rather than direct scattered calls.
-- Each AI result must identify task type, model role, prompt version, schema version, confidence or uncertainty, and evidence reference.
-- Product-presence vision input must support multi_frame_contact_sheet or governed multi-image input, and contact sheet is preferred when multi-image support is uncertain.
-- Multi-frame product-presence must default to one governed AI task rather than three independent AI calls.
-- Product-presence AI results must record inputMode, sampledFrameCount, validFrameCount, and aggregateReason.
-- Model-role routing must remain reviewable and replaceable without changing the GrassEye core chain.
-- Local AI receives screenshot/OCR evidence, not DOM dumps.
+- visual-observation, ocr-extraction, comment-analysis, and evidence-summary roles must remain explicit.
+- AI requests must carry origin abilityGroupId, childAbilityId when applicable, taskType, promptVersion, schemaVersion, and evidence refs.
+- Results must return structured outputs only.
+- Public AiTaskType values may map to legacy LocalAiTaskType values only inside the internal bridge.
+- LocalAi task-name strings must not escape the bridge back into the wider AI root.
 
 ### 禁止
 
 FORBIDDEN:
-- Direct ad hoc local model calls scattered inside agent-runtime, platform-action, comments, or product-signal code.
-- Mixing vision classification, comment reasoning, and product scoring into one unbounded AI call.
-- AI outputs without task type, prompt version, schema version, or evidence reference.
-- Business logic depending on a specific local model name as if it were permanent truth.
-
----
+- ad-hoc local model calls scattered in app, capability consumers, adapters, or workbench files.
+- free-text AI outputs driving platform actions directly.
+- leaking legacy LocalAi task names back out through AI public contract.
+- AI callers importing AI-private prompt helpers instead of the AI public facade.
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-003-V1
 
 status: active
 tier: P0
-capabilityDomain: local-ai-runtime
+capabilityDomain: ai-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: prompts must be governed task contracts, not loose hidden strings inside business code.
+summary: prompts are governed task contracts, not hidden strings.
 
 ### 主题
 
-提示词注册与结构化输出契约
+提示词注册边界
 
 ### 法条
 
-Prompts that drive GrassEye AI behavior must be governed task contracts with versioned purpose, input scope, output schema, and forbidden output boundaries.
+Prompts that drive GrassEye AI behavior must live behind a governed prompt registry or equivalent local-AI contract surface.
 
 Required direction:
-- Prompts must be stored or exposed through a governed prompt registry or equivalent local-AI contract surface.
-- Each prompt must bind to one task type and one expected output schema.
-- Prompts must instruct models to return structured results only.
-- Product-presence prompts must ask whether the sampled frames as a whole show a concrete product, not whether one frame alone is commercially interesting.
-- Prompt changes must be reviewable because they can change runtime behavior and downstream records.
+- one prompt serves one narrow task.
+- outputs bind to one expected schema.
+- prompt changes remain reviewable.
+- prompt selection remains behind the bridge or local-ai runtime internals; business callers must not import prompt-registry directly.
+- AI public callers must obtain prompt metadata through getPromptContract on the AI ability group, not through prompt-contract shortcut files.
 
 ### 禁止
 
 FORBIDDEN:
-- Hidden prompt strings scattered inside unrelated business code.
-- Prompts that ask the model to invent unseen facts, fabricate comments, or produce final business decisions.
-- Free-text AI responses directly driving platform actions, product signals, or persistence writes.
-- One prompt serving unrelated vision, comment, and product-decision tasks.
-
----
+- hidden prompt strings scattered across business code.
+- one prompt serving unrelated tasks.
+- raw prompt-registry helpers exported through AI public index.
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-004-V1
 
 status: active
 tier: P0
-capabilityDomain: local-ai-runtime
+capabilityDomain: ai-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: GrassEye local AI model roles must be declared in a governed local model configuration before they can be used by runtime, audit, or phase acceptance.
+summary: model configuration is local, role-based, and no-fallback.
 
 ### 主题
 
-本地模型角色配置主权
+本地模型配置主权
 
 ### 法条
 
-GrassEye AI execution must resolve model roles from a governed local model configuration so vision, OCR, comment understanding, and product-signal reasoning cannot silently fall back to mock, heuristic, paid, or cloud providers.
+Model roles must resolve from governed local configuration so runtime cannot silently drift to mocks, heuristics, or cloud providers.
 
 Required direction:
-- Local AI model roles must be declared in config/local-ai.models.json or an equivalent governed local model config.
-- Required phase-three roles are vision, ocr, commentUnderstanding, and productSignal.
-- Each configured role must declare provider type, runtime, model or tool name, execution mode, prompt/schema binding, and failure behavior.
-- Local AI Gateway must consume the governed model config instead of hardcoding model choices inside unrelated business code.
-- Model unavailability must route to retry, skip, candidate review, or operator review rather than silent mock success or cloud fallback.
+- config/local-ai.models.json or equivalent local config remains the model-role source.
+- unavailable local models must route to retry, skip, candidate review, or operator review.
+- paid and future providers remain disabled_by_policy unless a separate AI policy law explicitly opens them.
 
 ### 禁止
 
 FORBIDDEN:
-- Hidden mock or heuristic classification as the phase-three acceptance path.
-- Cloud provider, paid API, or remote model fallback in local model role config.
-- Scattered model names inside agent-runtime, platform-action, product-signal, comment-intelligence, or UI files.
-- Treating a missing local model config as PASS.
-- Treating unavailable local models as successful real AI execution.
+- provider = cloud or paid-api in current phase.
+- allowCloudFallback = true.
+- allowMock = true for phase-three acceptance.
+- hidden paid fallback or implicit provider substitution.
 
----
+## Law GRASSEYE-LOCAL-AI-RUNTIME-005-V1
 
-## 模块边界声明
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: manual-first
+evidenceMode: law
 
-This law file does not govern:
-- How browser clicks are executed.
-- How OCR engines are installed.
-- Which specific local model must be used.
-- How to install local models.
-- Which model brand is permanently required.
-- Model benchmark scoring.
-- Whether a product candidate is finally approved by the operator.
+summary: legacy LocalAi contracts are bridge-only and must not escape back into AI public ownership.
+
+### 主题
+
+旧 LocalAi 合同只允许留在桥接层
+
+### 法条
+
+Legacy LocalAiTaskRequest, LocalAiTaskResult, and LocalAiTaskType may survive only as runtime-internal compatibility contracts.
+
+Required direction:
+- The internal bridge may map AiTaskType to LocalAiTaskType.
+- The internal bridge may map AiAbilityInput to LocalAiTaskRequest and LocalAiTaskResult back to AiAbilityResult.
+
+### 禁止
+
+FORBIDDEN:
+- External modules importing LocalAi contracts through the AI ability group.
+- More than one bridge, compat, or legacy path for LocalAi mapping.

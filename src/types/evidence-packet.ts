@@ -188,7 +188,7 @@ export const EvidencePacketProductPresenceAISchema = z.object({
   confidence: z.number().min(0).max(1),
   visibleProductTypes: z.array(z.string().min(1)).default([]),
   evidenceObservations: z.array(z.string().min(1)).default([]),
-  frameLevelObservations: z.array(VisionProductPresenceFrameObservationSchema).default([]),
+  frameLevelObservations: z.array(z.lazy(() => VisionProductPresenceFrameObservationSchema)).default([]),
   aggregateReason: z.string().min(1),
   reason: z.string().min(1),
   uncertainty: z.array(z.string().min(1)).default([]),

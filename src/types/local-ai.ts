@@ -31,7 +31,19 @@ export const LocalAiRuntimeSchema = z.enum([
 
 export const LocalAiImplementationStatusSchema = z.enum([
   "configured-not-connected",
-  "governed-heuristic"
+  "governed-heuristic",
+  "fixture_heuristic_only",
+  "model_backed",
+  "local_ai_unavailable"
+]);
+
+export const LocalAiOverallStatusSchema = z.enum(["ready", "degraded", "unavailable"]);
+export const LocalAiDependencyStatusSchema = z.enum(["ready", "missing", "unreachable", "unavailable"]);
+export const LocalAiInvocationStatusSchema = z.enum([
+  "success",
+  "local_ai_unavailable",
+  "invalid_ai_output",
+  "disabled_by_policy"
 ]);
 
 export const OcrCleanupPayloadSchema = z.object({
@@ -160,13 +172,38 @@ export const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
   ProductSignalTaskResultSchema
 ]);
 
+export const LocalAiHealthSchema = z.object({
+  overallStatus: LocalAiOverallStatusSchema,
+  implementationStatus: LocalAiImplementationStatusSchema,
+  ollamaStatus: LocalAiDependencyStatusSchema,
+  visionModelStatus: LocalAiDependencyStatusSchema,
+  textModelStatus: LocalAiDependencyStatusSchema,
+  ocrStatus: LocalAiDependencyStatusSchema,
+  configuredModels: z.object({
+    vision: z.string().min(1),
+    commentUnderstanding: z.string().min(1),
+    ocr: z.string().min(1),
+    productSignal: z.string().min(1),
+  }),
+  availableModels: z.array(z.string().min(1)),
+  lastCheckedAt: z.string().datetime(),
+  failureReason: z.string().min(1).nullable().default(null),
+  lastTaskType: LocalAiTaskTypeSchema.nullable().default(null),
+  lastFailureReason: z.string().min(1).nullable().default(null),
+  lastInvocationStatus: LocalAiInvocationStatusSchema.nullable().default(null),
+});
+
 export type LocalAiTaskType = z.infer<typeof LocalAiTaskTypeSchema>;
 export type LocalAiModelRole = z.infer<typeof LocalAiModelRoleSchema>;
 export type LocalAiRuntime = z.infer<typeof LocalAiRuntimeSchema>;
 export type LocalAiImplementationStatus = z.infer<typeof LocalAiImplementationStatusSchema>;
+export type LocalAiOverallStatus = z.infer<typeof LocalAiOverallStatusSchema>;
+export type LocalAiDependencyStatus = z.infer<typeof LocalAiDependencyStatusSchema>;
+export type LocalAiInvocationStatus = z.infer<typeof LocalAiInvocationStatusSchema>;
 export type VisionClassificationPayload = z.infer<typeof VisionProductPresencePayloadSchema>;
 export type OcrCleanupPayload = z.infer<typeof OcrCleanupPayloadSchema>;
 export type CommentSignalPayload = z.infer<typeof CommentSignalPayloadSchema>;
 export type ProductSignalPayload = z.infer<typeof ProductSignalPayloadSchema>;
 export type LocalAiTaskRequest = z.infer<typeof LocalAiTaskRequestSchema>;
 export type LocalAiTaskResult = z.infer<typeof LocalAiTaskResultSchema>;
+export type LocalAiHealth = z.infer<typeof LocalAiHealthSchema>;

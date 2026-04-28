@@ -1,0 +1,21 @@
+{
+  "inspectorId": "geometry-guard-capability-owner",
+  "capabilityDomain": "geometry-guard-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2",
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V2",
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V2",
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V2"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md"
+  ]
+}

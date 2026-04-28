@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { ts, type SourceFile } from "ts-morph";
+import { Node, ts, type SourceFile } from "ts-morph";
 
 import { COMMENT_CODE_KINDS, type CommentToken } from "./purity-constants.js";
 
@@ -23,6 +23,17 @@ export const collectCommentTokens = (sourceFile: SourceFile): CommentToken[] => 
 
   for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
     if (token !== ts.SyntaxKind.SingleLineCommentTrivia && token !== ts.SyntaxKind.MultiLineCommentTrivia) {
+      continue;
+    }
+
+    const commentOwner = sourceFile.getDescendantAtPos(scanner.getTokenPos());
+    if (
+      commentOwner
+      && commentOwner.getFirstAncestor((ancestor) =>
+        Node.isStringLiteral(ancestor)
+        || Node.isNoSubstitutionTemplateLiteral(ancestor)
+        || Node.isTemplateExpression(ancestor))
+    ) {
       continue;
     }
 

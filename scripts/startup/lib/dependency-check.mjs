@@ -16,6 +16,12 @@ import { collectMetadataReasons, findMissingPackages } from "./dependency-state-
 const execFileAsync = promisify(execFile);
 export { getDefaultNpmCommand } from "./dependency-package-utils.mjs";
 
+function debugDependencyCheck(message) {
+  if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
+    process.stdout.write(`[startup:dependency-check] ${message}\n`);
+  }
+}
+
 export async function getNpmVersion(npmCommand = getDefaultNpmCommand(), cwd = process.cwd()) {
   const { stdout } = await execFileAsync(npmCommand, ["--version"], { cwd });
   return stdout.trim();
@@ -25,7 +31,8 @@ async function pathExists(filePath) {
   try {
     await readFile(filePath);
     return true;
-  } catch {
+  } catch (error) {
+    debugDependencyCheck(`pathExists fallback for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

@@ -7,6 +7,15 @@ const main = async (): Promise<void> => {
 	await buildAuditArtifacts();
 
 	const artifacts = await loadGeneratedArtifacts();
+	const artifactBlockingCount = artifacts.auditConflicts.conflicts.length + (artifacts.auditPlan.owners.length === 0 ? 1 : 0);
+	if (artifacts.auditConflicts.conflicts.length > 0) {
+		for (const conflict of artifacts.auditConflicts.conflicts) {
+			console.error(`[AUDIT-CONFLICT] ${conflict.kind} ${conflict.capabilityDomain ?? "unknown-domain"} ${conflict.lawId ?? "no-law-id"}: ${conflict.message}`);
+		}
+	}
+	if (artifacts.auditPlan.owners.length === 0) {
+		console.error("[AUDIT-CONFLICT] audit plan produced zero owners; owner deletion or phase-gate drift is a blocking enforcement failure.");
+	}
 	const context = await createInspectorContext(artifacts);
 	const results: InspectorResult[] = [];
 
@@ -14,7 +23,7 @@ const main = async (): Promise<void> => {
 		const inspector = await loadInspector(planOwner.entry);
 		const result = await inspector(context);
 		results.push(result);
-		console.log(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}`);
+		process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
 	}
 
 	const summary: RunnerSummary = {
@@ -24,14 +33,14 @@ const main = async (): Promise<void> => {
 			inspectors: results.length,
 			passed: results.filter((result) => result.passed).length,
 			failed: results.filter((result) => !result.passed).length,
-			blocking: results.filter((result) => hasBlockingFindings(result.findings)).length,
+			blocking: results.filter((result) => hasBlockingFindings(result.findings)).length + artifactBlockingCount,
 		},
 		results,
 	};
 
 	await writeRunnerSummary(summary);
 
-	const blocking = results.some((result) => hasBlockingFindings(result.findings));
+	const blocking = artifactBlockingCount > 0 || results.some((result) => hasBlockingFindings(result.findings));
 	if (blocking) {
 		process.exitCode = 1;
 	}

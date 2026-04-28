@@ -49,13 +49,31 @@ export type BrowserGeometrySnapshot = {
   capturedAt: string;
 };
 
+export type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
+export type BrowserClickButton = "left" | "right" | "middle";
+export type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
+
 export interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
   getGeometrySnapshot(): Promise<BrowserGeometrySnapshot>;
   open(input: { url: string; title: string }): Promise<BrowserActionResult>;
-  scroll(input: { direction: "forward" | "backward" }): Promise<BrowserActionResult>;
-  click(input: { targetLabel: string; point: { x: number; y: number }; fallbackUsed?: boolean }): Promise<BrowserActionResult>;
+  scroll(input: {
+    targetLabel: string;
+    deltaX: number;
+    deltaY: number;
+    coordinateSpace?: BrowserScrollCoordinateSpace;
+    anchorPoint?: { x: number; y: number };
+    fallbackUsed?: boolean;
+  }): Promise<BrowserActionResult>;
+  click(input: {
+    targetLabel: string;
+    point: { x: number; y: number };
+    coordinateSpace?: BrowserClickCoordinateSpace;
+    button?: BrowserClickButton;
+    clickCount?: 1 | 2;
+    fallbackUsed?: boolean;
+  }): Promise<BrowserActionResult>;
   screenshotRegion(input: { regionLabel: string; contentLines?: string[] }): Promise<BrowserCaptureResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;

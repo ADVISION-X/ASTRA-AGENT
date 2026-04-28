@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { AgentSkillCategorySchema } from "./agent-skill.js";
 import { EvidenceRefSchema } from "./evidence.js";
 import {
   EvidencePacketActionPurposeSchema,
@@ -11,6 +12,10 @@ import {
   VisualBoundingBoxSchema,
   VisualTargetTypeSchema,
 } from "./visual-action.js";
+import {
+  MultiFrameSamplingStrategySchema,
+  VideoFrameSamplePointLabelSchema,
+} from "./multi-frame-evidence.js";
 
 export const StructuredLogStatusSchema = z.enum(["started", "success", "failed", "skipped", "review_required"]);
 
@@ -26,9 +31,34 @@ export const StructuredLogRefSchema = z.object({
   label: z.string().min(1).nullable().default(null),
 });
 
+export const StructuredRuntimeMissingFrameSchema = z.object({
+  frameLabel: VideoFrameSamplePointLabelSchema,
+  unavailableReason: z.string().min(1),
+});
+
+export const StructuredRuntimeSnapshotSummarySchema = z.object({
+  runtimeStatus: z.string().min(1),
+  currentStep: z.string().min(1),
+  latestRoundOutcome: z.string().min(1).nullable().default(null),
+  latestProductPresenceDecision: z.string().min(1).nullable().default(null),
+  latestVideoEvidenceId: z.string().min(1).nullable().default(null),
+  latestBrowseLedgerEntryId: z.string().min(1).nullable().default(null),
+  latestEvidencePacketId: z.string().min(1).nullable().default(null),
+  reviewRequiredReason: z.string().min(1).nullable().default(null),
+  counters: z.object({
+    totalSeenCount: z.number().int().nonnegative(),
+    candidateCount: z.number().int().nonnegative(),
+    actionLogCount: z.number().int().nonnegative(),
+    evidencePacketCount: z.number().int().nonnegative(),
+    browseLedgerCount: z.number().int().nonnegative(),
+  }),
+});
+
 export const StructuredRuntimeEventSchema = z.object({
   eventId: z.string().min(1),
   eventType: StructuredRuntimeEventTypeSchema,
+  skillId: z.string().min(1).nullable().default(null),
+  skillCategory: AgentSkillCategorySchema.nullable().default(null),
   sessionId: z.string().min(1),
   roundId: z.string().min(1).nullable().default(null),
   videoVisitId: z.string().min(1).nullable().default(null),
@@ -41,6 +71,15 @@ export const StructuredRuntimeEventSchema = z.object({
   reason: z.string().min(1).nullable().default(null),
   failureReason: z.string().min(1).nullable().default(null),
   reviewRequiredReason: z.string().min(1).nullable().default(null),
+  decision: z.string().min(1).nullable().default(null),
+  roundOutcome: z.string().min(1).nullable().default(null),
+  finalizationType: z.enum(["browse_ledger", "evidence_packet", "failed_record"]).nullable().default(null),
+  samplingStrategy: MultiFrameSamplingStrategySchema.nullable().default(null),
+  expectedFrameCount: z.number().int().positive().nullable().default(null),
+  validFrameCount: z.number().int().nonnegative().nullable().default(null),
+  fallbackReason: z.string().min(1).nullable().default(null),
+  missingFrames: z.array(StructuredRuntimeMissingFrameSchema).default([]),
+  snapshotSummary: StructuredRuntimeSnapshotSummarySchema.nullable().default(null),
   createdAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative().nullable().default(null),
   inputRefs: z.array(EvidenceRefSchema).default([]),
@@ -52,6 +91,8 @@ export const StructuredRuntimeEventSchema = z.object({
 
 export const StructuredActionLogSchema = z.object({
   actionLogId: z.string().min(1),
+  skillId: z.string().min(1).nullable().default(null),
+  skillCategory: AgentSkillCategorySchema.nullable().default(null),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1).nullable().default(null),
@@ -116,6 +157,8 @@ export type StructuredRuntimeEventType = z.infer<typeof StructuredRuntimeEventTy
 export type StructuredActionType = z.infer<typeof StructuredActionTypeSchema>;
 export type StructuredActionPurpose = z.infer<typeof StructuredActionPurposeSchema>;
 export type StructuredLogRef = z.infer<typeof StructuredLogRefSchema>;
+export type StructuredRuntimeMissingFrame = z.infer<typeof StructuredRuntimeMissingFrameSchema>;
+export type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
 export type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
 export type StructuredActionLog = z.infer<typeof StructuredActionLogSchema>;
 export type LiveProofLogSequence = typeof LiveProofLogSequence;

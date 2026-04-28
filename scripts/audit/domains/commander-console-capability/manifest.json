@@ -1,0 +1,35 @@
+{
+  "inspectorId": "commander-console-capability-owner",
+  "capabilityDomain": "commander-console-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/commander-console-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1",
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1",
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1",
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1",
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
+    "GRASSEYE-LOCAL-APP-SHELL-001-V1",
+    "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+    "GRASSEYE-LOCAL-APP-SHELL-003-V1",
+    "GRASSEYE-LOCAL-APP-SHELL-004-V1",
+    "GRASSEYE-STARTUP-ENTRYPOINT-001-V1",
+    "GRASSEYE-STARTUP-ENTRYPOINT-002-V1",
+    "GRASSEYE-STARTUP-ENTRYPOINT-003-V1",
+    "GRASSEYE-STARTUP-ENTRYPOINT-004-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+    "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
+    "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
+  ]
+}

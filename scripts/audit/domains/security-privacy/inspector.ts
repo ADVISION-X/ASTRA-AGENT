@@ -1,21 +1,27 @@
 import { createPhase } from "../../core/result.js";
-import { listFilesRecursive, readTextFile } from "../../core/filesystem.js";
+import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { scanFilesForPatterns } from "../_shared/scan-for-patterns.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+
+const LEGACY_FORENSICS_STORE_PATH = "src/capabilities/forensics-persistence/shared/store/evidence-store-service.ts";
+const STORAGE_ADAPTER_PATH = "src/lib/storage/evidence-store/evidence-store-service.ts";
 
 export default createPendingDomainInspector({
   inspector: "GrassEye Security Privacy Owner Inspector",
   inspectorId: "security-privacy-owner",
   capabilityDomain: "security-privacy",
   inspectorEntry: "scripts/audit/domains/security-privacy/inspector.ts",
-  ownedPaths: ["src/lib/browser", "src/features/local-data", "src/lib/local-ai"],
+  ownedPaths: ["src/lib/browser", "src/capabilities/forensics-persistence", "src/lib/storage", "src/lib/local-ai"],
   pendingSummary: "security-privacy implementation pending; manual-first law only; no code-level enforcement yet",
   implementedSummary: "security and privacy boundaries are enforced across local host binding, local data, and no secret export paths",
   extraChecks: async () => {
     const sourceFiles = await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts"] });
     const serverSource = await readTextFile(pathFromRepoRoot("src/app/server.ts"));
-    const evidenceStoreSource = await readTextFile(pathFromRepoRoot("src/features/local-data/evidence-store-service.ts"));
+    const evidenceStorePath = await fileExists(pathFromRepoRoot(LEGACY_FORENSICS_STORE_PATH))
+      ? LEGACY_FORENSICS_STORE_PATH
+      : STORAGE_ADAPTER_PATH;
+    const evidenceStoreSource = await readTextFile(pathFromRepoRoot(evidenceStorePath));
     const findings = await scanFilesForPatterns(sourceFiles, [
       {
         lawId: "GRASSEYE-SECURITY-PRIVACY-001-V1",

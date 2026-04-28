@@ -12,6 +12,36 @@ export async function probeHealth({
   return await response.json();
 }
 
+export async function probeCommanderConsolePage({
+  url = "http://127.0.0.1:4173/",
+}) {
+  const response = await fetch(url, {
+    headers: { accept: "text/html" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Commander Console returned HTTP ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) {
+    throw new Error(`Commander Console returned unexpected content-type: ${contentType || "unknown"}`);
+  }
+
+  return {
+    status: response.status,
+    contentType,
+  };
+}
+
+function getFailingComponents(report) {
+  if (!Array.isArray(report?.components)) {
+    return [];
+  }
+
+  return report.components.filter((component) => component?.ok !== true);
+}
+
 export async function waitForHealth({
   url = "http://127.0.0.1:4173/api/runtime/health",
   timeoutMs = 30000,
@@ -27,7 +57,12 @@ export async function waitForHealth({
     }
 
     try {
-      return await probeHealth({ url });
+      const report = await probeHealth({ url });
+      const failingComponents = getFailingComponents(report);
+      if (failingComponents.length === 0) {
+        return report;
+      }
+      lastFailure = `components not ready: ${failingComponents.map((component) => `${component.name}:${component.detail}`).join("; ")}`;
     } catch (error) {
       lastFailure = error instanceof Error ? error.message : String(error);
     }

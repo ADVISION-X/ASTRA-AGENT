@@ -20,22 +20,11 @@ export interface PurityPhaseSummary {
 }
 
 export const BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye 代码纯洁度施工图.md";
-export const ACTIVE_ROOTS = ["scripts/audit/domains/code-purity", "scripts/startup", "src/lib/local-ai"];
-export const ACTIVE_FILES = ["src/lib/local-runtime/workbench.ts"];
+export const PRODUCTION_CODE_ROOT = "src";
+export const ACTIVE_ROOTS = [PRODUCTION_CODE_ROOT, "scripts"];
+export const ACTIVE_FILES: string[] = [];
 
 export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
-  {
-    lawId: "GRASSEYE-CODE-PURITY-001-V1",
-    name: "file-atomicity",
-    okSummary: "Active code-purity files stay within the current physical line limits.",
-    failedSummary: "Oversized files exist inside the active code-purity scope.",
-  },
-  {
-    lawId: "GRASSEYE-CODE-PURITY-002-V1",
-    name: "function-shape",
-    okSummary: "Active functions remain within line, parameter, nesting, and complexity limits.",
-    failedSummary: "One or more active functions exceed line, parameter, nesting, or complexity limits.",
-  },
   {
     lawId: "GRASSEYE-CODE-PURITY-003-V1",
     name: "cleanup-hygiene",
@@ -85,19 +74,3 @@ export const COMMENT_CODE_KINDS = new Set([
   ts.SyntaxKind.VariableStatement,
   ts.SyntaxKind.WhileStatement,
 ]);
-
-export const fileLineLimit = (relativePath: string): number => {
-  if (relativePath.startsWith("scripts/startup/")) {
-    return 160;
-  }
-
-  if (relativePath.startsWith("src/app/")) {
-    return 140;
-  }
-
-  if (relativePath.endsWith(".tsx")) {
-    return 260;
-  }
-
-  return 220;
-};

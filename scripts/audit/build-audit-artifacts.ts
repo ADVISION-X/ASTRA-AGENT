@@ -18,6 +18,7 @@ import type {
   PhaseGate,
 } from "./core/schema.js";
 import { readJsonFile } from "./core/filesystem.js";
+import { REQUIRED_PHASE_DOMAINS } from "./core/required-phase-domains.js";
 import { stringifyYaml } from "./core/yaml.js";
 
 const collectManifestConflicts = async (
@@ -72,6 +73,17 @@ const collectManifestConflicts = async (
         kind: "PLAN",
         message: "Phase gate references a capability domain without an active law.",
         capabilityDomain: activeDomain,
+      });
+    }
+  }
+
+  for (const requiredDomain of REQUIRED_PHASE_DOMAINS) {
+    if (!phaseGate.activeCapabilityDomains.includes(requiredDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Current frozen phase gate is missing a required capability domain.",
+        capabilityDomain: requiredDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
       });
     }
   }
@@ -219,6 +231,18 @@ export const buildAuditArtifacts = async (): Promise<{
     conflicts: [...lawConflicts, ...manifestConflicts],
   };
 
+  const plannedDomains = new Set(auditPlanOwners.map((owner) => owner.capabilityDomain));
+  for (const requiredDomain of REQUIRED_PHASE_DOMAINS) {
+    if (!plannedDomains.has(requiredDomain)) {
+      auditConflicts.conflicts.push({
+        kind: "PLAN",
+        message: "Generated audit plan is missing a required capability domain.",
+        capabilityDomain: requiredDomain,
+        file: toRepoRelativePath(generatedArtifactPaths.auditPlan),
+      });
+    }
+  }
+
   await Promise.all([
     writeJsonFile(generatedArtifactPaths.lawRegistry, lawRegistry),
     writeJsonFile(generatedArtifactPaths.enforcementMatrixJson, enforcementMatrix),
@@ -238,9 +262,17 @@ export const buildAuditArtifacts = async (): Promise<{
 
 const main = async (): Promise<void> => {
   const artifacts = await buildAuditArtifacts();
-  console.log(
-    `Generated ${artifacts.lawRegistry.laws.length} active laws, ${artifacts.enforcementMatrix.owners.length} owners, ${artifacts.auditPlan.owners.length} planned inspections, ${artifacts.auditConflicts.conflicts.length} conflicts.`,
+  for (const conflict of artifacts.auditConflicts.conflicts) {
+    process.stderr.write(
+      `[AUDIT-BUILD-CONFLICT] ${conflict.kind} ${conflict.capabilityDomain ?? "unknown-domain"} ${conflict.lawId ?? "no-law-id"}: ${conflict.message}\n`,
+    );
+  }
+  process.stdout.write(
+    `Generated ${artifacts.lawRegistry.laws.length} active laws, ${artifacts.enforcementMatrix.owners.length} owners, ${artifacts.auditPlan.owners.length} planned inspections, ${artifacts.auditConflicts.conflicts.length} conflicts.\n`,
   );
+  if (artifacts.auditConflicts.conflicts.length > 0) {
+    process.exitCode = 1;
+  }
 };
 
 void main();

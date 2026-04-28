@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const DEFAULT_IGNORED_DIRS = new Set([".git", "dist", "node_modules"]);
+const DEFAULT_IGNORED_DIRS = new Set([".git", ".venv", "dist", "node_modules"]);
 
 export const fileExists = async (targetPath: string): Promise<boolean> => {
   try {

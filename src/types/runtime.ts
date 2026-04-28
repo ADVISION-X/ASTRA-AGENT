@@ -1,3 +1,5 @@
+import type { LocalAiHealth, LocalAiTaskType } from "./local-ai.js";
+
 export type RuntimeComponentName =
   | "console"
   | "agent"
@@ -52,6 +54,9 @@ export type RuntimeDeliveryState = {
   viewport: string;
   calibration: string;
   localAiStatus: string;
+  localAiHealth: LocalAiHealth | null;
+  lastAiTaskType: LocalAiTaskType | null;
+  lastAiFailureReason: string | null;
   latestScreenshotEvidenceId: string | null;
   latestScreenshotPath: string | null;
   latestAiResultId: string | null;
@@ -91,7 +96,16 @@ export type BrowseRuntimeSnapshot = {
     id: string;
     taskType: string;
     confidence: number;
+    status?: string;
+    summary?: string | null;
   } | null;
+  localAiHealthStatus?: string | null;
+  latestAiFailureReason?: string | null;
+  latestFailureEventType?: string | null;
+  latestFailureEventMessage?: string | null;
+  latestSamplingStrategy?: string | null;
+  latestSamplingFallbackReason?: string | null;
+  latestMissingFrames?: Array<{ frameLabel: string; unavailableReason: string }>;
   latestProductPresenceDecision: string | null;
   latestBrowseLedgerEntryId: string | null;
   latestEvidencePacketId: string | null;

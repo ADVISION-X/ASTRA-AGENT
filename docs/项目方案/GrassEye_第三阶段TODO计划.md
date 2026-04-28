@@ -107,11 +107,11 @@
 - [ ] `npm run typecheck`
 - [ ] `npm run audit`
 - [ ] `npm run build`
-- [ ] `npm run launch`
+- [ ] `npm run grasseye:start`
 - [ ] 确认 Workbench 可打开
 - [ ] 确认第二阶段没有阻塞第三阶段的 P0 问题
 
-完成标准：typecheck、audit、build、launch 命令通过，或真实阻塞被修复。
+完成标准：typecheck、audit、build、grasseye:start 命令通过，或真实阻塞被修复。
 
 ---
 
@@ -384,7 +384,7 @@ npm test
 npm run audit:build
 npm run audit
 npm run build
-npm run launch
+npm run grasseye:start
 ```
 
 如果新增：

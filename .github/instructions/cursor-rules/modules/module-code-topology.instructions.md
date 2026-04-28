@@ -1,139 +1,151 @@
 ---
 name: "GrassEye Code Topology"
-description: "Use when creating, moving, or naming GrassEye files, defining domain ownership, or checking canonical repository paths."
-applyTo: ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
+description: "Use when defining the capability-group topology contract, canonical capability roots, child-capability placement, or retired path deletion under capability-group governance."
+applyTo: ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md, src/lib/local-runtime/runtime-executor.ts, src/lib/local-runtime/runtime-bootstrap.ts, src/lib/local-runtime/runtime-state.ts, src/lib/local-runtime/runtime-step-support.ts"
 ---
 
 # GrassEye Code Topology
 
-Scope: governs canonical path ownership for phase-one GrassEye code and audit assets.
-Boundary: this module governs file placement and domain ownership only.
+Scope: governs the directory constitution for capability-group governance.
+Boundary: this module governs canonical path ownership and retired-path deletion only as a capability-group-governance child sub-contract, not as an independent owner.
 Excludes: business logic, runtime policy, scoring rules, and type-validation semantics.
-Authority: this file is authoritative only for the code-topology capability domain.
-
----
+Authority: this file is authoritative only for the capability-group-governance domain as the topology sub-contract.
 
 ## Law GRASSEYE-CODE-TOPOLOGY-001-V1
 
 status: active
 tier: P0
-capabilityDomain: code-topology
+capabilityDomain: capability-group-governance
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: phase-one code must land in explicit domain paths and may not create root buckets or future-capability folders.
+summary: code-topology is a capability-group-governance child sub-contract for canonical roots, not an active owner.
 
 ### 主题
 
-目录归属与路径单一性
+能力组根目录唯一
 
 ### 法条
 
-GrassEye phase-one code paths must stay explicit: src/app for route entry, src/features/<domain> for feature logic, src/lib for shared infrastructure, src/types for cross-domain types, scripts/audit for audit scripts, and .github/instructions/cursor-rules for laws.
+Each active ability group must own exactly one canonical root under src/capabilities/<ability-group>.
 
 Required direction:
-- Route entry belongs in src/app.
-- Domain logic belongs in src/features/agent, vision, platform-action, comments, product-signal, local-data, or operator-control.
-- Platform adapters belong under src/features/platform-action/adapters when implemented.
-- Browser automation infrastructure belongs under src/lib/browser only when it remains domain-neutral infrastructure.
-- Browser profile metadata helpers belong under src/lib/browser or src/lib/local-runtime.
-- Visible browser control, OS input primitives, and screen capture helpers belong under src/lib/browser.
-- Local AI gateway, model-role routing, and prompt registry surfaces belong under src/lib/local-ai when implemented.
-- Governed local model configuration belongs under config/local-ai.models.json.
-- Local model config loading belongs under src/lib/local-ai.
-- Local AI model names and provider selection must not be scattered across feature domains.
-- Localization dictionaries, locale parsing, and text rendering helpers belong under src/lib/localization.
-- Feature-owned UI may consume localization helpers but must not own global localization dictionaries.
-- Local runtime shell surfaces, when implemented, must keep operator UI, agent runtime, browser infrastructure, local-AI boundary, and local-data ownership in their canonical domains.
-- Localization audit owner belongs under scripts/audit/domains/localization.
-- Local startup entrypoints belong under scripts/startup.
-- Startup helper files belong under scripts/startup/lib.
-- Startup scripts must delegate dependency checking, process control, health check, and page opening to narrow helpers rather than becoming a mixed bucket.
-- Packaging-specific files must not become business-domain owners.
-- Domain-specific AI result contracts may stay under the owning feature contract until they prove cross-domain use.
-- Platform-specific page knowledge must not leak into agent-runtime, vision, comments, product-signal, or local-data domains.
-- Vision-coordinate action policy, geometry guards, and visual-target contracts belong under src/features/platform-action.
-- Local persistence schema types belong under src/types/local-persistence.ts.
-- Persistence implementation belongs under src/features/local-data or src/lib/storage.
-- Shared infrastructure belongs in src/lib only when it is truly cross-domain.
-- Cross-domain types belong in src/types, and audit scripts belong in scripts/audit.
+- commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, mouse-scroll, post-action-verification, forensics-persistence, and page-state each own one canonical root under src/capabilities.
+- Public contracts, child registries, and group-private implementations must live under the owning ability-group root.
+- Laws and blueprints must reference the same canonical root.
+- src/lib must remain infrastructure-only and must not host a replacement execution chain or shell-side runtime execution slice such as src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, or runtime-step-support.ts.
+- The AI canonical root includes contract.ts, ability-group.ts, registry.ts, task-router.ts, model-roster.ts, schema-validation.ts, runtime-adapters/local-ai-runtime-adapter.ts, shared/*, and children/*/implementation.ts.
+- AI prompt-contract shortcut files and AI-local legacy result translators are not canonical topology.
+- Commander Console child abilities must live under src/capabilities/commander-console/children/<child-id>/implementation.ts rather than a flat children.ts pseudo-catalog.
+- Commander Console canonical topology includes contract.ts, ability-group.ts, registry.ts, command-builder.ts, read-models.ts, ports/*, shared/*, and children/*/implementation.ts with no second command or dashboard root.
+- Mouse Click canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/click-policy.ts, shared/click-result.ts, shared/click-failure.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/click-browser-coordinate/implementation.ts plus children/click-desktop-coordinate/implementation.ts.
+- Mouse Scroll canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/scroll-policy.ts, shared/scroll-result.ts, shared/scroll-failure.ts, shared/scroll-magnitude.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/scroll-browser-viewport/implementation.ts plus children/scroll-desktop-screen/implementation.ts plus children/scroll-region/implementation.ts.
+- Geometry Guard canonical topology includes contract.ts, ability-group.ts, registry.ts, index.ts, shared/*, and children/*/implementation.ts.
+- Geometry Guard child implementations must stay under src/capabilities/geometry-guard/children/<child-id>/implementation.ts.
 
 ### 禁止
 
 FORBIDDEN:
-- Root-level buckets with mixed ownership.
-- Dumping business logic into src/lib.
-- Moving domain-private types into src/types too early.
-- Prompt strings scattered inside unrelated feature files.
-- Scattering global UI dictionaries inside route handlers or feature components.
-- Creating ad hoc localization folders under unrelated feature domains.
-- Placing localization runtime helpers inside startup scripts, platform adapters, local AI, or data-store domains.
-- Hardcoded model names inside agent-runtime, platform-action, operator-control, product-signal, or server route files.
-- Creating ad hoc model config files outside config/ without code-topology review.
-- Local model calls hidden inside UI, platform adapter, or product-signal helpers without the local-AI boundary.
-- Creating Electron, Tauri, SwiftUI, or desktop-shell folders that duplicate agent-runtime, platform-action, local-AI, or local-data ownership.
-- Placing browser automation, AI calls, or data-store truth directly inside UI route files.
-- Platform-specific selectors or click recipes inside agent-runtime or product-signal.
-- Raw coordinate recipes inside agent-runtime, local-ai, product-signal, or operator-control.
-- OS input primitives inside feature domains outside platform-action/browser infrastructure.
-- Turning src/lib/browser into a product-research orchestration owner.
-- Creating crawler, scraper, dom-reader, page-parser, or selector-engine folders for real-platform mode.
-- Root-level startup scripts such as start.sh, run.sh, or fix-and-start.sh as long-term source truth.
-- Startup scripts placed inside feature domains.
-- Startup scripts that mix dependency management, business orchestration, AI reasoning, platform clicking, and data repair in one file.
-- Repository test roots such as tests, __tests__, or *.test.* files as source truth.
-- Creating separate platform root buckets such as src/facebook, src/tiktok, or src/social.
-- Creating future-capability directories such as ads, procurement, supplier, CRM, or account systems.
-
----
+- second roots, bridge roots, compat roots, or legacy mirrors for an active ability group.
+- src/features or src/lib becoming a second public root for an ability group.
+- src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, or runtime-step-support.ts becoming an execution owner for mission flow, AI dispatch, persistence finalization, or runtime branch truth.
+- runtime-task-execution.ts, capability-check.ts, or verify* surviving inside an active ability-group canonical root.
+- prompt-contract.ts or LocalAi legacy result mapping surviving as active files inside the AI canonical root.
+- runtime-skill-catalog.ts, runtime-skill-resolution.ts, build-runtime-skill-matrix-snapshot.ts, build-browse-runtime-snapshot.ts, or build-pending-analysis-candidate.ts surviving under Commander Console as canonical topology.
+- commander-console-v2, commander-console-legacy, or any second console root preserving old operator/workbench naming as active topology.
+- click-left-point, click-right-point, double-click-left-point, click-screen-coordinate, or any other retired Mouse Click child root surviving after topology cutover.
+- vertical-wheel-scroll, horizontal-wheel-scroll, browser-viewport-scroll, desktop-screen-scroll, region-wheel-scroll, capability-check.ts, or verify* surviving inside the Mouse Scroll canonical root after topology cutover.
+- external files importing geometry-guard child implementation paths.
 
 ## Law GRASSEYE-CODE-TOPOLOGY-002-V1
 
 status: active
 tier: P0
-capabilityDomain: code-topology
+capabilityDomain: capability-group-governance
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: long-horizon phase artifacts must use canonical documentation paths and may not turn root or docs into mixed garbage buckets.
+summary: feature and support paths are consumers or boundaries, not owners.
 
 ### 主题
 
-长期阶段文件与文档目录归属
+特征层与支持层不得抢权
 
 ### 法条
 
-GrassEye long-horizon phase artifacts must land in canonical documentation paths so phase goals, TODO plans, Codex prompts, blueprints, acceptance reports, and archived materials stay separable, reviewable, and non-authoritative unless explicitly routed by the current phase.
+Feature folders and support folders may host shells, adapters, consumers, storage ports, and infrastructure, but they must not own active ability-group sovereignty.
 
 Required direction:
-- Phase goal documents belong under docs/阶段目标.
-- Phase TODO plans belong under docs/TODO.
-- Codex execution prompts belong under docs/Codex提示词.
-- Law blueprints belong under docs/法案辅助文件.
-- Acceptance or completion reports belong under docs/验收报告.
-- Historical or inactive phase materials belong under docs/归档 or must carry an explicit archived or inactive marker until moved.
-- Root-level phase artifacts must be reduced to canonical documentation paths instead of creating scattered working files.
-- Runtime local data, screenshots, OCR output, browser sessions, model cache, and evidence databases must stay outside repository source truth; development-only local data paths such as .grasseye-local are valid only when gitignored.
-- Runtime browser profiles belong under .grasseye-local/browser-profiles and must be gitignored.
-- Runtime data root .grasseye-local must not be committed.
+- src/app hosts route entry and local shell integration.
+- src/features/local-data and src/features/platform-action are retired roots and must not remain after migration.
+- Storage-port implementations belong under src/capabilities/forensics-persistence or neutral storage infrastructure.
+- Platform profiles, hints, identity rules, and view descriptions belong under the owning ability-group shared/profile paths.
+- src/lib/local-ai hosts AI internal runtime adapters only.
+- src/lib/browser hosts browser primitives and session infrastructure only.
+- .github/instructions/cursor-rules hosts laws, and docs/法案辅助文件 hosts blueprints.
+- AI child implementations are private to AI and must not become cross-group import targets.
+- Cross-group consumers must not import another ability group's shared/private helpers when a public index or contract exists.
 
 ### 禁止
 
 FORBIDDEN:
-- Root-level scattered TODO, prompt, report, or phase-plan files.
-- Mixing phase goals, TODO plans, prompts, blueprints, and reports in one untyped docs bucket.
-- Treating old phase files as current authority without a current-phase marker or archive status.
-- Committing local runtime screenshots, OCR dumps, browser sessions, cookies, model cache, or evidence databases as source files.
-- Committing browser profile directories or profile contents as source files.
-- Creating ad hoc documentation roots outside the canonical documentation paths.
+- src/features/agent, src/features/platform-action, src/features/local-data, src/lib/browser, src/lib/local-ai, or src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, runtime-step-support.ts claiming public ability ownership.
+- deleted historical owner names being preserved as canonical paths.
+
+## Law GRASSEYE-CODE-TOPOLOGY-003-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: retired feature roots must be physically deleted after migration.
+
+### 主题
+
+旧 feature 根目录必须物理删除
+
+### 法条
+
+Retired feature roots must not remain as placeholder folders, index files, re-export wrappers, or hidden mirrors after ownership migration.
+
+Required direction:
+- src/features/local-data must be physically deleted after its useful storage material migrates into Forensics Persistence storage-port modules.
+- src/features/platform-action must be physically deleted after its useful platform profiles and hints migrate into the owning ability groups.
+- No compat, bridge, legacy, alias, or dynamic-import mirror may preserve either retired root.
+
+### 禁止
+
+FORBIDDEN:
+- src/features/local-data/index.ts, src/features/platform-action/index.ts, or any other old-root wrapper.
+- Re-exporting retired-root symbols from new folders.
+- Dynamic imports or alias paths that hide the retired roots.
 
 ---
 
-## 模块边界声明
+## Law GRASSEYE-CODE-TOPOLOGY-004-V2
 
-This law file does not govern:
-- How a domain behaves at runtime.
-- How external input is validated or typed.
-- The content of phase goals or TODO items.
-- The business priority of a phase.
-- The implementation details of runtime local storage.
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Forensics Persistence must use one clean internal topology and must physically delete old runtime/store roots.
+
+### 主题
+
+Forensics 内部拓扑必须干净，旧 runtime/store 根必须物理删除。
+
+### 法条
+
+The only allowed Forensics canonical topology is contract.ts, ability-group.ts, registry.ts, storage-ports.ts, record-id.ts, index.ts, shared/*, and children/*/implementation.ts.
+
+### 禁止
+
+FORBIDDEN:
+- src/capabilities/forensics-persistence/runtime.
+- src/capabilities/forensics-persistence/shared/store.
+- compat, bridge, legacy, alias, or v2 roots under src/capabilities/forensics-persistence.
+- src/lib/local-runtime becoming the owner of persistence finalization.

@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
-import { fileExists, listImmediateDirectories, listImmediateFiles, readTextFile } from "../../../core/filesystem.js";
+import { fileExists, listImmediateDirectories, listImmediateFiles, listFilesRecursive, readTextFile } from "../../../core/filesystem.js";
 import { createFinding, createPhase } from "../../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
@@ -10,6 +10,7 @@ import { getAuditProject, getNodeLine, toRelativeSourcePath } from "../../../cor
 
 const LAW_ID_001 = "GRASSEYE-CODE-TOPOLOGY-001-V1";
 const LAW_ID_002 = "GRASSEYE-CODE-TOPOLOGY-002-V1";
+const LAW_ID_003 = "GRASSEYE-CODE-TOPOLOGY-003-V1";
 
 const REQUIRED_DOC_PATHS = [
   "docs/阶段目标",
@@ -21,9 +22,9 @@ const REQUIRED_DOC_PATHS = [
 ];
 
 const ALLOWED_DOC_DIRS = new Set(["Codex提示词", "TODO", "归档", "法案辅助文件", "阶段目标", "项目方案", "验收报告"]);
-const ALLOWED_SRC_DIRS = new Set(["app", "features", "lib", "types"]);
-const ALLOWED_FEATURE_DIRS = new Set(["agent", "comments", "local-data", "operator-control", "platform-action", "product-signal", "vision"]);
-const ALLOWED_LIB_DIRS = new Set(["browser", "local-ai", "local-runtime", "localization", "storage"]);
+const ALLOWED_SRC_DIRS = new Set(["app", "capabilities", "features", "lib", "types"]);
+const ALLOWED_FEATURE_DIRS = new Set(["comments", "product-signal", "vision"]);
+const ALLOWED_LIB_DIRS = new Set(["browser", "local-ai", "local-app-shell", "local-runtime", "localization", "storage"]);
 const FORBIDDEN_PLATFORM_ROOTS = new Set(["facebook", "tiktok", "social"]);
 const FORBIDDEN_FUTURE_DIRS = new Set(["ads", "procurement", "supplier", "crm", "account-systems", "accounts"]);
 const RUNTIME_DIRS = new Set(["screenshots", "ocr-dumps", "evidence-db", "cookies", "sessions", ".grasseye-data"]);
@@ -32,9 +33,15 @@ const STARTUP_HELPER_PATHS = [
   "scripts/startup/lib/dependency-check.mjs",
   "scripts/startup/lib/process-control.mjs",
   "scripts/startup/lib/health-check.mjs",
-  "scripts/startup/lib/open-main-page.mjs",
+  "scripts/startup/lib/open-commander-console.mjs",
 ];
 const FORBIDDEN_STARTUP_FILENAMES = new Set(["start.sh", "run.sh", "fix-and-start.sh"]);
+const ILLEGAL_LOCAL_RUNTIME_EXECUTION_FILES = new Set([
+  "runtime-executor.ts",
+  "runtime-bootstrap.ts",
+  "runtime-state.ts",
+  "runtime-step-support.ts",
+]);
 
 const toLower = (value: string): string => value.toLowerCase();
 
@@ -203,6 +210,19 @@ export const inspectCodeTopology = async (
 
   const featureDirNames = (await listImmediateDirectories(pathFromRepoRoot("src/features"))).map((dirPath) => path.basename(dirPath));
   for (const featureDirName of featureDirNames) {
+    if (featureDirName === "local-data" || featureDirName === "platform-action") {
+      findings.push(
+        createFinding({
+          lawId: LAW_ID_003,
+          file: `src/features/${featureDirName}`,
+          line: 1,
+          severity: "fatal",
+          message: "Retired feature root still exists and must be physically removed.",
+        }),
+      );
+      continue;
+    }
+
     if (!ALLOWED_FEATURE_DIRS.has(featureDirName)) {
       findings.push(
         createFinding({
@@ -241,6 +261,23 @@ export const inspectCodeTopology = async (
         }),
       );
     }
+  }
+
+  const project = getAuditProject();
+
+  const illegalMissionRuntimeFiles = (await listFilesRecursive(pathFromRepoRoot("src/lib/local-runtime"), { extensions: [".ts"] }))
+    .map((filePath) => toRelativeSourcePath(project.getSourceFile(filePath) ?? project.addSourceFileAtPath(filePath)))
+    .filter((relativePath) => ILLEGAL_LOCAL_RUNTIME_EXECUTION_FILES.has(path.basename(relativePath)));
+  for (const illegalMissionRuntimeFile of illegalMissionRuntimeFiles) {
+    findings.push(
+      createFinding({
+        lawId: LAW_ID_001,
+        file: illegalMissionRuntimeFile,
+        line: 1,
+        severity: "fatal",
+        message: "Illegal shell-side runtime execution slice found under src/lib/local-runtime; this file must be physically removed.",
+      }),
+    );
   }
 
   const scriptRootFiles = (await listImmediateFiles(pathFromRepoRoot("scripts"))).map((filePath) => path.basename(filePath));
@@ -287,7 +324,6 @@ export const inspectCodeTopology = async (
     ),
   );
 
-  const project = getAuditProject();
   const typeChecker = project.getTypeChecker();
 
   const routeBoundaryPhaseStart = findings.length;
@@ -299,7 +335,7 @@ export const inspectCodeTopology = async (
     "src/lib/browser/",
     "src/lib/local-ai/",
     "src/lib/storage/",
-    "src/features/platform-action/adapters/",
+    "src/features/platform-action/",
     "src/features/local-data/",
   ];
   for (const appFile of appFiles) {
@@ -359,7 +395,10 @@ export const inspectCodeTopology = async (
   }
 
   const restrictedFeaturePrefixes = [
-    "src/features/agent/",
+    "src/lib/local-runtime/runtime-executor",
+    "src/lib/local-runtime/runtime-bootstrap",
+    "src/lib/local-runtime/runtime-state",
+    "src/lib/local-runtime/runtime-step-support",
     "src/features/vision/",
     "src/features/comments/",
     "src/features/product-signal/",
@@ -373,7 +412,7 @@ export const inspectCodeTopology = async (
 
     for (const importDeclaration of sourceFile.getImportDeclarations()) {
       const targetPath = resolveImportTarget(importDeclaration.getModuleSpecifierSourceFile());
-      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/adapters/"])) {
+      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/"])) {
         continue;
       }
 
@@ -402,30 +441,9 @@ export const inspectCodeTopology = async (
   );
 
   const typeBoundaryPhaseStart = findings.length;
-  const agentServiceSource = getAuditProject().getSourceFile(pathFromRepoRoot("src/features/agent/agent-service.ts"));
   const workbenchSource = getAuditProject().getSourceFile(pathFromRepoRoot("src/lib/local-runtime/workbench.ts"));
-  const assertPlatformAdapterType = (sourceFile: SourceFile | undefined, kind: "agent" | "workbench"): void => {
+  const assertPlatformAdapterType = (sourceFile: SourceFile | undefined): void => {
     if (!sourceFile) {
-      return;
-    }
-
-    if (kind === "agent") {
-      const agentClass = sourceFile.getClass("AgentService");
-      const adapterParameter = agentClass?.getConstructors()[0]?.getParameters()[0];
-      const adapterTypeNode = adapterParameter?.getTypeNode();
-      const adapterType = adapterTypeNode ? typeChecker.getTypeAtLocation(adapterTypeNode) : undefined;
-      const adapterSymbol = adapterType?.getSymbol();
-      if (!adapterParameter || adapterSymbol?.getName() !== "PlatformAdapter") {
-        findings.push(
-          createFinding({
-            lawId: LAW_ID_001,
-            file: toRelativeSourcePath(sourceFile),
-            line: getNodeLine(adapterParameter ?? agentClass ?? sourceFile),
-            severity: "error",
-            message: "Agent runtime must depend on the platform-neutral PlatformAdapter type instead of a concrete adapter implementation.",
-          }),
-        );
-      }
       return;
     }
 
@@ -447,8 +465,7 @@ export const inspectCodeTopology = async (
     }
   };
 
-  assertPlatformAdapterType(agentServiceSource, "agent");
-  assertPlatformAdapterType(workbenchSource, "workbench");
+  assertPlatformAdapterType(workbenchSource);
 
   phases.push(
     createPhase(
@@ -462,6 +479,59 @@ export const inspectCodeTopology = async (
   );
 
   const antiEscapePhaseStart = findings.length;
+  const historicalOwnerImportPhaseStart = findings.length;
+  for (const sourceFile of project.getSourceFiles()) {
+    const relativePath = toRelativeSourcePath(sourceFile);
+    for (const importDeclaration of sourceFile.getImportDeclarations()) {
+      const specifier = importDeclaration.getModuleSpecifierValue() ?? "";
+      const targetPath = resolveImportTarget(importDeclaration.getModuleSpecifierSourceFile());
+      if (!(specifier.includes("operator-control") || isForbiddenTargetPath(targetPath, ["src/features/operator-control/"]))) {
+        continue;
+      }
+
+      findings.push(
+        createFinding({
+          lawId: LAW_ID_001,
+          file: relativePath,
+          line: getNodeLine(importDeclaration),
+          severity: "fatal",
+          message: "Deleted historical owner operator-control must not be imported from active source files.",
+          ...createDetail(targetPath),
+        }),
+      );
+    }
+
+    for (const exportDeclaration of sourceFile.getExportDeclarations()) {
+      const specifier = exportDeclaration.getModuleSpecifierValue() ?? "";
+      const targetPath = resolveImportTarget(exportDeclaration.getModuleSpecifierSourceFile());
+      if (!(specifier.includes("operator-control") || isForbiddenTargetPath(targetPath, ["src/features/operator-control/"]))) {
+        continue;
+      }
+
+      findings.push(
+        createFinding({
+          lawId: LAW_ID_001,
+          file: relativePath,
+          line: getNodeLine(exportDeclaration),
+          severity: "fatal",
+          message: "Deleted historical owner operator-control must not be re-exported from active source files.",
+          ...createDetail(targetPath),
+        }),
+      );
+    }
+  }
+
+  phases.push(
+    createPhase(
+      "historical-owner-removal",
+      findings.length === historicalOwnerImportPhaseStart ? "PASS" : "CODE VIOLATION",
+      findings.length === historicalOwnerImportPhaseStart,
+      findings.length === historicalOwnerImportPhaseStart
+        ? "Deleted historical owner paths are absent from active import and export graphs."
+        : "Active source files still import or re-export deleted historical owner paths.",
+    ),
+  );
+
   const topologyFiles = [
     ...appFiles,
     ...browserFiles,
@@ -545,7 +615,7 @@ export const inspectCodeTopology = async (
 
     for (const exportDeclaration of sourceFile.getExportDeclarations()) {
       const targetPath = resolveImportTarget(exportDeclaration.getModuleSpecifierSourceFile());
-      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/adapters/", "src/lib/browser/", "src/lib/local-ai/"])) {
+      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/", "src/features/local-data/", "src/lib/browser/", "src/lib/local-ai/"])) {
         continue;
       }
 

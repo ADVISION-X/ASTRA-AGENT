@@ -33,24 +33,24 @@ Phase-one TypeScript must run in strict mode, reject untyped uncertainty, and va
 
 Required direction:
 - External inputs must enter as unknown until validated.
-- AI outputs must pass schema validation before any action or product-signal use.
+- AI outputs must pass schema validation before any action, Forensics record, Orchestration runtime proof, Page State result, or Post-action Verification result.
 - Local AI outputs must be validated against task-specific schemas before downstream use.
-- OCR outputs must be cleaned into explicit structured data before downstream use.
-- Prompt version and schema version must be carried with AI output records.
-- Platform action results and adapter outputs must use explicit contracts before they can drive agent-runtime records.
+- OCR outputs must be cleaned into explicit structured data before they can become AI input, AI result context, or Forensics record payload.
+- Prompt version and schema version must be carried with AI result records.
+- Platform action results and adapter outputs must use explicit contracts before they can drive Orchestration proof or Forensics record writes.
 - Platform action payloads and persistence writes must use explicit contracts.
-- DOM-derived raw page payloads must not enter product signal, comments, or action decisions.
+- DOM-derived raw page payloads must not become Page State truth, Post-action Verification truth, or Forensics records without validation.
 
 ### 禁止
 
 FORBIDDEN:
 - any, as any, or hidden any escapes.
 - Using unvalidated JSON to drive actions.
-- Untyped local AI outputs entering action, comment, product-signal, or persistence records.
+- Untyped local AI outputs entering action, Forensics records, Orchestration proof, Page State result, or Post-action Verification result.
 - Prompt outputs without schema version or task type.
 - Untyped adapter outputs driving runtime decisions.
 - Platform action payloads represented as loose strings or unvalidated raw objects.
-- Letting unvalidated OCR text flow directly into product signal.
+- Letting unvalidated OCR text flow directly into AI result context, action decisions, or record writes.
 - Using loose typing to hide AI-output uncertainty.
 
 ---

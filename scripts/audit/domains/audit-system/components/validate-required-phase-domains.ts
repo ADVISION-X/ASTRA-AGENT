@@ -1,8 +1,7 @@
 import { createFinding, createPhase } from "../../../core/result.js";
+import { REQUIRED_PHASE_DOMAINS } from "../../../core/required-phase-domains.js";
 import { defaultPhaseGatePath, generatedArtifactPaths, toRepoRelativePath } from "../../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
-
-const REQUIRED_PHASE_DOMAINS = ["code-purity", "agent-browse-flow", "evidence-packet", "multi-frame-evidence", "visual-only-runtime"];
 
 export const validateRequiredPhaseDomains = async (
   context: InspectorContext,

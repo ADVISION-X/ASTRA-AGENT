@@ -1,0 +1,20 @@
+{
+  "inspectorId": "visual-target-capability-owner",
+  "capabilityDomain": "visual-target-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/visual-target-capability/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+    "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V1",
+    "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1",
+    "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Visual Target 视觉目标定位能力组施工图.md"
+  ]
+}

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-27T22:10:41.628Z",
+  "generatedAt": "2026-04-28T22:28:33.978Z",
   "phase": "phase-02-local-workbench",
   "totals": {
-    "inspectors": 23,
-    "passed": 22,
-    "failed": 1,
-    "blocking": 1
+    "inspectors": 16,
+    "passed": 16,
+    "failed": 0,
+    "blocking": 0
   },
   "results": [
     {
@@ -42,7 +42,7 @@
           "name": "required-phase-domains",
           "classification": "PASS",
           "passed": true,
-          "summary": "Current phase gate and generated plan both include code-purity, agent-browse-flow, evidence-packet, multi-frame-evidence, visual-only-runtime."
+          "summary": "Current phase gate and generated plan both include audit-system, type-safety, security-privacy, ai-capability, commander-console-capability, orchestration-capability, nerve-bus-capability, page-state-capability, post-action-verification-capability, open-capability, screenshot-capability, geometry-guard-capability, mouse-click-capability, mouse-scroll-capability, visual-target-capability, forensics-persistence-capability."
         },
         {
           "name": "runner-boundary",
@@ -63,46 +63,22 @@
           "summary": "Audit system remains the only repository quality gate authority."
         },
         {
+          "name": "owned-law-execution",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
+        },
+        {
           "name": "production-path-simulation-ban",
           "classification": "PASS",
           "passed": true,
           "summary": "Production startup and runtime paths are free of fixture/demo simulation markers."
-        }
-      ],
-      "summary": "audit main chain is generated, routed, and owner-boundary clean",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Code Purity Owner Inspector",
-      "inspectorId": "code-purity-owner",
-      "capabilityDomain": "code-purity",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 22 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
-        },
-        {
-          "name": "file-atomicity",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Active code-purity files stay within the current physical line limits."
-        },
-        {
-          "name": "function-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Active functions remain within line, parameter, nesting, and complexity limits."
+          "summary": "code-purity scans 418 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "cleanup-hygiene",
@@ -117,75 +93,9 @@
           "summary": "Active scope contains no compatibility-bridge style files."
         }
       ],
-      "summary": "code-purity owner is active in the runner and enforces scoped AST-backed purity checks",
+      "summary": "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced",
       "passed": true,
       "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Code Topology Owner Inspector",
-      "inspectorId": "code-topology-owner",
-      "capabilityDomain": "code-topology",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "code-topology owner is enforcing canonical law, docs, and runtime-data boundaries"
-        },
-        {
-          "name": "canonical-doc-paths",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Canonical phase-document directories exist."
-        },
-        {
-          "name": "root-and-runtime-hygiene",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Root docs and runtime data hygiene are clean."
-        },
-        {
-          "name": "source-topology",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Canonical src, docs, and startup directories stay within the governed topology."
-        },
-        {
-          "name": "route-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Route entry stays off browser automation, platform adapter, local AI, and data-store truth imports."
-        },
-        {
-          "name": "domain-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Domain-neutral browser infrastructure and restricted feature domains stay on canonical ownership boundaries."
-        },
-        {
-          "name": "type-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Platform boundary types resolve to the shared PlatformAdapter abstraction."
-        },
-        {
-          "name": "anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering.",
-      "passed": true,
       "violationCount": 0
     },
     {
@@ -249,71 +159,9 @@
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Local Browser Session Owner Inspector",
-      "inspectorId": "local-browser-session-owner",
-      "capabilityDomain": "local-browser-session",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1",
-          "file": "src/lib/browser/local-browser-session.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Local browser session helper must resolve the governed persistent profile path, Chrome profile directory, and forbid headless by default."
-        }
-      ],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "local-browser-session-law",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Local browser session law defines persistent-profile and cookie privacy boundaries."
-        },
-        {
-          "name": "local-browser-session-blueprint",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Blueprint defines real Chrome persistent profile startup, current-browser handoff, and Local State profile directory resolution boundaries."
-        },
-        {
-          "name": "local-browser-session-type-contract",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Browser session types expose profile metadata, including profile directory, without raw cookie fields."
-        },
-        {
-          "name": "local-browser-session-runtime-boundary",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Runtime browser session wiring is missing a governed real Chrome, explicit profile proof, or current-browser handoff boundary."
-        },
-        {
-          "name": "local-browser-session-forbidden-apis",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Governed browser session code avoids storageState, cookie reads, cookie injection, and browser storage dumps."
-        },
-        {
-          "name": "local-browser-session-repo-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository excludes test artifacts and committed browser profile directories."
-        }
-      ],
-      "summary": "local browser session governance is missing a persistent-profile or privacy boundary",
-      "passed": false,
-      "classification": "CODE VIOLATION",
-      "violationCount": 1
-    },
-    {
-      "inspector": "GrassEye Local App Shell Owner Inspector",
-      "inspectorId": "local-app-shell-owner",
-      "capabilityDomain": "local-app-shell",
+      "inspector": "GrassEye AI Capability Owner Inspector",
+      "inspectorId": "ai-capability-owner",
+      "capabilityDomain": "ai-capability",
       "findings": [],
       "phases": [
         {
@@ -326,85 +174,61 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "local app shell is implemented as a localhost workbench with local runtime surfaces"
+          "summary": "ai-capability is enforced as the canonical AI public owner with a native contract, internal runtime bridge, and anti-escape checks"
         },
         {
-          "name": "local-shell-boundary",
+          "name": "ai-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Server and workbench keep localhost shell, local runtime, local AI, browser, and data boundaries together."
+          "summary": "AI root exposes the required native contract, registry, router, roster, schema validation, bridge, and child implementations."
         },
         {
-          "name": "startup-bootstrap-boundary",
+          "name": "ai-forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Startup bootstrap stays bounded to dependency readiness, health-gated service launch, and page opening."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Startup bootstrap stays bounded to dependency readiness, health-gated service launch, and page opening.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Localization Owner Inspector",
-      "inspectorId": "localization-owner",
-      "capabilityDomain": "localization",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+          "summary": "AI root no longer contains runtime-task-execution, capability-check, verify leaks, forbidden imports, or child export escape routes."
         },
         {
-          "name": "implementation-window",
+          "name": "ai-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "localization implementation is enforced through governed dictionaries, locale parsing, and operator-console language switching"
+          "summary": "AI group returns cognitive results only while forensics, runtime state, and legacy LocalAi ownership stay outside the public root."
         },
         {
-          "name": "dictionary-completeness",
+          "name": "ai-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Localization dictionaries stay complete, non-empty, and visibly fail on missing keys."
+          "summary": "AI JSON extraction and decisive enforcement avoid regex-based escape hatches."
         },
         {
-          "name": "language-switch-boundary",
+          "name": "multi-frame-ai-contract",
           "classification": "PASS",
           "passed": true,
-          "summary": "Server and operator console keep the governed manual English / Chinese localization path."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Server and operator console keep the governed manual English / Chinese localization path.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Local AI Runtime Owner Inspector",
-      "inspectorId": "local-ai-runtime-owner",
-      "capabilityDomain": "local-ai-runtime",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+          "summary": "AI contracts preserve governed multi-frame request and aggregate output fields."
         },
         {
-          "name": "implementation-window",
+          "name": "multi-frame-result-builder",
           "classification": "PASS",
           "passed": true,
-          "summary": "local AI runtime is implemented through a governed gateway and prompt registry"
+          "summary": "Vision result builder preserves governed multi-frame request and result fields."
         },
         {
           "name": "local-ai-contracts",
           "classification": "PASS",
           "passed": true,
           "summary": "Local AI gateway and prompt registry expose governed task contracts with prompt and schema versions."
+        },
+        {
+          "name": "local-ai-runtime-path",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Real-platform Local AI calls default to runtime adapters and keep heuristic execution behind explicit non-real modes only."
+        },
+        {
+          "name": "phase3-policy-blocks",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Phase-03 runtime blocks product.signal_summary and uses pending-analysis evidence candidates instead."
         },
         {
           "name": "local-ai-model-config",
@@ -417,17 +241,23 @@
           "classification": "PASS",
           "passed": true,
           "summary": "No obvious external AI fallback keyword was found in source files."
+        },
+        {
+          "name": "operator-health-visibility",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Operator surfaces expose real Local AI health, recent task identity, and failure reason."
         }
       ],
       "classification": "PASS",
-      "summary": "No obvious external AI fallback keyword was found in source files.",
+      "summary": "Operator surfaces expose real Local AI health, recent task identity, and failure reason.",
       "passed": true,
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Agent Runtime Owner Inspector",
-      "inspectorId": "agent-runtime-owner",
-      "capabilityDomain": "agent-runtime",
+      "inspector": "GrassEye Orchestration Capability Owner Inspector",
+      "inspectorId": "orchestration-capability-owner",
+      "capabilityDomain": "orchestration-capability",
       "findings": [],
       "phases": [
         {
@@ -437,51 +267,39 @@
           "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "required-shape",
+          "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "Agent runtime exposes bounded loop, ordered classification, record-before-complete, and review/stop surfaces."
+          "summary": "orchestration-capability is implemented as the canonical mission-command owner with governed maps and Nerve Bus dispatch"
         },
         {
-          "name": "forbidden-shape",
+          "name": "orchestration-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Agent runtime avoids forbidden nested service fan-out and preserves record helpers."
+          "summary": "Orchestration root contains contract, roster, map registry, both maps, verify anchor, and governed mission-control commands."
         },
         {
-          "name": "boundary-attack",
+          "name": "orchestration-map-boundary",
           "classification": "PASS",
           "passed": true,
-          "summary": "Agent runtime authority stays inside AgentService and the local workbench entrypoint."
+          "summary": "Operational maps stay declarative, group-level, and owned by the orchestration root only."
         },
         {
-          "name": "anti-escape",
+          "name": "orchestration-dispatch-boundary",
           "classification": "PASS",
           "passed": true,
-          "summary": "Agent runtime code avoids any-casts, dynamic imports, and require-based escape hatches."
-        },
-        {
-          "name": "review-gate-markers",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Runtime keeps explicit review gates while preserving the governed video-only candidate path for comment failures."
-        },
-        {
-          "name": "runtime-action-abstraction",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Agent runtime still requests abstract adapter actions and does not own coordinates."
+          "summary": "Orchestration uses Nerve Bus and avoids browser, AI runtime, platform-action, and child implementation imports."
         }
       ],
-      "summary": "agent runtime is AST-enforced as one bounded observe-classify-act-record loop",
-      "passed": true,
       "classification": "PASS",
+      "summary": "Orchestration uses Nerve Bus and avoids browser, AI runtime, platform-action, and child implementation imports.",
+      "passed": true,
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Agent Browse Flow Owner Inspector",
-      "inspectorId": "agent-browse-flow-owner",
-      "capabilityDomain": "agent-browse-flow",
+      "inspector": "GrassEye Commander Console Capability Owner Inspector",
+      "inspectorId": "commander-console-capability-owner",
+      "capabilityDomain": "commander-console-capability",
       "findings": [],
       "phases": [
         {
@@ -491,57 +309,81 @@
           "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "browse-blueprint",
+          "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse-flow blueprint is a strict single-video lifecycle state machine with bounded next-video routing."
+          "summary": "commander-console-capability is implemented as the governed human command and read-only dashboard owner"
         },
         {
-          "name": "product-presence-prompt",
+          "name": "commander-console-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "First-question product-presence prompt exists and stays off profitability, sourcing, ads, and final business judgment."
+          "summary": "Commander Console canonical root contains ports, shared contracts, and real child implementation folders."
         },
         {
-          "name": "product-presence-schema",
+          "name": "commander-console-boundary-purity",
           "classification": "PASS",
           "passed": true,
-          "summary": "Product-presence schema validates task type, prompt version, suggested next action, and mustReview before actions."
+          "summary": "Commander Console root stays clean from local-data, old runtime builders, and direct orchestration mutations."
         },
         {
-          "name": "browse-contract-types",
+          "name": "commander-console-entry-cutover",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse-flow contract defines round steps, decision types, policies, and round outcomes."
+          "summary": "Human command entry, candidate review routes, Local App Shell, and workbench transport are cut over to Commander Console."
         },
         {
-          "name": "browse-law-finalization",
+          "name": "commander-console-anti-drift",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse-flow law separates Browse Ledger finalization from full Evidence Packet finalization."
+          "summary": "Commander Console keeps one canonical root with no child leakage, verify escape, or legacy drift."
         },
         {
-          "name": "candidate-status-policy",
+          "name": "local-shell-boundary",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse-flow candidates are constrained to pending_analysis."
+          "summary": "Server and workbench keep localhost shell, local runtime, local AI, browser, and data boundaries together."
         },
         {
-          "name": "browse-test-artifacts",
+          "name": "startup-bootstrap-boundary",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse-flow governance keeps tests out of the acceptance gate."
+          "summary": "Startup bootstrap stays bounded to dependency readiness, health-gated service launch, and page opening."
+        },
+        {
+          "name": "startup-entrypoint-unique-source",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup keeps one canonical user command, one entry file, and one startup/lib import surface."
+        },
+        {
+          "name": "startup-entrypoint-command-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup bootstrap stays out of mission and command ownership."
+        },
+        {
+          "name": "startup-entrypoint-open-sequence",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup preserves the dependency, service, health, open, readiness, and terminal-log sequence."
+        },
+        {
+          "name": "startup-entrypoint-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup stays free of verify paths, capability internals, and second-entry escape hatches."
         }
       ],
-      "summary": "browse-flow blueprint, contracts, and audit anchors are present and bounded",
-      "passed": true,
       "classification": "PASS",
+      "summary": "Startup stays free of verify paths, capability internals, and second-entry escape hatches.",
+      "passed": true,
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Evidence Packet Owner Inspector",
-      "inspectorId": "evidence-packet-owner",
-      "capabilityDomain": "evidence-packet",
+      "inspector": "GrassEye Nerve Bus Capability Owner Inspector",
+      "inspectorId": "nerve-bus-capability-owner",
+      "capabilityDomain": "nerve-bus-capability",
       "findings": [],
       "phases": [
         {
@@ -551,57 +393,39 @@
           "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "evidence-packet-blueprint",
+          "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "Evidence packet blueprint defines schema, data quality, and advanced-AI handoff."
+          "summary": "nerve-bus-capability is implemented as the canonical governed transport owner with four channels and transfer proof"
         },
         {
-          "name": "evidence-packet-law",
+          "name": "nerve-bus-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Evidence packet law defines packet, action purpose, and interpretation boundaries."
+          "summary": "Nerve Bus root contains contract, envelope types, and four channels."
         },
         {
-          "name": "evidence-packet-types",
+          "name": "nerve-bus-boundary-purity",
           "classification": "PASS",
           "passed": true,
-          "summary": "Evidence packet type contract defines packet schema, outcomes, flags, and action purpose."
+          "summary": "Nerve Bus and Local AI boundaries avoid child-implementation coupling."
         },
         {
-          "name": "evidence-packet-round-fields",
+          "name": "nerve-bus-no-branch-logic",
           "classification": "PASS",
           "passed": true,
-          "summary": "Agent round schema carries packet finalization fields."
-        },
-        {
-          "name": "evidence-packet-action-purpose",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Action log schema includes actionPurpose and traceability fields."
-        },
-        {
-          "name": "evidence-packet-candidate-status",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Candidate schema remains pending_analysis for packet handoff."
-        },
-        {
-          "name": "evidence-packet-test-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
+          "summary": "Nerve Bus contains transport only and no business branch logic."
         }
       ],
-      "summary": "evidence packet blueprint, types, and handoff guardrails are present and bounded",
-      "passed": true,
       "classification": "PASS",
+      "summary": "Nerve Bus contains transport only and no business branch logic.",
+      "passed": true,
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Multi Frame Evidence Owner Inspector",
-      "inspectorId": "multi-frame-evidence-owner",
-      "capabilityDomain": "multi-frame-evidence",
+      "inspector": "GrassEye Page State Capability Owner Inspector",
+      "inspectorId": "page-state-capability-owner",
+      "capabilityDomain": "page-state-capability",
       "findings": [],
       "phases": [
         {
@@ -611,145 +435,259 @@
           "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "multi-frame-law",
+          "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "Multi-frame law defines sampling, contact sheet, and fallback rules."
+          "summary": "page-state-capability is implemented as the canonical current-page state owner with boundary enforcement"
         },
         {
-          "name": "multi-frame-browse-blueprint",
+          "name": "page-state-contract",
           "classification": "PASS",
           "passed": true,
-          "summary": "Browse blueprint defines the governed multi-frame product-presence chain."
+          "summary": "Page State contract exposes one unified input, result, and group interface."
         },
         {
-          "name": "multi-frame-packet-blueprint",
+          "name": "page-state-child-structure",
           "classification": "PASS",
           "passed": true,
-          "summary": "Evidence packet blueprint records the multi-frame evidence fields."
+          "summary": "Page State canonical root contains all child capabilities with internal registration and no child leakage."
         },
         {
-          "name": "multi-frame-prompt-schema",
+          "name": "page-state-boundary-purity",
           "classification": "PASS",
           "passed": true,
-          "summary": "Prompt and schema expose the governed multi-frame input/output contract."
+          "summary": "Page State root stays pure and does not import forbidden execution owners."
+        },
+        {
+          "name": "page-state-owner-cutover",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page-state truth is cut away from platform-action helpers."
+        },
+        {
+          "name": "page-state-verify-ban",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State enforcement stays inspector-only with no dedicated verify script."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Page State enforcement stays inspector-only with no dedicated verify script.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Post-action Verification Capability Owner Inspector",
+      "inspectorId": "post-action-verification-capability-owner",
+      "capabilityDomain": "post-action-verification-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "post-action-verification-capability is implemented as the canonical action-result verification owner with boundary enforcement"
+        },
+        {
+          "name": "post-action-verification-contract",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post-action Verification contract exposes one unified input, result, and group interface."
+        },
+        {
+          "name": "post-action-verification-child-structure",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post-action Verification canonical root contains all child capabilities with internal registration and no child leakage."
+        },
+        {
+          "name": "post-action-verification-boundary-purity",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post-action Verification root stays pure and does not import forbidden execution owners."
+        },
+        {
+          "name": "post-action-verification-owner-cutover",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Verification truth is cut away from platform-action, open, mouse-click, and mouse-scroll owners."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Verification truth is cut away from platform-action, open, mouse-click, and mouse-scroll owners.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Open Capability Owner Inspector",
+      "inspectorId": "open-capability-owner",
+      "capabilityDomain": "open-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "open-capability is implemented as a canonical drawer with child capabilities and direct enforcement"
+        },
+        {
+          "name": "open-contract",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open contract exposes one governed input and one governed result shape."
+        },
+        {
+          "name": "open-child-structure",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical open root contains three child capabilities and orchestrator registration."
+        },
+        {
+          "name": "open-boundary-purity",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open root stays pure and free of compat, AI, comment, screenshot, and child-cross-import drift."
+        },
+        {
+          "name": "open-owner-cutover",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open owner cutover is complete: adapters lost open ownership, runtime consumes the drawer contract, and legacy root is gone."
+        },
+        {
+          "name": "platform-profile-root-removal",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Retained platform material no longer depends on a surviving platform-action root."
+        },
+        {
+          "name": "platform-profile-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Platform action ownership methods are absent from the old boundary."
+        },
+        {
+          "name": "platform-profile-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Action execution no longer routes through the retired platform-action import graph."
+        },
+        {
+          "name": "platform-profile-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No verify-script escape hatch is present for platform-action retirement."
+        },
+        {
+          "name": "local-browser-session-law",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Local browser session law defines persistent-profile and cookie privacy boundaries."
+        },
+        {
+          "name": "local-browser-session-blueprint",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Blueprint defines current-Chrome handoff, persistent-profile proof, and anti-regression boundaries for the removed downgrade path."
+        },
+        {
+          "name": "local-browser-session-type-contract",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Browser and runtime types expose governed profile metadata without raw cookie fields."
+        },
+        {
+          "name": "local-browser-session-runtime-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime uses CurrentChromeBrowserController, browserProfileDirectory, and current-browser fixed-page handoff only."
+        },
+        {
+          "name": "local-browser-session-exclusionary-ast-guard",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Governed browser session code blocks Playwright downgrade paths, cookie persistence APIs, and forbidden env threading through AST-level checks."
+        },
+        {
+          "name": "local-browser-session-repo-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Screenshot Capability Owner Inspector",
+      "inspectorId": "screenshot-capability-owner",
+      "capabilityDomain": "screenshot-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "screenshot-capability is implemented as a canonical ability group with child capabilities and direct enforcement"
+        },
+        {
+          "name": "screenshot-contract",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot contract exposes one governed input and one governed result shape."
+        },
+        {
+          "name": "screenshot-child-structure",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical screenshot root contains five child capabilities, a registry, and an ability-group entry."
+        },
+        {
+          "name": "screenshot-boundary-purity",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot root stays pure and local AI no longer hides screenshot transforms."
+        },
+        {
+          "name": "screenshot-owner-cutover",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot owner cutover is complete: runtime consumes the ability group directly and the legacy root is gone."
+        },
+        {
+          "name": "multi-frame-input-packaging",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Multi-frame screenshot packaging defines governed sampling strategies and evidence-set metadata."
         },
         {
           "name": "multi-frame-runtime-honesty",
           "classification": "PASS",
           "passed": true,
-          "summary": "Runtime still declares explicit single-frame fallback until sampling lands."
-        },
-        {
-          "name": "multi-frame-packet-types",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Evidence packet types record the multi-frame evidence fields."
+          "summary": "Runtime still honestly declares single-frame fallback until multi-frame production sampling lands."
         },
         {
           "name": "multi-frame-test-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
-        }
-      ],
-      "summary": "multi-frame evidence law, blueprints, and runtime contract are present and bounded",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Platform Action Owner Inspector",
-      "inspectorId": "platform-action-owner",
-      "capabilityDomain": "platform-action",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "platform-action is implemented through a vision-first coordinate real-platform boundary"
-        },
-        {
-          "name": "platform-adapter-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Platform actions flow through the governed real-platform adapter and local browser controller boundary."
-        },
-        {
-          "name": "vision-coordinate-mode-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Real-platform action flow exposes visual target, geometry guard, coordinate policy, and visual-only runtime markers."
-        },
-        {
-          "name": "anti-abuse-scan",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "No obvious abuse-tool keywords were found in source files."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "No obvious abuse-tool keywords were found in source files.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Visual Action Capability Owner Inspector",
-      "inspectorId": "visual-action-capability-owner",
-      "capabilityDomain": "visual-action-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "visual-action-capability is implemented as a governed visual-target and coordinate-action surface"
-        },
-        {
-          "name": "visual-action-law",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-action law defines guarded coordinate execution and bans DOM fallback after visual failure."
-        },
-        {
-          "name": "visual-action-blueprint",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-action blueprint defines target catalog, guard, and verification contracts."
-        },
-        {
-          "name": "visual-action-types",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-action type contract defines targets, bounding boxes, click points, and verification results."
-        },
-        {
-          "name": "visual-action-adapter-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Real-platform adapter exposes explicit visual verification and no DOM fallback markers."
-        },
-        {
-          "name": "visual-action-runtime-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "AgentRuntime remains off raw coordinates and selectors."
-        },
-        {
-          "name": "visual-action-test-boundary",
           "classification": "PASS",
           "passed": true,
           "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
@@ -761,9 +699,9 @@
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Vision Boundary Owner Inspector",
-      "inspectorId": "vision-boundary-owner",
-      "capabilityDomain": "vision-boundary",
+      "inspector": "GrassEye Geometry Guard Capability Owner Inspector",
+      "inspectorId": "geometry-guard-capability-owner",
+      "capabilityDomain": "geometry-guard-capability",
       "findings": [],
       "phases": [
         {
@@ -776,30 +714,186 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "vision-boundary logic is implemented through governed local-AI contracts, typed payloads, and visual-target contracts"
+          "summary": "geometry-guard-capability is enforced as a clean coordinate safety gate with AST-backed anti-escape checks"
+        },
+        {
+          "name": "geometry-guard-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard exposes the clean eight-child contract, canonical shared files, and public group entry."
+        },
+        {
+          "name": "geometry-guard-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard no longer imports browser or action owners, leaks child paths, or exposes old action-plan surface."
+        },
+        {
+          "name": "geometry-guard-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard keeps one canonical contract and no duplicate public boundary."
+        },
+        {
+          "name": "geometry-guard-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard has no clamp escape, compat path, bridge path, or silent second system."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Geometry Guard has no clamp escape, compat path, bridge path, or silent second system.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Mouse Click Capability Owner Inspector",
+      "inspectorId": "mouse-click-capability-owner",
+      "capabilityDomain": "mouse-click-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mouse-click-capability is implemented as a primitive-port-backed, Geometry Guard-gated click owner with AST-backed enforcement"
+        },
+        {
+          "name": "mouse-click-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click exposes the required primitive-port topology, exact child registry, and one governed contract."
+        },
+        {
+          "name": "mouse-click-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click root is free of BrowserController leakage, mapping logic, retired child roots, and verify-script escape hatches."
+        },
+        {
+          "name": "mouse-click-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Composition root injects primitivePort and child execution stays behind Geometry Guard validation."
+        },
+        {
+          "name": "mouse-click-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click has no child leakage, dynamic-import escape, or legacy/bridge/v2 topology."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Mouse Click has no child leakage, dynamic-import escape, or legacy/bridge/v2 topology.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Mouse Scroll Capability Owner Inspector",
+      "inspectorId": "mouse-scroll-capability-owner",
+      "capabilityDomain": "mouse-scroll-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mouse-scroll-capability is implemented as the canonical governed scroll owner with AST-backed enforcement"
+        },
+        {
+          "name": "mouse-scroll-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll canonical root exposes governed input, result, runtime proof, registry, and composition-root wiring."
+        },
+        {
+          "name": "mouse-scroll-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll root is sealed against BrowserController leakage, forbidden sibling imports, retired children, and runtime truth pollution."
+        },
+        {
+          "name": "mouse-scroll-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll ownership stays behind the public ability-group contract, primitive-port adapter, and composition root."
+        },
+        {
+          "name": "mouse-scroll-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Dynamic import, require, any-cast, child barrel export, and re-export escape routes are sealed."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Dynamic import, require, any-cast, child barrel export, and re-export escape routes are sealed.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Visual Target Capability Owner Inspector",
+      "inspectorId": "visual-target-capability-owner",
+      "capabilityDomain": "visual-target-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "visual-target-capability is implemented as the canonical execute-only visual target normalization owner"
         },
         {
           "name": "visual-target-contract",
           "classification": "PASS",
           "passed": true,
-          "summary": "Visual targets include type, bbox, confidence, and screenshot evidence binding."
+          "summary": "Visual Target contract exposes one governed input, one governed result, and one execute-only group interface."
         },
         {
-          "name": "confidence-gating",
+          "name": "visual-target-child-structure",
           "classification": "PASS",
           "passed": true,
-          "summary": "Vision-boundary outputs remain confidence-aware before stronger actions are planned."
+          "summary": "Visual Target canonical root contains all child capabilities, internal registration, and no child leakage."
+        },
+        {
+          "name": "visual-target-boundary-purity",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target root stays pure and keeps one canonical target-truth contract."
+        },
+        {
+          "name": "visual-target-owner-cutover",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target owner cutover is complete: legacy helper is gone, workbench wires the group, and platform adapters consume execute(input) only."
         }
       ],
       "classification": "PASS",
-      "summary": "Vision-boundary outputs remain confidence-aware before stronger actions are planned.",
+      "summary": "Visual Target owner cutover is complete: legacy helper is gone, workbench wires the group, and platform adapters consume execute(input) only.",
       "passed": true,
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Comment Intelligence Owner Inspector",
-      "inspectorId": "comment-intelligence-owner",
-      "capabilityDomain": "comment-intelligence",
+      "inspector": "GrassEye Forensics Persistence Owner Inspector",
+      "inspectorId": "forensics-persistence-owner",
+      "capabilityDomain": "forensics-persistence-capability",
       "findings": [],
       "phases": [
         {
@@ -812,73 +906,49 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "comment-intelligence logic is implemented through OCR cleanup, comment-signal parsing, and evidence-bound storage"
-        }
-      ],
-      "classification": "PASS",
-      "summary": "comment-intelligence logic is implemented through OCR cleanup, comment-signal parsing, and evidence-bound storage",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Product Signal Owner Inspector",
-      "inspectorId": "product-signal-owner",
-      "capabilityDomain": "product-signal",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+          "summary": "forensics-persistence owns durable record writing through a clean contract and rejects runtime/store escape hatches"
         },
         {
-          "name": "implementation-window",
+          "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "product-signal logic is implemented through structured candidate generation and evidence-backed persistence"
+          "summary": "Forensics Persistence exposes the required owner root, registry, child topology, contract, and storage-port shape."
         },
         {
-          "name": "non-product-candidate-guard",
+          "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Product-signal pipeline keeps non-product videos out of candidate creation and preserves negative-hint detection."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Product-signal pipeline keeps non-product videos out of candidate creation and preserves negative-hint detection.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Structured Logging Owner Inspector",
-      "inspectorId": "structured-logging-owner",
-      "capabilityDomain": "structured-logging",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+          "summary": "Retired local-data identity, forbidden contract leakage, and runtime/store topology are absent."
         },
         {
-          "name": "structured-logging-law",
+          "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Structured logging law defines runtime-truth boundaries and fake-log prohibitions."
+          "summary": "Only the Forensics public owner and storage adapter seam perform final record writes."
         },
         {
-          "name": "structured-logging-blueprint",
+          "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Structured logging blueprint defines schemas, live proof, and snapshot boundaries."
+          "summary": "Forensics enforcement and source root are free of verify escape hatches and AST-level loopholes."
         },
         {
           "name": "structured-logging-types",
           "classification": "PASS",
           "passed": true,
-          "summary": "Structured logging type contract defines runtime events, action logs, and live-proof sequence."
+          "summary": "Structured logging type contract defines runtime event and action-log schemas without escape hatches."
+        },
+        {
+          "name": "structured-logging-persistence",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Evidence store persists structured runtime events and structured action logs."
+        },
+        {
+          "name": "structured-logging-runtime-calls",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime proof support emits structured runtime events and structured action logs through governed methods."
         },
         {
           "name": "structured-logging-console-truth",
@@ -891,48 +961,24 @@
           "classification": "PASS",
           "passed": true,
           "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
-        }
-      ],
-      "summary": "structured logging law, blueprint, type contract, and audit owner are present and bounded",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Local Persistence Schema Owner Inspector",
-      "inspectorId": "local-persistence-schema-owner",
-      "capabilityDomain": "local-persistence-schema",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "local-persistence-law",
+          "name": "multi-frame-forensics-packet",
           "classification": "PASS",
           "passed": true,
-          "summary": "Local persistence law defines structured-store, evidence-store, and privacy boundaries."
-        },
-        {
-          "name": "local-persistence-blueprint",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Blueprint defines .grasseye-local layout, evidence directories, and packet-vs-ledger boundaries."
+          "summary": "Forensics packet schemas preserve governed multi-frame video and AI metadata."
         },
         {
           "name": "local-persistence-types",
           "classification": "PASS",
           "passed": true,
-          "summary": "Type contract defines tables, path layout, and relationship map without escape hatches."
+          "summary": "Local persistence schemas define governed tables, path layout, storage refs, and relationship boundaries without sensitive session fields."
         },
         {
-          "name": "local-persistence-root-ignore",
+          "name": "local-persistence-store-surface",
           "classification": "PASS",
           "passed": true,
-          "summary": ".grasseye-local root is gitignored."
+          "summary": "Evidence store exposes governed persistence methods for evidence, structured logs, packets, and browse-ledger records."
         },
         {
           "name": "local-persistence-test-boundary",
@@ -941,122 +987,8 @@
           "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
         }
       ],
-      "summary": "local persistence schema law, blueprint, type contract, and audit owner are present and bounded",
-      "passed": true,
       "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Local Data Owner Inspector",
-      "inspectorId": "local-data-owner",
-      "capabilityDomain": "local-data",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "local data is implemented through a local JSON state store with delete and export surfaces"
-        },
-        {
-          "name": "local-store-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Local data store keeps local persistence, artifact storage, delete/export, and reset boundaries in code."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Local data store keeps local persistence, artifact storage, delete/export, and reset boundaries in code.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Operator Control Owner Inspector",
-      "inspectorId": "operator-control-owner",
-      "capabilityDomain": "operator-control",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "operator-control is implemented through the local console, task controls, and candidate disposition workflow"
-        },
-        {
-          "name": "operator-console-controls",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Operator console exposes reset controls, review actions, and runtime control seams."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Operator console exposes reset controls, review actions, and runtime control seams.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Visual Only Runtime Owner Inspector",
-      "inspectorId": "visual-only-runtime-owner",
-      "capabilityDomain": "visual-only-runtime",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "visual-only runtime law, type, verify, and owner boundary are wired"
-        },
-        {
-          "name": "visual-only-law",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-only runtime law declares screenshot-first page understanding and bans DOM/BOM action sources."
-        },
-        {
-          "name": "visual-only-blueprint",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-only runtime blueprint defines the governed screenshot, OCR/AI, visual target, coordinate, and verification chain."
-        },
-        {
-          "name": "visual-only-types",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual-only runtime type contract fixes all DOM fallback flags to false."
-        },
-        {
-          "name": "visual-only-production-path",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Governed real-platform source stays off DOM-reading and selector-action tokens."
-        },
-        {
-          "name": "visual-only-repo-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository contains no forbidden crawler paths or tests-as-truth artifacts."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Repository contains no forbidden crawler paths or tests-as-truth artifacts.",
+      "summary": "Repository contains no tests, __tests__, or *.test.* artifacts.",
       "passed": true,
       "violationCount": 0
     }

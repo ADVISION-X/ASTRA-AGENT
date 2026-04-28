@@ -1,55 +1,45 @@
 ---
 name: "GrassEye Local Browser Session"
 description: "Use when defining real Chrome launch, persistent browser profile, local login state reuse, and browser session privacy boundaries."
-applyTo: ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md, src/lib/browser/**, src/lib/local-runtime/**, src/features/agent/**, src/features/platform-action/**, scripts/audit/domains/local-browser-session/**, scripts/verify/verify-local-browser-session.mjs"
+applyTo: ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md, src/lib/browser/**, src/lib/local-runtime/**, src/capabilities/open/**, src/capabilities/page-state/**, src/capabilities/post-action-verification/**, scripts/audit/domains/open-capability/**"
 ---
 
 # GrassEye Local Browser Session
 
 Scope: governs local real Chrome usage, persistent browser profile, browser session reuse, and login-state privacy.
-Boundary: this module governs browser session identity and persistence only.
-Excludes: platform action semantics, product analysis, AI reasoning, OCR, and final business decisions.
-Authority: this file is authoritative only for the local-browser-session capability domain.
+Boundary: this module governs browser session identity and persistence only as an Open child sub-contract, not as an independent owner.
+Excludes: open ownership, page-state ownership, post-action verification ownership, mission decisions, and platform action semantics.
+Authority: this file is authoritative only for the open-capability domain as the real-Chrome session child sub-contract.
 
 ## Law GRASSEYE-LOCAL-BROWSER-SESSION-001-V1
 
 status: active
 tier: P0
-capabilityDomain: local-browser-session
+capabilityDomain: open-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: real-platform mode must use local real Chrome with a persistent local profile so login state can be reused without exposing cookies.
+summary: browser-session is an Open child sub-contract for real-Chrome reuse, not an active owner.
 
 ### 主题
 
-本地真实 Chrome 与登录态持久化
+真实浏览器会话边界
 
 ### 法条
 
-GrassEye real-platform mode must launch or connect to a local real Chrome browser with a persistent local user profile. Login state must be preserved by the local Chrome profile, not by GrassEye reading or exporting cookies.
+GrassEye real-platform mode must use local real Chrome with a persistent local profile so login state can be reused without exporting cookies, while browser-session remains a low-level boundary consumed by higher owners.
 
 Required direction:
-- Real-platform mode must use local real Chrome, not temporary Chromium, incognito, or ephemeral contexts.
-- Browser profile must be persistent across runs.
-- User must manually log in inside the local Chrome profile when required.
-- GrassEye may store profileRef, profile path metadata, browserMode, and loginState.
-- GrassEye must not store raw cookies, sessions, tokens, passwords, or localStorage dumps.
-- Browser profile directories must stay local and must be excluded from repository truth.
-- Headless mode must be disabled by default for real-platform mode.
-- Login challenge, CAPTCHA, safety page, or unknown account state must route to operator review.
-- Runtime snapshot must expose browserMode, browserProfileRef, profileStatus, and loginState.
-- Structured logs may record browser profile reuse status but must not contain raw cookies or tokens.
+- real-platform mode uses local real Chrome, persistent local profiles, and manual operator login when required.
+- real-platform mode must keep one persistent local user profile boundary per governed browser session.
+- GrassEye may store profileRef, profile metadata, browserMode, and loginState, but it must not store raw cookies, sessions, or tokens.
+- GrassEye must not store raw cookies, and any persisted session metadata must not contain raw cookies or tokens.
+- Headless mode must be disabled by default for real-platform acceptance.
+- open, page-state, and post-action verification consume browser-session primitives through their own public contracts.
+
+### 禁止
 
 FORBIDDEN:
-- Temporary browser contexts as real-platform acceptance.
-- Incognito or private mode as real-platform acceptance.
-- Headless default for real-platform acceptance.
-- Exporting Playwright storageState as login persistence.
-- Reading cookies through context.cookies() or equivalent.
-- Injecting cookies through addCookies() or equivalent.
-- Dumping localStorage or sessionStorage for login persistence.
-- Writing cookies, session, token, or passwords into logs, evidence, Browse Ledger, Evidence Packet, or reports.
-- Remote hosted browser sessions as phase-three default.
-- Cookie or session copying between machines or profiles.
-- CAPTCHA bypass, login-protection bypass, fingerprint spoofing, proxy pools, or account pools.
+- local-browser-session becoming the owner of open, current-page truth, or outcome verification.
+- cookie export/import, storageState login persistence, or headless-default real-platform acceptance.
+- committed profile directories or remote hosted browser sessions.

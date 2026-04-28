@@ -27,6 +27,8 @@
 - [x] P3-17 已新增 Visual Action Capability law、视觉目标施工图、visual-action type contract、audit owner 与 `verify:visual-action-capability`，并接入 `verify:phase3` 与 `ci:full`。
 - [x] P3-18 已新增 Local Persistence Schema law、本地取证存储结构施工图、local-persistence type contract、audit owner 与 `verify:local-persistence-schema`，并接入 `verify:phase3` 与 `ci:full`。
 - [x] P3-20 已新增 Multi Frame Evidence law、施工图升级、type contract、verify 与 audit owner 接线，并把 `verify:multi-frame-evidence` 接入 `verify:phase3` 与 `ci:full`。
+- [x] P3-21 已把已删除浏览器降级路径固化为排他性禁入项：`verify:local-browser-session` 与 local-browser-session owner inspector 现已改为 AST 级排他检查，并通过一次故意生产回归注入验证可真实失败。
+- [x] P3-22 已新增 Agent Mechanical Skills law、施工图、skill catalog、Active Skill Matrix、skillId 日志字段与 audit owner，并提供 `audit:agent-mechanical-skills` 单域执法入口。
 
 ## 本轮已验证
 
@@ -35,9 +37,10 @@
 - [x] `npm run verify:evidence-packet`
 - [x] `npm run verify:browse-flow`
 - [x] `npm run verify:local-browser-session`
+- [x] `npm run verify:local-browser-session` 故意注入 `GRASSEYE_BROWSER_PROFILE_REF` 生产回归后失败，回滚后重新 PASS
 - [x] `npm run verify:phase3`
-- [x] `npm run launch -- --no-open`
-- [x] `GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run launch -- --no-open`
+- [x] `npm run grasseye:start -- --no-open`
+- [x] `GRASSEYE_PLATFORM_TARGET=tiktok-web GRASSEYE_PORT=4273 npm run grasseye:start -- --no-open`
 
 ## 当前剩余项
 
