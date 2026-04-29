@@ -1,19 +1,41 @@
+import { commanderFlag } from "../../shared/commander-proof.js";
 import type { CommanderConsoleChildDefinition } from "../../runtime/commander-console-executor.js";
-import { gateCommanderRead } from "../../runtime/commander-read-gate.js";
-import type { InspectRecordDetailInput, InspectRecordDetailOutput } from "./contract.js";
+import { executeCommanderReadChild } from "../../runtime/commander-child-executors.js";
+import { buildCommanderEvidenceRef } from "../../runtime/commander-boundary-policy.js";
+import { INSPECT_RECORD_DETAIL_CONTRACT, type InspectRecordDetailInput, type InspectRecordDetailOutput } from "./contract.js";
 import { InspectRecordDetailInputSchema, InspectRecordDetailOutputSchema } from "./schema.js";
 
 export const INSPECT_RECORD_DETAIL_CHILD: CommanderConsoleChildDefinition<InspectRecordDetailInput, InspectRecordDetailOutput> = {
-  childCapabilityId: "inspect-record-detail",
+  ...INSPECT_RECORD_DETAIL_CONTRACT,
   inputSchema: InspectRecordDetailInputSchema,
   outputSchema: InspectRecordDetailOutputSchema,
   async execute(input, context) {
-    const gated = gateCommanderRead({ childCapabilityId: "inspect-record-detail", operatorRef: input.operatorRef, readInput: input.input });
-    if (!gated.ok) {
-      return { status: "failed", output: null, failureReason: gated.reason, reviewRequiredReason: null, inputRef: "inspect-record-detail", outputRef: null, evidenceRefs: [], dataQualityFlags: ["read_gate_blocked"], boundaryDecision: "read-port-only" };
-    }
-
-    const output = await context.forensicsReadModel.inspectRecordDetail(input.input.recordId);
-    return { status: "success", output, failureReason: null, reviewRequiredReason: null, inputRef: gated.inputRef, outputRef: `record-detail:${output.recordId ?? input.input.recordId}`, evidenceRefs: output.recordId ? [output.recordId] : [input.input.recordId], dataQualityFlags: output.recordType === "not-found" ? ["record_not_found"] : [], boundaryDecision: "read-port-only" };
+    return executeCommanderReadChild({
+      contract: INSPECT_RECORD_DETAIL_CONTRACT,
+      operatorRef: input.operatorRef,
+      rawInput: input.input,
+      inputSchema: InspectRecordDetailInputSchema,
+      context,
+      read: async (readInput) => context.forensicsReadModel.inspectRecordDetail(readInput.recordId),
+      buildEvidenceRefs: (detail) => detail.recordId
+        ? [buildCommanderEvidenceRef({
+          recordType: detail.recordType,
+          recordId: detail.recordId,
+          sourceAbility: "forensics-read-model",
+        })]
+        : [],
+      buildOutputPolicy: (detail) => detail.recordType === "not-found"
+        ? {
+          status: "review_required",
+          reviewRequiredReason: "record_not_found",
+          targetRecordRef: null,
+          dataQualityFlags: [commanderFlag("record_not_found", "warn", "Requested record detail was not found.")],
+        }
+        : {
+          targetRecordRef: detail.recordId
+            ? { recordType: detail.recordType === "not-found" ? "runtime-event" : detail.recordType, recordId: detail.recordId }
+            : null,
+        },
+    });
   },
 };

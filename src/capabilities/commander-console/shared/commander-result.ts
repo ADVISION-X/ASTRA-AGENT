@@ -1,12 +1,69 @@
 import type { z } from "zod";
+
 import type { CommanderCommandType } from "../contract.js";
 import type { CommanderConsoleResultSchema, CommanderConsoleStatusSchema } from "../schema.js";
-import type { CommanderBoundaryDecision, CommanderDataQualityFlag, CommanderEvidenceRef } from "./commander-proof.js";
+import type {
+  CommanderBoundaryDecisionSchema,
+  CommanderCommandDecisionSchema,
+  CommanderHardStopDecisionSchema,
+  CommanderPolicyDecisionSchema,
+  CommanderReadDecisionSchema,
+  CommanderReadModelSourceSchema,
+  CommanderTargetRecordRefSchema,
+  CommanderTransportDecisionSchema,
+} from "./commander-schema-base.js";
+import type { CommanderDataQualityFlag, CommanderEvidenceRef } from "./commander-proof.js";
 import type { CommanderMissionView, CommanderRecordDetailView } from "./commander-view-types.js";
+
 export type CommanderConsoleStatus = z.infer<typeof CommanderConsoleStatusSchema>;
-export type CommanderConsoleResult<TOutput = unknown> = Omit<z.infer<typeof CommanderConsoleResultSchema>, "output"> & { output: TOutput | null };
-export type CommanderExecutionOutcome<TOutput> = { status: CommanderConsoleStatus; output: TOutput | null; failureReason: string | null; reviewRequiredReason: string | null; inputRef: string; outputRef: string | null; commandId: string | null; readRequestId: string | null; commandEnvelopeRef: string | null; resultEnvelopeRef: string | null; targetRecordRef: { recordType: "candidate" | "evidence-packet" | "browse-ledger" | "failed-record" | "runtime-event" | "mission"; recordId: string } | null; evidenceRefs: CommanderEvidenceRef[]; dataQualityFlags: CommanderDataQualityFlag[]; boundaryDecision: CommanderBoundaryDecision; commandDecision: "accepted-by-command-gate" | "blocked-by-command-gate" | null; readDecision: "accepted-by-read-gate" | "blocked-by-read-gate" | null; transportDecision: "accepted" | "failed" | "review_required" | "not-dispatched" | null; hardStopDecision: "not-hard-stop" | "hard-stop-required" | "hard-stop-dispatched" | "hard-stop-dispatch-failed" | "hard-stop-review-required" | null; policyDecision: "allowed" | "blocked" | "review_required"; };
+export type CommanderConsoleResult<TOutput = unknown> = Omit<z.infer<typeof CommanderConsoleResultSchema>, "output"> & {
+  output: TOutput | null;
+};
+
+export type CommanderExecutionOutcome<TOutput> = {
+  status: CommanderConsoleStatus;
+  output: TOutput | null;
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+  inputRef: string;
+  outputRef: string | null;
+  commandId: string | null;
+  readRequestId: string | null;
+  runId: string | null;
+  missionId: string | null;
+  traceId: string | null;
+  commandEnvelopeRef: string | null;
+  resultEnvelopeRef: string | null;
+  readModelSource: z.infer<typeof CommanderReadModelSourceSchema> | null;
+  targetRecordRef: z.infer<typeof CommanderTargetRecordRefSchema> | null;
+  evidenceRefs: CommanderEvidenceRef[];
+  dataQualityFlags: CommanderDataQualityFlag[];
+  boundaryDecision: z.infer<typeof CommanderBoundaryDecisionSchema>;
+  commandDecision: z.infer<typeof CommanderCommandDecisionSchema> | null;
+  readDecision: z.infer<typeof CommanderReadDecisionSchema> | null;
+  transportDecision: z.infer<typeof CommanderTransportDecisionSchema> | null;
+  hardStopDecision: z.infer<typeof CommanderHardStopDecisionSchema> | null;
+  policyDecision: z.infer<typeof CommanderPolicyDecisionSchema>;
+};
+
 export type CommanderCommandResultStatus = "accepted" | "failed" | "review_required";
-export type CommanderHumanCommandResult = { commandId: string; commandType: CommanderCommandType; status: CommanderCommandResultStatus; envelopeRef: string | null; mission: CommanderMissionView; failureReason: string | null };
-export type CommanderReviewDecisionResult = { commandId: string; commandType: Extract<CommanderCommandType, "approve-candidate" | "reject-candidate" | "mark-review-required">; status: CommanderCommandResultStatus; envelopeRef: string | null; targetRecordId: string; failureReason: string | null };
+
+export type CommanderHumanCommandResult = {
+  commandId: string;
+  commandType: CommanderCommandType;
+  status: CommanderCommandResultStatus;
+  envelopeRef: string | null;
+  mission: CommanderMissionView;
+  failureReason: string | null;
+};
+
+export type CommanderReviewDecisionResult = {
+  commandId: string;
+  commandType: Extract<CommanderCommandType, "approve-candidate" | "reject-candidate" | "mark-review-required">;
+  status: CommanderCommandResultStatus;
+  envelopeRef: string | null;
+  targetRecordId: string;
+  failureReason: string | null;
+};
+
 export type CommanderInspectRecordResult = CommanderRecordDetailView;

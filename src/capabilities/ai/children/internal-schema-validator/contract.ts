@@ -22,6 +22,23 @@ export const InternalSchemaValidatorChildContract: AiChildContract = {
   runtimeOwner: "ai-executor",
   implementationStatus: "internal_validator",
   purpose: "Run schema_validation_only through the internal schema gate, not LocalAiGateway.",
+  executionPolicy: {
+    allowedTaskTypes: INTERNAL_SCHEMA_VALIDATOR_SUPPORTED_TASK_TYPES,
+    requiresLocalRuntime: false,
+    executable: true,
+    forbidsLocalAiGateway: true,
+    forbidsLocalFallback: true,
+  },
+  boundaryPolicy: {
+    forbidsPlatformActions: true,
+    forbidsExecutableOutput: true,
+    outputBoundaryGate: "ai-output-boundary-gate",
+  },
+  proofPolicy: {
+    requiresRuntimeProof: true,
+    requiresResultParse: true,
+    requiresProofParse: true,
+  },
 };
 export type InternalSchemaValidatorInput = z.output<typeof InternalSchemaValidatorChildInputSchema>;
 export type InternalSchemaValidatorResult = z.output<typeof InternalSchemaValidatorChildResultSchema>;

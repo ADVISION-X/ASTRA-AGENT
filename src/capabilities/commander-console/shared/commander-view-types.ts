@@ -13,7 +13,7 @@ import type {
   CommanderRecordSummaryViewSchema,
   CommanderRuntimeProofTimelineEntrySchema,
   CommanderRuntimeSummaryViewSchema,
-} from "../schema.js";
+} from "./commander-schema-base.js";
 
 export type CommanderMissionView = z.infer<typeof CommanderMissionViewSchema>;
 export type CommanderRuntimeSummaryView = z.infer<typeof CommanderRuntimeSummaryViewSchema>;

@@ -14,6 +14,8 @@ type Mutation = {
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
+const EXPORT_STAR_MUTATION = `export ${"*"} from "./schema.js";`;
+const AS_ANY_MUTATION = `const mutatedEscape = runtimeResult as ${"any"};`;
 
 const MUTATIONS: Mutation[] = [
   {
@@ -41,6 +43,12 @@ const MUTATIONS: Mutation[] = [
     replace: "buildAiRuntimeProofRemoved({",
   },
   {
+    name: "output boundary mutation",
+    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    search: "const boundaryDecision = evaluateAiOutputBoundary(runtimeResult.output);",
+    replace: 'const boundaryDecision = { decision: "allow", reason: null, flags: [] };',
+  },
+  {
     name: "invalid-success mutation",
     file: "src/capabilities/ai/runtime/ai-executor.ts",
     search: 'status: qualityDecision.decision === "review_required" ? "review_required" : "failed"',
@@ -53,16 +61,16 @@ const MUTATIONS: Mutation[] = [
     replace: 'export { LocalTextAiInputSchema as LocalTextAiChildInputSchema } from "../../schema.js";',
   },
   {
-    name: "future-placeholder mutation",
-    file: "src/capabilities/ai/children/future-api-ai/schema.ts",
-    search: 'export const FutureApiAiChildInputSchema = z.never().describe("future-api-ai has no executable input while law is frozen");',
-    replace: 'export const FutureApiAiSchemaPlaceholder = "future-api-ai";',
+    name: "forbidden action output mutation",
+    file: "src/capabilities/ai/runtime/ai-output-boundary-gate.ts",
+    search: 'const FORBIDDEN_OUTPUT_KEYS = new Set<string>([',
+    replace: 'const FORBIDDEN_OUTPUT_KEYS_REMOVED = new Set<string>([',
   },
   {
-    name: "fake-dispatch mutation",
+    name: "dispatch record assertion mutation",
     file: "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
-    search: 'const rawInputRef = buildStableAiRef("ai-raw-input", [missionId, sessionId, taskType, input.failureReason]);',
-    replace: 'const rawInputRef = "invalid-session";',
+    search: "const rawInputRef = buildStableAiRef(\"ai-raw-input\", [trace.missionId, trace.sessionId, taskType, input.failureReason]);",
+    replace: "const unsafeRawInput = input.rawInput as Record<string, unknown>;\n  const rawInputRef = buildStableAiRef(\"ai-raw-input\", [trace.missionId, trace.sessionId, taskType, input.failureReason, String(unsafeRawInput.sessionId)]);",
   },
   {
     name: "paid gateway mutation",
@@ -80,7 +88,7 @@ const MUTATIONS: Mutation[] = [
     name: "export star mutation",
     file: "src/capabilities/ai/index.ts",
     search: 'export { listAiChildren } from "./registry.js";',
-    replace: 'export { listAiChildren } from "./registry.js";\nexport * from "./schema.js";',
+    replace: `export { listAiChildren } from "./registry.js";\n${EXPORT_STAR_MUTATION}`,
   },
   {
     name: "forbidden import mutation",
@@ -92,7 +100,7 @@ const MUTATIONS: Mutation[] = [
     name: "as-any mutation",
     file: "src/capabilities/ai/runtime/ai-executor.ts",
     search: "const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));",
-    replace: "const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));\n  const mutatedEscape = runtimeResult as any;",
+    replace: `const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));\n  ${AS_ANY_MUTATION}`,
   },
 ];
 

@@ -1,23 +1,181 @@
-import type { ZodType, z } from "zod";
-import type { CommanderConsoleChildAbilityId, CommanderConsoleInput, CreateCommanderConsoleAbilityGroupInput } from "../contract.js";
-import type { CommanderReadModelSourceSchema } from "../schema.js";
+import type { ZodType } from "zod";
+
+import type {
+  CommanderChildContract,
+  CommanderConsoleChildRuntimeInput,
+  CommanderConsoleInput,
+  CreateCommanderConsoleAbilityGroupInput,
+} from "../contract.js";
 import { commanderFlag } from "../shared/commander-proof.js";
-import type { CommanderExecutionOutcome, CommanderConsoleResult } from "../shared/commander-result.js";
-import { createMissingChildOutcome, describeCommanderUnhandledError } from "./commander-dispatch-failure.js";
+import type { CommanderConsoleResult, CommanderExecutionOutcome } from "../shared/commander-result.js";
 import { buildCommanderRuntimeProof } from "./commander-proof-builder.js";
 import { buildCommanderConsoleResult } from "./commander-result-builder.js";
-export type CommanderConsoleChildContext = Omit<CreateCommanderConsoleAbilityGroupInput, "clock"> & { clock: NonNullable<CreateCommanderConsoleAbilityGroupInput["clock"]> };
-export type CommanderConsoleChildDefinition<TInput, TOutput> = { childCapabilityId: CommanderConsoleChildAbilityId; childKind: "command" | "read"; inputSchema: ZodType<TInput>; outputSchema: ZodType<TOutput>; allowedCaller: "commander-console"; boundaryDecision: "command-transport-only" | "read-port-only"; ownedCommandType: string | null; readModelSource: z.infer<typeof CommanderReadModelSourceSchema> | null; requiresOperatorRef: boolean; hardStopPriority: "normal" | "emergency" | null; maxDurationMs: number; idempotencyPolicy: "idempotent-read" | "dedupe-command" | "hard-stop-non-dedupe"; purpose: string; execute(input: { operatorRef: string; input: TInput }, context: CommanderConsoleChildContext): Promise<CommanderExecutionOutcome<TOutput>> };
-export async function executeCommanderConsoleChild<TInput, TOutput>(input: { child: CommanderConsoleChildDefinition<TInput, TOutput> | null; executionInput: CommanderConsoleInput; context: CommanderConsoleChildContext }): Promise<CommanderConsoleResult<TOutput>> {
-  const startedAt = input.context.clock.nowIso(); const startedMs = input.context.clock.monotonicNowMs();
-  const child = input.child;
+import { createMissingChildOutcome, describeCommanderUnhandledError } from "./commander-dispatch-failure.js";
+
+export type CommanderConsoleChildContext = Omit<CreateCommanderConsoleAbilityGroupInput, "clock"> & {
+  clock: NonNullable<CreateCommanderConsoleAbilityGroupInput["clock"]>;
+};
+
+export type CommanderConsoleChildDefinition<TInput, TOutput> = CommanderChildContract & {
+  inputSchema: ZodType<TInput>;
+  outputSchema: ZodType<TOutput>;
+  execute(
+    input: CommanderConsoleChildRuntimeInput<TInput>,
+    context: CommanderConsoleChildContext,
+  ): Promise<CommanderExecutionOutcome<TOutput>>;
+};
+
+function createInputSchemaFailureOutcome<TOutput>(
+  child: CommanderConsoleChildDefinition<unknown, TOutput>,
+  message: string,
+): CommanderExecutionOutcome<TOutput> {
+  return {
+    status: "failed",
+    output: null,
+    failureReason: message,
+    reviewRequiredReason: null,
+    inputRef: `${child.childCapabilityId}:input-schema-failed`,
+    outputRef: null,
+    commandId: null,
+    readRequestId: null,
+    runId: null,
+    missionId: null,
+    traceId: null,
+    commandEnvelopeRef: null,
+    resultEnvelopeRef: null,
+    readModelSource: child.readModelSource,
+    targetRecordRef: null,
+    evidenceRefs: [],
+    dataQualityFlags: [commanderFlag("input_schema_failed", "fatal", message)],
+    boundaryDecision: child.boundaryDecision,
+    commandDecision: child.childKind === "command" ? "blocked-by-command-gate" : null,
+    readDecision: child.childKind === "read" ? "blocked-by-read-gate" : null,
+    transportDecision: child.childKind === "command" ? "not-dispatched" : null,
+    hardStopDecision: child.hardStopPriority === "emergency" ? "hard-stop-required" : null,
+    policyDecision: "blocked",
+  };
+}
+
+function createOutputSchemaFailureOutcome<TOutput>(
+  child: CommanderConsoleChildDefinition<unknown, TOutput>,
+  outcome: CommanderExecutionOutcome<TOutput>,
+  message: string,
+): CommanderExecutionOutcome<TOutput> {
+  return {
+    ...outcome,
+    status: "failed",
+    output: null,
+    failureReason: message,
+    reviewRequiredReason: null,
+    dataQualityFlags: [...outcome.dataQualityFlags, commanderFlag("output_schema_failed", "fatal", message)],
+    policyDecision: "blocked",
+  };
+}
+
+export async function executeCommanderConsoleChild<TInput, TOutput>(input: {
+  child: CommanderConsoleChildDefinition<TInput, TOutput> | null;
+  executionInput: CommanderConsoleInput;
+  context: CommanderConsoleChildContext;
+}): Promise<CommanderConsoleResult<TOutput>> {
+  const startedAt = input.context.clock.nowIso();
+  const startedMs = input.context.clock.monotonicNowMs();
+
   let outcome: CommanderExecutionOutcome<TOutput>;
-  if (!child) outcome = createMissingChildOutcome(input.executionInput.childCapabilityId, input.executionInput.childCapabilityId) as CommanderExecutionOutcome<TOutput>;
-  else {
-    try { const parsedInput = child.inputSchema.parse(input.executionInput.input); outcome = await child.execute({ operatorRef: input.executionInput.operatorRef, input: parsedInput }, input.context); if (outcome.output !== null) outcome = { ...outcome, output: child.outputSchema.parse(outcome.output), outputRef: outcome.outputRef ?? child.childCapabilityId + ":output" }; }
-    catch (error) { const reason = describeCommanderUnhandledError(error); outcome = { status: "failed", output: null, failureReason: reason, reviewRequiredReason: null, inputRef: input.executionInput.childCapabilityId, outputRef: null, commandId: null, readRequestId: child.childKind === "read" ? input.executionInput.childCapabilityId : null, commandEnvelopeRef: null, resultEnvelopeRef: null, targetRecordRef: null, evidenceRefs: [], dataQualityFlags: [commanderFlag("execution_error", "fatal", reason)], boundaryDecision: child.boundaryDecision, commandDecision: child.childKind === "command" ? "blocked-by-command-gate" : null, readDecision: child.childKind === "read" ? "blocked-by-read-gate" : null, transportDecision: child.childKind === "command" ? "not-dispatched" : null, hardStopDecision: child.childCapabilityId === "emergency-stop" ? "hard-stop-dispatch-failed" : null, policyDecision: "blocked" }; }
+
+  if (!input.child) {
+    outcome = createMissingChildOutcome(input.executionInput.childCapabilityId, input.executionInput.operatorRef) as CommanderExecutionOutcome<TOutput>;
+  } else {
+    const parsedChildInput = input.child.inputSchema.safeParse(input.executionInput.input);
+    if (!parsedChildInput.success) {
+      outcome = createInputSchemaFailureOutcome(
+        input.child,
+        parsedChildInput.error.issues[0]?.message ?? `${input.child.childCapabilityId} input failed schema validation.`,
+      );
+    } else {
+      try {
+        outcome = await input.child.execute(
+          {
+            operatorRef: input.executionInput.operatorRef,
+            input: parsedChildInput.data,
+          },
+          input.context,
+        );
+        if (outcome.output !== null) {
+          const parsedOutput = input.child.outputSchema.safeParse(outcome.output);
+          if (!parsedOutput.success) {
+            outcome = createOutputSchemaFailureOutcome(
+              input.child,
+              outcome,
+              parsedOutput.error.issues[0]?.message ?? `${input.child.childCapabilityId} output failed schema validation.`,
+            );
+          } else {
+            outcome = {
+              ...outcome,
+              output: parsedOutput.data,
+              outputRef: outcome.outputRef ?? `commander_output:${input.child.childCapabilityId}`,
+            };
+          }
+        }
+      } catch (error) {
+        const failureReason = describeCommanderUnhandledError(error);
+        outcome = {
+          status: "failed",
+          output: null,
+          failureReason,
+          reviewRequiredReason: null,
+          inputRef: `${input.child.childCapabilityId}:execution-error`,
+          outputRef: null,
+          commandId: null,
+          readRequestId: null,
+          runId: null,
+          missionId: null,
+          traceId: null,
+          commandEnvelopeRef: null,
+          resultEnvelopeRef: null,
+          readModelSource: input.child.readModelSource,
+          targetRecordRef: null,
+          evidenceRefs: [],
+          dataQualityFlags: [commanderFlag("execution_error", "fatal", failureReason)],
+          boundaryDecision: input.child.boundaryDecision,
+          commandDecision: input.child.childKind === "command" ? "blocked-by-command-gate" : null,
+          readDecision: input.child.childKind === "read" ? "blocked-by-read-gate" : null,
+          transportDecision: input.child.childKind === "command" ? "not-dispatched" : null,
+          hardStopDecision: input.child.hardStopPriority === "emergency" ? "hard-stop-dispatch-failed" : null,
+          policyDecision: "blocked",
+        };
+      }
+    }
   }
-  const endedAt = input.context.clock.nowIso(); const endedMs = input.context.clock.monotonicNowMs(); const proofChild = child ?? { childCapabilityId: input.executionInput.childCapabilityId, childKind: "read", readModelSource: null } as CommanderConsoleChildDefinition<unknown, TOutput>;
-  const runtimeProof = buildCommanderRuntimeProof({ child: proofChild, operatorRef: input.executionInput.operatorRef, startedAt, endedAt, startedMs, endedMs, elapsedMs: input.context.clock.elapsedMs(startedMs, endedMs), outcome });
-  return buildCommanderConsoleResult({ childCapabilityId: input.executionInput.childCapabilityId, status: outcome.status, output: outcome.output, failureReason: outcome.failureReason, reviewRequiredReason: outcome.reviewRequiredReason, runtimeProof });
+
+  const endedAt = input.context.clock.nowIso();
+  const endedMs = input.context.clock.monotonicNowMs();
+  const runtimeProof = buildCommanderRuntimeProof({
+    child: input.child
+      ? {
+        childCapabilityId: input.child.childCapabilityId,
+        childKind: input.child.childKind,
+        boundaryDecision: input.child.boundaryDecision,
+        readModelSource: input.child.readModelSource,
+      }
+      : {
+        childCapabilityId: input.executionInput.childCapabilityId,
+        childKind: "read",
+        boundaryDecision: "blocked",
+        readModelSource: null,
+      },
+    operatorRef: input.executionInput.operatorRef,
+    startedAt,
+    endedAt,
+    durationMs: input.context.clock.elapsedMs(startedMs, endedMs),
+    outcome,
+  });
+
+  return buildCommanderConsoleResult({
+    childCapabilityId: input.executionInput.childCapabilityId,
+    status: outcome.status,
+    output: outcome.output,
+    failureReason: outcome.failureReason,
+    reviewRequiredReason: outcome.reviewRequiredReason,
+    runtimeProof,
+  });
 }

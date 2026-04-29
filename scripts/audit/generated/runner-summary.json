@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-29T14:22:09.083Z",
+  "generatedAt": "2026-04-29T15:37:28.976Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 17,
@@ -93,7 +93,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 793 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 798 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "cleanup-hygiene",
@@ -539,71 +539,35 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "commander-console-capability is implemented as the governed human command and read-only dashboard owner"
+          "summary": "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner"
         },
         {
-          "name": "commander-console-required-shape",
+          "name": "commander-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console canonical root contains schema, runtime, shared layers, and real child folders."
+          "summary": "Required Commander production shape passed: package, child modules, strict gates, proof, and harness all exist."
         },
         {
-          "name": "commander-console-architecture",
+          "name": "commander-forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console public surface is execute-only, thin, and always emits governed results plus runtime proof."
+          "summary": "Forbidden residue checks passed."
         },
         {
-          "name": "commander-console-cutover",
+          "name": "commander-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Workbench, HTTP handlers, and Local App Shell are fully cut over to Commander Console execute."
+          "summary": "Boundary checks passed: shell stays render-only and startup stays bootstrap-only."
         },
         {
-          "name": "commander-console-anti-escape",
+          "name": "commander-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console keeps one canonical root with no transport/runtime leakage and no dynamic or any escape hatches."
-        },
-        {
-          "name": "local-shell-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Server and workbench keep localhost shell, local runtime, local AI, browser, and data boundaries together."
-        },
-        {
-          "name": "startup-bootstrap-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Startup bootstrap stays bounded to dependency readiness, health-gated service launch, and page opening."
-        },
-        {
-          "name": "startup-entrypoint-unique-source",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Startup keeps one canonical user command, one entry file, and one startup/lib import surface."
-        },
-        {
-          "name": "startup-entrypoint-command-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Startup bootstrap stays out of mission and command ownership."
-        },
-        {
-          "name": "startup-entrypoint-open-sequence",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Startup preserves the dependency, service, health, open, readiness, and terminal-log sequence."
-        },
-        {
-          "name": "startup-entrypoint-anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Startup stays free of verify paths, capability internals, and second-entry escape hatches."
+          "summary": "Anti-escape checks passed."
         }
       ],
       "classification": "PASS",
-      "summary": "Startup stays free of verify paths, capability internals, and second-entry escape hatches.",
+      "summary": "Anti-escape checks passed.",
       "passed": true,
       "violationCount": 0
     },

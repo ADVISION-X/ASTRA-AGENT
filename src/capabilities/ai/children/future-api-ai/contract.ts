@@ -23,6 +23,23 @@ export const FutureApiAiChildContract: AiChildContract = {
   runtimeOwner: "ai-executor",
   implementationStatus: "disabled_by_policy",
   purpose: "Future API slot is non-executable until law unfreezes.",
+  executionPolicy: {
+    allowedTaskTypes: FUTURE_API_AI_SUPPORTED_TASK_TYPES,
+    requiresLocalRuntime: false,
+    executable: false,
+    forbidsLocalAiGateway: true,
+    forbidsLocalFallback: true,
+  },
+  boundaryPolicy: {
+    forbidsPlatformActions: true,
+    forbidsExecutableOutput: true,
+    outputBoundaryGate: "ai-output-boundary-gate",
+  },
+  proofPolicy: {
+    requiresRuntimeProof: true,
+    requiresResultParse: true,
+    requiresProofParse: true,
+  },
 };
 export type FutureApiAiInput = z.output<typeof FutureApiAiChildInputSchema>;
 export type FutureApiAiResult = z.output<typeof FutureApiAiChildResultSchema>;

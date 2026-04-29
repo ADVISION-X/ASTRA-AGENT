@@ -2,20 +2,59 @@ import type { AiChildCapabilityId, AiDispatchFailureEnvelope, AiExecutionContext
 import { AiDispatchFailureEnvelopeSchema, AiInputSchema, AiTaskTypeSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
 
-function readStringField(value: unknown, field: string): string | null {
+type FailureEnvelopeTrace = {
+  missionId: string | null;
+  missionIdSource: "parsed_input" | "unavailable";
+  sessionId: string | null;
+  sessionIdSource: "parsed_input" | "unavailable";
+  taskType: AiTaskType | null;
+  taskTypeSource: "parsed_input" | "unavailable";
+};
+
+function readFailureEnvelopeRawRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
-  const candidate = (value as Record<string, unknown>)[field];
+
+  return value as Record<string, unknown>;
+}
+
+function readFailureEnvelopeStringField(value: unknown, field: "missionId" | "sessionId"): string | null {
+  const record = readFailureEnvelopeRawRecord(value);
+  const candidate = record ? record[field] : null;
   return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
 }
 
-function readTaskType(value: unknown): AiTaskType | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  const parsed = AiTaskTypeSchema.safeParse((value as Record<string, unknown>).taskType);
+function readFailureEnvelopeTaskType(value: unknown): AiTaskType | null {
+  const record = readFailureEnvelopeRawRecord(value);
+  const parsed = AiTaskTypeSchema.safeParse(record ? record.taskType : null);
   return parsed.success ? parsed.data : null;
+}
+
+function parseFailureEnvelopeTrace(rawInput: unknown): FailureEnvelopeTrace {
+  const parsed = AiInputSchema.safeParse(rawInput);
+  if (parsed.success) {
+    return {
+      missionId: parsed.data.missionId,
+      missionIdSource: parsed.data.missionId === null ? "unavailable" : "parsed_input",
+      sessionId: parsed.data.sessionId,
+      sessionIdSource: "parsed_input",
+      taskType: parsed.data.taskType,
+      taskTypeSource: "parsed_input",
+    };
+  }
+
+  const missionId = readFailureEnvelopeStringField(rawInput, "missionId");
+  const sessionId = readFailureEnvelopeStringField(rawInput, "sessionId");
+  const taskType = readFailureEnvelopeTaskType(rawInput);
+  return {
+    missionId,
+    missionIdSource: missionId === null ? "unavailable" : "parsed_input",
+    sessionId,
+    sessionIdSource: sessionId === null ? "unavailable" : "parsed_input",
+    taskType,
+    taskTypeSource: taskType === null ? "unavailable" : "parsed_input",
+  };
 }
 
 export function dispatchAiFailure(input: {
@@ -29,12 +68,11 @@ export function dispatchAiFailure(input: {
 }): AiDispatchFailureEnvelope {
   const started = input.context.clock.startRun();
   const ended = input.context.clock.finishRun(started);
-  const parsed = AiInputSchema.safeParse(input.rawInput);
-  const missionId = parsed.success ? parsed.data.missionId : readStringField(input.rawInput, "missionId");
-  const sessionId = parsed.success ? parsed.data.sessionId : readStringField(input.rawInput, "sessionId");
-  const taskType = parsed.success ? parsed.data.taskType : (input.taskType ?? readTaskType(input.rawInput));
+  const trace = parseFailureEnvelopeTrace(input.rawInput);
+  const taskType = trace.taskType ?? input.taskType;
+  const taskTypeSource = trace.taskType === null && input.taskType !== null ? "parsed_input" : trace.taskTypeSource;
   const childCapabilityId = input.childCapabilityId;
-  const rawInputRef = buildStableAiRef("ai-raw-input", [missionId, sessionId, taskType, input.failureReason]);
+  const rawInputRef = buildStableAiRef("ai-raw-input", [trace.missionId, trace.sessionId, taskType, input.failureReason]);
 
   return AiDispatchFailureEnvelopeSchema.parse({
     status: "failed",
@@ -45,16 +83,16 @@ export function dispatchAiFailure(input: {
     rawInputRef,
     parseFailureReason: input.statusMessage,
     fallbackProof: {
-      proofId: buildStableAiRef("ai-dispatch-proof", [missionId, sessionId, taskType, input.failureReason]),
-      runId: buildStableAiRef("ai-dispatch-run", [missionId, sessionId, taskType]),
-      missionId,
-      missionIdSource: missionId === null ? "unavailable" : "parsed_input",
-      sessionId,
-      sessionIdSource: sessionId === null ? "unavailable" : "parsed_input",
+      proofId: buildStableAiRef("ai-dispatch-proof", [trace.missionId, trace.sessionId, taskType, input.failureReason]),
+      runId: buildStableAiRef("ai-dispatch-run", [trace.missionId, trace.sessionId, taskType]),
+      missionId: trace.missionId,
+      missionIdSource: trace.missionIdSource,
+      sessionId: trace.sessionId,
+      sessionIdSource: trace.sessionIdSource,
       childCapabilityId,
       childCapabilityIdSource: childCapabilityId === null ? "unavailable" : "parsed_route",
       taskType,
-      taskTypeSource: taskType === null ? "unavailable" : "parsed_input",
+      taskTypeSource,
       providerKind: input.providerKind,
       providerKindSource: input.providerKind === null ? "unavailable" : "registry_contract",
       startedAt: started.startedAt,

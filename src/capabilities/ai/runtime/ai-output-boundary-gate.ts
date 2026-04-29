@@ -1,12 +1,60 @@
 import { AiForbiddenActionOutputFieldSchema } from "../schema.js";
-import { collectForbiddenActionTerms } from "../shared/ai-policy.js";
+
+const FORBIDDEN_ACTION_FIELDS = [
+  "actionIntent",
+  "platformAction",
+  "executableCoordinate",
+  "clickCommand",
+  "scrollCommand",
+  "openCommand",
+  "forensicsWriteCommand",
+  "mouseAction",
+  "browserAction",
+  "pageAction",
+  "commandToExecute",
+  "coordinateToClick",
+] as const;
+
+const FORBIDDEN_ACTION_ALIASES = [
+  "action_intent",
+  "platform_action",
+  "executable_coordinate",
+  "click_command",
+  "scroll_command",
+  "open_command",
+  "mouse_click",
+  "browser_open",
+] as const;
+
+const FORBIDDEN_OUTPUT_KEYS = new Set<string>([
+  ...FORBIDDEN_ACTION_FIELDS,
+  ...FORBIDDEN_ACTION_ALIASES,
+]);
+
+function collectForbiddenFields(value: unknown, path: string[]): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectForbiddenFields(item, [...path, String(index)]));
+  }
+
+  return Object.entries(value).flatMap(([key, nested]) => {
+    const currentPath = [...path, key];
+    const direct = FORBIDDEN_OUTPUT_KEYS.has(key) ? [`forbidden_output_field:${currentPath.join(".")}`] : [];
+    return [...direct, ...collectForbiddenFields(nested, currentPath)];
+  });
+}
 
 export function evaluateAiOutputBoundary(output: unknown): { decision: "allow" | "review_required" | "blocked"; reason: string | null; flags: string[] } {
   const schemaCheck = AiForbiddenActionOutputFieldSchema.safeParse(output);
-  const flags = collectForbiddenActionTerms(output);
+  const flags = collectForbiddenFields(output, []);
+
   if (!schemaCheck.success) {
     flags.push("schema_level_action_output");
   }
+
   if (flags.length === 0) {
     return { decision: "allow", reason: null, flags: [] };
   }
@@ -14,6 +62,6 @@ export function evaluateAiOutputBoundary(output: unknown): { decision: "allow" |
   return {
     decision: "blocked",
     reason: "output_boundary_blocked",
-    flags,
+    flags: [...new Set(flags)],
   };
 }

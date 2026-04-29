@@ -1,5 +1,3 @@
-import type { CommanderConsoleChildAbilityId } from "./contract.js";
-import type { CommanderConsoleChildDefinition } from "./runtime/commander-console-executor.js";
 import { APPROVE_CANDIDATE_CHILD } from "./children/approve-candidate/implementation.js";
 import { EMERGENCY_STOP_CHILD } from "./children/emergency-stop/implementation.js";
 import { INSPECT_RECORD_DETAIL_CHILD } from "./children/inspect-record-detail/implementation.js";
@@ -19,8 +17,29 @@ import { SHOW_OPERATIONAL_MAP_PROGRESS_CHILD } from "./children/show-operational
 import { SHOW_REVIEW_QUEUE_CHILD } from "./children/show-review-queue/implementation.js";
 import { SHOW_RUNTIME_PROOF_TIMELINE_CHILD } from "./children/show-runtime-proof-timeline/implementation.js";
 import { STOP_MISSION_CHILD } from "./children/stop-mission/implementation.js";
+import type { CommanderConsoleChildAbilityId, CommanderDispatchChildId } from "./contract.js";
+import type { CommanderConsoleChildDefinition } from "./runtime/commander-console-executor.js";
 
-const COMMANDER_CONSOLE_CHILDREN = [
+export type CommanderConsoleChildRegistryEntry<TInput, TOutput> = {
+  childCapabilityId: CommanderConsoleChildAbilityId;
+  childKind: "command" | "read";
+  inputSchema: CommanderConsoleChildDefinition<TInput, TOutput>["inputSchema"];
+  outputSchema: CommanderConsoleChildDefinition<TInput, TOutput>["outputSchema"];
+  implementation: CommanderConsoleChildDefinition<TInput, TOutput>;
+  allowedCaller: "commander-console";
+  boundaryDecision: "command-transport-only" | "read-port-only";
+  ownedCommandType: CommanderConsoleChildDefinition<TInput, TOutput>["ownedCommandType"];
+  readModelSource: CommanderConsoleChildDefinition<TInput, TOutput>["readModelSource"];
+  requiresOperatorRef: true;
+  hardStopPriority: CommanderConsoleChildDefinition<TInput, TOutput>["hardStopPriority"];
+  maxDurationMs: number;
+  idempotencyPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["idempotencyPolicy"];
+  boundaryPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["boundaryPolicy"];
+  evidencePolicy: CommanderConsoleChildDefinition<TInput, TOutput>["evidencePolicy"];
+  proofPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["proofPolicy"];
+};
+
+const COMMANDER_CONSOLE_CHILD_REGISTRY = [
   ISSUE_HUMAN_COMMAND_CHILD,
   SHOW_MISSION_DASHBOARD_CHILD,
   SHOW_CAPABILITY_ROSTER_CHILD,
@@ -40,21 +59,33 @@ const COMMANDER_CONSOLE_CHILDREN = [
   REJECT_CANDIDATE_CHILD,
   MARK_REVIEW_REQUIRED_CHILD,
   INSPECT_RECORD_DETAIL_CHILD,
-];
+].map((implementation) => ({
+  childCapabilityId: implementation.childCapabilityId,
+  childKind: implementation.childKind,
+  inputSchema: implementation.inputSchema,
+  outputSchema: implementation.outputSchema,
+  implementation,
+  allowedCaller: implementation.allowedCaller,
+  boundaryDecision: implementation.boundaryDecision,
+  ownedCommandType: implementation.ownedCommandType,
+  readModelSource: implementation.readModelSource,
+  requiresOperatorRef: implementation.requiresOperatorRef,
+  hardStopPriority: implementation.hardStopPriority,
+  maxDurationMs: implementation.maxDurationMs,
+  idempotencyPolicy: implementation.idempotencyPolicy,
+  boundaryPolicy: implementation.boundaryPolicy,
+  evidencePolicy: implementation.evidencePolicy,
+  proofPolicy: implementation.proofPolicy,
+}));
 
 const COMMANDER_CONSOLE_CHILD_MAP = new Map(
-  COMMANDER_CONSOLE_CHILDREN.map((child) => [child.childCapabilityId, child]),
+  COMMANDER_CONSOLE_CHILD_REGISTRY.map((entry) => [entry.childCapabilityId, entry.implementation]),
 );
 
-export function listCommanderConsoleChildren(): CommanderConsoleChildDefinition<unknown, unknown>[] {
-  return [...COMMANDER_CONSOLE_CHILDREN];
+export function listCommanderConsoleChildMetadata() {
+  return [...COMMANDER_CONSOLE_CHILD_REGISTRY];
 }
 
-export function getCommanderConsoleChild(childCapabilityId: CommanderConsoleChildAbilityId): CommanderConsoleChildDefinition<unknown, unknown> {
-  const child = COMMANDER_CONSOLE_CHILD_MAP.get(childCapabilityId);
-  if (!child) {
-    throw new Error(`Commander Console child ${childCapabilityId} is not registered.`);
-  }
-
-  return child;
+export function getCommanderConsoleChild(childCapabilityId: CommanderDispatchChildId) {
+  return COMMANDER_CONSOLE_CHILD_MAP.get(childCapabilityId) ?? null;
 }

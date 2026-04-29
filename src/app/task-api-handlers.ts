@@ -38,6 +38,7 @@ export async function handleTaskRequest(
         selectedMapId,
         humanGoal,
         initialPayload: {
+          kind: "start-mission",
           requestedBy: "commander-console",
           ...(requestedPlatformId ? { requestedPlatformId } : {}),
           ...(selectedMapId ? { selectedMapId } : {}),

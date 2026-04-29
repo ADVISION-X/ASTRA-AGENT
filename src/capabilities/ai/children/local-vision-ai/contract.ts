@@ -21,6 +21,23 @@ export const LocalVisionAiChildContract: AiChildContract = {
   runtimeOwner: "ai-executor",
   implementationStatus: "local_runtime",
   purpose: "Run governed local vision cognition without platform action authority.",
+  executionPolicy: {
+    allowedTaskTypes: LOCAL_VISION_AI_SUPPORTED_TASK_TYPES,
+    requiresLocalRuntime: true,
+    executable: true,
+    forbidsLocalAiGateway: false,
+    forbidsLocalFallback: true,
+  },
+  boundaryPolicy: {
+    forbidsPlatformActions: true,
+    forbidsExecutableOutput: true,
+    outputBoundaryGate: "ai-output-boundary-gate",
+  },
+  proofPolicy: {
+    requiresRuntimeProof: true,
+    requiresResultParse: true,
+    requiresProofParse: true,
+  },
 };
 export type LocalVisionAiInput = z.output<typeof LocalVisionAiChildInputSchema>;
 export type LocalVisionAiResult = z.output<typeof LocalVisionAiChildResultSchema>;

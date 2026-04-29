@@ -1,38 +1,57 @@
+import type { z } from "zod";
+
 import { createId } from "../../../lib/local-runtime/ids.js";
 
+import type { CommanderDispatchChildId } from "../contract.js";
 import { RuntimeProofSchema } from "../schema.js";
-import type { CommanderConsoleChildAbilityId } from "../contract.js";
-import type { CommanderBoundaryDecision, CommanderRuntimeProof } from "../shared/commander-proof.js";
-import type { CommanderConsoleStatus } from "../shared/commander-result.js";
+import type { CommanderRuntimeProof } from "../shared/commander-proof.js";
+import type { CommanderExecutionOutcome } from "../shared/commander-result.js";
+
+export type CommanderProofChildDescriptor = {
+  childCapabilityId: CommanderDispatchChildId;
+  childKind: "command" | "read";
+  boundaryDecision: "command-transport-only" | "read-port-only" | "blocked";
+  readModelSource: z.infer<typeof import("../schema.js").CommanderReadModelSourceSchema> | null;
+};
 
 export function buildCommanderRuntimeProof(input: {
-  childCapabilityId: CommanderConsoleChildAbilityId;
+  child: CommanderProofChildDescriptor;
   operatorRef: string;
-  status: CommanderConsoleStatus;
   startedAt: string;
   endedAt: string;
-  inputRef: string;
-  outputRef: string | null;
-  evidenceRefs: string[];
-  dataQualityFlags: string[];
-  boundaryDecision: CommanderBoundaryDecision;
-  commandId?: string | null;
-  readRequestId?: string | null;
+  durationMs: number;
+  outcome: CommanderExecutionOutcome<unknown>;
 }): CommanderRuntimeProof {
   return RuntimeProofSchema.parse({
+    proofId: createId("commander_proof"),
+    runId: input.outcome.runId,
+    missionId: input.outcome.missionId,
+    traceId: input.outcome.traceId,
     abilityGroupId: "commander-console",
-    childCapabilityId: input.childCapabilityId,
-    commandId: input.commandId ?? null,
-    readRequestId: input.readRequestId ?? (input.commandId ? null : createId("commander_read")),
+    childCapabilityId: input.child.childCapabilityId,
+    childKind: input.child.childKind,
+    commandId: input.outcome.commandId,
+    readRequestId: input.outcome.readRequestId,
     operatorRef: input.operatorRef,
+    inputRef: input.outcome.inputRef,
+    outputRef: input.outcome.outputRef,
+    commandEnvelopeRef: input.outcome.commandEnvelopeRef,
+    resultEnvelopeRef: input.outcome.resultEnvelopeRef,
+    readModelSource: input.outcome.readModelSource ?? input.child.readModelSource,
+    targetRecordRef: input.outcome.targetRecordRef,
+    evidenceRefs: input.outcome.evidenceRefs,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
-    durationMs: Math.max(0, Date.parse(input.endedAt) - Date.parse(input.startedAt)),
-    status: input.status,
-    inputRef: input.inputRef,
-    outputRef: input.outputRef,
-    evidenceRefs: input.evidenceRefs,
-    dataQualityFlags: input.dataQualityFlags,
-    boundaryDecision: input.boundaryDecision,
+    durationMs: input.durationMs,
+    status: input.outcome.status,
+    failureReason: input.outcome.failureReason,
+    reviewRequiredReason: input.outcome.reviewRequiredReason,
+    boundaryDecision: input.outcome.boundaryDecision,
+    commandDecision: input.outcome.commandDecision,
+    readDecision: input.outcome.readDecision,
+    transportDecision: input.outcome.transportDecision,
+    hardStopDecision: input.outcome.hardStopDecision,
+    policyDecision: input.outcome.policyDecision,
+    dataQualityFlags: input.outcome.dataQualityFlags,
   });
 }

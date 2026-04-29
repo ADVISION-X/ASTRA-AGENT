@@ -144,6 +144,23 @@ export type AiChildContract = {
   runtimeOwner: "ai-executor";
   implementationStatus: string;
   purpose: string;
+  executionPolicy: {
+    allowedTaskTypes: readonly AiTaskType[];
+    requiresLocalRuntime: boolean;
+    executable: boolean;
+    forbidsLocalAiGateway: boolean;
+    forbidsLocalFallback: boolean;
+  };
+  boundaryPolicy: {
+    forbidsPlatformActions: true;
+    forbidsExecutableOutput: true;
+    outputBoundaryGate: "ai-output-boundary-gate";
+  };
+  proofPolicy: {
+    requiresRuntimeProof: true;
+    requiresResultParse: true;
+    requiresProofParse: true;
+  };
 };
 
 export interface AiChildImplementation {

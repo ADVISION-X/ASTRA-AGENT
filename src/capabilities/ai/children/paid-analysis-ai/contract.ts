@@ -22,6 +22,23 @@ export const PaidAnalysisAiChildContract: AiChildContract = {
   runtimeOwner: "ai-executor",
   implementationStatus: "disabled_by_policy",
   purpose: "Reserved paid analysis provider; governed-disabled and forbidden to fallback to local.",
+  executionPolicy: {
+    allowedTaskTypes: PAID_ANALYSIS_AI_SUPPORTED_TASK_TYPES,
+    requiresLocalRuntime: false,
+    executable: false,
+    forbidsLocalAiGateway: true,
+    forbidsLocalFallback: true,
+  },
+  boundaryPolicy: {
+    forbidsPlatformActions: true,
+    forbidsExecutableOutput: true,
+    outputBoundaryGate: "ai-output-boundary-gate",
+  },
+  proofPolicy: {
+    requiresRuntimeProof: true,
+    requiresResultParse: true,
+    requiresProofParse: true,
+  },
 };
 export type PaidAnalysisAiInput = z.output<typeof PaidAnalysisAiChildInputSchema>;
 export type PaidAnalysisAiResult = z.output<typeof PaidAnalysisAiChildResultSchema>;

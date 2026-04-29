@@ -16,6 +16,9 @@ import { createPendingDomainInspector } from "../_shared/create-pending-domain-i
 const AI_ROOT = "src/capabilities/ai";
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
 const NEGATIVE_PROOF_HARNESS = "scripts/audit/domains/ai-capability/negative-proof-harness.ts";
+const TS_IGNORE_MARK = `@ts-${"ignore"}`;
+const TS_EXPECT_ERROR_MARK = `@ts-${"expect-error"}`;
+const ESLINT_DISABLE_MARK = `eslint-${"disable"}`;
 
 const REQUIRED_FILES = [
   `${AI_ROOT}/ability-group.ts`,
@@ -181,15 +184,32 @@ function hasForbiddenEscape(sourceFile: SourceFile): boolean {
     }
   }
 
-  return sourceFile.getFullText().includes("@ts-ignore")
-    || sourceFile.getFullText().includes("@ts-expect-error")
-    || sourceFile.getFullText().includes("eslint-disable");
+  return sourceFile.getDescendants().some((node) => {
+    const commentText = [
+      ...node.getLeadingCommentRanges(),
+      ...node.getTrailingCommentRanges(),
+    ].map((comment) => comment.getText()).join("\n");
+    return commentText.includes(TS_IGNORE_MARK)
+      || commentText.includes(TS_EXPECT_ERROR_MARK)
+      || commentText.includes(ESLINT_DISABLE_MARK);
+  });
 }
 
 function hasDynamicImportOrRequire(sourceFile: SourceFile): boolean {
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
     return expression.getKind() === SyntaxKind.ImportKeyword || expression.getText() === "require";
+  });
+}
+
+function hasForbiddenRecordAssertion(sourceFile: SourceFile, repoPath: string): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => {
+    const typeText = expression.getTypeNode()?.getText() ?? "";
+    if (typeText !== "Record<string, unknown>") {
+      return false;
+    }
+    return repoPath !== `${AI_ROOT}/runtime/ai-dispatch-failure.ts`
+      || expression.getFirstAncestorByKind(SyntaxKind.FunctionDeclaration)?.getName() !== "readFailureEnvelopeRawRecord";
   });
 }
 
@@ -392,6 +412,12 @@ export default createPendingDomainInspector({
     if (!hasCallExpression(outputBoundarySource, "safeParse") || !hasImportModuleSpecifier(outputBoundarySource, "schema")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/runtime/ai-output-boundary-gate.ts`, line: 1, severity: "fatal", message: "AI output boundary must include a schema-level forbidden action output gate." }));
     }
+    if (!hasCallExpression(outputBoundarySource, "collectForbiddenFields") || !outputBoundarySource.getVariableDeclaration("FORBIDDEN_OUTPUT_KEYS")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/runtime/ai-output-boundary-gate.ts`, line: 1, severity: "fatal", message: "AI output boundary must recursively reject forbidden action output fields and aliases." }));
+    }
+    if (hasCallExpression(schemaSource, "passthrough")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema.ts`, line: 1, severity: "fatal", message: "AI forbidden action output schema must not use passthrough." }));
+    }
 
     if (!hasCallExpression(abilityGroupSource, "parseAiInput") || !hasCallExpression(abilityGroupSource, "createAiCapabilityRegistry") || !hasCallExpression(abilityGroupSource, "routeAiTaskToChild")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "AI ability-group must stay thin and route through parse, registry, router, and child execution only." }));
@@ -412,6 +438,9 @@ export default createPendingDomainInspector({
       }
       if (hasForbiddenEscape(sourceFile)) {
         findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: repoPath, line: 1, severity: "fatal", message: "AI package contains forbidden type-escape or suppression syntax." }));
+      }
+      if (hasForbiddenRecordAssertion(sourceFile, repoPath)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: repoPath, line: 1, severity: "fatal", message: "Record<string, unknown> assertions are only allowed inside the dispatch failure envelope raw parser." }));
       }
       if (hasDynamicImportOrRequire(sourceFile)) {
         findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: repoPath, line: 1, severity: "fatal", message: "AI package must not use dynamic import or require." }));

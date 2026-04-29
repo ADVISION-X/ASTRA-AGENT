@@ -7,7 +7,7 @@ import {
 import type {
   CommanderAuditSummary,
   CommanderConsoleAbilityGroup,
-  CommanderHumanCommandInput,
+  CommanderHumanCommandEnvelope,
   CommanderMissionDashboardView,
 } from "../../capabilities/commander-console/index.js";
 import { createOrchestrationAbilityGroup, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
@@ -582,7 +582,7 @@ export class GrassEyeWorkbench {
     return Object.fromEntries(payload.contentBlocks.map((block) => [block.key, block.value]));
   }
 
-  private buildHumanCommandDispatchInput(command: CommanderHumanCommandInput) {
+  private buildHumanCommandDispatchInput(command: CommanderHumanCommandEnvelope) {
     const commandId = createId("commander_command");
     const inputPayload = this.buildPayloadDocument({
       documentType: "human.command",

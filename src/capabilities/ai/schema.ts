@@ -326,13 +326,54 @@ export const AiRuntimeExecutionOutputSchema = z.object({
 
 export const AiForbiddenActionOutputFieldSchema = z.object({
   actionIntent: z.never().optional(),
+  action_intent: z.never().optional(),
   platformAction: z.never().optional(),
+  platform_action: z.never().optional(),
   executableCoordinate: z.never().optional(),
+  executable_coordinate: z.never().optional(),
   clickCommand: z.never().optional(),
+  click_command: z.never().optional(),
   scrollCommand: z.never().optional(),
+  scroll_command: z.never().optional(),
   openCommand: z.never().optional(),
+  open_command: z.never().optional(),
   forensicsWriteCommand: z.never().optional(),
-}).passthrough();
+  mouseAction: z.never().optional(),
+  mouse_click: z.never().optional(),
+  browserAction: z.never().optional(),
+  browser_open: z.never().optional(),
+  pageAction: z.never().optional(),
+  commandToExecute: z.never().optional(),
+  coordinateToClick: z.never().optional(),
+}).catchall(z.unknown()).superRefine((value, context) => {
+  const forbiddenKeys = [
+    "actionIntent",
+    "action_intent",
+    "platformAction",
+    "platform_action",
+    "executableCoordinate",
+    "executable_coordinate",
+    "clickCommand",
+    "click_command",
+    "scrollCommand",
+    "scroll_command",
+    "openCommand",
+    "open_command",
+    "forensicsWriteCommand",
+    "mouseAction",
+    "mouse_click",
+    "browserAction",
+    "browser_open",
+    "pageAction",
+    "commandToExecute",
+    "coordinateToClick",
+  ];
+  for (const key of forbiddenKeys) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: `forbidden action output field: ${key}`, path: [key] });
+    }
+  }
+});
 
 const AiBaseResultSchema = z.object({
   status: AiExecutionStatusSchema,
