@@ -1,5 +1,18 @@
 # GrassEye 本地AI分工与提示词施工图
 
+## 统一身份与冻结边界
+
+- 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
+- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
+- 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
+
+## 基本身份
+
+- 从属法案：module-ai-capability.instructions.md
+- 角色：AI Ability Group 内部 local-ai-runtime、模型角色与 prompt contract 的施工图
+- 原则：只描述 AI 内部子边界，不生成第二个 AI 主权文件，不把 prompt、model roster、runtime adapter 升格为独立 owner
+
 ## 定位
 
 本图只描述 AI Ability Group 内部的本地运行时分工、模型角色和提示词注册边界。
@@ -60,7 +73,13 @@
 - 不允许 AI root 保留 prompt-contract shortcut
 - 不允许 AI root 保留 legacy LocalAi result translator
 
-## 验收信号
+## 审计与验收
+
+- 当前 owner：ai-capability
+- 施工边界：src/capabilities/ai/** 与 src/lib/local-ai/**
+- 负向证明：若出现 app 直连模型、外部代码直连 prompt-registry、或 local-ai-runtime 被写成独立主权，则本施工图失效并判定漂移
+
+验收信号：
 
 建对表现：
 

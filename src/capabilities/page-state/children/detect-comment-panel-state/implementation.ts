@@ -1,56 +1,44 @@
-import {
-  PAGE_STATE_ABILITY_GROUP_ID,
-  type PageStateChildCapability,
-} from "../../contract.js";
-import { getObservationByKind, readBooleanPayload, readStringPayload } from "../../shared/observation-utils.js";
-import { buildPageStateFailure, buildPageStateResult } from "../../shared/page-state-result.js";
-import { validatePageStateInput } from "../../shared/state-policy.js";
+import { PAGE_STATE_ABILITY_GROUP_ID } from "../../contract.js";
+import { findPageMarker, findRuntimeSignal, findVisualTargets } from "../../shared/page-state-observation.js";
+import type { DetectCommentPanelStateChildCapability } from "./contract.js";
+import { DetectCommentPanelStateChildInputSchema, DetectCommentPanelStateChildOutputSchema } from "./schema.js";
 
-export function createDetectCommentPanelStateCapability(): PageStateChildCapability {
+export function createDetectCommentPanelStateCapability(): DetectCommentPanelStateChildCapability {
   return {
     abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
     childCapabilityId: "detect-comment-panel-state",
     async execute(input) {
-      const startedAt = new Date().toISOString();
-      const failureReason = validatePageStateInput(input);
-      if (failureReason) {
-        const endedAt = new Date().toISOString();
-        return buildPageStateFailure({
-          abilityInput: input,
-          failureReason,
-          stateSummary: "page-state comment-panel detection input is incomplete",
-          startedAt,
-          endedAt,
-        });
-      }
+      const request = DetectCommentPanelStateChildInputSchema.parse(input);
+      const openSignals = findRuntimeSignal(request.observations, "comments_panel_open").filter((observation) => observation.payload.value);
+      const closedSignals = findRuntimeSignal(request.observations, "comments_panel_closed").filter((observation) => observation.payload.value);
+      const commentMarkers = findPageMarker(request.observations, "comment_panel").filter((observation) => observation.payload.present);
+      const commentTargets = findVisualTargets(request.observations, "comment_panel").filter((observation) => observation.payload.matched);
+      const matchedObservationIds = [...openSignals, ...closedSignals, ...commentMarkers, ...commentTargets].map((observation) => observation.observationId);
+      const output = openSignals.length > 0 || commentMarkers.length > 0 || commentTargets.length > 0
+        ? {
+            childCapabilityId: "detect-comment-panel-state" as const,
+            pageStateType: "comments_panel_open" as const,
+            stateSummary: "Comment panel evidence confirms an open panel.",
+            confidence: 0.9,
+            reviewRequiredReason: null,
+            dataQualityFlags: [],
+            matchedObservationIds,
+            supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+            supportingReasons: ["comment panel marker or target detected"],
+          }
+        : {
+            childCapabilityId: "detect-comment-panel-state" as const,
+            pageStateType: "comments_panel_closed" as const,
+            stateSummary: "No governed comment panel evidence indicates an open panel.",
+            confidence: closedSignals.length > 0 ? 0.86 : 0.7,
+            reviewRequiredReason: null,
+            dataQualityFlags: closedSignals.length > 0 ? [] : ["insufficient_signal"],
+            matchedObservationIds,
+            supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+            supportingReasons: ["no open comment panel evidence was found"],
+          };
 
-      const observations = [...getObservationByKind(input, "visual_target"), ...getObservationByKind(input, "page_marker")];
-      const commentsPanelOpen = observations.find((observation) => readBooleanPayload(observation, "commentsPanelOpen") !== null || readStringPayload(observation, "pageState") !== null);
-      const endedAt = new Date().toISOString();
-
-      if (!commentsPanelOpen) {
-        return buildPageStateFailure({
-          abilityInput: input,
-          failureReason: "insufficient_signal",
-          stateSummary: "comments panel state signals are missing",
-          startedAt,
-          endedAt,
-          reviewRequiredReason: input.statePolicy.allowReviewRequired ? "comments panel state could not be classified from current observations" : null,
-        });
-      }
-
-      const explicitOpen = readBooleanPayload(commentsPanelOpen, "commentsPanelOpen");
-      const explicitState = readStringPayload(commentsPanelOpen, "pageState");
-      const isOpen = explicitOpen === true || explicitState === "comments_panel_open";
-
-      return buildPageStateResult({
-        abilityInput: input,
-        pageStateType: isOpen ? "comments_panel_open" : "comments_panel_closed",
-        stateSummary: isOpen ? "comments panel is visible on the current page" : "comments panel is not visible on the current page",
-        confidence: 0.88,
-        startedAt,
-        endedAt,
-      });
+      return DetectCommentPanelStateChildOutputSchema.parse(output);
     },
   };
 }

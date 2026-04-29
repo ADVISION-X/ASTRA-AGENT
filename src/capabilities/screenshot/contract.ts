@@ -1,133 +1,187 @@
-import type { BrowserCaptureResult, BrowserController } from "../../lib/browser/browser-controller.js";
+import type { z } from "zod";
 
-export const SCREENSHOT_ABILITY_GROUP_ID = "screenshot";
-export const DEFAULT_AI_INPUT_MAX_WIDTH = 768;
+import {
+  CaptureBrowserViewportInputSchema,
+  CaptureDesktopScreenInputSchema,
+  CaptureRegionInputSchema,
+  OptimizeLosslessInputSchema,
+  PrepareAiInputInputSchema,
+  ScreenshotAbilityInputSchema,
+  ScreenshotArtifactRefSchema,
+  ScreenshotBoundingBoxSchema,
+  ScreenshotBrowserCaptureSchema,
+  ScreenshotBrowserSessionSnapshotSchema,
+  ScreenshotDesktopCaptureSchema,
+  ScreenshotExecutionOutputSchema,
+  ScreenshotFailureSchema,
+  ScreenshotPageStateProofSchema,
+  ScreenshotPrivacyPolicySchema,
+  ScreenshotResultSchema,
+  ScreenshotRuntimeProofSchema,
+  ScreenshotScaleMappingSchema,
+  ScreenshotSourceProofSchema,
+} from "./schema.js";
+import { SCREENSHOT_ABILITY_GROUP_ID } from "./shared/screenshot-types.js";
+import type { ScreenshotClockPort } from "./ports/screenshot-clock-port.js";
+import type {
+  ScreenshotCapturePort,
+  ScreenshotCapturePortBrowserCapture,
+  ScreenshotCapturePortDesktopCapture,
+} from "./ports/screenshot-capture-port.js";
+import type { ScreenshotArtifactPort } from "./ports/screenshot-artifact-port.js";
+import type { ScreenshotImageProcessingPort } from "./ports/screenshot-image-processing-port.js";
+
+export { SCREENSHOT_ABILITY_GROUP_ID } from "./shared/screenshot-types.js";
 
 export type ScreenshotAbilityGroupId = typeof SCREENSHOT_ABILITY_GROUP_ID;
-export type ScreenshotChildCapabilityId =
-  | "capture-browser-viewport"
-  | "capture-desktop-screen"
-  | "capture-region"
-  | "optimize-lossless"
-  | "prepare-ai-input";
-
-export type ScreenshotAbilityStatus = "success" | "failed" | "review_required";
-export type ScreenshotImageKind = "evidence_original" | "evidence_optimized" | "ai_input";
-export type ScreenshotCoordinateSpace =
-  | "browser_viewport_pixels"
-  | "desktop_screen_pixels"
-  | "source_image_pixels"
-  | "ai_input_pixels";
-export type ScreenshotEvidencePolicy = "evidence_original" | "evidence_optimized" | "ai_input" | "all";
-
-export type ScreenshotBoundingBox = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  sourceScreenshotEvidenceId: string;
-  sourceStorageRef: string;
-  coordinateSpace: Exclude<ScreenshotCoordinateSpace, "ai_input_pixels">;
-};
-
-export type ScreenshotScaleMapping = {
-  sourceScreenshotEvidenceId: string | null;
-  sourceStorageRef: string | null;
-  sourceCoordinateSpace: Exclude<ScreenshotCoordinateSpace, "ai_input_pixels"> | null;
-  cropOffsetX: number;
-  cropOffsetY: number;
-  scaleX: number;
-  scaleY: number;
-};
-
-export type ScreenshotSource =
-  | {
-      kind: "browser_viewport";
-      pageUrl?: string | null;
-      pageTitle?: string | null;
-    }
-  | {
-      kind: "desktop_screen";
-      screenId?: string | null;
-    }
-  | {
-      kind: "stored_image";
-      storageRef: string;
-      sourceScreenshotEvidenceId?: string | null;
-      coordinateSpace?: Exclude<ScreenshotCoordinateSpace, "ai_input_pixels">;
-    };
-
-export type ScreenshotAbilityInput = {
-  childCapabilityId: ScreenshotChildCapabilityId;
-  sessionId: string;
-  roundId: string | null;
-  videoVisitId: string | null;
-  source: ScreenshotSource;
-  region: ScreenshotBoundingBox | null;
-  requestedBy: string;
-  purpose: string;
-  maxAiWidth: number | null;
-  preservePixels: boolean;
-  evidencePolicy: ScreenshotEvidencePolicy;
-  contentLines: string[];
-};
-
-export type ScreenshotAbilityResult = {
-  status: ScreenshotAbilityStatus;
-  abilityGroupId: ScreenshotAbilityGroupId;
-  childCapabilityId: ScreenshotChildCapabilityId;
-  evidenceId: string | null;
-  storageRef: string | null;
-  pageUrl: string | null;
-  pageTitle: string | null;
-  width: number | null;
-  height: number | null;
-  originalWidth: number | null;
-  originalHeight: number | null;
-  imageKind: ScreenshotImageKind | null;
-  coordinateSpace: ScreenshotCoordinateSpace | null;
-  scaleMapping: ScreenshotScaleMapping | null;
-  sourceScreenshotEvidenceId: string | null;
-  screenId: string | null;
-  sourceHash: string | null;
-  outputHash: string | null;
-  failureReason: string | null;
-  dataQualityFlags: string[];
-  createdAt: string;
-  durationMs: number;
-  browserCapture: BrowserCaptureResult | null;
-};
+export type ScreenshotAbilityInput = z.infer<typeof ScreenshotAbilityInputSchema>;
+export type CaptureBrowserViewportInput = z.infer<typeof CaptureBrowserViewportInputSchema>;
+export type CaptureDesktopScreenInput = z.infer<typeof CaptureDesktopScreenInputSchema>;
+export type CaptureRegionInput = z.infer<typeof CaptureRegionInputSchema>;
+export type OptimizeLosslessInput = z.infer<typeof OptimizeLosslessInputSchema>;
+export type PrepareAiInputInput = z.infer<typeof PrepareAiInputInputSchema>;
+export type ScreenshotAbilityResult = z.infer<typeof ScreenshotResultSchema>;
+export type ScreenshotRuntimeProof = z.infer<typeof ScreenshotRuntimeProofSchema>;
+export type ScreenshotExecutionOutput = z.infer<typeof ScreenshotExecutionOutputSchema>;
+export type ScreenshotArtifactRef = z.infer<typeof ScreenshotArtifactRefSchema>;
+export type ScreenshotBoundingBox = z.infer<typeof ScreenshotBoundingBoxSchema>;
+export type ScreenshotScaleMapping = z.infer<typeof ScreenshotScaleMappingSchema>;
+export type ScreenshotSourceProof = z.infer<typeof ScreenshotSourceProofSchema>;
+export type ScreenshotFailure = z.infer<typeof ScreenshotFailureSchema>;
+export type ScreenshotPageStateProof = z.infer<typeof ScreenshotPageStateProofSchema>;
+export type ScreenshotPrivacyPolicy = z.infer<typeof ScreenshotPrivacyPolicySchema>;
+export type ScreenshotBrowserSessionSnapshot = z.infer<typeof ScreenshotBrowserSessionSnapshotSchema>;
+export type ScreenshotBrowserCapture = z.infer<typeof ScreenshotBrowserCaptureSchema>;
+export type ScreenshotDesktopCapture = z.infer<typeof ScreenshotDesktopCaptureSchema>;
+export type ScreenshotChildCapabilityId = ScreenshotAbilityInput["childCapabilityId"];
+export type ScreenshotStatus = ScreenshotAbilityResult["status"];
+export type ScreenshotCoordinateSpace = ScreenshotExecutionOutput["coordinateSpace"];
+export type ScreenshotImageKind = ScreenshotExecutionOutput["imageKind"];
 
 export type ScreenshotAbilityContext = {
-  browserController: BrowserController;
-  outputRootDir: string;
+  capturePort: ScreenshotCapturePort;
+  artifactPort: ScreenshotArtifactPort;
+  imageProcessingPort: ScreenshotImageProcessingPort;
+  clockPort: ScreenshotClockPort;
   defaultAiMaxWidth: number;
 };
 
-export interface ScreenshotChildCapability {
-  readonly abilityGroupId: ScreenshotAbilityGroupId;
-  readonly childCapabilityId: ScreenshotChildCapabilityId;
+export type ScreenshotChildRegistryEntry = {
+  childCapabilityId: ScreenshotChildCapabilityId;
+  inputSchema: typeof ScreenshotAbilityInputSchema;
+  outputSchema: typeof ScreenshotExecutionOutputSchema;
+  requiresBrowserSession: boolean;
+  requiresPageStateProof: boolean;
+  requiresPrivacyApproval: boolean;
+  requiresSourceProof: boolean;
+  requiresArtifactStorage: boolean;
+  maxDurationMs: number;
+  idempotencyPolicy: "strict" | "content-addressed";
+  outputImageKind: ScreenshotImageKind;
+  coordinateSpacePolicy: ScreenshotCoordinateSpace | "derived";
+};
 
-  execute(
-    input: ScreenshotAbilityInput,
-    context: ScreenshotAbilityContext,
-  ): Promise<ScreenshotAbilityResult>;
-}
+export type ScreenshotClockSnapshot = {
+  startedAt: string;
+  startedMonotonicMs: number;
+};
+
+export type ScreenshotExecutionPlan =
+  | {
+      kind: "capture";
+      operation: "browser-viewport";
+      regionLabel: string;
+      contentLines: string[];
+    }
+  | {
+      kind: "capture";
+      operation: "desktop-screen";
+      screenId: string;
+    }
+  | {
+      kind: "image-processing";
+      operation: "capture-region";
+      sourceFilePath: string;
+      sourceProof: ScreenshotSourceProof;
+      region: ScreenshotBoundingBox;
+    }
+  | {
+      kind: "image-processing";
+      operation: "optimize-lossless";
+      sourceFilePath: string;
+      sourceProof: ScreenshotSourceProof;
+    }
+  | {
+      kind: "image-processing";
+      operation: "prepare-ai-input";
+      sourceFilePath: string;
+      sourceProof: ScreenshotSourceProof;
+      region: ScreenshotBoundingBox | null;
+      maxAiWidth: number;
+    };
+
+export type ScreenshotChildCapability<TInput extends ScreenshotAbilityInput = ScreenshotAbilityInput> = {
+  childCapabilityId: ScreenshotChildCapabilityId;
+  execute(input: { request: TInput; context: ScreenshotAbilityContext }): Promise<ScreenshotExecutionPlan>;
+};
 
 export interface ScreenshotAbilityGroup {
   listChildCapabilityIds(): ScreenshotChildCapabilityId[];
   execute(input: ScreenshotAbilityInput): Promise<ScreenshotAbilityResult>;
-  captureBrowserViewport(
-    input: Omit<ScreenshotAbilityInput, "childCapabilityId" | "source"> & {
-      source?: Extract<ScreenshotSource, { kind: "browser_viewport" }>;
-    },
-  ): Promise<ScreenshotAbilityResult>;
-  captureDesktopScreen(
-    input: Omit<ScreenshotAbilityInput, "childCapabilityId" | "source"> & {
-      source?: Extract<ScreenshotSource, { kind: "desktop_screen" }>;
-    },
-  ): Promise<ScreenshotAbilityResult>;
-  captureRegion(input: Omit<ScreenshotAbilityInput, "childCapabilityId">): Promise<ScreenshotAbilityResult>;
-  optimizeLossless(input: Omit<ScreenshotAbilityInput, "childCapabilityId">): Promise<ScreenshotAbilityResult>;
-  prepareAiInput(input: Omit<ScreenshotAbilityInput, "childCapabilityId">): Promise<ScreenshotAbilityResult>;
+  captureBrowserViewport(input: {
+    sessionId: string;
+    roundId?: string | null;
+    videoVisitId?: string | null;
+    missionId?: string | null;
+    runId?: string | null;
+    requestedBy: string;
+    purpose: string;
+    maxAiWidth?: number | null;
+    preservePixels?: boolean;
+    evidencePolicy?: CaptureBrowserViewportInput["evidencePolicy"];
+    region?: null;
+    contentLines?: string[];
+    source?: CaptureBrowserViewportInput["source"];
+    pageStateProof?: ScreenshotPageStateProof | null;
+    sourceAbilityGroupId?: string;
+    sourceChildCapabilityId?: string | null;
+    sourceProof?: ScreenshotSourceProof | null;
+    privacyPolicy?: ScreenshotPrivacyPolicy;
+    capturePolicy?: CaptureBrowserViewportInput["capturePolicy"];
+    idempotencyKey?: string | null;
+  }): Promise<ScreenshotAbilityResult>;
+  captureDesktopScreen(input: {
+    sessionId: string;
+    roundId?: string | null;
+    videoVisitId?: string | null;
+    missionId?: string | null;
+    runId?: string | null;
+    requestedBy: string;
+    purpose: string;
+    maxAiWidth?: number | null;
+    preservePixels?: boolean;
+    evidencePolicy?: CaptureDesktopScreenInput["evidencePolicy"];
+    region?: null;
+    contentLines?: string[];
+    source?: CaptureDesktopScreenInput["source"];
+    sourceAbilityGroupId?: string;
+    sourceChildCapabilityId?: string | null;
+    sourceProof?: ScreenshotSourceProof | null;
+    privacyPolicy?: ScreenshotPrivacyPolicy;
+    capturePolicy?: CaptureDesktopScreenInput["capturePolicy"];
+    idempotencyKey?: string | null;
+  }): Promise<ScreenshotAbilityResult>;
+  captureRegion(input: Omit<CaptureRegionInput, "childCapabilityId" | "abilityGroupId">): Promise<ScreenshotAbilityResult>;
+  optimizeLossless(input: Omit<OptimizeLosslessInput, "childCapabilityId" | "abilityGroupId">): Promise<ScreenshotAbilityResult>;
+  prepareAiInput(input: Omit<PrepareAiInputInput, "childCapabilityId" | "abilityGroupId">): Promise<ScreenshotAbilityResult>;
 }
+
+export type CreateScreenshotAbilityGroupInput = {
+  capturePort: ScreenshotCapturePort;
+  artifactPort: ScreenshotArtifactPort;
+  imageProcessingPort: ScreenshotImageProcessingPort;
+  clockPort: ScreenshotClockPort;
+  defaultAiMaxWidth?: number;
+};
+
+export type ScreenshotRunnerCaptureResult = ScreenshotCapturePortBrowserCapture | ScreenshotCapturePortDesktopCapture;

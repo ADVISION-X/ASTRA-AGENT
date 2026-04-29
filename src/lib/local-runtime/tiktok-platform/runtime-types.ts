@@ -1,9 +1,12 @@
 import type { BrowserActionResult, BrowserCaptureResult, BrowserController, BrowserGeometrySnapshot } from "../../browser/browser-controller.js";
 import type { GeometryGuardAbilityGroup, GeometryGuardAbilityResult } from "../../../capabilities/geometry-guard/contract.js";
+import type { MouseClickAbilityResult } from "../../../capabilities/mouse-click/contract.js";
 import type { PageStateAbilityGroup } from "../../../capabilities/page-state/contract.js";
 import type {
+  PostActionActionProof,
+  PostActionEvidenceRef,
   PostActionExpectedOutcome,
-  PostActionObservationRef,
+  PostActionObservation,
   PostActionVerificationAbilityResult,
 } from "../../../capabilities/post-action-verification/contract.js";
 import type { PlatformOperatorModeInfo, VideoOrientationMode } from "../platform-runtime-contract.js";
@@ -26,13 +29,14 @@ export type ExecuteCoordinateActionInput = {
   operatorModeInfo: PlatformOperatorModeInfo;
   updateOperatorModeInfo: (info: PlatformOperatorModeInfo) => void;
   setPageReadyStatus: (status: "review_required") => void;
-  captureActionEvidence: (input: { regionLabel: string; contentLines?: string[] }) => Promise<{ browserActionId: string; regionType: string }>;
+  captureActionEvidence: (input: { regionLabel: string; contentLines?: string[] }) => Promise<{ browserActionId: string; regionType: string; createdAt: string }>;
   buildVisualTarget: (input: {
     targetType: VisualTarget["targetType"];
     boundingBox: NonNullable<VisualTarget["boundingBox"]>;
     clickPoint?: VisualTarget["clickPoint"] | null;
     confidence: number;
     sourceScreenshotEvidenceId: string;
+    sourceCapturedAt?: string | null;
     detectionMethod: string;
     sourceAiResultRef?: string | null;
     sourceCandidateRef?: string | null;
@@ -45,7 +49,7 @@ export type ExecuteCoordinateActionInput = {
     target: SuccessfulVisualTarget;
     geometrySnapshot: BrowserGeometrySnapshot;
     guardResult: GeometryGuardAbilityResult;
-  }) => Promise<BrowserActionResult>;
+  }) => Promise<{ browserResult: BrowserActionResult; governedClickResult: MouseClickAbilityResult | null }>;
   buildVisualActionResult: (input: {
     result: VisualActionResult["result"];
     afterEvidenceId?: string | null;
@@ -59,10 +63,10 @@ export type ExecuteCoordinateActionInput = {
   box: (geometry: BrowserGeometrySnapshot) => { x: number; y: number; width: number; height: number };
   expectedOutcome: PostActionExpectedOutcome;
   verifyActionOutcome: (input: {
-    actionLogRef: string;
-    beforeEvidenceRef: string | null;
-    afterCapture: { browserActionId: string; regionType: string };
-    observationRefs: PostActionObservationRef[];
+    actionProof: PostActionActionProof;
+    beforeEvidence: PostActionEvidenceRef | null;
+    afterEvidence: PostActionEvidenceRef;
+    observations: PostActionObservation[];
   }) => Promise<PostActionVerificationAbilityResult>;
 };
 

@@ -1,16 +1,87 @@
-import type { ScreenshotChildCapability, ScreenshotChildCapabilityId } from "./contract.js";
-import { createCaptureBrowserViewportCapability } from "./children/capture-browser-viewport/implementation.js";
-import { createCaptureDesktopScreenCapability } from "./children/capture-desktop-screen/implementation.js";
-import { createCaptureRegionCapability } from "./children/capture-region/implementation.js";
-import { createOptimizeLosslessCapability } from "./children/optimize-lossless/implementation.js";
-import { createPrepareAiInputCapability } from "./children/prepare-ai-input/implementation.js";
+import { CaptureBrowserViewportInputSchema, CaptureDesktopScreenInputSchema, CaptureRegionInputSchema, OptimizeLosslessInputSchema, PrepareAiInputInputSchema, ScreenshotExecutionOutputSchema } from "./schema.js";
+import type { ScreenshotChildRegistryEntry, ScreenshotChildCapabilityId } from "./contract.js";
 
-export function createScreenshotCapabilityRegistry(): Map<ScreenshotChildCapabilityId, ScreenshotChildCapability> {
-  return new Map<ScreenshotChildCapabilityId, ScreenshotChildCapability>([
-    ["capture-browser-viewport", createCaptureBrowserViewportCapability()],
-    ["capture-desktop-screen", createCaptureDesktopScreenCapability()],
-    ["capture-region", createCaptureRegionCapability()],
-    ["optimize-lossless", createOptimizeLosslessCapability()],
-    ["prepare-ai-input", createPrepareAiInputCapability()],
-  ]);
+const REGISTRY_ENTRIES = [
+  {
+    childCapabilityId: "capture-browser-viewport",
+    inputSchema: CaptureBrowserViewportInputSchema,
+    outputSchema: ScreenshotExecutionOutputSchema,
+    requiresBrowserSession: true,
+    requiresPageStateProof: true,
+    requiresPrivacyApproval: false,
+    requiresSourceProof: false,
+    requiresArtifactStorage: true,
+    maxDurationMs: 8_000,
+    idempotencyPolicy: "strict",
+    outputImageKind: "evidence_original",
+    coordinateSpacePolicy: "browser_viewport_pixels",
+  },
+  {
+    childCapabilityId: "capture-desktop-screen",
+    inputSchema: CaptureDesktopScreenInputSchema,
+    outputSchema: ScreenshotExecutionOutputSchema,
+    requiresBrowserSession: false,
+    requiresPageStateProof: false,
+    requiresPrivacyApproval: true,
+    requiresSourceProof: false,
+    requiresArtifactStorage: true,
+    maxDurationMs: 8_000,
+    idempotencyPolicy: "strict",
+    outputImageKind: "evidence_original",
+    coordinateSpacePolicy: "desktop_screen_pixels",
+  },
+  {
+    childCapabilityId: "capture-region",
+    inputSchema: CaptureRegionInputSchema,
+    outputSchema: ScreenshotExecutionOutputSchema,
+    requiresBrowserSession: false,
+    requiresPageStateProof: false,
+    requiresPrivacyApproval: false,
+    requiresSourceProof: true,
+    requiresArtifactStorage: true,
+    maxDurationMs: 8_000,
+    idempotencyPolicy: "content-addressed",
+    outputImageKind: "evidence_original",
+    coordinateSpacePolicy: "source_image_pixels",
+  },
+  {
+    childCapabilityId: "optimize-lossless",
+    inputSchema: OptimizeLosslessInputSchema,
+    outputSchema: ScreenshotExecutionOutputSchema,
+    requiresBrowserSession: false,
+    requiresPageStateProof: false,
+    requiresPrivacyApproval: false,
+    requiresSourceProof: true,
+    requiresArtifactStorage: true,
+    maxDurationMs: 8_000,
+    idempotencyPolicy: "content-addressed",
+    outputImageKind: "evidence_optimized",
+    coordinateSpacePolicy: "source_image_pixels",
+  },
+  {
+    childCapabilityId: "prepare-ai-input",
+    inputSchema: PrepareAiInputInputSchema,
+    outputSchema: ScreenshotExecutionOutputSchema,
+    requiresBrowserSession: false,
+    requiresPageStateProof: false,
+    requiresPrivacyApproval: false,
+    requiresSourceProof: true,
+    requiresArtifactStorage: true,
+    maxDurationMs: 8_000,
+    idempotencyPolicy: "content-addressed",
+    outputImageKind: "ai_input",
+    coordinateSpacePolicy: "derived",
+  },
+] as const satisfies readonly ScreenshotChildRegistryEntry[];
+
+const REGISTRY = new Map<ScreenshotChildCapabilityId, ScreenshotChildRegistryEntry>(
+  REGISTRY_ENTRIES.map((entry) => [entry.childCapabilityId, entry]),
+);
+
+export function getScreenshotChildRegistryEntry(childCapabilityId: ScreenshotChildCapabilityId): ScreenshotChildRegistryEntry | null {
+  return REGISTRY.get(childCapabilityId) ?? null;
+}
+
+export function listScreenshotChildren(): ScreenshotChildCapabilityId[] {
+  return REGISTRY_ENTRIES.map((entry) => entry.childCapabilityId);
 }

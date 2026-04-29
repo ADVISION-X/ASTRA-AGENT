@@ -27,6 +27,102 @@ import {
 } from "./identity.js";
 import type { ExecuteCoordinateActionInput, GovernedVisualActionExecution, ReadCurrentVideoInput } from "./runtime-types.js";
 
+function buildPageStateObservationTags(currentUrl: string): string[] {
+  const pathname = new URL(currentUrl).pathname.toLowerCase();
+  const tags: string[] = [];
+  if (pathname === "/" || pathname === "/foryou" || pathname === "/following" || pathname.startsWith("/@")) {
+    tags.push("feed-shell", "feed-ready");
+  }
+  if (pathname.includes("/video/")) {
+    tags.push("video-player");
+  }
+  return tags;
+}
+
+export function buildPageStateAbilityInput(input: {
+  currentUrl: string;
+  currentTitle: string;
+  browserLoginState: BrowserController["getSessionState"] extends () => infer TSession
+    ? TSession extends { loginState: infer TLoginState }
+      ? TLoginState
+      : never
+    : never;
+  childCapabilityId: PageStateAbilityInput["childCapabilityId"];
+  requestedBy: string;
+  sessionId: string;
+  roundId?: string | null;
+  videoVisitId?: string | null;
+  observations?: PageStateAbilityInput["observations"];
+}): PageStateAbilityInput {
+  const snapshotProofRef = `runtime-signal:${input.sessionId}:${input.childCapabilityId}`;
+  const platformCaptureObservation = {
+    observationId: createId("page_state_observation"),
+    kind: "platform_capture" as const,
+    capturedAt: new Date().toISOString(),
+    sourceAbilityGroupId: "runtime-signal" as const,
+    sourceChildCapabilityId: "tiktok-runtime-session",
+    sourceProofRef: snapshotProofRef,
+    payload: {
+      captureKind: "page_snapshot" as const,
+      tags: buildPageStateObservationTags(input.currentUrl),
+      confidence: 0.76,
+    },
+  };
+
+  const derivedMarkers: PageStateAbilityInput["observations"] = [];
+  if (input.browserLoginState === "login_required") {
+    derivedMarkers.push({
+      observationId: createId("page_state_observation"),
+      kind: "page_marker",
+      capturedAt: new Date().toISOString(),
+      sourceAbilityGroupId: "runtime-signal",
+      sourceChildCapabilityId: "tiktok-runtime-session",
+      sourceProofRef: snapshotProofRef,
+      payload: { marker: "login_wall", present: true, detail: "browser login state requires login" },
+    });
+  }
+  if (input.browserLoginState === "review_required") {
+    derivedMarkers.push({
+      observationId: createId("page_state_observation"),
+      kind: "page_marker",
+      capturedAt: new Date().toISOString(),
+      sourceAbilityGroupId: "runtime-signal",
+      sourceChildCapabilityId: "tiktok-runtime-session",
+      sourceProofRef: snapshotProofRef,
+      payload: { marker: "captcha", present: true, detail: "browser login state requires review" },
+    });
+  }
+
+  return {
+    childCapabilityId: input.childCapabilityId,
+    runId: `${input.sessionId}:${input.childCapabilityId}:${input.roundId ?? "round-0"}`,
+    missionId: input.sessionId,
+    sessionId: input.sessionId,
+    roundId: input.roundId ?? "round-0",
+    videoVisitId: input.videoVisitId ?? "page-state:no-video",
+    requestedBy: input.requestedBy,
+    snapshot: {
+      snapshotId: createId("page_state_snapshot"),
+      currentUrl: input.currentUrl,
+      currentTitle: input.currentTitle,
+      browserLoginState: input.browserLoginState,
+      viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
+      scrollOffset: { x: 0, y: 0 },
+      capturedAt: new Date().toISOString(),
+      sourceAbilityGroupId: "runtime-signal",
+      sourceChildCapabilityId: "tiktok-runtime-session",
+      sourceProofRef: snapshotProofRef,
+    },
+    observations: [platformCaptureObservation, ...derivedMarkers, ...(input.observations ?? [])],
+    sourceEvidenceRefs: [snapshotProofRef],
+    freshnessPolicy: { maxSnapshotAgeMs: 30_000, maxObservationAgeMs: 30_000, maxObservationSkewMs: 10_000 },
+    confidencePolicy: { minimumConfidence: 0.72, allowReviewRequired: true },
+    statePolicy: { expectedPlatformHost: "www.tiktok.com", allowLocalWorkbench: false, allowModalOverlay: false, allowUnknownState: false },
+    openHandoff: { openProofRef: snapshotProofRef, browserSessionRef: input.sessionId, platformProfileId: "tiktok-web" },
+    previousPageStateFingerprint: null,
+  };
+}
+
 async function detectPageState(input: {
   currentUrl: string;
   currentTitle: string;
@@ -41,22 +137,9 @@ async function detectPageState(input: {
   sessionId: string;
   roundId?: string | null;
   videoVisitId?: string | null;
-  observationRefs?: PageStateAbilityInput["observationRefs"];
+  observations?: PageStateAbilityInput["observations"];
 }): Promise<PageStateAbilityResult> {
-  return input.pageStateAbilityGroup.execute({
-    childCapabilityId: input.childCapabilityId,
-    currentUrl: input.currentUrl,
-    currentTitle: input.currentTitle,
-    browserLoginState: input.browserLoginState,
-    observationRefs: input.observationRefs ?? [],
-    sourceEvidenceRefs: [],
-    requestedBy: input.requestedBy,
-    sessionId: input.sessionId,
-    roundId: input.roundId ?? null,
-    videoVisitId: input.videoVisitId ?? null,
-    confidencePolicy: { minimumConfidence: 0.72, allowReviewRequired: true },
-    statePolicy: { allowReviewRequired: true, expectedPlatformHost: "www.tiktok.com", allowUnknownState: true },
-  });
+  return input.pageStateAbilityGroup.execute(buildPageStateAbilityInput(input));
 }
 
 export async function hashCapture(sourceFilePath: string | undefined, currentIndex: number): Promise<string> {
@@ -214,6 +297,7 @@ async function buildHeuristicVisualTarget(input: ExecuteCoordinateActionInput, g
     },
     confidence: 0.76,
     sourceScreenshotEvidenceId: beforeCapture.browserActionId,
+    sourceCapturedAt: beforeCapture.createdAt,
     detectionMethod: "heuristic_viewport_box",
     sourceCandidateRef: `${input.targetType}-heuristic-profile`,
     uncertainty: ["heuristic viewport target pending model-backed visual target detection"],
@@ -245,8 +329,6 @@ function toGeometryGuardCoordinateSpace(target: VisualTarget): GeometryGuardCoor
       return "imageEvidence";
     case "ai_input":
       return "aiInput";
-    case "contact_sheet":
-      return "contactSheet";
     default:
       return "regionCrop";
   }
@@ -323,7 +405,7 @@ export async function executeCoordinateAction(input: ExecuteCoordinateActionInpu
       browserResult: createBrowserFailureResult(target.failureReason ?? `${input.targetLabel} visual target normalization failed`),
       visualTarget: target,
       visualActionResult: input.buildVisualActionResult({
-        result: target.status,
+        result: target.status === "blocked" ? "review_required" : target.status,
         failureReason: target.failureReason ?? `${input.targetLabel} visual target normalization failed`,
       }),
       geometryStatus: "review_required",
@@ -335,27 +417,81 @@ export async function executeCoordinateAction(input: ExecuteCoordinateActionInpu
     return buildGuardBlockedExecution(input, geometry, guardResult.statusMessage, guardResult.guardDecision);
   }
 
-  const coordinateResult = await input.executeVisionCoordinateAction({
+  const clickExecution = await input.executeVisionCoordinateAction({
     actionType: input.actionType,
     target,
     geometrySnapshot: geometry,
     guardResult,
-  }).catch((error: unknown) => createBrowserFailureResult(error instanceof Error ? error.message : String(error)));
+  }).catch((error: unknown) => ({
+    browserResult: createBrowserFailureResult(error instanceof Error ? error.message : String(error)),
+    governedClickResult: null,
+  }));
+  const coordinateResult = clickExecution.browserResult;
   const afterCapture = await input.captureActionEvidence({
     regionLabel: `${input.targetType}-post-action`,
     contentLines: [`target: ${input.targetType}`, `coordinate-click-attempted: ${coordinateResult.ok ? "yes" : "no"}`],
   });
-  const verificationResult = coordinateResult.ok
+  const verificationResult = coordinateResult.ok && clickExecution.governedClickResult
     ? await input.verifyActionOutcome({
-      actionLogRef: coordinateResult.browserActionId,
-      beforeEvidenceRef: target.sourceScreenshotEvidenceId,
-      afterCapture,
-      observationRefs: [
+      actionProof: {
+        actionProofRef: clickExecution.governedClickResult.runtimeProof.proofId,
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: clickExecution.governedClickResult.childCapabilityId,
+        actionType: input.actionType,
+        actionStatus: clickExecution.governedClickResult.status,
+        primitiveExecutionRef: clickExecution.governedClickResult.primitiveExecutionRef,
+        navigationAttemptRef: null,
+        scrollExecutionRef: null,
+        sessionId: clickExecution.governedClickResult.sessionId,
+        roundId: clickExecution.governedClickResult.roundId,
+        videoVisitId: clickExecution.governedClickResult.videoVisitId,
+        startedAt: clickExecution.governedClickResult.startedAt,
+        endedAt: clickExecution.governedClickResult.endedAt,
+        selfReportedOnly: false,
+      },
+      beforeEvidence: {
+        evidenceRef: target.sourceScreenshotEvidenceId,
+        evidenceKind: "visual_target",
+        source: {
+          sourceAbilityGroupId: "visual-target",
+          sourceChildCapabilityId: target.childCapabilityId,
+          sourceProofRef: target.debugLogRef,
+        },
+        capturedAt: target.createdAt,
+        sessionId: clickExecution.governedClickResult.sessionId,
+        roundId: clickExecution.governedClickResult.roundId,
+        videoVisitId: clickExecution.governedClickResult.videoVisitId,
+      },
+      afterEvidence: {
+        evidenceRef: afterCapture.browserActionId,
+        evidenceKind: "screenshot",
+        source: {
+          sourceAbilityGroupId: "screenshot",
+          sourceChildCapabilityId: "capture-browser-viewport",
+          sourceProofRef: afterCapture.browserActionId,
+        },
+        capturedAt: afterCapture.createdAt,
+        sessionId: clickExecution.governedClickResult.sessionId,
+        roundId: clickExecution.governedClickResult.roundId,
+        videoVisitId: clickExecution.governedClickResult.videoVisitId,
+      },
+      observations: [
         {
           kind: "action_completion",
           ref: coordinateResult.browserActionId,
+          source: {
+            sourceAbilityGroupId: "post-action-verification",
+            sourceChildCapabilityId: input.expectedOutcome.outcomeType,
+            sourceProofRef: clickExecution.governedClickResult.runtimeProof.proofId,
+          },
+          capturedAt: coordinateResult.createdAt,
+          sessionId: clickExecution.governedClickResult.sessionId,
+          roundId: clickExecution.governedClickResult.roundId,
+          videoVisitId: clickExecution.governedClickResult.videoVisitId,
           payload: {
+            kind: "action_completion",
             ok: coordinateResult.ok,
+            fallbackUsed: coordinateResult.fallbackUsed,
             targetType: input.targetType,
           },
         },

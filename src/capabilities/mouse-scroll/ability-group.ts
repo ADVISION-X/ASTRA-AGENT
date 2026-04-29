@@ -2,57 +2,71 @@ import type {
   MouseScrollAbilityGroup,
   MouseScrollAbilityInput,
   MouseScrollChildCapabilityId,
-  NormalizedMouseScrollAbilityInput,
+  ParsedMouseScrollAbilityInput,
 } from "./contract.js";
-import { MOUSE_SCROLL_ABILITY_GROUP_ID } from "./contract.js";
-import type { MouseScrollPrimitivePort } from "./primitive-port.js";
-import { createMouseScrollCapabilityRegistry } from "./registry.js";
-import { DEFAULT_MOUSE_SCROLL_SAFETY_POLICY, type MouseScrollSafetyPolicy } from "./shared/scroll-policy.js";
+import type { MouseScrollClockPort } from "./ports/mouse-scroll-clock-port.js";
+import type { MouseScrollPrimitivePort } from "./ports/mouse-scroll-primitive-port.js";
+import { MouseScrollAbilityResultSchema } from "./schema.js";
+import { createMouseScrollCapabilityRegistry, listMouseScrollChildren } from "./registry.js";
+import { createSystemMouseScrollClock } from "./runtime/mouse-scroll-clock.js";
+import { dispatchMouseScrollFailure } from "./runtime/mouse-scroll-dispatch-failure.js";
+import { createMouseScrollIdempotencyRegistry, type MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idempotency.js";
+import { parseMouseScrollAbilityInput } from "./runtime/mouse-scroll-input-gate.js";
 
 type CreateMouseScrollAbilityGroupInput = {
   primitivePort: MouseScrollPrimitivePort;
-  defaultSafetyPolicy?: Partial<MouseScrollSafetyPolicy>;
+  clock?: MouseScrollClockPort;
+  idempotency?: MouseScrollIdempotencyRegistry;
 };
-
-function normalizeMouseScrollInput(
-  input: MouseScrollAbilityInput,
-  defaultSafetyPolicy: MouseScrollSafetyPolicy,
-): NormalizedMouseScrollAbilityInput {
-  return {
-    ...input,
-    abilityGroupId: MOUSE_SCROLL_ABILITY_GROUP_ID,
-    safetyPolicy: {
-      ...defaultSafetyPolicy,
-      ...input.safetyPolicy,
-      requireGeometryGuard: true,
-    },
-  };
-}
 
 export function createMouseScrollAbilityGroup(input: CreateMouseScrollAbilityGroupInput): MouseScrollAbilityGroup {
   const registry = createMouseScrollCapabilityRegistry();
-  const context = { primitivePort: input.primitivePort };
-  const defaultSafetyPolicy: MouseScrollSafetyPolicy = {
-    ...DEFAULT_MOUSE_SCROLL_SAFETY_POLICY,
-    ...input.defaultSafetyPolicy,
-    requireGeometryGuard: true,
+  const context = {
+    primitivePort: input.primitivePort,
+    clock: input.clock ?? createSystemMouseScrollClock(),
+    idempotency: input.idempotency ?? createMouseScrollIdempotencyRegistry(),
   };
 
-  const executeById = async (childCapabilityId: MouseScrollChildCapabilityId, callInput: MouseScrollAbilityInput) => {
+  const executeById = async (childCapabilityId: MouseScrollChildCapabilityId, callInput: ParsedMouseScrollAbilityInput) => {
     const capability = registry.get(childCapabilityId);
     if (!capability) {
-      throw new Error(`Mouse scroll child capability is not registered for ${childCapabilityId}`);
+      return dispatchMouseScrollFailure({
+        rawInput: callInput,
+        context,
+        childCapabilityId,
+        failureReason: "unknown_child_capability",
+        statusMessage: `Mouse Scroll child capability is not registered for ${childCapabilityId}.`,
+      });
     }
 
-    return capability.execute(normalizeMouseScrollInput(callInput, defaultSafetyPolicy), context);
+    try {
+      return MouseScrollAbilityResultSchema.parse(await capability.execute(callInput, context));
+    } catch (error) {
+      return dispatchMouseScrollFailure({
+        rawInput: callInput,
+        context,
+        childCapabilityId,
+        failureReason: "child_execution_failed",
+        statusMessage: error instanceof Error ? error.message : "Mouse Scroll child execution failed.",
+      });
+    }
   };
 
   return {
     listChildCapabilityIds() {
-      return [...registry.keys()];
+      return listMouseScrollChildren();
     },
-    execute(inputValue) {
-      return executeById(inputValue.childCapabilityId, inputValue);
+    async execute(inputValue) {
+      const parsed = parseMouseScrollAbilityInput(inputValue);
+      if (!parsed.success) {
+        return dispatchMouseScrollFailure({
+          rawInput: inputValue,
+          context,
+          failureReason: "input_schema_invalid",
+          statusMessage: "Mouse Scroll rejected invalid input schema.",
+        });
+      }
+      return executeById(parsed.data.childCapabilityId, parsed.data);
     },
   };
 }

@@ -1,58 +1,30 @@
-import {
-  AI_ABILITY_GROUP_ID,
-  type AiCapabilityContext,
-  type AiChildCapability,
-  type AiExecutionOptions,
-} from "../../contract.js";
-import { buildAiDispatchFailureResult, buildAiPolicyFailureResult } from "../../runtime/ai-runtime-failure-result.js";
-import { collectAiRuntimePolicyViolations } from "../../runtime/ai-runtime-policy-gate.js";
+import type { AiChildCapability } from "../../contract.js";
+import { executeAiChild } from "../../runtime/ai-executor.js";
+import { PaidAnalysisAiChildContract as contract } from "./contract.js";
+import { PaidAnalysisAiChildInputSchema, PaidAnalysisAiChildReadinessSchema, PaidAnalysisAiChildResultSchema } from "./schema.js";
 
 export function createPaidAnalysisAiCapability(): AiChildCapability {
   return {
-    abilityGroupId: AI_ABILITY_GROUP_ID,
-    childCapabilityId: "paid-analysis-ai",
-    providerKind: "paid",
-    purpose: "Reserved paid analysis provider slot that remains disabled by policy.",
-    supportedTaskTypes: ["evidence_packet_analysis"],
-    canHandle(taskType) {
-      return taskType === "evidence_packet_analysis";
-    },
-    async checkReadiness(_context: AiCapabilityContext) {
-      return {
-        abilityGroupId: AI_ABILITY_GROUP_ID,
-        childCapabilityId: "paid-analysis-ai",
-        providerKind: "paid",
-        status: "disabled_by_policy",
-        supportedTaskTypes: ["evidence_packet_analysis"],
-        detail: "Paid analysis AI is declared but disabled_by_policy until explicit provider allowlist, data policy, cost cap, and operator approval exist.",
-        enabledByPolicy: false,
-      };
-    },
-    async execute(request, context: AiCapabilityContext, _options?: AiExecutionOptions) {
-      if (!this.canHandle(request.taskType)) {
-        return buildAiDispatchFailureResult({
-          request,
-          promptContract: context.runtime.resolvePromptContract(request.taskType),
+    contract,
+    implementation: {
+      async execute(input, context) {
+        return PaidAnalysisAiChildResultSchema.parse(await executeAiChild({
+          request: PaidAnalysisAiChildInputSchema.parse(input),
+          childContract: contract,
+          context,
+        }));
+      },
+      async checkReadiness() {
+        return PaidAnalysisAiChildReadinessSchema.parse({
+          abilityGroupId: "ai",
           childCapabilityId: "paid-analysis-ai",
-          startedAt: new Date().toISOString(),
-          failureReason: `paid-analysis-ai cannot execute ${request.taskType}.`,
-          implementationStatus: "task_type_mismatch",
+          providerKind: "paid",
+          status: "disabled_by_policy",
+          supportedTaskTypes: [...contract.supportedTaskTypes],
+          detail: "paid analysis provider is declared but disabled by policy.",
+          enabledByPolicy: false,
         });
-      }
-
-      const startedAt = new Date().toISOString();
-      const promptContract = context.runtime.resolvePromptContract(request.taskType);
-      return buildAiPolicyFailureResult({
-        request,
-        promptContract,
-        childCapabilityId: "paid-analysis-ai",
-        startedAt,
-        reasons: collectAiRuntimePolicyViolations({
-          request,
-          childCapabilityId: "paid-analysis-ai",
-          promptContract,
-        }),
-      });
+      },
     },
   };
 }

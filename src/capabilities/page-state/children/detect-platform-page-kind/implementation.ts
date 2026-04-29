@@ -1,46 +1,64 @@
-import {
-  PAGE_STATE_ABILITY_GROUP_ID,
-  type PageStateChildCapability,
-} from "../../contract.js";
-import { resolvePlatformPageKind } from "../../state-profiles.js";
-import { buildPageStateFailure, buildPageStateResult } from "../../shared/page-state-result.js";
-import { validatePageStateInput } from "../../shared/state-policy.js";
+import { PAGE_STATE_ABILITY_GROUP_ID } from "../../contract.js";
+import type { DetectPlatformPageKindChildCapability } from "./contract.js";
+import { DetectPlatformPageKindChildInputSchema, DetectPlatformPageKindChildOutputSchema } from "./schema.js";
 
-export function createDetectPlatformPageKindCapability(): PageStateChildCapability {
+export function createDetectPlatformPageKindCapability(): DetectPlatformPageKindChildCapability {
   return {
     abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
     childCapabilityId: "detect-platform-page-kind",
     async execute(input) {
-      const startedAt = new Date().toISOString();
-      const failureReason = validatePageStateInput(input);
-      if (failureReason) {
-        const endedAt = new Date().toISOString();
-        return buildPageStateFailure({
-          abilityInput: input,
-          failureReason,
-          stateSummary: "page-state platform-page-kind detection input is incomplete",
-          startedAt,
-          endedAt,
-        });
-      }
+      const request = DetectPlatformPageKindChildInputSchema.parse(input);
+      const parsed = new URL(request.snapshot.currentUrl);
+      const pathname = parsed.pathname.toLowerCase();
+      const output = request.snapshot.currentUrl.includes("localhost") || request.snapshot.currentUrl.includes("127.0.0.1")
+        ? {
+            childCapabilityId: "detect-platform-page-kind" as const,
+            pageStateType: "local_workbench" as const,
+            stateSummary: "Current page resolves to the local workbench profile.",
+            confidence: 0.98,
+            reviewRequiredReason: null,
+            dataQualityFlags: [],
+            matchedObservationIds: [],
+            supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+            supportingReasons: ["snapshot.currentUrl host is local workbench"],
+          }
+        : pathname.includes("/video/")
+          ? {
+              childCapabilityId: "detect-platform-page-kind" as const,
+              pageStateType: "platform_video_page" as const,
+              stateSummary: "URL path indicates a platform video page.",
+              confidence: 0.9,
+              reviewRequiredReason: null,
+              dataQualityFlags: [],
+              matchedObservationIds: [],
+              supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+              supportingReasons: ["URL pathname contains /video/"],
+            }
+          : pathname === "/" || pathname === "/foryou" || pathname === "/following" || pathname.startsWith("/@")
+            ? {
+                childCapabilityId: "detect-platform-page-kind" as const,
+                pageStateType: "platform_feed" as const,
+                stateSummary: "URL path indicates a platform feed page.",
+                confidence: 0.88,
+                reviewRequiredReason: null,
+                dataQualityFlags: [],
+                matchedObservationIds: [],
+                supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+                supportingReasons: ["URL pathname matches feed profile"],
+              }
+            : {
+                childCapabilityId: "detect-platform-page-kind" as const,
+                pageStateType: "platform_unknown" as const,
+                stateSummary: "Platform page kind is unknown for the current URL.",
+                confidence: 0.52,
+                reviewRequiredReason: "Review required because the platform page kind could not be resolved.",
+                dataQualityFlags: ["insufficient_signal"],
+                matchedObservationIds: [],
+                supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+                supportingReasons: ["URL pathname did not match a governed feed or video profile"],
+              };
 
-      const pageKind = resolvePlatformPageKind(input.currentUrl);
-      const endedAt = new Date().toISOString();
-      return buildPageStateResult({
-        abilityInput: input,
-        pageStateType: pageKind,
-        stateSummary: pageKind === "platform_feed"
-          ? "current page matches the governed platform feed surface"
-          : pageKind === "platform_video_page"
-            ? "current page matches a governed platform video-detail surface"
-            : "current page kind is not recognized as a governed platform surface",
-        confidence: pageKind === "platform_unknown" ? 0.65 : 0.88,
-        startedAt,
-        endedAt,
-        reviewRequiredReason: pageKind === "platform_unknown" && input.statePolicy.allowReviewRequired
-          ? "current page kind is unknown to the governed platform adapter"
-          : null,
-      });
+      return DetectPlatformPageKindChildOutputSchema.parse(output);
     },
   };
 }

@@ -2,6 +2,7 @@ import type {
   PageStateChildCapability,
   PageStateChildCapabilityId,
 } from "./contract.js";
+import { PAGE_STATE_CHILD_CAPABILITY_IDS } from "./schema.js";
 import { createDetectCommentPanelStateCapability } from "./children/detect-comment-panel-state/implementation.js";
 import { createDetectFeedReadyCapability } from "./children/detect-feed-ready/implementation.js";
 import { createDetectLoginStateCapability } from "./children/detect-login-state/implementation.js";
@@ -22,4 +23,8 @@ export function createPageStateRegistry(): Map<PageStateChildCapabilityId, PageS
     ["detect-page-abnormality", createDetectPageAbnormalityCapability()],
     ["detect-platform-page-kind", createDetectPlatformPageKindCapability()],
   ]);
+}
+
+export function listPageStateChildren(): PageStateChildCapabilityId[] {
+  return [...PAGE_STATE_CHILD_CAPABILITY_IDS];
 }

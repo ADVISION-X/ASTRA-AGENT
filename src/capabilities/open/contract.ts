@@ -1,67 +1,85 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import type { BrowserLoginState } from "../../types/local-browser-session.js";
+import type { ZodTypeAny, z } from "zod";
 
-export const OPEN_ABILITY_GROUP_ID = "open";
-export const OPEN_DRAWER_ID = "open";
+import type { OpenBrowserPort } from "./ports/open-browser-port.js";
+import type { OpenClockPort } from "./ports/open-clock-port.js";
+import type {
+  OpenIdempotencyPort,
+  OpenIdempotencyReservation,
+} from "./ports/open-idempotency-port.js";
+import type { OpenProfilePort } from "./ports/open-profile-port.js";
+import {
+  BrowserSessionSnapshotSchema,
+  NavigationResultSchema,
+  OpenChildCapabilityIdSchema,
+  OpenFailureSchema,
+  OpenNavigationDecisionSchema,
+  OpenPlatformIdSchema,
+  OpenRequestSchema,
+  OpenResultSchema,
+  OpenRuntimeProofSchema,
+  OpenSessionDecisionSchema,
+  OpenStatusSchema,
+  OpenTargetKindSchema,
+  OpenTargetPolicyDecisionSchema,
+  OpenTargetProfileSchema,
+  OpenUrlSafetyDecisionSchema,
+  PostOpenStateDecisionSchema,
+} from "./schema.js";
+import { OPEN_ABILITY_GROUP_ID } from "./shared/open-target-profile.js";
+
+export { OPEN_ABILITY_GROUP_ID };
 
 export type OpenAbilityGroupId = typeof OPEN_ABILITY_GROUP_ID;
-export type OpenDrawerId = typeof OPEN_DRAWER_ID;
-export type OpenPlatformId = "tiktok-web" | "facebook-web";
-export type OpenChildCapabilityId = "open-tiktok" | "open-facebook" | "open-local-workbench";
-export type OpenCapabilityTargetKind = "platform-feed" | "local-workbench";
-export type OpenCapabilityResultStatus = "success" | "failed";
+export type OpenChildCapabilityId = z.output<typeof OpenChildCapabilityIdSchema>;
+export type OpenPlatformId = z.output<typeof OpenPlatformIdSchema>;
+export type OpenTargetKind = z.output<typeof OpenTargetKindSchema>;
+export type OpenStatus = z.output<typeof OpenStatusSchema>;
+export type OpenFailure = z.output<typeof OpenFailureSchema>;
+export type OpenTargetProfile = z.output<typeof OpenTargetProfileSchema>;
+export type BrowserSessionSnapshot = z.output<typeof BrowserSessionSnapshotSchema>;
+export type OpenBrowserNavigationResult = z.output<typeof NavigationResultSchema>;
+export type OpenTargetPolicyDecision = z.output<typeof OpenTargetPolicyDecisionSchema>;
+export type OpenUrlSafetyDecision = z.output<typeof OpenUrlSafetyDecisionSchema>;
+export type OpenSessionDecision = z.output<typeof OpenSessionDecisionSchema>;
+export type OpenNavigationDecision = z.output<typeof OpenNavigationDecisionSchema>;
+export type PostOpenStateDecision = z.output<typeof PostOpenStateDecisionSchema>;
+export type OpenRequest = z.input<typeof OpenRequestSchema>;
+export type ParsedOpenRequest = z.output<typeof OpenRequestSchema>;
+export type OpenResult = z.output<typeof OpenResultSchema>;
+export type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
 
-export type OpenCapabilityInput = {
-  browserController: BrowserController;
-  reason: string;
-  targetUrl: string;
-  targetTitle: string;
-  roundId?: string | null;
+export type OpenAbilityContext = {
+  browser: OpenBrowserPort;
+  clock: OpenClockPort;
+  idempotency: OpenIdempotencyPort;
+  profilePort?: OpenProfilePort;
 };
 
-export type OpenCapabilityResult = {
-  drawer: OpenDrawerId;
-  capabilityId: OpenDrawerId;
-  childCapabilityId: OpenChildCapabilityId;
-  targetKind: OpenCapabilityTargetKind;
-  sessionId: string;
-  roundId: string | null;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-  status: OpenCapabilityResultStatus;
-  targetUrl: string;
-  openedUrl: string;
-  targetTitle: string;
-  message: string;
-  failureReason: string | null;
-  nextCapability: string | null;
-  fallbackUsed: boolean;
-  loginState: BrowserLoginState;
-  reviewRequiredReason: string | null;
+export type OpenChildExecutionContext = OpenAbilityContext & {
+  reserveIdempotency(input: {
+    sessionId: string;
+    childCapabilityId: OpenChildCapabilityId;
+    targetUrl: string;
+    roundId: string | null;
+    currentUrl: string;
+    allowReplay: boolean;
+  }): OpenIdempotencyReservation;
 };
 
-export interface OpenCapability {
-  readonly drawer: OpenDrawerId;
+export interface OpenChildCapability {
+  readonly abilityGroupId: OpenAbilityGroupId;
   readonly childCapabilityId: OpenChildCapabilityId;
-  readonly targetKind: OpenCapabilityTargetKind;
+  readonly inputSchema: ZodTypeAny;
+  readonly outputSchema: ZodTypeAny;
 
-  open(input: OpenCapabilityInput): Promise<OpenCapabilityResult>;
+  execute(input: unknown, context: OpenChildExecutionContext, profile: OpenTargetProfile): Promise<OpenResult>;
 }
 
-export interface OpenDrawer {
-  listCapabilityIds(): OpenChildCapabilityId[];
-  openPlatform(input: {
-    platformId: OpenPlatformId;
-    reason: string;
-    targetUrl?: string;
-    targetTitle?: string;
-    roundId?: string | null;
-  }): Promise<OpenCapabilityResult>;
-  openLocalWorkbench(input: {
-    reason: string;
-    targetUrl?: string;
-    targetTitle?: string;
-    roundId?: string | null;
-  }): Promise<OpenCapabilityResult>;
+export type OpenRegistryEntry = OpenTargetProfile & {
+  readonly implementation: OpenChildCapability;
+};
+
+export interface OpenAbilityGroup {
+  listChildCapabilityIds(): OpenChildCapabilityId[];
+  execute(input: OpenRequest): Promise<OpenResult>;
 }

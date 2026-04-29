@@ -1,220 +1,168 @@
-import type { EvidenceRef } from "../../types/evidence.js";
+import type { z } from "zod";
 
-import type { AiRuntimeProof } from "./shared/ai-runtime-proof.js";
+import type { AiClockPort } from "./ports/ai-clock-port.js";
+import type { AiModelRosterPort } from "./ports/ai-model-roster-port.js";
+import type { AiPromptRegistryPort } from "./ports/ai-prompt-registry-port.js";
+import type { AiRuntimePort } from "./ports/ai-runtime-port.js";
+import {
+  AI_ABILITY_GROUP_ID,
+  AI_CHILD_CAPABILITY_IDS,
+} from "./shared/ai-types.js";
+import {
+  AiChildReadinessSchema,
+  AiCommentSignalSummaryInputSchema,
+  AiCommentSignalSummaryOutputSchema,
+  AiCostPolicySchema,
+  AiDataPolicySchema,
+  AiEvidencePacketAnalysisInputSchema,
+  AiEvidencePacketAnalysisOutputSchema,
+  AiHealthReportSchema,
+  AiInputSchema,
+  AiAbilityOutcomeSchema,
+  AiDispatchFailureEnvelopeSchema,
+  AiModelRosterEntrySchema,
+  AiModelRosterSchema,
+  AiOcrCleanupInputSchema,
+  AiProductSignalSummaryInputSchema,
+  AiProductSignalSummaryOutputSchema,
+  AiPromptContractSchema,
+  AiProviderPolicySchema,
+  AiQualityPolicySchema,
+  AiResultSchema,
+  AiRuntimeExecutionOutputSchema,
+  AiRuntimeHealthSchema,
+  AiRuntimeProofSchema,
+  AiSafetyPolicySchema,
+  AiSchemaValidationOnlyInputSchema,
+  AiSchemaValidationOnlyOutputSchema,
+  AiVisualOutputSchema,
+  CommentSignalSummaryInputSchema,
+  CommentSignalSummaryResultSchema,
+  EvidencePacketAnalysisInputSchema,
+  EvidencePacketAnalysisResultSchema,
+  InternalSchemaValidatorInputSchema,
+  InternalSchemaValidatorResultSchema,
+  LocalOcrAiInputSchema,
+  LocalOcrAiResultSchema,
+  LocalTextAiInputSchema,
+  LocalTextAiResultSchema,
+  LocalVisionAiInputSchema,
+  LocalVisionAiResultSchema,
+  OcrCleanupInputSchema,
+  OcrCleanupResultSchema,
+  PaidAnalysisAiInputSchema,
+  PaidAnalysisAiResultSchema,
+  PaidVisionAiInputSchema,
+  PaidVisionAiResultSchema,
+  ProductPresenceJudgmentInputSchema,
+  ProductPresenceJudgmentResultSchema,
+  ProductSignalSummaryInputSchema,
+  ProductSignalSummaryResultSchema,
+  SchemaValidationOnlyInputSchema,
+  SchemaValidationOnlyResultSchema,
+  VisualObservationInputSchema,
+  VisualObservationResultSchema,
+  VisualTargetCandidateAnalysisInputSchema,
+  VisualTargetCandidateAnalysisResultSchema,
+} from "./schema.js";
 
-export const AI_ABILITY_GROUP_ID = "ai";
-export const AI_CHILD_CAPABILITY_IDS = [
-  "local-vision-ai",
-  "local-text-ai",
-  "local-ocr-ai",
-  "internal-schema-validator",
-  "paid-vision-ai",
-  "paid-analysis-ai",
-  "future-api-ai",
-] as const;
+export { AI_ABILITY_GROUP_ID, AI_CHILD_CAPABILITY_IDS };
 
 export type AiAbilityGroupId = typeof AI_ABILITY_GROUP_ID;
-export type AiTaskType =
-  | "product_presence_judgment"
-  | "visual_observation"
-  | "visual_target_candidate_analysis"
-  | "ocr_cleanup"
-  | "comment_signal_summary"
-  | "product_signal_summary"
-  | "evidence_packet_analysis"
-  | "schema_validation_only";
 export type AiChildCapabilityId = (typeof AI_CHILD_CAPABILITY_IDS)[number];
-export type AiProviderKind = "local" | "paid" | "future" | "internal";
-export type AiChildCapabilityStatus = "ready" | "degraded" | "unavailable" | "disabled_by_policy";
-export type AiInputModality = "image_collection" | "text_blocks" | "structured_record" | "mixed" | "none";
-export type AiRequestedBy = "orchestration";
-export type AiTransportedBy = "nerve-bus";
-export type AiModelRole = "vision" | "ocr" | "commentUnderstanding" | "productSignal" | "schemaValidator" | "multi-role" | "future";
-export type AiSchemaValidationStatus = "valid" | "invalid" | "not_applicable";
-export type AiExecutionStatus = "success" | "failed" | "review_required";
+export type AiAbilityInput = z.input<typeof AiInputSchema>;
+export type ParsedAiAbilityInput = z.output<typeof AiInputSchema>;
+export type AiAbilityResult = z.output<typeof AiResultSchema>;
+export type AiDispatchFailureEnvelope = z.output<typeof AiDispatchFailureEnvelopeSchema>;
+export type AiAbilityOutcome = z.output<typeof AiAbilityOutcomeSchema>;
+export type AiRuntimeProof = z.output<typeof AiRuntimeProofSchema>;
+export type AiPromptContract = z.output<typeof AiPromptContractSchema>;
+export type AiProviderPolicy = z.output<typeof AiProviderPolicySchema>;
+export type AiDataPolicy = z.output<typeof AiDataPolicySchema>;
+export type AiCostPolicy = z.output<typeof AiCostPolicySchema>;
+export type AiQualityPolicy = z.output<typeof AiQualityPolicySchema>;
+export type AiSafetyPolicy = z.output<typeof AiSafetyPolicySchema>;
+export type AiRuntimeHealth = z.output<typeof AiRuntimeHealthSchema>;
+export type AiHealthReport = z.output<typeof AiHealthReportSchema>;
+export type AiModelRoster = z.output<typeof AiModelRosterSchema>;
+export type AiModelRosterEntry = z.output<typeof AiModelRosterEntrySchema>;
+export type AiRuntimeExecutionOutput = z.output<typeof AiRuntimeExecutionOutputSchema>;
+export type AiChildReadiness = z.output<typeof AiChildReadinessSchema>;
 
-export type AiProviderPolicy = {
-  requireLocalOnly: boolean;
-  allowPaidProvider: boolean;
-  providerAllowlist: AiChildCapabilityId[];
-  operatorApprovalRef: string | null;
+export type ProductPresenceJudgmentInput = z.output<typeof ProductPresenceJudgmentInputSchema>;
+export type VisualObservationInput = z.output<typeof VisualObservationInputSchema>;
+export type VisualTargetCandidateAnalysisInput = z.output<typeof VisualTargetCandidateAnalysisInputSchema>;
+export type OcrCleanupInput = z.output<typeof OcrCleanupInputSchema>;
+export type CommentSignalSummaryInput = z.output<typeof CommentSignalSummaryInputSchema>;
+export type ProductSignalSummaryInput = z.output<typeof ProductSignalSummaryInputSchema>;
+export type EvidencePacketAnalysisInput = z.output<typeof EvidencePacketAnalysisInputSchema>;
+export type SchemaValidationOnlyInput = z.output<typeof SchemaValidationOnlyInputSchema>;
+
+export type AiVisualOutput = z.output<typeof AiVisualOutputSchema>;
+export type AiOcrCleanupInput = z.output<typeof AiOcrCleanupInputSchema>;
+export type AiOcrCleanupOutput = z.output<typeof OcrCleanupResultSchema>["output"];
+export type AiCommentSignalSummaryInput = z.output<typeof AiCommentSignalSummaryInputSchema>;
+export type AiCommentSignalSummaryOutput = z.output<typeof AiCommentSignalSummaryOutputSchema>;
+export type AiProductSignalSummaryInput = z.output<typeof AiProductSignalSummaryInputSchema>;
+export type AiProductSignalSummaryOutput = z.output<typeof AiProductSignalSummaryOutputSchema>;
+export type AiEvidencePacketAnalysisInput = z.output<typeof AiEvidencePacketAnalysisInputSchema>;
+export type AiEvidencePacketAnalysisOutput = z.output<typeof AiEvidencePacketAnalysisOutputSchema>;
+export type AiSchemaValidationOnlyInput = z.output<typeof AiSchemaValidationOnlyInputSchema>;
+export type AiSchemaValidationOnlyOutput = z.output<typeof AiSchemaValidationOnlyOutputSchema>;
+
+export type LocalVisionAiInput = z.output<typeof LocalVisionAiInputSchema>;
+export type LocalVisionAiResult = z.output<typeof LocalVisionAiResultSchema>;
+export type LocalTextAiInput = z.output<typeof LocalTextAiInputSchema>;
+export type LocalTextAiResult = z.output<typeof LocalTextAiResultSchema>;
+export type LocalOcrAiInput = z.output<typeof LocalOcrAiInputSchema>;
+export type LocalOcrAiResult = z.output<typeof LocalOcrAiResultSchema>;
+export type InternalSchemaValidatorInput = z.output<typeof InternalSchemaValidatorInputSchema>;
+export type InternalSchemaValidatorResult = z.output<typeof InternalSchemaValidatorResultSchema>;
+export type PaidVisionAiInput = z.output<typeof PaidVisionAiInputSchema>;
+export type PaidVisionAiResult = z.output<typeof PaidVisionAiResultSchema>;
+export type PaidAnalysisAiInput = z.output<typeof PaidAnalysisAiInputSchema>;
+export type PaidAnalysisAiResult = z.output<typeof PaidAnalysisAiResultSchema>;
+
+export type AiTaskType = ParsedAiAbilityInput["taskType"];
+export type AiProviderKind = AiAbilityResult["modelProvider"];
+export type AiExecutionStatus = AiAbilityResult["status"];
+export type AiModelRole = AiAbilityResult["modelRole"];
+
+export type AiExecutionContext = {
+  runtime: AiRuntimePort;
+  clock: AiClockPort;
+  modelRoster: AiModelRosterPort;
+  promptRegistry: AiPromptRegistryPort;
 };
 
-export type AiCostPolicy = {
-  maxEstimatedCost: number | null;
-};
-
-export type AiDataPolicy = {
-  allowExternalTransmission: boolean;
-  redactSensitiveData: boolean;
-};
-
-export type AiQualityPolicy = {
-  minimumConfidence: number | null;
-  requireSchemaValidation: boolean;
-};
-
-export type AiSafetyPolicy = {
-  reviewOnLowConfidence: boolean;
-  reviewOnSchemaFailure: boolean;
-  reviewOnPolicyViolation: boolean;
-};
-
-export type AiPromptContract = {
-  taskType: AiTaskType;
+export type AiChildContract = {
+  abilityGroupId: AiAbilityGroupId;
+  childCapabilityId: AiChildCapabilityId;
+  providerKind: AiProviderKind;
+  supportedTaskTypes: readonly AiTaskType[];
   modelRole: AiModelRole;
-  promptId: string;
-  promptVersion: string;
-  schemaVersion: string;
+  runtimeOwner: "ai-executor";
+  implementationStatus: string;
   purpose: string;
-  forbiddenOutputs: string[];
 };
 
-export type AiExecutionOptions = {
-  debugHook?: (event: AiDebugEvent) => Promise<void> | void;
-};
-
-export type AiDebugEvent = {
-  eventType: string;
-  detail: string;
-  durationMs?: number;
-};
-
-export type AiRuntimeHealth = {
-  overallStatus: "ready" | "degraded" | "unavailable";
-  implementationStatus: string;
-  dependencies: {
-    gateway: string;
-    vision: string;
-    text: string;
-    ocr: string;
-  };
-  configuredModels: {
-    vision: string;
-    commentUnderstanding: string;
-    ocr: string;
-    productSignal: string;
-  };
-  availableModels: string[];
-  lastCheckedAt: string;
-  failureReason: string | null;
-  lastTaskType: AiTaskType | null;
-  lastFailureReason: string | null;
-  lastInvocationStatus: string | null;
-};
-
-export type AiAbilityInput = {
-  abilityGroupId: AiAbilityGroupId;
-  taskType: AiTaskType;
-  inputModality: AiInputModality;
-  inputRefs: EvidenceRef[];
-  promptContractId: string;
-  expectedOutputSchema: string;
-  requestedBy: AiRequestedBy;
-  transportedBy: AiTransportedBy;
-  sessionId: string;
-  roundId: string | null;
-  videoVisitId: string | null;
-  qualityPolicy: AiQualityPolicy;
-  providerPolicy: AiProviderPolicy;
-  costPolicy: AiCostPolicy;
-  dataPolicy: AiDataPolicy;
-  safetyPolicy: AiSafetyPolicy;
-  input: unknown;
-};
-
-export type AiAbilityResult = {
-  status: AiExecutionStatus;
-  abilityGroupId: AiAbilityGroupId;
-  childCapabilityId: AiChildCapabilityId;
-  taskType: AiTaskType;
-  modelProvider: AiProviderKind;
-  modelName: string;
-  modelRole: AiModelRole;
-  runtime: string;
-  implementationStatus: string;
-  output: unknown;
-  rawOutputRef: string | null;
-  schemaValidationStatus: AiSchemaValidationStatus;
-  confidence: number | null;
-  failureReason: string | null;
-  durationMs: number;
-  costEstimate: number | null;
-  evidenceRefs: EvidenceRef[];
-  debugLogRef: string | null;
-  runtimeProof: AiRuntimeProof;
-  promptVersion: string;
-  schemaVersion: string;
-  createdAt: string;
-};
-
-export type AiChildCapabilityCheckResult = {
-  abilityGroupId: AiAbilityGroupId;
-  childCapabilityId: AiChildCapabilityId;
-  providerKind: AiProviderKind;
-  status: AiChildCapabilityStatus;
-  supportedTaskTypes: AiTaskType[];
-  detail: string;
-  enabledByPolicy: boolean;
-};
-
-export type AiHealthReport = {
-  ok: boolean;
-  detail: string;
-  health: AiRuntimeHealth;
-  childStatuses: AiChildCapabilityCheckResult[];
-};
-
-export type AiModelRosterEntry = {
-  childCapabilityId: AiChildCapabilityId;
-  providerKind: AiProviderKind;
-  taskTypes: AiTaskType[];
-  modelRole: AiModelRole;
-  runtime: string;
-  modelOrTool: string | null;
-  enabledByPolicy: boolean;
-  status: "configured" | "placeholder" | "disabled_by_policy";
-};
-
-export type AiModelRoster = {
-  generatedAt: string;
-  entries: AiModelRosterEntry[];
-};
-
-export interface AiRuntimeBridge {
-  execute(input: AiAbilityInput, options?: AiExecutionOptions): Promise<AiAbilityResult>;
-  getHealth(): Promise<{ ok: boolean; detail: string; health: AiRuntimeHealth }>;
-  getRuntimeHealth(): Promise<AiRuntimeHealth>;
-  resolvePromptContract(taskType: AiTaskType): AiPromptContract;
-  getModelRoster(): Promise<AiModelRoster>;
+export interface AiChildImplementation {
+  execute?(input: ParsedAiAbilityInput, context: AiExecutionContext): Promise<AiAbilityResult>;
+  checkReadiness(context: AiExecutionContext): Promise<AiChildReadiness>;
 }
 
-export type AiCapabilityContext = {
-  runtime: AiRuntimeBridge;
+export type AiChildCapability = {
+  contract: AiChildContract;
+  implementation: AiChildImplementation;
 };
-
-export interface AiChildCapability {
-  readonly abilityGroupId: AiAbilityGroupId;
-  readonly childCapabilityId: AiChildCapabilityId;
-  readonly providerKind: AiProviderKind;
-  readonly purpose: string;
-  readonly supportedTaskTypes: readonly AiTaskType[];
-
-  canHandle(taskType: AiTaskType): boolean;
-  checkReadiness(context: AiCapabilityContext): Promise<AiChildCapabilityCheckResult>;
-  execute(
-    input: AiAbilityInput,
-    context: AiCapabilityContext,
-    options?: AiExecutionOptions,
-  ): Promise<AiAbilityResult>;
-}
 
 export interface AiAbilityGroup {
   listChildCapabilityIds(): AiChildCapabilityId[];
-  routeTask(taskType: AiTaskType): AiChildCapabilityId;
-  execute(input: AiAbilityInput, options?: AiExecutionOptions): Promise<AiAbilityResult>;
+  execute(input: AiAbilityInput): Promise<AiAbilityOutcome>;
   getHealth(): Promise<AiHealthReport>;
   getRuntimeHealth(): Promise<AiRuntimeHealth>;
   getPromptContract(taskType: AiTaskType): AiPromptContract;
   getModelRoster(): Promise<AiModelRoster>;
 }
+
+export type { AiRuntimePort } from "./ports/ai-runtime-port.js";

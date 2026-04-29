@@ -5,14 +5,13 @@ import path from "node:path";
 
 import type { BrowserController, BrowserGeometrySnapshot } from "../../browser/browser-controller.js";
 import { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID } from "../../../capabilities/open/index.js";
-import { summarizeTikTokLoginState, TIKTOK_REVIEW_REQUIRED_TAG } from "../../../capabilities/page-state/index.js";
 import type { PlatformOperatorModeInfo, PlatformVideo, VideoOrientationMode } from "../platform-runtime-contract.js";
 
 export { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID };
 export const VISUAL_SIGNATURE_MATCH_DISTANCE = 6;
 export const NEXT_VIDEO_CONFIRMATION_DISTANCE = 10;
 export const MAX_RECENT_VIDEO_IDENTITIES = 24;
-export const REVIEW_REQUIRED_TAG = TIKTOK_REVIEW_REQUIRED_TAG;
+export const REVIEW_REQUIRED_TAG = "platform-review-required";
 
 export type TikTokPlatformVideo = PlatformVideo & {
   screenshotHash: string;
@@ -73,6 +72,18 @@ export function extractTags(lines: string[]): string[] {
     .filter((part) => part.startsWith("#"))
     .map((part) => part.replaceAll(/[^#\p{L}\p{N}_-]+/gu, ""));
   return [...new Set(tags)].slice(0, 8);
+}
+function summarizeTikTokLoginState(loginState: ReturnType<BrowserController["getSessionState"]>["loginState"]): string {
+  switch (loginState) {
+    case "logged_in":
+      return "tiktok session is logged in";
+    case "login_required":
+      return "tiktok session requires login";
+    case "review_required":
+      return "tiktok session requires captcha or safety review";
+    default:
+      return "tiktok session login state is unknown";
+  }
 }
 export function summarizeLoginState(loginState: ReturnType<BrowserController["getSessionState"]>["loginState"]): string {
   return summarizeTikTokLoginState(loginState);

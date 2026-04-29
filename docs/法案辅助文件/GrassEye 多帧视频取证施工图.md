@@ -1,5 +1,18 @@
 # GrassEye 多帧视频取证施工图
 
+## 统一身份与冻结边界
+
+- 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
+- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
+- 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
+
+## 基本身份
+
+- 从属法案：module-screenshot-capability.instructions.md、module-ai-capability.instructions.md、module-forensics-persistence-capability.instructions.md
+- 角色：Screenshot、AI、Forensics 之间的共享取证输入边界施工图
+- 原则：不是独立 ability group，不进入 active owner、phase gate、audit plan 或 runner
+
 ## 定位
 
 多帧视频取证是第一问产品存在性判断之前的共享子边界。
@@ -28,7 +41,12 @@
 - Forensics Persistence 负责写入最终记录。
 - 该共享子边界本身不做最终产品分析，不决定 browse branch，也不是独立 owner。
 
-## 验收信号
+## 审计与验收
+
+- 当前 owner 归口：Screenshot 负责输入打包，AI 负责消费判断，Forensics Persistence 负责记录闭环
+- 负向证明：若 multi-frame 被重新写成独立 owner，或用三次独立 AI 调用冒充一个受治理证据集合，则本施工图判定漂移
+
+验收信号：
 
 建对表现：
 

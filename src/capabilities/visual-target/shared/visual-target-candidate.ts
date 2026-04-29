@@ -1,0 +1,17 @@
+export const VISUAL_TARGET_DATA_QUALITY_FLAGS = [
+  "stale_screenshot",
+  "stale_candidate",
+  "ai_confidence_low",
+  "candidate_blocked",
+  "candidate_invisible",
+  "candidate_missing_click_point",
+  "candidate_click_point_forbidden",
+  "candidate_bbox_out_of_bounds",
+  "candidate_coordinate_requires_mapping",
+  "candidate_mapping_unverified",
+  "ambiguity_overlap",
+  "ambiguity_confidence_gap",
+  "page_state_conflict",
+  "operator_manual_review_required",
+  "dispatch_failure",
+] as const;

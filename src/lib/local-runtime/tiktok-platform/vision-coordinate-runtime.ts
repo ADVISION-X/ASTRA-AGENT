@@ -7,6 +7,7 @@ import type {
   VisualBoundingBox,
   VisualTargetChildCapabilityId,
   VisualClickPoint,
+  VisualTargetNature,
   VisualTarget,
   VisualTargetAbilityGroup,
   VisualTargetType,
@@ -25,6 +26,30 @@ const TARGET_TYPE_TO_CHILD_CAPABILITY_ID: Partial<Record<VisualTargetType, Visua
   close_comments_button: "detect-close-comments-button",
   metric_like_count: "detect-metric-like-count",
   metric_comment_count: "detect-metric-comment-count",
+};
+
+const TARGET_TYPE_TO_NATURE: Record<VisualTargetType, VisualTargetNature> = {
+  like_button: "action",
+  save_button: "action",
+  comments_button: "action",
+  comments_panel: "region",
+  close_comments_button: "action",
+  not_interested_button: "action",
+  next_video_region: "region",
+  metric_like_count: "metric",
+  metric_comment_count: "metric",
+};
+
+const TARGET_TYPE_TO_PAGE_STATE_TYPE: Record<VisualTargetType, string> = {
+  like_button: "platform_feed",
+  save_button: "platform_feed",
+  comments_button: "platform_feed",
+  comments_panel: "comments_panel",
+  close_comments_button: "comments_panel",
+  not_interested_button: "platform_feed",
+  next_video_region: "platform_feed",
+  metric_like_count: "platform_feed",
+  metric_comment_count: "platform_feed",
 };
 
 export abstract class VisionCoordinatePlatformAdapter {
@@ -56,13 +81,23 @@ export abstract class VisionCoordinatePlatformAdapter {
       maxAiWidth: null,
       preservePixels: true,
       evidencePolicy: "evidence_original",
-      region: null,
       contentLines: input.contentLines ?? [],
     });
-    if (result.status !== "success" || !result.browserCapture) {
-      throw new Error(result.failureReason ?? `screenshot capture failed for ${input.regionLabel}`);
+    if (result.status !== "success" || !result.output) {
+      throw new Error(result.failureReason?.message ?? `screenshot capture failed for ${input.regionLabel}`);
     }
-    return result.browserCapture;
+    return {
+      browserActionId: result.runtimeProof.proofId,
+      pageUrl: result.output.pageUrl ?? "about:blank",
+      pageTitle: result.output.pageTitle ?? "",
+      regionLabel: result.output.regionLabel,
+      regionType: result.output.regionType,
+      width: result.output.width,
+      height: result.output.height,
+      contentLines: result.output.contentLines,
+      sourceFilePath: result.output.artifactRef.storageRef,
+      createdAt: result.output.artifactRef.createdAt,
+    };
   }
 
   protected async executeVisionCoordinateAction(input: {
@@ -179,11 +214,14 @@ export abstract class VisionCoordinatePlatformAdapter {
     const clickResult = await this.mouseClickAbilityGroup.execute(clickInput);
 
     return {
-      browserActionId: clickResult.actionExecutionRef,
-      ok: clickResult.status === "success",
-      message: clickResult.statusMessage,
-      createdAt: clickResult.endedAt,
-      fallbackUsed: false,
+      browserResult: {
+        browserActionId: clickResult.actionExecutionRef,
+        ok: clickResult.status === "success",
+        message: clickResult.statusMessage,
+        createdAt: clickResult.endedAt,
+        fallbackUsed: false,
+      },
+      governedClickResult: clickResult,
     };
   }
 
@@ -193,6 +231,7 @@ export abstract class VisionCoordinatePlatformAdapter {
     clickPoint?: VisualClickPoint | null;
     confidence: number;
     sourceScreenshotEvidenceId: string;
+    sourceCapturedAt?: string | null;
     detectionMethod: string;
     sourceAiResultRef?: string | null;
     sourceCandidateRef?: string | null;
@@ -205,36 +244,91 @@ export abstract class VisionCoordinatePlatformAdapter {
       throw new Error(`visual target child capability is not defined for ${input.targetType}`);
     }
 
+    const geometry = await this.browserController.getGeometrySnapshot();
+    const session = this.browserController.getSessionState();
+    const capturedAt = input.sourceCapturedAt ?? geometry.capturedAt;
+    const targetNature = TARGET_TYPE_TO_NATURE[input.targetType];
+    const pageStateType = TARGET_TYPE_TO_PAGE_STATE_TYPE[input.targetType];
+    const pageUrl = session.currentUrl || geometry.currentUrl || "about:blank";
+    const pageTitle = session.currentTitle || geometry.pageTitle || null;
+    const sourceProofRef = `visual-target-source:${input.sourceScreenshotEvidenceId}`;
+    const pageStateProofRef = `visual-target-page-state:${input.sourceScreenshotEvidenceId}`;
+    const inputRef = `visual-target-input:${childCapabilityId}:${input.sourceScreenshotEvidenceId}`;
+    const candidateRef = input.sourceCandidateRef ?? `${input.targetType}-candidate`;
+
     const baseInput = {
+      abilityGroupId: "visual-target" as const,
       childCapabilityId,
       sessionId: input.sourceScreenshotEvidenceId,
       roundId: null,
       videoVisitId: null,
+      requestedBy: "orchestration",
+      sourceAbilityGroupId: "orchestration",
+      sourceChildCapabilityId: null,
+      inputRef,
       targetType: input.targetType,
-      sourceScreenshotEvidenceId: input.sourceScreenshotEvidenceId,
-      coordinateSpace: "browser_viewport" as const,
-      sourceAiResultRef: input.sourceAiResultRef ?? null,
+      targetNature,
+      sourceProof: {
+        sourceProofRef,
+        screenshot: {
+          screenshotEvidenceId: input.sourceScreenshotEvidenceId,
+          artifactRef: `browser-capture:${input.sourceScreenshotEvidenceId}`,
+          screenshotProofRef: `screenshot-proof:${input.sourceScreenshotEvidenceId}`,
+          imageWidth: geometry.viewportWidth,
+          imageHeight: geometry.viewportHeight,
+          coordinateSpace: "browser_viewport" as const,
+          capturedAt,
+          sessionId: input.sourceScreenshotEvidenceId,
+          roundId: null,
+          videoVisitId: null,
+        },
+        ai: input.sourceAiResultRef
+          ? {
+              aiResultRef: input.sourceAiResultRef,
+              aiProofRef: `visual-target-ai:${input.sourceAiResultRef}`,
+              promptContractId: "visual-target-runtime-compat",
+              outputSchemaRef: "visual-target-candidate",
+              capturedAt,
+              sessionId: input.sourceScreenshotEvidenceId,
+              roundId: null,
+              videoVisitId: null,
+              confidence: input.confidence,
+              modelRole: "runtime-compatibility",
+            }
+          : null,
+        pageState: {
+          pageStateProofRef,
+          pageStateType,
+          pageStateFingerprint: `${pageUrl}|${pageTitle ?? ""}|${pageStateType}`,
+          decision: "allow" as const,
+          currentUrl: pageUrl,
+          currentTitle: pageTitle,
+          observedAt: capturedAt,
+          sessionId: input.sourceScreenshotEvidenceId,
+          roundId: null,
+          videoVisitId: null,
+        },
+        operatorApproval: null,
+      },
       candidates: [{
-        sourceCandidateRef: input.sourceCandidateRef ?? `${input.targetType}-candidate`,
-        sourceAiResultRef: input.sourceAiResultRef ?? null,
-        sourceKind: "heuristic_profile" as const,
+        candidateRef,
+        candidateKind: input.sourceAiResultRef ? "ai_candidate" as const : "heuristic_profile" as const,
         targetType: input.targetType,
         boundingBox: input.boundingBox,
         clickPoint: input.clickPoint ?? null,
         confidence: input.confidence,
         coordinateSpace: "browser_viewport" as const,
+        sourceProofRef,
+        capturedAt,
+        sourceFrameRef: null,
         scaleMapping: null,
         detectionMethod: input.detectionMethod,
         visibleText: input.visibleText ?? null,
         uncertainty: input.uncertainty ?? [],
         blockedReason: input.blockedReason ?? null,
         isVisible: true,
-        expectedRegionDistance: null,
+        dataQualityFlags: [],
       }],
-      requestedBy: "orchestration",
-      confidencePolicy: null,
-      selectionPolicy: null,
-      dataQualityPolicy: null,
     };
 
     return this.visualTargetAbilityGroup.execute(baseInput);

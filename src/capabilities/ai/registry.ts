@@ -7,6 +7,18 @@ import { createLocalVisionAiCapability } from "./children/local-vision-ai/implem
 import { createPaidAnalysisAiCapability } from "./children/paid-analysis-ai/implementation.js";
 import { createPaidVisionAiCapability } from "./children/paid-vision-ai/implementation.js";
 
+export function listAiChildren(): AiChildCapabilityId[] {
+  return [
+    "local-vision-ai",
+    "local-text-ai",
+    "local-ocr-ai",
+    "internal-schema-validator",
+    "paid-vision-ai",
+    "paid-analysis-ai",
+    "future-api-ai",
+  ];
+}
+
 export function createAiCapabilityRegistry(): Map<AiChildCapabilityId, AiChildCapability> {
   return new Map<AiChildCapabilityId, AiChildCapability>([
     ["local-vision-ai", createLocalVisionAiCapability()],

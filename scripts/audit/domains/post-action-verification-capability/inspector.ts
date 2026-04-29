@@ -1,3 +1,5 @@
+import { Node, SyntaxKind } from "ts-morph";
+
 import { createFinding, createPhase } from "../../core/result.js";
 import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
@@ -5,19 +7,45 @@ import type { Finding } from "../../core/schema.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
-  getZodObjectPropertyNames,
+  hasAnyKeyword,
+  hasCallExpression,
+  hasCallExpressionPath,
   hasInterfaceMethod,
+  hasImportModuleSpecifier,
+  hasPropertyAccessPath,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 const ROOT = "src/capabilities/post-action-verification";
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const REGISTRY_PATH = `${ROOT}/registry.ts`;
-const PLATFORM_ACTION_ROOT = "src/features/platform-action/adapters";
-const OPEN_ROOT = "src/capabilities/open";
-const MOUSE_CLICK_ROOT = "src/capabilities/mouse-click";
-const MOUSE_SCROLL_ROOT = "src/capabilities/mouse-scroll";
+const EXECUTOR_PATH = `${ROOT}/runtime/post-action-verification-executor.ts`;
+const INDEX_PATH = `${ROOT}/index.ts`;
+const SHARED_TYPES_PATH = `${ROOT}/shared/post-action-types.ts`;
+const SHARED_RESULT_PATH = `${ROOT}/shared/post-action-result.ts`;
+const RESULT_BUILDER_PATH = `${ROOT}/runtime/verification-result-builder.ts`;
+
+const REQUIRED_FILES = [
+  SCHEMA_PATH,
+  CONTRACT_PATH,
+  ABILITY_GROUP_PATH,
+  REGISTRY_PATH,
+  INDEX_PATH,
+  `${ROOT}/runtime/verification-input-gate.ts`,
+  `${ROOT}/runtime/action-proof-gate.ts`,
+  `${ROOT}/runtime/evidence-source-gate.ts`,
+  `${ROOT}/runtime/before-after-consistency-gate.ts`,
+  `${ROOT}/runtime/verification-policy-gate.ts`,
+  `${ROOT}/runtime/verification-decision-gate.ts`,
+  `${ROOT}/runtime/verification-result-builder.ts`,
+  `${ROOT}/runtime/verification-proof-builder.ts`,
+  `${ROOT}/runtime/verification-dispatch-failure.ts`,
+  `${ROOT}/runtime/verification-clock.ts`,
+  `${ROOT}/ports/post-action-verification-clock-port.ts`,
+  `${ROOT}/ports/post-action-evidence-read-port.ts`,
+] as const;
 
 const CHILDREN = [
   "verify-page-opened",
@@ -29,13 +57,33 @@ const CHILDREN = [
 ] as const;
 
 const FORBIDDEN_IMPORT_MARKERS = [
-  "lib/local-ai",
-  "capabilities/mouse-click/children",
-  "capabilities/mouse-scroll/children",
+  "capabilities/ai/",
   "capabilities/open/",
   "capabilities/screenshot/children",
-  "features/platform-action/adapters",
+  "capabilities/mouse-click/children",
+  "capabilities/mouse-scroll/children",
+  "capabilities/geometry-guard/",
+  "capabilities/page-state/",
+  "capabilities/forensics-persistence/",
 ] as const;
+
+function hasForbiddenComment(sourceText: string): boolean {
+  return sourceText.includes("@ts-ignore")
+    || sourceText.includes("@ts-expect-error")
+    || sourceText.includes("eslint-disable");
+}
+
+function hasRequireOrDynamicImport(sourceFile: ReturnType<typeof getSourceFileOrThrow>): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return (Node.isIdentifier(expression) && expression.getText() === "require")
+      || expression.getKind() === SyntaxKind.ImportKeyword;
+  });
+}
+
+function hasNewDate(sourceFile: ReturnType<typeof getSourceFileOrThrow>): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => expression.getExpression().getText() === "Date");
+}
 
 export default createPendingDomainInspector({
   inspector: "GrassEye Post-action Verification Capability Owner Inspector",
@@ -43,128 +91,137 @@ export default createPendingDomainInspector({
   capabilityDomain: "post-action-verification-capability",
   inspectorEntry: "scripts/audit/domains/post-action-verification-capability/inspector.ts",
   ownedPaths: [ROOT],
-  pendingSummary: "post-action-verification-capability law exists but independent verification ownership is not fully established yet",
-  implementedSummary: "post-action-verification-capability is implemented as the canonical action-result verification owner with boundary enforcement",
+  pendingSummary: "post-action-verification-capability is pending until executor, gates, proof builder, and child contracts match the standard package shape",
+  implementedSummary: "post-action-verification-capability is implemented as a governed post-action judge with executor, gates, proof builder, and anti-escape boundaries",
   extraChecks: async () => {
     const project = createAuditProject();
+    const schemaSource = getSourceFileOrThrow(project, SCHEMA_PATH);
     const contractSource = getSourceFileOrThrow(project, CONTRACT_PATH);
     const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
     const registrySource = getSourceFileOrThrow(project, REGISTRY_PATH);
-    const postActionFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
-    const platformActionFiles = await listFilesRecursive(pathFromRepoRoot(PLATFORM_ACTION_ROOT), { extensions: [".ts"] });
-    const openFiles = await listFilesRecursive(pathFromRepoRoot(OPEN_ROOT), { extensions: [".ts"] });
-    const mouseClickFiles = await listFilesRecursive(pathFromRepoRoot(MOUSE_CLICK_ROOT), { extensions: [".ts"] });
-    const mouseScrollFiles = await listFilesRecursive(pathFromRepoRoot(MOUSE_SCROLL_ROOT), { extensions: [".ts"] });
+    const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
+    const indexSource = getSourceFileOrThrow(project, INDEX_PATH);
+    const sharedTypesSource = getSourceFileOrThrow(project, SHARED_TYPES_PATH);
+    const sharedResultSource = getSourceFileOrThrow(project, SHARED_RESULT_PATH);
+    const resultBuilderSource = getSourceFileOrThrow(project, RESULT_BUILDER_PATH);
+    const ownedFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
     const findings: Finding[] = [];
 
-    const inputFields = getZodObjectPropertyNames(contractSource, "PostActionVerificationAbilityInputSchema");
-    const resultFields = getZodObjectPropertyNames(contractSource, "PostActionVerificationAbilityResultSchema");
-    const contractPassed = [
-      "actionLogRef",
-      "expectedOutcome",
-      "verificationPolicy",
-      "observationRefs",
-    ].every((field) => inputFields.has(field))
-      && [
-        "verificationDecision",
-        "failureReason",
-        "reviewRequiredReason",
-        "debugLogRef",
-      ].every((field) => resultFields.has(field))
-      && hasInterfaceMethod(contractSource, "PostActionVerificationAbilityGroup", "execute");
-    if (!contractPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1", file: CONTRACT_PATH, line: 1, severity: "error", message: "Post-action Verification contract must expose one unified input, one unified result, and one group execute interface." }));
+    const requiredFilesPresent = (await Promise.all(REQUIRED_FILES.map((filePath) => fileExists(pathFromRepoRoot(filePath))))).every(Boolean);
+    if (!requiredFilesPresent) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: ROOT, line: 1, severity: "fatal", message: "Post Action Verification must contain the standard schema, runtime gates, builders, executor, and ports." }));
     }
 
-    const childFilesPresent = await Promise.all(
+    const childFilesPresent = (await Promise.all(
       CHILDREN.flatMap((child) => [
+        fileExists(pathFromRepoRoot(`${ROOT}/children/${child}/contract.ts`)),
+        fileExists(pathFromRepoRoot(`${ROOT}/children/${child}/schema.ts`)),
         fileExists(pathFromRepoRoot(`${ROOT}/children/${child}/implementation.ts`)),
-        fileExists(pathFromRepoRoot(`${ROOT}/children/${child}/capability-check.ts`)),
       ]),
-    );
-    const childStructurePassed = childFilesPresent.every(Boolean)
+    )).every(Boolean);
+    if (!childFilesPresent) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: ROOT, line: 1, severity: "error", message: "Every Post Action Verification child must expose contract/schema/implementation files." }));
+    }
+
+    const childIdsMatch = CHILDREN.every((child) => sharedTypesSource.getFullText().includes(`"${child}"`))
       && CHILDREN.every((child) => registrySource.getFullText().includes(`"${child}"`));
-    if (!childStructurePassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: REGISTRY_PATH, line: 1, severity: "error", message: "Post-action Verification registry must contain all child folders, capability checks, and internal registration only." }));
+    if (!childIdsMatch) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1", file: SCHEMA_PATH, line: 1, severity: "error", message: "schema.ts and registry.ts must agree on every child capability id." }));
     }
 
-    const externalChildImportFound = project.getSourceFiles().some((sourceFile) => {
-      const relative = toRepoRelativePath(sourceFile.getFilePath());
-      return sourceFile.getImportDeclarations().some((declaration) => {
-        const specifier = declaration.getModuleSpecifierValue();
-        return specifier.includes("capabilities/post-action-verification/children/") && !relative.startsWith(`${ROOT}/`);
-      });
-    });
-    if (externalChildImportFound) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: ROOT, line: 1, severity: "fatal", message: "Post-action Verification child capabilities must not be imported outside the canonical root." }));
+    const schemaShapePassed = sharedResultSource.getFullText().includes('"review_required"')
+      && sharedResultSource.getFullText().includes('"blocked"')
+      && hasInterfaceMethod(contractSource, "PostActionVerificationAbilityGroup", "execute");
+    if (!schemaShapePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1", file: SCHEMA_PATH, line: 1, severity: "error", message: "schema.ts must expose review_required and blocked statuses plus the public execute interface." }));
     }
 
-    const forbiddenRootImports = postActionFiles.flatMap((filePath) => {
+    const decisionStatusGuardPassed = schemaSource.getFullText().includes("success status requires verified decision")
+      && schemaSource.getFullText().includes("reviewRequiredReason cannot exist on success")
+      && !resultBuilderSource.getFullText().includes('status: "success"');
+    if (!decisionStatusGuardPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "error", message: "Result/status guard is incomplete: failed/review_required/blocked must not be wrapped as success." }));
+    }
+
+    const rawPayloadGuardPassed = !schemaSource.getFullText().includes("z.record(z.string(), z.unknown())");
+    if (!rawPayloadGuardPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Raw Record<string, unknown> payloads are forbidden in Post Action Verification observations." }));
+    }
+
+    const executorShapePassed = hasCallExpression(executorSource, "validatePostActionVerificationInput")
+      && hasCallExpression(executorSource, "validateActionProof")
+      && hasCallExpression(executorSource, "validateEvidenceSources")
+      && hasCallExpression(executorSource, "validateBeforeAfterConsistency")
+      && hasCallExpression(executorSource, "validateVerificationPolicy")
+      && hasCallExpression(executorSource, "finalizeVerificationDecision")
+      && hasCallExpression(executorSource, "buildPostActionVerificationResult")
+      && hasCallExpression(executorSource, "buildPostActionRuntimeProof");
+    if (!executorShapePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "post-action-verification-executor must run input gate, action proof gate, evidence gate, before/after gate, policy gate, decision gate, result builder, and proof builder." }));
+    }
+
+    const thinAbilityGroupPassed = hasCallExpressionPath(abilityGroupSource, ["PostActionVerificationAbilityInputSchema", "safeParse"])
+      && hasCallExpression(abilityGroupSource, "executePostActionVerification")
+      && hasCallExpression(abilityGroupSource, "dispatchPostActionVerificationFailure")
+      && abilityGroupSource.getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 0;
+    if (!thinAbilityGroupPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "error", message: "ability-group.ts must stay thin: parse, route, execute, and governed-failure only." }));
+    }
+
+    const noExportStar = !indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport());
+    if (!noExportStar) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Post Action Verification index.ts must not use export *." }));
+    }
+
+    const noCapabilityCheckRemnants = !ownedFiles.some((filePath) => filePath.endsWith("/capability-check.ts"));
+    if (!noCapabilityCheckRemnants) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: ROOT, line: 1, severity: "fatal", message: "capability-check.ts remnants must be removed from Post Action Verification." }));
+    }
+
+    const forbiddenImports = ownedFiles.flatMap((filePath) => {
       const sourceFile = project.getSourceFile(filePath);
       if (!sourceFile) {
         return [];
       }
 
-      return sourceFile.getImportDeclarations().flatMap((declaration) => {
-        const specifier = declaration.getModuleSpecifierValue() ?? "";
-        return FORBIDDEN_IMPORT_MARKERS.some((marker) => specifier.includes(marker)) ? [toRepoRelativePath(filePath)] : [];
-      });
+      return FORBIDDEN_IMPORT_MARKERS.some((marker) => hasImportModuleSpecifier(sourceFile, marker))
+        ? [toRepoRelativePath(filePath)]
+        : [];
     });
-    if (forbiddenRootImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V1", file: forbiddenRootImports[0]!, line: 1, severity: "fatal", message: "Post-action Verification root must not import local-ai runtime, action children, open children, screenshot children, or platform adapters." }));
+    if (forbiddenImports.length > 0) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V1", file: forbiddenImports[0]!, line: 1, severity: "fatal", message: "Post Action Verification must not import AI/Open/Screenshot/Mouse/Geometry/PageState/Forensics implementation details." }));
     }
 
-    const platformActionOwnsVerification = platformActionFiles.some((filePath) => {
+    const antiEscapeViolations = ownedFiles.flatMap((filePath) => {
       const sourceFile = project.getSourceFile(filePath);
       if (!sourceFile) {
-        return false;
+        return [];
       }
 
-      const text = sourceFile.getFullText();
-      return text.includes("verifyAfterAction") || text.includes("buildUnableToVerifyResult(") || text.includes("comments_panel not detected after coordinate action");
+      const sourceText = sourceFile.getFullText();
+      const hasAsUnknownAs = sourceText.includes("as unknown as");
+      const hasDateParse = hasPropertyAccessPath(sourceFile, ["Date", "parse"]);
+      const allowClockDate = filePath.endsWith("/runtime/verification-clock.ts");
+      return hasAnyKeyword(sourceFile)
+        || hasAsUnknownAs
+        || hasForbiddenComment(sourceText)
+        || hasRequireOrDynamicImport(sourceFile)
+        || (!allowClockDate && hasNewDate(sourceFile))
+        || hasDateParse
+        ? [toRepoRelativePath(filePath)]
+        : [];
     });
-    if (platformActionOwnsVerification) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: PLATFORM_ACTION_ROOT, line: 1, severity: "fatal", message: "Platform adapter must not own post-action verification truth or inline verification helpers." }));
-    }
-
-    const openOwnsVerification = openFiles.some((filePath) => {
-      const sourceFile = project.getSourceFile(filePath);
-      if (!sourceFile) {
-        return false;
-      }
-
-      const text = sourceFile.getFullText();
-      return /\bverifyOpen\s*:/.test(text)
-        || /\bbuildGovernedSessionAccessResult\(/.test(text)
-        || /\bbuildLocalWorkbenchAccessResult\(/.test(text);
-    });
-    if (openOwnsVerification) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: OPEN_ROOT, line: 1, severity: "fatal", message: "Open capability must not verify page-opened outcome by itself." }));
-    }
-
-    const mouseClickOwnsVerification = mouseClickFiles.some((filePath) => {
-      const sourceFile = project.getSourceFile(filePath);
-      return sourceFile ? sourceFile.getFullText().includes("verificationResult") || sourceFile.getFullText().includes("post-action") : false;
-    });
-    if (mouseClickOwnsVerification) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: MOUSE_CLICK_ROOT, line: 1, severity: "fatal", message: "Mouse Click must not verify final business outcome by itself." }));
-    }
-
-    const mouseScrollOwnsVerification = mouseScrollFiles.some((filePath) => {
-      const sourceFile = project.getSourceFile(filePath);
-      return sourceFile ? sourceFile.getFullText().includes("verificationResult") || sourceFile.getFullText().includes("post-action") : false;
-    });
-    if (mouseScrollOwnsVerification) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1", file: MOUSE_SCROLL_ROOT, line: 1, severity: "fatal", message: "Mouse Scroll must not verify downstream video-changed outcome by itself." }));
+    if (antiEscapeViolations.length > 0) {
+      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: antiEscapeViolations[0]!, line: 1, severity: "fatal", message: "Post Action Verification anti-escape guard failed: found any/unknown laundering, forbidden comments, require/import(), new Date, Date.parse, or re-export laundering." }));
     }
 
     return {
       findings,
       phases: [
-        createPhase("post-action-verification-contract", contractPassed ? "PASS" : "CODE VIOLATION", contractPassed, contractPassed ? "Post-action Verification contract exposes one unified input, result, and group interface." : "Post-action Verification contract is missing required unified fields or interface."),
-        createPhase("post-action-verification-child-structure", childStructurePassed && !externalChildImportFound ? "PASS" : "CODE VIOLATION", childStructurePassed && !externalChildImportFound, childStructurePassed && !externalChildImportFound ? "Post-action Verification canonical root contains all child capabilities with internal registration and no child leakage." : "Post-action Verification child structure or anti-leak boundary is incomplete."),
-        createPhase("post-action-verification-boundary-purity", forbiddenRootImports.length === 0 ? "PASS" : "CODE VIOLATION", forbiddenRootImports.length === 0, forbiddenRootImports.length === 0 ? "Post-action Verification root stays pure and does not import forbidden execution owners." : "Post-action Verification root still imports forbidden execution owners."),
-        createPhase("post-action-verification-owner-cutover", !platformActionOwnsVerification && !openOwnsVerification && !mouseClickOwnsVerification && !mouseScrollOwnsVerification ? "PASS" : "CODE VIOLATION", !platformActionOwnsVerification && !openOwnsVerification && !mouseClickOwnsVerification && !mouseScrollOwnsVerification, !platformActionOwnsVerification && !openOwnsVerification && !mouseClickOwnsVerification && !mouseScrollOwnsVerification ? "Verification truth is cut away from platform-action, open, mouse-click, and mouse-scroll owners." : "Legacy verification ownership still survives outside the Post-action Verification group."),
+        createPhase("post-action-verification-required-shape", requiredFilesPresent && childFilesPresent && childIdsMatch && schemaShapePassed && executorShapePassed && decisionStatusGuardPassed && rawPayloadGuardPassed, requiredFilesPresent && childFilesPresent && childIdsMatch && schemaShapePassed && executorShapePassed && decisionStatusGuardPassed && rawPayloadGuardPassed ? "PASS" : "CODE VIOLATION", requiredFilesPresent && childFilesPresent && childIdsMatch && schemaShapePassed && executorShapePassed && decisionStatusGuardPassed && rawPayloadGuardPassed ? "Required shape exists: schema, registry, executor, gates, builders, ports, and child contracts are in place." : "Required shape is incomplete."),
+        createPhase("post-action-verification-forbidden-shape", noExportStar && noCapabilityCheckRemnants, noExportStar && noCapabilityCheckRemnants ? "PASS" : "CODE VIOLATION", noExportStar && noCapabilityCheckRemnants ? "Forbidden shape remnants such as export * and capability-check.ts are gone." : "Forbidden shape remnants still exist."),
+        createPhase("post-action-verification-boundary", thinAbilityGroupPassed && forbiddenImports.length === 0, thinAbilityGroupPassed && forbiddenImports.length === 0 ? "PASS" : "CODE VIOLATION", thinAbilityGroupPassed && forbiddenImports.length === 0 ? "Boundary holds: thin ability group and no forbidden runtime owner imports." : "Boundary is leaking or the ability group is too thick."),
+        createPhase("post-action-verification-anti-escape", antiEscapeViolations.length === 0, antiEscapeViolations.length === 0 ? "PASS" : "CODE VIOLATION", antiEscapeViolations.length === 0 ? "Anti-escape checks passed." : "Anti-escape violations were detected."),
       ],
     };
   },

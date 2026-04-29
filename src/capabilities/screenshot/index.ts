@@ -1,8 +1,21 @@
-export * from "./contract.js";
-export * from "./ability-group.js";
-export * from "./registry.js";
-export * from "./children/capture-browser-viewport/implementation.js";
-export * from "./children/capture-desktop-screen/implementation.js";
-export * from "./children/capture-region/implementation.js";
-export * from "./children/optimize-lossless/implementation.js";
-export * from "./children/prepare-ai-input/implementation.js";
+export {
+  createScreenshotAbilityGroup,
+} from "./ability-group.js";
+export {
+  SCREENSHOT_ABILITY_GROUP_ID,
+  type ScreenshotAbilityGroup,
+  type ScreenshotAbilityInput,
+  type ScreenshotAbilityResult,
+  type ScreenshotArtifactRef,
+  type ScreenshotScaleMapping,
+  type ScreenshotChildCapabilityId,
+} from "./contract.js";
+export {
+  ScreenshotAbilityInputSchema,
+  ScreenshotResultSchema,
+  ScreenshotArtifactRefSchema,
+  ScreenshotScaleMappingSchema,
+} from "./schema.js";
+export {
+  listScreenshotChildren,
+} from "./registry.js";

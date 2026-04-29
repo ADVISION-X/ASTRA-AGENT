@@ -1,5 +1,5 @@
 import { createId } from "../local-runtime/ids.js";
-import type { MouseScrollPrimitiveInput, MouseScrollPrimitivePort, MouseScrollPrimitiveResult } from "../../capabilities/mouse-scroll/primitive-port.js";
+import type { MouseScrollPrimitiveInput, MouseScrollPrimitivePort, MouseScrollPrimitiveResult } from "../../capabilities/mouse-scroll/ports/mouse-scroll-primitive-port.js";
 import type { BrowserController } from "./browser-controller.js";
 
 type CreateBrowserControllerMouseScrollPrimitivePortInput = {

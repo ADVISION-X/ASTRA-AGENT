@@ -10,9 +10,9 @@ import type {
   CommanderHumanCommandInput,
   CommanderMissionDashboardView,
 } from "../../capabilities/commander-console/index.js";
-import { createAbilityRoster, createOrchestrationAbilityGroup, MissionRuntimeExecutor, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
-import type { OpenDrawer } from "../../capabilities/open/contract.js";
-import { createOpenDrawer } from "../../capabilities/open/index.js";
+import { createOrchestrationAbilityGroup, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
+import type { OpenAbilityGroup } from "../../capabilities/open/contract.js";
+import { createOpenAbilityGroup } from "../../capabilities/open/index.js";
 import { AI_ABILITY_GROUP_ID, createAiAbilityGroup, type AiAbilityGroup } from "../../capabilities/ai/index.js";
 import {
   createForensicsPersistenceAbilityGroup,
@@ -23,14 +23,25 @@ import { createMouseScrollAbilityGroup, type MouseScrollAbilityGroup } from "../
 import { createPageStateAbilityGroup, type PageStateAbilityGroup } from "../../capabilities/page-state/index.js";
 import { createPostActionVerificationAbilityGroup, type PostActionVerificationAbilityGroup } from "../../capabilities/post-action-verification/index.js";
 import { createScreenshotAbilityGroup, type ScreenshotAbilityGroup } from "../../capabilities/screenshot/index.js";
+import { createFilesystemScreenshotArtifactPort } from "../../capabilities/screenshot/ports/screenshot-artifact-port.js";
+import { createBrowserControllerScreenshotCapturePort } from "../../capabilities/screenshot/ports/screenshot-capture-port.js";
+import { createSharpScreenshotImageProcessingPort } from "../../capabilities/screenshot/ports/screenshot-image-processing-port.js";
+import { createSystemScreenshotClockPort } from "../../capabilities/screenshot/ports/screenshot-clock-port.js";
 import { createVisualTargetAbilityGroup, type VisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
-import { createNerveBusAbilityGroup, type NerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
+import {
+  type AiResponseEnvelope,
+  createNerveBusAbilityGroup,
+  type HumanCommandEnvelope,
+  type HumanCommandResultEnvelope,
+  type NerveBusAbilityGroup,
+  type NerveBusHandledResult,
+  type NerveBusPayloadDocument,
+} from "../../capabilities/nerve-bus/index.js";
 import {
   createEvidenceStoreForensicsArtifactStoragePort,
   createEvidenceStoreForensicsRecordStoragePort,
 } from "../storage/evidence-store/forensics-storage-adapter.js";
 import { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
-import type { HumanCommandEnvelope, HumanCommandResultEnvelope, HumanCommandTargetId } from "../../capabilities/nerve-bus/index.js";
 import { TikTokPlatformAdapter } from "./tiktok-platform/runtime.js";
 import type { PlatformAdapter } from "./platform-runtime-contract.js";
 import type { BrowserController } from "../browser/browser-controller.js";
@@ -61,6 +72,21 @@ type GrassEyeWorkbenchOptions = {
 
 type CommanderBrowserSessionSnapshot = ReturnType<BrowserController["getSessionState"]>;
 
+const CAPABILITY_ROSTER = [
+  { abilityGroupId: "commander-console", displayName: "Commander Console", currentStrength: "governed", purpose: "Mission command and read-only operator console" },
+  { abilityGroupId: "orchestration", displayName: "Orchestration", currentStrength: "governed", purpose: "Mission command, map execution, and controlled transitions" },
+  { abilityGroupId: "nerve-bus", displayName: "Nerve Bus", currentStrength: "governed", purpose: "Governed transport between orchestration, abilities, AI, and commander" },
+  { abilityGroupId: "ai", displayName: "AI", currentStrength: "specialized", purpose: "Local model execution under governed contracts" },
+  { abilityGroupId: "open", displayName: "Open", currentStrength: "governed", purpose: "Governed target-page opening and session-safe navigation" },
+  { abilityGroupId: "screenshot", displayName: "Screenshot", currentStrength: "governed", purpose: "Governed capture and image preparation" },
+  { abilityGroupId: "visual-target", displayName: "Visual Target", currentStrength: "governed", purpose: "Visual target detection and coordinate truth" },
+  { abilityGroupId: "mouse-click", displayName: "Mouse Click", currentStrength: "governed", purpose: "Governed click execution" },
+  { abilityGroupId: "mouse-scroll", displayName: "Mouse Scroll", currentStrength: "governed", purpose: "Governed scroll execution" },
+  { abilityGroupId: "post-action-verification", displayName: "Post-action Verification", currentStrength: "governed", purpose: "Action-result verification after platform operations" },
+  { abilityGroupId: "forensics-persistence", displayName: "Forensics Persistence", currentStrength: "governed", purpose: "Evidence, ledger, and runtime proof persistence" },
+  { abilityGroupId: "page-state", displayName: "Page State", currentStrength: "governed", purpose: "Page readiness and safety-state truth" },
+] as const;
+
 export class GrassEyeWorkbench {
   readonly structuredLogBus: StructuredLogBus;
   readonly evidenceStore: EvidenceStoreService;
@@ -68,14 +94,13 @@ export class GrassEyeWorkbench {
   readonly aiAbilityGroup: AiAbilityGroup;
   readonly forensicsPersistenceAbilityGroup: ForensicsPersistenceAbilityGroup;
   readonly platformAdapter: PlatformAdapter;
-  readonly openDrawer: OpenDrawer;
+  readonly openAbilityGroup: OpenAbilityGroup;
   readonly mouseClickAbilityGroup: MouseClickAbilityGroup;
   readonly mouseScrollAbilityGroup: MouseScrollAbilityGroup;
   readonly pageStateAbilityGroup: PageStateAbilityGroup;
   readonly postActionVerificationAbilityGroup: PostActionVerificationAbilityGroup;
   readonly screenshotAbilityGroup: ScreenshotAbilityGroup;
   readonly visualTargetAbilityGroup: VisualTargetAbilityGroup;
-  readonly missionRuntimeExecutor: MissionRuntimeExecutor;
   readonly nerveBusAbilityGroup: NerveBusAbilityGroup;
   readonly orchestrationAbilityGroup: OrchestrationAbilityGroup;
   readonly commanderConsole: CommanderConsoleAbilityGroup;
@@ -89,13 +114,15 @@ export class GrassEyeWorkbench {
     }
     this.evidenceStore = new EvidenceStoreService(dataDir, this.structuredLogBus);
         this.nerveBusAbilityGroup = createNerveBusAbilityGroup({
-          abilityHandlers: {},
-          humanCommandHandler: async (envelope) => this.handleHumanCommandEnvelope(envelope),
-          aiHandler: async (envelope) => {
+          handlerPort: {
+            dispatchAbilityCommand: async () => null,
+            dispatchHumanCommand: async ({ envelope, inputPayload }) => this.handleHumanCommandEnvelope(envelope, inputPayload),
+            requestAi: async ({ envelope, inputPayload }) => {
             const taskType = "product_presence_judgment" as const;
-            const input = VisionProductPresenceRequestInputSchema.parse(envelope.payload);
+            const input = VisionProductPresenceRequestInputSchema.parse(this.payloadDocumentToObject(inputPayload));
             const aiResult = await this.aiAbilityGroup.execute({
               abilityGroupId: AI_ABILITY_GROUP_ID,
+              missionId: envelope.missionId,
               taskType,
               inputModality: "image_collection",
               inputRefs: [],
@@ -114,61 +141,59 @@ export class GrassEyeWorkbench {
               input,
             });
             const status = aiResult.status === "failed" ? "failed" : "success";
-
+            const outputPayload = this.buildPayloadDocument({
+              documentType: "ai.response",
+              documentRef: `${envelope.requestId}:response`,
+              summary: status === "success" ? "AI response accepted." : (aiResult.failureReason ?? "AI response failed."),
+              content: {
+                aiTaskType: aiResult.taskType,
+                confidence: aiResult.confidence,
+                failureReason: aiResult.failureReason,
+              },
+            });
             return {
-              envelopeId: `${envelope.envelopeId}:response`,
-              responseId: `${envelope.requestId}:response`,
-              missionId: envelope.missionId,
-              mapId: envelope.mapId,
-              stepId: envelope.stepId,
-              from: "local-ai-decision",
-              to: "orchestration",
-              status,
-              decision: aiResult.taskType,
-              confidence: aiResult.confidence,
-              payloadRef: Object.keys(envelope.payload),
-              payload: { aiTaskId: aiResult.runtimeProof.outputRefs[0] ?? null },
-              failureReason: status === "failed" ? aiResult.failureReason : null,
-              createdAt: new Date().toISOString(),
-            };
+              envelope: {
+                ...this.buildTransportEnvelopeBase({
+                  channelId: "ai-to-orchestration",
+                  envelopeId: `${envelope.envelopeId}:response`,
+                  missionId: envelope.missionId,
+                  mapId: envelope.mapId,
+                  stepId: envelope.stepId,
+                  inputRef: envelope.inputRef,
+                  payloadRefs: outputPayload.evidenceRefs.length > 0 ? Object.fromEntries(outputPayload.evidenceRefs.map((ref) => [ref, ref])) : { output: outputPayload.documentRef },
+                  summary: outputPayload.summary,
+                  tags: ["ai", aiResult.taskType],
+                }),
+                envelopeKind: "ai_response",
+                responseId: `${envelope.requestId}:response`,
+                from: "ai",
+                to: "orchestration",
+                status,
+                decision: aiResult.taskType,
+                confidence: aiResult.confidence,
+                outputRef: outputPayload.documentRef,
+                failureReason: status === "failed" ? aiResult.failureReason : null,
+                reviewRequiredReason: aiResult.status === "review_required" ? aiResult.failureReason : null,
+              },
+              outputPayload,
+            } satisfies NerveBusHandledResult<AiResponseEnvelope>;
           },
+        },
         });
         this.orchestrationAbilityGroup = createOrchestrationAbilityGroup({
           nerveBus: this.nerveBusAbilityGroup,
-          runtimeController: {
-            startMission: async () => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.beginMissionRuntime();
-            }),
-            pauseMission: async () => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.pauseMissionRuntime();
-            }),
-            resumeMission: async () => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.resumeMissionRuntime();
-            }),
-            stopMission: async ({ reason }) => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.stopMissionRuntime(reason);
-            }),
-            emergencyStop: async ({ reason }) => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.emergencyStopMissionRuntime(reason);
-            }),
-            submitReviewDecision: async (reviewDecision) => this.readMissionRuntimeSnapshot(async () => {
-              await this.missionRuntimeExecutor.submitRuntimeReviewDecision(reviewDecision);
-            }),
-            getRuntimeSnapshot: async () => this.readMissionRuntimeSnapshot(),
-          },
         });
         this.commanderConsole = createCommanderConsoleAbilityGroup({
           defaultOperatorRef: "commander-console:operator",
           commandTransport: {
             emitHumanCommand: async (command) => {
-              const envelope = this.buildHumanCommandEnvelope(command);
-              const transport = await this.nerveBusAbilityGroup.dispatchHumanCommand(envelope);
+              const transport = await this.nerveBusAbilityGroup.dispatchHumanCommand(this.buildHumanCommandDispatchInput(command));
               const status = transport.resultEnvelope.status === "success"
                 ? "accepted"
                 : transport.resultEnvelope.status;
               return {
                 commandId: command.commandId,
-                envelopeRef: envelope.envelopeId,
+                envelopeRef: transport.commandEnvelope.envelopeId,
                 resultEnvelopeRef: transport.resultEnvelope.envelopeId,
                 status,
                 failureReason: transport.resultEnvelope.failureReason,
@@ -330,17 +355,17 @@ export class GrassEyeWorkbench {
           },
           capabilityHealthReadModel: {
             readRuntimeSummary: async () => {
-              const agentSnapshot = await this.missionRuntimeExecutor.getSnapshot();
+              const mission = await this.orchestrationAbilityGroup.getMissionState();
               const state = await this.evidenceStore.getOperatorSnapshot();
               return {
-                runtimeStatus: agentSnapshot.currentTask?.status ?? "idle",
-                currentStep: agentSnapshot.deliveryState.currentRoundStep,
-                reviewReason: agentSnapshot.deliveryState.reviewRequiredReason,
+                runtimeStatus: mission.status,
+                currentStep: mission.currentStepId,
+                reviewReason: mission.reviewRequiredReason,
                 totalSeenCount: state.roundStructuralLogs.length,
                 evidencePacketCount: state.evidencePackets.length,
                 browseLedgerCount: state.browseLedgerEntries.length,
                 candidateCount: state.candidates.length,
-                lastAiFailureReason: agentSnapshot.deliveryState.lastAiFailureReason,
+                lastAiFailureReason: mission.failureReason,
               };
             },
             readBrowserSummary: async () => {
@@ -367,16 +392,7 @@ export class GrassEyeWorkbench {
               }));
             },
             listCapabilityRoster: async () => {
-              const roster = createAbilityRoster();
-              return this.orchestrationAbilityGroup.getAbilityRoster().flatMap((abilityGroupId) => {
-                const entry = roster.get(abilityGroupId);
-                return entry ? [{
-                  abilityGroupId: entry.abilityGroupId,
-                  displayName: entry.displayName,
-                  currentStrength: entry.currentStrength,
-                  purpose: entry.purpose,
-                }] : [];
-              });
+              return [...CAPABILITY_ROSTER];
             },
           },
           auditReadModel: {
@@ -413,8 +429,10 @@ export class GrassEyeWorkbench {
       headlessRequested: options.browserHeadless === true,
     });
     this.screenshotAbilityGroup = createScreenshotAbilityGroup({
-      browserController: this.browserController,
-      outputRootDir: path.join(dataDir, "artifacts", "screenshot"),
+      capturePort: createBrowserControllerScreenshotCapturePort(this.browserController),
+      artifactPort: createFilesystemScreenshotArtifactPort(path.join(dataDir, "artifacts", "screenshot")),
+      imageProcessingPort: createSharpScreenshotImageProcessingPort(),
+      clockPort: createSystemScreenshotClockPort(),
     });
     this.mouseClickAbilityGroup = createMouseClickAbilityGroup({
       primitivePort: createBrowserControllerMouseClickPrimitivePort({
@@ -429,9 +447,28 @@ export class GrassEyeWorkbench {
     this.pageStateAbilityGroup = createPageStateAbilityGroup();
     this.postActionVerificationAbilityGroup = createPostActionVerificationAbilityGroup();
     this.visualTargetAbilityGroup = createVisualTargetAbilityGroup();
-    this.openDrawer = createOpenDrawer({
-      browserController: this.browserController,
-      localWorkbenchUrl: this.options.baseUrl,
+    this.openAbilityGroup = createOpenAbilityGroup({
+      browser: {
+        getSessionSnapshot: async () => this.browserController.getSessionState(),
+        open: async (openInput) => this.browserController.open({
+          url: openInput.url,
+          title: openInput.title ?? "",
+        }),
+      },
+      profilePort: {
+        resolveProfileOverride: ({ childCapabilityId }) => {
+          if (childCapabilityId !== "open-local-workbench") {
+            return null;
+          }
+
+          const workbenchUrl = new URL(this.options.baseUrl);
+          return {
+            defaultUrl: workbenchUrl.toString(),
+            defaultTitle: "GrassEye Local Workbench",
+            allowedHostnames: [workbenchUrl.hostname],
+          };
+        },
+      },
     });
     this.platformAdapter = new TikTokPlatformAdapter(
       this.browserController,
@@ -443,8 +480,6 @@ export class GrassEyeWorkbench {
       this.postActionVerificationAbilityGroup,
       options.realPlatformUrl ?? "https://www.tiktok.com/foryou"
     );
-
-    this.missionRuntimeExecutor = new MissionRuntimeExecutor(this.platformAdapter, this.openDrawer, this.postActionVerificationAbilityGroup, this.screenshotAbilityGroup, this.evidenceStore, this.forensicsPersistenceAbilityGroup, this.aiAbilityGroup);
   }
 
   async init(): Promise<void> {
@@ -453,14 +488,14 @@ export class GrassEyeWorkbench {
 
   async getHealthReport(): Promise<RuntimeHealthReport> {
     const dataStoreHealth = await this.evidenceStore.getHealth();
-    const agentSnapshot = await this.missionRuntimeExecutor.getSnapshot();
+    const mission = await this.orchestrationAbilityGroup.getMissionState();
     const localAiHealth = await this.aiAbilityGroup.getHealth();
     const localAiRuntimeHealth = await this.aiAbilityGroup.getRuntimeHealth();
     return {
       generatedAt: new Date().toISOString(),
       components: [
         { name: "console", ok: true, detail: "Commander Console route ready" },
-        { name: "agent", ok: true, detail: this.missionRuntimeExecutor.getHealth().detail },
+        { name: "agent", ok: true, detail: `mission_status=${mission.status}; map=${mission.mapId ?? "none"}; round=${mission.currentRoundIndex}` },
         { name: "browserController", ok: true, detail: this.browserController.getHealth().detail },
         { name: "localAi", ok: localAiHealth.ok, detail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}` },
         { name: "dataStore", ok: dataStoreHealth.ok, detail: dataStoreHealth.detail }
@@ -481,23 +516,106 @@ export class GrassEyeWorkbench {
     return result.output as CommanderMissionDashboardView;
   }
 
-  private buildHumanCommandEnvelope(command: CommanderHumanCommandInput): HumanCommandEnvelope {
-    const commandId = createId("commander_command");
-    const payload = command.initialPayload ?? {};
+  private buildTransportEnvelopeBase(input: {
+    channelId: "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ai" | "ai-to-orchestration";
+    envelopeId: string;
+    missionId: string;
+    mapId: string;
+    stepId: string;
+    inputRef: string;
+    payloadRefs: Record<string, string | null>;
+    summary: string;
+    tags: string[];
+  }) {
+    const createdAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+    const refs = Object.values(input.payloadRefs).filter((value): value is string => typeof value === "string" && value.length > 0);
     return {
-      envelopeId: `commander-console:${commandId}`,
+      abilityGroupId: "nerve-bus" as const,
+      channelId: input.channelId,
+      envelopeId: input.envelopeId,
+      transportId: `${input.envelopeId}:transport`,
+      traceId: `${input.missionId}:${input.mapId}`,
+      spanId: `${input.stepId}:${input.channelId}`,
+      attemptId: `${input.envelopeId}:attempt:1`,
+      missionId: input.missionId,
+      mapId: input.mapId,
+      stepId: input.stepId,
+      idempotencyKey: `${input.envelopeId}:idempotent`,
+      sequenceNo: 0,
+      inputRef: input.inputRef,
+      payloadRef: refs.length > 0 ? refs : [`${input.envelopeId}:payload`],
+      payload: {
+        summary: input.summary,
+        entityRefs: refs,
+        evidenceRefs: refs,
+        tags: input.tags,
+        attributes: [],
+      },
+      createdAt,
+      expiresAt,
+    };
+  }
+
+  private buildPayloadDocument(input: {
+    documentType: string;
+    documentRef: string;
+    summary: string;
+    content: Record<string, string | number | boolean | null | undefined>;
+  }): NerveBusPayloadDocument {
+    const contentBlocks = Object.entries(input.content)
+      .filter((entry): entry is [string, string | number | boolean | null] => entry[1] !== undefined)
+      .map(([key, value]) => ({ key, value }));
+    return {
+      documentType: input.documentType,
+      documentRef: input.documentRef,
+      summary: input.summary,
+      entityRefs: [],
+      evidenceRefs: [],
+      contentBlocks,
+    };
+  }
+
+  private payloadDocumentToObject(payload: NerveBusPayloadDocument): Record<string, string | number | boolean | null> {
+    return Object.fromEntries(payload.contentBlocks.map((block) => [block.key, block.value]));
+  }
+
+  private buildHumanCommandDispatchInput(command: CommanderHumanCommandInput) {
+    const commandId = createId("commander_command");
+    const inputPayload = this.buildPayloadDocument({
+      documentType: "human.command",
+      documentRef: `commander-console:${commandId}:input`,
+      summary: `Commander command ${command.commandType}`,
+      content: {
+        commandType: command.commandType,
+        targetMissionId: command.targetMissionId ?? null,
+        selectedMapId: command.selectedMapId ?? null,
+        requestedPlatformId: command.requestedPlatformId ?? null,
+        humanGoal: command.humanGoal ?? null,
+        operatorNote: command.operatorNote ?? null,
+        targetRecordId: command.targetRecordRef?.recordId ?? null,
+      },
+    });
+    return {
+      envelope: {
+      ...this.buildTransportEnvelopeBase({
+        channelId: "commander-to-orchestration",
+        envelopeId: `commander-console:${commandId}`,
+        missionId: command.targetMissionId ?? "human-command",
+        mapId: command.selectedMapId ?? "human-command",
+        stepId: command.commandType,
+        inputRef: inputPayload.documentRef,
+        payloadRefs: { input: inputPayload.documentRef },
+        summary: inputPayload.summary,
+        tags: ["commander-console", command.commandType],
+      }),
       commandId,
-      missionId: command.targetMissionId ?? "human-command",
-      mapId: command.selectedMapId ?? "human-command",
-      stepId: command.commandType,
+      envelopeKind: "human_command" as const,
       from: "commander-console",
-      to: command.commandType === "approve-candidate" || command.commandType === "reject-candidate" || command.commandType === "mark-review-required"
-        ? "forensics-persistence"
-        : "orchestration",
+      to: "orchestration" as const,
       commandType: command.commandType,
-      payloadRef: Object.keys(payload),
-      payload,
-      createdAt: new Date().toISOString(),
+      },
+      inputPayload,
     };
   }
 
@@ -510,64 +628,82 @@ export class GrassEyeWorkbench {
       return resultEnvelope.failureReason ?? "command transport requires review";
     }
 
-    const payload = resultEnvelope.payload as { missionStatus?: string; reviewStatus?: string };
-    return payload.missionStatus ?? payload.reviewStatus ?? "command accepted";
+    return resultEnvelope.reviewRequiredReason ?? "command accepted";
   }
 
   private buildHumanCommandResultEnvelope(input: {
     envelope: HumanCommandEnvelope;
     status: "success" | "failed" | "review_required";
-    payload: Record<string, unknown>;
+    summary: string;
     failureReason?: string | null;
-  }): HumanCommandResultEnvelope {
+  }): NerveBusHandledResult<HumanCommandResultEnvelope> {
+    const outputPayload = this.buildPayloadDocument({
+      documentType: "human.command.result",
+      documentRef: `${input.envelope.commandId}:result`,
+      summary: input.summary,
+      content: {
+        commandType: input.envelope.commandType,
+        missionId: input.envelope.missionId,
+        failureReason: input.failureReason ?? null,
+        status: input.status,
+      },
+    });
     return {
-      envelopeId: `${input.envelope.envelopeId}:result`,
+      envelope: {
+      ...this.buildTransportEnvelopeBase({
+        channelId: "orchestration-to-commander",
+        envelopeId: `${input.envelope.envelopeId}:result`,
+        missionId: input.envelope.missionId,
+        mapId: input.envelope.mapId,
+        stepId: input.envelope.stepId,
+        inputRef: input.envelope.inputRef,
+        payloadRefs: { output: outputPayload.documentRef },
+        summary: outputPayload.summary,
+        tags: ["commander-console", input.status],
+      }),
       resultId: `${input.envelope.commandId}:result`,
-      missionId: input.envelope.missionId,
-      mapId: input.envelope.mapId,
-      stepId: input.envelope.stepId,
-      from: input.envelope.to,
+      envelopeKind: "human_command_result" as const,
+      from: "orchestration",
       to: "commander-console",
       status: input.status,
-      payloadRef: Object.keys(input.payload),
-      payload: input.payload,
+      outputRef: outputPayload.documentRef,
       failureReason: input.failureReason ?? null,
-      createdAt: new Date().toISOString(),
+      reviewRequiredReason: input.status === "review_required" ? input.failureReason ?? "review required" : null,
+      },
+      outputPayload,
     };
   }
 
-  private async handleHumanCommandEnvelope(envelope: HumanCommandEnvelope): Promise<HumanCommandResultEnvelope> {
+  private async handleHumanCommandEnvelope(envelope: HumanCommandEnvelope, inputPayload: NerveBusPayloadDocument): Promise<NerveBusHandledResult<HumanCommandResultEnvelope>> {
     try {
-      if (envelope.to === "orchestration") {
-        if (envelope.commandType === "start-mission") {
-          const payload = envelope.payload as {
-            humanGoal?: string | null;
-            requestedPlatformId?: GrassEyePlatformTarget | null;
-            selectedMapId?: string | null;
-            operatorNote?: string | null;
-          };
-          if (!payload.requestedPlatformId) {
+      const payload = this.payloadDocumentToObject(inputPayload);
+      if (envelope.commandType === "start-mission") {
+          const requestedPlatformId = typeof payload.requestedPlatformId === "string" ? payload.requestedPlatformId as GrassEyePlatformTarget : null;
+          const humanGoal = typeof payload.humanGoal === "string" ? payload.humanGoal : null;
+          const selectedMapId = typeof payload.selectedMapId === "string" ? payload.selectedMapId : null;
+          const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : null;
+          if (!requestedPlatformId) {
             return this.buildHumanCommandResultEnvelope({
               envelope,
               status: "failed",
-              payload: {},
+              summary: "requestedPlatformId is required for start-mission.",
               failureReason: "requestedPlatformId is required for start-mission.",
             });
           }
           const missionState = await this.orchestrationAbilityGroup.startMission({
             missionId: envelope.missionId,
-            humanGoal: payload.humanGoal ?? "Discover evidence-backed product opportunities from the active social feed.",
-            requestedPlatform: payload.requestedPlatformId,
+            humanGoal: humanGoal ?? "Discover evidence-backed product opportunities from the active social feed.",
+            requestedPlatform: requestedPlatformId,
             initialPayload: {
               requestedBy: "commander-console",
-              ...(payload.selectedMapId ? { selectedMapId: payload.selectedMapId } : {}),
-              ...(payload.operatorNote ? { operatorNote: payload.operatorNote } : {}),
+              ...(selectedMapId ? { selectedMapId } : {}),
+              ...(operatorNote ? { operatorNote } : {}),
             },
           });
           return this.buildHumanCommandResultEnvelope({
             envelope,
             status: missionState.status === "review_required" ? "review_required" : "success",
-            payload: { missionId: missionState.missionId, missionStatus: missionState.status },
+            summary: `Mission ${missionState.missionId ?? envelope.missionId} is now ${missionState.status}.`,
           });
         }
 
@@ -577,36 +713,34 @@ export class GrassEyeWorkbench {
           return this.buildHumanCommandResultEnvelope({
             envelope,
             status: "failed",
-            payload: {},
+            summary: "No active mission is available.",
             failureReason: "No active mission is available.",
           });
         }
 
-        const operatorNote = typeof envelope.payload.operatorNote === "string" ? envelope.payload.operatorNote : null;
+        const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : null;
         if (envelope.commandType === "pause-mission") {
           const missionState = await this.orchestrationAbilityGroup.pauseMission(missionId);
-          return this.buildHumanCommandResultEnvelope({ envelope, status: "success", payload: { missionId, missionStatus: missionState.status } });
+          return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
         if (envelope.commandType === "resume-mission") {
           const missionState = await this.orchestrationAbilityGroup.resumeMission(missionId);
-          return this.buildHumanCommandResultEnvelope({ envelope, status: missionState.status === "review_required" ? "review_required" : "success", payload: { missionId, missionStatus: missionState.status } });
+          return this.buildHumanCommandResultEnvelope({ envelope, status: missionState.status === "review_required" ? "review_required" : "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
         if (envelope.commandType === "stop-mission") {
           const missionState = await this.orchestrationAbilityGroup.stopMission({ missionId, reason: operatorNote ?? "stop requested by commander console" });
-          return this.buildHumanCommandResultEnvelope({ envelope, status: "success", payload: { missionId, missionStatus: missionState.status } });
+          return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
 
         const missionState = await this.orchestrationAbilityGroup.emergencyStop({ missionId, reason: operatorNote ?? "emergency stop requested by commander console" });
-        return this.buildHumanCommandResultEnvelope({ envelope, status: "success", payload: { missionId, missionStatus: missionState.status } });
-      }
+        return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
 
-      const targetRecordRef = envelope.payload.targetRecordRef as { recordId?: string } | undefined;
-      const candidateId = targetRecordRef?.recordId;
+      const candidateId = typeof payload.targetRecordId === "string" ? payload.targetRecordId : null;
       if (!candidateId) {
         return this.buildHumanCommandResultEnvelope({
           envelope,
           status: "failed",
-          payload: {},
+          summary: "Candidate review commands require a target candidate id.",
           failureReason: "Candidate review commands require a target candidate id.",
         });
       }
@@ -616,18 +750,18 @@ export class GrassEyeWorkbench {
         : envelope.commandType === "reject-candidate"
           ? "reject"
           : "hold";
-      const operatorNote = typeof envelope.payload.operatorNote === "string" ? envelope.payload.operatorNote : undefined;
+      const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : undefined;
       const candidate = await this.evidenceStore.setCandidateDisposition(candidateId, disposition, operatorNote);
       return this.buildHumanCommandResultEnvelope({
         envelope,
         status: "success",
-        payload: { candidateId: candidate.id, reviewStatus: candidate.reviewStatus },
+        summary: `Candidate ${candidate.id} is now ${candidate.reviewStatus}.`,
       });
     } catch (error) {
       return this.buildHumanCommandResultEnvelope({
         envelope,
         status: "failed",
-        payload: {},
+        summary: "Unknown human command transport failure",
         failureReason: error instanceof Error ? error.message : "Unknown human command transport failure",
       });
     }
@@ -646,17 +780,17 @@ export class GrassEyeWorkbench {
       await afterCommand();
     }
 
-    const snapshot = await this.missionRuntimeExecutor.getSnapshot();
+    const mission = await this.orchestrationAbilityGroup.getMissionState();
     return {
-      task: snapshot.currentTask
+      task: mission.activeTaskRunId
         ? {
-            taskRunId: snapshot.currentTask.id,
-            status: snapshot.currentTask.status,
-            currentRoundIndex: snapshot.currentTask.currentRoundIndex,
+            taskRunId: mission.activeTaskRunId,
+            status: mission.status,
+            currentRoundIndex: mission.currentRoundIndex,
           }
         : null,
-      reviewRequiredReason: snapshot.deliveryState.reviewRequiredReason,
-      failureReason: snapshot.deliveryState.lastError,
+      reviewRequiredReason: mission.reviewRequiredReason,
+      failureReason: mission.failureReason,
     };
   }
 

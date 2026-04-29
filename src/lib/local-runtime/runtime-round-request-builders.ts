@@ -80,6 +80,7 @@ function createBaseAiInput(input: {
 }): Omit<AiAbilityInput, "taskType" | "inputModality" | "input"> {
   return {
     abilityGroupId: AI_ABILITY_GROUP_ID,
+    missionId: input.taskRunId,
     inputRefs: input.evidenceRefs,
     promptContractId: input.promptContractId,
     expectedOutputSchema: input.expectedOutputSchema,

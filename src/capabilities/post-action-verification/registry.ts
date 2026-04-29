@@ -1,7 +1,5 @@
-import type {
-  PostActionVerificationChildCapability,
-  PostActionVerificationChildCapabilityId,
-} from "./contract.js";
+import type { PostActionVerificationChildCapability, PostActionVerificationChildCapabilityId } from "./contract.js";
+import { POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS } from "./contract.js";
 import { createVerifyCommentsPanelClosedCapability } from "./children/verify-comments-panel-closed/implementation.js";
 import { createVerifyCommentsPanelOpenedCapability } from "./children/verify-comments-panel-opened/implementation.js";
 import { createVerifyNotInterestedResultCapability } from "./children/verify-not-interested-result/implementation.js";
@@ -10,12 +8,17 @@ import { createVerifyTargetStateChangedCapability } from "./children/verify-targ
 import { createVerifyVideoChangedAfterScrollCapability } from "./children/verify-video-changed-after-scroll/implementation.js";
 
 export function createPostActionVerificationRegistry(): Map<PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability> {
-  return new Map<PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability>([
+  const entries: Array<readonly [PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability]> = [
     ["verify-page-opened", createVerifyPageOpenedCapability()],
     ["verify-comments-panel-opened", createVerifyCommentsPanelOpenedCapability()],
     ["verify-comments-panel-closed", createVerifyCommentsPanelClosedCapability()],
     ["verify-video-changed-after-scroll", createVerifyVideoChangedAfterScrollCapability()],
     ["verify-not-interested-result", createVerifyNotInterestedResultCapability()],
     ["verify-target-state-changed", createVerifyTargetStateChangedCapability()],
-  ]);
+  ];
+  return new Map<PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability>(entries);
+}
+
+export function listPostActionVerificationChildren(): PostActionVerificationChildCapabilityId[] {
+  return [...POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS];
 }

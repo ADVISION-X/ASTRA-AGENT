@@ -1,3 +1,35 @@
-export * from "./contract.js";
-export * from "./ability-group.js";
-export * from "./registry.js";
+export { createPostActionVerificationAbilityGroup } from "./ability-group.js";
+export {
+  POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
+  POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS,
+  type PostActionActionProof,
+  type PostActionChildAssessment,
+  type PostActionConfidencePolicy,
+  type PostActionEvidenceRef,
+  type PostActionExpectedOutcome,
+  type PostActionFailureReason,
+  type PostActionObservation,
+  type PostActionRuntimeProof,
+  type PostActionVerificationAbilityGroup,
+  type PostActionVerificationAbilityInput,
+  type PostActionVerificationAbilityResult,
+  type PostActionVerificationChildCapabilityId,
+  type PostActionVerificationDecision,
+  type PostActionVerificationPolicy,
+  type PostActionVerificationStatus,
+} from "./contract.js";
+export {
+  PostActionActionProofSchema,
+  PostActionConfidencePolicySchema,
+  PostActionEvidenceRefSchema,
+  PostActionExpectedOutcomeSchema,
+  PostActionObservationSchema,
+  PostActionRuntimeProofSchema,
+  PostActionVerificationAbilityInputSchema,
+  PostActionVerificationAbilityResultSchema,
+  PostActionVerificationChildCapabilityIdSchema,
+  PostActionVerificationDecisionSchema,
+  PostActionVerificationPolicySchema,
+  PostActionVerificationStatusSchema,
+} from "./schema.js";
+export { listPostActionVerificationChildren } from "./registry.js";

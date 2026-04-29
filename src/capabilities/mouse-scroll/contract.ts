@@ -1,94 +1,71 @@
-import type { MouseScrollPrimitivePort } from "./primitive-port.js";
-import type { MouseScrollBounds, MouseScrollCoordinateSpace, MouseScrollPoint, MouseScrollRegion } from "./shared/coordinate.js";
-import type { MouseScrollFailureReason } from "./shared/scroll-failure.js";
-import type { MouseScrollDirection, MouseScrollMagnitude } from "./shared/scroll-magnitude.js";
-import type { MouseScrollSafetyPolicy } from "./shared/scroll-policy.js";
-import type { MouseScrollRuntimeProof, MouseScrollRuntimeProofStatus } from "./shared/runtime-proof.js";
+import type { z } from "zod";
 
-export const MOUSE_SCROLL_ABILITY_GROUP_ID = "mouse-scroll";
-export const MOUSE_SCROLL_CHILD_CAPABILITY_IDS = [
-  "scroll-browser-viewport",
-  "scroll-desktop-screen",
-  "scroll-region",
-] as const;
+import type { MouseScrollClockPort } from "./ports/mouse-scroll-clock-port.js";
+import type { MouseScrollPrimitivePort } from "./ports/mouse-scroll-primitive-port.js";
+import type { MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idempotency.js";
+import {
+  MouseScrollAbilityInputSchema,
+  MouseScrollAbilityResultSchema,
+  MouseScrollAnchorSchema,
+  MouseScrollBoundsSchema,
+  MouseScrollChildCapabilityIdSchema,
+  MouseScrollCoordinateSpaceSchema,
+  MouseScrollDeltaSchema,
+  MouseScrollDirectionSchema,
+  MouseScrollFailureReasonSchema,
+  MouseScrollGeometryScrollProofSchema,
+  MouseScrollMagnitudeSchema,
+  MouseScrollRegionSchema,
+  MouseScrollResultSchema,
+  MouseScrollRuntimeProofSchema,
+  MouseScrollSafetyPolicySchema,
+  MouseScrollStatusSchema,
+  ScrollBrowserViewportInputSchema,
+  ScrollBrowserViewportResultSchema,
+  ScrollDesktopScreenInputSchema,
+  ScrollDesktopScreenResultSchema,
+  ScrollRegionInputSchema,
+  ScrollRegionResultSchema,
+} from "./schema.js";
+import { MOUSE_SCROLL_ABILITY_GROUP_ID, MOUSE_SCROLL_CHILD_CAPABILITY_IDS } from "./shared/mouse-scroll-types.js";
 
-export type MouseScrollAbilityGroupId = typeof MOUSE_SCROLL_ABILITY_GROUP_ID;
-export type MouseScrollChildCapabilityId = typeof MOUSE_SCROLL_CHILD_CAPABILITY_IDS[number];
-export type MouseScrollGuardDecision = "allow";
-export type MouseScrollAbilityStatus = MouseScrollRuntimeProofStatus;
+export { MOUSE_SCROLL_ABILITY_GROUP_ID, MOUSE_SCROLL_CHILD_CAPABILITY_IDS };
 
-export type MouseScrollCustomDelta = {
-  deltaX: number;
-  deltaY: number;
-};
-
-export type MouseScrollAbilityInput = {
-  abilityGroupId: MouseScrollAbilityGroupId;
-  childCapabilityId: MouseScrollChildCapabilityId;
-  sessionId: string;
-  roundId: string | null;
-  videoVisitId: string | null;
-  requestedBy: string;
-  purpose: string;
-  geometryGuardRef: string;
-  guardDecision: MouseScrollGuardDecision;
-  sourceEvidenceRef: string | null;
-  sourceTargetRef: string | null;
-  coordinateSpace: MouseScrollCoordinateSpace;
-  anchorPoint: MouseScrollPoint;
-  region: MouseScrollRegion | null;
-  regionRef: string | null;
-  bounds: MouseScrollBounds;
-  direction: MouseScrollDirection;
-  magnitude: MouseScrollMagnitude;
-  customDelta: MouseScrollCustomDelta | null;
-  repeat: number;
-  safetyPolicy: Partial<MouseScrollSafetyPolicy>;
-};
-
-export type NormalizedMouseScrollAbilityInput = Omit<MouseScrollAbilityInput, "safetyPolicy"> & {
-  safetyPolicy: MouseScrollSafetyPolicy;
-};
-
-export type MouseScrollAbilityResult = {
-  status: MouseScrollAbilityStatus;
-  abilityGroupId: MouseScrollAbilityGroupId;
-  childCapabilityId: MouseScrollChildCapabilityId;
-  sessionId: string;
-  roundId: string | null;
-  videoVisitId: string | null;
-  scrollExecutionRef: string;
-  primitiveExecutionRefs: string[];
-  geometryGuardRef: string;
-  direction: MouseScrollDirection;
-  magnitude: MouseScrollMagnitude;
-  deltaX: number;
-  deltaY: number;
-  repeat: number;
-  coordinateSpace: MouseScrollCoordinateSpace;
-  anchorPoint: MouseScrollPoint;
-  regionRef: string | null;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-  statusMessage: string;
-  failureReason: MouseScrollFailureReason | null;
-  debugLogRef: string | null;
-  runtimeProof: MouseScrollRuntimeProof;
-};
+export type MouseScrollChildCapabilityId = z.output<typeof MouseScrollChildCapabilityIdSchema>;
+export type MouseScrollCoordinateSpace = z.output<typeof MouseScrollCoordinateSpaceSchema>;
+export type MouseScrollDirection = z.output<typeof MouseScrollDirectionSchema>;
+export type MouseScrollMagnitude = z.output<typeof MouseScrollMagnitudeSchema>;
+export type MouseScrollFailureReason = z.output<typeof MouseScrollFailureReasonSchema>;
+export type MouseScrollStatus = z.output<typeof MouseScrollStatusSchema>;
+export type MouseScrollAnchor = z.output<typeof MouseScrollAnchorSchema>;
+export type MouseScrollDelta = z.output<typeof MouseScrollDeltaSchema>;
+export type MouseScrollBounds = z.output<typeof MouseScrollBoundsSchema>;
+export type MouseScrollRegion = z.output<typeof MouseScrollRegionSchema>;
+export type MouseScrollSafetyPolicy = z.output<typeof MouseScrollSafetyPolicySchema>;
+export type MouseScrollGeometryScrollProof = z.output<typeof MouseScrollGeometryScrollProofSchema>;
+export type MouseScrollRuntimeProof = z.output<typeof MouseScrollRuntimeProofSchema>;
+export type MouseScrollAbilityInput = z.input<typeof MouseScrollAbilityInputSchema>;
+export type ParsedMouseScrollAbilityInput = z.output<typeof MouseScrollAbilityInputSchema>;
+export type ScrollBrowserViewportInput = z.output<typeof ScrollBrowserViewportInputSchema>;
+export type ScrollDesktopScreenInput = z.output<typeof ScrollDesktopScreenInputSchema>;
+export type ScrollRegionInput = z.output<typeof ScrollRegionInputSchema>;
+export type ScrollBrowserViewportResult = z.output<typeof ScrollBrowserViewportResultSchema>;
+export type ScrollDesktopScreenResult = z.output<typeof ScrollDesktopScreenResultSchema>;
+export type ScrollRegionResult = z.output<typeof ScrollRegionResultSchema>;
+export type MouseScrollAbilityResult = z.output<typeof MouseScrollAbilityResultSchema>;
+export type MouseScrollPublicResult = z.output<typeof MouseScrollResultSchema>;
 
 export type MouseScrollAbilityContext = {
   primitivePort: MouseScrollPrimitivePort;
+  clock: MouseScrollClockPort;
+  idempotency: MouseScrollIdempotencyRegistry;
 };
 
 export interface MouseScrollChildCapability {
-  readonly abilityGroupId: MouseScrollAbilityGroupId;
+  readonly abilityGroupId: typeof MOUSE_SCROLL_ABILITY_GROUP_ID;
   readonly childCapabilityId: MouseScrollChildCapabilityId;
 
-  execute(
-    input: NormalizedMouseScrollAbilityInput,
-    context: MouseScrollAbilityContext,
-  ): Promise<MouseScrollAbilityResult>;
+  execute(input: ParsedMouseScrollAbilityInput, context: MouseScrollAbilityContext): Promise<MouseScrollAbilityResult>;
 }
 
 export interface MouseScrollAbilityGroup {

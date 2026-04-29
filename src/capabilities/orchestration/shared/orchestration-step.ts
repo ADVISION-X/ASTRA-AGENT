@@ -1,0 +1,1 @@
+export type { MissionStepResult } from "../contract.js";

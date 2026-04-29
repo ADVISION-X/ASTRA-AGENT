@@ -1,409 +1,300 @@
-import type { AiRequestEnvelope, CommandEnvelope } from "../nerve-bus/index.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
-import { createAbilityRoster } from "./ability-roster.js";
-import { ORCHESTRATION_ABILITY_GROUP_ID } from "./contract.js";
-import type {
-  HumanCommandKind,
-  MissionCommand,
-  MissionControlState,
-  MissionExecutionResult,
-  MissionReviewDecisionInput,
-  MissionRuntimeSnapshot,
-  OrchestrationAbilityGroup,
-  OrchestrationMissionRuntimeController,
-} from "./contract.js";
-import { createMapDebugProof, createMissionState, advanceMissionState } from "./mission-state.js";
-import { createOperationalMapRegistry } from "./map-registry.js";
-import { evaluateStepTransition } from "./shared/transition-evaluator.js";
-import type { OperationalMap, OperationalMapId } from "./shared/map-types.js";
+import type { OrchestrationAbilityGroup, OrchestrationExecutionContext } from "./contract.js";
+import { MissionStateSchema } from "./schema.js";
+import { listOrchestrationChildren } from "./registry.js";
+import { createStartMissionCapability } from "./children/start-mission/implementation.js";
+import { createPauseMissionCapability } from "./children/pause-mission/implementation.js";
+import { createResumeMissionCapability } from "./children/resume-mission/implementation.js";
+import { createStopMissionCapability } from "./children/stop-mission/implementation.js";
+import { createEmergencyStopCapability } from "./children/emergency-stop/implementation.js";
+import { createExecuteMapStepCapability } from "./children/execute-map-step/implementation.js";
+import { createEvaluateStepTransitionCapability } from "./children/evaluate-step-transition/implementation.js";
+import { createRequestHumanReviewCapability } from "./children/request-human-review/implementation.js";
+import { createFinalizeMissionCapability } from "./children/finalize-mission/implementation.js";
+import { createSystemOrchestrationClock } from "./runtime/orchestration-clock.js";
+import { createInMemoryOrchestrationIdempotencyPort } from "./runtime/orchestration-idempotency.js";
+import { createInMemoryOrchestrationStatePort } from "./runtime/mission-state-store.js";
+import { createStaticOrchestrationMapStore } from "./runtime/map-selection-gate.js";
+import { executeMissionCommand, submitMissionReviewDecision } from "./runtime/orchestration-executor.js";
+import { productVideoDetectionMap } from "./maps/product-video-detection/map.js";
+import { browseNextVideoMap } from "./maps/browse-next-video/map.js";
+import { commentEvidenceMap } from "./maps/comment-evidence/map.js";
+import { recoveryMap } from "./maps/recovery/map.js";
+import { humanReviewMap } from "./maps/human-review/map.js";
 
-function selectMapId(command: MissionCommand): OperationalMapId {
-  if (command.preferredMapId) {
-    return command.preferredMapId;
-  }
+function buildPayloadDocument(input: {
+  missionId: string;
+  mapId: string;
+  stepId: string;
+  documentType: string;
+  summary: string;
+  payloadRefs: Record<string, string | null>;
+}) {
+  const contentBlocks = Object.entries(input.payloadRefs).map(([key, value]) => ({ key, value }));
+  const refValues = Object.values(input.payloadRefs).filter((value): value is string => typeof value === "string");
 
-  return command.requestedPlatform === "facebook-web"
-    ? "facebook-product-discovery-map"
-    : "tiktok-product-discovery-map";
+  return {
+    documentType: input.documentType,
+    documentRef: `${input.missionId}:${input.mapId}:${input.stepId}:input`,
+    summary: input.summary,
+    entityRefs: refValues,
+    evidenceRefs: refValues,
+    contentBlocks,
+  };
 }
 
-function buildCommandEnvelope(command: MissionCommand, map: OperationalMap, stepId: string, commandName: string, payload: Record<string, unknown>, createdAt: string): CommandEnvelope {
+function buildEnvelopeBase(input: {
+  channelId: "orchestration-to-ability" | "orchestration-to-ai";
+  envelopeId: string;
+  missionId: string;
+  mapId: string;
+  stepId: string;
+  inputRef: string;
+  payloadRefs: Record<string, string | null>;
+  summary: string;
+  tags: string[];
+}) {
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  const payloadRef = Object.keys(input.payloadRefs);
+  const refValues = Object.values(input.payloadRefs).filter((value): value is string => typeof value === "string");
+
   return {
-    envelopeId: `${command.missionId}:${stepId}:command`,
-    commandId: `${command.missionId}:${stepId}`,
-    missionId: command.missionId,
-    mapId: map.mapId,
-    stepId,
-    from: ORCHESTRATION_ABILITY_GROUP_ID,
-    to: map.steps.find((step) => step.stepId === stepId)?.targetAbilityGroupId ?? "open",
-    commandName,
-    payloadRef: Object.keys(payload),
-    payload,
+    abilityGroupId: "nerve-bus" as const,
+    channelId: input.channelId,
+    envelopeId: input.envelopeId,
+    transportId: `${input.envelopeId}:transport`,
+    traceId: `${input.missionId}:${input.mapId}`,
+    spanId: `${input.stepId}:${input.channelId}`,
+    attemptId: `${input.envelopeId}:attempt:1`,
+    missionId: input.missionId,
+    mapId: input.mapId,
+    stepId: input.stepId,
+    idempotencyKey: `${input.envelopeId}:idempotent`,
+    sequenceNo: 0,
+    inputRef: input.inputRef,
+    payloadRef: payloadRef.length > 0 ? payloadRef : ["empty-payload"],
+    payload: {
+      summary: input.summary,
+      entityRefs: refValues,
+      evidenceRefs: refValues,
+      tags: input.tags,
+      attributes: [],
+    },
     createdAt,
+    expiresAt,
   };
 }
 
-function buildAiRequestEnvelope(command: MissionCommand, map: OperationalMap, stepId: string, commandName: string, payload: Record<string, unknown>, createdAt: string): AiRequestEnvelope {
+function createOrchestrationNerveBusPort(nerveBus: NerveBusAbilityGroup): OrchestrationExecutionContext["nerveBus"] {
   return {
-    envelopeId: `${command.missionId}:${stepId}:ai-request`,
-    requestId: `${command.missionId}:${stepId}:ai`,
-    missionId: command.missionId,
-    mapId: map.mapId,
-    stepId,
-    from: ORCHESTRATION_ABILITY_GROUP_ID,
-    to: "local-ai-decision",
-    taskType: commandName,
-    promptRef: `${map.mapId}:${commandName}`,
-    payloadRef: Object.keys(payload),
-    payload,
-    createdAt,
-  };
-}
+    async sendCommandToAbility(input) {
+      const inputPayload = buildPayloadDocument({
+        missionId: input.missionId,
+        mapId: input.mapId,
+        stepId: input.stepId,
+        documentType: "orchestration.ability_dispatch",
+        summary: `Dispatch ${input.childCapabilityId} to ${input.targetAbilityGroupId}`,
+        payloadRefs: input.payloadRefs,
+      });
+      const envelopeId = `${input.missionId}:${input.mapId}:${input.stepId}:command`;
+      const transport = await nerveBus.dispatchAbilityCommand({
+        envelope: {
+          ...buildEnvelopeBase({
+            channelId: "orchestration-to-ability",
+            envelopeId,
+            missionId: input.missionId,
+            mapId: input.mapId,
+            stepId: input.stepId,
+            inputRef: inputPayload.documentRef,
+            payloadRefs: input.payloadRefs,
+            summary: inputPayload.summary,
+            tags: [input.targetAbilityGroupId, input.childCapabilityId],
+          }),
+          envelopeKind: "ability_command" as const,
+          commandId: `${input.missionId}:${input.stepId}:command`,
+          from: "orchestration" as const,
+          to: input.targetAbilityGroupId,
+          commandName: input.childCapabilityId,
+        },
+        inputPayload,
+      });
 
-function createInitialMissionControlState(): MissionControlState {
-  return {
-    missionId: null,
-    mapId: null,
-    requestedPlatform: null,
-    humanGoal: null,
-    status: "idle",
-    activeTaskRunId: null,
-    currentRoundIndex: 0,
-    reviewRequiredReason: null,
-    failureReason: null,
-    lastHumanCommand: null,
-    startedAt: null,
-    updatedAt: null,
-    endedAt: null,
-  };
-}
+      return {
+        status: transport.resultEnvelope.status,
+        envelopeId: transport.commandEnvelope.envelopeId,
+        resultRef: transport.resultEnvelope.resultId,
+        decision: null,
+        failureReason: transport.resultEnvelope.failureReason ?? transport.resultEnvelope.reviewRequiredReason,
+        payloadRefs: {
+          ...input.payloadRefs,
+          abilityResultRef: transport.resultEnvelope.outputRef,
+        },
+      };
+    },
 
-function applyRuntimeSnapshot(input: {
-  previousState: MissionControlState;
-  runtimeSnapshot: MissionRuntimeSnapshot;
-  commandKind: HumanCommandKind | null;
-  now: string;
-}): MissionControlState {
-  const task = input.runtimeSnapshot.task;
-  const nextStatus = task?.status
-    ?? (input.commandKind === "stop-mission" || input.commandKind === "emergency-stop"
-      ? "stopped"
-      : input.previousState.status);
-  const endedAt = nextStatus === "running" || nextStatus === "paused"
-    ? null
-    : input.previousState.missionId
-      ? input.now
-      : input.previousState.endedAt;
+    async sendRequestToAi(input) {
+      const inputPayload = buildPayloadDocument({
+        missionId: input.missionId,
+        mapId: input.mapId,
+        stepId: input.stepId,
+        documentType: "orchestration.ai_dispatch",
+        summary: `Request AI prompt ${input.promptContractId}`,
+        payloadRefs: input.payloadRefs,
+      });
+      const envelopeId = `${input.missionId}:${input.mapId}:${input.stepId}:ai-request`;
+      const transport = await nerveBus.requestAi({
+        envelope: {
+          ...buildEnvelopeBase({
+            channelId: "orchestration-to-ai",
+            envelopeId,
+            missionId: input.missionId,
+            mapId: input.mapId,
+            stepId: input.stepId,
+            inputRef: inputPayload.documentRef,
+            payloadRefs: input.payloadRefs,
+            summary: inputPayload.summary,
+            tags: ["ai", input.promptContractId],
+          }),
+          envelopeKind: "ai_request" as const,
+          requestId: `${input.missionId}:${input.stepId}:ai`,
+          from: "orchestration" as const,
+          to: "ai" as const,
+          taskType: input.promptContractId,
+          promptRef: input.promptContractId,
+        },
+        inputPayload,
+      });
 
-  return {
-    ...input.previousState,
-    status: nextStatus,
-    activeTaskRunId: task?.taskRunId ?? null,
-    currentRoundIndex: task?.currentRoundIndex ?? input.previousState.currentRoundIndex,
-    reviewRequiredReason: input.runtimeSnapshot.reviewRequiredReason,
-    failureReason: input.runtimeSnapshot.failureReason,
-    lastHumanCommand: input.commandKind,
-    updatedAt: input.now,
-    endedAt,
-  };
-}
+      return {
+        status: transport.responseEnvelope.status,
+        envelopeId: transport.requestEnvelope.envelopeId,
+        resultRef: transport.responseEnvelope.responseId,
+        decision: transport.responseEnvelope.decision,
+        failureReason: transport.responseEnvelope.failureReason ?? transport.responseEnvelope.reviewRequiredReason,
+        payloadRefs: {
+          ...input.payloadRefs,
+          aiResultRef: transport.responseEnvelope.outputRef,
+        },
+      };
+    },
 
-async function syncMissionControlState(input: {
-  missionState: MissionControlState;
-  commandKind: HumanCommandKind | null;
-  runtimeController: OrchestrationMissionRuntimeController | undefined;
-  now: () => string;
-}): Promise<MissionControlState> {
-  if (!input.runtimeController) {
-    return {
-      ...input.missionState,
-      lastHumanCommand: input.commandKind,
-      updatedAt: input.now(),
-      endedAt: input.missionState.status === "running" || input.missionState.status === "paused"
-        ? null
-        : input.missionState.endedAt,
-    };
-  }
-
-  const runtimeSnapshot = await input.runtimeController.getRuntimeSnapshot(input.missionState.missionId);
-  return applyRuntimeSnapshot({
-    previousState: input.missionState,
-    runtimeSnapshot,
-    commandKind: input.commandKind,
-    now: input.now(),
-  });
-}
-
-function createMissionControlState(command: MissionCommand, mapId: OperationalMapId, startedAt: string): MissionControlState {
-  return {
-    missionId: command.missionId,
-    mapId,
-    requestedPlatform: command.requestedPlatform,
-    humanGoal: command.humanGoal,
-    status: "running",
-    activeTaskRunId: null,
-    currentRoundIndex: 0,
-    reviewRequiredReason: null,
-    failureReason: null,
-    lastHumanCommand: "start-mission",
-    startedAt,
-    updatedAt: startedAt,
-    endedAt: null,
+    async sendReviewRequestToCommander(input) {
+      return {
+        status: "review_required",
+        envelopeId: `${input.missionId}:${input.stepId}:review`,
+        resultRef: `${input.missionId}:${input.stepId}:review-result`,
+        decision: null,
+        failureReason: input.reason,
+        payloadRefs: {
+          ...input.payloadRefs,
+          reviewReasonRef: `${input.missionId}:${input.stepId}:review-reason`,
+        },
+      };
+    },
   };
 }
 
 export function createOrchestrationAbilityGroup(input: {
   nerveBus: NerveBusAbilityGroup;
-  runtimeController?: OrchestrationMissionRuntimeController;
-  now?: () => string;
 }): OrchestrationAbilityGroup {
-  const now = input.now ?? (() => new Date().toISOString());
-  const roster = createAbilityRoster();
-  const mapRegistry = createOperationalMapRegistry();
-  let missionControlState = createInitialMissionControlState();
+  const context: OrchestrationExecutionContext = {
+    clock: createSystemOrchestrationClock(),
+    idempotency: createInMemoryOrchestrationIdempotencyPort(),
+    mapStore: createStaticOrchestrationMapStore([
+      productVideoDetectionMap,
+      browseNextVideoMap,
+      commentEvidenceMap,
+      recoveryMap,
+      humanReviewMap,
+    ]),
+    nerveBus: createOrchestrationNerveBusPort(input.nerveBus),
+    statePort: createInMemoryOrchestrationStatePort(),
+  };
+
+  const children = new Map([
+    ["start-mission", createStartMissionCapability()],
+    ["pause-mission", createPauseMissionCapability()],
+    ["resume-mission", createResumeMissionCapability()],
+    ["stop-mission", createStopMissionCapability()],
+    ["emergency-stop", createEmergencyStopCapability()],
+    ["execute-map-step", createExecuteMapStepCapability()],
+    ["evaluate-step-transition", createEvaluateStepTransitionCapability()],
+    ["request-human-review", createRequestHumanReviewCapability()],
+    ["finalize-mission", createFinalizeMissionCapability()],
+  ]);
 
   return {
+    listChildCapabilityIds() {
+      return listOrchestrationChildren();
+    },
+
     listMapIds() {
-      return [...mapRegistry.keys()];
+      return [
+        productVideoDetectionMap.mapId,
+        browseNextVideoMap.mapId,
+        commentEvidenceMap.mapId,
+        recoveryMap.mapId,
+        humanReviewMap.mapId,
+      ];
     },
-    getAbilityRoster() {
-      return [...roster.keys()];
-    },
-    async executeMission(command): Promise<MissionExecutionResult> {
-      const map = mapRegistry.get(selectMapId(command));
-      if (!map) {
-        throw new Error(`No operational map is registered for mission ${command.missionId}`);
+
+    async execute(inputValue) {
+      const capability = children.get(inputValue.childCapabilityId);
+      if (!capability) {
+        throw new Error(`Unknown orchestration child capability ${inputValue.childCapabilityId}.`);
       }
 
-      let missionState = createMissionState(command, map);
-      const debugProof = [];
-      const maxHops = map.steps.length * 3;
-      let hops = 0;
-
-      while (missionState.currentStepId && missionState.status === "running") {
-        const step = map.steps.find((candidate) => candidate.stepId === missionState.currentStepId);
-        if (!step) {
-          throw new Error(`Operational map ${map.mapId} is missing step ${missionState.currentStepId}`);
-        }
-
-        const payload = {
-          ...command.initialPayload,
-          missionId: missionState.missionId,
-          stepId: step.stepId,
-          mapId: map.mapId,
-          humanGoal: command.humanGoal,
-        };
-        const createdAt = now();
-        const selectedAbilityGroupId = step.targetAbilityGroupId;
-        const result = selectedAbilityGroupId === "local-ai-decision"
-          ? await input.nerveBus.requestAi(buildAiRequestEnvelope(command, map, step.stepId, step.commandName, payload, createdAt))
-          : await input.nerveBus.dispatchAbilityCommand(buildCommandEnvelope(command, map, step.stepId, step.commandName, payload, createdAt));
-        const envelope = "responseEnvelope" in result ? result.responseEnvelope : result.resultEnvelope;
-        const commandId = "requestEnvelope" in result ? result.requestEnvelope.requestId : result.commandEnvelope.commandId;
-        const resultId = "responseEnvelope" in result ? result.responseEnvelope.responseId : result.resultEnvelope.resultId;
-        const branch = evaluateStepTransition(map, step, envelope);
-
-        debugProof.push(createMapDebugProof({ missionState, map, selectedAbilityGroupId, commandId, resultId, branch }));
-        missionState = advanceMissionState({ missionState, selectedAbilityGroupId, commandId, resultId, branch });
-        hops += 1;
-
-        if (hops > maxHops) {
-          missionState = { ...missionState, status: "failed", currentStepId: null };
-        }
-      }
-
-      return {
-        missionState,
-        debugProof,
-        finalStatus: missionState.status,
-      };
+      return capability.execute(inputValue.payload as never, context);
     },
+
+    executeMission(command) {
+      return executeMissionCommand({ command, caller: "commander-console", context });
+    },
+
     async startMission(command) {
-      const startedAt = now();
-      missionControlState = createMissionControlState(command, selectMapId(command), startedAt);
-
-      if (!input.runtimeController) {
-        return missionControlState;
-      }
-
-      const runtimeSnapshot = await input.runtimeController.startMission(command);
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot,
-        commandKind: "start-mission",
-        now: now(),
-      });
-      return missionControlState;
+      const result = await executeMissionCommand({ command, caller: "commander-console", context });
+      return MissionStateSchema.parse(result.missionState);
     },
+
     async pauseMission(missionId) {
-      if (missionControlState.missionId !== missionId) {
-        return syncMissionControlState({
-          missionState: missionControlState,
-          commandKind: null,
-          runtimeController: input.runtimeController,
-          now,
-        });
-      }
-
-      if (!input.runtimeController) {
-        missionControlState = {
-          ...missionControlState,
-          status: "paused",
-          lastHumanCommand: "pause-mission",
-          updatedAt: now(),
-        };
-        return missionControlState;
-      }
-
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot: await input.runtimeController.pauseMission(missionId),
-        commandKind: "pause-mission",
-        now: now(),
-      });
-      return missionControlState;
+      return MissionStateSchema.parse(
+        await children.get("pause-mission")!.execute({ missionId }, context),
+      );
     },
+
     async resumeMission(missionId) {
-      if (missionControlState.missionId !== missionId) {
-        return syncMissionControlState({
-          missionState: missionControlState,
-          commandKind: null,
-          runtimeController: input.runtimeController,
-          now,
-        });
-      }
-
-      if (!input.runtimeController) {
-        missionControlState = {
-          ...missionControlState,
-          status: "running",
-          lastHumanCommand: "resume-mission",
-          updatedAt: now(),
-          endedAt: null,
-        };
-        return missionControlState;
-      }
-
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot: await input.runtimeController.resumeMission(missionId),
-        commandKind: "resume-mission",
-        now: now(),
-      });
-      return missionControlState;
+      return MissionStateSchema.parse(
+        await children.get("resume-mission")!.execute({ missionId }, context),
+      );
     },
-    async stopMission({ missionId, reason }) {
-      if (missionControlState.missionId !== missionId) {
-        return syncMissionControlState({
-          missionState: missionControlState,
-          commandKind: null,
-          runtimeController: input.runtimeController,
-          now,
-        });
-      }
 
-      if (!input.runtimeController) {
-        missionControlState = {
-          ...missionControlState,
-          status: "stopped",
-          failureReason: reason ?? null,
-          lastHumanCommand: "stop-mission",
-          updatedAt: now(),
-          endedAt: now(),
-        };
-        return missionControlState;
-      }
-
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot: await input.runtimeController.stopMission({
-          missionId,
-          reason: reason ?? "stop requested by operator",
-        }),
-        commandKind: "stop-mission",
-        now: now(),
-      });
-      return missionControlState;
+    async stopMission(inputValue) {
+      return MissionStateSchema.parse(
+        await children.get("stop-mission")!.execute(
+          { missionId: inputValue.missionId, reason: inputValue.reason ?? null },
+          context,
+        ),
+      );
     },
-    async emergencyStop({ missionId, reason }) {
-      if (missionControlState.missionId !== missionId) {
-        return syncMissionControlState({
-          missionState: missionControlState,
-          commandKind: null,
-          runtimeController: input.runtimeController,
-          now,
-        });
-      }
 
-      if (!input.runtimeController) {
-        missionControlState = {
-          ...missionControlState,
-          status: "stopped",
-          failureReason: reason ?? "emergency stop requested by operator",
-          lastHumanCommand: "emergency-stop",
-          updatedAt: now(),
-          endedAt: now(),
-        };
-        return missionControlState;
-      }
-
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot: await input.runtimeController.emergencyStop({
-          missionId,
-          reason: reason ?? "emergency stop requested by operator",
-        }),
-        commandKind: "emergency-stop",
-        now: now(),
-      });
-      return missionControlState;
+    async emergencyStop(inputValue) {
+      return MissionStateSchema.parse(
+        await children.get("emergency-stop")!.execute(
+          { missionId: inputValue.missionId, reason: inputValue.reason ?? null },
+          context,
+        ),
+      );
     },
-    async getMissionState() {
-      missionControlState = await syncMissionControlState({
-        missionState: missionControlState,
-        commandKind: null,
-        runtimeController: input.runtimeController,
-        now,
-      });
-      return missionControlState;
+
+    async getMissionState(missionId) {
+      return MissionStateSchema.parse(await context.statePort.getMissionState(missionId ?? null));
     },
-    async submitReviewDecision(reviewDecision: MissionReviewDecisionInput) {
-      if (missionControlState.missionId !== reviewDecision.missionId) {
-        return syncMissionControlState({
-          missionState: missionControlState,
-          commandKind: null,
-          runtimeController: input.runtimeController,
-          now,
-        });
-      }
 
-      if (!input.runtimeController) {
-        missionControlState = {
-          ...missionControlState,
-          status: reviewDecision.decision === "resume"
-            ? "running"
-            : reviewDecision.decision === "stop"
-              ? "stopped"
-              : "review_required",
-          reviewRequiredReason: reviewDecision.decision === "hold" ? reviewDecision.note ?? missionControlState.reviewRequiredReason : null,
-          failureReason: reviewDecision.decision === "stop" ? reviewDecision.note ?? "review stopped mission" : missionControlState.failureReason,
-          updatedAt: now(),
-          endedAt: reviewDecision.decision === "stop" ? now() : null,
-        };
-        return missionControlState;
-      }
-
-      missionControlState = applyRuntimeSnapshot({
-        previousState: missionControlState,
-        runtimeSnapshot: await input.runtimeController.submitReviewDecision(reviewDecision),
-        commandKind: reviewDecision.decision === "resume"
-          ? "resume-mission"
-          : reviewDecision.decision === "stop"
-            ? "stop-mission"
-            : null,
-        now: now(),
-      });
-      return missionControlState;
+    async submitReviewDecision(inputValue) {
+      return MissionStateSchema.parse(
+        await submitMissionReviewDecision({ command: inputValue, caller: "commander-console", context }),
+      );
     },
   };
 }

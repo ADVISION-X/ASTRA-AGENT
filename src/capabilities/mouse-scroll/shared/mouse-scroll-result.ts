@@ -1,0 +1,1 @@
+export const MOUSE_SCROLL_STATUSES = ["success", "failed", "review_required"] as const;

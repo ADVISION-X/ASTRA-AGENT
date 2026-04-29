@@ -1,63 +1,46 @@
-import {
-  POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
-  type PostActionVerificationChildCapability,
-} from "../../contract.js";
-import { getObservationByKind, readBooleanPayload, readStringPayload } from "../../shared/observation-utils.js";
-import { buildExecutionFailure, buildVerificationResult } from "../../shared/verification-result.js";
-import { validateVerificationInput } from "../../shared/verification-policy.js";
+import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation, type PostActionVerificationAbilityContext, type PostActionVerificationChildCapability } from "../../contract.js";
+import { VerifyNotInterestedResultOutputSchema } from "./schema.js";
+
+function getObservationsByKind<K extends PostActionObservation["kind"]>(
+  observations: PostActionObservation[],
+  kind: K,
+): Array<PostActionObservation & { kind: K; payload: Extract<PostActionObservation["payload"], { kind: K }> }> {
+  return observations.filter((observation): observation is PostActionObservation & { kind: K; payload: Extract<PostActionObservation["payload"], { kind: K }> } => observation.kind === kind && observation.payload.kind === kind);
+}
 
 export function createVerifyNotInterestedResultCapability(): PostActionVerificationChildCapability {
   return {
     abilityGroupId: POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
-    childCapabilityId: "verify-not-interested-result",
-    async execute(input) {
-      const startedAt = new Date().toISOString();
-      const invalidReason = validateVerificationInput(input);
-      if (invalidReason) {
-        return buildExecutionFailure({
-          verificationInput: input,
-          observedOutcome: "input_invalid",
-          failureReason: invalidReason,
-          reviewRequiredReason: null,
-          startedAt,
-          endedAt: new Date().toISOString(),
-        });
-      }
-
-      const pageStateObservation = getObservationByKind(input, "page_state")[0] ?? null;
-      const aiObservation = getObservationByKind(input, "ai_observation")[0] ?? null;
+    childCapabilityId: "verify-not-interested-result" as const,
+    async execute(input: Parameters<PostActionVerificationAbilityContext["evidenceReadPort"]["listObservations"]>[0], context: PostActionVerificationAbilityContext) {
+      const observations = context.evidenceReadPort.listObservations(input);
+      const pageState = getObservationsByKind(observations, "page_state")[0] ?? null;
+      const runtimeSignal = getObservationsByKind(observations, "runtime_signal")[0] ?? null;
       const changed = [
-        pageStateObservation ? readBooleanPayload(pageStateObservation, "recommendationChanged") : null,
-        aiObservation ? readBooleanPayload(aiObservation, "recommendationChanged") : null,
+        runtimeSignal?.payload.recommendationChanged ?? null,
+        pageState?.payload.recommendationChanged ?? null,
       ].find((value) => value !== null) ?? null;
 
       if (changed === null) {
-        return buildVerificationResult({
-          input,
-          observedOutcome: "not_interested_state_unknown",
+        return VerifyNotInterestedResultOutputSchema.parse({
+          observedOutcome: "recommendation_change_unknown",
           verificationDecision: "review_required",
           confidence: 0,
           failureReason: "insufficient_evidence",
-          reviewRequiredReason: "not-interested verification requires page-state or AI observation evidence",
-          startedAt,
-          endedAt: new Date().toISOString(),
-          dataQualityFlags: ["review_required"],
+          reviewRequiredReason: "Not-interested verification requires governed feed mutation evidence.",
+          statusMessage: "Recommendation mutation is not observable from the governed evidence.",
+          dataQualityFlags: ["recommendation_change_unknown"],
         });
       }
 
-      const observationLabel = changed
-        ? readStringPayload(pageStateObservation ?? aiObservation!, "changeSummary") ?? "recommendation_changed"
-        : "recommendation_unchanged";
-
-      return buildVerificationResult({
-        input,
-        observedOutcome: observationLabel,
+      return VerifyNotInterestedResultOutputSchema.parse({
+        observedOutcome: changed ? (pageState?.payload.changeSummary ?? runtimeSignal?.payload.summary ?? "recommendation_changed") : "recommendation_unchanged",
         verificationDecision: changed ? "verified" : "failed",
-        confidence: 0.82,
+        confidence: changed ? 0.86 : 0.9,
         failureReason: changed ? null : "unexpected_state",
         reviewRequiredReason: null,
-        startedAt,
-        endedAt: new Date().toISOString(),
+        statusMessage: changed ? "Recommendation feed changed after the not-interested action." : "Recommendation feed did not change after the not-interested action.",
+        dataQualityFlags: [],
       });
     },
   };

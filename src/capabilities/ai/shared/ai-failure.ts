@@ -1,44 +1,20 @@
-type GovernedLocalAiRuntimeError = Error & {
-  code: "service_unreachable" | "model_missing" | "engine_missing" | "missing_evidence" | "invalid_output" | "disabled_by_policy";
-  detail?: string;
-};
-
-function isGovernedLocalAiRuntimeError(error: unknown): error is GovernedLocalAiRuntimeError {
-  return error instanceof Error
-    && typeof error.name === "string"
-    && error.name === "LocalAiRuntimeError"
-    && "code" in error
-    && typeof error.code === "string";
-}
-
-export function describeLocalAiFailure(error: unknown): {
-  decision: "local_ai_unavailable" | "invalid_ai_output";
-  localAiStatus: string;
-  eventType: string;
-  reason: string;
-} {
-  if (!isGovernedLocalAiRuntimeError(error)) {
-    return {
-      decision: "invalid_ai_output",
-      localAiStatus: "invalid_ai_output",
-      eventType: "local_ai_task_failed",
-      reason: error instanceof Error ? error.message : String(error),
-    };
-  }
-
-  if (error.code === "invalid_output") {
-    return {
-      decision: "invalid_ai_output",
-      localAiStatus: "invalid_ai_output",
-      eventType: "local_ai_task_failed",
-      reason: error.message,
-    };
-  }
-
-  return {
-    decision: "local_ai_unavailable",
-    localAiStatus: error.code === "disabled_by_policy" ? "disabled_by_policy" : "local_ai_unavailable",
-    eventType: "local_ai_runtime_unavailable",
-    reason: error.message,
-  };
-}
+export const AI_FAILURE_REASONS = [
+  "input_schema_invalid",
+  "unknown_child_capability",
+  "task_type_mismatch",
+  "prompt_contract_mismatch",
+  "expected_output_schema_mismatch",
+  "expected_output_schema_missing",
+  "provider_policy_blocked",
+  "data_policy_blocked",
+  "cost_policy_blocked",
+  "safety_policy_blocked",
+  "schema_validation_failed",
+  "quality_gate_blocked",
+  "output_boundary_blocked",
+  "provider_disabled",
+  "runtime_execution_failed",
+  "runtime_output_invalid",
+  "internal_validation_failed",
+  "internal_candidate_missing",
+] as const;

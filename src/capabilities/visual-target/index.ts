@@ -1,3 +1,45 @@
-export * from "./contract.js";
-export * from "./ability-group.js";
-export * from "./shared/target-validation.js";
+export { createVisualTargetAbilityGroup } from "./ability-group.js";
+export {
+	VISUAL_TARGET_ABILITY_GROUP_ID,
+	VisualTargetSchema,
+	type SuccessfulVisualTarget,
+	type VisualBoundingBox,
+	type VisualClickPoint,
+	type VisualTarget,
+	type VisualTargetAbilityGroup,
+	type VisualTargetAbilityInput,
+	type VisualTargetAbilityResult,
+	type VisualTargetAiSourceProof,
+	type VisualTargetCandidate,
+	type VisualTargetChildCapabilityId,
+	type VisualTargetCoordinateSpace,
+	type VisualTargetDataQualityFlag,
+	type VisualTargetFailureReason,
+	type VisualTargetNature,
+	type VisualTargetPageStateProof,
+	type VisualTargetRuntimeProof,
+	type VisualTargetScaleMapping,
+	type VisualTargetScreenshotSourceProof,
+	type VisualTargetSourceProof,
+	type VisualTargetStatus,
+	type VisualTargetType,
+} from "./contract.js";
+export { isSuccessfulVisualTarget } from "./shared/visual-target-result.js";
+export {
+	VisualBoundingBoxSchema,
+	VisualClickPointSchema,
+	VisualTargetAbilityInputSchema,
+	VisualTargetAbilityResultSchema,
+	VisualTargetAiSourceProofSchema,
+	VisualTargetCandidateSchema,
+	VisualTargetChildCapabilityIdSchema,
+	VisualTargetCoordinateSpaceSchema,
+	VisualTargetPageStateProofSchema,
+	VisualTargetResultSchema,
+	VisualTargetRuntimeProofSchema,
+	VisualTargetScreenshotSourceProofSchema,
+	VisualTargetSourceProofSchema,
+	VisualTargetStatusSchema,
+	VisualTargetTypeSchema,
+} from "./schema.js";
+export { listVisualTargetChildren } from "./registry.js";

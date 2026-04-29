@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { PostActionVerificationAbilityResultSchema } from "../capabilities/post-action-verification/contract.js";
+import { PostActionVerificationAbilityResultSchema } from "../capabilities/post-action-verification/schema.js";
 
 import {
   VisualBoundingBoxSchema,
@@ -11,7 +11,7 @@ import {
   type VisualClickPoint,
   type VisualTarget,
   type VisualTargetType,
-} from "../capabilities/visual-target/contract.js";
+} from "../capabilities/visual-target/index.js";
 
 export const VisualActionVerificationResultSchema = PostActionVerificationAbilityResultSchema;
 

@@ -1,40 +1,57 @@
-import {
-  PAGE_STATE_ABILITY_GROUP_ID,
-  type PageStateChildCapability,
-} from "../../contract.js";
-import { detectReviewTokens } from "../../state-profiles.js";
-import { buildPageStateFailure, buildPageStateResult } from "../../shared/page-state-result.js";
-import { validatePageStateInput } from "../../shared/state-policy.js";
+import { PAGE_STATE_ABILITY_GROUP_ID } from "../../contract.js";
+import { findPageMarker, findVisualTargets } from "../../shared/page-state-observation.js";
+import type { DetectSafetyPageChildCapability } from "./contract.js";
+import { DetectSafetyPageChildInputSchema, DetectSafetyPageChildOutputSchema } from "./schema.js";
 
-export function createDetectSafetyPageCapability(): PageStateChildCapability {
+export function createDetectSafetyPageCapability(): DetectSafetyPageChildCapability {
   return {
     abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
     childCapabilityId: "detect-safety-page",
     async execute(input) {
-      const startedAt = new Date().toISOString();
-      const failureReason = validatePageStateInput(input);
-      if (failureReason) {
-        const endedAt = new Date().toISOString();
-        return buildPageStateFailure({
-          abilityInput: input,
-          failureReason,
-          stateSummary: "page-state safety detection input is incomplete",
-          startedAt,
-          endedAt,
-        });
-      }
+      const request = DetectSafetyPageChildInputSchema.parse(input);
+      const safetyMarkers = findPageMarker(request.observations, "safety_wall").filter((observation) => observation.payload.present);
+      const captchaMarkers = findPageMarker(request.observations, "captcha").filter((observation) => observation.payload.present);
+      const captchaTargets = findVisualTargets(request.observations, "captcha").filter((observation) => observation.payload.matched);
+      const loginFormTargets = findVisualTargets(request.observations, "login_form").filter((observation) => observation.payload.matched);
+      const matchedObservationIds = [...safetyMarkers, ...captchaMarkers, ...captchaTargets, ...loginFormTargets].map((observation) => observation.observationId);
 
-      const hasSafetySignal = input.browserLoginState === "review_required" || detectReviewTokens(input.currentUrl, input.currentTitle);
-      const endedAt = new Date().toISOString();
-      return buildPageStateResult({
-        abilityInput: input,
-        pageStateType: hasSafetySignal ? "safety_page" : "page_normal",
-        stateSummary: hasSafetySignal ? "captcha or safety-page markers detected on the current page" : "no captcha or safety-page markers detected on the current page",
-        confidence: hasSafetySignal ? 0.96 : 0.82,
-        startedAt,
-        endedAt,
-        reviewRequiredReason: hasSafetySignal ? "browser challenge or safety review required" : null,
-      });
+      const output = captchaMarkers.length > 0 || captchaTargets.length > 0 || request.snapshot.browserLoginState === "review_required"
+        ? {
+            childCapabilityId: "detect-safety-page" as const,
+            pageStateType: "captcha_challenge" as const,
+            stateSummary: "Captcha or browser review evidence blocks the current page.",
+            confidence: 0.97,
+            reviewRequiredReason: "Operator review is required because captcha or browser review evidence is present.",
+            dataQualityFlags: [],
+            matchedObservationIds,
+            supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+            supportingReasons: ["captcha marker, captcha target, or browser review state detected"],
+          }
+        : safetyMarkers.length > 0 || loginFormTargets.length > 0
+          ? {
+              childCapabilityId: "detect-safety-page" as const,
+              pageStateType: "safety_wall" as const,
+              stateSummary: "Safety-wall evidence indicates the current page cannot proceed.",
+              confidence: 0.94,
+              reviewRequiredReason: "Safety wall must be cleared before execution can proceed.",
+              dataQualityFlags: [],
+              matchedObservationIds,
+              supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+              supportingReasons: ["safety-wall marker or login-form target detected during safety check"],
+            }
+          : {
+              childCapabilityId: "detect-safety-page" as const,
+              pageStateType: "page_normal" as const,
+              stateSummary: "No governed safety-wall or captcha evidence is present.",
+              confidence: matchedObservationIds.length > 0 ? 0.86 : 0.74,
+              reviewRequiredReason: null,
+              dataQualityFlags: matchedObservationIds.length > 0 ? [] : ["insufficient_signal"],
+              matchedObservationIds,
+              supportingEvidenceRefs: [...request.sourceEvidenceRefs],
+              supportingReasons: ["no safety-wall or captcha evidence detected"],
+            };
+
+      return DetectSafetyPageChildOutputSchema.parse(output);
     },
   };
 }

@@ -100,7 +100,12 @@ export const isProductionFakePath = (relativePath: string): boolean =>
 
 const getImportDeclarationSourcePaths = (importDeclaration: ImportDeclaration): string[] => {
   const paths = new Set<string>();
-  const moduleSpecifierSourceFile = importDeclaration.getModuleSpecifierSourceFile();
+  let moduleSpecifierSourceFile: SourceFile | undefined;
+  try {
+    moduleSpecifierSourceFile = importDeclaration.getModuleSpecifierSourceFile() ?? undefined;
+  } catch {
+    moduleSpecifierSourceFile = undefined;
+  }
   if (moduleSpecifierSourceFile) {
     paths.add(toRelativeSourcePath(moduleSpecifierSourceFile));
   }

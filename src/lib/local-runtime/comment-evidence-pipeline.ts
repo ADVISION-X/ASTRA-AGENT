@@ -3,16 +3,20 @@ import type { AiAbilityInput } from "../../capabilities/ai/contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import { OcrTextResultSchema, type EvidenceRef, type ImageEvidence, type OcrTextResult } from "../../types/evidence.js";
 import type { LocalAiTaskResult, OcrCleanupPayload } from "../../types/local-ai.js";
-import type { ActionLog, PlatformActionResult, PlatformActionRequest } from "../../types/platform-action.js";
+import { ActionLogSchema, type ActionLog, type PlatformActionResult, type PlatformActionRequest } from "../../types/platform-action.js";
 import type { ProductOpportunityCandidate } from "../../types/product-opportunity.js";
 import type { RuntimeDeliveryState } from "../../types/runtime.js";
 import type { AgentRound } from "../../types/task-run.js";
 import type { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
 import type { PlatformAdapter } from "./platform-runtime-contract.js";
 import { buildPendingAnalysisCandidate } from "./pending-analysis-candidate.js";
-import { syncLatestActionLog } from "../../capabilities/orchestration/index.js";
 import { buildCommentIntentRequest, buildImageEvidenceInput, buildOcrCleanupRequest, createForensicsRecordRef, materializeImageEvidenceRecord } from "./runtime-round-request-builders.js";
 import { handleLocalAiFailureAndStop } from "./review-runtime-support.js";
+
+function syncLatestActionLog(deliveryState: RuntimeDeliveryState, actionLog: ActionLog): void {
+  deliveryState.latestActionLogId = actionLog.id;
+  deliveryState.latestActionResult = actionLog.message;
+}
 
 export async function runCommentPipeline(input: {
   taskRunId: string;
@@ -105,7 +109,17 @@ export async function runCommentPipeline(input: {
   await input.recordRoundLifecycleStep({ taskRunId: input.taskRunId, roundId: input.roundId, step: "create_pending_candidate", status: "completed", detail: savedCandidate.id, videoVisitId: input.videoVisitId });
 
   const continueAfterCandidate = await input.continueToNextVideo({ taskRunId: input.taskRunId, roundId: input.roundId, reason: "continue after candidate generation", videoVisitId: input.videoVisitId });
-  const continueAfterCandidateLog = await input.appendActionLog(input.taskRunId, input.roundId, continueAfterCandidate.type, continueAfterCandidate.status, continueAfterCandidate.message, [input.videoEvidenceRef, commentEvidenceRef], [input.visionResult.id, commentSignalResult.id]);
+  const continueAfterCandidateLog = ActionLogSchema.parse(
+    await input.appendActionLog(
+      input.taskRunId,
+      input.roundId,
+      continueAfterCandidate.type,
+      continueAfterCandidate.status,
+      continueAfterCandidate.message,
+      [input.videoEvidenceRef, commentEvidenceRef],
+      [input.visionResult.id, commentSignalResult.id],
+    ),
+  );
   input.roundActionLogs.push(continueAfterCandidateLog);
   input.round.actionLogIds.push(continueAfterCandidateLog.id);
   syncLatestActionLog(input.deliveryState, continueAfterCandidateLog);

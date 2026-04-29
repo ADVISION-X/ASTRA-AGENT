@@ -1,14 +1,14 @@
 import type { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
-import type { ActionLog } from "../../types/platform-action.js";
+import { ActionLogSchema, type ActionLog } from "../../types/platform-action.js";
 import type { AgentRound } from "../../types/task-run.js";
-import type { EvidencePacketRoundOutcome, RoundArtifactKind, RoundStructuralDecision, RoundLifecycleStep } from "../../types/evidence-packet.js";
+import type { EvidencePacketRoundOutcome, RoundArtifactKind, RoundStructuralDecision, RoundStructuralLog } from "../../types/evidence-packet.js";
 import type { LocalAiTaskResult } from "../../types/local-ai.js";
 import type { ImageEvidence, EvidenceRef } from "../../types/evidence.js";
 import type { RuntimeDeliveryState } from "../../types/runtime.js";
 import type { StructuredRuntimeSnapshotSummary } from "../../types/structured-log.js";
 import { isLocalAiRuntimeError } from "../local-ai/local-ai-runtime-error.js";
-import { finalizeRoundArtifacts } from "../../capabilities/orchestration/index.js";
+import { createId } from "./ids.js";
 import { emitRuntimeSnapshotSummary, emitSupplementalRuntimeEvent, recordRoundLifecycleStep } from "./runtime-proof-support.js";
 
 function describeLocalAiFailure(error: unknown): {
@@ -58,6 +58,54 @@ function buildFailureEvidenceRefs(evidenceStore: EvidenceStoreService, input: { 
   ];
 }
 
+function resolveFailureVideoVisitId(input: { videoVisitId: string | null; round: AgentRound }): string {
+  return input.videoVisitId ?? input.round.videoVisitId ?? input.round.videoId ?? `unknown-video:${input.round.id}`;
+}
+
+function buildFailureRoundStructuralLog(input: {
+  evidenceStore: EvidenceStoreService;
+  taskRunId: string;
+  roundId: string;
+  round: AgentRound;
+  reason: string;
+  decision: RoundStructuralDecision;
+  roundOutcome: EvidencePacketRoundOutcome;
+  actionLogs: ActionLog[];
+  videoVisitId: string | null;
+  videoEvidence?: ImageEvidence | null;
+  productPresenceResult?: Extract<LocalAiTaskResult, { taskType: "vision.productPresence" }> | null;
+  commentEvidence?: ImageEvidence | null;
+}): RoundStructuralLog {
+  const finalArtifactKind = resolveFailureArtifactKind(input.productPresenceResult);
+  const actionLogRefs = input.actionLogs.map((actionLog) => ActionLogSchema.parse(actionLog).id);
+  return {
+    logId: createId("round_log"),
+    sessionId: input.taskRunId,
+    taskRunId: input.taskRunId,
+    roundId: input.roundId,
+    videoVisitId: resolveFailureVideoVisitId({ videoVisitId: input.videoVisitId, round: input.round }),
+    packetId: null,
+    finalArtifactKind,
+    productPresenceDecision: input.decision,
+    browseOutcome: null,
+    roundOutcome: input.roundOutcome,
+    decisionReason: input.reason,
+    nextStep: "review_required",
+    startTime: input.round.createdAt,
+    endTime: new Date().toISOString(),
+    evidenceRefs: buildFailureEvidenceRefs(input.evidenceStore, {
+      videoEvidence: input.videoEvidence ?? null,
+      commentEvidence: input.commentEvidence ?? null,
+    }),
+    actionLogRefs,
+    aiResultRefs: input.productPresenceResult ? [input.productPresenceResult.id] : [],
+    candidateId: null,
+    dataQualityFlags: resolveFailureDataQualityFlags(input.decision),
+    exportIncluded: false,
+    lightweightOnly: finalArtifactKind === "browse_ledger",
+  };
+}
+
 export async function finalizeAiFailureRound(input: {
   deliveryState: RuntimeDeliveryState;
   evidenceStore: EvidenceStoreService;
@@ -77,36 +125,48 @@ export async function finalizeAiFailureRound(input: {
   commentEvidence?: ImageEvidence | null;
   commentEvidenceFailureReason?: string | null;
 }): Promise<{ actionLogRefs: string[] }> {
-  const roundLog = await finalizeRoundArtifacts({
+  const roundLog = buildFailureRoundStructuralLog({
     evidenceStore: input.evidenceStore,
-    forensicsPersistenceAbilityGroup: input.forensicsPersistenceAbilityGroup,
     taskRunId: input.taskRunId,
+    roundId: input.roundId,
     round: input.round,
-    sourcePlatform: input.sourcePlatform,
-    sourceUrl: input.sourceUrl,
-    currentUrl: input.deliveryState.currentUrl,
-    pageReadyStatus: input.deliveryState.pageReadyStatus,
-    geometryStatus: input.deliveryState.geometryGuardStatus,
+    reason: input.reason,
     decision: input.decision,
     roundOutcome: input.roundOutcome,
-    browseOutcome: null,
-    decisionReason: input.reason,
-    nextStep: "review_required",
-    artifactKind: resolveFailureArtifactKind(input.productPresenceResult),
-    exportIncluded: false,
-    ...(input.videoEvidence ? { videoEvidence: input.videoEvidence } : {}),
-    ...(input.productPresenceResult ? { productPresenceResult: input.productPresenceResult } : {}),
     actionLogs: input.actionLogs,
-    preActionMetricsUnavailableReason: "local AI failure blocked governed continuation",
-    ...(input.commentEvidence ? { commentEvidence: input.commentEvidence } : {}),
-    ...(input.commentEvidenceFailureReason ? { commentEvidenceFailureReason: input.commentEvidenceFailureReason } : {}),
-    additionalDataQualityFlags: resolveFailureDataQualityFlags(input.decision),
+    videoVisitId: input.videoVisitId,
+    ...(input.videoEvidence !== undefined ? { videoEvidence: input.videoEvidence } : {}),
+    ...(input.productPresenceResult !== undefined ? { productPresenceResult: input.productPresenceResult } : {}),
+    ...(input.commentEvidence !== undefined ? { commentEvidence: input.commentEvidence } : {}),
   });
 
-  Object.assign(input.round, { status: "completed", note: input.reason, roundOutcome: roundLog.roundOutcome, decisionReason: roundLog.decisionReason, nextStep: roundLog.nextStep, ...(roundLog.packetId ? { packetId: roundLog.packetId } : {}), updatedAt: new Date().toISOString() });
+  await input.forensicsPersistenceAbilityGroup.finalizeFailedRecord({
+    abilityGroupId: "forensics-persistence",
+    childCapabilityId: "finalize-failed-record",
+    recordType: "failed_record",
+    requestedBy: "orchestration",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: "finalize-ai-failure-round",
+    sessionId: input.taskRunId,
+    roundId: input.roundId,
+    videoVisitId: input.videoVisitId,
+    sourceRecordRefs: [],
+    parentRefs: [],
+    artifactRefs: [],
+    persistencePolicy: { mode: "replace-by-round", allowPartialRefs: true },
+    dataQualityFlags: resolveFailureDataQualityFlags(input.decision),
+    payload: {
+      evidencePacket: null,
+      browseLedgerEntry: null,
+      roundStructuralLog: roundLog,
+      rebuildSessionId: input.taskRunId,
+    },
+  });
+
+  Object.assign(input.round, { status: "completed", note: input.reason, roundOutcome: roundLog.roundOutcome, decisionReason: roundLog.decisionReason, nextStep: roundLog.nextStep, ...(roundLog.packetId ? { packetId: roundLog.packetId } : {}), updatedAt: roundLog.endTime });
   await input.evidenceStore.saveAgentRound(input.round);
 
-  const actionLogRefs = input.actionLogs.map((actionLog) => actionLog.id);
+  const actionLogRefs = input.actionLogs.map((actionLog) => ActionLogSchema.parse(actionLog).id);
   await recordRoundLifecycleStep({ deliveryState: input.deliveryState, forensicsPersistenceAbilityGroup: input.forensicsPersistenceAbilityGroup, taskRunId: input.taskRunId, roundId: input.roundId, step: "finalize_failed_or_review_record", status: "completed", detail: roundLog.roundOutcome, videoVisitId: input.videoVisitId });
   await emitSupplementalRuntimeEvent({
     deliveryState: input.deliveryState,

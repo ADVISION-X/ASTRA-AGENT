@@ -1,48 +1,31 @@
-import {
-  AI_ABILITY_GROUP_ID,
-  type AiCapabilityContext,
-  type AiChildCapability,
-  type AiExecutionOptions,
-} from "../../contract.js";
-import { buildAiDispatchFailureResult } from "../../runtime/ai-runtime-failure-result.js";
-
-const SUPPORTED_TASK_TYPES = ["ocr_cleanup"] as const;
-const SUPPORTED_TASK_TYPE_SET = new Set<string>(SUPPORTED_TASK_TYPES);
+import type { AiChildCapability } from "../../contract.js";
+import { executeAiChild } from "../../runtime/ai-executor.js";
+import { LocalOcrAiChildContract as contract } from "./contract.js";
+import { LocalOcrAiChildInputSchema, LocalOcrAiChildReadinessSchema, LocalOcrAiChildResultSchema } from "./schema.js";
 
 export function createLocalOcrAiCapability(): AiChildCapability {
   return {
-    abilityGroupId: AI_ABILITY_GROUP_ID,
-    childCapabilityId: "local-ocr-ai",
-    providerKind: "local",
-    purpose: "Run local governed OCR cleanup for comment evidence.",
-    supportedTaskTypes: SUPPORTED_TASK_TYPES,
-    canHandle(taskType) {
-      return SUPPORTED_TASK_TYPE_SET.has(taskType);
-    },
-    async checkReadiness(context: AiCapabilityContext) {
-      const healthReport = await context.runtime.getHealth();
-      return {
-        abilityGroupId: AI_ABILITY_GROUP_ID,
-        childCapabilityId: "local-ocr-ai",
-        providerKind: "local",
-        status: healthReport.health.dependencies.ocr === "ready" ? "ready" : "unavailable",
-        supportedTaskTypes: [...SUPPORTED_TASK_TYPES],
-        detail: `ocr=${healthReport.health.dependencies.ocr}`,
-        enabledByPolicy: true,
-      };
-    },
-    async execute(request, context: AiCapabilityContext, options?: AiExecutionOptions) {
-      if (!this.canHandle(request.taskType)) {
-        return buildAiDispatchFailureResult({
-          request,
-          promptContract: context.runtime.resolvePromptContract(request.taskType),
+    contract,
+    implementation: {
+      async execute(input, context) {
+        return LocalOcrAiChildResultSchema.parse(await executeAiChild({
+          request: LocalOcrAiChildInputSchema.parse(input),
+          childContract: contract,
+          context,
+        }));
+      },
+      async checkReadiness(context) {
+        const health = await context.runtime.getRuntimeHealth();
+        return LocalOcrAiChildReadinessSchema.parse({
+          abilityGroupId: "ai",
           childCapabilityId: "local-ocr-ai",
-          startedAt: new Date().toISOString(),
-          failureReason: `local-ocr-ai cannot execute ${request.taskType}.`,
-          implementationStatus: "task_type_mismatch",
+          providerKind: "local",
+          status: health.dependencies.ocr === "ready" ? "ready" : "unavailable",
+          supportedTaskTypes: [...contract.supportedTaskTypes],
+          detail: `ocr=${health.dependencies.ocr}`,
+          enabledByPolicy: true,
         });
-      }
-      return context.runtime.execute(request, options);
+      },
     },
   };
 }

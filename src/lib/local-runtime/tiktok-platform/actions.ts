@@ -1,7 +1,11 @@
 import type { BrowserCaptureResult, BrowserController } from "../../browser/browser-controller.js";
 import type { GeometryGuardAbilityGroup } from "../../../capabilities/geometry-guard/contract.js";
-import type { PostActionVerificationAbilityGroup } from "../../../capabilities/post-action-verification/contract.js";
-import { MOUSE_SCROLL_ABILITY_GROUP_ID, type MouseScrollAbilityGroup, type MouseScrollAbilityResult } from "../../../capabilities/mouse-scroll/contract.js";
+import type {
+  PostActionActionProof,
+  PostActionObservation,
+  PostActionVerificationAbilityGroup,
+} from "../../../capabilities/post-action-verification/contract.js";
+import { MOUSE_SCROLL_ABILITY_GROUP_ID, type MouseScrollAbilityGroup, type MouseScrollAbilityInput, type MouseScrollAbilityResult } from "../../../capabilities/mouse-scroll/contract.js";
 import type { PageStateAbilityGroup } from "../../../capabilities/page-state/contract.js";
 import type { PlatformCapture, PlatformObservation } from "../platform-runtime-contract.js";
 import { PlatformActionRequestSchema, type PlatformActionRequest, type PlatformActionResult } from "../../../types/platform-action.js";
@@ -35,6 +39,24 @@ type TikTokActionContext = {
   setPageReadyStatus: (status: "opening_target_page" | "waiting_page_ready" | "page_ready" | "navigation_failed" | "review_required") => void;
   setLastNavigationError: (message: string | null) => void;
 };
+
+type BrowserViewportGeometryScrollProof = Extract<MouseScrollAbilityInput, { childCapabilityId: "scroll-browser-viewport" }>["geometryScrollProof"];
+
+function buildObservationInputRef(actionRef: string, suffix: string): string {
+  return `post-action-verification:${actionRef}:${suffix}`;
+}
+
+type ApproveFeedScrollGeometryResult =
+  | {
+      ok: false;
+      message: string | null | undefined;
+    }
+  | {
+      ok: true;
+      bounds: { width: number; height: number };
+      geometryScrollProof: BrowserViewportGeometryScrollProof;
+    };
+
 export async function observeCurrentVideo(context: TikTokActionContext, requestInput: PlatformActionRequest): Promise<PlatformObservation> {
   const request = PlatformActionRequestSchema.parse(requestInput);
   await context.browserController.wait(1500);
@@ -79,12 +101,14 @@ export async function likeOrSaveCandidate(context: TikTokActionContext, requestI
       requiresBeforeAfterComparison: true,
       requiresVisualEvidence: true,
     },
-    verifyActionOutcome: async ({ actionLogRef, beforeEvidenceRef, afterCapture, observationRefs }) =>
+    verifyActionOutcome: async ({ actionProof, beforeEvidence, afterEvidence, observations }) =>
       context.postActionVerificationAbilityGroup.execute({
+        abilityGroupId: "post-action-verification",
         childCapabilityId: "verify-target-state-changed",
-        actionLogRef,
-        sourceAbilityGroupId: "mouse-click",
-        sourceActionType: "like_or_save_candidate",
+        requestedBy: "orchestration",
+        sessionId,
+        roundId: request.roundId,
+        videoVisitId: context.getCurrentVideo()?.id ?? null,
         expectedOutcome: {
           outcomeType: "target_state_changed",
           description: "like or save marker state changes after click",
@@ -95,16 +119,14 @@ export async function likeOrSaveCandidate(context: TikTokActionContext, requestI
           requiresBeforeAfterComparison: true,
           requiresVisualEvidence: true,
         },
-        beforeEvidenceRef,
-        afterEvidenceRef: afterCapture.browserActionId,
-        pageStateRef: null,
-        aiObservationRef: null,
-        visualTargetRef: null,
-        screenshotDiffRef: null,
-        requestedBy: "orchestration",
-        sessionId,
-        roundId: request.roundId,
-        videoVisitId: context.getCurrentVideo()?.id ?? null,
+        actionProof,
+        beforeAfterEvidence: {
+          beforeEvidence,
+          afterEvidence,
+        },
+        observationSet: {
+          observations,
+        },
         confidencePolicy: { minimumConfidence: 0.72, allowReviewRequired: true },
         verificationPolicy: {
           verificationMode: "before_after_comparison",
@@ -112,7 +134,7 @@ export async function likeOrSaveCandidate(context: TikTokActionContext, requestI
           requireBeforeAfterComparison: true,
           allowSelfReportedSuccess: false,
         },
-        observationRefs,
+        inputRef: buildObservationInputRef(actionProof.actionProofRef, "like-or-save"),
       }),
   });
   return context.toActionResult({
@@ -145,12 +167,14 @@ export async function openComments(context: TikTokActionContext, requestInput: P
       requiresBeforeAfterComparison: false,
       requiresVisualEvidence: true,
     },
-    verifyActionOutcome: async ({ actionLogRef, beforeEvidenceRef, afterCapture, observationRefs }) =>
+    verifyActionOutcome: async ({ actionProof, beforeEvidence, afterEvidence, observations }) =>
       context.postActionVerificationAbilityGroup.execute({
+        abilityGroupId: "post-action-verification",
         childCapabilityId: "verify-comments-panel-opened",
-        actionLogRef,
-        sourceAbilityGroupId: "mouse-click",
-        sourceActionType: "open_comments",
+        requestedBy: "orchestration",
+        sessionId,
+        roundId: request.roundId,
+        videoVisitId: context.getCurrentVideo()?.id ?? null,
         expectedOutcome: {
           outcomeType: "comments_panel_opened",
           description: "comments panel becomes visible after click",
@@ -161,16 +185,14 @@ export async function openComments(context: TikTokActionContext, requestInput: P
           requiresBeforeAfterComparison: false,
           requiresVisualEvidence: true,
         },
-        beforeEvidenceRef,
-        afterEvidenceRef: afterCapture.browserActionId,
-        pageStateRef: null,
-        aiObservationRef: null,
-        visualTargetRef: null,
-        screenshotDiffRef: null,
-        requestedBy: "orchestration",
-        sessionId,
-        roundId: request.roundId,
-        videoVisitId: context.getCurrentVideo()?.id ?? null,
+        actionProof,
+        beforeAfterEvidence: {
+          beforeEvidence,
+          afterEvidence,
+        },
+        observationSet: {
+          observations,
+        },
         confidencePolicy: { minimumConfidence: 0.72, allowReviewRequired: true },
         verificationPolicy: {
           verificationMode: "visual_evidence",
@@ -178,7 +200,7 @@ export async function openComments(context: TikTokActionContext, requestInput: P
           requireBeforeAfterComparison: false,
           allowSelfReportedSuccess: false,
         },
-        observationRefs,
+        inputRef: buildObservationInputRef(actionProof.actionProofRef, "open-comments"),
       }),
   });
   return context.toActionResult({
@@ -226,7 +248,7 @@ type NextVideoAttemptResult = {
   failureMessage: string | null;
 };
 
-const approveFeedScrollGeometry = async (context: TikTokActionContext, previousVideo: TikTokPlatformVideo) => {
+const approveFeedScrollGeometry = async (context: TikTokActionContext, previousVideo: TikTokPlatformVideo, roundId: string): Promise<ApproveFeedScrollGeometryResult> => {
   const geometry = await context.browserController.getGeometrySnapshot();
   const viewportBounds = {
     width: geometry.viewportWidth,
@@ -243,10 +265,13 @@ const approveFeedScrollGeometry = async (context: TikTokActionContext, previousV
     abilityGroupId: "geometry-guard",
     childCapabilityId: "validate-browser-viewport-bounds",
     sessionId: `platform-scroll:${previousVideo.id}`,
-    roundId: null,
+    roundId,
     videoVisitId: previousVideo.id,
     requestedBy: "orchestration",
     purpose: "approve_continue_next_scroll",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: "continue-next-video",
+    inputRef: "approve-feed-scroll-geometry",
     sourceScreenshotEvidenceRef: null,
     sourceTargetRef: "feed_scroll_area",
     sourceAiResultRef: null,
@@ -268,25 +293,56 @@ const approveFeedScrollGeometry = async (context: TikTokActionContext, previousV
     dataQualityFlags: [],
   });
 
-  if (guardResult.status !== "success" || guardResult.guardDecision !== "allow" || !guardResult.normalizedClickPoint) {
+  if (
+    guardResult.status !== "success"
+    || guardResult.guardDecision !== "allow"
+    || guardResult.normalizedCoordinateSpace !== "browserViewport"
+    || !guardResult.normalizedClickPoint
+  ) {
     return {
       ok: false as const,
       message: guardResult.statusMessage,
     };
   }
 
+  const geometryScrollProof: BrowserViewportGeometryScrollProof = {
+    proofId: guardResult.runtimeProof.proofId,
+    geometryGuardRef: guardResult.geometryGuardRef,
+    abilityGroupId: guardResult.runtimeProof.abilityGroupId,
+    childCapabilityId: guardResult.runtimeProof.childCapabilityId,
+    sourceAbilityGroupId: guardResult.runtimeProof.sourceAbilityGroupId,
+    sourceChildCapabilityId: guardResult.runtimeProof.sourceChildCapabilityId,
+    sessionId: guardResult.sessionId,
+    roundId: guardResult.roundId,
+    videoVisitId: guardResult.videoVisitId,
+    status: guardResult.status,
+    guardDecision: guardResult.guardDecision,
+    normalizedCoordinateSpace: guardResult.normalizedCoordinateSpace,
+    normalizedAnchorPoint: guardResult.normalizedClickPoint,
+    normalizedRegion: guardResult.normalizedBbox
+      ? {
+          x: guardResult.normalizedBbox.x,
+          y: guardResult.normalizedBbox.y,
+          width: guardResult.normalizedBbox.width,
+          height: guardResult.normalizedBbox.height,
+        }
+      : null,
+    sourceScreenshotEvidenceRef: guardResult.sourceScreenshotEvidenceRef,
+    sourceTargetRef: guardResult.sourceTargetRef,
+    inputRef: guardResult.runtimeProof.inputRef,
+    outputRef: guardResult.runtimeProof.outputRef,
+  };
+
   return {
     ok: true as const,
-    geometryGuardRef: guardResult.geometryGuardRef,
-    anchorPoint: guardResult.normalizedClickPoint,
     bounds: viewportBounds,
-    coordinateSpace: guardResult.normalizedCoordinateSpace,
+    geometryScrollProof,
   };
 };
 
-const performNextVideoAttempt = async (context: TikTokActionContext, previousVideo: TikTokPlatformVideo, state: ContinueNextState): Promise<NextVideoAttemptResult> => {
-  const geometryApproval = await approveFeedScrollGeometry(context, previousVideo);
-  if (!geometryApproval.ok || geometryApproval.coordinateSpace !== "browserViewport") {
+const performNextVideoAttempt = async (context: TikTokActionContext, previousVideo: TikTokPlatformVideo, state: ContinueNextState, roundId: string): Promise<NextVideoAttemptResult> => {
+  const geometryApproval = await approveFeedScrollGeometry(context, previousVideo, roundId);
+  if (!geometryApproval.ok) {
     return {
       observedVideo: previousVideo,
       scrollResult: null,
@@ -298,19 +354,20 @@ const performNextVideoAttempt = async (context: TikTokActionContext, previousVid
     abilityGroupId: MOUSE_SCROLL_ABILITY_GROUP_ID,
     childCapabilityId: "scroll-browser-viewport",
     sessionId: `platform-scroll:${previousVideo.id}`,
-    roundId: null,
+    roundId,
     videoVisitId: previousVideo.id,
     requestedBy: "orchestration",
     purpose: "continue_discovery",
-    geometryGuardRef: geometryApproval.geometryGuardRef,
-    guardDecision: "allow",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: "continue-next-video",
+    sourceCoordinateProofRef: geometryApproval.geometryScrollProof.proofId,
     sourceEvidenceRef: null,
     sourceTargetRef: "feed_scroll_area",
+    geometryScrollProof: geometryApproval.geometryScrollProof,
     coordinateSpace: "browserViewport",
-    anchorPoint: geometryApproval.anchorPoint,
+    bounds: geometryApproval.bounds,
     region: null,
     regionRef: null,
-    bounds: geometryApproval.bounds,
     direction: "down",
     magnitude: "onePage",
     customDelta: null,
@@ -318,11 +375,16 @@ const performNextVideoAttempt = async (context: TikTokActionContext, previousVid
     safetyPolicy: {
       allowOperatorManual: false,
       operatorManualApprovalRef: null,
+      allowReplay: false,
+      allowDesktopScreenScroll: false,
+      desktopScreenOperatorApprovalRef: null,
       maxRepeat: 3,
       maxDeltaAbs: geometryApproval.bounds.height * 2,
       maxDurationMs: 3000,
-      blockIfOutOfBounds: true,
-      blockIfNoSourceRef: false,
+      primitiveTimeoutMs: 2500,
+      cooldownMs: 900,
+      requireStableRoundBinding: true,
+      requireStableVideoVisitBinding: true,
     },
   });
   await context.browserController.wait(1200);
@@ -353,7 +415,7 @@ export async function continueNext(context: TikTokActionContext, requestInput: P
   const state = createContinueNextState(previousVideo);
 
   for (let attempt = 1; attempt <= 5; attempt += 1) {
-    const { observedVideo, scrollResult, failureMessage } = await performNextVideoAttempt(context, previousVideo, state);
+    const { observedVideo, scrollResult, failureMessage } = await performNextVideoAttempt(context, previousVideo, state, request.roundId);
     if (!scrollResult) {
       context.setCurrentVideo(previousVideo);
       return context.toActionResult({ request, status: "failed", message: failureMessage ?? "Mouse Scroll could not obtain Geometry Guard approval", fallbackUsed: false, currentVideoId: previousVideo.id, visualTarget: undefined, visualActionResult: undefined, geometryStatus: undefined });
@@ -366,11 +428,71 @@ export async function continueNext(context: TikTokActionContext, requestInput: P
 
     const confirmedVideo = await confirmNextVideo(context, previousVideo, observedVideo);
     const afterVideo = confirmedVideo ?? observedVideo;
-    const verificationResult = await context.postActionVerificationAbilityGroup.execute({
-      childCapabilityId: "verify-video-changed-after-scroll",
-      actionLogRef: scrollResult.scrollExecutionRef,
+    const actionProof: PostActionActionProof = {
+      actionProofRef: scrollResult.runtimeProof.proofId,
       sourceAbilityGroupId: "mouse-scroll",
-      sourceActionType: "continue_next",
+      sourceChildCapabilityId: scrollResult.childCapabilityId,
+      actionType: "continue_next",
+      actionStatus: scrollResult.status,
+      primitiveExecutionRef: null,
+      navigationAttemptRef: null,
+      scrollExecutionRef: scrollResult.scrollExecutionRef,
+      sessionId: scrollResult.sessionId,
+      roundId: scrollResult.roundId,
+      videoVisitId: scrollResult.videoVisitId,
+      startedAt: scrollResult.startedAt,
+      endedAt: scrollResult.endedAt,
+      selfReportedOnly: false,
+    };
+    const observations: PostActionObservation[] = [
+      {
+        kind: "video_identity",
+        ref: `${request.actionId}:before-video`,
+        source: {
+          sourceAbilityGroupId: "post-action-verification",
+          sourceChildCapabilityId: "verify-video-changed-after-scroll",
+          sourceProofRef: scrollResult.runtimeProof.proofId,
+        },
+        capturedAt: previousVideo.pageUrl ? scrollResult.startedAt : scrollResult.startedAt,
+        sessionId,
+        roundId: request.roundId,
+        videoVisitId: previousVideo.id,
+        payload: {
+          kind: "video_identity",
+          role: "before",
+          videoId: previousVideo.id,
+          visualSignature: previousVideo.visualSignature,
+          confirmed: true,
+        },
+      },
+      {
+        kind: "video_identity",
+        ref: `${request.actionId}:after-video:${attempt}`,
+        source: {
+          sourceAbilityGroupId: "post-action-verification",
+          sourceChildCapabilityId: "verify-video-changed-after-scroll",
+          sourceProofRef: scrollResult.runtimeProof.proofId,
+        },
+        capturedAt: scrollResult.endedAt,
+        sessionId,
+        roundId: request.roundId,
+        videoVisitId: previousVideo.id,
+        payload: {
+          kind: "video_identity",
+          role: "after",
+          videoId: afterVideo.id,
+          visualSignature: afterVideo.visualSignature,
+          confirmed: confirmedVideo !== null,
+        },
+      },
+    ];
+    const verificationResult = await context.postActionVerificationAbilityGroup.execute({
+      abilityGroupId: "post-action-verification",
+      childCapabilityId: "verify-video-changed-after-scroll",
+      requestedBy: "orchestration",
+      sessionId,
+      roundId: request.roundId,
+      videoVisitId: previousVideo.id,
       expectedOutcome: {
         outcomeType: "video_changed_after_scroll",
         description: "current video changes after scroll",
@@ -381,44 +503,46 @@ export async function continueNext(context: TikTokActionContext, requestInput: P
         requiresBeforeAfterComparison: true,
         requiresVisualEvidence: false,
       },
-      beforeEvidenceRef: null,
-      afterEvidenceRef: null,
-      pageStateRef: null,
-      aiObservationRef: null,
-      visualTargetRef: null,
-      screenshotDiffRef: null,
-      requestedBy: "orchestration",
-      sessionId,
-      roundId: request.roundId,
-      videoVisitId: previousVideo.id,
+      actionProof,
+      beforeAfterEvidence: {
+        beforeEvidence: {
+          evidenceRef: `${request.actionId}:before-video-evidence`,
+          evidenceKind: "video_identity",
+          source: {
+            sourceAbilityGroupId: "post-action-verification",
+            sourceChildCapabilityId: "verify-video-changed-after-scroll",
+            sourceProofRef: scrollResult.runtimeProof.proofId,
+          },
+          capturedAt: scrollResult.startedAt,
+          sessionId,
+          roundId: request.roundId,
+          videoVisitId: previousVideo.id,
+        },
+        afterEvidence: {
+          evidenceRef: `${request.actionId}:after-video-evidence:${attempt}`,
+          evidenceKind: "video_identity",
+          source: {
+            sourceAbilityGroupId: "post-action-verification",
+            sourceChildCapabilityId: "verify-video-changed-after-scroll",
+            sourceProofRef: scrollResult.runtimeProof.proofId,
+          },
+          capturedAt: scrollResult.endedAt,
+          sessionId,
+          roundId: request.roundId,
+          videoVisitId: previousVideo.id,
+        },
+      },
+      observationSet: {
+        observations,
+      },
       confidencePolicy: { minimumConfidence: 0.8, allowReviewRequired: true },
       verificationPolicy: {
         verificationMode: "before_after_comparison",
         requireAfterEvidence: false,
-        requireBeforeAfterComparison: false,
+        requireBeforeAfterComparison: true,
         allowSelfReportedSuccess: false,
       },
-      observationRefs: [
-        {
-          kind: "video_identity",
-          ref: `${request.actionId}:before-video`,
-          payload: {
-            role: "before",
-            videoId: previousVideo.id,
-            visualSignature: previousVideo.visualSignature,
-          },
-        },
-        {
-          kind: "video_identity",
-          ref: `${request.actionId}:after-video:${attempt}`,
-          payload: {
-            role: "after",
-            videoId: afterVideo.id,
-            visualSignature: afterVideo.visualSignature,
-            confirmed: confirmedVideo !== null,
-          },
-        },
-      ],
+      inputRef: buildObservationInputRef(scrollResult.runtimeProof.proofId, `continue-next-${attempt}`),
     });
     state.lastVerificationMessage = verificationResult.reviewRequiredReason ?? verificationResult.failureReason ?? verificationResult.observedOutcome;
     if (verificationResult.verificationDecision === "verified" && confirmedVideo) {

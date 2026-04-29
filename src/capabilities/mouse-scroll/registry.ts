@@ -3,10 +3,16 @@ import { createScrollBrowserViewportCapability } from "./children/scroll-browser
 import { createScrollDesktopScreenCapability } from "./children/scroll-desktop-screen/implementation.js";
 import { createScrollRegionCapability } from "./children/scroll-region/implementation.js";
 
+const CHILDREN = [
+  createScrollBrowserViewportCapability(),
+  createScrollDesktopScreenCapability(),
+  createScrollRegionCapability(),
+] as const;
+
 export function createMouseScrollCapabilityRegistry(): Map<MouseScrollChildCapabilityId, MouseScrollChildCapability> {
-  return new Map<MouseScrollChildCapabilityId, MouseScrollChildCapability>([
-    ["scroll-browser-viewport", createScrollBrowserViewportCapability()],
-    ["scroll-desktop-screen", createScrollDesktopScreenCapability()],
-    ["scroll-region", createScrollRegionCapability()],
-  ]);
+  return new Map(CHILDREN.map((child) => [child.childCapabilityId, child]));
+}
+
+export function listMouseScrollChildren(): MouseScrollChildCapabilityId[] {
+  return CHILDREN.map((child) => child.childCapabilityId);
 }

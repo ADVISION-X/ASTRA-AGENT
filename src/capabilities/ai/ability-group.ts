@@ -1,82 +1,105 @@
-import type { AiAbilityGroup, AiExecutionOptions, AiRuntimeBridge } from "./contract.js";
-import { createAiCapabilityRegistry } from "./registry.js";
-import { buildAiDispatchFailureResult } from "./runtime/ai-runtime-failure-result.js";
-import { createDefaultAiRuntimeBridge } from "./runtime-adapters/local-ai-runtime-adapter.js";
-import { validateAiAbilityInput } from "./schema-validation.js";
+import type { AiAbilityGroup } from "./contract.js";
+import { createAiModelRosterPort } from "./model-roster.js";
+import { createAiPromptRegistry } from "./runtime/ai-prompt-registry.js";
+import { createLocalAiRuntimePort } from "./runtime-adapters/local-ai-runtime-adapter.js";
+import { AiHealthReportSchema, AiResultSchema, parseAiInput } from "./schema.js";
+import { createAiCapabilityRegistry, listAiChildren } from "./registry.js";
+import { createSystemAiClock } from "./runtime/ai-clock.js";
+import { dispatchAiFailure } from "./runtime/ai-dispatch-failure.js";
 import { routeAiTaskToChild } from "./task-router.js";
 
-type CreateAiAbilityGroupInput = {
-  runtime?: AiRuntimeBridge;
-};
+type CreateAiAbilityGroupInput = Partial<{
+  runtime: Parameters<typeof dispatchAiFailure>[0]["context"]["runtime"];
+  clock: Parameters<typeof dispatchAiFailure>[0]["context"]["clock"];
+  modelRoster: Parameters<typeof dispatchAiFailure>[0]["context"]["modelRoster"];
+  promptRegistry: Parameters<typeof dispatchAiFailure>[0]["context"]["promptRegistry"];
+}>;
 
 export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiAbilityGroup {
-  const runtime = input.runtime ?? createDefaultAiRuntimeBridge();
-  const registry = createAiCapabilityRegistry();
-  const context = { runtime };
-
-  const executeByChild = async (options: {
-    childCapabilityId: ReturnType<typeof routeAiTaskToChild>;
-    input: Parameters<AiAbilityGroup["execute"]>[0];
-    executionOptions?: AiExecutionOptions;
-  }) => {
-    const startedAt = new Date().toISOString();
-    const promptContract = runtime.resolvePromptContract(options.input.taskType);
-    const capability = registry.get(options.childCapabilityId);
-    if (!capability) {
-      return buildAiDispatchFailureResult({
-        request: options.input,
-        promptContract,
-        childCapabilityId: options.childCapabilityId,
-        startedAt,
-        failureReason: `AI child capability is not registered for ${options.childCapabilityId}.`,
-        implementationStatus: "child_not_registered",
-      });
-    }
-
-    try {
-      return await capability.execute(options.input, context, options.executionOptions);
-    } catch (error) {
-      return buildAiDispatchFailureResult({
-        request: options.input,
-        promptContract,
-        childCapabilityId: options.childCapabilityId,
-        startedAt,
-        failureReason: error instanceof Error ? error.message : String(error),
-      });
-    }
+  const context = {
+    runtime: input.runtime ?? createLocalAiRuntimePort(),
+    clock: input.clock ?? createSystemAiClock(),
+    modelRoster: input.modelRoster ?? createAiModelRosterPort(),
+    promptRegistry: input.promptRegistry ?? createAiPromptRegistry(),
   };
+  const registry = createAiCapabilityRegistry();
 
   return {
     listChildCapabilityIds() {
-      return [...registry.keys()];
+      return listAiChildren();
     },
-    routeTask(taskType) {
-      return routeAiTaskToChild(taskType);
-    },
-    async execute(inputValue, options) {
-      const request = validateAiAbilityInput(inputValue);
-      return executeByChild({
-        childCapabilityId: routeAiTaskToChild(request.taskType),
-        input: request,
-        ...(options ? { executionOptions: options } : {}),
-      });
+    async execute(inputValue) {
+      const parsed = parseAiInput(inputValue);
+      if (!parsed.success) {
+        return dispatchAiFailure({
+          rawInput: inputValue,
+          context,
+          childCapabilityId: null,
+          taskType: null,
+          providerKind: null,
+          failureReason: "input_schema_invalid",
+          statusMessage: "AI rejected invalid input schema.",
+        });
+      }
+
+      const childCapabilityId = routeAiTaskToChild(parsed.data.taskType);
+      const entry = registry.get(childCapabilityId);
+      if (!entry) {
+        return dispatchAiFailure({
+          rawInput: parsed.data,
+          context,
+          childCapabilityId,
+          taskType: parsed.data.taskType,
+          providerKind: null,
+          failureReason: "unknown_child_capability",
+          statusMessage: `AI child capability is not registered for ${childCapabilityId}.`,
+        });
+      }
+
+      if (!entry.implementation.execute) {
+        return dispatchAiFailure({
+          rawInput: parsed.data,
+          context,
+          childCapabilityId,
+          taskType: parsed.data.taskType,
+          providerKind: entry.contract.providerKind,
+          failureReason: "child_not_executable",
+          statusMessage: `AI child capability is not executable for ${childCapabilityId}.`,
+        });
+      }
+
+      try {
+        return AiResultSchema.parse(await entry.implementation.execute(parsed.data, context));
+      } catch (error) {
+        return dispatchAiFailure({
+          rawInput: parsed.data,
+          context,
+          childCapabilityId,
+          taskType: parsed.data.taskType,
+          providerKind: entry.contract.providerKind,
+          failureReason: "runtime_execution_failed",
+          statusMessage: error instanceof Error ? error.message : "AI child execution failed.",
+        });
+      }
     },
     async getHealth() {
-      const baseHealth = await runtime.getHealth();
-      const childStatuses = await Promise.all([...registry.values()].map((capability) => capability.checkReadiness(context)));
-      return {
-        ...baseHealth,
+      const [runtimeHealth, childStatuses] = await Promise.all([
+        context.runtime.getHealth(),
+        Promise.all([...registry.values()].map((entry) => entry.implementation.checkReadiness(context))),
+      ]);
+      return AiHealthReportSchema.parse({
+        ...runtimeHealth,
         childStatuses,
-      };
+      });
     },
-    getRuntimeHealth() {
-      return runtime.getRuntimeHealth();
+    async getRuntimeHealth() {
+      return context.runtime.getRuntimeHealth();
     },
     getPromptContract(taskType) {
-      return runtime.resolvePromptContract(taskType);
+      return context.promptRegistry.resolvePromptContract(taskType);
     },
-    getModelRoster() {
-      return runtime.getModelRoster();
+    async getModelRoster() {
+      return context.modelRoster.load(context.clock);
     },
   };
 }

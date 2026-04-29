@@ -23,7 +23,7 @@ import { createGeometryGuardAbilityGroup } from "../../../capabilities/geometry-
 import { VisionCoordinatePlatformAdapter } from "./vision-coordinate-runtime.js";
 import { captureCommentRegion, captureVideoRegion, continueNext, likeOrSaveCandidate, observeCurrentVideo, openComments } from "./actions.js";
 import { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID, TikTokPlatformVideo, TikTokRecentVideoIdentity, resolveOrientationProfile } from "./identity.js";
-import { executeCoordinateAction, readCurrentVideo, syncOperatorModeInfo } from "./coordinate-runtime.js";
+import { buildPageStateAbilityInput, executeCoordinateAction, readCurrentVideo, syncOperatorModeInfo } from "./coordinate-runtime.js";
 import type { ExecuteCoordinateActionInput, GovernedVisualActionExecution } from "./runtime-types.js";
 import { toPlatformActionResult, type PlatformActionResultInput } from "./result.js";
 import { buildCapabilityStatus, buildRuntimeDiagnostics, captureRuntimePageState, createDefaultOperatorModeInfo } from "./view.js";
@@ -63,20 +63,16 @@ export class TikTokPlatformAdapter extends VisionCoordinatePlatformAdapter imple
     this.pageReadyStatus = "waiting_page_ready";
     this.lastNavigationError = null;
     const session = this.browserController.getSessionState();
-    const feedReadyState = await this.pageStateAbilityGroup.execute({
+    const feedReadyState = await this.pageStateAbilityGroup.execute(buildPageStateAbilityInput({
       childCapabilityId: "detect-feed-ready",
       currentUrl: session.currentUrl || this.startUrl,
       currentTitle: session.currentTitle,
       browserLoginState: session.loginState,
-      observationRefs: [],
-      sourceEvidenceRefs: [],
       requestedBy: "orchestration",
       sessionId: session.browserProfileRef || `page-state:${request.roundId}`,
       roundId: request.roundId,
       videoVisitId: null,
-      confidencePolicy: { minimumConfidence: 0.72, allowReviewRequired: true },
-      statePolicy: { allowReviewRequired: true, expectedPlatformHost: "www.tiktok.com", allowUnknownState: true },
-    });
+    }));
     if (feedReadyState.status !== "success" || feedReadyState.pageStateType !== "feed_ready") {
       this.pageReadyStatus = "review_required";
       this.lastNavigationError = feedReadyState.reviewRequiredReason ?? feedReadyState.stateSummary;

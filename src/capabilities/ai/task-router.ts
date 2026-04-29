@@ -15,6 +15,6 @@ export function routeAiTaskToChild(taskType: AiTaskType): AiChildCapabilityId {
   return AI_TASK_ROUTING[taskType];
 }
 
-export function getAiTaskRoutingTable(): Record<AiTaskType, AiChildCapabilityId> {
+export function listAiTaskRoutes(): Record<AiTaskType, AiChildCapabilityId> {
   return { ...AI_TASK_ROUTING };
 }

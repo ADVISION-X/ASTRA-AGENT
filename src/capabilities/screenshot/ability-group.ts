@@ -1,59 +1,70 @@
-import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { createScreenshotCapabilityRegistry } from "./registry.js";
-import { DEFAULT_AI_INPUT_MAX_WIDTH, type ScreenshotAbilityGroup, type ScreenshotAbilityInput, type ScreenshotChildCapabilityId } from "./contract.js";
-
-type CreateScreenshotAbilityGroupInput = {
-  browserController: BrowserController;
-  outputRootDir: string;
-  defaultAiMaxWidth?: number;
-};
-
-type CallInput = Omit<ScreenshotAbilityInput, "childCapabilityId">;
+import {
+  ScreenshotAbilityInputSchema,
+  CaptureBrowserViewportInputSchema,
+  CaptureDesktopScreenInputSchema,
+  CaptureRegionInputSchema,
+  OptimizeLosslessInputSchema,
+  PrepareAiInputInputSchema,
+} from "./schema.js";
+import type { CreateScreenshotAbilityGroupInput, ScreenshotAbilityGroup, ScreenshotAbilityInput, ScreenshotChildCapabilityId } from "./contract.js";
+import { DEFAULT_AI_INPUT_MAX_WIDTH } from "./shared/screenshot-policy.js";
+import { listScreenshotChildren } from "./registry.js";
+import { executeScreenshotRequest } from "./runtime/screenshot-executor.js";
 
 export function createScreenshotAbilityGroup(input: CreateScreenshotAbilityGroupInput): ScreenshotAbilityGroup {
-  const registry = createScreenshotCapabilityRegistry();
   const context = {
-    browserController: input.browserController,
-    outputRootDir: input.outputRootDir,
+    capturePort: input.capturePort,
+    artifactPort: input.artifactPort,
+    imageProcessingPort: input.imageProcessingPort,
+    clockPort: input.clockPort,
     defaultAiMaxWidth: input.defaultAiMaxWidth ?? DEFAULT_AI_INPUT_MAX_WIDTH,
   };
 
-  const executeById = async (childCapabilityId: ScreenshotChildCapabilityId, callInput: CallInput) => {
-    const capability = registry.get(childCapabilityId);
-    if (!capability) {
-      throw new Error(`Screenshot child capability is not registered for ${childCapabilityId}`);
-    }
+  const run = async (candidate: ScreenshotAbilityInput) => executeScreenshotRequest({
+    request: ScreenshotAbilityInputSchema.parse(candidate),
+    context,
+  });
 
-    return capability.execute({ childCapabilityId, ...callInput }, context);
+  const call = async <TInput extends ScreenshotAbilityInput>(childCapabilityId: ScreenshotChildCapabilityId, candidate: Omit<TInput, "childCapabilityId">) => {
+    return run({ ...candidate, childCapabilityId } as ScreenshotAbilityInput);
   };
 
   return {
     listChildCapabilityIds() {
-      return [...registry.keys()];
+      return listScreenshotChildren();
     },
     execute(inputValue) {
-      return executeById(inputValue.childCapabilityId, inputValue);
+      return run(inputValue);
     },
-    captureBrowserViewport(callInput) {
-      return executeById("capture-browser-viewport", {
-        ...callInput,
-        source: callInput.source ?? { kind: "browser_viewport" },
-      });
+    captureBrowserViewport(inputValue) {
+      return call("capture-browser-viewport", CaptureBrowserViewportInputSchema.parse({
+        ...inputValue,
+        childCapabilityId: "capture-browser-viewport",
+      }));
     },
-    captureDesktopScreen(callInput) {
-      return executeById("capture-desktop-screen", {
-        ...callInput,
-        source: callInput.source ?? { kind: "desktop_screen", screenId: "primary" },
-      });
+    captureDesktopScreen(inputValue) {
+      return call("capture-desktop-screen", CaptureDesktopScreenInputSchema.parse({
+        ...inputValue,
+        childCapabilityId: "capture-desktop-screen",
+      }));
     },
-    captureRegion(callInput) {
-      return executeById("capture-region", callInput);
+    captureRegion(inputValue) {
+      return call("capture-region", CaptureRegionInputSchema.parse({
+        ...inputValue,
+        childCapabilityId: "capture-region",
+      }));
     },
-    optimizeLossless(callInput) {
-      return executeById("optimize-lossless", callInput);
+    optimizeLossless(inputValue) {
+      return call("optimize-lossless", OptimizeLosslessInputSchema.parse({
+        ...inputValue,
+        childCapabilityId: "optimize-lossless",
+      }));
     },
-    prepareAiInput(callInput) {
-      return executeById("prepare-ai-input", callInput);
+    prepareAiInput(inputValue) {
+      return call("prepare-ai-input", PrepareAiInputInputSchema.parse({
+        ...inputValue,
+        childCapabilityId: "prepare-ai-input",
+      }));
     },
   };
 }

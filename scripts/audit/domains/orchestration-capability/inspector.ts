@@ -1,41 +1,156 @@
 import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
-import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { createAuditProject, getSourceFileOrThrow, hasInterfaceMethod } from "../_shared/ast-helpers.js";
+import {
+  createAuditProject,
+  getSourceFileOrThrow,
+  getZodEnumValues,
+  hasCallExpressionPath,
+  hasIdentifier,
+  hasImportModuleSpecifier,
+  hasInterfaceMethod,
+} from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 const ROOT = "src/capabilities/orchestration";
+const INDEX_PATH = `${ROOT}/index.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
-const MAP_REGISTRY_PATH = `${ROOT}/map-registry.ts`;
-const ROSTER_PATH = `${ROOT}/ability-roster.ts`;
-const FACEBOOK_MAP_PATH = `${ROOT}/maps/facebook-product-discovery/map.ts`;
-const TIKTOK_MAP_PATH = `${ROOT}/maps/tiktok-product-discovery/map.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const REGISTRY_PATH = `${ROOT}/registry.ts`;
 
-const REQUIRED_FILES = [
-  CONTRACT_PATH,
-  ABILITY_GROUP_PATH,
-  MAP_REGISTRY_PATH,
-  ROSTER_PATH,
-  FACEBOOK_MAP_PATH,
-  TIKTOK_MAP_PATH,
+const REQUIRED_CHILD_IDS = [
+  "start-mission",
+  "pause-mission",
+  "resume-mission",
+  "stop-mission",
+  "emergency-stop",
+  "execute-map-step",
+  "evaluate-step-transition",
+  "request-human-review",
+  "finalize-mission",
 ] as const;
 
-const FORBIDDEN_ROOT_IMPORTS = [
+const REQUIRED_MAP_IDS = [
+  "product-video-detection",
+  "browse-next-video",
+  "comment-evidence",
+  "recovery",
+  "human-review",
+] as const;
+
+const REQUIRED_RUNTIME_FILES = [
+  "orchestration-clock.ts",
+  "orchestration-idempotency.ts",
+  "mission-state-store.ts",
+  "mission-command-gate.ts",
+  "map-selection-gate.ts",
+  "map-validation-gate.ts",
+  "transition-evaluator.ts",
+  "loop-guard.ts",
+  "step-dispatcher.ts",
+  "orchestration-proof-builder.ts",
+  "orchestration-result-builder.ts",
+  "orchestration-dispatch-failure.ts",
+  "orchestration-executor.ts",
+] as const;
+
+const REQUIRED_PORT_FILES = [
+  "orchestration-clock-port.ts",
+  "orchestration-state-port.ts",
+  "orchestration-map-store-port.ts",
+  "orchestration-idempotency-port.ts",
+  "orchestration-nerve-bus-port.ts",
+] as const;
+
+const REQUIRED_SHARED_FILES = [
+  "orchestration-map.ts",
+  "orchestration-step.ts",
+  "orchestration-transition.ts",
+  "orchestration-result.ts",
+  "orchestration-proof.ts",
+  "orchestration-policy.ts",
+  "orchestration-failure.ts",
+] as const;
+
+const REQUIRED_ROOT_FILES = [INDEX_PATH, ABILITY_GROUP_PATH, CONTRACT_PATH, SCHEMA_PATH, REGISTRY_PATH] as const;
+
+const REQUIRED_PATHS = [
+  ...REQUIRED_ROOT_FILES,
+  ...REQUIRED_RUNTIME_FILES.map((fileName) => `${ROOT}/runtime/${fileName}`),
+  ...REQUIRED_PORT_FILES.map((fileName) => `${ROOT}/ports/${fileName}`),
+  ...REQUIRED_SHARED_FILES.map((fileName) => `${ROOT}/shared/${fileName}`),
+  ...REQUIRED_MAP_IDS.flatMap((mapId) => [
+    `${ROOT}/maps/${mapId}/contract.ts`,
+    `${ROOT}/maps/${mapId}/schema.ts`,
+    `${ROOT}/maps/${mapId}/map.ts`,
+  ]),
+  ...REQUIRED_CHILD_IDS.flatMap((childId) => [
+    `${ROOT}/children/${childId}/contract.ts`,
+    `${ROOT}/children/${childId}/schema.ts`,
+    `${ROOT}/children/${childId}/implementation.ts`,
+  ]),
+] as const;
+
+const LEGACY_FORBIDDEN_PATHS = [
+  `${ROOT}/ability-roster.ts`,
+  `${ROOT}/map-registry.ts`,
+  `${ROOT}/mission-state.ts`,
+  `${ROOT}/shared/branch-result.ts`,
+  `${ROOT}/shared/map-types.ts`,
+  `${ROOT}/shared/product-presence-branching-contract.ts`,
+  `${ROOT}/shared/product-presence-branching.ts`,
+  `${ROOT}/shared/transition-evaluator.ts`,
+  `${ROOT}/maps/facebook-product-discovery/map.ts`,
+  `${ROOT}/maps/facebook-product-discovery/map-check.ts`,
+  `${ROOT}/maps/tiktok-product-discovery/map.ts`,
+  `${ROOT}/maps/tiktok-product-discovery/map-check.ts`,
+  `${ROOT}/bounded-local-runtime-execution/bootstrap.ts`,
+  `${ROOT}/bounded-local-runtime-execution/executor.ts`,
+  `${ROOT}/bounded-local-runtime-execution/runtime-local-ai-result.ts`,
+  `${ROOT}/bounded-local-runtime-execution/state.ts`,
+  `${ROOT}/bounded-local-runtime-execution/step-support.ts`,
+] as const;
+
+const REQUIRED_PUBLIC_METHODS = [
+  "listChildCapabilityIds",
+  "listMapIds",
+  "execute",
+  "startMission",
+  "pauseMission",
+  "resumeMission",
+  "stopMission",
+  "emergencyStop",
+  "getMissionState",
+  "executeMission",
+  "submitReviewDecision",
+] as const;
+
+const FORBIDDEN_IMPORT_MARKERS = [
   "lib/browser/",
   "lib/local-ai/",
+  "storage/evidence-store/",
   "features/platform-action/",
-  "children/",
-  "implementation.ts",
 ] as const;
 
-const FORBIDDEN_TARGET_CHILDREN = [
-  'targetAbilityGroupId: "open-facebook"',
-  'targetAbilityGroupId: "open-tiktok"',
-  'targetAbilityGroupId: "click-left-point"',
-  'targetAbilityGroupId: "vertical-wheel-scroll"',
+const FORBIDDEN_IDENTIFIER_NAMES = [
+  "PlatformAdapter",
+  "EvidenceStoreService",
+  "MissionRuntimeExecutor",
+  "OpenDrawer",
+  "OpenAbilityGroup",
 ] as const;
+
+const PRIVATE_ORCHESTRATION_SEGMENTS = ["/children/", "/maps/", "/runtime/", "/shared/", "/ports/"] as const;
+
+function arraysEqual(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function isPrivateOrchestrationPath(relativePath: string): boolean {
+  return PRIVATE_ORCHESTRATION_SEGMENTS.some((segment) => relativePath.includes(segment));
+}
 
 export default createPendingDomainInspector({
   inspector: "GrassEye Orchestration Capability Owner Inspector",
@@ -44,88 +159,227 @@ export default createPendingDomainInspector({
   inspectorEntry: "scripts/audit/domains/orchestration-capability/inspector.ts",
   ownedPaths: [ROOT],
   pendingSummary: "orchestration-capability law exists but canonical commander root is not fully established yet",
-  implementedSummary: "orchestration-capability is implemented as the canonical mission-command owner with governed maps and Nerve Bus dispatch",
+  implementedSummary: "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch",
   extraChecks: async () => {
     const findings: Finding[] = [];
     const project = createAuditProject();
     const contractSource = getSourceFileOrThrow(project, CONTRACT_PATH);
+    const schemaSource = getSourceFileOrThrow(project, SCHEMA_PATH);
+    const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
+
     const requiredPresence = await Promise.all(
-      REQUIRED_FILES.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })),
+      REQUIRED_PATHS.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })),
     );
     for (const check of requiredPresence) {
       if (!check.exists) {
-        findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: check.filePath, line: 1, severity: "fatal", message: "Required Orchestration owner file is missing." }));
+        findings.push(createFinding({
+          lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+          file: check.filePath,
+          line: 1,
+          severity: "fatal",
+          message: "Required orchestration standard-package file is missing.",
+        }));
       }
     }
 
-    const [abilityGroupSource, mapRegistrySource, rosterSource, facebookMapSource, tiktokMapSource] = await Promise.all([
-      readTextFile(pathFromRepoRoot(ABILITY_GROUP_PATH)),
-      readTextFile(pathFromRepoRoot(MAP_REGISTRY_PATH)),
-      readTextFile(pathFromRepoRoot(ROSTER_PATH)),
-      readTextFile(pathFromRepoRoot(FACEBOOK_MAP_PATH)),
-      readTextFile(pathFromRepoRoot(TIKTOK_MAP_PATH)),
-    ]);
-    const rootFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
-    const srcFiles = await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts", ".tsx"] });
-    const rootFileSources = await Promise.all(rootFiles.map(async (filePath) => ({ relativePath: toRepoRelativePath(filePath), source: await readTextFile(filePath) })));
-    const srcFileSources = await Promise.all(srcFiles.map(async (filePath) => ({ relativePath: toRepoRelativePath(filePath), source: await readTextFile(filePath) })));
-
-    const usesNerveBusBoundary = abilityGroupSource.includes("../nerve-bus/")
-      && abilityGroupSource.includes("requestAi(")
-      && abilityGroupSource.includes("dispatchAbilityCommand(");
-    if (!usesNerveBusBoundary) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "error", message: "Orchestration ability group must dispatch through the Nerve Bus public interface." }));
+    const legacyPresence = await Promise.all(
+      LEGACY_FORBIDDEN_PATHS.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })),
+    );
+    for (const check of legacyPresence) {
+      if (check.exists) {
+        findings.push(createFinding({
+          lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+          file: check.filePath,
+          line: 1,
+          severity: "fatal",
+          message: "Legacy orchestration path still exists after the standard-package rebuild.",
+        }));
+      }
     }
 
-    const forbiddenImports = rootFileSources.flatMap((entry) =>
-      FORBIDDEN_ROOT_IMPORTS.some((marker) => entry.source.includes(marker)) ? [entry.relativePath] : []);
-    if (forbiddenImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1", file: forbiddenImports[0]!, line: 1, severity: "fatal", message: "Orchestration root must not import browser, local-ai, platform-action, or child implementation surfaces." }));
+    const publicMethodPass = REQUIRED_PUBLIC_METHODS.every((methodName) =>
+      hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", methodName),
+    );
+    if (!publicMethodPass) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+        file: CONTRACT_PATH,
+        line: 1,
+        severity: "error",
+        message: "Orchestration public contract is missing one or more governed mission-control methods.",
+      }));
     }
 
-    const mapRegistryPassed = mapRegistrySource.includes("facebookProductDiscoveryMap")
-      && mapRegistrySource.includes("tiktokProductDiscoveryMap")
-      && rosterSource.includes("forensics-persistence");
-    if (!mapRegistryPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: MAP_REGISTRY_PATH, line: 1, severity: "error", message: "Orchestration root must declare map registry and ability roster truth." }));
+    const childIds = getZodEnumValues(schemaSource, "OrchestrationChildCapabilityIdSchema");
+    if (!arraysEqual(childIds, REQUIRED_CHILD_IDS)) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+        file: SCHEMA_PATH,
+        line: 1,
+        severity: "error",
+        message: "Orchestration child capability ids drifted away from the canonical child set.",
+      }));
     }
 
-    const mapsAreGroupLevel = [facebookMapSource, tiktokMapSource].every((source) => FORBIDDEN_TARGET_CHILDREN.every((marker) => !source.includes(marker)));
-    if (!mapsAreGroupLevel) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1", file: FACEBOOK_MAP_PATH, line: 1, severity: "fatal", message: "Operational maps must reference abilityGroupId only and must not leak child ability ids into targetAbilityGroupId." }));
+    const mapIds = getZodEnumValues(schemaSource, "OperationalMapIdSchema");
+    if (!arraysEqual(mapIds, REQUIRED_MAP_IDS)) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+        file: SCHEMA_PATH,
+        line: 1,
+        severity: "error",
+        message: "Operational map ids drifted away from the canonical map set.",
+      }));
     }
 
-    const externalMapImports = srcFileSources
-      .filter((entry) => !entry.relativePath.startsWith(`${ROOT}/`))
-      .filter((entry) => /from\s+["'][^"']*capabilities\/orchestration\/maps\//.test(entry.source))
-      .map((entry) => entry.relativePath);
-    if (externalMapImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1", file: externalMapImports[0]!, line: 1, severity: "fatal", message: "Operational maps must not be imported outside the canonical orchestration root." }));
+    const registrySourceText = await readTextFile(pathFromRepoRoot(REGISTRY_PATH));
+    const registryPass = registrySourceText.includes("createOrchestrationCapabilityRegistry")
+      && registrySourceText.includes("getOrchestrationRegistryEntry");
+    if (!registryPass) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+        file: REGISTRY_PATH,
+        line: 1,
+        severity: "error",
+        message: "Orchestration registry must expose canonical registry accessors.",
+      }));
     }
 
-    const mapIdsAreScoped = facebookMapSource.includes('mapId: "facebook-product-discovery-map"')
-      && tiktokMapSource.includes('mapId: "tiktok-product-discovery-map"');
-    if (!mapIdsAreScoped) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: FACEBOOK_MAP_PATH, line: 1, severity: "error", message: "Operational maps must expose the required facebook/tiktok map ids." }));
+    const indexSourceText = await readTextFile(pathFromRepoRoot(INDEX_PATH));
+    const indexPass = !/export\s+\*\s+from\s+["']/.test(indexSourceText);
+    if (!indexPass) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+        file: INDEX_PATH,
+        line: 1,
+        severity: "fatal",
+        message: "Orchestration public index must not use export-star forwarding.",
+      }));
     }
 
-    const contractPassed = hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "startMission")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "pauseMission")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "resumeMission")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "stopMission")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "emergencyStop")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "getMissionState")
-      && hasInterfaceMethod(contractSource, "OrchestrationAbilityGroup", "submitReviewDecision");
-    if (!contractPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "error", message: "Orchestration contract must expose governed mission-control commands on the public interface." }));
+    const abilityGroupText = await readTextFile(pathFromRepoRoot(ABILITY_GROUP_PATH));
+    const nerveBusPass = hasImportModuleSpecifier(abilityGroupSource, "../nerve-bus/")
+      && hasCallExpressionPath(abilityGroupSource, ["nerveBus", "dispatchAbilityCommand"])
+      && hasCallExpressionPath(abilityGroupSource, ["nerveBus", "requestAi"])
+      && !abilityGroupText.includes("local-ai-decision");
+    if (!nerveBusPass) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+        file: ABILITY_GROUP_PATH,
+        line: 1,
+        severity: "fatal",
+        message: "Orchestration ability-group must dispatch through Nerve Bus only and must not reference local-ai-decision.",
+      }));
     }
+
+    const orchestrationFiles = (await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] }))
+      .map((filePath) => getSourceFileOrThrow(project, toRepoRelativePath(filePath)));
+    let rootBoundaryPass = true;
+    for (const sourceFile of orchestrationFiles) {
+      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
+      for (const marker of FORBIDDEN_IMPORT_MARKERS) {
+        if (hasImportModuleSpecifier(sourceFile, marker)) {
+          rootBoundaryPass = false;
+          findings.push(createFinding({
+            lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+            file: relativePath,
+            line: 1,
+            severity: "fatal",
+            message: "Orchestration must not import browser, local-ai, platform-action, or evidence-store owners directly.",
+          }));
+          break;
+        }
+      }
+
+      for (const forbiddenIdentifier of FORBIDDEN_IDENTIFIER_NAMES) {
+        if (hasIdentifier(sourceFile, forbiddenIdentifier)) {
+          rootBoundaryPass = false;
+          findings.push(createFinding({
+            lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+            file: relativePath,
+            line: 1,
+            severity: "fatal",
+            message: `Orchestration must not depend on retired owner ${forbiddenIdentifier}.`,
+          }));
+          break;
+        }
+      }
+    }
+
+    const srcFiles = (await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts", ".tsx"] }))
+      .map((filePath) => getSourceFileOrThrow(project, toRepoRelativePath(filePath)));
+    let privateBoundaryPass = true;
+    for (const sourceFile of srcFiles) {
+      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
+      if (relativePath.startsWith(`${ROOT}/`)) {
+        continue;
+      }
+
+      for (const importDeclaration of sourceFile.getImportDeclarations()) {
+        const target = importDeclaration.getModuleSpecifierSourceFile();
+        if (!target) {
+          continue;
+        }
+
+        const targetPath = toRepoRelativePath(target.getFilePath());
+        if (!targetPath.startsWith(`${ROOT}/`) || !isPrivateOrchestrationPath(targetPath)) {
+          continue;
+        }
+
+        privateBoundaryPass = false;
+        findings.push(createFinding({
+          lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1",
+          file: relativePath,
+          line: importDeclaration.getStartLineNumber(),
+          severity: "fatal",
+          message: "External code must not import orchestration private maps, children, runtime, shared, or port internals.",
+        }));
+        break;
+      }
+    }
+
+    const shapePass = requiredPresence.every((entry) => entry.exists)
+      && legacyPresence.every((entry) => !entry.exists)
+      && publicMethodPass;
+    const schemaPass = arraysEqual(childIds, REQUIRED_CHILD_IDS)
+      && arraysEqual(mapIds, REQUIRED_MAP_IDS)
+      && registryPass;
 
     return {
       findings,
       phases: [
-        createPhase("orchestration-required-shape", requiredPresence.every((entry) => entry.exists) && mapRegistryPassed && contractPassed ? "PASS" : "CODE VIOLATION", requiredPresence.every((entry) => entry.exists) && mapRegistryPassed && contractPassed, requiredPresence.every((entry) => entry.exists) && mapRegistryPassed && contractPassed ? "Orchestration root contains contract, roster, map registry, both maps, verify anchor, and governed mission-control commands." : "Orchestration required shape is incomplete."),
-        createPhase("orchestration-map-boundary", mapsAreGroupLevel && externalMapImports.length === 0 && mapIdsAreScoped ? "PASS" : "CODE VIOLATION", mapsAreGroupLevel && externalMapImports.length === 0 && mapIdsAreScoped, mapsAreGroupLevel && externalMapImports.length === 0 && mapIdsAreScoped ? "Operational maps stay declarative, group-level, and owned by the orchestration root only." : "Operational map ownership or targeting drift was detected."),
-        createPhase("orchestration-dispatch-boundary", usesNerveBusBoundary && forbiddenImports.length === 0 ? "PASS" : "CODE VIOLATION", usesNerveBusBoundary && forbiddenImports.length === 0, usesNerveBusBoundary && forbiddenImports.length === 0 ? "Orchestration uses Nerve Bus and avoids browser, AI runtime, platform-action, and child implementation imports." : "Orchestration still bypasses the Nerve Bus boundary or imports forbidden owners."),
+        createPhase(
+          "orchestration-standard-package-shape",
+          shapePass ? "PASS" : "CODE VIOLATION",
+          shapePass,
+          shapePass
+            ? "Orchestration root matches the standard package shape and old runtime files are gone."
+            : "Orchestration root is missing required standard-package files or still contains legacy runtime paths.",
+        ),
+        createPhase(
+          "orchestration-schema-registry-truth",
+          schemaPass ? "PASS" : "CODE VIOLATION",
+          schemaPass,
+          schemaPass
+            ? "Schema enums and registry truth match the canonical orchestration child and map set."
+            : "Schema ids or registry truth drifted away from the canonical orchestration package.",
+        ),
+        createPhase(
+          "orchestration-nerve-bus-boundary",
+          nerveBusPass && indexPass && rootBoundaryPass ? "PASS" : "CODE VIOLATION",
+          nerveBusPass && indexPass && rootBoundaryPass,
+          nerveBusPass && indexPass && rootBoundaryPass
+            ? "Ability-group dispatches through Nerve Bus only and orchestration root avoids forbidden owners."
+            : "Orchestration still bypasses Nerve Bus, leaks local-ai-decision, reintroduces export-star forwarding, or imports forbidden owners.",
+        ),
+        createPhase(
+          "orchestration-private-boundary",
+          privateBoundaryPass ? "PASS" : "CODE VIOLATION",
+          privateBoundaryPass,
+          privateBoundaryPass
+            ? "External code does not reach into orchestration private internals."
+            : "External code still imports orchestration private maps, children, runtime, shared, or port internals.",
+        ),
       ],
     };
   },

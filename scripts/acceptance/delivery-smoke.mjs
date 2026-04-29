@@ -67,10 +67,14 @@ async function verifyLocalAiHealth() {
 }
 
 async function verifyEvidenceAndGeometry(tempDataDir, realPlatformUrl) {
-  const [{ CurrentChromeBrowserController }, { createLocalBrowserSessionConfig }, { createScreenshotAbilityGroup }, { EvidenceStoreService }, { createGeometryGuardAbilityGroup }] = await Promise.all([
+  const [{ CurrentChromeBrowserController }, { createLocalBrowserSessionConfig }, { createScreenshotAbilityGroup }, { createFilesystemScreenshotArtifactPort }, { createBrowserControllerScreenshotCapturePort }, { createSharpScreenshotImageProcessingPort }, { createSystemScreenshotClockPort }, { EvidenceStoreService }, { createGeometryGuardAbilityGroup }] = await Promise.all([
     importDist("src/lib/browser/current-chrome-browser-controller.js"),
     importDist("src/lib/browser/local-browser-session.js"),
     importDist("src/capabilities/screenshot/ability-group.js"),
+    importDist("src/capabilities/screenshot/ports/screenshot-artifact-port.js"),
+    importDist("src/capabilities/screenshot/ports/screenshot-capture-port.js"),
+    importDist("src/capabilities/screenshot/ports/screenshot-image-processing-port.js"),
+    importDist("src/capabilities/screenshot/ports/screenshot-clock-port.js"),
     importDist("src/lib/storage/evidence-store/evidence-store-service.js"),
     importDist("src/capabilities/geometry-guard/index.js"),
   ]);
@@ -84,8 +88,10 @@ async function verifyEvidenceAndGeometry(tempDataDir, realPlatformUrl) {
     headlessRequested: false,
   });
   const screenshotAbilityGroup = createScreenshotAbilityGroup({
-    browserController,
-    outputRootDir: path.join(tempDataDir, "screenshot-smoke"),
+    capturePort: createBrowserControllerScreenshotCapturePort(browserController),
+    artifactPort: createFilesystemScreenshotArtifactPort(path.join(tempDataDir, "screenshot-smoke")),
+    imageProcessingPort: createSharpScreenshotImageProcessingPort(),
+    clockPort: createSystemScreenshotClockPort(),
   });
   const evidenceStore = new EvidenceStoreService(path.join(tempDataDir, "evidence-smoke"));
 
@@ -156,8 +162,8 @@ async function verifyEvidenceAndGeometry(tempDataDir, realPlatformUrl) {
       region: null,
       contentLines: ["delivery verification artifact"],
     });
-    assert(captureResult.status === "success" && captureResult.browserCapture, `screenshot ability group smoke check failed: ${captureResult.failureReason ?? "unknown failure"}`);
-    const capture = captureResult.browserCapture;
+    assert(captureResult.status === "success" && captureResult.output, `screenshot ability group smoke check failed: ${captureResult.failureReason?.message ?? "unknown failure"}`);
+    const capture = captureResult.output;
 
     const evidence = await evidenceStore.saveImageEvidence({
       kind: "video-screenshot",
@@ -165,13 +171,14 @@ async function verifyEvidenceAndGeometry(tempDataDir, realPlatformUrl) {
       roundId: "round_verify_delivery",
       platformId: "tiktok-web",
       sourceId: "verify-delivery-source",
-      sourceUrl: capture.pageUrl,
+      sourceUrl: capture.pageUrl ?? realPlatformUrl,
       regionLabel: capture.regionLabel,
       regionType: capture.regionType,
       summary: "delivery verification artifact",
       width: capture.width,
       height: capture.height,
       contentLines: capture.contentLines,
+      sourceFilePath: capture.artifactRef.storageRef,
     });
     const state = await evidenceStore.listState();
     const artifactText = await readFile(evidence.filePath, "utf8");
