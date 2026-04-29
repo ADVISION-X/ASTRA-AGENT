@@ -140,14 +140,16 @@ export class GrassEyeWorkbench {
               safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
               input,
             });
-            const status = aiResult.status === "failed" ? "failed" : "success";
+            const status = aiResult.status;
+            const aiTaskType = aiResult.taskType ?? "dispatch_failure";
+            const aiConfidence = "confidence" in aiResult ? aiResult.confidence : null;
             const outputPayload = this.buildPayloadDocument({
               documentType: "ai.response",
               documentRef: `${envelope.requestId}:response`,
               summary: status === "success" ? "AI response accepted." : (aiResult.failureReason ?? "AI response failed."),
               content: {
-                aiTaskType: aiResult.taskType,
-                confidence: aiResult.confidence,
+                aiTaskType,
+                confidence: aiConfidence,
                 failureReason: aiResult.failureReason,
               },
             });
@@ -162,18 +164,18 @@ export class GrassEyeWorkbench {
                   inputRef: envelope.inputRef,
                   payloadRefs: outputPayload.evidenceRefs.length > 0 ? Object.fromEntries(outputPayload.evidenceRefs.map((ref) => [ref, ref])) : { output: outputPayload.documentRef },
                   summary: outputPayload.summary,
-                  tags: ["ai", aiResult.taskType],
+                  tags: ["ai", aiTaskType],
                 }),
                 envelopeKind: "ai_response",
                 responseId: `${envelope.requestId}:response`,
                 from: "ai",
                 to: "orchestration",
                 status,
-                decision: aiResult.taskType,
-                confidence: aiResult.confidence,
+                decision: aiTaskType,
+                confidence: aiConfidence,
                 outputRef: outputPayload.documentRef,
                 failureReason: status === "failed" ? aiResult.failureReason : null,
-                reviewRequiredReason: aiResult.status === "review_required" ? aiResult.failureReason : null,
+                reviewRequiredReason: aiResult.status === "review_required" ? aiResult.reviewRequiredReason : null,
               },
               outputPayload,
             } satisfies NerveBusHandledResult<AiResponseEnvelope>;

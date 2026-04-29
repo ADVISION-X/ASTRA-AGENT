@@ -1,31 +1,5 @@
-import type { CommanderConsoleStatus } from "../shared/commander-result.js";
-
-export type CommanderDispatchFailure = {
-  status: Exclude<CommanderConsoleStatus, "success">;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-  dataQualityFlags: string[];
-};
-
-export function createCommanderFailedDispatch(reason: string, dataQualityFlags: string[] = []): CommanderDispatchFailure {
-  return {
-    status: "failed",
-    failureReason: reason,
-    reviewRequiredReason: null,
-    dataQualityFlags,
-  };
-}
-
-export function createCommanderReviewRequiredDispatch(reason: string, dataQualityFlags: string[] = []): CommanderDispatchFailure {
-  return {
-    status: "review_required",
-    failureReason: null,
-    reviewRequiredReason: reason,
-    dataQualityFlags,
-  };
-}
-
-export function describeCommanderUnhandledError(error: unknown): CommanderDispatchFailure {
-  const reason = error instanceof Error ? error.message : "unknown commander-console execution failure";
-  return createCommanderFailedDispatch(reason, ["execution_error"]);
-}
+import type { CommanderConsoleChildAbilityId } from "../contract.js";
+import { commanderFlag } from "../shared/commander-proof.js";
+import type { CommanderExecutionOutcome } from "../shared/commander-result.js";
+export function createMissingChildOutcome(childCapabilityId: CommanderConsoleChildAbilityId, inputRef: string): CommanderExecutionOutcome<null> { return { status: "failed", output: null, failureReason: "commander child is not registered", reviewRequiredReason: null, inputRef, outputRef: null, commandId: null, readRequestId: null, commandEnvelopeRef: null, resultEnvelopeRef: null, targetRecordRef: null, evidenceRefs: [], dataQualityFlags: [commanderFlag("dispatch_child_missing", "fatal", "Registry returned no child implementation.")], boundaryDecision: "blocked", commandDecision: null, readDecision: null, transportDecision: null, hardStopDecision: null, policyDecision: "blocked" }; }
+export function describeCommanderUnhandledError(error: unknown): string { return error instanceof Error ? error.message : "unknown commander-console execution failure"; }

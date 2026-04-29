@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-29T14:09:38.287Z",
+  "generatedAt": "2026-04-29T14:22:09.083Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 17,
-    "passed": 9,
-    "failed": 8,
-    "blocking": 7
+    "passed": 10,
+    "failed": 7,
+    "blocking": 6
   },
   "results": [
     {
@@ -674,15 +674,7 @@
       "inspector": "GrassEye Page State Capability Owner Inspector",
       "inspectorId": "page-state-capability-owner",
       "capabilityDomain": "page-state-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1",
-          "file": "src/capabilities/page-state/shared/page-state-policy.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Page State proceed policy must keep login-state gated to logged_in and safety-page gated to page_normal only."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -727,10 +719,10 @@
           "summary": "Page State root avoids export-star, escape hatches, and scattered Date usage."
         }
       ],
-      "classification": "LAW-SCRIPT DRIFT",
+      "classification": "PASS",
       "summary": "Page State root avoids export-star, escape hatches, and scattered Date usage.",
-      "passed": false,
-      "violationCount": 1
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Post-action Verification Capability Owner Inspector",

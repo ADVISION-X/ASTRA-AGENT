@@ -1,45 +1,12 @@
 import type { z } from "zod";
-
 import type { CommanderCommandType } from "../contract.js";
 import type { CommanderConsoleResultSchema, CommanderConsoleStatusSchema } from "../schema.js";
-import type { CommanderBoundaryDecision } from "./commander-proof.js";
+import type { CommanderBoundaryDecision, CommanderDataQualityFlag, CommanderEvidenceRef } from "./commander-proof.js";
 import type { CommanderMissionView, CommanderRecordDetailView } from "./commander-view-types.js";
-
 export type CommanderConsoleStatus = z.infer<typeof CommanderConsoleStatusSchema>;
-export type CommanderConsoleResult<TOutput = unknown> = Omit<z.infer<typeof CommanderConsoleResultSchema>, "output"> & {
-  output: TOutput | null;
-};
-
-export type CommanderExecutionOutcome<TOutput> = {
-  status: CommanderConsoleStatus;
-  output: TOutput | null;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-  inputRef: string;
-  outputRef: string | null;
-  evidenceRefs: string[];
-  dataQualityFlags: string[];
-  boundaryDecision: CommanderBoundaryDecision;
-};
-
-export type CommanderCommandResultStatus = "accepted" | "failed";
-
-export type CommanderHumanCommandResult = {
-  commandId: string;
-  commandType: CommanderCommandType;
-  status: CommanderCommandResultStatus;
-  envelopeRef: string;
-  mission: CommanderMissionView;
-  failureReason: string | null;
-};
-
-export type CommanderReviewDecisionResult = {
-  commandId: string;
-  commandType: Extract<CommanderCommandType, "approve-candidate" | "reject-candidate" | "mark-review-required">;
-  status: CommanderCommandResultStatus;
-  envelopeRef: string;
-  targetRecordId: string;
-  failureReason: string | null;
-};
-
+export type CommanderConsoleResult<TOutput = unknown> = Omit<z.infer<typeof CommanderConsoleResultSchema>, "output"> & { output: TOutput | null };
+export type CommanderExecutionOutcome<TOutput> = { status: CommanderConsoleStatus; output: TOutput | null; failureReason: string | null; reviewRequiredReason: string | null; inputRef: string; outputRef: string | null; commandId: string | null; readRequestId: string | null; commandEnvelopeRef: string | null; resultEnvelopeRef: string | null; targetRecordRef: { recordType: "candidate" | "evidence-packet" | "browse-ledger" | "failed-record" | "runtime-event" | "mission"; recordId: string } | null; evidenceRefs: CommanderEvidenceRef[]; dataQualityFlags: CommanderDataQualityFlag[]; boundaryDecision: CommanderBoundaryDecision; commandDecision: "accepted-by-command-gate" | "blocked-by-command-gate" | null; readDecision: "accepted-by-read-gate" | "blocked-by-read-gate" | null; transportDecision: "accepted" | "failed" | "review_required" | "not-dispatched" | null; hardStopDecision: "not-hard-stop" | "hard-stop-required" | "hard-stop-dispatched" | "hard-stop-dispatch-failed" | "hard-stop-review-required" | null; policyDecision: "allowed" | "blocked" | "review_required"; };
+export type CommanderCommandResultStatus = "accepted" | "failed" | "review_required";
+export type CommanderHumanCommandResult = { commandId: string; commandType: CommanderCommandType; status: CommanderCommandResultStatus; envelopeRef: string | null; mission: CommanderMissionView; failureReason: string | null };
+export type CommanderReviewDecisionResult = { commandId: string; commandType: Extract<CommanderCommandType, "approve-candidate" | "reject-candidate" | "mark-review-required">; status: CommanderCommandResultStatus; envelopeRef: string | null; targetRecordId: string; failureReason: string | null };
 export type CommanderInspectRecordResult = CommanderRecordDetailView;

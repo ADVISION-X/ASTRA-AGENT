@@ -1,284 +1,65 @@
 import { z } from "zod";
 
 export const COMMANDER_CONSOLE_CHILD_ABILITY_IDS = [
-  "issue-human-command",
-  "show-mission-dashboard",
-  "show-capability-roster",
-  "show-capability-health",
-  "show-operational-map-progress",
-  "show-runtime-proof-timeline",
-  "show-evidence-packets",
-  "show-browse-ledger",
-  "show-failed-records",
-  "show-review-queue",
-  "show-audit-summary",
-  "pause-mission",
-  "resume-mission",
-  "stop-mission",
-  "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
-  "mark-review-required",
-  "inspect-record-detail",
+  "issue-human-command","show-mission-dashboard","show-capability-roster","show-capability-health","show-operational-map-progress","show-runtime-proof-timeline","show-evidence-packets","show-browse-ledger","show-failed-records","show-review-queue","show-audit-summary","pause-mission","resume-mission","stop-mission","emergency-stop","approve-candidate","reject-candidate","mark-review-required","inspect-record-detail",
 ] as const;
-
-export const COMMANDER_COMMAND_CHILD_IDS = [
-  "issue-human-command",
-  "pause-mission",
-  "resume-mission",
-  "stop-mission",
-  "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
-  "mark-review-required",
-] as const;
-
-export const COMMANDER_READ_CHILD_IDS = [
-  "show-mission-dashboard",
-  "show-capability-roster",
-  "show-capability-health",
-  "show-operational-map-progress",
-  "show-runtime-proof-timeline",
-  "show-evidence-packets",
-  "show-browse-ledger",
-  "show-failed-records",
-  "show-review-queue",
-  "show-audit-summary",
-  "inspect-record-detail",
-] as const;
+export const COMMANDER_COMMAND_CHILD_IDS = ["issue-human-command","pause-mission","resume-mission","stop-mission","emergency-stop","approve-candidate","reject-candidate","mark-review-required"] as const;
+export const COMMANDER_READ_CHILD_IDS = ["show-mission-dashboard","show-capability-roster","show-capability-health","show-operational-map-progress","show-runtime-proof-timeline","show-evidence-packets","show-browse-ledger","show-failed-records","show-review-queue","show-audit-summary","inspect-record-detail"] as const;
 
 export const CommanderConsoleChildAbilityIdSchema = z.enum(COMMANDER_CONSOLE_CHILD_ABILITY_IDS);
+export const CommanderChildKindSchema = z.enum(["command", "read"]);
 export const CommanderConsoleStatusSchema = z.enum(["success", "failed", "review_required"]);
 export const CommanderBoundaryDecisionSchema = z.enum(["command-transport-only", "read-port-only", "blocked"]);
+export const CommanderCommandDecisionSchema = z.enum(["accepted-by-command-gate", "blocked-by-command-gate"]);
+export const CommanderReadDecisionSchema = z.enum(["accepted-by-read-gate", "blocked-by-read-gate"]);
+export const CommanderTransportDecisionSchema = z.enum(["accepted", "failed", "review_required", "not-dispatched"]);
+export const CommanderHardStopDecisionSchema = z.enum(["not-hard-stop", "hard-stop-required", "hard-stop-dispatched", "hard-stop-dispatch-failed", "hard-stop-review-required"]);
+export const CommanderPolicyDecisionSchema = z.enum(["allowed", "blocked", "review_required"]);
 export const CommanderCommandPrioritySchema = z.enum(["normal", "emergency"]);
 export const CommanderOperatorRefSchema = z.string().min(1).max(160);
 export const RequestedPlatformIdSchema = z.enum(["facebook-web", "tiktok-web"]);
-export const CommanderCommandTypeSchema = z.enum([
-  "start-mission",
-  "pause-mission",
-  "resume-mission",
-  "stop-mission",
-  "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
-  "mark-review-required",
-]);
-export const CommanderMissionStatusSchema = z.enum([
-  "idle",
-  "running",
-  "paused",
-  "review_required",
-  "failed",
-  "completed",
-  "stopped",
-]);
-export const CommanderReviewStatusSchema = z.enum(["pending", "approved", "rejected", "hold", "archived"]);
-export const CommanderRecordTypeSchema = z.enum([
-  "candidate",
-  "evidence-packet",
-  "browse-ledger",
-  "failed-record",
-  "runtime-event",
-  "mission",
-  "not-found",
-]);
+export const CommanderCommandTypeSchema = z.enum(["start-mission","pause-mission","resume-mission","stop-mission","emergency-stop","approve-candidate","reject-candidate","mark-review-required"]);
+export const CommanderMissionStatusSchema = z.enum(["idle","running","paused","review_required","failed","completed","stopped"]);
+export const CommanderReviewStatusSchema = z.enum(["pending","approved","rejected","hold","archived"]);
+export const CommanderRecordTypeSchema = z.enum(["candidate","evidence-packet","browse-ledger","failed-record","runtime-event","mission","not-found"]);
+export const CommanderEvidenceSourceSchema = z.enum(["command-transport","mission-read-model","forensics-read-model","capability-health-read-model","audit-read-model","runtime-proof-read-model","commander-console"]);
+export const CommanderDataQualityFlagCodeSchema = z.enum(["none","input_schema_failed","output_schema_failed","proof_schema_failed","command_gate_blocked","read_gate_blocked","transport_guarded","transport_missing_envelope","hard_stop","hard_stop_gate_failed","hard_stop_guarded","record_not_found","execution_error","dispatch_child_missing"]);
+export const CommanderDataQualitySeveritySchema = z.enum(["info", "warn", "fatal"]);
+export const CommanderReadModelSourceSchema = z.enum(["mission-read-model","forensics-read-model","capability-health-read-model","audit-read-model","runtime-proof-read-model"]);
 
-export const CommanderTargetRecordRefSchema = z.object({
-  recordType: CommanderRecordTypeSchema.exclude(["not-found"]),
-  recordId: z.string().min(1),
-}).strict();
+export const CommanderTargetRecordRefSchema = z.object({ recordType: CommanderRecordTypeSchema.exclude(["not-found"]), recordId: z.string().min(1) }).strict();
+export const CommanderEvidenceRefSchema = z.object({ recordRef: z.string().min(1), sourceAbility: CommanderEvidenceSourceSchema, recordType: CommanderRecordTypeSchema, proofRef: z.string().min(1).nullable() }).strict();
+export const CommanderDataQualityFlagSchema = z.object({ code: CommanderDataQualityFlagCodeSchema, severity: CommanderDataQualitySeveritySchema, message: z.string().min(1) }).strict();
 
-export const CommanderMissionStartPayloadSchema = z.object({
-  requestedBy: z.literal("commander-console"),
-  requestedPlatformId: RequestedPlatformIdSchema.optional(),
-  selectedMapId: z.string().min(1).optional(),
-  humanGoal: z.string().min(1).max(400).optional(),
-  operatorNote: z.string().min(1).max(400).optional(),
-}).strict();
+export const CommanderMissionStartPayloadSchema = z.object({ requestedBy: z.literal("commander-console"), requestedPlatformId: RequestedPlatformIdSchema.optional(), selectedMapId: z.string().min(1).optional(), humanGoal: z.string().min(1).max(400).optional(), operatorNote: z.string().min(1).max(400).optional() }).strict();
+export const CommanderMissionControlPayloadSchema = z.object({ requestedBy: z.literal("commander-console"), targetMissionId: z.string().min(1).nullable(), operatorNote: z.string().min(1).max(400).nullable() }).strict();
+export const CommanderReviewPayloadSchema = z.object({ requestedBy: z.literal("commander-console"), candidateId: z.string().min(1), decision: z.enum(["approve","reject","mark-review-required"]), operatorNote: z.string().min(1).max(400).nullable() }).strict();
+export const CommanderTransportPayloadSchema = z.union([CommanderMissionStartPayloadSchema, CommanderMissionControlPayloadSchema, CommanderReviewPayloadSchema]);
 
-export const CommanderReviewPayloadSchema = z.object({
-  requestedBy: z.literal("commander-console"),
-  candidateId: z.string().min(1),
-  decision: z.enum(["approve", "reject", "mark-review-required"]),
-  operatorNote: z.string().min(1).max(400).optional(),
-}).strict();
-
-export const HumanCommandInputSchema = z.object({
-  commandType: CommanderCommandTypeSchema,
-  targetMissionId: z.string().min(1).nullable().optional(),
-  selectedMapId: z.string().min(1).nullable().optional(),
-  targetRecordRef: CommanderTargetRecordRefSchema.nullable().optional(),
-  requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(),
-  humanGoal: z.string().min(1).max(400).nullable().optional(),
-  operatorNote: z.string().min(1).max(400).nullable().optional(),
-  initialPayload: z.union([CommanderMissionStartPayloadSchema, CommanderReviewPayloadSchema]).nullable().optional(),
-}).strict();
-
-export const ReadRequestInputSchema = z.object({
-  limit: z.number().int().min(1).max(200).optional(),
-  recordId: z.string().min(1).optional(),
-}).strict();
-
-export const ReviewDecisionInputSchema = z.object({
-  candidateId: z.string().min(1),
-  operatorNote: z.string().min(1).max(400).nullable().optional(),
-}).strict();
-
-export const RuntimeProofSchema = z.object({
-  abilityGroupId: z.literal("commander-console"),
-  childCapabilityId: CommanderConsoleChildAbilityIdSchema,
-  commandId: z.string().min(1).nullable(),
-  readRequestId: z.string().min(1).nullable(),
-  operatorRef: CommanderOperatorRefSchema,
-  startedAt: z.string().min(1),
-  endedAt: z.string().min(1),
-  durationMs: z.number().min(0),
-  status: CommanderConsoleStatusSchema,
-  inputRef: z.string().min(1),
-  outputRef: z.string().min(1).nullable(),
-  evidenceRefs: z.array(z.string().min(1)),
-  dataQualityFlags: z.array(z.string().min(1)),
-  boundaryDecision: CommanderBoundaryDecisionSchema,
-}).strict();
-
-export const CommanderCommandReceiptSchema = z.object({
-  commandId: z.string().min(1),
-  commandType: CommanderCommandTypeSchema,
-  priority: CommanderCommandPrioritySchema,
-  envelopeRef: z.string().min(1),
-  resultEnvelopeRef: z.string().min(1).nullable(),
-  transportStatus: z.enum(["accepted", "failed", "review_required"]),
-  targetMissionId: z.string().min(1).nullable(),
-  targetRecordId: z.string().min(1).nullable(),
-  message: z.string().min(1),
-}).strict();
-
-export const CommanderMissionViewSchema = z.object({
-  missionId: z.string().min(1).nullable(),
-  humanGoal: z.string(),
-  status: CommanderMissionStatusSchema,
-  missionRunRef: z.string().min(1).nullable(),
-  currentRoundIndex: z.number().int().min(0),
-  requestedPlatform: RequestedPlatformIdSchema.nullable(),
-  selectedMapId: z.string().min(1).nullable(),
-  lastHumanCommand: CommanderCommandTypeSchema.nullable(),
-  reviewRequiredReason: z.string().nullable(),
-  failureReason: z.string().nullable(),
-  startedAt: z.string().nullable(),
-  updatedAt: z.string().nullable(),
-  endedAt: z.string().nullable(),
-}).strict();
-
-export const CommanderRuntimeSummaryViewSchema = z.object({
-  runtimeStatus: CommanderMissionStatusSchema,
-  currentStep: z.string().nullable(),
-  reviewReason: z.string().nullable(),
-  totalSeenCount: z.number().int().min(0),
-  evidencePacketCount: z.number().int().min(0),
-  browseLedgerCount: z.number().int().min(0),
-  candidateCount: z.number().int().min(0),
-  lastAiFailureReason: z.string().nullable(),
-}).strict();
-
-export const CommanderBrowserSummaryViewSchema = z.object({
-  browserMode: z.string().min(1),
-  browserExecutable: z.string().nullable(),
-  browserProfileRef: z.string().min(1),
-  browserProfileStatus: z.string().min(1),
-  loginState: z.string().min(1),
-  executionMode: z.string().min(1),
-  geometryGuard: z.string().min(1),
-  viewport: z.string().min(1),
-  calibration: z.string().min(1),
-}).strict();
-
-export const CommanderCapabilityHealthEntrySchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
-  tone: z.enum(["normal", "good", "warn", "danger", "muted"]),
-  detail: z.string().min(1),
-}).strict();
-
-export const CommanderCapabilityRosterEntrySchema = z.object({
-  abilityGroupId: z.string().min(1),
-  displayName: z.string().min(1),
-  currentStrength: z.string().min(1),
-  purpose: z.string().min(1),
-}).strict();
-
-export const CommanderCandidateViewSchema = z.object({
-  id: z.string().min(1),
-  category: z.string().min(1),
-  useCase: z.string().min(1),
-  score: z.number(),
-  purchaseIntent: z.string().min(1),
-  reviewStatus: CommanderReviewStatusSchema,
-  evidenceCount: z.number().int().min(0),
-  notes: z.array(z.string()),
-  createdAt: z.string().min(1),
-  updatedAt: z.string().min(1),
-}).strict();
-
-export const CommanderRecordSummaryViewSchema = z.object({
-  id: z.string().min(1),
-  primary: z.string().min(1),
-  secondary: z.string().min(1),
-  detail: z.string().min(1),
-}).strict();
-
-export const CommanderRuntimeProofTimelineEntrySchema = z.object({
-  id: z.string().min(1),
-  createdAt: z.string().min(1),
-  step: z.string().min(1),
-  status: z.string().min(1),
-  message: z.string().min(1),
-}).strict();
-
-export const CommanderAuditSummarySchema = z.object({
-  phase: z.string().min(1),
-  activeCapabilityDomains: z.array(z.string().min(1)),
-  lastGeneratedAt: z.string().nullable(),
-  lastRunGeneratedAt: z.string().nullable(),
-  totals: z.object({
-    inspectors: z.number().int().min(0),
-    passed: z.number().int().min(0),
-    failed: z.number().int().min(0),
-    blocking: z.number().int().min(0),
-  }).nullable(),
-}).strict();
-
-export const CommanderRecordDetailViewSchema = z.object({
-  recordType: CommanderRecordTypeSchema,
-  recordId: z.string().min(1).nullable(),
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  details: z.array(z.string()),
-  status: z.string().nullable(),
-  createdAt: z.string().nullable(),
-}).strict();
-
-export const CommanderMissionDashboardViewSchema = z.object({
-  mission: CommanderMissionViewSchema,
-  runtime: CommanderRuntimeSummaryViewSchema,
-  browser: CommanderBrowserSummaryViewSchema,
-  health: z.array(CommanderCapabilityHealthEntrySchema),
-  capabilityRoster: z.array(CommanderCapabilityRosterEntrySchema),
-  candidates: z.array(CommanderCandidateViewSchema),
-  reviewQueue: z.array(CommanderRecordSummaryViewSchema),
-  evidencePackets: z.array(CommanderRecordSummaryViewSchema),
-  browseLedger: z.array(CommanderRecordSummaryViewSchema),
-  failedRecords: z.array(CommanderRecordSummaryViewSchema),
-  runtimeProof: z.array(CommanderRuntimeProofTimelineEntrySchema),
-  auditSummary: CommanderAuditSummarySchema,
-}).strict();
-
+export const HumanCommandInputSchema = z.object({ commandType: CommanderCommandTypeSchema, targetMissionId: z.string().min(1).nullable().optional(), selectedMapId: z.string().min(1).nullable().optional(), targetRecordRef: CommanderTargetRecordRefSchema.nullable().optional(), requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(), humanGoal: z.string().min(1).max(400).nullable().optional(), operatorNote: z.string().min(1).max(400).nullable().optional(), initialPayload: CommanderTransportPayloadSchema.nullable().optional() }).strict();
+export const ReadRequestInputSchema = z.object({ limit: z.number().int().min(1).max(200).optional(), recordId: z.string().min(1).optional() }).strict();
+export const ReviewDecisionInputSchema = z.object({ candidateId: z.string().min(1), operatorNote: z.string().min(1).max(400).nullable().optional() }).strict();
 export const EmptyCommanderChildInputSchema = z.object({}).strict();
 export const LimitedReadInputSchema = z.object({ limit: z.number().int().min(1).max(200).optional() }).strict();
 export const InspectRecordInputSchema = z.object({ recordId: z.string().min(1) }).strict();
-export const MissionControlInputSchema = z.object({
-  targetMissionId: z.string().min(1).nullable().optional(),
-  operatorNote: z.string().min(1).max(400).nullable().optional(),
-}).strict();
+export const MissionControlInputSchema = z.object({ targetMissionId: z.string().min(1).nullable().optional(), operatorNote: z.string().min(1).max(400).nullable().optional() }).strict();
+
+export const RuntimeProofSchema = z.object({ proofId: z.string().min(1), runId: z.string().min(1).nullable(), missionId: z.string().min(1).nullable(), traceId: z.string().min(1).nullable(), abilityGroupId: z.literal("commander-console"), childCapabilityId: CommanderConsoleChildAbilityIdSchema, childKind: CommanderChildKindSchema, commandId: z.string().min(1).nullable(), readRequestId: z.string().min(1).nullable(), operatorRef: CommanderOperatorRefSchema, inputRef: z.string().min(1), outputRef: z.string().min(1).nullable(), commandEnvelopeRef: z.string().min(1).nullable(), resultEnvelopeRef: z.string().min(1).nullable(), readModelSource: CommanderReadModelSourceSchema.nullable(), targetRecordRef: CommanderTargetRecordRefSchema.nullable(), evidenceRefs: z.array(CommanderEvidenceRefSchema), startedAt: z.string().datetime(), endedAt: z.string().datetime(), durationMs: z.number().min(0), status: CommanderConsoleStatusSchema, failureReason: z.string().min(1).nullable(), reviewRequiredReason: z.string().min(1).nullable(), boundaryDecision: CommanderBoundaryDecisionSchema, commandDecision: CommanderCommandDecisionSchema.nullable(), readDecision: CommanderReadDecisionSchema.nullable(), transportDecision: CommanderTransportDecisionSchema.nullable(), hardStopDecision: CommanderHardStopDecisionSchema.nullable(), policyDecision: CommanderPolicyDecisionSchema, dataQualityFlags: z.array(CommanderDataQualityFlagSchema) }).strict().superRefine((value, ctx) => { if (value.status === "failed" && !value.failureReason) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "failed proof requires failureReason" }); if (value.status === "review_required" && !value.reviewRequiredReason) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "review proof requires reviewRequiredReason" }); if (value.childKind === "command" && (!value.commandDecision || !value.transportDecision)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "command proof requires command and transport decisions" }); if (value.childKind === "read" && !value.readDecision) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "read proof requires read decision" }); if (value.startedAt > value.endedAt) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must be before endedAt" }); });
+
+export const CommandTransportResultSchema = z.object({ commandId: z.string().min(1), envelopeRef: z.string().min(1).nullable(), resultEnvelopeRef: z.string().min(1).nullable(), status: z.enum(["accepted","failed","review_required"]), failureReason: z.string().min(1).nullable(), reviewRequiredReason: z.string().min(1).nullable(), message: z.string().min(1), debugLogRef: z.string().min(1).nullable() }).strict();
+export const CommanderCommandReceiptSchema = z.object({ commandId: z.string().min(1), commandType: CommanderCommandTypeSchema, priority: CommanderCommandPrioritySchema, envelopeRef: z.string().min(1).nullable(), resultEnvelopeRef: z.string().min(1).nullable(), transportStatus: z.enum(["accepted","failed","review_required"]), failureReason: z.string().min(1).nullable(), reviewRequiredReason: z.string().min(1).nullable(), targetMissionId: z.string().min(1).nullable(), targetRecordId: z.string().min(1).nullable(), message: z.string().min(1) }).strict();
+
+export const CommanderMissionViewSchema = z.object({ missionId: z.string().min(1).nullable(), humanGoal: z.string(), status: CommanderMissionStatusSchema, missionRunRef: z.string().min(1).nullable(), currentRoundIndex: z.number().int().min(0), requestedPlatform: RequestedPlatformIdSchema.nullable(), selectedMapId: z.string().min(1).nullable(), lastHumanCommand: CommanderCommandTypeSchema.nullable(), reviewRequiredReason: z.string().nullable(), failureReason: z.string().nullable(), startedAt: z.string().nullable(), updatedAt: z.string().nullable(), endedAt: z.string().nullable() }).strict();
+export const CommanderRuntimeSummaryViewSchema = z.object({ runtimeStatus: CommanderMissionStatusSchema, currentStep: z.string().nullable(), reviewReason: z.string().nullable(), totalSeenCount: z.number().int().min(0), evidencePacketCount: z.number().int().min(0), browseLedgerCount: z.number().int().min(0), candidateCount: z.number().int().min(0), lastAiFailureReason: z.string().nullable() }).strict();
+export const CommanderBrowserSummaryViewSchema = z.object({ browserMode: z.string().min(1), browserExecutable: z.string().nullable(), browserProfileRef: z.string().min(1), browserProfileStatus: z.string().min(1), loginState: z.string().min(1), executionMode: z.string().min(1), geometryGuard: z.string().min(1), viewport: z.string().min(1), calibration: z.string().min(1) }).strict();
+export const CommanderCapabilityHealthEntrySchema = z.object({ id: z.string().min(1), label: z.string().min(1), tone: z.enum(["normal","good","warn","danger","muted"]), detail: z.string().min(1) }).strict();
+export const CommanderCapabilityRosterEntrySchema = z.object({ abilityGroupId: z.string().min(1), displayName: z.string().min(1), currentStrength: z.string().min(1), purpose: z.string().min(1) }).strict();
+export const CommanderCandidateViewSchema = z.object({ id: z.string().min(1), category: z.string().min(1), useCase: z.string().min(1), score: z.number(), purchaseIntent: z.string().min(1), reviewStatus: CommanderReviewStatusSchema, evidenceCount: z.number().int().min(0), notes: z.array(z.string()), createdAt: z.string().min(1), updatedAt: z.string().min(1) }).strict();
+export const CommanderRecordSummaryViewSchema = z.object({ id: z.string().min(1), primary: z.string().min(1), secondary: z.string().min(1), detail: z.string().min(1) }).strict();
+export const CommanderRuntimeProofTimelineEntrySchema = z.object({ id: z.string().min(1), createdAt: z.string().min(1), step: z.string().min(1), status: z.string().min(1), message: z.string().min(1) }).strict();
+export const CommanderAuditSummarySchema = z.object({ phase: z.string().min(1), activeCapabilityDomains: z.array(z.string().min(1)), lastGeneratedAt: z.string().nullable(), lastRunGeneratedAt: z.string().nullable(), totals: z.object({ inspectors: z.number().int().min(0), passed: z.number().int().min(0), failed: z.number().int().min(0), blocking: z.number().int().min(0) }).nullable() }).strict();
+export const CommanderRecordDetailViewSchema = z.object({ recordType: CommanderRecordTypeSchema, recordId: z.string().min(1).nullable(), title: z.string().min(1), summary: z.string().min(1), details: z.array(z.string()), status: z.string().nullable(), createdAt: z.string().nullable() }).strict();
+export const CommanderMissionDashboardViewSchema = z.object({ mission: CommanderMissionViewSchema, runtime: CommanderRuntimeSummaryViewSchema, browser: CommanderBrowserSummaryViewSchema, health: z.array(CommanderCapabilityHealthEntrySchema), capabilityRoster: z.array(CommanderCapabilityRosterEntrySchema), candidates: z.array(CommanderCandidateViewSchema), reviewQueue: z.array(CommanderRecordSummaryViewSchema), evidencePackets: z.array(CommanderRecordSummaryViewSchema), browseLedger: z.array(CommanderRecordSummaryViewSchema), failedRecords: z.array(CommanderRecordSummaryViewSchema), runtimeProof: z.array(CommanderRuntimeProofTimelineEntrySchema), auditSummary: CommanderAuditSummarySchema }).strict();
 
 export const CommanderConsoleInputSchema = z.discriminatedUnion("childCapabilityId", [
   z.object({ childCapabilityId: z.literal("issue-human-command"), operatorRef: CommanderOperatorRefSchema, input: HumanCommandInputSchema }).strict(),
@@ -301,13 +82,4 @@ export const CommanderConsoleInputSchema = z.discriminatedUnion("childCapability
   z.object({ childCapabilityId: z.literal("mark-review-required"), operatorRef: CommanderOperatorRefSchema, input: ReviewDecisionInputSchema }).strict(),
   z.object({ childCapabilityId: z.literal("inspect-record-detail"), operatorRef: CommanderOperatorRefSchema, input: InspectRecordInputSchema }).strict(),
 ]);
-
-export const CommanderConsoleResultSchema = z.object({
-  abilityGroupId: z.literal("commander-console"),
-  childCapabilityId: CommanderConsoleChildAbilityIdSchema,
-  status: CommanderConsoleStatusSchema,
-  output: z.unknown().nullable(),
-  failureReason: z.string().nullable(),
-  reviewRequiredReason: z.string().nullable(),
-  runtimeProof: RuntimeProofSchema,
-}).strict();
+export const CommanderConsoleResultSchema = z.object({ abilityGroupId: z.literal("commander-console"), childCapabilityId: CommanderConsoleChildAbilityIdSchema, status: CommanderConsoleStatusSchema, output: z.unknown().nullable(), failureReason: z.string().nullable(), reviewRequiredReason: z.string().nullable(), runtimeProof: RuntimeProofSchema }).strict();

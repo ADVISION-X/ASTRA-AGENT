@@ -1,96 +1,23 @@
 import { createId } from "../../../lib/local-runtime/ids.js";
-
-import type { CommanderHumanCommandInput } from "../contract.js";
-import { HumanCommandInputSchema } from "../schema.js";
-import { COMMAND_CHILD_TO_TYPE, COMMAND_TYPE_TO_PRIORITY, isEmergencyStopChild } from "../shared/commander-command-policy.js";
+import type { CommanderConsoleChildAbilityId, CommanderHumanCommandInput } from "../contract.js";
+import { CommandTransportResultSchema, CommanderTransportPayloadSchema, HumanCommandInputSchema } from "../schema.js";
+import type { CommanderHumanCommand, HumanCommandTransportResult } from "../ports/command-transport-port.js";
 import type { CommanderCommandPriority } from "../shared/commander-proof.js";
-
-export type CommanderTransportPayload = {
-  requestedBy: "commander-console";
-  requestedPlatformId?: "facebook-web" | "tiktok-web";
-  selectedMapId?: string;
-  humanGoal?: string;
-  operatorNote?: string;
-  candidateId?: string;
-  decision?: "approve" | "reject" | "mark-review-required";
-};
-
-export type GatedCommanderCommand = {
-  commandId: string;
-  commandType: CommanderHumanCommandInput["commandType"];
-  priority: CommanderCommandPriority;
-  operatorRef: string;
-  targetMissionId: string | null;
-  selectedMapId: string | null;
-  requestedPlatformId: "facebook-web" | "tiktok-web" | null;
-  humanGoal: string | null;
-  targetRecordRef: { recordType: "candidate" | "evidence-packet" | "browse-ledger" | "failed-record" | "runtime-event" | "mission"; recordId: string } | null;
-  operatorNote: string | null;
-  payload: CommanderTransportPayload;
-};
-
-const DEFAULT_HUMAN_GOAL = "Discover evidence-backed product opportunities from the active social feed.";
-
-export function gateCommanderCommand(input: {
-  childCapabilityId: string;
-  operatorRef: string;
-  commandInput: CommanderHumanCommandInput;
-}): { ok: true; command: GatedCommanderCommand; inputRef: string } | { ok: false; reason: string } {
-  const commandInput = HumanCommandInputSchema.parse(input.commandInput);
+const CHILD_COMMAND_TYPES = { "pause-mission": "pause-mission", "resume-mission": "resume-mission", "stop-mission": "stop-mission", "emergency-stop": "emergency-stop", "approve-candidate": "approve-candidate", "reject-candidate": "reject-candidate", "mark-review-required": "mark-review-required" } as const satisfies Partial<Record<CommanderConsoleChildAbilityId, CommanderHumanCommandInput["commandType"]>>;
+const PRIORITY_BY_COMMAND: Record<CommanderHumanCommandInput["commandType"], CommanderCommandPriority> = { "start-mission": "normal", "pause-mission": "normal", "resume-mission": "normal", "stop-mission": "normal", "emergency-stop": "emergency", "approve-candidate": "normal", "reject-candidate": "normal", "mark-review-required": "normal" };
+export type CommanderCommandGateResult = { ok: true; command: CommanderHumanCommand; inputRef: string } | { ok: false; reason: string; inputRef: string };
+function reviewDecision(commandType: CommanderHumanCommandInput["commandType"]): "approve" | "reject" | "mark-review-required" | null { if (commandType === "approve-candidate") return "approve"; if (commandType === "reject-candidate") return "reject"; if (commandType === "mark-review-required") return "mark-review-required"; return null; }
+export function gateCommanderCommand(input: { childCapabilityId: CommanderConsoleChildAbilityId; operatorRef: string; commandInput: CommanderHumanCommandInput }): CommanderCommandGateResult {
   const inputRef = createId("commander_command_input");
-
-  if (!input.operatorRef.trim()) {
-    return { ok: false, reason: "operatorRef is required." };
-  }
-
-  if (input.childCapabilityId !== "issue-human-command") {
-    const expectedCommandType = COMMAND_CHILD_TO_TYPE[input.childCapabilityId as keyof typeof COMMAND_CHILD_TO_TYPE];
-    if (!expectedCommandType || commandInput.commandType !== expectedCommandType) {
-      return { ok: false, reason: `Child ${input.childCapabilityId} must emit its owned command type.` };
-    }
-  }
-
-  if (commandInput.commandType === "start-mission" && !commandInput.requestedPlatformId && !commandInput.selectedMapId) {
-    return { ok: false, reason: "start-mission requires requestedPlatformId or selectedMapId." };
-  }
-
-  if (["approve-candidate", "reject-candidate", "mark-review-required"].includes(commandInput.commandType) && !commandInput.targetRecordRef?.recordId) {
-    return { ok: false, reason: "review commands require a target candidate record." };
-  }
-
-  if (isEmergencyStopChild(input.childCapabilityId) && commandInput.commandType !== "emergency-stop") {
-    return { ok: false, reason: "emergency-stop child cannot be downgraded." };
-  }
-
-  const payload: CommanderTransportPayload = {
-    requestedBy: "commander-console",
-    ...(commandInput.requestedPlatformId ? { requestedPlatformId: commandInput.requestedPlatformId } : {}),
-    ...(commandInput.selectedMapId ? { selectedMapId: commandInput.selectedMapId } : {}),
-    ...(commandInput.humanGoal ? { humanGoal: commandInput.humanGoal } : {}),
-    ...(commandInput.operatorNote ? { operatorNote: commandInput.operatorNote } : {}),
-    ...(commandInput.targetRecordRef?.recordType === "candidate" ? { candidateId: commandInput.targetRecordRef.recordId } : {}),
-    ...(commandInput.commandType === "approve-candidate" ? { decision: "approve" as const } : {}),
-    ...(commandInput.commandType === "reject-candidate" ? { decision: "reject" as const } : {}),
-    ...(commandInput.commandType === "mark-review-required" ? { decision: "mark-review-required" as const } : {}),
-  };
-
-  return {
-    ok: true,
-    inputRef,
-    command: {
-      commandId: createId("commander_command"),
-      commandType: commandInput.commandType,
-      priority: COMMAND_TYPE_TO_PRIORITY[commandInput.commandType],
-      operatorRef: input.operatorRef,
-      targetMissionId: commandInput.targetMissionId ?? null,
-      selectedMapId: commandInput.selectedMapId ?? null,
-      requestedPlatformId: commandInput.requestedPlatformId ?? null,
-      humanGoal: commandInput.commandType === "start-mission"
-        ? (commandInput.humanGoal?.trim() || DEFAULT_HUMAN_GOAL)
-        : (commandInput.humanGoal ?? null),
-      targetRecordRef: commandInput.targetRecordRef ?? null,
-      operatorNote: commandInput.operatorNote ?? null,
-      payload,
-    },
-  };
+  const commandInput = HumanCommandInputSchema.parse(input.commandInput);
+  if (!input.operatorRef.trim()) return { ok: false, reason: "operatorRef is required.", inputRef };
+  if (input.childCapabilityId === "issue-human-command" && commandInput.commandType !== "start-mission") return { ok: false, reason: "issue-human-command only owns start-mission.", inputRef };
+  if (input.childCapabilityId !== "issue-human-command") { const expected = CHILD_COMMAND_TYPES[input.childCapabilityId]; if (commandInput.commandType !== expected) return { ok: false, reason: "Child command must emit its owned command type.", inputRef }; }
+  if (commandInput.commandType === "start-mission" && !commandInput.requestedPlatformId && !commandInput.selectedMapId) return { ok: false, reason: "start-mission requires requestedPlatformId or selectedMapId.", inputRef };
+  const decision = reviewDecision(commandInput.commandType);
+  if (decision && commandInput.targetRecordRef?.recordType !== "candidate") return { ok: false, reason: "review commands require targetRecordRef.recordType=candidate.", inputRef };
+  if (input.childCapabilityId === "emergency-stop" && commandInput.commandType !== "emergency-stop") return { ok: false, reason: "emergency-stop child cannot be downgraded.", inputRef };
+  const payload = CommanderTransportPayloadSchema.parse(decision ? { requestedBy: "commander-console", candidateId: commandInput.targetRecordRef?.recordId, decision, operatorNote: commandInput.operatorNote ?? null } : commandInput.commandType === "start-mission" ? { requestedBy: "commander-console", ...(commandInput.requestedPlatformId ? { requestedPlatformId: commandInput.requestedPlatformId } : {}), ...(commandInput.selectedMapId ? { selectedMapId: commandInput.selectedMapId } : {}), ...(commandInput.humanGoal ? { humanGoal: commandInput.humanGoal } : {}), ...(commandInput.operatorNote ? { operatorNote: commandInput.operatorNote } : {}) } : { requestedBy: "commander-console", targetMissionId: commandInput.targetMissionId ?? null, operatorNote: commandInput.operatorNote ?? null });
+  return { ok: true, inputRef, command: { commandId: createId("commander_command"), commandType: commandInput.commandType, priority: PRIORITY_BY_COMMAND[commandInput.commandType], operatorRef: input.operatorRef, targetMissionId: commandInput.targetMissionId ?? null, selectedMapId: commandInput.selectedMapId ?? null, requestedPlatformId: commandInput.requestedPlatformId ?? null, humanGoal: commandInput.humanGoal ?? null, targetRecordRef: commandInput.targetRecordRef ?? null, operatorNote: commandInput.operatorNote ?? null, payload } };
 }
+export function parseCommandTransportResult(result: HumanCommandTransportResult): HumanCommandTransportResult { return CommandTransportResultSchema.parse(result); }

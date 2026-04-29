@@ -1,29 +1,16 @@
 import type { z } from "zod";
-
 import type { AuditReadModelPort } from "./ports/audit-read-model-port.js";
 import type { CapabilityHealthReadModelPort } from "./ports/capability-health-read-model-port.js";
-import type {
-  CommandTransportPort,
-  CommanderHumanCommand,
-} from "./ports/command-transport-port.js";
+import type { CommanderClockPort } from "./ports/commander-clock-port.js";
+import type { CommandTransportPort, CommanderHumanCommand } from "./ports/command-transport-port.js";
 import type { ForensicsReadModelPort } from "./ports/forensics-read-model-port.js";
 import type { OrchestrationMissionReadModel } from "./ports/mission-read-model-port.js";
 import type { RuntimeProofReadModelPort } from "./ports/runtime-proof-read-model-port.js";
 import type { CommanderAuditSummary, CommanderMissionView } from "./shared/commander-view-types.js";
 import type { CommanderRuntimeProof } from "./shared/commander-proof.js";
 import type { CommanderConsoleResult as GovernedCommanderConsoleResult } from "./shared/commander-result.js";
-import type {
-  CommanderConsoleChildAbilityIdSchema,
-  CommanderConsoleInputSchema,
-  CommanderConsoleResultSchema,
-  CommanderCommandTypeSchema,
-  HumanCommandInputSchema,
-  RuntimeProofSchema,
-  CommanderTargetRecordRefSchema,
-} from "./schema.js";
-
+import type { CommanderConsoleChildAbilityIdSchema, CommanderConsoleInputSchema, CommanderConsoleResultSchema, CommanderCommandTypeSchema, HumanCommandInputSchema, RuntimeProofSchema, CommanderTargetRecordRefSchema } from "./schema.js";
 export const COMMANDER_CONSOLE_ABILITY_GROUP_ID = "commander-console";
-
 export type CommanderConsoleAbilityGroupId = typeof COMMANDER_CONSOLE_ABILITY_GROUP_ID;
 export type CommanderConsoleChildAbilityId = z.infer<typeof CommanderConsoleChildAbilityIdSchema>;
 export type CommanderCommandType = z.infer<typeof CommanderCommandTypeSchema>;
@@ -32,27 +19,7 @@ export type CommanderHumanCommandInput = z.infer<typeof HumanCommandInputSchema>
 export type CommanderConsoleInput = z.infer<typeof CommanderConsoleInputSchema>;
 export type CommanderConsolePublicResult = z.infer<typeof CommanderConsoleResultSchema>;
 export type CommanderConsoleRuntimeProof = z.infer<typeof RuntimeProofSchema>;
-
-export type CreateCommanderConsoleAbilityGroupInput = {
-  commandTransport: CommandTransportPort;
-  missionReadModel: OrchestrationMissionReadModel;
-  forensicsReadModel: ForensicsReadModelPort;
-  capabilityHealthReadModel: CapabilityHealthReadModelPort;
-  auditReadModel: AuditReadModelPort;
-  runtimeProofReadModel: RuntimeProofReadModelPort;
-  defaultOperatorRef: string;
-  now?: () => string;
-};
-
-export interface CommanderConsoleAbilityGroup {
-  listChildAbilityIds(): CommanderConsoleChildAbilityId[];
-  execute(input: CommanderConsoleInput): Promise<GovernedCommanderConsoleResult>;
-}
-
+export type CreateCommanderConsoleAbilityGroupInput = { commandTransport: CommandTransportPort; missionReadModel: OrchestrationMissionReadModel; forensicsReadModel: ForensicsReadModelPort; capabilityHealthReadModel: CapabilityHealthReadModelPort; auditReadModel: AuditReadModelPort; runtimeProofReadModel: RuntimeProofReadModelPort; defaultOperatorRef: string; clock?: CommanderClockPort };
+export interface CommanderConsoleAbilityGroup { listChildAbilityIds(): CommanderConsoleChildAbilityId[]; execute(input: CommanderConsoleInput): Promise<GovernedCommanderConsoleResult>; }
 export type CommanderConsoleResult<TOutput = unknown> = GovernedCommanderConsoleResult<TOutput>;
-export type CommanderConsoleViewSeed = {
-  mission: CommanderMissionView;
-  auditSummary: CommanderAuditSummary;
-  proof: CommanderRuntimeProof;
-  transport?: CommanderHumanCommand | null;
-};
+export type CommanderConsoleViewSeed = { mission: CommanderMissionView; auditSummary: CommanderAuditSummary; proof: CommanderRuntimeProof; transport?: CommanderHumanCommand | null };
