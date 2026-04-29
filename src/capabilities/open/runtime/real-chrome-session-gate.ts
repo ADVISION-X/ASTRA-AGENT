@@ -66,7 +66,7 @@ export async function evaluateRealChromeSession(input: {
     };
   }
 
-  if (["profile_missing", "profile_locked", "profile_unavailable", "unknown"].includes(rawSnapshot.profileStatus)) {
+  if (rawSnapshot.profileStatus !== "profile_ready" && rawSnapshot.profileStatus !== "logged_in") {
     return {
       ok: false,
       failureCode: "session_gate_blocked",
@@ -93,6 +93,23 @@ export async function evaluateRealChromeSession(input: {
       decision: OpenSessionDecisionSchema.parse({
         status: "review_required",
         reason: rawSnapshot.reviewRequiredReason ?? "browser session requires operator review before governed open",
+        browserMode: rawSnapshot.browserMode,
+        profileStatus: rawSnapshot.profileStatus,
+        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
+      }),
+    };
+  }
+
+  if (rawSnapshot.loginState === "login_required") {
+    return {
+      ok: false,
+      failureCode: "session_gate_blocked",
+      status: "review_required",
+      reason: rawSnapshot.loginRequiredReason ?? "browser session requires login before governed open",
+      sessionSnapshot: rawSnapshot,
+      decision: OpenSessionDecisionSchema.parse({
+        status: "review_required",
+        reason: rawSnapshot.loginRequiredReason ?? "browser session requires login before governed open",
         browserMode: rawSnapshot.browserMode,
         profileStatus: rawSnapshot.profileStatus,
         profileVerificationStatus: rawSnapshot.profileVerificationStatus,

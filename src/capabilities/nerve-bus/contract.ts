@@ -1,5 +1,8 @@
 import type { z } from "zod";
 
+import {
+  NERVE_BUS_ABILITY_GROUP_ID,
+} from "./schema.js";
 import type {
   AbilityCommandDispatchInputSchema,
   AbilityTargetIdSchema,
@@ -7,7 +10,6 @@ import type {
   CommanderTargetIdSchema,
   GovernedAbilityGroupIdSchema,
   HumanCommandDispatchInputSchema,
-  NerveBusAbilityGroupIdSchema,
   NerveBusChannelIdSchema,
   RoutableExecutionTargetIdSchema,
 } from "./schema.js";
@@ -18,7 +20,9 @@ import type { NerveBusTransportPort } from "./ports/nerve-bus-transport-port.js"
 import type { NerveBusIdempotencyPort } from "./ports/nerve-bus-idempotency-port.js";
 import type { NerveBusQueuePort } from "./ports/nerve-bus-queue-port.js";
 
-export type NerveBusAbilityGroupId = z.infer<typeof NerveBusAbilityGroupIdSchema>;
+export { NERVE_BUS_ABILITY_GROUP_ID };
+
+export type NerveBusAbilityGroupId = typeof NERVE_BUS_ABILITY_GROUP_ID;
 export type NerveBusChannelId = z.infer<typeof NerveBusChannelIdSchema>;
 export type GovernedAbilityGroupId = z.infer<typeof GovernedAbilityGroupIdSchema>;
 export type AbilityTargetId = z.infer<typeof AbilityTargetIdSchema>;

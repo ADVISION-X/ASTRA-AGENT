@@ -72,6 +72,16 @@ export const getObjectLiteralString = (
     return initializer.getLiteralText();
   }
 
+  if (Node.isIdentifier(initializer)) {
+    const declaration = initializer.getDefinitions()[0]?.getDeclarationNode();
+    if (declaration && Node.isVariableDeclaration(declaration)) {
+      const value = declaration.getInitializer();
+      if (value && (Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value))) {
+        return value.getLiteralText();
+      }
+    }
+  }
+
   return undefined;
 };
 

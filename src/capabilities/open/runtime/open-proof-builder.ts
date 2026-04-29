@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   BrowserSessionSnapshot,
+  OpenDataQualityFlag,
   OpenFailure,
   OpenNavigationDecision,
   OpenRuntimeProof,
@@ -41,11 +42,12 @@ export function buildOpenProof(input: {
   openAttemptRef: string;
   pageStateRef: string | null;
   forensicsRef: string | null;
-  dataQualityFlags: string[];
+  dataQualityFlags: OpenDataQualityFlag[];
 }): OpenRuntimeProof {
   const durationMs = Math.max(0, Math.round(input.endedMonotonicMs - input.startedMonotonicMs));
   const targetProfileRef = `open-target-profile:${input.profile.childCapabilityId}`;
   const browserSessionRef = `browser-session:${input.afterSession.browserProfileRef}`;
+  const targetUrlSource = input.request.targetUrl ? "provided" : "policy_resolved";
 
   return OpenRuntimeProofSchema.parse({
     proofId: buildProofId(`${input.request.runId}:${input.idempotencyKey}:${input.endedAt}`),
@@ -56,6 +58,8 @@ export function buildOpenProof(input: {
     videoVisitId: input.request.videoVisitId,
     abilityGroupId: OPEN_ABILITY_GROUP_ID,
     childCapabilityId: input.request.childCapabilityId,
+    platformId: input.request.platformId,
+    targetKind: input.request.targetKind,
     sourceAbilityGroupId: input.request.sourceAbilityGroupId,
     sourceChildCapabilityId: input.request.sourceChildCapabilityId,
     inputRef: `${input.request.runId}:input`,
@@ -90,6 +94,12 @@ export function buildOpenProof(input: {
     openAttemptRef: input.openAttemptRef,
     pageStateRef: input.pageStateRef,
     forensicsRef: input.forensicsRef,
+    missionIdSource: "provided",
+    runIdSource: "provided",
+    sessionIdSource: "provided",
+    targetUrlSource,
+    childCapabilityIdSource: "provided",
+    failureInputParseDecision: "parsed",
     clock: {
       portKind: OPEN_CLOCK_KIND,
       startedMonotonicMs: input.startedMonotonicMs,

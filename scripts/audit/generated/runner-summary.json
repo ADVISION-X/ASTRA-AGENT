@@ -1,33 +1,18 @@
 {
-  "generatedAt": "2026-04-29T16:52:08.341Z",
+  "generatedAt": "2026-04-29T17:33:13.516Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 17,
-    "passed": 11,
-    "failed": 6,
-    "blocking": 6
+    "passed": 17,
+    "failed": 0,
+    "blocking": 0
   },
   "results": [
     {
       "inspector": "GrassEye Audit System Owner Inspector",
       "inspectorId": "audit-system-owner",
       "capabilityDomain": "audit-system",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 773,
-          "severity": "error",
-          "message": "Owner inspector capabilityDomain literal does not match its manifest."
-        },
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 773,
-          "severity": "error",
-          "message": "Owner inspectorId literal does not match its manifest."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -67,9 +52,9 @@
         },
         {
           "name": "owner-evidence",
-          "classification": "FAKE ENFORCEMENT",
-          "passed": false,
-          "summary": "Some owner inspectors do not provide authentic owner evidence."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Every owner inspector exposes shared owner evidence and domain alignment."
         },
         {
           "name": "audit-quality-authority",
@@ -108,171 +93,16 @@
           "summary": "Active scope contains no compatibility-bridge style files."
         }
       ],
-      "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
-      "passed": false,
-      "classification": "FAKE ENFORCEMENT",
-      "violationCount": 2
+      "summary": "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Capability Group Governance Owner Inspector",
       "inspectorId": "capability-group-governance-owner",
       "capabilityDomain": "capability-group-governance",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/orchestration/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/nerve-bus/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/ai/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/open/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/screenshot/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/visual-target/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/geometry-guard/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/mouse-click/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/mouse-scroll/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/post-action-verification/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/forensics-persistence/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
-          "file": "src/capabilities/page-state/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Public contract is missing a stable exported abilityGroupId constant."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-          "file": "src/lib/local-runtime/workbench.ts",
-          "line": 26,
-          "severity": "fatal",
-          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
-          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/screenshot/ports/screenshot-artifact-port.ts"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-          "file": "src/lib/local-runtime/workbench.ts",
-          "line": 27,
-          "severity": "fatal",
-          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
-          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/screenshot/ports/screenshot-capture-port.ts"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-          "file": "src/lib/local-runtime/workbench.ts",
-          "line": 28,
-          "severity": "fatal",
-          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
-          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/screenshot/ports/screenshot-image-processing-port.ts"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-          "file": "src/lib/local-runtime/workbench.ts",
-          "line": 29,
-          "severity": "fatal",
-          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
-          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/screenshot/ports/screenshot-clock-port.ts"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/ai/shared/ai-runtime-proof.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof target file is missing from source truth."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/geometry-guard/contract.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "GeometryGuardRuntimeProof: runId, missionId, capabilityId, childCapabilityId, inputSummary, outputSummary, status, errorCode, evidenceRef, timestamp"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/mouse-click/shared/mouse-click-proof.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "MouseClickRuntimeProofShape: capabilityId, inputSummary, outputSummary, errorCode, evidenceRef, timestamp"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/mouse-scroll/shared/runtime-proof.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof target file is missing from source truth."
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/forensics-persistence/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "ForensicsRuntimeProof: runId, missionId, capabilityId, childCapabilityId, inputSummary, outputSummary, status, errorCode, evidenceRef, timestamp"
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -288,9 +118,9 @@
         },
         {
           "name": "required-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Ability groups still depend on retired support roots."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Ability groups stay isolated from retired support roots."
         },
         {
           "name": "anti-escape",
@@ -300,15 +130,15 @@
         },
         {
           "name": "ability-group-contracts",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Some active ability groups are missing public contract or index truth."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Active ability groups expose stable public contract roots and referenced abilityGroupId constants."
         },
         {
           "name": "boundary-imports",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Cross-group imports still reach private capability paths."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Cross-group imports stay on public capability indexes or contracts."
         },
         {
           "name": "forbidden-owner-literals",
@@ -318,9 +148,9 @@
         },
         {
           "name": "runtime-proof-minimums",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Runtime proof types are missing shared constitutional fields."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime proof types carry the shared minimum constitutional fields."
         },
         {
           "name": "canonical-doc-paths",
@@ -371,10 +201,10 @@
           "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
         }
       ],
-      "classification": "CODE VIOLATION",
-      "summary": "Ability groups still depend on retired support roots.",
-      "passed": false,
-      "violationCount": 21
+      "classification": "PASS",
+      "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering.",
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Type Safety Owner Inspector",
@@ -464,22 +294,7 @@
       "inspector": "GrassEye Orchestration Capability Owner Inspector",
       "inspectorId": "orchestration-capability-owner",
       "capabilityDomain": "orchestration-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
-          "file": "src/capabilities/orchestration/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Orchestration child capability ids drifted away from the canonical child set."
-        },
-        {
-          "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
-          "file": "src/capabilities/orchestration/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Operational map ids drifted away from the canonical map set."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -501,9 +316,9 @@
         },
         {
           "name": "orchestration-schema-registry-truth",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Schema ids or registry truth drifted away from the canonical orchestration package."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Schema enums and registry truth match the canonical orchestration child and map set."
         },
         {
           "name": "orchestration-nerve-bus-boundary",
@@ -518,10 +333,10 @@
           "summary": "External code does not reach into orchestration private internals."
         }
       ],
-      "classification": "CODE VIOLATION",
-      "summary": "Schema ids or registry truth drifted away from the canonical orchestration package.",
-      "passed": false,
-      "violationCount": 2
+      "classification": "PASS",
+      "summary": "External code does not reach into orchestration private internals.",
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Commander Console Capability Owner Inspector",
@@ -575,22 +390,7 @@
       "inspector": "GrassEye Nerve Bus Capability Owner Inspector",
       "inspectorId": "nerve-bus-capability-owner",
       "capabilityDomain": "nerve-bus-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1",
-          "file": "src/capabilities/nerve-bus",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Nerve Bus required runtime shape is incomplete."
-        },
-        {
-          "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-002-V1",
-          "file": "src/capabilities/nerve-bus",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Nerve Bus still contains forbidden legacy transport shapes."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -606,15 +406,15 @@
         },
         {
           "name": "nerve-bus-required-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Nerve Bus required shape is incomplete."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus exposes the required executor, gates, ports, schemas, registry, and child folders."
         },
         {
           "name": "nerve-bus-forbidden-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Nerve Bus still contains forbidden legacy transfer patterns."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus legacy transfer patterns have been removed."
         },
         {
           "name": "nerve-bus-boundary",
@@ -629,10 +429,10 @@
           "summary": "Nerve Bus avoids anti-escape patterns."
         }
       ],
-      "classification": "CODE VIOLATION",
-      "summary": "Nerve Bus required shape is incomplete.",
-      "passed": false,
-      "violationCount": 2
+      "classification": "PASS",
+      "summary": "Nerve Bus avoids anti-escape patterns.",
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Page State Capability Owner Inspector",
@@ -740,36 +540,7 @@
       "inspector": "GrassEye Open Capability Owner Inspector",
       "inspectorId": "open-capability-owner",
       "capabilityDomain": "open-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V1",
-          "file": "src/capabilities/open/schema.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Open schema child ids must match the governed child registry."
-        },
-        {
-          "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V1",
-          "file": "src/capabilities/open/children/open-tiktok/implementation.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Open child implementation must export inputSchema, outputSchema, and execute backed by open-executor."
-        },
-        {
-          "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V1",
-          "file": "src/capabilities/open/children/open-facebook/implementation.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Open child implementation must export inputSchema, outputSchema, and execute backed by open-executor."
-        },
-        {
-          "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V1",
-          "file": "src/capabilities/open/children/open-local-workbench/implementation.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Open child implementation must export inputSchema, outputSchema, and execute backed by open-executor."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -868,31 +639,16 @@
           "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file."
         }
       ],
-      "classification": "LAW-SCRIPT DRIFT",
+      "classification": "PASS",
       "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file.",
-      "passed": false,
-      "violationCount": 4
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Screenshot Capability Owner Inspector",
       "inspectorId": "screenshot-capability-owner",
       "capabilityDomain": "screenshot-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V1",
-          "file": "src/capabilities/screenshot/registry.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot schema child ids and registry child ids must match exactly."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V1",
-          "file": "src/capabilities/ai/registry.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot child implementations must only be wired through screenshot-executor; external direct imports are forbidden."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -908,9 +664,9 @@
         },
         {
           "name": "required-shape-attack",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Screenshot required shape is incomplete or mismatched."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot required shape is complete across schema, registry, runtime gates, ports, and child contracts."
         },
         {
           "name": "forbidden-shape-attack",
@@ -920,9 +676,9 @@
         },
         {
           "name": "boundary-attack",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Screenshot boundary still leaks direct imports or missing gate wiring."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot boundary stays inside its governed executor and ports."
         },
         {
           "name": "anti-escape-attack",
@@ -931,10 +687,10 @@
           "summary": "Screenshot anti-escape checks are clean."
         }
       ],
-      "classification": "CODE VIOLATION",
-      "summary": "Screenshot required shape is incomplete or mismatched.",
-      "passed": false,
-      "violationCount": 2
+      "classification": "PASS",
+      "summary": "Screenshot anti-escape checks are clean.",
+      "passed": true,
+      "violationCount": 0
     },
     {
       "inspector": "GrassEye Geometry Guard Capability Owner Inspector",

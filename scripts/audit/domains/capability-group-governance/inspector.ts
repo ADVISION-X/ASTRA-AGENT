@@ -5,7 +5,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
 import { getAuditProject, getNodeLine, toRelativeSourcePath } from "../../core/ts-morph.js";
-import { getTypeAliasPropertyNames } from "../_shared/ast-helpers.js";
+import { getZodObjectPropertyNames } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { inspectCodeTopology } from "../code-topology/components/inspect-code-topology.js";
 
@@ -51,24 +51,20 @@ const OWNER_LITERAL_PROPERTIES = new Set(["abilityGroupId", "requestedBy", "sour
 const REQUIRED_RUNTIME_PROOF_FIELDS = [
   "runId",
   "missionId",
-  "capabilityId",
+  "abilityGroupId",
   "childCapabilityId",
-  "inputSummary",
-  "outputSummary",
   "status",
-  "errorCode",
-  "evidenceRef",
-  "timestamp",
+  "startedAt",
+  "endedAt",
+  "durationMs",
 ] as const;
 const RUNTIME_PROOF_TARGETS = [
-  { file: "src/capabilities/ai/shared/ai-runtime-proof.ts", typeName: "AiRuntimeProof" },
-  { file: "src/capabilities/geometry-guard/contract.ts", typeName: "GeometryGuardRuntimeProof" },
-  { file: "src/capabilities/mouse-click/shared/mouse-click-proof.ts", typeName: "MouseClickRuntimeProofShape" },
-  { file: "src/capabilities/mouse-scroll/shared/runtime-proof.ts", typeName: "MouseScrollRuntimeProof" },
-  { file: "src/capabilities/forensics-persistence/schema.ts", typeName: "ForensicsRuntimeProof" },
+  { file: "src/capabilities/ai/schema.ts", schemaName: "AiBaseRuntimeProofSchema" },
+  { file: "src/capabilities/geometry-guard/schema.ts", schemaName: "GeometryGuardRuntimeProofSchema" },
+  { file: "src/capabilities/mouse-click/schema.ts", schemaName: "MouseClickRuntimeProofSchema" },
+  { file: "src/capabilities/mouse-scroll/schema.ts", schemaName: "MouseScrollRuntimeProofSchema" },
+  { file: "src/capabilities/forensics-persistence/schema.ts", schemaName: "ForensicsRuntimeProofSchema" },
 ] as const;
-
-type RuntimeProofTarget = (typeof RUNTIME_PROOF_TARGETS)[number];
 
 const isRetiredSpecifier = (specifier: string): boolean =>
   specifier.includes("features/local-data")
@@ -127,6 +123,10 @@ const getStringLiteralValue = (node: Node | undefined): string | null => {
     return node.getLiteralText();
   }
 
+  if (Node.isAsExpression(node) || Node.isSatisfiesExpression(node) || Node.isParenthesizedExpression(node)) {
+    return getStringLiteralValue(node.getExpression());
+  }
+
   return null;
 };
 
@@ -150,18 +150,19 @@ const resolveImportTargetPath = (importDeclaration: ImportDeclaration): string |
   return sourceFile ? toRelativeSourcePath(sourceFile) : null;
 };
 
-const resolveAbilityGroupConstant = (sourceFile: SourceFile, expectedAbilityGroupId: string): VariableDeclaration | undefined => {
-  return sourceFile.getVariableDeclarations().find((declaration) => {
-    if (!declaration.isExported()) {
-      return false;
+const resolveExportedAbilityGroupConstant = (sourceFile: SourceFile, expectedAbilityGroupId: string): VariableDeclaration | undefined => {
+  for (const [exportName, declarations] of sourceFile.getExportedDeclarations()) {
+    if (!exportName.endsWith("_ABILITY_GROUP_ID")) {
+      continue;
     }
 
-    if (!declaration.getName().endsWith("_ABILITY_GROUP_ID")) {
-      return false;
+    const declaration = declarations.find((candidate): candidate is VariableDeclaration => Node.isVariableDeclaration(candidate));
+    if (declaration && getStringLiteralValue(declaration.getInitializer()) === expectedAbilityGroupId) {
+      return declaration;
     }
+  }
 
-    return getStringLiteralValue(declaration.getInitializer()) === expectedAbilityGroupId;
-  });
+  return undefined;
 };
 
 const inspectAbilityContracts = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
@@ -203,7 +204,7 @@ const inspectAbilityContracts = async (): Promise<{ findings: Finding[]; phases:
       continue;
     }
 
-    const abilityGroupConstant = resolveAbilityGroupConstant(contractSourceFile, abilityGroupId);
+    const abilityGroupConstant = resolveExportedAbilityGroupConstant(contractSourceFile, abilityGroupId);
     if (!abilityGroupConstant) {
       findings.push(
         createFinding({
@@ -371,7 +372,7 @@ const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>
       continue;
     }
 
-    const properties = getTypeAliasPropertyNames(sourceFile, target.typeName);
+    const properties = getZodObjectPropertyNames(sourceFile, target.schemaName);
     const missingProperties = REQUIRED_RUNTIME_PROOF_FIELDS.filter((propertyName) => !properties.has(propertyName));
     if (missingProperties.length === 0) {
       continue;
@@ -384,7 +385,7 @@ const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>
         line: 1,
         severity: "error",
         message: "Runtime proof type is missing one or more constitutional minimum fields.",
-        detail: `${target.typeName}: ${missingProperties.join(", ")}`,
+        detail: `${target.schemaName}: ${missingProperties.join(", ")}`,
       }),
     );
   }

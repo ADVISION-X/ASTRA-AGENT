@@ -7,6 +7,7 @@ export type NerveBusClockStamp = {
 
 export interface NerveBusClockPort {
   now(): NerveBusClockStamp;
+  toEpochMs(isoTimestamp: string): number;
 }
 
 export function createSystemNerveBusClockPort(): NerveBusClockPort {
@@ -16,6 +17,9 @@ export function createSystemNerveBusClockPort(): NerveBusClockPort {
         iso: new Date().toISOString(),
         monotonicMs: performance.now(),
       };
+    },
+    toEpochMs(isoTimestamp) {
+      return Date.parse(isoTimestamp);
     },
   };
 }

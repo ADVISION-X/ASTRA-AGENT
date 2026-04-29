@@ -12,4 +12,3 @@ export {
 } from "./contract.js";
 export { OpenRequestSchema, OpenResultSchema } from "./schema.js";
 export type { OpenBrowserPort } from "./ports/open-browser-port.js";
-export { listOpenChildren } from "./registry.js";

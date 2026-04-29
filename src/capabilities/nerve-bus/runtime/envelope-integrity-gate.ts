@@ -7,9 +7,9 @@ export function enforceEnvelopeIntegrityGate<TEnvelope extends SupportedEnvelope
   registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
   clock: NerveBusClockPort;
 }): { ok: true } | { ok: false; integrityDecision: "stale" | "expired" | "payload_ref_policy_failed"; reason: string } {
-  const nowMs = new Date(input.clock.now().iso).getTime();
-  const createdAtMs = new Date(input.envelope.createdAt).getTime();
-  const expiresAtMs = new Date(input.envelope.expiresAt).getTime();
+  const nowMs = input.clock.toEpochMs(input.clock.now().iso);
+  const createdAtMs = input.clock.toEpochMs(input.envelope.createdAt);
+  const expiresAtMs = input.clock.toEpochMs(input.envelope.expiresAt);
 
   if (Number.isNaN(createdAtMs) || Number.isNaN(expiresAtMs)) {
     return { ok: false, integrityDecision: "payload_ref_policy_failed", reason: "Envelope timestamps must be valid ISO datetimes." };

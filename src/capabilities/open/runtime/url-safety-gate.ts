@@ -13,29 +13,28 @@ export function evaluateUrlSafety(input: {
   ok: boolean;
   failureCode: "url_policy_blocked" | null;
   reason: string | null;
-  normalizedUrl: string;
-  hostname: string;
-  scheme: "http" | "https";
+  normalizedUrl: string | null;
+  hostname: string | null;
+  scheme: "http" | "https" | null;
   decision: OpenUrlSafetyDecision;
 } {
   let parsedUrl: URL;
   try {
     parsedUrl = normalizeOpenUrl(input.targetUrl);
   } catch {
-    const fallbackUrl = "http://127.0.0.1/invalid";
     return {
       ok: false,
       failureCode: "url_policy_blocked",
       reason: "target url is not a valid absolute url",
-      normalizedUrl: fallbackUrl,
-      hostname: "127.0.0.1",
-      scheme: "http",
+      normalizedUrl: null,
+      hostname: null,
+      scheme: null,
       decision: OpenUrlSafetyDecisionSchema.parse({
         status: "block",
         reason: "target url is not a valid absolute url",
-        normalizedUrl: fallbackUrl,
-        hostname: "127.0.0.1",
-        scheme: "http",
+        normalizedUrl: null,
+        hostname: null,
+        scheme: null,
       }),
     };
   }

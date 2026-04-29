@@ -1,6 +1,7 @@
 import type {
   BrowserSessionSnapshot,
   OpenNavigationDecision,
+  OpenDataQualityFlag,
   OpenTargetProfile,
   PostOpenStateDecision,
 } from "../contract.js";
@@ -17,7 +18,7 @@ export function evaluatePostOpenState(input: {
   failureCode: "post_open_state_failed" | null;
   reason: string | null;
   decision: PostOpenStateDecision;
-  dataQualityFlags: string[];
+  dataQualityFlags: OpenDataQualityFlag[];
 } {
   if (input.navigationDecision.status === "timeout" || input.navigationDecision.status === "browser_failed") {
     return {
@@ -32,7 +33,7 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["navigation_failed"],
+      dataQualityFlags: [{ code: "navigation_failed", severity: "error", reason: input.navigationDecision.reason ?? "navigation failed" }],
     };
   }
 
@@ -49,24 +50,31 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["login_required"],
+      dataQualityFlags: [{ code: "login_required", severity: "warn", reason: input.afterSession.loginRequiredReason ?? "login required" }],
     };
   }
 
   if (input.afterSession.loginState === "review_required" || input.navigationDecision.status === "review_required") {
+    const reviewReason = input.afterSession.reviewRequiredReason ?? input.navigationDecision.reason ?? "security or review wall detected after governed open";
+    const lowercaseReason = reviewReason.toLowerCase();
+    const classification = lowercaseReason.includes("captcha") || lowercaseReason.includes("challenge")
+      ? "captcha_wall"
+      : lowercaseReason.includes("permission")
+        ? "permission_wall"
+        : "security_wall";
     return {
       status: "review_required",
       failureCode: null,
-      reason: input.afterSession.reviewRequiredReason ?? input.navigationDecision.reason ?? "security or review wall detected after governed open",
+      reason: reviewReason,
       decision: PostOpenStateDecisionSchema.parse({
         status: "review_required",
-        classification: "security_wall",
-        reason: input.afterSession.reviewRequiredReason ?? input.navigationDecision.reason ?? "security or review wall detected after governed open",
+        classification,
+        reason: reviewReason,
         openedUrl: input.afterSession.currentUrl,
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["security_wall"],
+      dataQualityFlags: [{ code: classification, severity: "warn", reason: reviewReason }],
     };
   }
 
@@ -83,7 +91,7 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["blank_page"],
+      dataQualityFlags: [{ code: "blank_page", severity: "error", reason: "opened url is blank after governed open" }],
     };
   }
 
@@ -103,7 +111,7 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["invalid_opened_url"],
+      dataQualityFlags: [{ code: "invalid_opened_url", severity: "error", reason: "opened url is not a valid absolute url" }],
     };
   }
 
@@ -120,7 +128,7 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["wrong_domain_redirect"],
+      dataQualityFlags: [{ code: "wrong_domain_redirect", severity: "error", reason: `opened url host ${openedUrl.hostname} does not match the governed allowlist` }],
     };
   }
 
@@ -137,7 +145,7 @@ export function evaluatePostOpenState(input: {
         pageTitleAfter: input.afterSession.currentTitle,
         pageStateHandoffRequired: false,
       }),
-      dataQualityFlags: ["empty_title"],
+      dataQualityFlags: [{ code: "empty_title", severity: "warn", reason: "page title is empty after governed open" }],
     };
   }
 
@@ -153,6 +161,8 @@ export function evaluatePostOpenState(input: {
       pageTitleAfter: input.afterSession.currentTitle,
       pageStateHandoffRequired: true,
     }),
-    dataQualityFlags: input.beforeSession.currentUrl === input.afterSession.currentUrl ? ["already_on_target"] : [],
+    dataQualityFlags: input.beforeSession.currentUrl === input.afterSession.currentUrl
+      ? [{ code: "already_on_target", severity: "info", reason: "browser session already pointed at target url" }]
+      : [],
   };
 }

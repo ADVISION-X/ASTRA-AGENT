@@ -1,5 +1,6 @@
 import type {
   OpenChildExecutionContext,
+  OpenDataQualityFlag,
   OpenResult,
   OpenTargetProfile,
   ParsedOpenRequest,
@@ -33,6 +34,10 @@ function createUnavailableSession(reason: string) {
     loginRequiredReason: null,
     reviewRequiredReason: null,
   };
+}
+
+function makeDataFlag(code: string, severity: OpenDataQualityFlag["severity"], reason: string): OpenDataQualityFlag {
+  return { code, severity, reason };
 }
 
 export async function executeOpenChild(input: {
@@ -102,7 +107,7 @@ export async function executeOpenChild(input: {
         message: targetPolicy.reason ?? "open target policy blocked",
       }),
       reviewRequiredReason: null,
-      dataQualityFlags: ["target_policy_blocked"],
+      dataQualityFlags: [makeDataFlag("target_policy_blocked", "error", targetPolicy.reason ?? "open target policy blocked")],
     });
   }
 
@@ -155,7 +160,57 @@ export async function executeOpenChild(input: {
         message: urlSafety.reason ?? "open url safety blocked",
       }),
       reviewRequiredReason: null,
-      dataQualityFlags: ["url_policy_blocked"],
+      dataQualityFlags: [makeDataFlag("url_policy_blocked", "error", urlSafety.reason ?? "open url safety blocked")],
+    });
+  }
+
+  const normalizedTargetUrl = urlSafety.normalizedUrl;
+  if (!normalizedTargetUrl) {
+    const ended = input.context.clock.now();
+    const unavailableSession = createUnavailableSession("url safety allow decision did not provide normalized url");
+    return buildOpenResult({
+      request: input.request,
+      profile: input.profile,
+      targetPolicyDecision: targetPolicy.decision,
+      urlSafetyDecision: urlSafety.decision,
+      sessionDecision: {
+        status: "block",
+        reason: "url safety allow decision did not provide normalized url",
+        browserMode: unavailableSession.browserMode,
+        profileStatus: unavailableSession.profileStatus,
+        profileVerificationStatus: unavailableSession.profileVerificationStatus,
+      },
+      navigationDecision: {
+        status: "browser_failed",
+        reason: "url safety allow decision did not provide normalized url",
+        browserActionId: null,
+        fallbackUsed: false,
+        openedUrl: null,
+        pageTitleAfter: null,
+        navigationAttemptRef: `${input.request.runId}:url-safety-invalid-allow`,
+        redirectChain: [],
+      },
+      postOpenStateDecision: {
+        status: "failed",
+        classification: "unknown",
+        reason: "url safety allow decision did not provide normalized url",
+        openedUrl: null,
+        pageTitleAfter: null,
+        pageStateHandoffRequired: false,
+      },
+      idempotencyKey: `${input.request.runId}:url-safety-invalid-allow`,
+      beforeSession: unavailableSession,
+      afterSession: unavailableSession,
+      startedAt: started.isoTimestamp,
+      endedAt: ended.isoTimestamp,
+      startedMonotonicMs: started.monotonicMs,
+      endedMonotonicMs: ended.monotonicMs,
+      failureReason: createOpenFailure({
+        code: "url_policy_blocked",
+        message: "url safety allow decision did not provide normalized url",
+      }),
+      reviewRequiredReason: null,
+      dataQualityFlags: [makeDataFlag("url_policy_blocked", "error", "url safety allow decision did not provide normalized url")],
     });
   }
 
@@ -203,14 +258,14 @@ export async function executeOpenChild(input: {
           })
         : null,
       reviewRequiredReason: sessionGate.status === "review_required" ? sessionGate.reason : null,
-      dataQualityFlags: [sessionGate.failureCode ?? "session_gate_blocked"],
+      dataQualityFlags: [makeDataFlag(sessionGate.failureCode ?? "session_gate_blocked", sessionGate.status === "failed" ? "error" : "warn", sessionGate.reason ?? "open session gate blocked")],
     });
   }
 
   const idempotency = input.context.reserveIdempotency({
     sessionId: input.request.sessionId,
     childCapabilityId: input.request.childCapabilityId,
-    targetUrl: urlSafety.normalizedUrl,
+    targetUrl: normalizedTargetUrl,
     roundId: input.request.roundId,
     currentUrl: sessionGate.sessionSnapshot.currentUrl,
     allowReplay: input.profile.allowReplay,
@@ -231,7 +286,7 @@ export async function executeOpenChild(input: {
         openedUrl: sessionGate.sessionSnapshot.currentUrl,
         pageTitleAfter: sessionGate.sessionSnapshot.currentTitle,
         navigationAttemptRef: `${idempotency.idempotencyKey}:duplicate`,
-        redirectChain: [urlSafety.normalizedUrl],
+        redirectChain: [normalizedTargetUrl],
       },
       postOpenStateDecision: {
         status: "review_required",
@@ -250,13 +305,13 @@ export async function executeOpenChild(input: {
       endedMonotonicMs: ended.monotonicMs,
       failureReason: null,
       reviewRequiredReason: idempotency.reason,
-      dataQualityFlags: ["duplicate_open"],
+      dataQualityFlags: [makeDataFlag("duplicate_open", "warn", idempotency.reason ?? "duplicate open detected")],
     });
   }
 
   const navigation = await runOpenNavigation({
     browser: input.context.browser,
-    targetUrl: urlSafety.normalizedUrl,
+    targetUrl: normalizedTargetUrl,
     targetTitle: targetPolicy.resolvedTargetTitle,
     timeoutMs: resolveOpenTimeoutMs(input.profile),
     idempotencyKey: idempotency.idempotencyKey,

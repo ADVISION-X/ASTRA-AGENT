@@ -101,6 +101,11 @@ function hasNewDateOutsideClock(sourceFile: SourceFile): boolean {
 }
 
 function hasDateParse(sourceFile: SourceFile): boolean {
+  const relative = toRepoRelativePath(sourceFile.getFilePath());
+  if (relative === CLOCK_PORT_PATH) {
+    return false;
+  }
+
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isPropertyAccessExpression(expression)

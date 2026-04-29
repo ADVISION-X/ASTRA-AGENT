@@ -2,13 +2,13 @@ import type { OpenBrowserPort } from "./ports/open-browser-port.js";
 import type { OpenClockPort } from "./ports/open-clock-port.js";
 import type { OpenIdempotencyPort } from "./ports/open-idempotency-port.js";
 import type { OpenProfilePort } from "./ports/open-profile-port.js";
-import { type OpenAbilityGroup, type OpenChildCapabilityId, type OpenPlatformId, type OpenRequest, type OpenResult, type OpenTargetKind } from "./contract.js";
+import { type OpenAbilityGroup, type OpenRequest, type OpenResult } from "./contract.js";
 import { OpenResultSchema } from "./schema.js";
 import { createOpenRegistry, listOpenChildren } from "./registry.js";
 import { createSystemOpenClock } from "./runtime/open-clock.js";
 import { buildOpenDispatchFailure } from "./runtime/open-dispatch-failure.js";
 import { createInMemoryOpenIdempotencyPort } from "./runtime/open-idempotency.js";
-import { coerceOpenInputSeed, parseOpenAbilityInput } from "./runtime/open-input-gate.js";
+import { extractOpenFailureTrace, parseOpenAbilityInput } from "./runtime/open-input-gate.js";
 
 type CreateOpenAbilityGroupInput = {
   browser: OpenBrowserPort;
@@ -36,24 +36,10 @@ export function createOpenAbilityGroup(input: CreateOpenAbilityGroupInput): Open
       const started = context.clock.now();
       const parsed = parseOpenAbilityInput(rawInput);
       if (!parsed.success) {
-        const seed = coerceOpenInputSeed(rawInput);
+        const trace = extractOpenFailureTrace(rawInput);
         const ended = context.clock.now();
         return buildOpenDispatchFailure({
-          request: {
-            childCapabilityId: seed.childCapabilityId as OpenChildCapabilityId,
-            platformId: seed.platformId as OpenPlatformId,
-            targetKind: seed.targetKind as OpenTargetKind,
-            missionId: seed.missionId,
-            runId: seed.runId,
-            sessionId: seed.sessionId,
-            roundId: seed.roundId,
-            videoVisitId: seed.videoVisitId,
-            sourceAbilityGroupId: seed.sourceAbilityGroupId,
-            sourceChildCapabilityId: seed.sourceChildCapabilityId,
-            targetUrl: seed.targetUrl,
-            targetTitle: seed.targetTitle,
-            sourceRef: seed.sourceRef,
-          },
+          trace,
           failureCode: "input_schema_invalid",
           startedAt: started.isoTimestamp,
           endedAt: ended.isoTimestamp,
@@ -68,9 +54,22 @@ export function createOpenAbilityGroup(input: CreateOpenAbilityGroupInput): Open
       if (!entry) {
         const ended = context.clock.now();
         return buildOpenDispatchFailure({
-          request: {
-            ...parsed.data,
-            targetUrl: parsed.data.targetUrl ?? "http://127.0.0.1/unknown-child",
+          trace: {
+            childCapabilityId: { value: parsed.data.childCapabilityId, source: "provided" },
+            platformId: { value: parsed.data.platformId, source: "provided" },
+            targetKind: { value: parsed.data.targetKind, source: "provided" },
+            missionId: { value: parsed.data.missionId, source: "provided" },
+            runId: { value: parsed.data.runId, source: "provided" },
+            sessionId: { value: parsed.data.sessionId, source: "provided" },
+            targetUrl: { value: parsed.data.targetUrl, source: parsed.data.targetUrl ? "provided" : "unavailable" },
+            roundId: parsed.data.roundId,
+            videoVisitId: parsed.data.videoVisitId,
+            sourceAbilityGroupId: parsed.data.sourceAbilityGroupId,
+            sourceChildCapabilityId: parsed.data.sourceChildCapabilityId,
+            targetTitle: parsed.data.targetTitle,
+            sourceRef: parsed.data.sourceRef,
+            requestedBy: parsed.data.requestedBy,
+            parseDecision: "parsed",
           },
           failureCode: "unknown_child",
           startedAt: started.isoTimestamp,
@@ -87,9 +86,22 @@ export function createOpenAbilityGroup(input: CreateOpenAbilityGroupInput): Open
       } catch (error) {
         const ended = context.clock.now();
         return buildOpenDispatchFailure({
-          request: {
-            ...parsed.data,
-            targetUrl: parsed.data.targetUrl ?? "http://127.0.0.1/child-execution-failed",
+          trace: {
+            childCapabilityId: { value: parsed.data.childCapabilityId, source: "provided" },
+            platformId: { value: parsed.data.platformId, source: "provided" },
+            targetKind: { value: parsed.data.targetKind, source: "provided" },
+            missionId: { value: parsed.data.missionId, source: "provided" },
+            runId: { value: parsed.data.runId, source: "provided" },
+            sessionId: { value: parsed.data.sessionId, source: "provided" },
+            targetUrl: { value: parsed.data.targetUrl, source: parsed.data.targetUrl ? "provided" : "unavailable" },
+            roundId: parsed.data.roundId,
+            videoVisitId: parsed.data.videoVisitId,
+            sourceAbilityGroupId: parsed.data.sourceAbilityGroupId,
+            sourceChildCapabilityId: parsed.data.sourceChildCapabilityId,
+            targetTitle: parsed.data.targetTitle,
+            sourceRef: parsed.data.sourceRef,
+            requestedBy: parsed.data.requestedBy,
+            parseDecision: "parsed",
           },
           failureCode: "child_execution_failed",
           startedAt: started.isoTimestamp,

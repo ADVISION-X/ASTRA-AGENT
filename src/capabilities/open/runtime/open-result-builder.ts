@@ -1,5 +1,6 @@
 import type {
   BrowserSessionSnapshot,
+  OpenDataQualityFlag,
   OpenFailure,
   OpenNavigationDecision,
   OpenResult,
@@ -46,7 +47,7 @@ export function buildOpenResult(input: {
   endedMonotonicMs: number;
   failureReason: OpenFailure | null;
   reviewRequiredReason: string | null;
-  dataQualityFlags: string[];
+  dataQualityFlags: OpenDataQualityFlag[];
 }): OpenResult {
   const sourceRef = input.request.sourceRef ?? `${input.request.sourceAbilityGroupId}:${input.request.sourceChildCapabilityId ?? "unknown"}:${input.request.runId}`;
   const openAttemptRef = input.navigationDecision.navigationAttemptRef;
@@ -54,27 +55,30 @@ export function buildOpenResult(input: {
     ? `page-state:${input.request.roundId ?? "no-round"}:${input.request.childCapabilityId}`
     : null;
   const forensicsRef = null;
-  const output = OpenOutputSchema.parse({
-    targetProfileRef: input.targetPolicyDecision.targetProfileRef,
-    targetUrl: input.targetPolicyDecision.resolvedTargetUrl,
-    openedUrl: input.navigationDecision.openedUrl,
-    redirectChain: input.navigationDecision.redirectChain,
-    pageTitleAfter: input.afterSession.currentTitle,
-    browserSessionRef: `browser-session:${input.afterSession.browserProfileRef}`,
-    browserProfileRef: input.afterSession.browserProfileRef,
-    browserMode: input.afterSession.browserMode,
-    profileVerificationStatus: input.afterSession.profileVerificationStatus,
-    loginStateBefore: input.beforeSession.loginState,
-    loginStateAfter: input.afterSession.loginState,
-    sourceRef,
-    openAttemptRef,
-    pageStateRef,
-    forensicsRef,
-    fallbackUsed: input.navigationDecision.fallbackUsed,
-    pageStateHandoffRequired: input.postOpenStateDecision.pageStateHandoffRequired,
-  });
 
   const status = input.postOpenStateDecision.status;
+  const output = status === "success"
+    ? OpenOutputSchema.parse({
+        targetProfileRef: input.targetPolicyDecision.targetProfileRef,
+        targetUrl: input.targetPolicyDecision.resolvedTargetUrl,
+        openedUrl: input.navigationDecision.openedUrl,
+        redirectChain: input.navigationDecision.redirectChain,
+        pageTitleAfter: input.afterSession.currentTitle,
+        browserSessionRef: `browser-session:${input.afterSession.browserProfileRef}`,
+        browserProfileRef: input.afterSession.browserProfileRef,
+        browserMode: input.afterSession.browserMode,
+        profileVerificationStatus: input.afterSession.profileVerificationStatus,
+        loginStateBefore: input.beforeSession.loginState,
+        loginStateAfter: input.afterSession.loginState,
+        sourceRef,
+        openAttemptRef,
+        pageStateRef,
+        forensicsRef,
+        fallbackUsed: input.navigationDecision.fallbackUsed,
+        pageStateHandoffRequired: input.postOpenStateDecision.pageStateHandoffRequired,
+      })
+    : null;
+
   return OpenResultSchema.parse({
     abilityGroupId: "open",
     childCapabilityId: input.request.childCapabilityId,

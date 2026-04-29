@@ -1,12 +1,11 @@
 import type {
   BrowserSessionSnapshot,
-  OpenChildCapabilityId,
-  OpenPlatformId,
+  OpenDataQualityFlag,
   OpenResult,
-  OpenTargetKind,
 } from "../contract.js";
+import { OpenResultSchema, OpenRuntimeProofSchema } from "../schema.js";
 import { createOpenFailure } from "../shared/open-failure.js";
-import { buildOpenResult } from "./open-result-builder.js";
+import type { OpenDispatchFailureTrace } from "./open-input-gate.js";
 
 function createFallbackSession(): BrowserSessionSnapshot {
   return {
@@ -30,21 +29,7 @@ function createFallbackSession(): BrowserSessionSnapshot {
 }
 
 export function buildOpenDispatchFailure(input: {
-  request: {
-    childCapabilityId: OpenChildCapabilityId;
-    platformId: OpenPlatformId;
-    targetKind: OpenTargetKind;
-    missionId: string;
-    runId: string;
-    sessionId: string;
-    roundId: string | null;
-    videoVisitId: string | null;
-    sourceAbilityGroupId: string;
-    sourceChildCapabilityId: string | null;
-    targetUrl: string;
-    targetTitle: string | null;
-    sourceRef: string | null;
-  };
+  trace: OpenDispatchFailureTrace;
   failureCode: "unknown_child" | "input_schema_invalid" | "target_policy_blocked" | "url_policy_blocked" | "session_gate_blocked" | "session_snapshot_failed" | "navigation_timeout" | "navigation_failed" | "post_open_state_failed" | "child_execution_failed" | "duplicate_open_blocked";
   startedAt: string;
   endedAt: string;
@@ -54,47 +39,55 @@ export function buildOpenDispatchFailure(input: {
   status: OpenResult["status"];
 }): OpenResult {
   const session = createFallbackSession();
-  const scheme = input.request.targetUrl.startsWith("https://") ? "https" : "http";
-  return buildOpenResult({
-    request: {
-      abilityGroupId: "open",
-      requestedBy: "invalid-input",
-      reason: input.reason,
-      ...input.request,
-    },
-    profile: {
-      childCapabilityId: input.request.childCapabilityId,
-      targetKind: input.request.targetKind,
-      platformId: input.request.platformId,
-      allowedHostnames: ["127.0.0.1"],
-      defaultUrl: input.request.targetUrl,
-      defaultTitle: input.request.targetTitle ?? input.request.childCapabilityId,
-      requiresRealChromeSession: true,
-      allowsLocalhost: input.request.targetKind === "local-workbench",
-      maxOpenDurationMs: 1,
-      allowedSchemes: [scheme],
-      postOpenStatePolicy: {
-        allowLoginWallReview: true,
-        allowSecurityWallReview: true,
-        allowBlankPageReview: true,
-        requirePageTitle: true,
-      },
-      pageStateHandoffRequired: true,
-      allowReplay: false,
-    },
+  const failureReason = createOpenFailure({ code: input.failureCode, message: input.reason });
+  const dataQualityFlags: OpenDataQualityFlag[] = [{ code: "dispatch_failure", severity: "error", reason: input.reason }];
+  const runtimeProof = OpenRuntimeProofSchema.parse({
+    proofId: `open-proof:dispatch:${input.startedMonotonicMs}`,
+    runId: input.trace.runId.value,
+    missionId: input.trace.missionId.value,
+    sessionId: input.trace.sessionId.value,
+    roundId: input.trace.roundId,
+    videoVisitId: input.trace.videoVisitId,
+    abilityGroupId: "open",
+    childCapabilityId: input.trace.childCapabilityId.value,
+    platformId: input.trace.platformId.value,
+    targetKind: input.trace.targetKind.value,
+    sourceAbilityGroupId: input.trace.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.trace.sourceChildCapabilityId,
+    inputRef: `open-dispatch:${input.startedMonotonicMs}:input`,
+    outputRef: `open-dispatch:${input.endedMonotonicMs}:output`,
+    targetProfileRef: null,
+    targetUrl: input.trace.targetUrl.value,
+    openedUrl: session.currentUrl,
+    redirectChain: input.trace.targetUrl.value ? [input.trace.targetUrl.value] : [],
+    browserProfileRef: session.browserProfileRef,
+    browserMode: session.browserMode,
+    profileVerificationStatus: session.profileVerificationStatus,
+    loginStateBefore: session.loginState,
+    loginStateAfter: session.loginState,
+    pageTitleAfter: session.currentTitle,
+    idempotencyKey: `${input.trace.runId.value ?? "no-run"}:dispatch-failure`,
+    navigationAttemptRef: `${input.trace.runId.value ?? "no-run"}:dispatch-failure`,
+    pageStateHandoffRequired: false,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: Math.max(0, Math.round(input.endedMonotonicMs - input.startedMonotonicMs)),
+    status: input.status,
+    failureReason,
+    reviewRequiredReason: input.status === "review_required" ? input.reason : null,
     targetPolicyDecision: {
-      status: "allow",
-      reason: null,
-      targetProfileRef: `open-target-profile:${input.request.childCapabilityId}`,
-      resolvedTargetUrl: input.request.targetUrl,
-      resolvedTargetTitle: input.request.targetTitle ?? input.request.childCapabilityId,
+      status: "block",
+      reason: input.reason,
+      targetProfileRef: null,
+      resolvedTargetUrl: null,
+      resolvedTargetTitle: null,
     },
     urlSafetyDecision: {
-      status: "allow",
-      reason: null,
-      normalizedUrl: input.request.targetUrl,
-      hostname: "127.0.0.1",
-      scheme,
+      status: "block",
+      reason: input.failureCode === "input_schema_invalid" ? "input schema invalid prevented url safety evaluation" : input.reason,
+      normalizedUrl: null,
+      hostname: null,
+      scheme: null,
     },
     sessionDecision: {
       status: "block",
@@ -110,8 +103,8 @@ export function buildOpenDispatchFailure(input: {
       fallbackUsed: false,
       openedUrl: session.currentUrl,
       pageTitleAfter: session.currentTitle,
-      navigationAttemptRef: `${input.request.runId}:dispatch-failure`,
-      redirectChain: [input.request.targetUrl],
+      navigationAttemptRef: `${input.trace.runId.value ?? "no-run"}:dispatch-failure`,
+      redirectChain: input.trace.targetUrl.value ? [input.trace.targetUrl.value] : [],
     },
     postOpenStateDecision: {
       status: input.status,
@@ -121,18 +114,40 @@ export function buildOpenDispatchFailure(input: {
       pageTitleAfter: session.currentTitle,
       pageStateHandoffRequired: false,
     },
-    idempotencyKey: `${input.request.runId}:dispatch-failure`,
-    beforeSession: session,
-    afterSession: session,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    startedMonotonicMs: input.startedMonotonicMs,
-    endedMonotonicMs: input.endedMonotonicMs,
-    failureReason: createOpenFailure({
-      code: input.failureCode,
-      message: input.reason,
-    }),
+    dataQualityFlags,
+    browserSessionRef: `browser-session:${session.browserProfileRef}`,
+    sourceRef: input.trace.sourceRef ?? `${input.trace.sourceAbilityGroupId}:${input.trace.sourceChildCapabilityId ?? "dispatch-failure"}`,
+    openAttemptRef: `${input.trace.runId.value ?? "no-run"}:dispatch-failure`,
+    pageStateRef: null,
+    forensicsRef: null,
+    missionIdSource: input.trace.missionId.source,
+    runIdSource: input.trace.runId.source,
+    sessionIdSource: input.trace.sessionId.source,
+    targetUrlSource: input.trace.targetUrl.source,
+    childCapabilityIdSource: input.trace.childCapabilityId.source,
+    failureInputParseDecision: input.trace.parseDecision,
+    clock: {
+      portKind: "open-clock-port",
+      startedMonotonicMs: input.startedMonotonicMs,
+      endedMonotonicMs: input.endedMonotonicMs,
+    },
+  });
+
+  return OpenResultSchema.parse({
+    abilityGroupId: "open",
+    childCapabilityId: input.trace.childCapabilityId.value,
+    platformId: input.trace.platformId.value,
+    targetKind: input.trace.targetKind.value,
+    status: input.status,
+    message: input.reason,
+    targetUrl: input.trace.targetUrl.value,
+    openedUrl: session.currentUrl,
+    targetTitle: input.trace.targetTitle,
+    pageTitleAfter: session.currentTitle,
+    pageStateHandoffRequired: false,
+    output: null,
+    failureReason,
     reviewRequiredReason: input.status === "review_required" ? input.reason : null,
-    dataQualityFlags: ["dispatch_failure"],
+    runtimeProof,
   });
 }

@@ -10,10 +10,17 @@ import type { OpenProfilePort } from "./ports/open-profile-port.js";
 import {
   BrowserSessionSnapshotSchema,
   NavigationResultSchema,
+  OpenAllowedCallerSchema,
+  OpenBoundaryPolicySchema,
   OpenChildCapabilityIdSchema,
+  OpenDataQualityFlagSchema,
   OpenFailureSchema,
+  OpenFailurePolicySchema,
+  OpenIdempotencyPolicySchema,
   OpenNavigationDecisionSchema,
+  OpenOutputPolicySchema,
   OpenPlatformIdSchema,
+  OpenProofPolicySchema,
   OpenRequestSchema,
   OpenResultSchema,
   OpenRuntimeProofSchema,
@@ -22,6 +29,7 @@ import {
   OpenTargetKindSchema,
   OpenTargetPolicyDecisionSchema,
   OpenTargetProfileSchema,
+  OpenTimeoutPolicySchema,
   OpenUrlSafetyDecisionSchema,
   PostOpenStateDecisionSchema,
 } from "./schema.js";
@@ -36,6 +44,14 @@ export type OpenTargetKind = z.output<typeof OpenTargetKindSchema>;
 export type OpenStatus = z.output<typeof OpenStatusSchema>;
 export type OpenFailure = z.output<typeof OpenFailureSchema>;
 export type OpenTargetProfile = z.output<typeof OpenTargetProfileSchema>;
+export type OpenAllowedCaller = z.output<typeof OpenAllowedCallerSchema>;
+export type OpenBoundaryPolicy = z.output<typeof OpenBoundaryPolicySchema>;
+export type OpenProofPolicy = z.output<typeof OpenProofPolicySchema>;
+export type OpenOutputPolicy = z.output<typeof OpenOutputPolicySchema>;
+export type OpenFailurePolicy = z.output<typeof OpenFailurePolicySchema>;
+export type OpenTimeoutPolicy = z.output<typeof OpenTimeoutPolicySchema>;
+export type OpenIdempotencyPolicy = z.output<typeof OpenIdempotencyPolicySchema>;
+export type OpenDataQualityFlag = z.output<typeof OpenDataQualityFlagSchema>;
 export type BrowserSessionSnapshot = z.output<typeof BrowserSessionSnapshotSchema>;
 export type OpenBrowserNavigationResult = z.output<typeof NavigationResultSchema>;
 export type OpenTargetPolicyDecision = z.output<typeof OpenTargetPolicyDecisionSchema>;
@@ -76,6 +92,8 @@ export interface OpenChildCapability {
 }
 
 export type OpenRegistryEntry = OpenTargetProfile & {
+  readonly inputSchema: ZodTypeAny;
+  readonly outputSchema: ZodTypeAny;
   readonly implementation: OpenChildCapability;
 };
 

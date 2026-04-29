@@ -20,8 +20,11 @@ export function getSourceFileOrThrow(project: Project, repoRelativePath: string)
 
 export function getZodObjectPropertyNames(sourceFile: SourceFile, declarationName: string): Set<string> {
   const declaration = sourceFile.getVariableDeclaration(declarationName);
-  const initializer = declaration?.getInitializerIfKind(SyntaxKind.CallExpression);
-  const firstArgument = initializer?.getArguments()[0];
+  const initializer = declaration?.getInitializer();
+  const objectCall = initializer && Node.isCallExpression(initializer) && isZodObjectCall(initializer)
+    ? initializer
+    : initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find(isZodObjectCall);
+  const firstArgument = objectCall?.getArguments()[0];
   if (!firstArgument || !Node.isObjectLiteralExpression(firstArgument)) {
     return new Set();
   }
@@ -38,14 +41,51 @@ export function getZodEnumValues(sourceFile: SourceFile, declarationName: string
   const declaration = sourceFile.getVariableDeclaration(declarationName);
   const initializer = declaration?.getInitializerIfKind(SyntaxKind.CallExpression);
   const firstArgument = initializer?.getArguments()[0];
-  if (!firstArgument || !Node.isArrayLiteralExpression(firstArgument)) {
+  if (!firstArgument) {
     return [];
   }
 
-  return firstArgument
+  const unwrappedArgument = unwrapExpression(firstArgument);
+  const enumArray = Node.isArrayLiteralExpression(unwrappedArgument)
+    ? unwrappedArgument
+    : Node.isIdentifier(firstArgument)
+      ? firstArgument.getDefinitions()
+        .map((definition) => definition.getDeclarationNode())
+        .map((node) => node && Node.isVariableDeclaration(node) ? unwrapExpression(node.getInitializer()) : undefined)
+        .find((node) => Boolean(node) && Node.isArrayLiteralExpression(node))
+      : undefined;
+
+  if (!enumArray || !Node.isArrayLiteralExpression(enumArray)) {
+    return [];
+  }
+
+  return enumArray
     .getElements()
     .filter((element) => Node.isStringLiteral(element))
     .map((element) => element.getLiteralText());
+}
+
+function unwrapExpression(node: Node | undefined): Node | undefined {
+  if (!node) {
+    return undefined;
+  }
+
+  if (Node.isAsExpression(node) || Node.isSatisfiesExpression(node) || Node.isParenthesizedExpression(node)) {
+    return unwrapExpression(node.getExpression());
+  }
+
+  return node;
+}
+
+function isZodObjectCall(callExpression: Node): boolean {
+  if (!Node.isCallExpression(callExpression)) {
+    return false;
+  }
+
+  const expression = callExpression.getExpression();
+  return Node.isPropertyAccessExpression(expression)
+    && expression.getExpression().getText() === "z"
+    && expression.getName() === "object";
 }
 
 export function getTypeAliasPropertyNames(sourceFile: SourceFile, declarationName: string): Set<string> {
@@ -111,6 +151,10 @@ export function hasPropertyNamed(node: Node, propertyName: string): boolean {
     return (Node.isPropertyAssignment(descendant) || Node.isShorthandPropertyAssignment(descendant))
       && descendant.getName() === propertyName;
   });
+}
+
+export function hasMethodNamed(node: Node, methodName: string): boolean {
+  return node.getDescendantsOfKind(SyntaxKind.MethodDeclaration).some((method) => method.getName() === methodName);
 }
 
 export function hasCallExpression(node: Node, calleeName: string): boolean {

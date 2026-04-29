@@ -8,6 +8,45 @@ import { BrowserSessionSnapshotSchema, NavigationResultSchema, OpenNavigationDec
 import { buildRedirectChain } from "../shared/open-url.js";
 import { withOpenTimeout } from "./open-timeout-policy.js";
 
+async function safeReadSessionSnapshot(browser: OpenBrowserPort): Promise<{
+  ok: true;
+  snapshot: BrowserSessionSnapshot;
+} | {
+  ok: false;
+  reason: string;
+  snapshot: BrowserSessionSnapshot;
+}> {
+  try {
+    return {
+      ok: true,
+      snapshot: BrowserSessionSnapshotSchema.parse(await browser.getSessionSnapshot()),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : "open browser session snapshot failed after navigation",
+      snapshot: BrowserSessionSnapshotSchema.parse({
+        open: false,
+        currentUrl: "about:blank",
+        currentTitle: null,
+        browserExecutable: null,
+        browserMode: "unsupported",
+        browserProfileRef: "open-session:unavailable",
+        browserExecutablePath: null,
+        profileStatus: "profile_unavailable",
+        profileDirectory: "unavailable",
+        profileProvisioning: "managed_default",
+        profileVerificationStatus: "default_unverified",
+        profileVerificationReason: error instanceof Error ? error.message : "session snapshot unavailable",
+        loginState: "unknown",
+        lastLoginCheckAt: null,
+        loginRequiredReason: null,
+        reviewRequiredReason: null,
+      }),
+    };
+  }
+}
+
 export async function runOpenNavigation(input: {
   browser: OpenBrowserPort;
   targetUrl: string;
@@ -18,7 +57,7 @@ export async function runOpenNavigation(input: {
   beforeSession: BrowserSessionSnapshot;
 }): Promise<{
   ok: boolean;
-  failureCode: "navigation_timeout" | "navigation_failed" | null;
+  failureCode: "navigation_timeout" | "navigation_failed" | "session_snapshot_failed" | null;
   reason: string | null;
   navigationResult: OpenBrowserNavigationResult | null;
   afterSession: BrowserSessionSnapshot;
@@ -54,27 +93,52 @@ export async function runOpenNavigation(input: {
       timeoutMs: input.timeoutMs,
     }));
   } catch (error) {
-    const afterSession = BrowserSessionSnapshotSchema.parse(await input.browser.getSessionSnapshot());
+    const snapshotResult = await safeReadSessionSnapshot(input.browser);
     return {
       ok: false,
       failureCode: "navigation_timeout",
-      reason: error instanceof Error ? error.message : "open navigation timed out",
+      reason: snapshotResult.ok
+        ? (error instanceof Error ? error.message : "open navigation timed out")
+        : `${error instanceof Error ? error.message : "open navigation timed out"}; ${snapshotResult.reason}`,
       navigationResult: null,
-      afterSession,
+      afterSession: snapshotResult.snapshot,
       decision: OpenNavigationDecisionSchema.parse({
         status: "timeout",
-        reason: error instanceof Error ? error.message : "open navigation timed out",
+        reason: snapshotResult.ok
+          ? (error instanceof Error ? error.message : "open navigation timed out")
+          : `${error instanceof Error ? error.message : "open navigation timed out"}; ${snapshotResult.reason}`,
         browserActionId: null,
         fallbackUsed: false,
+        openedUrl: snapshotResult.snapshot.currentUrl,
+        pageTitleAfter: snapshotResult.snapshot.currentTitle,
+        navigationAttemptRef: `${input.idempotencyKey}:timeout`,
+        redirectChain: buildRedirectChain(input.targetUrl, snapshotResult.snapshot.currentUrl),
+      }),
+    };
+  }
+
+  const snapshotResult = await safeReadSessionSnapshot(input.browser);
+  const afterSession = snapshotResult.snapshot;
+  if (!snapshotResult.ok) {
+    return {
+      ok: false,
+      failureCode: "session_snapshot_failed",
+      reason: snapshotResult.reason,
+      navigationResult,
+      afterSession,
+      decision: OpenNavigationDecisionSchema.parse({
+        status: "browser_failed",
+        reason: snapshotResult.reason,
+        browserActionId: navigationResult.browserActionId,
+        fallbackUsed: navigationResult.fallbackUsed,
         openedUrl: afterSession.currentUrl,
         pageTitleAfter: afterSession.currentTitle,
-        navigationAttemptRef: `${input.idempotencyKey}:timeout`,
+        navigationAttemptRef: `${input.idempotencyKey}:${navigationResult.browserActionId}`,
         redirectChain: buildRedirectChain(input.targetUrl, afterSession.currentUrl),
       }),
     };
   }
 
-  const afterSession = BrowserSessionSnapshotSchema.parse(await input.browser.getSessionSnapshot());
   if (!navigationResult.ok) {
     return {
       ok: false,

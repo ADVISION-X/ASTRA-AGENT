@@ -17,6 +17,40 @@ export function evaluateOpenTargetPolicy(input: {
   const resolvedTargetUrl = input.request.targetUrl ?? input.profileOverride?.defaultUrl ?? input.profile.defaultUrl;
   const resolvedTargetTitle = input.request.targetTitle ?? input.profileOverride?.defaultTitle ?? input.profile.defaultTitle;
 
+  if (!input.profile.allowedCaller.includes(input.request.requestedBy)) {
+    return {
+      ok: false,
+      failureCode: "target_policy_blocked",
+      reason: `requestedBy ${input.request.requestedBy} is outside the governed caller allowlist`,
+      resolvedTargetUrl,
+      resolvedTargetTitle,
+      decision: OpenTargetPolicyDecisionSchema.parse({
+        status: "block",
+        reason: `requestedBy ${input.request.requestedBy} is outside the governed caller allowlist`,
+        targetProfileRef: null,
+        resolvedTargetUrl: null,
+        resolvedTargetTitle: null,
+      }),
+    };
+  }
+
+  if (input.profile.requiresNerveBus && input.request.sourceAbilityGroupId !== "nerve-bus" && input.request.requestedBy !== "orchestration") {
+    return {
+      ok: false,
+      failureCode: "target_policy_blocked",
+      reason: "open requires orchestration-issued or nerve-bus-transported caller context",
+      resolvedTargetUrl,
+      resolvedTargetTitle,
+      decision: OpenTargetPolicyDecisionSchema.parse({
+        status: "block",
+        reason: "open requires orchestration-issued or nerve-bus-transported caller context",
+        targetProfileRef: null,
+        resolvedTargetUrl: null,
+        resolvedTargetTitle: null,
+      }),
+    };
+  }
+
   if (
     input.request.childCapabilityId !== input.profile.childCapabilityId
     || input.request.platformId !== input.profile.platformId
@@ -31,9 +65,9 @@ export function evaluateOpenTargetPolicy(input: {
       decision: OpenTargetPolicyDecisionSchema.parse({
         status: "block",
         reason: "request does not match the governed child target profile",
-        targetProfileRef: `open-target-profile:${input.profile.childCapabilityId}`,
-        resolvedTargetUrl,
-        resolvedTargetTitle,
+        targetProfileRef: null,
+        resolvedTargetUrl: null,
+        resolvedTargetTitle: null,
       }),
     };
   }

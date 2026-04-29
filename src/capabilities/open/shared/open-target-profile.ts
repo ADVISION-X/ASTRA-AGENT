@@ -20,13 +20,31 @@ export const OPEN_TARGET_KINDS = [
   "local-workbench",
 ] as const;
 
+export const OPEN_ALLOWED_CALLERS = [
+  "orchestration",
+  "nerve-bus",
+] as const;
+
 export const OPEN_POST_OPEN_CLASSIFICATIONS = [
   "platform_feed",
   "local_workbench",
   "wrong_domain",
   "login_wall",
   "security_wall",
+  "captcha_wall",
+  "permission_wall",
   "blank_page",
   "unexpected_redirect",
   "unknown",
+] as const;
+
+export const OPEN_TRACE_FIELD_SOURCES = [
+  "provided",
+  "policy_resolved",
+  "unavailable",
+] as const;
+
+export const OPEN_FAILURE_INPUT_PARSE_DECISIONS = [
+  "parsed",
+  "fallback_trace_only",
 ] as const;

@@ -340,6 +340,11 @@ export default createPendingDomainInspector({
 
     const childImplementationImports = project.getSourceFiles().flatMap((sourceFile) => {
       return sourceFile.getImportDeclarations().flatMap((declaration) => {
+        const target = declaration.getModuleSpecifierSourceFile();
+        if (!target || !toRepoRelativePath(target.getFilePath()).startsWith(`${SCREENSHOT_ROOT}/children/`)) {
+          return [];
+        }
+
         const specifier = declaration.getModuleSpecifierValue();
         if (!specifier.includes("/children/") || !specifier.includes("/implementation")) {
           return [];

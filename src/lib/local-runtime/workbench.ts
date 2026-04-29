@@ -22,11 +22,14 @@ import { createMouseClickAbilityGroup, type MouseClickAbilityGroup } from "../..
 import { createMouseScrollAbilityGroup, type MouseScrollAbilityGroup } from "../../capabilities/mouse-scroll/index.js";
 import { createPageStateAbilityGroup, type PageStateAbilityGroup } from "../../capabilities/page-state/index.js";
 import { createPostActionVerificationAbilityGroup, type PostActionVerificationAbilityGroup } from "../../capabilities/post-action-verification/index.js";
-import { createScreenshotAbilityGroup, type ScreenshotAbilityGroup } from "../../capabilities/screenshot/index.js";
-import { createFilesystemScreenshotArtifactPort } from "../../capabilities/screenshot/ports/screenshot-artifact-port.js";
-import { createBrowserControllerScreenshotCapturePort } from "../../capabilities/screenshot/ports/screenshot-capture-port.js";
-import { createSharpScreenshotImageProcessingPort } from "../../capabilities/screenshot/ports/screenshot-image-processing-port.js";
-import { createSystemScreenshotClockPort } from "../../capabilities/screenshot/ports/screenshot-clock-port.js";
+import {
+  createBrowserControllerScreenshotCapturePort,
+  createFilesystemScreenshotArtifactPort,
+  createScreenshotAbilityGroup,
+  createSharpScreenshotImageProcessingPort,
+  createSystemScreenshotClockPort,
+  type ScreenshotAbilityGroup,
+} from "../../capabilities/screenshot/index.js";
 import { createVisualTargetAbilityGroup, type VisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
 import {
   type AiResponseEnvelope,
