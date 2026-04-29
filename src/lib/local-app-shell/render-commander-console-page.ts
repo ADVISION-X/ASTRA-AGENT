@@ -1,9 +1,15 @@
 import type { Locale } from "../localization/dictionaries.js";
 import { createTranslator } from "../localization/render-text.js";
-import { buildCommanderConsolePageModel } from "../../capabilities/commander-console/read-models.js";
-import type { CommanderConsolePageLog, CommanderConsolePageMetric, CommanderConsolePageRecord, CommanderMissionDashboard } from "../../capabilities/commander-console/shared/view-model-types.js";
+import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/index.js";
 import { commanderConsolePageClient } from "./commander-console-page-client.js";
 import { commanderConsolePageStyles } from "./commander-console-page-styles.js";
+import {
+  buildCommanderConsolePageModel,
+  type CommanderConsolePageLog,
+  type CommanderConsolePageMetric,
+  type CommanderConsolePageModel,
+  type CommanderConsolePageRecord,
+} from "./commander-console-page-model.js";
 import { buildLocaleHref as buildShellLocaleHref, escapeHtml, safeJsonScript } from "./render-helpers.js";
 
 function buildLocaleHref(requestUrl: URL, locale: Locale): string {
@@ -54,7 +60,7 @@ const renderLogs = (logs: CommanderConsolePageLog[], emptyLabel: string): string
   </table>`;
 };
 
-const renderCandidates = (payload: ReturnType<typeof buildCommanderConsolePageModel>, emptyLabel: string, actions: {
+const renderCandidates = (payload: CommanderConsolePageModel, emptyLabel: string, actions: {
   approve: string;
   reject: string;
   archive: string;
@@ -81,7 +87,7 @@ const renderCandidates = (payload: ReturnType<typeof buildCommanderConsolePageMo
   `).join("")}</div>`;
 };
 
-export function renderCommanderConsolePage(dashboard: CommanderMissionDashboard, options: {
+export function renderCommanderConsolePage(dashboard: CommanderMissionDashboardView, options: {
   locale: Locale;
   requestUrl: URL;
 }): string {

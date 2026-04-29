@@ -2,6 +2,7 @@
   "phase": "phase-02-local-workbench",
   "activeCapabilityDomains": [
     "audit-system",
+    "capability-group-governance",
     "type-safety",
     "security-privacy",
     "ai-capability",

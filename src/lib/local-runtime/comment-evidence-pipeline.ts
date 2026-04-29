@@ -10,7 +10,7 @@ import type { AgentRound } from "../../types/task-run.js";
 import type { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
 import type { PlatformAdapter } from "./platform-runtime-contract.js";
 import { buildPendingAnalysisCandidate } from "./pending-analysis-candidate.js";
-import { syncLatestActionLog } from "../../capabilities/orchestration/bounded-local-runtime-execution/round-finalization/runtime-round-artifact-support.js";
+import { syncLatestActionLog } from "../../capabilities/orchestration/index.js";
 import { buildCommentIntentRequest, buildImageEvidenceInput, buildOcrCleanupRequest, createForensicsRecordRef, materializeImageEvidenceRecord } from "./runtime-round-request-builders.js";
 import { handleLocalAiFailureAndStop } from "./review-runtime-support.js";
 
@@ -44,8 +44,9 @@ export async function runCommentPipeline(input: {
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-evidence-record",
     recordType: "evidence_record",
-    requestedBy: "agent-runtime",
-    sourceAbilityGroupId: "agent-runtime",
+    requestedBy: "orchestration",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: "capture-comment-region",
     sessionId: input.taskRunId,
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
@@ -76,8 +77,9 @@ export async function runCommentPipeline(input: {
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-evidence-record",
     recordType: "evidence_record",
-    requestedBy: "agent-runtime",
-    sourceAbilityGroupId: "agent-runtime",
+    requestedBy: "orchestration",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: "persist-ocr-evidence",
     sessionId: input.taskRunId,
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,

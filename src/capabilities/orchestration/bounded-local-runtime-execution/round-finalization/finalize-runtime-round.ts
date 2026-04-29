@@ -83,8 +83,8 @@ export async function finalizeRoundArtifacts(input: FinalizeRoundArtifactsInput)
     ...aiResultRefs.map((refId) => createForensicsRecordRef({ recordType: "ai_result_record", recordId: refId })),
   ];
   const artifactRefs: ForensicsArtifactRef[] = [
-    ...(videoEvidence ? [{ artifactType: "image" as const, artifactId: videoEvidence.id, storageRef: videoEvidence.filePath }] : []),
-    ...(commentEvidence ? [{ artifactType: "image" as const, artifactId: commentEvidence.id, storageRef: commentEvidence.filePath }] : []),
+    ...(videoEvidence ? [{ artifactType: "image" as const, artifactId: videoEvidence.id, storageRef: videoEvidence.filePath, sourceRecordRef: null }] : []),
+    ...(commentEvidence ? [{ artifactType: "image" as const, artifactId: commentEvidence.id, storageRef: commentEvidence.filePath, sourceRecordRef: null }] : []),
   ];
   const buildRoundLog = (nextPacketId: string | null) => RoundStructuralLogSchema.parse({
     logId: createId("round_log"),
@@ -116,8 +116,9 @@ export async function finalizeRoundArtifacts(input: FinalizeRoundArtifactsInput)
       abilityGroupId: "forensics-persistence",
       childCapabilityId: "finalize-browse-ledger",
       recordType: "browse_ledger_entry",
-      requestedBy: "agent-runtime",
+      requestedBy: "orchestration",
       sourceAbilityGroupId: "orchestration",
+      sourceChildCapabilityId: "finalize-browse-ledger",
       sessionId: input.taskRunId,
       roundId: input.round.id,
       videoVisitId: roundVideoVisitId,
@@ -148,8 +149,9 @@ export async function finalizeRoundArtifacts(input: FinalizeRoundArtifactsInput)
         abilityGroupId: "forensics-persistence",
         childCapabilityId: "finalize-failed-record",
         recordType: "failed_record",
-        requestedBy: "agent-runtime",
+        requestedBy: "orchestration",
         sourceAbilityGroupId: "orchestration",
+        sourceChildCapabilityId: "finalize-failed-record",
         sessionId: input.taskRunId,
         roundId: input.round.id,
         videoVisitId: roundVideoVisitId,
@@ -170,8 +172,9 @@ export async function finalizeRoundArtifacts(input: FinalizeRoundArtifactsInput)
         abilityGroupId: "forensics-persistence",
         childCapabilityId: "finalize-evidence-packet",
         recordType: "evidence_packet",
-        requestedBy: "agent-runtime",
+        requestedBy: "orchestration",
         sourceAbilityGroupId: "orchestration",
+        sourceChildCapabilityId: "finalize-evidence-packet",
         sessionId: input.taskRunId,
         roundId: input.round.id,
         videoVisitId: roundVideoVisitId,

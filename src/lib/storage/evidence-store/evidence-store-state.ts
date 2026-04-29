@@ -8,9 +8,9 @@ import {
   RoundLifecycleEventSchema,
   RoundStructuralLogSchema,
 } from "../../../types/evidence-packet.js";
-import { AiAbilityResultSchema } from "../../../capabilities/ai/schema-validation.js";
 import { ActionLogSchema } from "../../../types/platform-action.js";
 import { ProductOpportunityCandidateSchema } from "../../../types/product-opportunity.js";
+import { StoredAiResultSchema } from "../../../types/stored-ai-result.js";
 import { AgentRoundSchema, TaskRunSchema } from "../../../types/task-run.js";
 import { StructuredActionLogSchema, StructuredRuntimeEventSchema } from "../../../types/structured-log.js";
 
@@ -20,7 +20,7 @@ export const PersistedStateSchema = z.object({
   videoEvidence: z.array(ImageEvidenceSchema),
   commentEvidence: z.array(ImageEvidenceSchema),
   ocrResults: z.array(OcrTextResultSchema),
-  aiResults: z.array(AiAbilityResultSchema),
+  aiResults: z.array(StoredAiResultSchema),
   actionLogs: z.array(ActionLogSchema),
   structuredRuntimeEvents: z.array(StructuredRuntimeEventSchema).default([]),
   structuredActionLogs: z.array(StructuredActionLogSchema).default([]),

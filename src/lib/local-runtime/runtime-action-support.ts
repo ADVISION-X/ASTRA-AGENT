@@ -64,6 +64,8 @@ export function buildStructuredActionLogRecord(input: {
 
   return StructuredActionLogSchema.parse({
     actionLogId: input.actionLog.id,
+    abilityGroupId: "orchestration",
+    childCapabilityId: null,
     skillId: structuredSkillId,
     skillCategory: resolveAgentSkillCategory(structuredSkillId),
     sessionId: input.taskRunId,

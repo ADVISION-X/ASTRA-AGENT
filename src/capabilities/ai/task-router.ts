@@ -8,7 +8,7 @@ const AI_TASK_ROUTING: Record<AiTaskType, AiChildCapabilityId> = {
   comment_signal_summary: "local-text-ai",
   product_signal_summary: "local-text-ai",
   evidence_packet_analysis: "paid-analysis-ai",
-  schema_validation_only: "local-text-ai",
+  schema_validation_only: "internal-schema-validator",
 };
 
 export function routeAiTaskToChild(taskType: AiTaskType): AiChildCapabilityId {

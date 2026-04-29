@@ -2,7 +2,7 @@ import type {
   CommanderCandidateView,
   CommanderRecordDetailView,
   CommanderRecordSummaryView,
-} from "../shared/view-model-types.js";
+} from "../shared/commander-view-types.js";
 
 export interface ForensicsReadModelPort {
   listCandidates(): Promise<CommanderCandidateView[]>;

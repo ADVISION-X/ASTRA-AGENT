@@ -12,7 +12,7 @@ const scanExplicitAny = (sourceFile: ts.SourceFile): Finding[] => {
 
   const visit = (node: ts.Node): void => {
     if (node.kind === ts.SyntaxKind.AnyKeyword) {
-      const location = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+      const location = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       const key = `${sourceFile.fileName}:${location.line}`;
       if (!seen.has(key)) {
         seen.add(key);

@@ -8,15 +8,21 @@ import { writeEvidenceRecordCapability } from "./children/write-evidence-record/
 import { writeStructuredActionLogCapability } from "./children/write-structured-action-log/implementation.js";
 import { writeStructuredRuntimeEventCapability } from "./children/write-structured-runtime-event/implementation.js";
 
+const CHILDREN = [
+  writeStructuredRuntimeEventCapability,
+  writeStructuredActionLogCapability,
+  writeEvidenceRecordCapability,
+  writeAiResultRecordCapability,
+  finalizeBrowseLedgerCapability,
+  finalizeEvidencePacketCapability,
+  finalizeFailedRecordCapability,
+  updateRuntimeSnapshotCapability,
+] as const;
+
 export function createForensicsPersistenceRegistry(): Map<ForensicsPersistenceChildCapabilityId, ForensicsPersistenceChildCapability> {
-  return new Map<ForensicsPersistenceChildCapabilityId, ForensicsPersistenceChildCapability>([
-    ["write-structured-runtime-event", writeStructuredRuntimeEventCapability],
-    ["write-structured-action-log", writeStructuredActionLogCapability],
-    ["write-evidence-record", writeEvidenceRecordCapability],
-    ["write-ai-result-record", writeAiResultRecordCapability],
-    ["finalize-browse-ledger", finalizeBrowseLedgerCapability],
-    ["finalize-evidence-packet", finalizeEvidencePacketCapability],
-    ["finalize-failed-record", finalizeFailedRecordCapability],
-    ["update-runtime-snapshot", updateRuntimeSnapshotCapability],
-  ]);
+  return new Map(CHILDREN.map((child) => [child.childCapabilityId, child]));
+}
+
+export function listForensicsPersistenceChildren(): ForensicsPersistenceChildCapabilityId[] {
+  return CHILDREN.map((child) => child.childCapabilityId);
 }

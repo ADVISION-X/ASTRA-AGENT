@@ -1,24 +1,33 @@
-import type { ImageEvidenceInput } from "./evidence-store-artifacts.js";
+import { access } from "node:fs/promises";
+
 import { EvidenceStoreService } from "./evidence-store-service.js";
-import type { ForensicsStoragePort, StoredForensicsRecord, ForensicsRecordQuery } from "../../../capabilities/forensics-persistence/storage-ports.js";
-import type { ForensicsArtifactRef } from "../../../capabilities/forensics-persistence/shared/artifact-ref.js";
-import type { ForensicsRecordEnvelope } from "../../../capabilities/forensics-persistence/shared/record-envelope.js";
-import type { ForensicsRecordRef } from "../../../capabilities/forensics-persistence/shared/record-ref.js";
-import type { StructuredRuntimeEvent } from "../../../types/structured-log.js";
-import type { OcrTextResult } from "../../../types/evidence.js";
-
-type EnvelopePayloadRecord = Record<string, unknown>;
-
-function asObject(value: unknown): EnvelopePayloadRecord {
-  if (typeof value !== "object" || value === null) {
-    return {};
-  }
-
-  return value as EnvelopePayloadRecord;
-}
+import {
+  ForensicsAiResultRecordPayloadSchema,
+  ForensicsArtifactRefSchema,
+  ForensicsBrowseLedgerPayloadSchema,
+  ForensicsEvidencePacketPayloadSchema,
+  ForensicsEvidenceRecordPayloadSchema,
+  ForensicsFailedRecordPayloadSchema,
+  ForensicsRuntimeSnapshotPayloadSchema,
+  ForensicsStructuredActionLogPayloadSchema,
+  ForensicsStructuredRuntimeEventPayloadSchema,
+} from "../../../capabilities/forensics-persistence/schema.js";
+import type {
+  ForensicsArtifactRef,
+  ForensicsRecordEnvelope,
+  ForensicsRecordQuery,
+  ForensicsRecordRef,
+  StoredForensicsRecord,
+} from "../../../capabilities/forensics-persistence/schema.js";
+import type { ForensicsArtifactStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-artifact-storage-port.js";
+import type { ForensicsStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-storage-port.js";
 
 function buildRecordRef(envelope: ForensicsRecordEnvelope, storageRef: string | null): ForensicsRecordRef {
-  return { recordType: envelope.recordType, recordId: envelope.recordId, storageRef };
+  return {
+    recordType: envelope.recordType,
+    recordId: envelope.recordId,
+    storageRef,
+  };
 }
 
 function toStoredRecord(input: {
@@ -35,85 +44,118 @@ function toStoredRecord(input: {
   };
 }
 
-export function createEvidenceStoreForensicsStoragePort(evidenceStore: EvidenceStoreService): ForensicsStoragePort {
-  return {
-    async writeRecord(envelope) {
-      const payload = asObject(envelope.payload);
-
-      switch (envelope.recordType) {
-        case "structured_runtime_event": {
-          const structuredRuntimeEvent = payload.structuredRuntimeEvent as StructuredRuntimeEvent;
-          await evidenceStore.saveStructuredRuntimeEvent(structuredRuntimeEvent);
-          const roundLifecycleEvent = payload.roundLifecycleEvent;
-          if (roundLifecycleEvent) {
-            await evidenceStore.saveRoundLifecycleEvent(roundLifecycleEvent as never);
-          }
-          return toStoredRecord({ envelope, storageRef: null });
-        }
-        case "structured_action_log": {
-          const actionLog = payload.actionLog;
-          if (actionLog) {
-            await evidenceStore.saveActionLog(actionLog as never);
-          }
-          await evidenceStore.saveStructuredActionLog(payload.structuredActionLog as never);
-          return toStoredRecord({ envelope, storageRef: null });
-        }
-        case "evidence_record": {
-          if (payload.imageEvidenceInput) {
-            const savedImage = await evidenceStore.saveImageEvidence(payload.imageEvidenceInput as ImageEvidenceInput);
-            return toStoredRecord({
-              envelope,
-              storageRef: savedImage.filePath,
-              artifactRefs: [{ artifactType: "image", artifactId: savedImage.id, storageRef: savedImage.filePath }],
-            });
-          }
-
-          const savedOcr = await evidenceStore.saveOcrResult(payload.ocrTextResult as OcrTextResult);
-          return toStoredRecord({ envelope, storageRef: null, artifactRefs: envelope.artifactRefs, });
-        }
-        case "ai_result_record": {
-          await evidenceStore.saveAiResult(payload.aiResult as never);
-          return toStoredRecord({ envelope, storageRef: null });
-        }
-        case "browse_ledger_entry": {
-          await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry as never);
-          if (payload.roundStructuralLog) {
-            await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog as never);
-          }
-          return toStoredRecord({ envelope, storageRef: null });
-        }
-        case "evidence_packet": {
-          await evidenceStore.saveEvidencePacket(payload.evidencePacket as never);
-          if (payload.roundStructuralLog) {
-            await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog as never);
-          }
-          if (payload.rebuildSessionId && typeof payload.rebuildSessionId === "string") {
-            await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
-          }
-          return toStoredRecord({ envelope, storageRef: null, artifactRefs: envelope.artifactRefs });
-        }
-        case "failed_record": {
-          if (payload.browseLedgerEntry) {
-            await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry as never);
-          }
-          if (payload.evidencePacket) {
-            await evidenceStore.saveEvidencePacket(payload.evidencePacket as never);
-          }
-          if (payload.roundStructuralLog) {
-            await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog as never);
-          }
-          if (payload.rebuildSessionId && typeof payload.rebuildSessionId === "string") {
-            await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
-          }
-          return toStoredRecord({ envelope, storageRef: null, artifactRefs: envelope.artifactRefs });
-        }
-        case "runtime_snapshot": {
-          await evidenceStore.saveStructuredRuntimeEvent(payload.snapshotEvent as never);
-          return toStoredRecord({ envelope, storageRef: null });
-        }
-        default:
-          throw new Error(`Unsupported Forensics record type: ${envelope.recordType}`);
+async function persistEnvelope(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
+  switch (envelope.recordType) {
+    case "structured_runtime_event": {
+      const payload = ForensicsStructuredRuntimeEventPayloadSchema.parse(envelope.payload);
+      await evidenceStore.saveStructuredRuntimeEvent(payload.structuredRuntimeEvent);
+      if (payload.roundLifecycleEvent) {
+        await evidenceStore.saveRoundLifecycleEvent(payload.roundLifecycleEvent);
       }
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "structured_action_log": {
+      const payload = ForensicsStructuredActionLogPayloadSchema.parse(envelope.payload);
+      if (payload.actionLog) {
+        await evidenceStore.saveActionLog(payload.actionLog);
+      }
+      await evidenceStore.saveStructuredActionLog(payload.structuredActionLog);
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "evidence_record": {
+      const payload = ForensicsEvidenceRecordPayloadSchema.parse(envelope.payload);
+      if ("imageEvidenceInput" in payload) {
+        const imageEvidenceInput = {
+          kind: payload.imageEvidenceInput.kind,
+          taskRunId: payload.imageEvidenceInput.taskRunId,
+          roundId: payload.imageEvidenceInput.roundId,
+          platformId: payload.imageEvidenceInput.platformId,
+          sourceId: payload.imageEvidenceInput.sourceId,
+          sourceUrl: payload.imageEvidenceInput.sourceUrl,
+          regionLabel: payload.imageEvidenceInput.regionLabel,
+          regionType: payload.imageEvidenceInput.regionType,
+          summary: payload.imageEvidenceInput.summary,
+          width: payload.imageEvidenceInput.width,
+          height: payload.imageEvidenceInput.height,
+          ...(payload.imageEvidenceInput.contentLines ? { contentLines: payload.imageEvidenceInput.contentLines } : {}),
+          ...(payload.imageEvidenceInput.sourceFilePath ? { sourceFilePath: payload.imageEvidenceInput.sourceFilePath } : {}),
+        };
+        const savedImage = await evidenceStore.saveImageEvidence(imageEvidenceInput);
+        return toStoredRecord({
+          envelope,
+          storageRef: savedImage.filePath,
+          artifactRefs: [
+            {
+              artifactType: "image",
+              artifactId: savedImage.id,
+              storageRef: savedImage.filePath,
+              sourceRecordRef: buildRecordRef(envelope, savedImage.filePath),
+            },
+          ],
+        });
+      }
+
+      await evidenceStore.saveOcrResult(payload.ocrTextResult);
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "ai_result_record": {
+      const payload = ForensicsAiResultRecordPayloadSchema.parse(envelope.payload);
+      await evidenceStore.saveAiResult(payload.aiResult);
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "browse_ledger_entry": {
+      const payload = ForensicsBrowseLedgerPayloadSchema.parse(envelope.payload);
+      await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry);
+      await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+      if (payload.rebuildSessionId) {
+        await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
+      }
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "evidence_packet": {
+      const payload = ForensicsEvidencePacketPayloadSchema.parse(envelope.payload);
+      await evidenceStore.saveEvidencePacket(payload.evidencePacket);
+      await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+      if (payload.rebuildSessionId) {
+        await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
+      }
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "failed_record": {
+      const payload = ForensicsFailedRecordPayloadSchema.parse(envelope.payload);
+      if (payload.evidencePacket) {
+        await evidenceStore.saveEvidencePacket(payload.evidencePacket);
+      }
+      if (payload.browseLedgerEntry) {
+        await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry);
+      }
+      await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+      if (payload.rebuildSessionId) {
+        await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
+      }
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+    case "runtime_snapshot": {
+      const payload = ForensicsRuntimeSnapshotPayloadSchema.parse(envelope.payload);
+      await evidenceStore.saveStructuredRuntimeEvent(payload.snapshotEvent);
+      return toStoredRecord({ envelope, storageRef: null });
+    }
+  }
+}
+
+export function createEvidenceStoreForensicsRecordStoragePort(evidenceStore: EvidenceStoreService): ForensicsStoragePort {
+  return {
+    appendRecord(envelope) {
+      return persistEnvelope(evidenceStore, envelope);
+    },
+    replaceRecordByRound(envelope) {
+      return persistEnvelope(evidenceStore, envelope);
+    },
+    replaceRecordBySession(envelope) {
+      return persistEnvelope(evidenceStore, envelope);
+    },
+    updateRuntimeSnapshot(envelope) {
+      return persistEnvelope(evidenceStore, envelope);
     },
     async readRecord(_ref) {
       return null;
@@ -121,11 +163,29 @@ export function createEvidenceStoreForensicsStoragePort(evidenceStore: EvidenceS
     async listRecords(_query: ForensicsRecordQuery) {
       return [];
     },
-    async writeArtifactRef(artifact) {
-      return artifact;
+  };
+}
+
+export function createEvidenceStoreForensicsArtifactStoragePort(): ForensicsArtifactStoragePort {
+  return {
+    async writeArtifactRef(input) {
+      const artifactRef = ForensicsArtifactRefSchema.parse(input);
+      if (!artifactRef.storageRef) {
+        throw new Error(`Artifact ${artifactRef.artifactId} cannot be persisted without storageRef.`);
+      }
+      return artifactRef;
     },
-    updateRuntimeSnapshot(envelope) {
-      return this.writeRecord(envelope);
+    async verifyArtifactRef(input) {
+      const artifactRef = ForensicsArtifactRefSchema.parse(input);
+      if (!artifactRef.storageRef) {
+        return false;
+      }
+      try {
+        await access(artifactRef.storageRef);
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 }

@@ -1,60 +1,67 @@
-import type { MouseClickPrimitivePort } from "./primitive-port.js";
-import {
-  MOUSE_CLICK_ABILITY_GROUP_ID,
-  type MouseClickAbilityGroup,
-  type MouseClickAbilityInput,
-  type MouseClickChildCapabilityId,
-  type NormalizedMouseClickAbilityInput,
-} from "./contract.js";
-import { createMouseClickCapabilityRegistry } from "./registry.js";
-import { DEFAULT_MOUSE_CLICK_SAFETY_POLICY, type MouseClickSafetyPolicy } from "./shared/click-policy.js";
+import type { MouseClickClockPort } from "./ports/mouse-click-clock-port.js";
+import type { MouseClickPrimitivePort } from "./ports/mouse-click-primitive-port.js";
+import { MouseClickAbilityResultSchema } from "./schema.js";
+import { type MouseClickAbilityGroup, type MouseClickAbilityInput, type MouseClickChildCapabilityId, type ParsedMouseClickAbilityInput } from "./contract.js";
+import { createMouseClickCapabilityRegistry, listMouseClickChildren } from "./registry.js";
+import { createSystemMouseClickClock } from "./runtime/mouse-click-clock.js";
+import { dispatchMouseClickFailure } from "./runtime/mouse-click-dispatch-failure.js";
+import { createMouseClickIdempotencyRegistry, type MouseClickIdempotencyRegistry } from "./runtime/mouse-click-idempotency.js";
+import { parseMouseClickAbilityInput } from "./runtime/mouse-click-input-gate.js";
 
 type CreateMouseClickAbilityGroupInput = {
   primitivePort: MouseClickPrimitivePort;
-  defaultSafetyPolicy?: Partial<MouseClickSafetyPolicy>;
+  clock?: MouseClickClockPort;
+  idempotency?: MouseClickIdempotencyRegistry;
 };
-
-function normalizeMouseClickInput(
-  input: MouseClickAbilityInput,
-  defaultSafetyPolicy: MouseClickSafetyPolicy,
-): NormalizedMouseClickAbilityInput {
-  return {
-    ...input,
-    abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
-    button: input.button ?? "left",
-    clickCount: input.clickCount ?? 1,
-    safetyPolicy: {
-      ...defaultSafetyPolicy,
-      ...input.safetyPolicy,
-      requireGeometryGuard: true,
-    },
-  };
-}
 
 export function createMouseClickAbilityGroup(input: CreateMouseClickAbilityGroupInput): MouseClickAbilityGroup {
   const registry = createMouseClickCapabilityRegistry();
-  const context = { primitivePort: input.primitivePort };
-  const defaultSafetyPolicy: MouseClickSafetyPolicy = {
-    ...DEFAULT_MOUSE_CLICK_SAFETY_POLICY,
-    ...input.defaultSafetyPolicy,
-    requireGeometryGuard: true,
+  const context = {
+    primitivePort: input.primitivePort,
+    clock: input.clock ?? createSystemMouseClickClock(),
+    idempotency: input.idempotency ?? createMouseClickIdempotencyRegistry(),
   };
 
-  const executeById = async (childCapabilityId: MouseClickChildCapabilityId, callInput: MouseClickAbilityInput) => {
+  const executeById = async (childCapabilityId: MouseClickChildCapabilityId, callInput: ParsedMouseClickAbilityInput) => {
     const capability = registry.get(childCapabilityId);
     if (!capability) {
-      throw new Error(`Mouse click child capability is not registered for ${childCapabilityId}`);
+      return dispatchMouseClickFailure({
+        rawInput: callInput,
+        context,
+        childCapabilityId,
+        failureReason: "unknown_child_capability",
+        statusMessage: `Mouse Click child capability is not registered for ${childCapabilityId}.`,
+      });
     }
 
-    return capability.execute(normalizeMouseClickInput(callInput, defaultSafetyPolicy), context);
+    try {
+      return MouseClickAbilityResultSchema.parse(await capability.execute(callInput, context));
+    } catch (error) {
+      return dispatchMouseClickFailure({
+        rawInput: callInput,
+        context,
+        childCapabilityId,
+        failureReason: "child_execution_failed",
+        statusMessage: error instanceof Error ? error.message : "Mouse Click child execution failed.",
+      });
+    }
   };
 
   return {
     listChildCapabilityIds() {
-      return [...registry.keys()];
+      return listMouseClickChildren();
     },
-    execute(inputValue) {
-      return executeById(inputValue.childCapabilityId, inputValue);
+    async execute(inputValue) {
+      const parsed = parseMouseClickAbilityInput(inputValue);
+      if (!parsed.success) {
+        return dispatchMouseClickFailure({
+          rawInput: inputValue,
+          context,
+          failureReason: "input_schema_invalid",
+          statusMessage: "Mouse Click rejected invalid input schema.",
+        });
+      }
+      return executeById(parsed.data.childCapabilityId, parsed.data);
     },
   };
 }

@@ -208,7 +208,10 @@ export const inspectCodeTopology = async (
     }
   }
 
-  const featureDirNames = (await listImmediateDirectories(pathFromRepoRoot("src/features"))).map((dirPath) => path.basename(dirPath));
+  const featuresRoot = pathFromRepoRoot("src/features");
+  const featuresRootExists = await fileExists(featuresRoot);
+  const featureDirectories = featuresRootExists ? await listImmediateDirectories(featuresRoot) : [];
+  const featureDirNames = featureDirectories.map((dirPath) => path.basename(dirPath));
   for (const featureDirName of featureDirNames) {
     if (featureDirName === "local-data" || featureDirName === "platform-action") {
       findings.push(

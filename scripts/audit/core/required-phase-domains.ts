@@ -1,5 +1,6 @@
 export const REQUIRED_PHASE_DOMAINS = [
   "audit-system",
+  "capability-group-governance",
   "type-safety",
   "security-privacy",
   "ai-capability",

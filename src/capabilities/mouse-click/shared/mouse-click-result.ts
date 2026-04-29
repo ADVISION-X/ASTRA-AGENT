@@ -1,0 +1,1 @@
+export const MOUSE_CLICK_STATUSES = ["success", "failed", "review_required"] as const;

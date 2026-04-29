@@ -4,6 +4,7 @@ import {
   type AiChildCapability,
   type AiExecutionOptions,
 } from "../../contract.js";
+import { buildAiDispatchFailureResult } from "../../runtime/ai-runtime-failure-result.js";
 
 const SUPPORTED_TASK_TYPES = ["ocr_cleanup"] as const;
 const SUPPORTED_TASK_TYPE_SET = new Set<string>(SUPPORTED_TASK_TYPES);
@@ -32,7 +33,14 @@ export function createLocalOcrAiCapability(): AiChildCapability {
     },
     async execute(request, context: AiCapabilityContext, options?: AiExecutionOptions) {
       if (!this.canHandle(request.taskType)) {
-        throw new Error(`local-ocr-ai cannot execute ${request.taskType}.`);
+        return buildAiDispatchFailureResult({
+          request,
+          promptContract: context.runtime.resolvePromptContract(request.taskType),
+          childCapabilityId: "local-ocr-ai",
+          startedAt: new Date().toISOString(),
+          failureReason: `local-ocr-ai cannot execute ${request.taskType}.`,
+          implementationStatus: "task_type_mismatch",
+        });
       }
       return context.runtime.execute(request, options);
     },

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { EvidenceRefSchema } from "../../types/evidence.js";
 import { VisionProductPresencePayloadSchema, VisionProductPresenceRequestInputSchema } from "../../types/vision-product-presence.js";
+import { AI_CHILD_CAPABILITY_IDS } from "./contract.js";
 import type { AiAbilityInput, AiAbilityResult, AiRuntimeHealth, AiTaskType } from "./contract.js";
 
 export const AiOcrCleanupOutputSchema = z.object({
@@ -45,11 +46,12 @@ const AiProviderKindSchema = z.enum(["local", "paid", "future", "internal"]);
 const AiModelRoleSchema = z.enum(["vision", "ocr", "commentUnderstanding", "productSignal", "schemaValidator", "multi-role", "future"]);
 const AiSchemaValidationStatusSchema = z.enum(["valid", "invalid", "not_applicable"]);
 const AiExecutionStatusSchema = z.enum(["success", "failed", "review_required"]);
+const AiChildCapabilityIdSchema = z.enum(AI_CHILD_CAPABILITY_IDS);
 
 const AiProviderPolicySchema = z.object({
   requireLocalOnly: z.boolean(),
   allowPaidProvider: z.boolean(),
-  providerAllowlist: z.array(z.enum(["local-vision-ai", "local-text-ai", "local-ocr-ai", "paid-vision-ai", "paid-analysis-ai", "future-api-ai"])),
+  providerAllowlist: z.array(AiChildCapabilityIdSchema),
   operatorApprovalRef: z.string().min(1).nullable(),
 });
 
@@ -74,8 +76,13 @@ const AiSafetyPolicySchema = z.object({
 });
 
 const AiRuntimeProofSchema = z.object({
+  runId: z.string().min(1),
+  missionId: z.string().min(1),
+  capabilityId: z.literal("ai"),
   abilityGroupId: z.literal("ai"),
-  childCapabilityId: z.enum(["local-vision-ai", "local-text-ai", "local-ocr-ai", "paid-vision-ai", "paid-analysis-ai", "future-api-ai"]),
+  childCapabilityId: AiChildCapabilityIdSchema,
+  inputSummary: z.string().min(1),
+  outputSummary: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1).nullable(),
   videoVisitId: z.string().min(1).nullable(),
@@ -86,13 +93,16 @@ const AiRuntimeProofSchema = z.object({
   reason: z.string().min(1),
   failureReason: z.string().min(1).nullable(),
   reviewRequiredReason: z.string().min(1).nullable(),
+  errorCode: z.string().min(1).nullable(),
   inputRefs: z.array(z.string().min(1)),
   outputRefs: z.array(z.string().min(1)),
   evidenceRefs: z.array(z.string().min(1)),
+  evidenceRef: z.string().min(1).nullable(),
   actionLogRefs: z.array(z.string().min(1)),
   nextAbilityGroup: z.string().min(1).nullable(),
   nextChildAbility: z.string().min(1).nullable(),
   dataQualityFlags: z.array(z.string().min(1)),
+  timestamp: z.string().datetime(),
 });
 
 const baseInputSchema = z.object({
@@ -168,7 +178,7 @@ export const AiAbilityInputSchema = z.discriminatedUnion("taskType", [
 const baseResultSchema = z.object({
   status: AiExecutionStatusSchema,
   abilityGroupId: z.literal("ai"),
-  childCapabilityId: z.enum(["local-vision-ai", "local-text-ai", "local-ocr-ai", "paid-vision-ai", "paid-analysis-ai", "future-api-ai"]),
+  childCapabilityId: AiChildCapabilityIdSchema,
   modelProvider: AiProviderKindSchema,
   modelName: z.string().min(1),
   modelRole: AiModelRoleSchema,

@@ -1,5 +1,5 @@
 import { AI_ABILITY_GROUP_ID, type AiAbilityInput, type AiChildCapabilityId } from "../../capabilities/ai/contract.js";
-import type { ForensicsPersistenceAbilityResult, ForensicsRecordRef } from "../../capabilities/forensics-persistence/index.js";
+import type { ForensicsPersistenceAbilityResult, ForensicsRecordRef, ForensicsRecordType } from "../../capabilities/forensics-persistence/index.js";
 import type { ImageEvidenceInput } from "../storage/evidence-store/evidence-store-artifacts.js";
 import type { EvidenceRef, ImageEvidence } from "../../types/evidence.js";
 
@@ -36,7 +36,7 @@ export function buildImageEvidenceInput(input: {
 }
 
 export function createForensicsRecordRef(input: {
-  recordType: string;
+  recordType: ForensicsRecordType;
   recordId: string;
   storageRef?: string | null;
 }): ForensicsRecordRef {
@@ -65,7 +65,7 @@ export function materializeImageEvidenceRecord(input: {
     regionType: input.imageEvidenceInput.regionType,
     width: input.imageEvidenceInput.width,
     height: input.imageEvidenceInput.height,
-    createdAt: input.persistedResult.runtimeProof.emittedAt,
+    createdAt: input.persistedResult.runtimeProof.endedAt,
   };
 }
 

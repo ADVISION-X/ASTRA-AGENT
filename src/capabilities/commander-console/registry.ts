@@ -1,4 +1,5 @@
-import { COMMANDER_CONSOLE_ABILITY_GROUP_ID, type CommanderConsoleChildAbility } from "./contract.js";
+import type { CommanderConsoleChildAbilityId } from "./contract.js";
+import type { CommanderConsoleChildDefinition } from "./runtime/commander-console-executor.js";
 import { APPROVE_CANDIDATE_CHILD } from "./children/approve-candidate/implementation.js";
 import { EMERGENCY_STOP_CHILD } from "./children/emergency-stop/implementation.js";
 import { INSPECT_RECORD_DETAIL_CHILD } from "./children/inspect-record-detail/implementation.js";
@@ -19,7 +20,7 @@ import { SHOW_REVIEW_QUEUE_CHILD } from "./children/show-review-queue/implementa
 import { SHOW_RUNTIME_PROOF_TIMELINE_CHILD } from "./children/show-runtime-proof-timeline/implementation.js";
 import { STOP_MISSION_CHILD } from "./children/stop-mission/implementation.js";
 
-const COMMANDER_CONSOLE_CHILDREN: CommanderConsoleChildAbility[] = [
+const COMMANDER_CONSOLE_CHILDREN = [
   ISSUE_HUMAN_COMMAND_CHILD,
   SHOW_MISSION_DASHBOARD_CHILD,
   SHOW_CAPABILITY_ROSTER_CHILD,
@@ -41,16 +42,19 @@ const COMMANDER_CONSOLE_CHILDREN: CommanderConsoleChildAbility[] = [
   INSPECT_RECORD_DETAIL_CHILD,
 ];
 
-export const COMMANDER_CONSOLE_REGISTRY = {
-  abilityGroupId: COMMANDER_CONSOLE_ABILITY_GROUP_ID,
-  canonicalRoot: "src/capabilities/commander-console",
-  childAbilityIds: COMMANDER_CONSOLE_CHILDREN.map((child) => child.childAbilityId),
-} as const;
+const COMMANDER_CONSOLE_CHILD_MAP = new Map(
+  COMMANDER_CONSOLE_CHILDREN.map((child) => [child.childCapabilityId, child]),
+);
 
-export function listCommanderConsoleChildAbilityIds(): string[] {
-  return [...COMMANDER_CONSOLE_REGISTRY.childAbilityIds];
+export function listCommanderConsoleChildren(): CommanderConsoleChildDefinition<unknown, unknown>[] {
+  return [...COMMANDER_CONSOLE_CHILDREN];
 }
 
-export function listCommanderConsoleChildren(): CommanderConsoleChildAbility[] {
-  return [...COMMANDER_CONSOLE_CHILDREN];
+export function getCommanderConsoleChild(childCapabilityId: CommanderConsoleChildAbilityId): CommanderConsoleChildDefinition<unknown, unknown> {
+  const child = COMMANDER_CONSOLE_CHILD_MAP.get(childCapabilityId);
+  if (!child) {
+    throw new Error(`Commander Console child ${childCapabilityId} is not registered.`);
+  }
+
+  return child;
 }

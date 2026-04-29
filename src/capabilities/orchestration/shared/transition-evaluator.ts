@@ -1,4 +1,4 @@
-import type { AiResponseEnvelope, ResultEnvelope } from "../../nerve-bus/shared/envelope.js";
+import type { AiResponseEnvelope, ResultEnvelope } from "../../nerve-bus/index.js";
 import type { BranchResult } from "./branch-result.js";
 import type { OperationalMap, OperationalMapStep, TransitionCondition } from "./map-types.js";
 

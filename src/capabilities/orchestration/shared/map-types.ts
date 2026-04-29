@@ -1,4 +1,4 @@
-import type { AbilityTargetId } from "../../nerve-bus/shared/envelope.js";
+import type { AbilityTargetId } from "../../nerve-bus/index.js";
 
 export type OperationalMapId = "facebook-product-discovery-map" | "tiktok-product-discovery-map";
 export type MissionStatus = "running" | "completed" | "failed" | "review_required";

@@ -13,10 +13,9 @@ import {
   type RoundLifecycleEvent,
   type RoundStructuralLog,
 } from "../../../types/evidence-packet.js";
-import { AiAbilityResultSchema } from "../../../capabilities/ai/schema-validation.js";
-import type { AiAbilityResult } from "../../../capabilities/ai/contract.js";
 import { ActionLogSchema, type ActionLog } from "../../../types/platform-action.js";
 import { ProductOpportunityCandidateSchema, type ProductOpportunityCandidate } from "../../../types/product-opportunity.js";
+import { StoredAiResultSchema, type StoredAiResult } from "../../../types/stored-ai-result.js";
 import { AgentRoundSchema, TaskRunSchema, type AgentRound, type RuntimeStatus, type TaskRun } from "../../../types/task-run.js";
 import { StructuredActionLogSchema, StructuredRuntimeEventSchema, type StructuredActionLog, type StructuredRuntimeEvent } from "../../../types/structured-log.js";
 import { buildAdvancedAiExportSet } from "./evidence-delivery-summary.js";
@@ -96,9 +95,9 @@ export async function saveOcrResultRecord(ctx: EvidenceStoreRecordsContext, inpu
   return parsed;
 }
 
-export async function saveAiResultRecord(ctx: EvidenceStoreRecordsContext, input: AiAbilityResult): Promise<AiAbilityResult> {
+export async function saveAiResultRecord(ctx: EvidenceStoreRecordsContext, input: unknown): Promise<StoredAiResult> {
   const state = await ctx.listState();
-  const parsed = AiAbilityResultSchema.parse(input);
+  const parsed = StoredAiResultSchema.parse(input);
   state.aiResults.push(parsed);
   await ctx.stateStore.write(state);
   return parsed;

@@ -1,5 +1,5 @@
-import type { CommanderRuntimeProofEntry } from "../shared/view-model-types.js";
+import type { CommanderRuntimeProofTimelineEntry } from "../shared/commander-view-types.js";
 
 export interface RuntimeProofReadModelPort {
-  listRuntimeProofEntries(limit?: number): Promise<CommanderRuntimeProofEntry[]>;
+  listRuntimeProofEntries(limit?: number): Promise<CommanderRuntimeProofTimelineEntry[]>;
 }

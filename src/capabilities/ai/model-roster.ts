@@ -20,10 +20,23 @@ function buildLocalTextEntry(config: LocalAiModelConfig): AiModelRosterEntry {
   return {
     childCapabilityId: "local-text-ai",
     providerKind: "local",
-    taskTypes: ["comment_signal_summary", "product_signal_summary", "schema_validation_only"],
+    taskTypes: ["comment_signal_summary", "product_signal_summary"],
     modelRole: "multi-role",
     runtime: config.roles.commentUnderstanding.runtime,
     modelOrTool: `${config.roles.commentUnderstanding.model} | ${config.roles.productSignal.model}`,
+    enabledByPolicy: true,
+    status: "configured",
+  };
+}
+
+function buildInternalSchemaValidatorEntry(): AiModelRosterEntry {
+  return {
+    childCapabilityId: "internal-schema-validator",
+    providerKind: "internal",
+    taskTypes: ["schema_validation_only"],
+    modelRole: "schemaValidator",
+    runtime: "internal",
+    modelOrTool: "schema-validator",
     enabledByPolicy: true,
     status: "configured",
   };
@@ -65,6 +78,7 @@ function buildAiRosterEntries(config: LocalAiModelConfig): AiModelRosterEntry[] 
     buildLocalVisionEntry(config),
     buildLocalTextEntry(config),
     buildLocalOcrEntry(config),
+    buildInternalSchemaValidatorEntry(),
     buildDisabledEntry("paid-vision-ai", "paid", "disabled_by_policy", ["visual_observation", "visual_target_candidate_analysis"]),
     buildDisabledEntry("paid-analysis-ai", "paid", "disabled_by_policy", ["evidence_packet_analysis"]),
     buildDisabledEntry("future-api-ai", "future", "disabled_by_policy", []),

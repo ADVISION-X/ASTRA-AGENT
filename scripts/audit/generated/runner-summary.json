@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-28T22:28:33.978Z",
+  "generatedAt": "2026-04-29T10:37:50.484Z",
   "phase": "phase-02-local-workbench",
   "totals": {
-    "inspectors": 16,
+    "inspectors": 17,
     "passed": 16,
-    "failed": 0,
-    "blocking": 0
+    "failed": 1,
+    "blocking": 1
   },
   "results": [
     {
@@ -42,7 +42,7 @@
           "name": "required-phase-domains",
           "classification": "PASS",
           "passed": true,
-          "summary": "Current phase gate and generated plan both include audit-system, type-safety, security-privacy, ai-capability, commander-console-capability, orchestration-capability, nerve-bus-capability, page-state-capability, post-action-verification-capability, open-capability, screenshot-capability, geometry-guard-capability, mouse-click-capability, mouse-scroll-capability, visual-target-capability, forensics-persistence-capability."
+          "summary": "Current phase gate and generated plan match the frozen active owner baseline from docs/法案辅助文件/GrassEye 法案冻结基线.md."
         },
         {
           "name": "runner-boundary",
@@ -78,7 +78,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 418 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 531 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "cleanup-hygiene",
@@ -97,6 +97,160 @@
       "passed": true,
       "classification": "PASS",
       "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Capability Group Governance Owner Inspector",
+      "inspectorId": "capability-group-governance-owner",
+      "capabilityDomain": "capability-group-governance",
+      "findings": [
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
+          "file": "src/capabilities/geometry-guard/contract.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Public contract is missing a stable exported abilityGroupId constant."
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
+          "file": "src/capabilities/mouse-click/contract.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Public contract is missing a stable exported abilityGroupId constant."
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
+          "file": "src/capabilities/forensics-persistence/contract.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Public contract is missing a stable exported abilityGroupId constant."
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
+          "file": "src/capabilities/geometry-guard/contract.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
+          "detail": "GeometryGuardRuntimeProof: runId, missionId, capabilityId, childCapabilityId, inputSummary, outputSummary, status, errorCode, evidenceRef, timestamp"
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
+          "file": "src/capabilities/mouse-click/shared/mouse-click-proof.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
+          "detail": "MouseClickRuntimeProofShape: capabilityId, inputSummary, outputSummary, errorCode, evidenceRef, timestamp"
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
+          "file": "src/capabilities/forensics-persistence/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
+          "detail": "ForensicsRuntimeProof: runId, missionId, capabilityId, childCapabilityId, inputSummary, outputSummary, status, errorCode, evidenceRef, timestamp"
+        }
+      ],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "capability-group-governance owner surface enforces constitutional boundaries and topology checks"
+        },
+        {
+          "name": "required-shape",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Ability groups still depend on retired support roots."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No import or export path lets retired roots bypass ability-group governance."
+        },
+        {
+          "name": "ability-group-contracts",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Some active ability groups are missing public contract or index truth."
+        },
+        {
+          "name": "boundary-imports",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Cross-group imports stay on public capability indexes or contracts."
+        },
+        {
+          "name": "forbidden-owner-literals",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Governed source no longer emits retired owner literals."
+        },
+        {
+          "name": "runtime-proof-minimums",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Runtime proof types are missing shared constitutional fields."
+        },
+        {
+          "name": "canonical-doc-paths",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical phase-document directories exist."
+        },
+        {
+          "name": "root-and-runtime-hygiene",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Root docs and runtime data hygiene are clean."
+        },
+        {
+          "name": "source-topology",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical src, docs, and startup directories stay within the governed topology."
+        },
+        {
+          "name": "route-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Route entry stays off browser automation, platform adapter, local AI, and data-store truth imports."
+        },
+        {
+          "name": "domain-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Domain-neutral browser infrastructure and restricted feature domains stay on canonical ownership boundaries."
+        },
+        {
+          "name": "type-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Platform boundary types resolve to the shared PlatformAdapter abstraction."
+        },
+        {
+          "name": "historical-owner-removal",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Deleted historical owner paths are absent from active import and export graphs."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
+        }
+      ],
+      "classification": "CODE VIOLATION",
+      "summary": "Ability groups still depend on retired support roots.",
+      "passed": false,
+      "violationCount": 6
     },
     {
       "inspector": "GrassEye Type Safety Owner Inspector",
@@ -318,25 +472,25 @@
           "name": "commander-console-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console canonical root contains ports, shared contracts, and real child implementation folders."
+          "summary": "Commander Console canonical root contains schema, runtime, shared layers, and real child folders."
         },
         {
-          "name": "commander-console-boundary-purity",
+          "name": "commander-console-architecture",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console root stays clean from local-data, old runtime builders, and direct orchestration mutations."
+          "summary": "Commander Console public surface is execute-only, thin, and always emits governed results plus runtime proof."
         },
         {
-          "name": "commander-console-entry-cutover",
+          "name": "commander-console-cutover",
           "classification": "PASS",
           "passed": true,
-          "summary": "Human command entry, candidate review routes, Local App Shell, and workbench transport are cut over to Commander Console."
+          "summary": "Workbench, HTTP handlers, and Local App Shell are fully cut over to Commander Console execute."
         },
         {
-          "name": "commander-console-anti-drift",
+          "name": "commander-console-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Commander Console keeps one canonical root with no child leakage, verify escape, or legacy drift."
+          "summary": "Commander Console keeps one canonical root with no transport/runtime leakage and no dynamic or any escape hatches."
         },
         {
           "name": "local-shell-boundary",
@@ -714,35 +868,35 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "geometry-guard-capability is enforced as a clean coordinate safety gate with AST-backed anti-escape checks"
+          "summary": "geometry-guard-capability is enforced as a schema-first coordinate safety gate with AST-backed anti-escape checks"
         },
         {
           "name": "geometry-guard-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Geometry Guard exposes the clean eight-child contract, canonical shared files, and public group entry."
+          "summary": "Geometry Guard exposes the rebuilt schema, executor chain, clock, proof builder, and thin child delegates."
         },
         {
           "name": "geometry-guard-forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Geometry Guard no longer imports browser or action owners, leaks child paths, or exposes old action-plan surface."
+          "summary": "Geometry Guard no longer carries old shared files, child leaks, or cross-group execution imports."
         },
         {
           "name": "geometry-guard-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Geometry Guard keeps one canonical contract and no duplicate public boundary."
+          "summary": "Geometry Guard keeps one canonical contract boundary and one shared executor chain."
         },
         {
           "name": "geometry-guard-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Geometry Guard has no clamp escape, compat path, bridge path, or silent second system."
+          "summary": "Geometry Guard has no throw escape, Date escape, clamp escape, type escape, or compat drift."
         }
       ],
       "classification": "PASS",
-      "summary": "Geometry Guard has no clamp escape, compat path, bridge path, or silent second system.",
+      "summary": "Geometry Guard has no throw escape, Date escape, clamp escape, type escape, or compat drift.",
       "passed": true,
       "violationCount": 0
     },
@@ -762,35 +916,35 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "mouse-click-capability is implemented as a primitive-port-backed, Geometry Guard-gated click owner with AST-backed enforcement"
+          "summary": "mouse-click-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement"
         },
         {
-          "name": "mouse-click-required-shape",
+          "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click exposes the required primitive-port topology, exact child registry, and one governed contract."
+          "summary": "Mouse Click production topology exists with schema, runtime executor chain, ports, and child triplets."
         },
         {
-          "name": "mouse-click-forbidden-shape",
+          "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click root is free of BrowserController leakage, mapping logic, retired child roots, and verify-script escape hatches."
+          "summary": "Mouse Click avoids naked throws, direct primitive leaks, legacy files, and direct wall-clock usage."
         },
         {
-          "name": "mouse-click-boundary-attack",
+          "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Composition root injects primitivePort and child execution stays behind Geometry Guard validation."
+          "summary": "Mouse Click stays behind the workbench boundary and receives Geometry Guard proof handoff from visual runtime."
         },
         {
-          "name": "mouse-click-anti-escape",
+          "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click has no child leakage, dynamic-import escape, or legacy/bridge/v2 topology."
+          "summary": "Mouse Click avoids dynamic import, export laundering, and type/comment escape hatches."
         }
       ],
       "classification": "PASS",
-      "summary": "Mouse Click has no child leakage, dynamic-import escape, or legacy/bridge/v2 topology.",
+      "summary": "Mouse Click avoids dynamic import, export laundering, and type/comment escape hatches.",
       "passed": true,
       "violationCount": 0
     },
@@ -891,7 +1045,7 @@
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Forensics Persistence Owner Inspector",
+      "inspector": "forensics-persistence-owner",
       "inspectorId": "forensics-persistence-owner",
       "capabilityDomain": "forensics-persistence-capability",
       "findings": [],
@@ -906,89 +1060,35 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "forensics-persistence owns durable record writing through a clean contract and rejects runtime/store escape hatches"
+          "summary": "implemented owner surface exists and is ready for direct checks"
         },
         {
           "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Forensics Persistence exposes the required owner root, registry, child topology, contract, and storage-port shape."
+          "summary": "Forensics Persistence exposes the required root, runtime modules, schemas, ports, and child topology."
         },
         {
           "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Retired local-data identity, forbidden contract leakage, and runtime/store topology are absent."
+          "summary": "Legacy roots, direct hash shortcuts, public barrel leaks, and wrong snapshot paths are absent."
         },
         {
           "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Only the Forensics public owner and storage adapter seam perform final record writes."
+          "summary": "Forensics stays inside its persistence boundary and upstream wiring goes through governed ports."
         },
         {
           "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Forensics enforcement and source root are free of verify escape hatches and AST-level loopholes."
-        },
-        {
-          "name": "structured-logging-types",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Structured logging type contract defines runtime event and action-log schemas without escape hatches."
-        },
-        {
-          "name": "structured-logging-persistence",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Evidence store persists structured runtime events and structured action logs."
-        },
-        {
-          "name": "structured-logging-runtime-calls",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Runtime proof support emits structured runtime events and structured action logs through governed methods."
-        },
-        {
-          "name": "structured-logging-console-truth",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Governed runtime truth surfaces do not rely on console.log."
-        },
-        {
-          "name": "structured-logging-test-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
-        },
-        {
-          "name": "multi-frame-forensics-packet",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Forensics packet schemas preserve governed multi-frame video and AI metadata."
-        },
-        {
-          "name": "local-persistence-types",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Local persistence schemas define governed tables, path layout, storage refs, and relationship boundaries without sensitive session fields."
-        },
-        {
-          "name": "local-persistence-store-surface",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Evidence store exposes governed persistence methods for evidence, structured logs, packets, and browse-ledger records."
-        },
-        {
-          "name": "local-persistence-test-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository contains no tests, __tests__, or *.test.* artifacts."
+          "summary": "Forensics source and inspector are free of comment escapes, casts, dynamic imports, and test-path laundering."
         }
       ],
       "classification": "PASS",
-      "summary": "Repository contains no tests, __tests__, or *.test.* artifacts.",
+      "summary": "Forensics source and inspector are free of comment escapes, casts, dynamic imports, and test-path laundering.",
       "passed": true,
       "violationCount": 0
     }

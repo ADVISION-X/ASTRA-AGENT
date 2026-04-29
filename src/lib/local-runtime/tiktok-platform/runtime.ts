@@ -19,7 +19,7 @@ import type { ScreenshotAbilityGroup } from "../../../capabilities/screenshot/co
 import type { MouseClickAbilityGroup } from "../../../capabilities/mouse-click/contract.js";
 import type { MouseScrollAbilityGroup } from "../../../capabilities/mouse-scroll/contract.js";
 import type { VisualTargetAbilityGroup } from "../../../capabilities/visual-target/contract.js";
-import { createGeometryGuardAbilityGroup } from "../../../capabilities/geometry-guard/ability-group.js";
+import { createGeometryGuardAbilityGroup } from "../../../capabilities/geometry-guard/index.js";
 import { VisionCoordinatePlatformAdapter } from "./vision-coordinate-runtime.js";
 import { captureCommentRegion, captureVideoRegion, continueNext, likeOrSaveCandidate, observeCurrentVideo, openComments } from "./actions.js";
 import { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID, TikTokPlatformVideo, TikTokRecentVideoIdentity, resolveOrientationProfile } from "./identity.js";
@@ -70,7 +70,7 @@ export class TikTokPlatformAdapter extends VisionCoordinatePlatformAdapter imple
       browserLoginState: session.loginState,
       observationRefs: [],
       sourceEvidenceRefs: [],
-      requestedBy: "platform-action",
+      requestedBy: "orchestration",
       sessionId: session.browserProfileRef || `page-state:${request.roundId}`,
       roundId: request.roundId,
       videoVisitId: null,

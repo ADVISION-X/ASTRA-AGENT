@@ -10,7 +10,7 @@ import type { PageStateAbilityInput, PageStateAbilityResult } from "../../../cap
 import type { PostActionVerificationAbilityResult } from "../../../capabilities/post-action-verification/contract.js";
 import type { PlatformOperatorModeInfo, VideoOrientationMode } from "../platform-runtime-contract.js";
 import type { VisualActionResult, VisualTarget } from "../../../types/visual-action.js";
-import { isSuccessfulVisualTarget } from "../../../capabilities/visual-target/shared/target-validation.js";
+import { isSuccessfulVisualTarget } from "../../../capabilities/visual-target/index.js";
 import {
   createVisualSignature,
   extractTags,
@@ -87,7 +87,7 @@ export async function readCurrentVideo(input: ReadCurrentVideoInput): Promise<Ti
     currentTitle: session.currentTitle,
     browserLoginState: session.loginState,
     pageStateAbilityGroup: input.pageStateAbilityGroup,
-    requestedBy: "platform-action",
+    requestedBy: "orchestration",
     sessionId,
   });
   const feedReadyState = await detectPageState({
@@ -96,7 +96,7 @@ export async function readCurrentVideo(input: ReadCurrentVideoInput): Promise<Ti
     currentTitle: session.currentTitle,
     browserLoginState: session.loginState,
     pageStateAbilityGroup: input.pageStateAbilityGroup,
-    requestedBy: "platform-action",
+    requestedBy: "orchestration",
     sessionId,
   });
   const pageAbnormality = await detectPageState({
@@ -105,7 +105,7 @@ export async function readCurrentVideo(input: ReadCurrentVideoInput): Promise<Ti
     currentTitle: session.currentTitle,
     browserLoginState: session.loginState,
     pageStateAbilityGroup: input.pageStateAbilityGroup,
-    requestedBy: "platform-action",
+    requestedBy: "orchestration",
     sessionId,
   });
   const pageKind = await detectPageState({
@@ -114,7 +114,7 @@ export async function readCurrentVideo(input: ReadCurrentVideoInput): Promise<Ti
     currentTitle: session.currentTitle,
     browserLoginState: session.loginState,
     pageStateAbilityGroup: input.pageStateAbilityGroup,
-    requestedBy: "platform-action",
+    requestedBy: "orchestration",
     sessionId,
   });
   const capture = await input.captureBrowserRegion({
@@ -277,8 +277,11 @@ function buildGeometryGuardInput(input: ExecuteCoordinateActionInput, target: Vi
     sessionId: target.sourceScreenshotEvidenceId,
     roundId: null,
     videoVisitId: null,
-    requestedBy: "platform-action",
+    requestedBy: "orchestration",
     purpose: `${input.actionType}:${input.targetType}`,
+    sourceAbilityGroupId: target.abilityGroupId,
+    sourceChildCapabilityId: target.childCapabilityId,
+    inputRef: target.debugLogRef,
     sourceScreenshotEvidenceRef: target.sourceScreenshotEvidenceId,
     sourceTargetRef: target.targetId,
     sourceAiResultRef: target.sourceAiResultRef,
@@ -296,6 +299,8 @@ function buildGeometryGuardInput(input: ExecuteCoordinateActionInput, target: Vi
       minimumConfidence: 0.72,
       coordinateConfidence: target.confidence,
       requireSourceRef: true,
+      clickSafetyMarginPx: 4,
+      roundingPolicy: "nearest_pixel",
     },
     dataQualityFlags: [...target.dataQualityFlags],
   };

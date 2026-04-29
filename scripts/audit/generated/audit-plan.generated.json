@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-28T22:28:20.664Z",
+  "generatedAt": "2026-04-29T10:37:34.265Z",
   "phase": "phase-02-local-workbench",
   "phaseGateFile": "scripts/audit/phase-gates/phase-02-local-workbench.json",
   "owners": [
@@ -11,6 +11,23 @@
         "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "GRASSEYE-CODE-PURITY-003-V1",
         "GRASSEYE-CODE-PURITY-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "capability-group-governance",
+      "inspectorId": "capability-group-governance-owner",
+      "entry": "scripts/audit/domains/capability-group-governance/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-CAPABILITY-GROUP-001-V1",
+        "GRASSEYE-CAPABILITY-GROUP-002-V1",
+        "GRASSEYE-CAPABILITY-GROUP-003-V1",
+        "GRASSEYE-CAPABILITY-GROUP-004-V1",
+        "GRASSEYE-CAPABILITY-GROUP-005-V1",
+        "GRASSEYE-CAPABILITY-GROUP-006-V1",
+        "GRASSEYE-CODE-TOPOLOGY-001-V1",
+        "GRASSEYE-CODE-TOPOLOGY-002-V1",
+        "GRASSEYE-CODE-TOPOLOGY-003-V1",
+        "GRASSEYE-CODE-TOPOLOGY-004-V2"
       ]
     },
     {

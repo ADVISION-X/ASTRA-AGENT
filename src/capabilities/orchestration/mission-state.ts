@@ -1,4 +1,4 @@
-import type { AbilityTargetId } from "../nerve-bus/shared/envelope.js";
+import type { AbilityTargetId } from "../nerve-bus/index.js";
 import type { MapDebugProof, MissionCommand, MissionState } from "./contract.js";
 import type { BranchResult } from "./shared/branch-result.js";
 import type { OperationalMap } from "./shared/map-types.js";

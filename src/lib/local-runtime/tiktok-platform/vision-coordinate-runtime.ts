@@ -1,6 +1,6 @@
 import type { BrowserController, BrowserGeometrySnapshot } from "../../browser/browser-controller.js";
 import type { GeometryGuardAbilityResult } from "../../../capabilities/geometry-guard/contract.js";
-import { MOUSE_CLICK_ABILITY_GROUP_ID, type MouseClickAbilityGroup } from "../../../capabilities/mouse-click/contract.js";
+import { MOUSE_CLICK_ABILITY_GROUP_ID, type MouseClickAbilityGroup, type MouseClickAbilityInput } from "../../../capabilities/mouse-click/contract.js";
 import type { ScreenshotAbilityGroup } from "../../../capabilities/screenshot/contract.js";
 import type {
   SuccessfulVisualTarget,
@@ -51,7 +51,7 @@ export abstract class VisionCoordinatePlatformAdapter {
       sessionId: "platform-capture",
       roundId: null,
       videoVisitId: null,
-      requestedBy: "platform-action",
+      requestedBy: "orchestration",
       purpose: input.regionLabel,
       maxAiWidth: null,
       preservePixels: true,
@@ -83,39 +83,100 @@ export abstract class VisionCoordinatePlatformAdapter {
     const executionHeight = input.guardResult.normalizedCoordinateSpace === "browserViewport"
       ? input.geometrySnapshot.viewportHeight
       : input.geometrySnapshot.screenshotHeight;
+    const geometryGuardProofBase = {
+      proofId: input.guardResult.runtimeProof.proofId,
+      geometryGuardRef: input.guardResult.geometryGuardRef,
+      abilityGroupId: input.guardResult.runtimeProof.abilityGroupId,
+      childCapabilityId: input.guardResult.runtimeProof.childCapabilityId,
+      sourceAbilityGroupId: input.guardResult.runtimeProof.sourceAbilityGroupId,
+      sourceChildCapabilityId: input.guardResult.runtimeProof.sourceChildCapabilityId,
+      sessionId: input.guardResult.sessionId,
+      roundId: input.guardResult.roundId,
+      videoVisitId: input.guardResult.videoVisitId,
+      status: input.guardResult.status,
+      guardDecision: input.guardResult.guardDecision,
+      normalizedClickPoint: input.guardResult.normalizedClickPoint,
+      sourceScreenshotEvidenceRef: input.guardResult.sourceScreenshotEvidenceRef,
+      sourceTargetRef: input.guardResult.sourceTargetRef,
+      inputRef: input.guardResult.runtimeProof.inputRef,
+      outputRef: input.guardResult.runtimeProof.outputRef,
+    };
 
-    const clickResult = await this.mouseClickAbilityGroup.execute({
-      abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
-      childCapabilityId,
-      sessionId: input.target.sourceScreenshotEvidenceId,
-      roundId: null,
-      videoVisitId: null,
-      requestedBy: "platform-action",
-      purpose: `${input.actionType}:${input.target.targetType}`,
-      geometryGuardRef: input.guardResult.debugLogRef ?? input.target.sourceScreenshotEvidenceId,
-      guardDecision: "allow",
-      coordinate: {
-        x: input.guardResult.normalizedClickPoint.x,
-        y: input.guardResult.normalizedClickPoint.y,
-        coordinateSpace: input.guardResult.normalizedCoordinateSpace,
-        boundsWidth: executionWidth,
-        boundsHeight: executionHeight,
-      },
-      button: "left",
-      clickCount: 1,
-      sourceEvidenceRef: input.target.sourceScreenshotEvidenceId,
-      sourceTargetRef: input.target.targetId,
-      safetyPolicy: {
-        requireGeometryGuard: true,
-        allowOperatorManual: false,
-        operatorManualApprovalRef: null,
-        allowRightClick: false,
-        allowDoubleClick: false,
-        maxDurationMs: 5000,
-        blockIfOutOfBounds: true,
-        blockIfNoSourceRef: true,
-      },
-    });
+    const clickInput: MouseClickAbilityInput = childCapabilityId === "click-browser-coordinate"
+      ? {
+          abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
+          childCapabilityId: "click-browser-coordinate" as const,
+          sessionId: input.target.sourceScreenshotEvidenceId,
+          roundId: null,
+          videoVisitId: null,
+          requestedBy: "orchestration",
+          purpose: `${input.actionType}:${input.target.targetType}`,
+          sourceCoordinateProofRef: input.guardResult.runtimeProof.proofId,
+          sourceEvidenceRef: input.target.sourceScreenshotEvidenceId,
+          sourceTargetRef: input.target.targetId,
+          geometryGuardProof: {
+            ...geometryGuardProofBase,
+            normalizedCoordinateSpace: "browserViewport" as const,
+          },
+          bounds: {
+            width: executionWidth,
+            height: executionHeight,
+          },
+          button: "left" as const,
+          clickCount: 1 as const,
+          safetyPolicy: {
+            allowOperatorManual: false,
+            operatorManualApprovalRef: null,
+            allowRightClick: false,
+            allowDoubleClick: false,
+            allowReplay: false,
+            allowDesktopScreenClick: false,
+            desktopScreenOperatorApprovalRef: null,
+            maxDurationMs: 5000,
+            primitiveTimeoutMs: 3000,
+            cooldownMs: 800,
+            requireStableRoundBinding: true,
+            requireStableVideoVisitBinding: true,
+          },
+        }
+      : {
+          abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
+          childCapabilityId: "click-desktop-coordinate" as const,
+          sessionId: input.target.sourceScreenshotEvidenceId,
+          roundId: null,
+          videoVisitId: null,
+          requestedBy: "orchestration",
+          purpose: `${input.actionType}:${input.target.targetType}`,
+          sourceCoordinateProofRef: input.guardResult.runtimeProof.proofId,
+          sourceEvidenceRef: input.target.sourceScreenshotEvidenceId,
+          sourceTargetRef: input.target.targetId,
+          geometryGuardProof: {
+            ...geometryGuardProofBase,
+            normalizedCoordinateSpace: "desktopScreen" as const,
+          },
+          bounds: {
+            width: executionWidth,
+            height: executionHeight,
+          },
+          button: "left" as const,
+          clickCount: 1 as const,
+          safetyPolicy: {
+            allowOperatorManual: false,
+            operatorManualApprovalRef: null,
+            allowRightClick: false,
+            allowDoubleClick: false,
+            allowReplay: false,
+            allowDesktopScreenClick: false,
+            desktopScreenOperatorApprovalRef: null,
+            maxDurationMs: 5000,
+            primitiveTimeoutMs: 3000,
+            cooldownMs: 800,
+            requireStableRoundBinding: true,
+            requireStableVideoVisitBinding: true,
+          },
+        };
+
+    const clickResult = await this.mouseClickAbilityGroup.execute(clickInput);
 
     return {
       browserActionId: clickResult.actionExecutionRef,
@@ -170,7 +231,7 @@ export abstract class VisionCoordinatePlatformAdapter {
         isVisible: true,
         expectedRegionDistance: null,
       }],
-      requestedBy: "platform-action",
+      requestedBy: "orchestration",
       confidencePolicy: null,
       selectionPolicy: null,
       dataQualityPolicy: null,

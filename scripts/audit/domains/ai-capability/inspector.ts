@@ -8,9 +8,12 @@ import {
   createAuditProject,
   getSourceFileOrThrow,
   getTypeAliasPropertyNames,
+  getZodObjectPropertyNames,
   getZodEnumValues,
   hasCallExpression,
+  hasCallExpressionPath,
   hasIdentifier,
+  hasImportModuleSpecifier,
   hasInterfaceMethod,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
@@ -25,11 +28,20 @@ const TASK_ROUTER_PATH = `${AI_ROOT}/task-router.ts`;
 const MODEL_ROSTER_PATH = `${AI_ROOT}/model-roster.ts`;
 const SCHEMA_VALIDATION_PATH = `${AI_ROOT}/schema-validation.ts`;
 const INDEX_PATH = `${AI_ROOT}/index.ts`;
+const RUNTIME_ROOT = `${AI_ROOT}/runtime`;
 const POLICY_PATH = `${AI_ROOT}/shared/ai-policy.ts`;
 const JSON_EXTRACT_PATH = `${AI_ROOT}/shared/ai-json-extract.ts`;
 const RESULT_PATH = `${AI_ROOT}/shared/ai-result.ts`;
 const FAILURE_PATH = `${AI_ROOT}/shared/ai-failure.ts`;
 const RUNTIME_BRIDGE_PATH = `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`;
+const RUNTIME_EXECUTOR_PATH = `${RUNTIME_ROOT}/ai-runtime-executor.ts`;
+const RUNTIME_POLICY_GATE_PATH = `${RUNTIME_ROOT}/ai-runtime-policy-gate.ts`;
+const RUNTIME_QUALITY_GATE_PATH = `${RUNTIME_ROOT}/ai-runtime-quality-gate.ts`;
+const RUNTIME_SCHEMA_GATE_PATH = `${RUNTIME_ROOT}/ai-runtime-schema-gate.ts`;
+const RUNTIME_FAILURE_RESULT_PATH = `${RUNTIME_ROOT}/ai-runtime-failure-result.ts`;
+const RUNTIME_PROOF_BUILDER_PATH = `${RUNTIME_ROOT}/ai-runtime-proof-builder.ts`;
+const RUNTIME_OUTPUT_NORMALIZER_PATH = `${RUNTIME_ROOT}/ai-runtime-output-normalizer.ts`;
+const RUNTIME_RESULT_BUILDER_PATH = `${RUNTIME_ROOT}/ai-runtime-result-builder.ts`;
 const FORBIDDEN_RUNTIME_TASK_PATH = `${AI_ROOT}/runtime-task-execution.ts`;
 const FORBIDDEN_PROMPT_CONTRACT_PATH = `${AI_ROOT}/prompt-contract.ts`;
 const LOCAL_AI_TYPES_PATH = "src/types/local-ai.ts";
@@ -89,9 +101,18 @@ const REQUIRED_FILES = [
   RESULT_PATH,
   FAILURE_PATH,
   RUNTIME_BRIDGE_PATH,
+  RUNTIME_EXECUTOR_PATH,
+  RUNTIME_POLICY_GATE_PATH,
+  RUNTIME_QUALITY_GATE_PATH,
+  RUNTIME_SCHEMA_GATE_PATH,
+  RUNTIME_FAILURE_RESULT_PATH,
+  RUNTIME_PROOF_BUILDER_PATH,
+  RUNTIME_OUTPUT_NORMALIZER_PATH,
+  RUNTIME_RESULT_BUILDER_PATH,
   `${AI_ROOT}/children/local-vision-ai/implementation.ts`,
   `${AI_ROOT}/children/local-text-ai/implementation.ts`,
   `${AI_ROOT}/children/local-ocr-ai/implementation.ts`,
+  `${AI_ROOT}/children/internal-schema-validator/implementation.ts`,
   `${AI_ROOT}/children/paid-vision-ai/implementation.ts`,
   `${AI_ROOT}/children/paid-analysis-ai/implementation.ts`,
   `${AI_ROOT}/children/future-api-ai/implementation.ts`,
@@ -141,6 +162,30 @@ function hasVerifyFunction(sourceFile: SourceFile): boolean {
   const functionNames = sourceFile.getFunctions().map((fn) => fn.getName() ?? "");
   const variableNames = sourceFile.getVariableDeclarations().map((declaration) => declaration.getName());
   return [...functionNames, ...variableNames].some((name) => name.startsWith("verify"));
+}
+
+function hasDynamicImportCall(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    return callExpression.getExpression().getKind() === SyntaxKind.ImportKeyword;
+  });
+}
+
+function hasUnsafeTypeEscape(sourceFile: SourceFile): boolean {
+  if (sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword).length > 0) {
+    return true;
+  }
+
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => {
+    const typeNode = expression.getTypeNode();
+    if (!typeNode) {
+      return false;
+    }
+    const innerExpression = expression.getExpression();
+    const innerTypeNode = Node.isAsExpression(innerExpression) ? innerExpression.getTypeNode() : undefined;
+    return typeNode.getText() === 'LocalAiTaskRequest["input"]'
+      || typeNode.getText() === "LocalAiTaskRequest['input']"
+      || innerTypeNode?.getText() === "unknown";
+  });
 }
 
 function toRepoPath(sourceFile: SourceFile): string {
@@ -271,6 +316,36 @@ function getRegistryChildCounts(sourceFile: SourceFile): Map<string, number> {
   return counts;
 }
 
+function getZodObjectPropertyInitializerText(sourceFile: SourceFile, declarationName: string, propertyName: string): string | null {
+  const declaration = sourceFile.getVariableDeclaration(declarationName);
+  const initializer = declaration?.getInitializerIfKind(SyntaxKind.CallExpression);
+  const firstArgument = initializer?.getArguments()[0];
+  if (!firstArgument || !Node.isObjectLiteralExpression(firstArgument)) {
+    return null;
+  }
+
+  const property = firstArgument.getProperty(propertyName);
+  if (!property || !Node.isPropertyAssignment(property)) {
+    return null;
+  }
+
+  return property.getInitializer()?.getText() ?? null;
+}
+
+function hasSchemaInvalidFailureAssignment(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.IfStatement).some((ifStatement) => {
+    if (!hasIdentifier(ifStatement.getExpression(), "schemaIssues")) {
+      return false;
+    }
+
+    return ifStatement.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
+      return expression.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+        && expression.getLeft().getText() === "status"
+        && expression.getRight().getText() === 'input.request.safetyPolicy.reviewOnSchemaFailure ? "review_required" : "failed"';
+    });
+  });
+}
+
 function getDisabledRosterEntryIds(sourceFile: SourceFile): Set<string> {
   return new Set(
     sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((expression) => {
@@ -316,6 +391,20 @@ export default createPendingDomainInspector({
     const policySource = getSourceFileOrThrow(project, POLICY_PATH);
     const jsonExtractSource = getSourceFileOrThrow(project, JSON_EXTRACT_PATH);
     const modelRosterSource = getSourceFileOrThrow(project, MODEL_ROSTER_PATH);
+    const runtimeBridgeSource = getSourceFileOrThrow(project, RUNTIME_BRIDGE_PATH);
+    const taskRouterSource = getSourceFileOrThrow(project, TASK_ROUTER_PATH);
+    const runtimeExecutorSource = getSourceFileOrThrow(project, RUNTIME_EXECUTOR_PATH);
+    const runtimePolicyGateSource = getSourceFileOrThrow(project, RUNTIME_POLICY_GATE_PATH);
+    const runtimeQualityGateSource = getSourceFileOrThrow(project, RUNTIME_QUALITY_GATE_PATH);
+    const runtimeSchemaGateSource = getSourceFileOrThrow(project, RUNTIME_SCHEMA_GATE_PATH);
+    const runtimeFailureResultSource = getSourceFileOrThrow(project, RUNTIME_FAILURE_RESULT_PATH);
+    const runtimeProofBuilderSource = getSourceFileOrThrow(project, RUNTIME_PROOF_BUILDER_PATH);
+    const runtimeResultBuilderSource = getSourceFileOrThrow(project, RUNTIME_RESULT_BUILDER_PATH);
+    const localVisionSource = getSourceFileOrThrow(project, `${AI_ROOT}/children/local-vision-ai/implementation.ts`);
+    const localTextSource = getSourceFileOrThrow(project, `${AI_ROOT}/children/local-text-ai/implementation.ts`);
+    const localOcrSource = getSourceFileOrThrow(project, `${AI_ROOT}/children/local-ocr-ai/implementation.ts`);
+    const internalSchemaSource = getSourceFileOrThrow(project, `${AI_ROOT}/children/internal-schema-validator/implementation.ts`);
+    const paidAnalysisSource = getSourceFileOrThrow(project, `${AI_ROOT}/children/paid-analysis-ai/implementation.ts`);
     const aiFiles = collectAiSourceFiles(project);
     const downstreamPersistenceFiles = project.getSourceFiles().filter((sourceFile) => {
       const relativePath = toRepoPath(sourceFile);
@@ -383,11 +472,33 @@ export default createPendingDomainInspector({
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "error", message: "AI contract must expose native AI input/result types, required task types, and execute interfaces without leaking LocalAi public types." }));
     }
 
+    const runtimeProofSchemaFields = getZodObjectPropertyNames(schemaSource, "AiRuntimeProofSchema");
+    const schemaClosurePassed = hasIdentifier(schemaSource, "AI_CHILD_CAPABILITY_IDS")
+      && hasIdentifier(schemaSource, "AiChildCapabilityIdSchema")
+      && getZodObjectPropertyInitializerText(schemaSource, "AiProviderPolicySchema", "providerAllowlist") === "z.array(AiChildCapabilityIdSchema)"
+      && getZodObjectPropertyInitializerText(schemaSource, "AiRuntimeProofSchema", "childCapabilityId") === "AiChildCapabilityIdSchema"
+      && getZodObjectPropertyInitializerText(schemaSource, "baseResultSchema", "childCapabilityId") === "AiChildCapabilityIdSchema"
+      && [
+        "runId",
+        "missionId",
+        "capabilityId",
+        "childCapabilityId",
+        "inputSummary",
+        "outputSummary",
+        "errorCode",
+        "evidenceRef",
+        "timestamp",
+      ].every((field) => runtimeProofSchemaFields.has(field));
+    if (!schemaClosurePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-001-V1", file: SCHEMA_VALIDATION_PATH, line: 1, severity: "fatal", message: "AI schema-validation must stay closed over contract child ids and runtimeProof fields, including internal-schema-validator." }));
+    }
+
     const registryChildCounts = getRegistryChildCounts(registrySource);
     const childStructurePassed = [
       "local-vision-ai",
       "local-text-ai",
       "local-ocr-ai",
+      "internal-schema-validator",
       "paid-vision-ai",
       "paid-analysis-ai",
       "future-api-ai",
@@ -398,9 +509,81 @@ export default createPendingDomainInspector({
 
     const abilityGroupPassed = hasIdentifier(abilityGroupSource, "createDefaultAiRuntimeBridge")
       && hasIdentifier(abilityGroupSource, "createAiCapabilityRegistry")
-      && hasIdentifier(abilityGroupSource, "routeAiTaskToChild");
+      && hasIdentifier(abilityGroupSource, "routeAiTaskToChild")
+      && hasCallExpression(abilityGroupSource, "validateAiAbilityInput");
     if (!abilityGroupPassed) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "error", message: "AI ability-group entry must use the registry, task router, and owned runtime bridge." }));
+    }
+
+    const runtimePolicyGatePassed = hasImportModuleSpecifier(runtimeBridgeSource, "ai-runtime-executor")
+      && hasCallExpression(runtimeExecutorSource, "collectAiRuntimePolicyViolations")
+      && hasCallExpression(runtimeExecutorSource, "buildAiPolicyFailureResult")
+      && hasCallExpression(runtimePolicyGateSource, "resolveAiPolicyViolationReasons");
+    if (!runtimePolicyGatePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "fatal", message: "AI runtime bridge must execute explicit policy gate and governed policy failure handling before provider execution." }));
+    }
+
+    const runtimeSchemaGatePassed = hasImportModuleSpecifier(runtimeExecutorSource, "ai-runtime-schema-gate")
+      && hasCallExpression(runtimeExecutorSource, "inspectAiOutputSchema")
+      && hasCallExpression(runtimeSchemaGateSource, "resolveAiExpectedOutputTask")
+      && hasCallExpression(runtimeSchemaGateSource, "safeParseAiTaskOutput")
+      && hasIdentifier(registrySource, "createInternalSchemaValidatorCapability")
+      && hasExactLiteralValue(registrySource, "internal-schema-validator")
+      && hasExactLiteralValue(taskRouterSource, "internal-schema-validator");
+    if (!runtimeSchemaGatePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "fatal", message: "AI runtime bridge must execute governed schema validation for schema_validation_only and post-result schema gates." }));
+    }
+
+    const runtimeFailureHandlingPassed = hasImportModuleSpecifier(runtimeExecutorSource, "ai-runtime-failure-result")
+      && hasCallExpression(runtimeExecutorSource, "buildAiRuntimeFailureResult")
+      && hasCallExpression(runtimeFailureResultSource, "describeLocalAiFailure");
+    if (!runtimeFailureHandlingPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "fatal", message: "Local AI runtime failures must be converted into governed AI results inside the owned runtime bridge." }));
+    }
+
+    const runtimeQualityGatePassed = hasImportModuleSpecifier(runtimeExecutorSource, "ai-runtime-quality-gate")
+      && hasCallExpression(runtimeExecutorSource, "evaluateAiQualityGate")
+      && hasIdentifier(runtimeQualityGateSource, "minimumConfidence")
+      && hasIdentifier(runtimeQualityGateSource, "reviewOnLowConfidence")
+      && hasIdentifier(runtimeQualityGateSource, "reviewOnSchemaFailure")
+      && hasIdentifier(runtimeQualityGateSource, "reviewOnPolicyViolation");
+    if (!runtimeQualityGatePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "fatal", message: "AI runtime bridge must execute quality and safety policy gates on confidence, schema failure, and policy violation." }));
+    }
+
+    const invalidSchemaSuccessGuardPassed = !hasIdentifier(runtimeQualityGateSource, "requireSchemaValidation")
+      && hasSchemaInvalidFailureAssignment(runtimeQualityGateSource);
+    if (!invalidSchemaSuccessGuardPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: RUNTIME_QUALITY_GATE_PATH, line: 1, severity: "fatal", message: "AI quality gate must never allow schemaValidationStatus=invalid to return success." }));
+    }
+
+    const runtimeProofCoveragePassed = hasImportModuleSpecifier(runtimeFailureResultSource, "ai-runtime-result-builder")
+      && hasCallExpression(runtimeResultBuilderSource, "buildAiRuntimeProof")
+      && hasIdentifier(runtimeProofBuilderSource, "reviewRequiredReason")
+      && hasIdentifier(runtimeProofBuilderSource, "dataQualityFlags")
+      && hasIdentifier(runtimeProofBuilderSource, "durationMs");
+    if (!runtimeProofCoveragePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "fatal", message: "AI runtime bridge must build complete runtime proof for success, failed, and review_required paths." }));
+    }
+
+    const dispatchFailurePassed = hasCallExpression(abilityGroupSource, "buildAiDispatchFailureResult")
+      && runtimeFailureResultSource.getFunction("buildAiDispatchFailureResult") !== undefined
+      && !hasExactLiteralValue(abilityGroupSource, "AI child capability is not registered for ")
+      && [localVisionSource, localTextSource, localOcrSource, internalSchemaSource, paidAnalysisSource].every((sourceFile) => {
+        const returnedObject = getReturnedFactoryObjectLiteral(sourceFile, sourceFile === localVisionSource
+          ? "createLocalVisionAiCapability"
+          : sourceFile === localTextSource
+            ? "createLocalTextAiCapability"
+            : sourceFile === localOcrSource
+              ? "createLocalOcrAiCapability"
+              : sourceFile === internalSchemaSource
+                ? "createInternalSchemaValidatorCapability"
+                : "createPaidAnalysisAiCapability");
+        const executeMethod = returnedObject ? getObjectMethod(returnedObject, "execute") : null;
+        return Boolean(executeMethod) && !methodThrows(executeMethod);
+      });
+    if (!dispatchFailurePassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "AI ability-group dispatch must convert missing child, task mismatch, and child execute exceptions into governed failed results without naked throws." }));
     }
 
     const disabledRosterEntryIds = getDisabledRosterEntryIds(modelRosterSource);
@@ -421,6 +604,14 @@ export default createPendingDomainInspector({
       const checkReadinessMethod = returnedObject ? getObjectMethod(returnedObject, "checkReadiness") : null;
       const executeMethod = returnedObject ? getObjectMethod(returnedObject, "execute") : null;
       const readinessObject = checkReadinessMethod ? getReturnedObjectLiteral(checkReadinessMethod) : null;
+
+      if (["paid-vision-ai", "paid-analysis-ai", "future-api-ai"].includes(child.childCapabilityId)) {
+        return !hasCallExpressionPath(executeMethod ?? sourceFile, ["context", "runtime", "execute"])
+          && hasCallExpression(executeMethod ?? sourceFile, "buildAiPolicyFailureResult")
+          && objectPropertyMatchesLiteral(readinessObject, "status", "disabled_by_policy")
+          && objectPropertyMatchesLiteral(readinessObject, "enabledByPolicy", false)
+          && disabledRosterEntryIds.has(child.childCapabilityId);
+      }
 
       return methodReturnsBooleanLiteral(canHandleMethod, false)
         && objectPropertyMatchesLiteral(readinessObject, "status", "disabled_by_policy")
@@ -599,7 +790,72 @@ export default createPendingDomainInspector({
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005B-V2", file: persistenceLegacyOwnershipLeaks[0]!, line: 1, severity: "fatal", message: "Persistence and Forensics ownership surfaces must not use legacy LocalAi task names as public record truth." }));
     }
 
-    const requiredShapePassed = requiredPresence.every((entry) => entry.exists) && contractPassed && childStructurePassed && abilityGroupPassed && paidPolicyPassed && disabledChildFilesPassed;
+    const antiEscapeViolations = aiFiles.flatMap((sourceFile) => {
+      const relativePath = toRepoPath(sourceFile);
+      return hasUnsafeTypeEscape(sourceFile)
+        || hasCallExpression(sourceFile, "require")
+        || hasDynamicImportCall(sourceFile)
+        ? [relativePath]
+        : [];
+    });
+    if (antiEscapeViolations.length > 0) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007-V1", file: antiEscapeViolations[0]!, line: 1, severity: "fatal", message: "AI root must not use any-type escape, unknown-as laundering, require, or dynamic import escape paths." }));
+    }
+
+    const schemaRouteIsolationPassed = !hasExactLiteralValue(localTextSource, "schema_validation_only")
+      && hasExactLiteralValue(taskRouterSource, "internal-schema-validator")
+      && hasCallExpression(internalSchemaSource, "executeAiSchemaValidationOnly")
+      && !hasCallExpressionPath(internalSchemaSource, ["context", "runtime", "execute"]);
+    if (!schemaRouteIsolationPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: TASK_ROUTER_PATH, line: 1, severity: "fatal", message: "schema_validation_only must route through internal-schema-validator and must not execute through local-text-ai or LocalAiGateway." }));
+    }
+
+    const internalSchemaBoundaryPassed = !hasImportModuleSpecifier(internalSchemaSource, "local-ai-gateway")
+      && !hasImportModuleSpecifier(internalSchemaSource, "lib/local-ai")
+      && hasCallExpression(internalSchemaSource, "executeAiSchemaValidationOnly")
+      && hasCallExpression(runtimeSchemaGateSource, "buildAiExecutionResult")
+      && !hasCallExpressionPath(internalSchemaSource, ["context", "runtime", "execute"]);
+    if (!internalSchemaBoundaryPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/children/internal-schema-validator/implementation.ts`, line: 1, severity: "fatal", message: "internal-schema-validator must stay internal-only, avoid LocalAiGateway, and close through schema gate plus governed result/proof building." }));
+    }
+
+    const runtimeSplitPassed = [
+      `${RUNTIME_ROOT}/ai-runtime-executor.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-policy-gate.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-quality-gate.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-schema-gate.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-failure-result.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-proof-builder.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-output-normalizer.ts`,
+      `${RUNTIME_ROOT}/ai-runtime-result-builder.ts`,
+    ].every((filePath) => project.getSourceFile(pathFromRepoRoot(filePath)) !== undefined)
+      && !hasIdentifier(runtimeBridgeSource, "buildSchemaValidationOnlyResult")
+      && !hasIdentifier(runtimeBridgeSource, "buildPolicyFailureResult")
+      && !hasIdentifier(runtimeBridgeSource, "buildRuntimeFailureResult")
+      && !hasIdentifier(runtimeBridgeSource, "buildRuntimeSuccessResult")
+      && !hasIdentifier(runtimeBridgeSource, "buildRuntimeProof")
+      && !hasIdentifier(runtimeBridgeSource, "buildResultStatus");
+    if (!runtimeSplitPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-CODE-PURITY-004-V1", file: RUNTIME_BRIDGE_PATH, line: 1, severity: "error", message: "local-ai-runtime-adapter must stay bridge-sized; policy, schema, quality, failure, proof, and output normalization must remain split into dedicated runtime modules." }));
+    }
+
+    const requiredShapePassed = requiredPresence.every((entry) => entry.exists)
+      && contractPassed
+      && childStructurePassed
+      && abilityGroupPassed
+      && schemaClosurePassed
+      && schemaRouteIsolationPassed
+      && internalSchemaBoundaryPassed
+      && runtimeSplitPassed
+      && runtimePolicyGatePassed
+      && runtimeSchemaGatePassed
+      && runtimeFailureHandlingPassed
+      && runtimeQualityGatePassed
+      && invalidSchemaSuccessGuardPassed
+      && runtimeProofCoveragePassed
+      && dispatchFailurePassed
+      && paidPolicyPassed
+      && disabledChildFilesPassed;
     const forbiddenShapePassed = !runtimeTaskExists
       && !promptContractExists
       && capabilityCheckViolations.length === 0
@@ -607,7 +863,8 @@ export default createPendingDomainInspector({
       && externalChildImportViolations.length === 0
       && externalPrivateImportViolations.length === 0
       && !indexLeaks
-      && verifyViolations.length === 0;
+      && verifyViolations.length === 0
+      && antiEscapeViolations.length === 0;
     const boundaryPassed = sideEffectViolations.length === 0
       && !agentRuntimeLeak
       && !directTransportLeak

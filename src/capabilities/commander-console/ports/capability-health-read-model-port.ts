@@ -1,13 +1,13 @@
-import type { CommanderHealthSummary } from "../shared/health-summary.js";
 import type {
   CommanderBrowserSummaryView,
+  CommanderCapabilityHealthEntry,
   CommanderCapabilityRosterEntry,
   CommanderRuntimeSummaryView,
-} from "../shared/view-model-types.js";
+} from "../shared/commander-view-types.js";
 
 export interface CapabilityHealthReadModelPort {
   readRuntimeSummary(): Promise<CommanderRuntimeSummaryView>;
   readBrowserSummary(): Promise<CommanderBrowserSummaryView>;
-  listHealthSummaries(): Promise<CommanderHealthSummary[]>;
+  listHealthSummaries(): Promise<CommanderCapabilityHealthEntry[]>;
   listCapabilityRoster(): Promise<CommanderCapabilityRosterEntry[]>;
 }

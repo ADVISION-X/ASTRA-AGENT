@@ -1,31 +1,36 @@
-import type { RequestedPlatformId } from "../../orchestration/contract.js";
-import type { CommanderCommandType } from "../shared/command-policy.js";
-
-export type CommanderTargetRecordRef = {
-  recordType: "candidate" | "evidence-packet" | "browse-ledger" | "failed-record" | "runtime-event" | "mission";
-  recordId: string;
-};
+import type { CommanderCommandType, CommanderTargetRecordRef } from "../contract.js";
+import type { CommanderCommandPriority } from "../shared/commander-proof.js";
 
 export type CommanderHumanCommand = {
   commandId: string;
   commandType: CommanderCommandType;
+  priority: CommanderCommandPriority;
   operatorRef: string;
-  createdAt: string;
   targetMissionId: string | null;
   selectedMapId: string | null;
   targetRecordRef: CommanderTargetRecordRef | null;
-  requestedPlatformId: RequestedPlatformId | null;
+  requestedPlatformId: "facebook-web" | "tiktok-web" | null;
   humanGoal: string | null;
-  initialPayload: Record<string, unknown>;
   operatorNote: string | null;
+  payload: {
+    requestedBy: "commander-console";
+    requestedPlatformId?: "facebook-web" | "tiktok-web";
+    selectedMapId?: string;
+    humanGoal?: string;
+    operatorNote?: string;
+    candidateId?: string;
+    decision?: "approve" | "reject" | "mark-review-required";
+  };
 };
 
 export type HumanCommandTransportResult = {
   commandId: string;
   envelopeRef: string;
-  status: "accepted" | "failed";
-  payload: Record<string, unknown>;
+  resultEnvelopeRef: string | null;
+  status: "accepted" | "failed" | "review_required";
   failureReason: string | null;
+  reviewRequiredReason: string | null;
+  message: string;
   debugLogRef: string | null;
 };
 

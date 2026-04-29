@@ -1,109 +1,43 @@
-import type { ForensicsArtifactRef } from "./shared/artifact-ref.js";
-import type { ForensicsIntegrityPolicy } from "./shared/integrity-policy.js";
-import type { ForensicsPersistencePolicy } from "./shared/persistence-policy.js";
-import type { ForensicsPersistenceAbilityResult } from "./shared/persistence-result.js";
-import type { ForensicsRecordEnvelopePayload, ForensicsRecordType } from "./shared/record-envelope.js";
-import type { ForensicsRecordRef } from "./shared/record-ref.js";
+import type {
+  ForensicsAbilityInputRequest,
+  FinalizeBrowseLedgerInput,
+  FinalizeEvidencePacketInput,
+  FinalizeFailedRecordInput,
+  ForensicsChildCapabilityId,
+  ForensicsRecordType,
+  ForensicsResult,
+  UpdateRuntimeSnapshotInput,
+  WriteAiResultRecordInput,
+  WriteEvidenceRecordInput,
+  WriteStructuredActionLogInput,
+  WriteStructuredRuntimeEventInput,
+} from "./schema.js";
+import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
+import type { ForensicsExecutionContext } from "./runtime/forensics-executor.js";
 
-export const FORENSICS_PERSISTENCE_ABILITY_GROUP_ID = "forensics-persistence";
+export { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID };
 
 export type ForensicsPersistenceAbilityGroupId = typeof FORENSICS_PERSISTENCE_ABILITY_GROUP_ID;
-export type ForensicsPersistenceChildCapabilityId =
-  | "write-structured-runtime-event"
-  | "write-structured-action-log"
-  | "write-evidence-record"
-  | "write-ai-result-record"
-  | "finalize-browse-ledger"
-  | "finalize-evidence-packet"
-  | "finalize-failed-record"
-  | "update-runtime-snapshot";
+export type ForensicsPersistenceAbilityInput = ForensicsAbilityInputRequest;
+export type ForensicsPersistenceRequest = ForensicsAbilityInputRequest;
+export type ForensicsPersistenceAbilityResult = ForensicsResult;
+export type ForensicsPersistenceChildCapabilityId = ForensicsChildCapabilityId;
 
-export type ForensicsAbilityInputBase = {
-  abilityGroupId: ForensicsPersistenceAbilityGroupId;
-  requestedBy: string;
-  sourceAbilityGroupId: string;
-  sessionId: string;
-  roundId: string;
-  videoVisitId: string | null;
-  sourceRecordRefs: ForensicsRecordRef[];
-  parentRefs: ForensicsRecordRef[];
-  artifactRefs: ForensicsArtifactRef[];
-  persistencePolicy: ForensicsPersistencePolicy;
-  integrityPolicy?: Partial<ForensicsIntegrityPolicy>;
-  dataQualityFlags: string[];
-  payload: ForensicsRecordEnvelopePayload;
-  existingRecordId?: string;
-  schemaVersion?: string;
-  debugLogRef?: string | null;
-};
-
-export type ForensicsStructuredRuntimeEventInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "write-structured-runtime-event";
-  recordType: "structured_runtime_event";
-};
-
-export type ForensicsStructuredActionLogInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "write-structured-action-log";
-  recordType: "structured_action_log";
-};
-
-export type ForensicsImageEvidenceInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "write-evidence-record";
-  recordType: "evidence_record";
-};
-
-export type ForensicsOcrEvidenceInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "write-evidence-record";
-  recordType: "evidence_record";
-};
-
-export type ForensicsAiResultRecordInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "write-ai-result-record";
-  recordType: "ai_result_record";
-};
-
-export type ForensicsBrowseLedgerInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "finalize-browse-ledger";
-  recordType: "browse_ledger_entry";
-};
-
-export type ForensicsEvidencePacketInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "finalize-evidence-packet";
-  recordType: "evidence_packet";
-};
-
-export type ForensicsFailedRecordInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "finalize-failed-record";
-  recordType: "failed_record";
-};
-
-export type ForensicsRuntimeSnapshotInput = ForensicsAbilityInputBase & {
-  childCapabilityId: "update-runtime-snapshot";
-  recordType: "runtime_snapshot";
-};
-
-export type ForensicsPersistenceAbilityInput =
-  | ForensicsStructuredRuntimeEventInput
-  | ForensicsStructuredActionLogInput
-  | ForensicsImageEvidenceInput
-  | ForensicsOcrEvidenceInput
-  | ForensicsAiResultRecordInput
-  | ForensicsBrowseLedgerInput
-  | ForensicsEvidencePacketInput
-  | ForensicsFailedRecordInput
-  | ForensicsRuntimeSnapshotInput;
-
-export type ForensicsPersistenceRequest = ForensicsPersistenceAbilityInput;
-
-export type ForensicsPersistenceContext = {
-  storage: import("./storage-ports.js").ForensicsStoragePort;
-};
+export type ForensicsStructuredRuntimeEventInput = WriteStructuredRuntimeEventInput;
+export type ForensicsStructuredActionLogInput = WriteStructuredActionLogInput;
+export type ForensicsImageEvidenceInput = WriteEvidenceRecordInput;
+export type ForensicsOcrEvidenceInput = WriteEvidenceRecordInput;
+export type ForensicsAiResultRecordInput = WriteAiResultRecordInput;
+export type ForensicsBrowseLedgerInput = FinalizeBrowseLedgerInput;
+export type ForensicsEvidencePacketInput = FinalizeEvidencePacketInput;
+export type ForensicsFailedRecordInput = FinalizeFailedRecordInput;
+export type ForensicsRuntimeSnapshotInput = UpdateRuntimeSnapshotInput;
 
 export interface ForensicsPersistenceChildCapability {
   readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;
   readonly childCapabilityId: ForensicsPersistenceChildCapabilityId;
   readonly recordType: ForensicsRecordType;
-  execute(input: ForensicsPersistenceAbilityInput, context: ForensicsPersistenceContext): Promise<ForensicsPersistenceAbilityResult>;
+  execute(input: unknown, context: ForensicsExecutionContext): Promise<ForensicsPersistenceAbilityResult>;
 }
 
 export interface ForensicsPersistenceAbilityGroup {

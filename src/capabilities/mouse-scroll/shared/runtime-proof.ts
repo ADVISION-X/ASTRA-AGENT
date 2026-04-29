@@ -4,8 +4,13 @@ import type { MouseScrollFailureReason } from "./scroll-failure.js";
 export type MouseScrollRuntimeProofStatus = "success" | "failed" | "review_required";
 
 export type MouseScrollRuntimeProof = {
+  runId: string;
+  missionId: string;
+  capabilityId: "mouse-scroll";
   abilityGroupId: "mouse-scroll";
   childCapabilityId: NormalizedMouseScrollAbilityInput["childCapabilityId"];
+  inputSummary: string;
+  outputSummary: string;
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
@@ -26,6 +31,9 @@ export type MouseScrollRuntimeProof = {
   durationMs: number;
   status: MouseScrollRuntimeProofStatus;
   failureReason: MouseScrollFailureReason | null;
+  errorCode: string | null;
+  evidenceRef: string | null;
+  timestamp: string;
 };
 
 export function buildMouseScrollRuntimeProof(input: {
@@ -39,9 +47,15 @@ export function buildMouseScrollRuntimeProof(input: {
   startedAt: string;
   endedAt: string;
 }): MouseScrollRuntimeProof {
+  const evidenceRef = input.callInput.sourceEvidenceRef ?? input.callInput.sourceTargetRef ?? input.callInput.regionRef;
   return {
+    runId: `${input.callInput.sessionId}:${input.callInput.childCapabilityId}:${input.callInput.roundId ?? "no-round"}`,
+    missionId: input.callInput.sessionId,
+    capabilityId: "mouse-scroll",
     abilityGroupId: "mouse-scroll",
     childCapabilityId: input.callInput.childCapabilityId,
+    inputSummary: `${input.callInput.purpose}:${input.callInput.direction}:${input.callInput.magnitude}`,
+    outputSummary: `${input.status}:${input.deltaX},${input.deltaY}`,
     sessionId: input.callInput.sessionId,
     roundId: input.callInput.roundId,
     videoVisitId: input.callInput.videoVisitId,
@@ -62,5 +76,8 @@ export function buildMouseScrollRuntimeProof(input: {
     durationMs: Date.parse(input.endedAt) - Date.parse(input.startedAt),
     status: input.status,
     failureReason: input.failureReason,
+    errorCode: input.failureReason,
+    evidenceRef,
+    timestamp: input.endedAt,
   };
 }

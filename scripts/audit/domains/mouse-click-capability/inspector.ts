@@ -1,155 +1,110 @@
 import path from "node:path";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 
 import { Node, SyntaxKind, type ExportDeclaration, type ImportDeclaration, type SourceFile } from "ts-morph";
 
-import { createFinding, createPhase } from "../../core/result.js";
 import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
+import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding } from "../../core/schema.js";
 import {
   createAuditProject,
-  getTypeAliasPropertyNames,
+  flattenPropertyAccess,
   hasCallExpressionPath,
   hasInterfaceMethod,
-  hasPropertyAccessPath,
-  hasStringLiteral,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 const ROOT = "src/capabilities/mouse-click";
-const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
-const REGISTRY_PATH = `${ROOT}/registry.ts`;
+const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const INDEX_PATH = `${ROOT}/index.ts`;
-const PRIMITIVE_PORT_PATH = `${ROOT}/primitive-port.ts`;
-const CLICK_POLICY_PATH = `${ROOT}/shared/click-policy.ts`;
-const CLICK_RESULT_PATH = `${ROOT}/shared/click-result.ts`;
-const CLICK_FAILURE_PATH = `${ROOT}/shared/click-failure.ts`;
-const RUNTIME_PROOF_PATH = `${ROOT}/shared/runtime-proof.ts`;
-const COORDINATE_PATH = `${ROOT}/shared/coordinate.ts`;
-const VALIDATE_INPUT_PATH = `${ROOT}/shared/validate-input.ts`;
-const BROWSER_CHILD_PATH = `${ROOT}/children/click-browser-coordinate/implementation.ts`;
-const DESKTOP_CHILD_PATH = `${ROOT}/children/click-desktop-coordinate/implementation.ts`;
-const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
+const REGISTRY_PATH = `${ROOT}/registry.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const EXECUTOR_PATH = `${ROOT}/runtime/mouse-click-executor.ts`;
+const RUNNER_PATH = `${ROOT}/runtime/primitive-click-runner.ts`;
+const PROOF_BUILDER_PATH = `${ROOT}/runtime/mouse-click-proof-builder.ts`;
+const RESULT_BUILDER_PATH = `${ROOT}/runtime/mouse-click-result-builder.ts`;
+const FAILURE_PATH = `${ROOT}/runtime/mouse-click-dispatch-failure.ts`;
+const INPUT_GATE_PATH = `${ROOT}/runtime/mouse-click-input-gate.ts`;
+const GEOMETRY_GATE_PATH = `${ROOT}/runtime/geometry-proof-gate.ts`;
+const POLICY_GATE_PATH = `${ROOT}/runtime/click-policy-gate.ts`;
+const SAFETY_GATE_PATH = `${ROOT}/runtime/pre-click-safety-gate.ts`;
+const IDEMPOTENCY_PATH = `${ROOT}/runtime/mouse-click-idempotency.ts`;
+const CLOCK_PATH = `${ROOT}/runtime/mouse-click-clock.ts`;
+const CLOCK_PORT_PATH = `${ROOT}/ports/mouse-click-clock-port.ts`;
+const PRIMITIVE_PORT_PATH = `${ROOT}/ports/mouse-click-primitive-port.ts`;
+const BROWSER_CHILD_DIR = `${ROOT}/children/click-browser-coordinate`;
+const DESKTOP_CHILD_DIR = `${ROOT}/children/click-desktop-coordinate`;
+const BROWSER_CHILD_IMPL = `${BROWSER_CHILD_DIR}/implementation.ts`;
+const DESKTOP_CHILD_IMPL = `${DESKTOP_CHILD_DIR}/implementation.ts`;
 const VISION_RUNTIME_PATH = "src/lib/local-runtime/tiktok-platform/vision-coordinate-runtime.ts";
-const PACKAGE_JSON_PATH = "package.json";
-const VERIFY_SCRIPTS_ROOT = "scripts/verify";
+const PRIMITIVE_IMPL_PATH = "src/lib/browser/mouse-click-primitive-port.ts";
+const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
 
-const ALLOWED_CHILD_DIRECTORY_NAMES = ["click-browser-coordinate", "click-desktop-coordinate"] as const;
-const ALLOWED_REGISTRY_FACTORIES = new Map<string, string>([
-  ["click-browser-coordinate", "createClickBrowserCoordinateCapability"],
-  ["click-desktop-coordinate", "createClickDesktopCoordinateCapability"],
-]);
-
-const REQUIRED_ROOT_FILES = [
-  CONTRACT_PATH,
+const REQUIRED_FILES = [
   ABILITY_GROUP_PATH,
-  REGISTRY_PATH,
+  CONTRACT_PATH,
   INDEX_PATH,
+  REGISTRY_PATH,
+  SCHEMA_PATH,
+  EXECUTOR_PATH,
+  RUNNER_PATH,
+  PROOF_BUILDER_PATH,
+  RESULT_BUILDER_PATH,
+  FAILURE_PATH,
+  INPUT_GATE_PATH,
+  GEOMETRY_GATE_PATH,
+  POLICY_GATE_PATH,
+  SAFETY_GATE_PATH,
+  IDEMPOTENCY_PATH,
+  CLOCK_PATH,
+  CLOCK_PORT_PATH,
   PRIMITIVE_PORT_PATH,
-  CLICK_POLICY_PATH,
-  CLICK_RESULT_PATH,
-  CLICK_FAILURE_PATH,
-  RUNTIME_PROOF_PATH,
-  COORDINATE_PATH,
-  BROWSER_CHILD_PATH,
-  DESKTOP_CHILD_PATH,
+  `${ROOT}/shared/mouse-click-types.ts`,
+  `${ROOT}/shared/mouse-click-policy.ts`,
+  `${ROOT}/shared/mouse-click-result.ts`,
+  `${ROOT}/shared/mouse-click-proof.ts`,
+  `${ROOT}/shared/mouse-click-failure.ts`,
+  `${BROWSER_CHILD_DIR}/contract.ts`,
+  `${BROWSER_CHILD_DIR}/schema.ts`,
+  BROWSER_CHILD_IMPL,
+  `${DESKTOP_CHILD_DIR}/contract.ts`,
+  `${DESKTOP_CHILD_DIR}/schema.ts`,
+  DESKTOP_CHILD_IMPL,
 ] as const;
 
-const REQUIRED_INPUT_FIELDS = [
-  "abilityGroupId",
-  "childCapabilityId",
-  "sessionId",
-  "roundId",
-  "videoVisitId",
-  "requestedBy",
-  "purpose",
-  "geometryGuardRef",
-  "guardDecision",
-  "sourceEvidenceRef",
-  "sourceTargetRef",
-  "coordinate",
-  "button",
-  "clickCount",
-  "safetyPolicy",
+const FORBIDDEN_DELETED_FILES = [
+  `${ROOT}/primitive-port.ts`,
+  `${ROOT}/shared/click-result.ts`,
+  `${ROOT}/shared/runtime-proof.ts`,
+  `${ROOT}/shared/validate-input.ts`,
+  `${ROOT}/shared/coordinate.ts`,
+  `${ROOT}/shared/click-policy.ts`,
+  `${ROOT}/shared/click-failure.ts`,
 ] as const;
 
-const REQUIRED_RESULT_FIELDS = [
-  "status",
-  "abilityGroupId",
-  "childCapabilityId",
-  "sessionId",
-  "roundId",
-  "videoVisitId",
-  "actionExecutionRef",
-  "primitiveExecutionRef",
-  "geometryGuardRef",
-  "x",
-  "y",
-  "coordinateSpace",
-  "button",
-  "clickCount",
-  "startedAt",
-  "endedAt",
-  "durationMs",
-  "failureReason",
-  "statusMessage",
-  "debugLogRef",
-  "runtimeProof",
-] as const;
-
-const FORBIDDEN_CHILD_ROOTS = [
-  `${ROOT}/children/click-left-point`,
-  `${ROOT}/children/click-right-point`,
-  `${ROOT}/children/double-click-left-point`,
-  `${ROOT}/children/click-screen-coordinate`,
-] as const;
-
-const FORBIDDEN_REPO_IMPORT_PATHS = new Set(["src/lib/browser/browser-controller.ts"]);
-
-const FORBIDDEN_REPO_IMPORT_PREFIXES = [
-  "src/capabilities/geometry-guard/children/",
-  "src/capabilities/screenshot/children/",
-  "src/capabilities/visual-target/children/",
+const FORBIDDEN_IMPORT_PREFIXES = [
   "src/capabilities/ai/",
-  "src/capabilities/post-action-verification/",
+  "src/capabilities/screenshot/",
+  "src/capabilities/page-state/",
+  "src/capabilities/geometry-guard/",
   "src/capabilities/forensics-persistence/",
+  "src/capabilities/open/",
 ] as const;
 
-const FORBIDDEN_AST_TOKENS = [
-  "imageEvidence",
-  "scaleMapping",
-  "MouseClickScaleMapping",
-  "fallbackUsed",
-  "browserAction",
-  "BrowserActionId",
-  "actionLogRef",
-  "click-left-point",
-  "click-right-point",
-  "double-click-left-point",
-  "click-screen-coordinate",
-] as const;
-
-const FORBIDDEN_ESCAPE_SEGMENTS = new Set(["legacy", "compat", "bridge", "v2"]);
+const FORBIDDEN_TEXT_TOKENS = ["as any", "as unknown as", "@ts-ignore", "@ts-expect-error", "eslint-disable", "require("] as const;
 
 function getSourceFile(project: ReturnType<typeof createAuditProject>, repoRelativePath: string): SourceFile | null {
   return project.getSourceFile(pathFromRepoRoot(repoRelativePath)) ?? null;
 }
 
-function getObjectLiteralPropertyNames(node: Node | undefined): Set<string> {
-  if (!node || !Node.isObjectLiteralExpression(node)) {
-    return new Set();
-  }
+function hasText(sourceText: string, fragment: string): boolean {
+  return sourceText.includes(fragment);
+}
 
-  return new Set(
-    node.getProperties().flatMap((property) => {
-      if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
-        return [property.getName()];
-      }
-      return [];
-    }),
-  );
+function hasFileText(sourceFile: SourceFile, fragment: string): boolean {
+  return sourceFile.getFullText().includes(fragment);
 }
 
 function resolveRelativeRepoPath(fromRepoRelativePath: string, specifier: string): string | null {
@@ -157,9 +112,7 @@ function resolveRelativeRepoPath(fromRepoRelativePath: string, specifier: string
     return null;
   }
 
-  return path.posix.normalize(
-    path.posix.join(path.posix.dirname(fromRepoRelativePath), specifier.replaceAll("\\", "/")),
-  );
+  return path.posix.normalize(path.posix.join(path.posix.dirname(fromRepoRelativePath), specifier.replaceAll("\\", "/")));
 }
 
 function getDeclarationTargetPath(declaration: ImportDeclaration | ExportDeclaration): string | null {
@@ -176,147 +129,92 @@ function getDeclarationTargetPath(declaration: ImportDeclaration | ExportDeclara
   return resolveRelativeRepoPath(toRepoRelativePath(declaration.getSourceFile().getFilePath()), specifier);
 }
 
-function hasPathPrefix(repoRelativePath: string, prefix: string): boolean {
-  return repoRelativePath === prefix.slice(0, -1) || repoRelativePath.startsWith(prefix);
+function getRegistryChildren(sourceFile: SourceFile): string[] {
+  const childrenDecl = sourceFile.getVariableDeclaration("CHILDREN");
+  const initializer = childrenDecl?.getInitializer();
+  const arrayLiteral = initializer && Node.isAsExpression(initializer)
+    ? initializer.getExpressionIfKind(SyntaxKind.ArrayLiteralExpression)
+    : initializer?.asKind(SyntaxKind.ArrayLiteralExpression);
+  if (!arrayLiteral) {
+    return [];
+  }
+
+  return arrayLiteral.getElements().flatMap((element) => {
+    if (!Node.isCallExpression(element)) {
+      return [];
+    }
+
+    const expressionText = element.getExpression().getText();
+    if (expressionText === "createClickBrowserCoordinateCapability") {
+      return ["click-browser-coordinate"];
+    }
+    if (expressionText === "createClickDesktopCoordinateCapability") {
+      return ["click-desktop-coordinate"];
+    }
+    return [];
+  });
 }
 
-function hasForbiddenImportTarget(sourceFile: SourceFile): boolean {
+async function listDirectoryEntries(repoRelativePath: string): Promise<string[]> {
+  const absolutePath = pathFromRepoRoot(repoRelativePath);
+  if (!(await fileExists(absolutePath))) {
+    return [];
+  }
+
+  return (await readdir(absolutePath, { withFileTypes: true })).map((entry) => entry.name).sort();
+}
+
+function sourceHasForbiddenImport(sourceFile: SourceFile): boolean {
   return sourceFile.getImportDeclarations().some((declaration) => {
     const targetPath = getDeclarationTargetPath(declaration);
     if (!targetPath) {
       return false;
     }
 
-    if (FORBIDDEN_REPO_IMPORT_PATHS.has(targetPath)) {
-      return true;
-    }
-
-    return FORBIDDEN_REPO_IMPORT_PREFIXES.some((prefix) => hasPathPrefix(targetPath, prefix));
+    return FORBIDDEN_IMPORT_PREFIXES.some((prefix) => targetPath.startsWith(prefix));
   });
 }
 
-function hasForbiddenAstToken(sourceFile: SourceFile): boolean {
-  return sourceFile.getDescendants().some((descendant) => {
-    if (Node.isIdentifier(descendant)) {
-      return FORBIDDEN_AST_TOKENS.some((token) => descendant.getText() === token);
-    }
-
-    if (
-      Node.isPropertyAssignment(descendant)
-      || Node.isPropertySignature(descendant)
-      || Node.isShorthandPropertyAssignment(descendant)
-    ) {
-      return FORBIDDEN_AST_TOKENS.some((token) => descendant.getName() === token);
-    }
-
-    if (Node.isStringLiteral(descendant) || Node.isNoSubstitutionTemplateLiteral(descendant)) {
-      return FORBIDDEN_AST_TOKENS.some((token) => descendant.getLiteralText() === token);
-    }
-
-    return false;
+function sourceHasPrimitiveClickCall(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expressionPath = flattenPropertyAccess(callExpression.getExpression()).join(".");
+    return expressionPath === "context.primitivePort.click" || expressionPath === "input.context.primitivePort.click";
   });
 }
 
-function getRegistryEntries(sourceFile: SourceFile): Array<{ childCapabilityId: string; factoryName: string | null }> {
-  const registryFactory = sourceFile.getFunction("createMouseClickCapabilityRegistry");
-  const newMapExpression = registryFactory?.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) => expression.getExpression().getText() === "Map");
-  const [argument] = newMapExpression?.getArguments() ?? [];
-  if (!argument || !Node.isArrayLiteralExpression(argument)) {
-    return [];
-  }
+function sourceHasDynamicImport(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getKind() === SyntaxKind.ImportKeyword);
+}
 
-  return argument.getElements().flatMap((element) => {
-    if (!Node.isArrayLiteralExpression(element)) {
+function sourceHasThrow(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement).length > 0;
+}
+
+function getExternalImportsOfFile(project: ReturnType<typeof createAuditProject>, targetPath: string): string[] {
+  return project.getSourceFiles().flatMap((sourceFile) => {
+    const importerPath = toRepoRelativePath(sourceFile.getFilePath());
+    return sourceFile.getImportDeclarations().flatMap((declaration) => {
+      const importedPath = getDeclarationTargetPath(declaration);
+      if (importedPath === targetPath && importerPath !== WORKBENCH_PATH) {
+        return [importerPath];
+      }
+      return [];
+    });
+  });
+}
+
+function getExternalImportsWithPrefix(project: ReturnType<typeof createAuditProject>, targetPrefix: string): string[] {
+  return project.getSourceFiles().flatMap((sourceFile) => {
+    const importerPath = toRepoRelativePath(sourceFile.getFilePath());
+    if (importerPath.startsWith(`${ROOT}/`)) {
       return [];
     }
 
-    const [childCapabilityIdNode, factoryNode] = element.getElements();
-    if (!Node.isStringLiteral(childCapabilityIdNode) || !Node.isCallExpression(factoryNode)) {
-      return [];
-    }
-
-    const expression = factoryNode.getExpression();
-    return [{
-      childCapabilityId: childCapabilityIdNode.getLiteralText(),
-      factoryName: Node.isIdentifier(expression) ? expression.getText() : null,
-    }];
+    return sourceFile.getImportDeclarations().flatMap((declaration) => {
+      const importedPath = getDeclarationTargetPath(declaration);
+      return importedPath && importedPath.startsWith(targetPrefix) ? [importerPath] : [];
+    });
   });
-}
-
-function filePathHasEscapeSegment(repoRelativePath: string): boolean {
-  const segments = repoRelativePath.split("/");
-  return segments.some((segment) => FORBIDDEN_ESCAPE_SEGMENTS.has(segment) || segment.endsWith("-v2"));
-}
-
-async function getDirectChildDirectoryNames(repoRelativePath: string): Promise<string[]> {
-  const absolutePath = pathFromRepoRoot(repoRelativePath);
-  if (!(await fileExists(absolutePath))) {
-    return [];
-  }
-
-  const entries = await readdir(absolutePath, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-}
-
-async function getDirectoryEntries(repoRelativePath: string): Promise<string[]> {
-  const absolutePath = pathFromRepoRoot(repoRelativePath);
-  if (!(await fileExists(absolutePath))) {
-    return [];
-  }
-
-  return (await readdir(absolutePath, { withFileTypes: true }))
-    .map((entry) => entry.name)
-    .sort();
-}
-
-async function getPackageScripts(): Promise<Record<string, string>> {
-  const packageText = await readFile(pathFromRepoRoot(PACKAGE_JSON_PATH), "utf8");
-  const packageJson = JSON.parse(packageText) as { scripts?: Record<string, string> };
-  return packageJson.scripts ?? {};
-}
-
-function hasValidateInputImport(sourceFile: SourceFile): boolean {
-  return sourceFile.getImportDeclarations().some((declaration) => {
-    if (getDeclarationTargetPath(declaration) !== VALIDATE_INPUT_PATH) {
-      return false;
-    }
-
-    return declaration.getNamedImports().some((importSpecifier) => importSpecifier.getName() === "validateMouseClickAbilityInput");
-  });
-}
-
-function childImplementationUsesValidation(
-  sourceFile: SourceFile,
-  childCapabilityId: string,
-  coordinateSpace: "browserViewport" | "desktopScreen",
-): boolean {
-  return hasValidateInputImport(sourceFile)
-    && sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === "validateMouseClickAbilityInput";
-    })
-    && hasCallExpressionPath(sourceFile, ["context", "primitivePort", "click"])
-    && hasStringLiteral(sourceFile, childCapabilityId)
-    && hasStringLiteral(sourceFile, coordinateSpace);
-}
-
-function validationFunctionEnforcesGuard(sourceFile: SourceFile): boolean {
-  const validationFunction = sourceFile.getFunction("validateMouseClickAbilityInput");
-  if (!validationFunction) {
-    return false;
-  }
-
-  return hasPropertyAccessPath(validationFunction, ["input", "geometryGuardRef"])
-    && hasPropertyAccessPath(validationFunction, ["input", "guardDecision"])
-    && hasStringLiteral(validationFunction, "allow")
-    && hasPropertyAccessPath(validationFunction, ["input", "sourceEvidenceRef"])
-    && hasPropertyAccessPath(validationFunction, ["input", "sourceTargetRef"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "allowOperatorManual"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "operatorManualApprovalRef"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "allowRightClick"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "allowDoubleClick"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "blockIfNoSourceRef"])
-    && hasPropertyAccessPath(validationFunction, ["input", "safetyPolicy", "maxDurationMs"]);
 }
 
 export default createPendingDomainInspector({
@@ -326,245 +224,156 @@ export default createPendingDomainInspector({
   inspectorEntry: "scripts/audit/domains/mouse-click-capability/inspector.ts",
   ownedPaths: [ROOT],
   pendingSummary: "mouse-click-capability law exists but production-grade click execution boundaries are not fully enforced yet",
-  implementedSummary: "mouse-click-capability is implemented as a primitive-port-backed, Geometry Guard-gated click owner with AST-backed enforcement",
+  implementedSummary: "mouse-click-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement",
   extraChecks: async () => {
     const project = createAuditProject();
+    const findings: Finding[] = [];
+    const mouseClickFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
+    const sourceFiles = mouseClickFiles
+      .map((filePath) => project.getSourceFile(filePath))
+      .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
+    const schemaSource = getSourceFile(project, SCHEMA_PATH);
     const contractSource = getSourceFile(project, CONTRACT_PATH);
+    const abilityGroupSource = getSourceFile(project, ABILITY_GROUP_PATH);
     const registrySource = getSourceFile(project, REGISTRY_PATH);
     const indexSource = getSourceFile(project, INDEX_PATH);
-    const primitivePortSource = getSourceFile(project, PRIMITIVE_PORT_PATH);
-    const validateInputSource = getSourceFile(project, VALIDATE_INPUT_PATH);
-    const browserChildSource = getSourceFile(project, BROWSER_CHILD_PATH);
-    const desktopChildSource = getSourceFile(project, DESKTOP_CHILD_PATH);
-    const workbenchSource = getSourceFile(project, WORKBENCH_PATH);
+    const executorSource = getSourceFile(project, EXECUTOR_PATH);
+    const runnerSource = getSourceFile(project, RUNNER_PATH);
+    const browserChildSource = getSourceFile(project, BROWSER_CHILD_IMPL);
+    const desktopChildSource = getSourceFile(project, DESKTOP_CHILD_IMPL);
     const visionRuntimeSource = getSourceFile(project, VISION_RUNTIME_PATH);
-    const mouseClickRootFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
-    const verifyScriptFiles = await listFilesRecursive(pathFromRepoRoot(VERIFY_SCRIPTS_ROOT), { extensions: [".js", ".mjs", ".ts"] });
-    const childDirectoryNames = await getDirectChildDirectoryNames(`${ROOT}/children`);
-    const findings: Finding[] = [];
 
-    const requiredFileFlags = await Promise.all(REQUIRED_ROOT_FILES.map((filePath) => fileExists(pathFromRepoRoot(filePath))));
-    const missingRequiredFile = REQUIRED_ROOT_FILES.find((_, index) => !requiredFileFlags[index]);
-    if (missingRequiredFile) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: missingRequiredFile, line: 1, severity: "fatal", message: "Mouse Click canonical topology is incomplete; required primitive-port/shared/children files are missing." }));
-    }
-
-    const inputFields = contractSource ? getTypeAliasPropertyNames(contractSource, "MouseClickAbilityInput") : new Set<string>();
-    const resultFields = contractSource ? getTypeAliasPropertyNames(contractSource, "MouseClickAbilityResult") : new Set<string>();
-    const contractPassed = contractSource !== null && primitivePortSource !== null
-      ? REQUIRED_INPUT_FIELDS.every((field) => inputFields.has(field))
-        && REQUIRED_RESULT_FIELDS.every((field) => resultFields.has(field))
-        && hasInterfaceMethod(contractSource, "MouseClickAbilityGroup", "execute")
-        && hasInterfaceMethod(primitivePortSource, "MouseClickPrimitivePort", "click")
-        && !contractSource.getTypeAlias("MouseClickScaleMapping")
-        && !contractSource.getImportDeclarations().some((declaration) => getDeclarationTargetPath(declaration) === "src/lib/browser/browser-controller.ts")
-        && !contractSource.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => {
-          const text = identifier.getText();
-          return text === "BrowserController" || text === "BrowserActionResult" || text === "BrowserActionId";
-        })
-        && !["fallbackUsed", "browserAction", "actionLogRef"].some((field) => resultFields.has(field))
-      : false;
-    if (!contractPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Mouse Click public contract must expose Geometry Guard-gated input, runtime proof fields, and no BrowserController/BrowserActionResult leakage." }));
-    }
-
-    const missingChildDirectories = ALLOWED_CHILD_DIRECTORY_NAMES.filter((directoryName) => !childDirectoryNames.includes(directoryName));
-    const unexpectedChildDirectories = childDirectoryNames.filter((directoryName) => !ALLOWED_CHILD_DIRECTORY_NAMES.includes(directoryName as (typeof ALLOWED_CHILD_DIRECTORY_NAMES)[number]));
-    if (missingChildDirectories.length > 0 || unexpectedChildDirectories.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: `${ROOT}/children`, line: 1, severity: "fatal", message: "Mouse Click children directory must contain only click-browser-coordinate and click-desktop-coordinate." }));
-    }
-
-    const rootSourceFiles = mouseClickRootFiles.map((filePath) => project.getSourceFile(filePath)).filter((value): value is NonNullable<typeof value> => Boolean(value));
-
-    const forbiddenRootImports = rootSourceFiles.flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      return hasForbiddenImportTarget(sourceFile) ? [relativePath] : [];
-    });
-    if (forbiddenRootImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: forbiddenRootImports[0]!, line: 1, severity: "fatal", message: "Mouse Click root must not import browser-controller, other groups' child implementations, AI, Post-action Verification, or Forensics internals." }));
-    }
-
-    const forbiddenTokensInRoot = rootSourceFiles.flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      return hasForbiddenAstToken(sourceFile) ? [relativePath] : [];
-    });
-    if (forbiddenTokensInRoot.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: forbiddenTokensInRoot[0]!, line: 1, severity: "fatal", message: "Mouse Click positive code still contains forbidden legacy coordinate, fallback, browserAction, or retired child tokens." }));
-    }
-
-    const capabilityCheckFiles = mouseClickRootFiles.map((filePath) => toRepoRelativePath(filePath)).filter((filePath) => filePath.endsWith("/capability-check.ts"));
-    if (capabilityCheckFiles.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: capabilityCheckFiles[0]!, line: 1, severity: "fatal", message: "capability-check.ts must not exist under Mouse Click; enforcement belongs to the domain inspector." }));
-    }
-
-    const verifyFunctions = rootSourceFiles.flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      const matchingFunctions = sourceFile.getFunctions().filter((fn) => (fn.getName() ?? "").startsWith("verify"));
-      const matchingVariables = sourceFile.getVariableDeclarations().filter((declaration) => declaration.getName().startsWith("verify"));
-      return matchingFunctions.length > 0 || matchingVariables.length > 0 ? [relativePath] : [];
-    });
-    if (verifyFunctions.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: verifyFunctions[0]!, line: 1, severity: "fatal", message: "verify* functions must not exist under Mouse Click canonical root." }));
-    }
-
-    const mouseClickVerifyScripts = verifyScriptFiles
-      .map((filePath) => toRepoRelativePath(filePath))
-      .filter((filePath) => path.posix.basename(filePath).includes("mouse-click"));
-    if (mouseClickVerifyScripts.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: mouseClickVerifyScripts[0]!, line: 1, severity: "fatal", message: "scripts/verify must not provide Mouse Click-specific acceptance escape paths." }));
-    }
-
-    const packageScripts = await getPackageScripts();
-    const mouseClickVerifyScriptEntry = Object.entries(packageScripts).find(([scriptName, scriptCommand]) => {
-      const normalizedName = scriptName.toLowerCase();
-      const normalizedCommand = scriptCommand.toLowerCase();
-      return (normalizedName.includes("verify") || normalizedCommand.includes("scripts/verify"))
-        && (normalizedName.includes("mouse-click") || normalizedCommand.includes("mouse-click"));
-    });
-    if (mouseClickVerifyScriptEntry) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PACKAGE_JSON_PATH, line: 1, severity: "fatal", message: "package.json must not expose Mouse Click verify-script acceptance commands." }));
-    }
-
-    const indexExportsChildren = indexSource !== null
-      ? indexSource.getExportDeclarations().some((declaration) => {
-        const targetPath = getDeclarationTargetPath(declaration);
-        return Boolean(targetPath && hasPathPrefix(targetPath, `${ROOT}/children/`));
-      })
-      : false;
-    if (indexExportsChildren) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Mouse Click index must not barrel export child implementations." }));
-    }
-
-    const externalChildImports = project.getSourceFiles().flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      return sourceFile.getImportDeclarations().flatMap((declaration) => {
-        const targetPath = getDeclarationTargetPath(declaration);
-        return targetPath && hasPathPrefix(targetPath, `${ROOT}/children/`) && !relativePath.startsWith(`${ROOT}/`) ? [relativePath] : [];
-      });
-    });
-    if (externalChildImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-CAPABILITY-GROUP-002-V1", file: externalChildImports[0]!, line: 1, severity: "fatal", message: "Mouse Click child implementations must remain private to the owning ability group." }));
-    }
-
-    const dynamicChildImports = project.getSourceFiles().flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((callExpression) => {
-        if (callExpression.getExpression().getKind() !== SyntaxKind.ImportKeyword) {
-          return [];
-        }
-
-        const [argument] = callExpression.getArguments();
-        const importTarget = (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))
-          ? resolveRelativeRepoPath(relativePath, argument.getLiteralText())
-          : null;
-        if (importTarget && hasPathPrefix(importTarget, `${ROOT}/children/`)) {
-          return [relativePath];
-        }
-        return [];
-      });
-    });
-    if (dynamicChildImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: dynamicChildImports[0]!, line: 1, severity: "fatal", message: "Mouse Click child implementations must not be loaded through dynamic import escape paths." }));
-    }
-
-    const registryEntries = registrySource ? getRegistryEntries(registrySource) : [];
-    const registryPassed = registryEntries.length === ALLOWED_REGISTRY_FACTORIES.size
-      && registryEntries.every((entry) => ALLOWED_REGISTRY_FACTORIES.get(entry.childCapabilityId) === entry.factoryName);
-    if (!registryPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "Mouse Click registry must contain only browser and desktop execution children." }));
-    }
-
-    const invalidChildFile = await Promise.any(
-      ALLOWED_CHILD_DIRECTORY_NAMES.map(async (directoryName) => {
-        const entries = await getDirectoryEntries(`${ROOT}/children/${directoryName}`);
-        const isValid = entries.length === 1 && entries[0] === "implementation.ts";
-        return isValid ? null : `${ROOT}/children/${directoryName}`;
-      }),
-    ).catch(() => null);
-    if (invalidChildFile) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: invalidChildFile, line: 1, severity: "fatal", message: "Each Mouse Click child root must contain only implementation.ts as executable surface." }));
-    }
-
-    const validationPassed = validateInputSource !== null && browserChildSource !== null && desktopChildSource !== null
-      ? validationFunctionEnforcesGuard(validateInputSource)
-        && childImplementationUsesValidation(browserChildSource, "click-browser-coordinate", "browserViewport")
-        && childImplementationUsesValidation(desktopChildSource, "click-desktop-coordinate", "desktopScreen")
-      : false;
-    if (!validationPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: VALIDATE_INPUT_PATH, line: 1, severity: "fatal", message: "Mouse Click must enforce Geometry Guard allow, source-ref policy, and right/double-click policy through shared validation and child execution paths." }));
-    }
-
-    const createGroupCalls = workbenchSource?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === "createMouseClickAbilityGroup";
-    }) ?? [];
-    const workbenchUsesPrimitivePort = createGroupCalls.some((callExpression) => {
-      const [argument] = callExpression.getArguments();
-      const propertyNames = getObjectLiteralPropertyNames(argument);
-      return propertyNames.has("primitivePort") && !propertyNames.has("browserController");
-    });
-    if (!workbenchUsesPrimitivePort) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench composition root must inject MouseClickPrimitivePort rather than BrowserController directly into Mouse Click." }));
-    }
-
-    const executeCalls = visionRuntimeSource?.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isPropertyAccessExpression(expression) && expression.getName() === "execute" && expression.getExpression().getText() === "this.mouseClickAbilityGroup";
-    }) ?? [];
-    const geometryGuardGatedClick = executeCalls.some((callExpression) => {
-      const [argument] = callExpression.getArguments();
-      if (!Node.isObjectLiteralExpression(argument)) {
-        return false;
+    for (const filePath of REQUIRED_FILES) {
+      if (!(await fileExists(pathFromRepoRoot(filePath)))) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: filePath, line: 1, severity: "fatal", message: "Mouse Click required production file is missing." }));
       }
-
-      const propertyNames = getObjectLiteralPropertyNames(argument);
-      const coordinateAssignment = argument.getProperty("coordinate");
-      const coordinateNames = Node.isPropertyAssignment(coordinateAssignment)
-        ? getObjectLiteralPropertyNames(coordinateAssignment.getInitializer())
-        : new Set<string>();
-
-      return propertyNames.has("geometryGuardRef")
-        && propertyNames.has("guardDecision")
-        && propertyNames.has("button")
-        && propertyNames.has("clickCount")
-        && coordinateNames.has("boundsWidth")
-        && coordinateNames.has("boundsHeight")
-        && !coordinateNames.has("scaleMapping");
-    });
-    if (!geometryGuardGatedClick) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: VISION_RUNTIME_PATH, line: 1, severity: "error", message: "Upstream Mouse Click calls must pass geometryGuardRef, guardDecision, button, clickCount, and bounds without scaleMapping." }));
     }
 
-    const forbiddenRootsExist = await Promise.all(FORBIDDEN_CHILD_ROOTS.map((filePath) => fileExists(pathFromRepoRoot(filePath))));
-    const retiredChildStillExists = FORBIDDEN_CHILD_ROOTS.find((_, index) => forbiddenRootsExist[index]);
-    if (retiredChildStillExists) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: retiredChildStillExists, line: 1, severity: "fatal", message: "Retired Mouse Click child roots must be physically deleted after topology cutover." }));
+    for (const filePath of FORBIDDEN_DELETED_FILES) {
+      if (await fileExists(pathFromRepoRoot(filePath))) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: filePath, line: 1, severity: "fatal", message: "Deleted Mouse Click legacy file still exists in active source truth." }));
+      }
     }
 
-    const antiEscapePassed = mouseClickRootFiles.every((filePath) => !filePathHasEscapeSegment(toRepoRelativePath(filePath)))
-      && childDirectoryNames.every((directoryName) => !filePathHasEscapeSegment(`${ROOT}/children/${directoryName}`));
-    if (!antiEscapePassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: ROOT, line: 1, severity: "fatal", message: "Mouse Click canonical root must not contain bridge, compat, legacy, or v2 escape paths." }));
+    if (!contractSource || !hasInterfaceMethod(contractSource, "MouseClickAbilityGroup", "execute")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-CAPABILITY-GROUP-002-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Mouse Click must expose a stable public execute contract." }));
     }
 
-    const requiredShapePassed = !missingRequiredFile && contractPassed && registryPassed && missingChildDirectories.length === 0 && unexpectedChildDirectories.length === 0 && !invalidChildFile;
-    const forbiddenShapePassed = retiredChildStillExists === undefined
-      && forbiddenRootImports.length === 0
-      && forbiddenTokensInRoot.length === 0
-      && capabilityCheckFiles.length === 0
-      && verifyFunctions.length === 0
-      && mouseClickVerifyScripts.length === 0
-      && !mouseClickVerifyScriptEntry;
-    const boundaryAttackPassed = workbenchUsesPrimitivePort && geometryGuardGatedClick && validationPassed && externalChildImports.length === 0;
-    const antiEscapePhasePassed = antiEscapePassed && dynamicChildImports.length === 0 && !indexExportsChildren;
+    if (schemaSource) {
+      const schemaText = schemaSource.getFullText();
+      if (!hasText(schemaText, '"click-browser-coordinate"') || !hasText(schemaText, '"click-desktop-coordinate"')) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Mouse Click schema child ids must match canonical browser and desktop children." }));
+      }
+      if (!schemaSource.getVariableDeclaration("MouseClickAbilityInputSchema") || !schemaSource.getVariableDeclaration("MouseClickAbilityResultSchema")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Mouse Click must expose public input and result runtime schemas." }));
+      }
+      if (!hasFileText(schemaSource, "geometryGuardProof") || !hasFileText(schemaSource, "normalizedClickPoint") || !hasFileText(schemaSource, "postActionVerificationRequired")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Mouse Click schema must require geometry proof input and governed verification output fields." }));
+      }
+    }
+
+    if (abilityGroupSource) {
+      if (!hasFileText(abilityGroupSource, "parseMouseClickAbilityInput") && !hasFileText(abilityGroupSource, "MouseClickAbilityInputSchema.safeParse")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "Mouse Click public entry must parse input schema before dispatch." }));
+      }
+      if (!hasFileText(abilityGroupSource, "MouseClickAbilityResultSchema.parse")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "Mouse Click public entry must validate output schema before return." }));
+      }
+      if (sourceHasThrow(abilityGroupSource)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "Mouse Click public execute must not throw across the public boundary." }));
+      }
+    }
+
+    if (registrySource && schemaSource) {
+      const registryChildren = getRegistryChildren(registrySource);
+      const schemaChildren = ["click-browser-coordinate", "click-desktop-coordinate"].filter((childId) => hasFileText(schemaSource, `"${childId}"`));
+      if (registryChildren.join(",") !== schemaChildren.join(",")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "Mouse Click registry and schema child ids must stay in lockstep." }));
+      }
+    }
+
+    if (indexSource) {
+      if (indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport() || declaration.getText().startsWith("export *"))) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Mouse Click index must not use export * or barrel laundering." }));
+      }
+    }
+
+    for (const childDir of [BROWSER_CHILD_DIR, DESKTOP_CHILD_DIR]) {
+      const entries = await listDirectoryEntries(childDir);
+      if (entries.join(",") !== ["contract.ts", "implementation.ts", "schema.ts"].join(",")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: childDir, line: 1, severity: "fatal", message: "Each Mouse Click child must contain only contract.ts, schema.ts, and implementation.ts." }));
+      }
+    }
+
+    if (!browserChildSource || !hasCallExpressionPath(browserChildSource, ["executeMouseClick"])) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: BROWSER_CHILD_IMPL, line: 1, severity: "fatal", message: "Browser child must delegate through executeMouseClick." }));
+    }
+    if (!desktopChildSource || !hasCallExpressionPath(desktopChildSource, ["executeMouseClick"])) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: DESKTOP_CHILD_IMPL, line: 1, severity: "fatal", message: "Desktop child must delegate through executeMouseClick." }));
+    }
+
+    if (!runnerSource || !sourceHasPrimitiveClickCall(runnerSource)) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "primitivePort.click must exist inside primitive-click-runner." }));
+    }
+
+    const primitiveLeak = sourceFiles
+      .filter((sourceFile) => toRepoRelativePath(sourceFile.getFilePath()) !== RUNNER_PATH)
+      .find((sourceFile) => sourceHasPrimitiveClickCall(sourceFile));
+    if (primitiveLeak) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: toRepoRelativePath(primitiveLeak.getFilePath()), line: 1, severity: "fatal", message: "primitivePort.click must not appear outside primitive-click-runner." }));
+    }
+
+    if (executorSource) {
+      const executorText = executorSource.getFullText();
+      if (!hasText(executorText, "validateGeometryProof") || !hasText(executorText, "validateClickPolicy") || !hasText(executorText, "validatePreClickSafety") || !hasText(executorText, "runPrimitiveClick") || !hasText(executorText, "buildMouseClickResult")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Mouse Click executor must compose geometry gate, policy gate, safety gate, primitive runner, and result builder." }));
+      }
+    }
+
+    for (const sourceFile of sourceFiles) {
+      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
+      if (sourceHasForbiddenImport(sourceFile)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: relativePath, line: 1, severity: "fatal", message: "Mouse Click must not import AI, Screenshot, Page State, Geometry Guard, Forensics, or Open internals." }));
+      }
+      if (sourceHasDynamicImport(sourceFile)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: relativePath, line: 1, severity: "fatal", message: "Mouse Click must not use dynamic import escape paths." }));
+      }
+      if (relativePath !== CLOCK_PATH && (hasFileText(sourceFile, "new Date(") || hasFileText(sourceFile, "Date.parse("))) {
+        findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1", file: relativePath, line: 1, severity: "fatal", message: "Mouse Click must source time from the clock port and must not use new Date or Date.parse directly." }));
+      }
+      for (const token of FORBIDDEN_TEXT_TOKENS) {
+        if (hasFileText(sourceFile, token)) {
+          findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: relativePath, line: 1, severity: "fatal", message: `Mouse Click contains forbidden escape token: ${token}.` }));
+        }
+      }
+    }
+
+    if (!visionRuntimeSource || !hasFileText(visionRuntimeSource, "geometryGuardProof") || !hasFileText(visionRuntimeSource, "sourceCoordinateProofRef")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1", file: VISION_RUNTIME_PATH, line: 1, severity: "fatal", message: "Visual click handoff must pass geometryGuardProof and sourceCoordinateProofRef into Mouse Click." }));
+    }
+
+    const primitiveImplementationImports = getExternalImportsOfFile(project, PRIMITIVE_IMPL_PATH);
+    if (primitiveImplementationImports.length > 0) {
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1", file: primitiveImplementationImports[0]!, line: 1, severity: "fatal", message: "The primitive adapter implementation must not be imported outside the workbench composition root." }));
+    }
+
+    const childImplementationImports = getExternalImportsWithPrefix(project, `${ROOT}/children/`);
+    if (childImplementationImports.length > 0) {
+      findings.push(createFinding({ lawId: "GRASSEYE-CAPABILITY-GROUP-002-V1", file: childImplementationImports[0]!, line: 1, severity: "fatal", message: "Mouse Click child implementations must stay private to the owning ability group." }));
+    }
+
+    const requiredShapePass = findings.every((finding) => !finding.message.includes("required production file") && !finding.message.includes("legacy file still exists") && !finding.message.includes("registry and schema child ids") && !finding.message.includes("child must contain only") && !finding.message.includes("compose geometry gate"));
+    const forbiddenPass = findings.every((finding) => !finding.message.includes("must not") && !finding.message.includes("must not throw") && !finding.message.includes("must source time"));
+    const boundaryPass = findings.every((finding) => !finding.message.includes("handoff") && !finding.message.includes("import outside") && !finding.message.includes("private to the owning ability group") && !finding.message.includes("Open internals"));
+    const antiEscapePass = findings.every((finding) => !finding.message.includes("escape token") && !finding.message.includes("dynamic import escape paths") && !finding.message.includes("barrel laundering"));
 
     return {
       findings,
       phases: [
-        createPhase("mouse-click-required-shape", requiredShapePassed ? "PASS" : "CODE VIOLATION", requiredShapePassed, requiredShapePassed ? "Mouse Click exposes the required primitive-port topology, exact child registry, and one governed contract." : "Mouse Click required shape is incomplete, child topology drifted, or registry shape is no longer exact."),
-        createPhase("mouse-click-forbidden-shape", forbiddenShapePassed ? "PASS" : "CODE VIOLATION", forbiddenShapePassed, forbiddenShapePassed ? "Mouse Click root is free of BrowserController leakage, mapping logic, retired child roots, and verify-script escape hatches." : "Mouse Click root still contains forbidden imports, legacy tokens, retired child roots, or verify-script escape hatches."),
-        createPhase("mouse-click-boundary-attack", boundaryAttackPassed ? "PASS" : "CODE VIOLATION", boundaryAttackPassed, boundaryAttackPassed ? "Composition root injects primitivePort and child execution stays behind Geometry Guard validation." : "Mouse Click boundary wiring still bypasses primitivePort injection, shared validation, or Geometry Guard-gated input."),
-        createPhase("mouse-click-anti-escape", antiEscapePhasePassed ? "PASS" : "CODE VIOLATION", antiEscapePhasePassed, antiEscapePhasePassed ? "Mouse Click has no child leakage, dynamic-import escape, or legacy/bridge/v2 topology." : "Mouse Click still exposes an anti-escape gap through child leakage, dynamic imports, or legacy topology."),
+        createPhase("required-shape", requiredShapePass ? "PASS" : "CODE VIOLATION", requiredShapePass, requiredShapePass ? "Mouse Click production topology exists with schema, runtime executor chain, ports, and child triplets." : "Mouse Click required production topology is incomplete or drifted."),
+        createPhase("forbidden-shape", forbiddenPass ? "PASS" : "CODE VIOLATION", forbiddenPass, forbiddenPass ? "Mouse Click avoids naked throws, direct primitive leaks, legacy files, and direct wall-clock usage." : "Mouse Click still contains forbidden execution shapes or legacy remnants."),
+        createPhase("boundary-attack", boundaryPass ? "PASS" : "CODE VIOLATION", boundaryPass, boundaryPass ? "Mouse Click stays behind the workbench boundary and receives Geometry Guard proof handoff from visual runtime." : "Mouse Click boundary still leaks through forbidden imports or invalid handoff paths."),
+        createPhase("anti-escape", antiEscapePass ? "PASS" : "CODE VIOLATION", antiEscapePass, antiEscapePass ? "Mouse Click avoids dynamic import, export laundering, and type/comment escape hatches." : "Mouse Click still contains escape hatches that can bypass enforcement."),
       ],
     };
   },

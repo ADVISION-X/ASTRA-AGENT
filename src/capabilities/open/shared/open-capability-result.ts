@@ -1,5 +1,6 @@
 import type { BrowserLoginState } from "../../../types/local-browser-session.js";
 import {
+  OPEN_ABILITY_GROUP_ID,
   OPEN_DRAWER_ID,
   type OpenCapabilityResult,
   type OpenCapabilityTargetKind,
@@ -26,9 +27,10 @@ type OpenCapabilityResultInput = {
 };
 
 export function buildOpenCapabilityResult(input: OpenCapabilityResultInput): OpenCapabilityResult {
+  void OPEN_DRAWER_ID;
   return {
     drawer: OPEN_DRAWER_ID,
-    capabilityId: OPEN_DRAWER_ID,
+    capabilityId: OPEN_ABILITY_GROUP_ID,
     childCapabilityId: input.childCapabilityId,
     targetKind: input.targetKind,
     sessionId: input.sessionId,

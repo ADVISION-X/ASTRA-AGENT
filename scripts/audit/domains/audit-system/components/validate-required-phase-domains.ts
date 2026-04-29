@@ -1,5 +1,5 @@
 import { createFinding, createPhase } from "../../../core/result.js";
-import { REQUIRED_PHASE_DOMAINS } from "../../../core/required-phase-domains.js";
+import { loadFrozenBaselineDomains } from "../../../core/frozen-baseline.js";
 import { defaultPhaseGatePath, generatedArtifactPaths, toRepoRelativePath } from "../../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
@@ -7,8 +7,10 @@ export const validateRequiredPhaseDomains = async (
   context: InspectorContext,
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
+  const frozenBaseline = await loadFrozenBaselineDomains();
+  const requiredPhaseDomains = frozenBaseline.activeCapabilityDomains;
 
-  for (const capabilityDomain of REQUIRED_PHASE_DOMAINS) {
+  for (const capabilityDomain of requiredPhaseDomains) {
     if (!context.phaseGate.activeCapabilityDomains.includes(capabilityDomain)) {
       findings.push(
         createFinding({
@@ -34,14 +36,40 @@ export const validateRequiredPhaseDomains = async (
     }
   }
 
+  for (const deletedOwnerDomain of frozenBaseline.deletedOwnerDomains) {
+    if (context.phaseGate.activeCapabilityDomains.includes(deletedOwnerDomain)) {
+      findings.push(
+        createFinding({
+          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          file: toRepoRelativePath(defaultPhaseGatePath),
+          line: 1,
+          severity: "fatal",
+          message: `Current phase gate must not reactivate deleted owner ${deletedOwnerDomain}.`,
+        }),
+      );
+    }
+
+    if (context.auditPlan.owners.some((owner) => owner.capabilityDomain === deletedOwnerDomain)) {
+      findings.push(
+        createFinding({
+          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          file: toRepoRelativePath(generatedArtifactPaths.auditPlan),
+          line: 1,
+          severity: "fatal",
+          message: `Generated audit plan must not reactivate deleted owner ${deletedOwnerDomain}.`,
+        }),
+      );
+    }
+  }
+
   const phases: InspectorPhase[] = [
     createPhase(
       "required-phase-domains",
       findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
       findings.length === 0,
       findings.length === 0
-        ? `Current phase gate and generated plan both include ${REQUIRED_PHASE_DOMAINS.join(", ")}.`
-        : "A required capability domain was removed from the current phase gate or generated audit plan.",
+        ? `Current phase gate and generated plan match the frozen active owner baseline from ${frozenBaseline.baselineFile}.`
+        : "The current phase gate or generated audit plan drifted away from the frozen owner baseline.",
     ),
   ];
 

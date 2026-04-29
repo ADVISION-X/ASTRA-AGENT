@@ -1,8 +1,10 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { BrowserLoginState } from "../../types/local-browser-session.js";
 
+export const OPEN_ABILITY_GROUP_ID = "open";
 export const OPEN_DRAWER_ID = "open";
 
+export type OpenAbilityGroupId = typeof OPEN_ABILITY_GROUP_ID;
 export type OpenDrawerId = typeof OPEN_DRAWER_ID;
 export type OpenPlatformId = "tiktok-web" | "facebook-web";
 export type OpenChildCapabilityId = "open-tiktok" | "open-facebook" | "open-local-workbench";

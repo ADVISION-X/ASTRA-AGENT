@@ -1,79 +1,19 @@
 import type { MouseClickChildCapability } from "../../contract.js";
 import { MOUSE_CLICK_ABILITY_GROUP_ID } from "../../contract.js";
-import { buildMouseClickFailure, buildMouseClickSuccess } from "../../shared/click-result.js";
-import { validateMouseClickAbilityInput } from "../../shared/validate-input.js";
+import { executeMouseClick } from "../../runtime/mouse-click-executor.js";
+import { ClickBrowserCoordinateInputSchema, ClickBrowserCoordinateResultSchema } from "./schema.js";
 
 export function createClickBrowserCoordinateCapability(): MouseClickChildCapability {
   return {
     abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
     childCapabilityId: "click-browser-coordinate",
     async execute(input, context) {
-      const startedAt = new Date().toISOString();
-      const validation = validateMouseClickAbilityInput(input);
-      if (!validation.ok) {
-        return buildMouseClickFailure({
-          childCapabilityId: "click-browser-coordinate",
-          abilityInput: input,
-          startedAt,
-          endedAt: new Date().toISOString(),
-          failureReason: validation.failureReason,
-          statusMessage: validation.message,
-          status: validation.status,
-        });
-      }
-      if (validation.coordinate.coordinateSpace !== "browserViewport") {
-        return buildMouseClickFailure({
-          childCapabilityId: "click-browser-coordinate",
-          abilityInput: input,
-          startedAt,
-          endedAt: new Date().toISOString(),
-          failureReason: "unsupported_coordinate_space",
-          statusMessage: "click-browser-coordinate requires browserViewport authoritative coordinate",
-        });
-      }
-
-      const primitiveResult = await context.primitivePort.click({
-        targetLabel: `${input.purpose}:${input.childCapabilityId}`,
-        x: validation.coordinate.x,
-        y: validation.coordinate.y,
-        coordinateSpace: "browserViewport",
-        button: validation.button,
-        clickCount: validation.clickCount,
-        timeoutMs: input.safetyPolicy.maxDurationMs,
-      });
-      const endedAt = primitiveResult.endedAt;
-      const primitiveDurationMs = Date.parse(primitiveResult.endedAt) - Date.parse(primitiveResult.startedAt);
-      if (!primitiveResult.ok) {
-        return buildMouseClickFailure({
-          childCapabilityId: "click-browser-coordinate",
-          abilityInput: input,
-          startedAt,
-          endedAt,
-          failureReason: "primitive_failed",
-          statusMessage: primitiveResult.message,
-          primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-        });
-      }
-      if (primitiveDurationMs > input.safetyPolicy.maxDurationMs) {
-        return buildMouseClickFailure({
-          childCapabilityId: "click-browser-coordinate",
-          abilityInput: input,
-          startedAt,
-          endedAt,
-          failureReason: "duration_limit_exceeded",
-          statusMessage: `mouse click primitive exceeded maxDurationMs ${input.safetyPolicy.maxDurationMs}`,
-          primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-        });
-      }
-
-      return buildMouseClickSuccess({
-        childCapabilityId: "click-browser-coordinate",
-        abilityInput: input,
-        startedAt,
-        endedAt,
-        primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-        statusMessage: primitiveResult.message,
-      });
+      const parsedInput = ClickBrowserCoordinateInputSchema.parse(input);
+      return ClickBrowserCoordinateResultSchema.parse(await executeMouseClick({
+        request: parsedInput,
+        expectedCoordinateSpace: "browserViewport",
+        context,
+      }));
     },
   };
 }

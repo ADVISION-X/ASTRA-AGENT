@@ -1,0 +1,28 @@
+export const DEFAULT_MOUSE_CLICK_SAFETY_POLICY = {
+  allowOperatorManual: false,
+  operatorManualApprovalRef: null,
+  allowRightClick: false,
+  allowDoubleClick: false,
+  allowReplay: false,
+  allowDesktopScreenClick: false,
+  desktopScreenOperatorApprovalRef: null,
+  maxDurationMs: 5000,
+  primitiveTimeoutMs: 3000,
+  cooldownMs: 800,
+  requireStableRoundBinding: true,
+  requireStableVideoVisitBinding: true,
+} as const;
+
+export const ALLOWED_MOUSE_CLICK_PURPOSE_PREFIXES = [
+  "activate",
+  "click",
+  "confirm",
+  "dismiss",
+  "expand",
+  "like",
+  "like_or_save_candidate",
+  "open",
+  "open_comments",
+  "save",
+  "select",
+] as const;

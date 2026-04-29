@@ -57,6 +57,8 @@ export const StructuredRuntimeSnapshotSummarySchema = z.object({
 export const StructuredRuntimeEventSchema = z.object({
   eventId: z.string().min(1),
   eventType: StructuredRuntimeEventTypeSchema,
+  abilityGroupId: z.string().min(1).default("orchestration"),
+  childCapabilityId: z.string().min(1).nullable().default(null),
   skillId: z.string().min(1).nullable().default(null),
   skillCategory: AgentSkillCategorySchema.nullable().default(null),
   sessionId: z.string().min(1),
@@ -91,6 +93,8 @@ export const StructuredRuntimeEventSchema = z.object({
 
 export const StructuredActionLogSchema = z.object({
   actionLogId: z.string().min(1),
+  abilityGroupId: z.string().min(1).default("orchestration"),
+  childCapabilityId: z.string().min(1).nullable().default(null),
   skillId: z.string().min(1).nullable().default(null),
   skillCategory: AgentSkillCategorySchema.nullable().default(null),
   sessionId: z.string().min(1),

@@ -4,8 +4,9 @@ import {
   type AiChildCapability,
   type AiExecutionOptions,
 } from "../../contract.js";
+import { buildAiDispatchFailureResult } from "../../runtime/ai-runtime-failure-result.js";
 
-const SUPPORTED_TASK_TYPES = ["comment_signal_summary", "product_signal_summary", "schema_validation_only"] as const;
+const SUPPORTED_TASK_TYPES = ["comment_signal_summary", "product_signal_summary"] as const;
 const SUPPORTED_TASK_TYPE_SET = new Set<string>(SUPPORTED_TASK_TYPES);
 
 export function createLocalTextAiCapability(): AiChildCapability {
@@ -33,7 +34,14 @@ export function createLocalTextAiCapability(): AiChildCapability {
     },
     async execute(request, context: AiCapabilityContext, options?: AiExecutionOptions) {
       if (!this.canHandle(request.taskType)) {
-        throw new Error(`local-text-ai cannot execute ${request.taskType}.`);
+        return buildAiDispatchFailureResult({
+          request,
+          promptContract: context.runtime.resolvePromptContract(request.taskType),
+          childCapabilityId: "local-text-ai",
+          startedAt: new Date().toISOString(),
+          failureReason: `local-text-ai cannot execute ${request.taskType}.`,
+          implementationStatus: "task_type_mismatch",
+        });
       }
       return context.runtime.execute(request, options);
     },

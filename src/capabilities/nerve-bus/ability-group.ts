@@ -1,4 +1,4 @@
-import type { NerveBusAbilityGroup } from "./contract.js";
+import { NERVE_BUS_ABILITY_GROUP_ID, type NerveBusAbilityGroup } from "./contract.js";
 import { type AbilityCommandHandlers, type AiRequestHandler, type HumanCommandHandler } from "./contract.js";
 import { createAbilityToOrchestrationChannel } from "./channels/ability-to-orchestration/implementation.js";
 import { createAiToOrchestrationChannel } from "./channels/ai-to-orchestration/implementation.js";
@@ -19,7 +19,7 @@ function buildUnavailableHumanCommandResult(envelope: HumanCommandEnvelope, ende
     status: "failed",
     payloadRef: envelope.payloadRef,
     payload: { reason: "missing_human_command_handler", commandType: envelope.commandType },
-    failureReason: "No Nerve Bus human command handler is registered.",
+    failureReason: `No ${NERVE_BUS_ABILITY_GROUP_ID} human command handler is registered.`,
     createdAt: endedAt,
   };
 }

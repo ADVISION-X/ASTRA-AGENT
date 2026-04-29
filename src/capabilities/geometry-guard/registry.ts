@@ -7,6 +7,11 @@ import { createValidateClickPointCapability } from "./children/validate-click-po
 import { createValidateCoordinateSpaceCapability } from "./children/validate-coordinate-space/implementation.js";
 import { createValidateDesktopScreenBoundsCapability } from "./children/validate-desktop-screen-bounds/implementation.js";
 import { createValidateScaleMappingCapability } from "./children/validate-scale-mapping/implementation.js";
+import { GEOMETRY_GUARD_CHILD_CAPABILITY_IDS } from "./shared/geometry-types.js";
+
+export function listGeometryGuardChildren(): GeometryGuardChildCapabilityId[] {
+  return [...GEOMETRY_GUARD_CHILD_CAPABILITY_IDS];
+}
 
 export function createGeometryGuardCapabilityRegistry(): Map<GeometryGuardChildCapabilityId, GeometryGuardChildCapability> {
   return new Map<GeometryGuardChildCapabilityId, GeometryGuardChildCapability>([

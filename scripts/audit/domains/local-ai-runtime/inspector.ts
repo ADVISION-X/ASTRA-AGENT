@@ -15,7 +15,7 @@ const OLLAMA_ADAPTER_PATH = "src/lib/local-ai/runtime-adapters/ollama-runtime-ad
 const OCR_ADAPTER_PATH = "src/lib/local-ai/runtime-adapters/local-ocr-runtime-adapter.ts";
 const RUNTIME_ERROR_PATH = "src/lib/local-ai/local-ai-runtime-error.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
-const READ_MODELS_PATH = "src/capabilities/commander-console/read-models.ts";
+const COMMANDER_SCHEMA_PATH = "src/capabilities/commander-console/schema.ts";
 
 const SOURCE_ROOTS = ["src"] as const;
 const PRODUCT_SIGNAL_ALLOWED_PATHS = new Set([
@@ -55,7 +55,7 @@ export const inspectLocalAiRuntimeBoundary = async () => {
     const promptRegistrySource = await readTextFile(pathFromRepoRoot(PROMPT_REGISTRY_PATH));
     const modelConfigSource = await readTextFile(pathFromRepoRoot(MODEL_CONFIG_PATH));
     const workbenchSource = await readTextFile(pathFromRepoRoot(WORKBENCH_PATH));
-    const readModelsSource = await readTextFile(pathFromRepoRoot(READ_MODELS_PATH));
+    const commanderSchemaSource = await readTextFile(pathFromRepoRoot(COMMANDER_SCHEMA_PATH));
     const findings = [];
 
     const requiredFiles = [
@@ -65,7 +65,7 @@ export const inspectLocalAiRuntimeBoundary = async () => {
       OCR_ADAPTER_PATH,
       RUNTIME_ERROR_PATH,
       WORKBENCH_PATH,
-      READ_MODELS_PATH,
+      COMMANDER_SCHEMA_PATH,
     ];
     const filePresenceChecks = await Promise.all(
       requiredFiles.map(async (file) => ({ file, exists: await fileExists(pathFromRepoRoot(file)) })),
@@ -265,8 +265,9 @@ export const inspectLocalAiRuntimeBoundary = async () => {
     const healthVisibilityPassed =
       workbenchSource.includes("getRuntimeHealth") &&
       workbenchSource.includes("localAiHealth") &&
-      readModelsSource.includes("Last AI Failure") &&
-      readModelsSource.includes("lastAiFailure");
+      workbenchSource.includes("lastTask=") &&
+      workbenchSource.includes("lastFailure=") &&
+      commanderSchemaSource.includes("lastAiFailureReason");
     if (!healthVisibilityPassed) {
       findings.push(
         createFinding({

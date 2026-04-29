@@ -1,15 +1,38 @@
-export * from "./contract.js";
-export * from "./ability-group.js";
-export * from "./registry.js";
-export * from "./read-models.js";
-export * from "./command-builder.js";
-export * from "./ports/command-transport-port.js";
-export * from "./ports/mission-read-model-port.js";
-export * from "./ports/forensics-read-model-port.js";
-export * from "./ports/capability-health-read-model-port.js";
-export * from "./ports/audit-read-model-port.js";
-export * from "./ports/runtime-proof-read-model-port.js";
-export * from "./shared/view-model-types.js";
-export * from "./shared/health-summary.js";
-export * from "./shared/command-policy.js";
-export * from "./shared/commander-result.js";
+export {
+	COMMANDER_CONSOLE_ABILITY_GROUP_ID,
+	type CommanderCommandType,
+	type CommanderConsoleAbilityGroup,
+	type CommanderConsoleChildAbilityId,
+	type CommanderConsoleInput,
+	type CommanderConsolePublicResult,
+	type CommanderHumanCommandInput,
+	type CommanderTargetRecordRef,
+	type CreateCommanderConsoleAbilityGroupInput,
+} from "./contract.js";
+export { createCommanderConsoleAbilityGroup } from "./ability-group.js";
+export { listCommanderConsoleChildren } from "./registry.js";
+export {
+	CommanderConsoleChildAbilityIdSchema,
+	CommanderConsoleInputSchema,
+	CommanderConsoleResultSchema,
+	HumanCommandInputSchema,
+	ReadRequestInputSchema,
+	ReviewDecisionInputSchema,
+	RuntimeProofSchema,
+} from "./schema.js";
+export type {
+	CommanderAuditSummary,
+	CommanderBrowserSummaryView,
+	CommanderCandidateView,
+	CommanderCapabilityHealthEntry,
+	CommanderCapabilityRosterEntry,
+	CommanderCommandReceiptView,
+	CommanderMissionDashboardView,
+	CommanderMissionView,
+	CommanderRecordDetailView,
+	CommanderRecordSummaryView,
+	CommanderRuntimeProofTimelineEntry,
+	CommanderRuntimeSummaryView,
+} from "./shared/commander-view-types.js";
+export type { CommanderConsoleResult } from "./shared/commander-result.js";
+export type { CommanderRuntimeProof } from "./shared/commander-proof.js";

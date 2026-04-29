@@ -1,6 +1,7 @@
-import type { AiRequestEnvelope, CommandEnvelope } from "../nerve-bus/shared/envelope.js";
+import type { AiRequestEnvelope, CommandEnvelope } from "../nerve-bus/index.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import { createAbilityRoster } from "./ability-roster.js";
+import { ORCHESTRATION_ABILITY_GROUP_ID } from "./contract.js";
 import type {
   HumanCommandKind,
   MissionCommand,
@@ -33,7 +34,7 @@ function buildCommandEnvelope(command: MissionCommand, map: OperationalMap, step
     missionId: command.missionId,
     mapId: map.mapId,
     stepId,
-    from: "orchestration",
+    from: ORCHESTRATION_ABILITY_GROUP_ID,
     to: map.steps.find((step) => step.stepId === stepId)?.targetAbilityGroupId ?? "open",
     commandName,
     payloadRef: Object.keys(payload),
@@ -49,7 +50,7 @@ function buildAiRequestEnvelope(command: MissionCommand, map: OperationalMap, st
     missionId: command.missionId,
     mapId: map.mapId,
     stepId,
-    from: "orchestration",
+    from: ORCHESTRATION_ABILITY_GROUP_ID,
     to: "local-ai-decision",
     taskType: commandName,
     promptRef: `${map.mapId}:${commandName}`,

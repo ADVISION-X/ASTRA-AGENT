@@ -3,6 +3,15 @@ import type { EvidenceRef } from "../../types/evidence.js";
 import type { AiRuntimeProof } from "./shared/ai-runtime-proof.js";
 
 export const AI_ABILITY_GROUP_ID = "ai";
+export const AI_CHILD_CAPABILITY_IDS = [
+  "local-vision-ai",
+  "local-text-ai",
+  "local-ocr-ai",
+  "internal-schema-validator",
+  "paid-vision-ai",
+  "paid-analysis-ai",
+  "future-api-ai",
+] as const;
 
 export type AiAbilityGroupId = typeof AI_ABILITY_GROUP_ID;
 export type AiTaskType =
@@ -14,13 +23,7 @@ export type AiTaskType =
   | "product_signal_summary"
   | "evidence_packet_analysis"
   | "schema_validation_only";
-export type AiChildCapabilityId =
-  | "local-vision-ai"
-  | "local-text-ai"
-  | "local-ocr-ai"
-  | "paid-vision-ai"
-  | "paid-analysis-ai"
-  | "future-api-ai";
+export type AiChildCapabilityId = (typeof AI_CHILD_CAPABILITY_IDS)[number];
 export type AiProviderKind = "local" | "paid" | "future" | "internal";
 export type AiChildCapabilityStatus = "ready" | "degraded" | "unavailable" | "disabled_by_policy";
 export type AiInputModality = "image_collection" | "text_blocks" | "structured_record" | "mixed" | "none";

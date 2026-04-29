@@ -4,8 +4,8 @@ import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { BrowserController, BrowserGeometrySnapshot } from "../../browser/browser-controller.js";
-import { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID } from "../../../capabilities/open/shared/platform-url-profiles.js";
-import { summarizeTikTokLoginState, TIKTOK_REVIEW_REQUIRED_TAG } from "../../../capabilities/page-state/shared/platform-profiles.js";
+import { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID } from "../../../capabilities/open/index.js";
+import { summarizeTikTokLoginState, TIKTOK_REVIEW_REQUIRED_TAG } from "../../../capabilities/page-state/index.js";
 import type { PlatformOperatorModeInfo, PlatformVideo, VideoOrientationMode } from "../platform-runtime-contract.js";
 
 export { DEFAULT_TIKTOK_URL, TIKTOK_PLATFORM_ID };

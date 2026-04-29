@@ -1,5 +1,6 @@
 import type { AiAbilityGroup, AiExecutionOptions, AiRuntimeBridge } from "./contract.js";
 import { createAiCapabilityRegistry } from "./registry.js";
+import { buildAiDispatchFailureResult } from "./runtime/ai-runtime-failure-result.js";
 import { createDefaultAiRuntimeBridge } from "./runtime-adapters/local-ai-runtime-adapter.js";
 import { validateAiAbilityInput } from "./schema-validation.js";
 import { routeAiTaskToChild } from "./task-router.js";
@@ -18,12 +19,31 @@ export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiA
     input: Parameters<AiAbilityGroup["execute"]>[0];
     executionOptions?: AiExecutionOptions;
   }) => {
+    const startedAt = new Date().toISOString();
+    const promptContract = runtime.resolvePromptContract(options.input.taskType);
     const capability = registry.get(options.childCapabilityId);
     if (!capability) {
-      throw new Error(`AI child capability is not registered for ${options.childCapabilityId}.`);
+      return buildAiDispatchFailureResult({
+        request: options.input,
+        promptContract,
+        childCapabilityId: options.childCapabilityId,
+        startedAt,
+        failureReason: `AI child capability is not registered for ${options.childCapabilityId}.`,
+        implementationStatus: "child_not_registered",
+      });
     }
 
-    return capability.execute(options.input, context, options.executionOptions);
+    try {
+      return await capability.execute(options.input, context, options.executionOptions);
+    } catch (error) {
+      return buildAiDispatchFailureResult({
+        request: options.input,
+        promptContract,
+        childCapabilityId: options.childCapabilityId,
+        startedAt,
+        failureReason: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 
   return {

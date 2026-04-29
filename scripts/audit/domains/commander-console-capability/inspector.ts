@@ -1,24 +1,19 @@
-import { createFinding, createPhase } from "../../core/result.js";
 import path from "node:path";
+
+import { Node, SyntaxKind, type SourceFile, type VariableDeclaration } from "ts-morph";
 
 import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import {
-  hasCallExpressionPath,
   createAuditProject,
   getSourceFileOrThrow,
-  getTypeAliasPropertyNames,
-  hasExportModuleSpecifier,
+  hasCallExpressionPath,
   hasIdentifier,
   hasImportModuleSpecifier,
   hasInterfaceMethod,
   hasLiteralTextFragment,
-  hasNullishCoalescingLiteral,
-  hasPropertyAccessPath,
-  hasPropertyNamed,
-  hasStringLiteral,
-  hasTypeReference,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { inspectLocalAppShellBoundary } from "../local-app-shell/inspector.js";
@@ -30,13 +25,18 @@ const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const INDEX_PATH = `${ROOT}/index.ts`;
 const REGISTRY_PATH = `${ROOT}/registry.ts`;
-const READ_MODELS_PATH = `${ROOT}/read-models.ts`;
-const COMMAND_BUILDER_PATH = `${ROOT}/command-builder.ts`;
-const COMMAND_POLICY_PATH = `${ROOT}/shared/command-policy.ts`;
-const COMMANDER_RESULT_PATH = `${ROOT}/shared/commander-result.ts`;
-const HEALTH_SUMMARY_PATH = `${ROOT}/shared/health-summary.ts`;
-const REVIEW_DECISION_PATH = `${ROOT}/shared/review-decision.ts`;
-const VIEW_MODEL_TYPES_PATH = `${ROOT}/shared/view-model-types.ts`;
+const SCHEMA_PATH = `${ROOT}/schema.ts`;
+const COMMAND_POLICY_PATH = `${ROOT}/shared/commander-command-policy.ts`;
+const COMMAND_RESULT_PATH = `${ROOT}/shared/commander-result.ts`;
+const COMMAND_PROOF_PATH = `${ROOT}/shared/commander-proof.ts`;
+const VIEW_TYPES_PATH = `${ROOT}/shared/commander-view-types.ts`;
+const COMMAND_GATE_PATH = `${ROOT}/runtime/commander-command-gate.ts`;
+const READ_GATE_PATH = `${ROOT}/runtime/commander-read-gate.ts`;
+const EXECUTOR_PATH = `${ROOT}/runtime/commander-console-executor.ts`;
+const RESULT_BUILDER_PATH = `${ROOT}/runtime/commander-result-builder.ts`;
+const PROOF_BUILDER_PATH = `${ROOT}/runtime/commander-proof-builder.ts`;
+const DISPATCH_FAILURE_PATH = `${ROOT}/runtime/commander-dispatch-failure.ts`;
+const BOUNDARY_POLICY_PATH = `${ROOT}/runtime/commander-boundary-policy.ts`;
 const COMMAND_TRANSPORT_PORT_PATH = `${ROOT}/ports/command-transport-port.ts`;
 const MISSION_READ_MODEL_PORT_PATH = `${ROOT}/ports/mission-read-model-port.ts`;
 const FORENSICS_READ_MODEL_PORT_PATH = `${ROOT}/ports/forensics-read-model-port.ts`;
@@ -47,9 +47,9 @@ const TASK_HANDLER_PATH = "src/app/task-api-handlers.ts";
 const CANDIDATE_HANDLER_PATH = "src/app/candidate-api-handlers.ts";
 const SERVER_HELPER_PATH = "src/app/create-workbench-server.ts";
 const SHELL_RENDER_PATH = "src/lib/local-app-shell/render-commander-console-page.ts";
+const SHELL_PAGE_MODEL_PATH = "src/lib/local-app-shell/commander-console-page-model.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
 const STARTUP_PATH = "scripts/startup/launch-grasseye.mjs";
-const VERIFY_PATH = "scripts/verify/verify-commander-console-capabilities.ts";
 const LEGACY_OPERATOR_CONTROL_ROOT = "src/features/operator-control";
 
 const REQUIRED_CHILDREN = [
@@ -74,18 +74,34 @@ const REQUIRED_CHILDREN = [
   "inspect-record-detail",
 ] as const;
 
+const COMMAND_CHILDREN = new Set([
+  "issue-human-command",
+  "pause-mission",
+  "resume-mission",
+  "stop-mission",
+  "emergency-stop",
+  "approve-candidate",
+  "reject-candidate",
+  "mark-review-required",
+]);
+
 const REQUIRED_FILES = [
   CONTRACT_PATH,
   ABILITY_GROUP_PATH,
   INDEX_PATH,
   REGISTRY_PATH,
-  READ_MODELS_PATH,
-  COMMAND_BUILDER_PATH,
+  SCHEMA_PATH,
   COMMAND_POLICY_PATH,
-  COMMANDER_RESULT_PATH,
-  HEALTH_SUMMARY_PATH,
-  REVIEW_DECISION_PATH,
-  VIEW_MODEL_TYPES_PATH,
+  COMMAND_RESULT_PATH,
+  COMMAND_PROOF_PATH,
+  VIEW_TYPES_PATH,
+  COMMAND_GATE_PATH,
+  READ_GATE_PATH,
+  EXECUTOR_PATH,
+  RESULT_BUILDER_PATH,
+  PROOF_BUILDER_PATH,
+  DISPATCH_FAILURE_PATH,
+  BOUNDARY_POLICY_PATH,
   COMMAND_TRANSPORT_PORT_PATH,
   MISSION_READ_MODEL_PORT_PATH,
   FORENSICS_READ_MODEL_PORT_PATH,
@@ -93,46 +109,92 @@ const REQUIRED_FILES = [
   AUDIT_READ_MODEL_PORT_PATH,
   RUNTIME_PROOF_READ_MODEL_PORT_PATH,
   SHELL_RENDER_PATH,
+  SHELL_PAGE_MODEL_PATH,
 ] as const;
 
 const RETIRED_FILES = [
-  `${ROOT}/build-pending-analysis-candidate.ts`,
-  `${ROOT}/build-browse-runtime-snapshot.ts`,
-  `${ROOT}/build-runtime-skill-matrix-snapshot.ts`,
-  `${ROOT}/runtime-skill-catalog.ts`,
-  `${ROOT}/runtime-skill-resolution.ts`,
-  `${ROOT}/children.ts`,
+  `${ROOT}/read-models.ts`,
+  `${ROOT}/command-builder.ts`,
+  `${ROOT}/shared/command-policy.ts`,
+  `${ROOT}/shared/health-summary.ts`,
+  `${ROOT}/shared/review-decision.ts`,
+  `${ROOT}/shared/view-model-types.ts`,
 ] as const;
 
 const FORBIDDEN_IMPORT_MARKERS = [
-  "features/local-data",
-  "types/agent-skill",
-  "types/evidence-packet",
-  "types/local-ai",
-  "types/runtime",
-  "types/task-run",
-  "build-pending-analysis-candidate",
-  "build-browse-runtime-snapshot",
-  "build-runtime-skill-matrix-snapshot",
-  "runtime-skill-catalog",
-  "runtime-skill-resolution",
-  "BrowserController",
-  "platform-action",
+  "capabilities/open/",
+  "capabilities/mouse-click/",
+  "capabilities/mouse-scroll/",
+  "capabilities/screenshot/",
+  "capabilities/geometry-guard/",
+  "capabilities/page-state/",
+  "capabilities/forensics-persistence/",
+  "lib/browser/",
+  "features/operator-control",
+  "read-models",
+  "command-builder",
 ] as const;
 
-const FORBIDDEN_DRIFT_TOKENS = ["compat", "legacy", "bridge"] as const;
+function hasExportStar(sourceFile: SourceFile): boolean {
+  return sourceFile.getExportDeclarations().some((declaration) => declaration.getText().startsWith("export *"));
+}
 
-function sourceCarriesDriftMarker(sourceFile: import("ts-morph").SourceFile): boolean {
-  const relativePath = toRepoRelativePath(sourceFile.getFilePath()).toLowerCase();
-  if (FORBIDDEN_DRIFT_TOKENS.some((token) => path.basename(relativePath).includes(token))) {
-    return true;
+function hasDynamicImport(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getKind() === SyntaxKind.ImportKeyword);
+}
+
+function hasAsAny(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getTypeNode()?.getText() === "any");
+}
+
+function hasAnyKeyword(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword).length > 0;
+}
+
+function hasRecordUnknown(sourceFile: SourceFile): boolean {
+  return sourceFile.getFullText().includes("Record<string, unknown>");
+}
+
+function findChildDefinition(sourceFile: SourceFile, childId: string): VariableDeclaration | undefined {
+  return sourceFile.getVariableDeclarations().find((declaration) => {
+    const typeNodeText = declaration.getTypeNode()?.getText() ?? "";
+    const initializer = declaration.getInitializer();
+    return typeNodeText.includes("CommanderConsoleChildDefinition")
+      && Node.isObjectLiteralExpression(initializer)
+      && initializer.getProperty("childCapabilityId")?.getText().includes(`"${childId}"`);
+  });
+}
+
+function implementationCarriesExecuteShape(sourceFile: SourceFile, childId: string): boolean {
+  const declaration = findChildDefinition(sourceFile, childId);
+  const initializer = declaration?.getInitializer();
+  if (!declaration || !initializer || !Node.isObjectLiteralExpression(initializer)) {
+    return false;
   }
 
-  const moduleSpecifiers = [
-    ...sourceFile.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue() ?? ""),
-    ...sourceFile.getExportDeclarations().map((declaration) => declaration.getModuleSpecifierValue() ?? ""),
-  ].map((specifier) => specifier.toLowerCase());
-  return moduleSpecifiers.some((specifier) => FORBIDDEN_DRIFT_TOKENS.some((token) => specifier.includes(token)));
+  return Boolean(initializer.getProperty("inputSchema"))
+    && Boolean(initializer.getProperty("outputSchema"))
+    && Boolean(initializer.getProperty("execute"));
+}
+
+function referenceLeaksOutsideRegistry(declaration: VariableDeclaration): string[] {
+  const nameNode = declaration.getNameNode();
+  if (!Node.isIdentifier(nameNode)) {
+    return [];
+  }
+
+  const referenceNodes = nameNode.findReferencesAsNodes();
+  return [...new Set(referenceNodes.map((node) => toRepoRelativePath(node.getSourceFile().getFilePath())))]
+    .filter((filePath) => filePath !== toRepoRelativePath(declaration.getSourceFile().getFilePath()))
+    .filter((filePath) => filePath !== REGISTRY_PATH);
+}
+
+function childDirectoryFiles(childId: string): string[] {
+  return [
+    `${CHILDREN_ROOT}/${childId}/contract.ts`,
+    `${CHILDREN_ROOT}/${childId}/schema.ts`,
+    `${CHILDREN_ROOT}/${childId}/implementation.ts`,
+  ];
 }
 
 export default createPendingDomainInspector({
@@ -141,22 +203,23 @@ export default createPendingDomainInspector({
   capabilityDomain: "commander-console-capability",
   inspectorEntry: "scripts/audit/domains/commander-console-capability/inspector.ts",
   ownedPaths: [ROOT],
-  pendingSummary: "commander-console-capability law exists but commander transport and read-model cutover may still drift",
+  pendingSummary: "commander-console-capability law exists but the rebuilt execute architecture is not yet fully enforced",
   implementedSummary: "commander-console-capability is implemented as the governed human command and read-only dashboard owner",
   extraChecks: async () => {
     const project = createAuditProject();
     const contractSource = getSourceFileOrThrow(project, CONTRACT_PATH);
     const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
     const indexSource = getSourceFileOrThrow(project, INDEX_PATH);
-    const readModelsSource = getSourceFileOrThrow(project, READ_MODELS_PATH);
-    const viewModelTypesSource = getSourceFileOrThrow(project, VIEW_MODEL_TYPES_PATH);
+    const registrySource = getSourceFileOrThrow(project, REGISTRY_PATH);
+    const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
     const taskHandlerSource = getSourceFileOrThrow(project, TASK_HANDLER_PATH);
     const candidateHandlerSource = getSourceFileOrThrow(project, CANDIDATE_HANDLER_PATH);
     const serverHelperSource = getSourceFileOrThrow(project, SERVER_HELPER_PATH);
     const shellRenderSource = getSourceFileOrThrow(project, SHELL_RENDER_PATH);
+    const shellPageModelSource = getSourceFileOrThrow(project, SHELL_PAGE_MODEL_PATH);
     const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-    const rootSourceFiles = project.getSourceFiles().filter((sourceFile) => toRepoRelativePath(sourceFile.getFilePath()).startsWith(`${ROOT}/`));
     const startupSource = await readTextFile(pathFromRepoRoot(STARTUP_PATH));
+    const commanderSourceFiles = project.getSourceFiles().filter((sourceFile) => toRepoRelativePath(sourceFile.getFilePath()).startsWith(`${ROOT}/`));
     const findings: Finding[] = [];
 
     const requiredFiles = await Promise.all(REQUIRED_FILES.map(async (file) => ({ file, exists: await fileExists(pathFromRepoRoot(file)) })));
@@ -169,167 +232,157 @@ export default createPendingDomainInspector({
     const childFiles = await listFilesRecursive(pathFromRepoRoot(CHILDREN_ROOT), { extensions: [".ts"] });
     const childFileSet = new Set(childFiles.map((filePath) => toRepoRelativePath(filePath)));
     for (const childId of REQUIRED_CHILDREN) {
-      const expectedFile = `${CHILDREN_ROOT}/${childId}/implementation.ts`;
-      if (!childFileSet.has(expectedFile)) {
-        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: expectedFile, line: 1, severity: "fatal", message: "Commander Console required child implementation is missing." }));
+      for (const childFile of childDirectoryFiles(childId)) {
+        if (!childFileSet.has(childFile)) {
+          findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: childFile, line: 1, severity: "fatal", message: "Commander Console child folder is incomplete; contract/schema/implementation must all exist." }));
+        }
       }
     }
 
-    const retiredFiles = await Promise.all(RETIRED_FILES.map(async (file) => ({ file, exists: await fileExists(pathFromRepoRoot(file)) })));
-    for (const retiredFile of retiredFiles) {
-      if (retiredFile.exists) {
-        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: retiredFile.file, line: 1, severity: "fatal", message: "Retired Commander Console residue must stay deleted." }));
+    for (const retiredFile of RETIRED_FILES) {
+      if (await fileExists(pathFromRepoRoot(retiredFile))) {
+        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: retiredFile, line: 1, severity: "fatal", message: "Retired Commander Console residue must stay deleted." }));
       }
     }
 
-    const contractShapePassed = hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "issueHumanCommand")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "showMissionDashboard")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "pauseMission")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "resumeMission")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "stopMission")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "emergencyStop")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "approveCandidate")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "rejectCandidate")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "markReviewRequired")
-      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "inspectRecordDetail");
-    if (!contractShapePassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console contract must expose the governed mission and review surface." }));
+    const executeContractPassed = hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "execute")
+      && hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "listChildAbilityIds")
+      && !hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "issueHumanCommand")
+      && !hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "pauseMission")
+      && !hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "approveCandidate");
+    if (!executeContractPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console contract must expose only listChildAbilityIds and execute on the public ability-group surface." }));
     }
 
-    const contractLeaksForbiddenTruth = hasInterfaceMethod(contractSource, "CommanderConsoleAbilityGroup", "resetLocalStore")
-      || hasTypeReference(contractSource, "OrchestrationAbilityGroup");
-    if (contractLeaksForbiddenTruth) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console contract must not expose resetLocalStore or raw Orchestration ownership." }));
+    const thinAbilityGroupPassed = hasIdentifier(abilityGroupSource, "CommanderConsoleInputSchema")
+      && hasIdentifier(abilityGroupSource, "getCommanderConsoleChild")
+      && hasIdentifier(abilityGroupSource, "executeCommanderConsoleChild")
+      && !hasIdentifier(abilityGroupSource, "commandTransport")
+      && !hasImportModuleSpecifier(abilityGroupSource, "ports/");
+    if (!thinAbilityGroupPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "Commander Console ability-group must stay thin and route through registry plus runtime executor only." }));
     }
 
-    const createInputProps = getTypeAliasPropertyNames(contractSource, "CreateCommanderConsoleAbilityGroupInput");
-    if (createInputProps.has("defaultRequestedPlatformId")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console input must not hide platform truth behind defaultRequestedPlatformId." }));
+    const executorProofPassed = hasIdentifier(executorSource, "buildCommanderRuntimeProof")
+      && hasIdentifier(executorSource, "buildCommanderConsoleResult");
+    if (!executorProofPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Commander Console executor must always build governed result and runtime proof." }));
     }
 
-    const missionViewProps = getTypeAliasPropertyNames(viewModelTypesSource, "CommanderMissionView");
-    if (missionViewProps.has("activeTaskRunId") || !missionViewProps.has("missionRunRef")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: VIEW_MODEL_TYPES_PATH, line: 1, severity: "fatal", message: "Commander mission view must expose Commander-owned missionRunRef and must not preserve activeTaskRunId naming." }));
+    if (hasExportStar(indexSource)) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Commander Console index must not use export-star barrels." }));
     }
 
-    if (hasStringLiteral(readModelsSource, "Task Run") || hasIdentifier(readModelsSource, "activeTaskRunId")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: READ_MODELS_PATH, line: 1, severity: "fatal", message: "Commander read models must not surface Task Run or activeTaskRunId naming." }));
+    const registryImports = registrySource.getImportDeclarations()
+      .map((declaration) => declaration.getModuleSpecifierValue() ?? "")
+      .filter((specifier) => specifier.includes("children/") && specifier.endsWith("/implementation.js"));
+    if (registryImports.length !== REQUIRED_CHILDREN.length || !hasIdentifier(registrySource, "COMMANDER_CONSOLE_CHILD_MAP")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "Commander Console registry must register all real child implementations behind COMMANDER_CONSOLE_CHILD_MAP." }));
     }
 
-    const indexExportsChildren = indexSource.getExportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("children/"));
-    if (indexExportsChildren) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Commander Console index must not leak child implementation paths." }));
+    for (const childId of REQUIRED_CHILDREN) {
+      const implementationPath = `${CHILDREN_ROOT}/${childId}/implementation.ts`;
+      const implementationSource = getSourceFileOrThrow(project, implementationPath);
+      const definition = findChildDefinition(implementationSource, childId);
+      if (!implementationCarriesExecuteShape(implementationSource, childId)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: implementationPath, line: 1, severity: "fatal", message: "Commander Console child implementation must export a CommanderConsoleChildDefinition with inputSchema, outputSchema, and execute." }));
+      }
+
+      const shouldUseGate = COMMAND_CHILDREN.has(childId) ? "gateCommanderCommand" : "gateCommanderRead";
+      if (!hasIdentifier(implementationSource, shouldUseGate)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: implementationPath, line: 1, severity: "fatal", message: `Commander Console child ${childId} must route through ${shouldUseGate}.` }));
+      }
+
+      if (childId === "emergency-stop" && hasLiteralTextFragment(implementationSource, "stop-mission")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: implementationPath, line: 1, severity: "fatal", message: "Emergency-stop child must not degrade into stop-mission semantics." }));
+      }
+
+      if (definition) {
+        const leakedReferences = referenceLeaksOutsideRegistry(definition);
+        if (leakedReferences.length > 0) {
+          findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: leakedReferences[0]!, line: 1, severity: "fatal", message: "Commander Console child implementations must stay private and only be consumed by the registry." }));
+        }
+      }
     }
 
-    const forbiddenImports = rootSourceFiles.flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      const importSpecifiers = sourceFile.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue() ?? "");
-      return FORBIDDEN_IMPORT_MARKERS.some((marker) => importSpecifiers.some((specifier) => specifier.includes(marker))) ? [relativePath] : [];
-    });
-    if (forbiddenImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: forbiddenImports[0]!, line: 1, severity: "fatal", message: "Commander Console root must not import local-data, old runtime builders, or platform/runtime internals." }));
+    const forbiddenImportFile = commanderSourceFiles.find((sourceFile) => FORBIDDEN_IMPORT_MARKERS.some((marker) => hasImportModuleSpecifier(sourceFile, marker)));
+    if (forbiddenImportFile) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: toRepoRelativePath(forbiddenImportFile.getFilePath()), line: 1, severity: "fatal", message: "Commander Console root must not import browser/runtime internals or retired legacy surfaces directly." }));
     }
 
-    const directOrchestrationCalls = hasImportModuleSpecifier(abilityGroupSource, "capabilities/orchestration")
-      || hasIdentifier(abilityGroupSource, "OrchestrationAbilityGroup")
-      || hasCallExpressionPath(abilityGroupSource, ["setCandidateDisposition"])
-      || hasCallExpressionPath(abilityGroupSource, ["resetLocalStore"])
-      || hasCallExpressionPath(abilityGroupSource, ["this", "orchestration", "startMission"])
-      || hasCallExpressionPath(abilityGroupSource, ["this", "orchestration", "pauseMission"])
-      || hasCallExpressionPath(abilityGroupSource, ["this", "orchestration", "resumeMission"])
-      || hasCallExpressionPath(abilityGroupSource, ["this", "orchestration", "stopMission"])
-      || hasCallExpressionPath(abilityGroupSource, ["this", "orchestration", "emergencyStop"]);
-    if (directOrchestrationCalls) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: ABILITY_GROUP_PATH, line: 1, severity: "fatal", message: "Commander Console ability-group must use ports and command transport, not direct orchestration or review mutations." }));
+    const antiEscapeFile = commanderSourceFiles.find((sourceFile) => hasDynamicImport(sourceFile) || hasAsAny(sourceFile) || hasAnyKeyword(sourceFile) || hasRecordUnknown(sourceFile));
+    if (antiEscapeFile) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: toRepoRelativePath(antiEscapeFile.getFilePath()), line: 1, severity: "fatal", message: "Commander Console root must not use dynamic import, any, or Record<string, unknown> escape hatches." }));
     }
 
-    const externalChildImports = project.getSourceFiles().flatMap((sourceFile) => {
-      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
-      return sourceFile.getImportDeclarations().flatMap((declaration) => {
-        const specifier = declaration.getModuleSpecifierValue() ?? "";
-        return specifier.includes("capabilities/commander-console/children/") && !relativePath.startsWith(`${ROOT}/`)
-          ? [relativePath]
-          : [];
-      });
-    });
-    if (externalChildImports.length > 0) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: externalChildImports[0]!, line: 1, severity: "fatal", message: "Commander Console child implementations must stay private to the canonical root." }));
+    const taskCutoverPassed = hasCallExpressionPath(taskHandlerSource, ["activeWorkbench", "commanderConsole", "execute"])
+      && !hasLiteralTextFragment(taskHandlerSource, "issueHumanCommand(")
+      && !hasLiteralTextFragment(taskHandlerSource, "pauseMission(")
+      && !hasLiteralTextFragment(taskHandlerSource, "stopMission(")
+      && !hasImportModuleSpecifier(taskHandlerSource, "command-builder");
+    if (!taskCutoverPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "Task API handlers must route through commanderConsole.execute and must not revive legacy command builders." }));
     }
 
-    const taskHandlerCutoverPassed = hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "commanderConsole", "issueHumanCommand"])
-      && hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "commanderConsole", "pauseMission"])
-      && hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "commanderConsole", "stopMission"])
-      && !hasStringLiteral(taskHandlerSource, "/api/runtime/reset-store")
-      && !hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "startTask"])
-      && !hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "pauseTask"])
-      && !hasPropertyAccessPath(taskHandlerSource, ["activeWorkbench", "stopTask"]);
-    if (!taskHandlerCutoverPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "Task API handlers must route human commands through Commander Console only and must not expose reset-store." }));
-    }
-
-    const candidateCutoverPassed = hasPropertyAccessPath(candidateHandlerSource, ["activeWorkbench", "commanderConsole", "approveCandidate"])
-      && hasPropertyAccessPath(candidateHandlerSource, ["activeWorkbench", "commanderConsole", "rejectCandidate"])
-      && hasPropertyAccessPath(candidateHandlerSource, ["activeWorkbench", "commanderConsole", "markReviewRequired"]);
+    const candidateCutoverPassed = hasCallExpressionPath(candidateHandlerSource, ["activeWorkbench", "commanderConsole", "execute"])
+      && !hasLiteralTextFragment(candidateHandlerSource, "approveCandidate(")
+      && !hasLiteralTextFragment(candidateHandlerSource, "rejectCandidate(")
+      && !hasLiteralTextFragment(candidateHandlerSource, "markReviewRequired(")
+      && !hasImportModuleSpecifier(candidateHandlerSource, "review-decision");
     if (!candidateCutoverPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "Candidate review routes must use Commander Console review methods." }));
-    }
-
-    const shellCutoverPassed = hasImportModuleSpecifier(serverHelperSource, "local-app-shell/render-commander-console-page")
-      && !hasImportModuleSpecifier(serverHelperSource, "operator-control")
-      && !hasExportModuleSpecifier(serverHelperSource, "operator-control")
-      && hasLiteralTextFragment(shellRenderSource, "commanderConsoleShell.issueCommand('/api/tasks/start')")
-      && !hasLiteralTextFragment(shellRenderSource, "/api/runtime/reset-store");
-    if (!shellCutoverPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: SHELL_RENDER_PATH, line: 1, severity: "fatal", message: "Local App Shell must render Commander Console without reviving reset-store or operator-control paths." }));
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "Candidate review handlers must route through commanderConsole.execute only." }));
     }
 
     const workbenchCutoverPassed = hasCallExpressionPath(workbenchSource, ["this", "nerveBusAbilityGroup", "dispatchHumanCommand"])
-      && hasPropertyNamed(workbenchSource, "humanCommandHandler")
-      && !hasImportModuleSpecifier(workbenchSource, "build-browse-runtime-snapshot")
-      && !hasImportModuleSpecifier(workbenchSource, "build-runtime-skill-matrix-snapshot")
-      && !workbenchSource.getClass("GrassEyeWorkbench")?.getMethod("updateCandidateDisposition")
-      && !workbenchSource.getClass("GrassEyeWorkbench")?.getMethod("resetLocalStore");
+      && hasCallExpressionPath(workbenchSource, ["this", "commanderConsole", "execute"])
+      && hasIdentifier(workbenchSource, "defaultOperatorRef")
+      && !hasLiteralTextFragment(workbenchSource, "showMissionDashboard(");
     if (!workbenchCutoverPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must compose Commander Console through Nerve Bus human command transport and read-model ports." }));
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must compose Commander Console through execute plus Nerve Bus human command transport." }));
     }
 
-    const silentPlatformFallbackDetected = createInputProps.has("defaultRequestedPlatformId")
-      || hasIdentifier(abilityGroupSource, "defaultRequestedPlatformId")
-      || hasIdentifier(workbenchSource, "defaultRequestedPlatformId")
-      || hasNullishCoalescingLiteral(workbenchSource, "tiktok-web");
-    if (silentPlatformFallbackDetected) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Commander command transport must not recover missing platform truth through defaultRequestedPlatformId or a tiktok-web fallback." }));
+    const shellCutoverPassed = hasImportModuleSpecifier(serverHelperSource, "local-app-shell/render-commander-console-page")
+      && hasImportModuleSpecifier(shellRenderSource, "./commander-console-page-model")
+      && !hasImportModuleSpecifier(shellRenderSource, "command-transport-port")
+      && hasLiteralTextFragment(shellRenderSource, "/api/tasks/start");
+    if (!shellCutoverPassed) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: SHELL_RENDER_PATH, line: 1, severity: "fatal", message: "Local App Shell must render commander views through its local page model and must not reach transport internals." }));
     }
 
-    const startupPassed = !startupSource.includes("startTask(")
-      && !startupSource.includes("beginMissionRuntime(")
-      && !startupSource.includes("issueHumanCommand(");
-    if (!startupPassed) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: STARTUP_PATH, line: 1, severity: "fatal", message: "Startup must remain bootstrap-only and must not issue governed commands." }));
+    if (!hasIdentifier(shellPageModelSource, "buildCommanderConsolePageModel")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: SHELL_PAGE_MODEL_PATH, line: 1, severity: "fatal", message: "Local App Shell must own the commander page-model builder after the rebuild." }));
     }
 
-    const driftMarkers = [...rootSourceFiles, taskHandlerSource, candidateHandlerSource, serverHelperSource, shellRenderSource, workbenchSource]
-      .some((sourceFile) => sourceCarriesDriftMarker(sourceFile));
-    if (driftMarkers) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Commander Console migration must not reintroduce compat, legacy, or bridge drift." }));
+    const externalRuntimeLeak = project.getSourceFiles().find((sourceFile) => {
+      const relativePath = toRepoRelativePath(sourceFile.getFilePath());
+      if (relativePath.startsWith(`${ROOT}/`)) {
+        return false;
+      }
+
+      return sourceFile.getImportDeclarations().some((declaration) => {
+        const specifier = declaration.getModuleSpecifierValue() ?? "";
+        return specifier.includes("capabilities/commander-console/children/")
+          || specifier.includes("capabilities/commander-console/runtime/")
+          || specifier.includes("capabilities/commander-console/ports/command-transport-port");
+      });
+    });
+    if (externalRuntimeLeak) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: toRepoRelativePath(externalRuntimeLeak.getFilePath()), line: 1, severity: "fatal", message: "External modules must not import Commander Console children, runtime internals, or command transport port directly." }));
     }
 
-    const verifyScriptExists = await fileExists(pathFromRepoRoot(VERIFY_PATH));
-    if (verifyScriptExists) {
-      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: VERIFY_PATH, line: 1, severity: "fatal", message: "Commander Console must not introduce a verify-* release gate." }));
+    if (startupSource.includes("issueHumanCommand(") || startupSource.includes("commanderConsole.execute(")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: STARTUP_PATH, line: 1, severity: "fatal", message: "Startup must remain bootstrap-only and must not issue Commander commands." }));
     }
 
-    const legacyRootExists = await fileExists(pathFromRepoRoot(LEGACY_OPERATOR_CONTROL_ROOT));
-    if (legacyRootExists) {
+    if (await fileExists(pathFromRepoRoot(LEGACY_OPERATOR_CONTROL_ROOT))) {
       findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: LEGACY_OPERATOR_CONTROL_ROOT, line: 1, severity: "fatal", message: "Deleted operator-control root must stay removed." }));
     }
 
     const requiredShapePassed = requiredFiles.every((entry) => entry.exists)
-      && contractShapePassed
-      && REQUIRED_CHILDREN.every((childId) => childFileSet.has(`${CHILDREN_ROOT}/${childId}/implementation.ts`));
-    const boundaryPurityPassed = forbiddenImports.length === 0 && !directOrchestrationCalls && retiredFiles.every((entry) => !entry.exists);
-    const cutoverPassed = taskHandlerCutoverPassed && candidateCutoverPassed && shellCutoverPassed && workbenchCutoverPassed && startupPassed;
-    const antiDriftPassed = externalChildImports.length === 0 && !indexExportsChildren && !verifyScriptExists && !driftMarkers && !legacyRootExists;
+      && REQUIRED_CHILDREN.every((childId) => childDirectoryFiles(childId).every((filePath) => childFileSet.has(filePath)));
+    const architecturePassed = executeContractPassed && thinAbilityGroupPassed && executorProofPassed && !hasExportStar(indexSource);
+    const cutoverPassed = taskCutoverPassed && candidateCutoverPassed && workbenchCutoverPassed && shellCutoverPassed;
+    const antiEscapePassed = !forbiddenImportFile && !antiEscapeFile && !externalRuntimeLeak;
 
     const localAppShell = await inspectLocalAppShellBoundary();
     const startupEntrypoint = await inspectStartupEntrypointBoundary();
@@ -337,10 +390,10 @@ export default createPendingDomainInspector({
     return {
       findings: [...findings, ...localAppShell.findings, ...startupEntrypoint.findings],
       phases: [
-        createPhase("commander-console-required-shape", requiredShapePassed ? "PASS" : "CODE VIOLATION", requiredShapePassed, requiredShapePassed ? "Commander Console canonical root contains ports, shared contracts, and real child implementation folders." : "Commander Console canonical shape is incomplete."),
-        createPhase("commander-console-boundary-purity", boundaryPurityPassed ? "PASS" : "CODE VIOLATION", boundaryPurityPassed, boundaryPurityPassed ? "Commander Console root stays clean from local-data, old runtime builders, and direct orchestration mutations." : "Commander Console root still carries forbidden imports, direct mutations, or retired residue."),
-        createPhase("commander-console-entry-cutover", cutoverPassed ? "PASS" : "CODE VIOLATION", cutoverPassed, cutoverPassed ? "Human command entry, candidate review routes, Local App Shell, and workbench transport are cut over to Commander Console." : "Command entry or transport cutover is incomplete."),
-        createPhase("commander-console-anti-drift", antiDriftPassed ? "PASS" : "CODE VIOLATION", antiDriftPassed, antiDriftPassed ? "Commander Console keeps one canonical root with no child leakage, verify escape, or legacy drift." : "Commander Console still shows child leakage, verify escape, or legacy drift."),
+        createPhase("commander-console-required-shape", requiredShapePassed ? "PASS" : "CODE VIOLATION", requiredShapePassed, requiredShapePassed ? "Commander Console canonical root contains schema, runtime, shared layers, and real child folders." : "Commander Console canonical root is missing required schema/runtime/shared or child files."),
+        createPhase("commander-console-architecture", architecturePassed ? "PASS" : "CODE VIOLATION", architecturePassed, architecturePassed ? "Commander Console public surface is execute-only, thin, and always emits governed results plus runtime proof." : "Commander Console public surface or runtime pipeline drifted away from the rebuilt execute architecture."),
+        createPhase("commander-console-cutover", cutoverPassed ? "PASS" : "CODE VIOLATION", cutoverPassed, cutoverPassed ? "Workbench, HTTP handlers, and Local App Shell are fully cut over to Commander Console execute." : "Workbench, HTTP handlers, or Local App Shell still depend on legacy Commander Console surfaces."),
+        createPhase("commander-console-anti-escape", antiEscapePassed ? "PASS" : "CODE VIOLATION", antiEscapePassed, antiEscapePassed ? "Commander Console keeps one canonical root with no transport/runtime leakage and no dynamic or any escape hatches." : "Commander Console still exposes transport/runtime leakage or escape hatches."),
         ...localAppShell.phases,
         ...startupEntrypoint.phases,
       ],

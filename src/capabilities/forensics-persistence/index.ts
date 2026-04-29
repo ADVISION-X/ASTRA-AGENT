@@ -10,21 +10,40 @@ export {
   type ForensicsPersistenceAbilityGroup,
   type ForensicsPersistenceAbilityGroupId,
   type ForensicsPersistenceAbilityInput,
+  type ForensicsPersistenceAbilityResult,
   type ForensicsPersistenceChildCapability,
   type ForensicsPersistenceChildCapabilityId,
   type ForensicsPersistenceRequest,
   type ForensicsRuntimeSnapshotInput,
   type ForensicsStructuredActionLogInput,
   type ForensicsStructuredRuntimeEventInput,
-  type ForensicsAbilityInputBase,
 } from "./contract.js";
-export { createForensicsPersistenceRegistry } from "./registry.js";
-export type { ForensicsStoragePort, ForensicsRecordQuery, StoredForensicsRecord } from "./storage-ports.js";
-export type { ForensicsArtifactRef } from "./shared/artifact-ref.js";
-export type { ForensicsFailureReason } from "./shared/failure.js";
-export type { ForensicsIntegrityPolicy } from "./shared/integrity-policy.js";
-export type { ForensicsPersistencePolicy } from "./shared/persistence-policy.js";
-export type { ForensicsPersistenceAbilityResult } from "./shared/persistence-result.js";
-export type { ForensicsRecordEnvelope, ForensicsRecordEnvelopePayload, ForensicsRecordType } from "./shared/record-envelope.js";
-export type { ForensicsRecordRef } from "./shared/record-ref.js";
-export type { ForensicsRuntimeProof } from "./shared/runtime-proof.js";
+export { listForensicsPersistenceChildren } from "./registry.js";
+export {
+  ForensicsAbilityInputSchema,
+  ForensicsArtifactRefSchema,
+  ForensicsChildCapabilityIdSchema,
+  ForensicsIntegrityPolicySchema,
+  ForensicsPersistencePolicySchema,
+  ForensicsRecordRefSchema,
+  ForensicsRecordTypeSchema,
+  ForensicsResultSchema,
+  ForensicsRuntimeProofSchema,
+  type ForensicsArtifactRef,
+  type ForensicsFailure,
+  type ForensicsIntegrityDecision,
+  type ForensicsIntegrityPolicy,
+  type ForensicsPersistedOutput,
+  type ForensicsPersistencePolicy,
+  type ForensicsPolicyDecision,
+  type ForensicsRecordEnvelope,
+  type ForensicsRecordQuery,
+  type ForensicsRecordRef,
+  type ForensicsRecordType,
+  type ForensicsResult,
+  type ForensicsRuntimeProof,
+  type StoredForensicsRecord,
+} from "./schema.js";
+export type { ForensicsStoragePort } from "./ports/forensics-storage-port.js";
+export type { ForensicsArtifactStoragePort } from "./ports/forensics-artifact-storage-port.js";
+export type { ForensicsClockPort } from "./ports/forensics-clock-port.js";

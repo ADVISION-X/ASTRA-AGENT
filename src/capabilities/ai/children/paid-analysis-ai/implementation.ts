@@ -4,6 +4,8 @@ import {
   type AiChildCapability,
   type AiExecutionOptions,
 } from "../../contract.js";
+import { buildAiDispatchFailureResult, buildAiPolicyFailureResult } from "../../runtime/ai-runtime-failure-result.js";
+import { collectAiRuntimePolicyViolations } from "../../runtime/ai-runtime-policy-gate.js";
 
 export function createPaidAnalysisAiCapability(): AiChildCapability {
   return {
@@ -26,12 +28,31 @@ export function createPaidAnalysisAiCapability(): AiChildCapability {
         enabledByPolicy: false,
       };
     },
-    async execute(request, context: AiCapabilityContext, options?: AiExecutionOptions) {
+    async execute(request, context: AiCapabilityContext, _options?: AiExecutionOptions) {
       if (!this.canHandle(request.taskType)) {
-        throw new Error(`paid-analysis-ai cannot execute ${request.taskType}.`);
+        return buildAiDispatchFailureResult({
+          request,
+          promptContract: context.runtime.resolvePromptContract(request.taskType),
+          childCapabilityId: "paid-analysis-ai",
+          startedAt: new Date().toISOString(),
+          failureReason: `paid-analysis-ai cannot execute ${request.taskType}.`,
+          implementationStatus: "task_type_mismatch",
+        });
       }
 
-      return context.runtime.execute(request, options);
+      const startedAt = new Date().toISOString();
+      const promptContract = context.runtime.resolvePromptContract(request.taskType);
+      return buildAiPolicyFailureResult({
+        request,
+        promptContract,
+        childCapabilityId: "paid-analysis-ai",
+        startedAt,
+        reasons: collectAiRuntimePolicyViolations({
+          request,
+          childCapabilityId: "paid-analysis-ai",
+          promptContract,
+        }),
+      });
     },
   };
 }

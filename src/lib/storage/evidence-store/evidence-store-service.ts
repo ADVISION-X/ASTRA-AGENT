@@ -13,10 +13,9 @@ import {
   BrowseLedgerEntrySchema,
   ProductDiscoveryEvidencePacketSchema,
 } from "../../../types/evidence-packet.js";
-import { AiAbilityResultSchema } from "../../../capabilities/ai/schema-validation.js";
-import type { AiAbilityResult } from "../../../capabilities/ai/contract.js";
 import { ActionLogSchema, type ActionLog } from "../../../types/platform-action.js";
 import type { ProductOpportunityCandidate } from "../../../types/product-opportunity.js";
+import { StoredAiResultSchema, type StoredAiResult } from "../../../types/stored-ai-result.js";
 import type { AgentRound, ReviewDisposition, RuntimeStatus, TaskRun } from "../../../types/task-run.js";
 import { StructuredActionLogSchema, StructuredRuntimeEventSchema, type StructuredActionLog, type StructuredRuntimeEvent } from "../../../types/structured-log.js";
 import { type ImageEvidenceInput } from "./evidence-store-artifacts.js";
@@ -135,9 +134,9 @@ export class EvidenceStoreService {
     return parsed;
   }
 
-  async saveAiResult(input: AiAbilityResult): Promise<AiAbilityResult> {
+  async saveAiResult(input: unknown): Promise<StoredAiResult> {
     const state = await this.listState();
-    const parsed = AiAbilityResultSchema.parse(input);
+    const parsed = StoredAiResultSchema.parse(input);
     state.aiResults.push(parsed);
     await this.stateStore.write(state);
     return parsed;

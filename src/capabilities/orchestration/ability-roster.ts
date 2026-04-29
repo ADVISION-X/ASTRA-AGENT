@@ -1,4 +1,4 @@
-import type { AbilityTargetId } from "../nerve-bus/shared/envelope.js";
+import type { AbilityTargetId } from "../nerve-bus/index.js";
 
 export type AbilityStrength = "stub" | "diagnostic" | "runnable" | "verified" | "hardened";
 

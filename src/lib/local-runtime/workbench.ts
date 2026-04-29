@@ -4,11 +4,15 @@ import { readFile } from "node:fs/promises";
 import {
   createCommanderConsoleAbilityGroup,
 } from "../../capabilities/commander-console/index.js";
-import type { CommanderHumanCommand } from "../../capabilities/commander-console/index.js";
-import type { CommanderAuditSummary } from "../../capabilities/commander-console/shared/view-model-types.js";
-import { createAbilityRoster } from "../../capabilities/orchestration/ability-roster.js";
+import type {
+  CommanderAuditSummary,
+  CommanderConsoleAbilityGroup,
+  CommanderHumanCommandInput,
+  CommanderMissionDashboardView,
+} from "../../capabilities/commander-console/index.js";
+import { createAbilityRoster, createOrchestrationAbilityGroup, MissionRuntimeExecutor, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
 import type { OpenDrawer } from "../../capabilities/open/contract.js";
-import { createOpenDrawer } from "../../capabilities/open/orchestrate-open.js";
+import { createOpenDrawer } from "../../capabilities/open/index.js";
 import { AI_ABILITY_GROUP_ID, createAiAbilityGroup, type AiAbilityGroup } from "../../capabilities/ai/index.js";
 import {
   createForensicsPersistenceAbilityGroup,
@@ -21,10 +25,12 @@ import { createPostActionVerificationAbilityGroup, type PostActionVerificationAb
 import { createScreenshotAbilityGroup, type ScreenshotAbilityGroup } from "../../capabilities/screenshot/index.js";
 import { createVisualTargetAbilityGroup, type VisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
 import { createNerveBusAbilityGroup, type NerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
-import { createOrchestrationAbilityGroup, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
-import { createEvidenceStoreForensicsStoragePort } from "../storage/evidence-store/forensics-storage-adapter.js";
+import {
+  createEvidenceStoreForensicsArtifactStoragePort,
+  createEvidenceStoreForensicsRecordStoragePort,
+} from "../storage/evidence-store/forensics-storage-adapter.js";
 import { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
-import type { HumanCommandEnvelope, HumanCommandResultEnvelope, HumanCommandTargetId } from "../../capabilities/nerve-bus/shared/envelope.js";
+import type { HumanCommandEnvelope, HumanCommandResultEnvelope, HumanCommandTargetId } from "../../capabilities/nerve-bus/index.js";
 import { TikTokPlatformAdapter } from "./tiktok-platform/runtime.js";
 import type { PlatformAdapter } from "./platform-runtime-contract.js";
 import type { BrowserController } from "../browser/browser-controller.js";
@@ -32,8 +38,8 @@ import { createLocalBrowserSessionConfig } from "../browser/local-browser-sessio
 import { CurrentChromeBrowserController } from "../browser/current-chrome-browser-controller.js";
 import { createBrowserControllerMouseClickPrimitivePort } from "../browser/mouse-click-primitive-port.js";
 import { createBrowserControllerMouseScrollPrimitivePort } from "../browser/mouse-scroll-primitive-port.js";
-import { MissionRuntimeExecutor } from "../../capabilities/orchestration/bounded-local-runtime-execution/executor.js";
 import { getDefaultLocalDataDir } from "./default-data-dir.js";
+import { createId } from "./ids.js";
 import type { RuntimeHealthReport } from "../../types/runtime.js";
 import { VisionProductPresenceRequestInputSchema } from "../../types/vision-product-presence.js";
 import {
@@ -72,7 +78,7 @@ export class GrassEyeWorkbench {
   readonly missionRuntimeExecutor: MissionRuntimeExecutor;
   readonly nerveBusAbilityGroup: NerveBusAbilityGroup;
   readonly orchestrationAbilityGroup: OrchestrationAbilityGroup;
-  readonly commanderConsole;
+  readonly commanderConsole: CommanderConsoleAbilityGroup;
   readonly browserSessionConfig;
 
   constructor(private readonly options: GrassEyeWorkbenchOptions) {
@@ -152,16 +158,24 @@ export class GrassEyeWorkbench {
           },
         });
         this.commanderConsole = createCommanderConsoleAbilityGroup({
+          defaultOperatorRef: "commander-console:operator",
           commandTransport: {
             emitHumanCommand: async (command) => {
               const envelope = this.buildHumanCommandEnvelope(command);
               const transport = await this.nerveBusAbilityGroup.dispatchHumanCommand(envelope);
+              const status = transport.resultEnvelope.status === "success"
+                ? "accepted"
+                : transport.resultEnvelope.status;
               return {
                 commandId: command.commandId,
                 envelopeRef: envelope.envelopeId,
-                status: transport.resultEnvelope.status === "failed" ? "failed" : "accepted",
-                payload: transport.resultEnvelope.payload,
+                resultEnvelopeRef: transport.resultEnvelope.envelopeId,
+                status,
                 failureReason: transport.resultEnvelope.failureReason,
+                reviewRequiredReason: transport.resultEnvelope.status === "review_required"
+                  ? (transport.resultEnvelope.failureReason ?? "review required")
+                  : null,
+                message: this.describeHumanCommandTransportMessage(transport.resultEnvelope),
                 debugLogRef: null,
               };
             },
@@ -195,7 +209,12 @@ export class GrassEyeWorkbench {
                 useCase: candidate.useCase,
                 score: candidate.score,
                 purchaseIntent: candidate.purchaseIntent,
-                reviewStatus: candidate.reviewStatus,
+                reviewStatus:
+                  candidate.reviewStatus === "approve"
+                    ? "approved"
+                    : candidate.reviewStatus === "reject"
+                      ? "rejected"
+                      : candidate.reviewStatus,
                 evidenceCount: candidate.evidenceRefs.length,
                 notes: candidate.notes,
                 createdAt: candidate.createdAt,
@@ -378,7 +397,8 @@ export class GrassEyeWorkbench {
         });
     this.aiAbilityGroup = createAiAbilityGroup();
     this.forensicsPersistenceAbilityGroup = createForensicsPersistenceAbilityGroup({
-      storage: createEvidenceStoreForensicsStoragePort(this.evidenceStore),
+      recordStorage: createEvidenceStoreForensicsRecordStoragePort(this.evidenceStore),
+      artifactStorage: createEvidenceStoreForensicsArtifactStoragePort(),
     });
     if (options.platformTarget !== "tiktok-web") {
       throw new Error(`Unsupported GrassEye platform target: ${options.platformTarget}`);
@@ -448,23 +468,25 @@ export class GrassEyeWorkbench {
     };
   }
 
-  async getCommanderConsoleSnapshot() {
-    return this.commanderConsole.showMissionDashboard();
+  async getCommanderConsoleSnapshot(): Promise<CommanderMissionDashboardView> {
+    const result = await this.commanderConsole.execute({
+      childCapabilityId: "show-mission-dashboard",
+      operatorRef: "commander-console:shell",
+      input: {},
+    });
+    if (result.status !== "success" || result.output === null) {
+      throw new Error(result.failureReason ?? result.reviewRequiredReason ?? "Failed to read commander dashboard.");
+    }
+
+    return result.output as CommanderMissionDashboardView;
   }
 
-  private buildHumanCommandEnvelope(command: CommanderHumanCommand): HumanCommandEnvelope {
-    const payload = {
-      operatorRef: command.operatorRef,
-      targetRecordRef: command.targetRecordRef,
-      requestedPlatformId: command.requestedPlatformId,
-      humanGoal: command.humanGoal,
-      initialPayload: command.initialPayload,
-      operatorNote: command.operatorNote,
-    };
-
+  private buildHumanCommandEnvelope(command: CommanderHumanCommandInput): HumanCommandEnvelope {
+    const commandId = createId("commander_command");
+    const payload = command.initialPayload ?? {};
     return {
-      envelopeId: `commander-console:${command.commandId}`,
-      commandId: command.commandId,
+      envelopeId: `commander-console:${commandId}`,
+      commandId,
       missionId: command.targetMissionId ?? "human-command",
       mapId: command.selectedMapId ?? "human-command",
       stepId: command.commandType,
@@ -475,8 +497,21 @@ export class GrassEyeWorkbench {
       commandType: command.commandType,
       payloadRef: Object.keys(payload),
       payload,
-      createdAt: command.createdAt,
+      createdAt: new Date().toISOString(),
     };
+  }
+
+  private describeHumanCommandTransportMessage(resultEnvelope: HumanCommandResultEnvelope): string {
+    if (resultEnvelope.status === "failed") {
+      return resultEnvelope.failureReason ?? "command transport failed";
+    }
+
+    if (resultEnvelope.status === "review_required") {
+      return resultEnvelope.failureReason ?? "command transport requires review";
+    }
+
+    const payload = resultEnvelope.payload as { missionStatus?: string; reviewStatus?: string };
+    return payload.missionStatus ?? payload.reviewStatus ?? "command accepted";
   }
 
   private buildHumanCommandResultEnvelope(input: {
@@ -508,7 +543,8 @@ export class GrassEyeWorkbench {
           const payload = envelope.payload as {
             humanGoal?: string | null;
             requestedPlatformId?: GrassEyePlatformTarget | null;
-            initialPayload?: Record<string, unknown>;
+            selectedMapId?: string | null;
+            operatorNote?: string | null;
           };
           if (!payload.requestedPlatformId) {
             return this.buildHumanCommandResultEnvelope({
@@ -522,7 +558,11 @@ export class GrassEyeWorkbench {
             missionId: envelope.missionId,
             humanGoal: payload.humanGoal ?? "Discover evidence-backed product opportunities from the active social feed.",
             requestedPlatform: payload.requestedPlatformId,
-            initialPayload: payload.initialPayload ?? {},
+            initialPayload: {
+              requestedBy: "commander-console",
+              ...(payload.selectedMapId ? { selectedMapId: payload.selectedMapId } : {}),
+              ...(payload.operatorNote ? { operatorNote: payload.operatorNote } : {}),
+            },
           });
           return this.buildHumanCommandResultEnvelope({
             envelope,

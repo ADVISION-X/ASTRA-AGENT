@@ -18,7 +18,7 @@ import type {
   PhaseGate,
 } from "./core/schema.js";
 import { readJsonFile } from "./core/filesystem.js";
-import { REQUIRED_PHASE_DOMAINS } from "./core/required-phase-domains.js";
+import { loadFrozenBaselineDomains } from "./core/frozen-baseline.js";
 import { stringifyYaml } from "./core/yaml.js";
 
 const collectManifestConflicts = async (
@@ -27,6 +27,8 @@ const collectManifestConflicts = async (
   phaseGate: PhaseGate,
 ): Promise<AuditConflict[]> => {
   const conflicts: AuditConflict[] = [];
+  const frozenBaseline = await loadFrozenBaselineDomains();
+  const requiredPhaseDomains = frozenBaseline.activeCapabilityDomains;
   const lawsByDomain = new Map<string, LawRecord[]>();
 
   for (const law of laws) {
@@ -77,12 +79,23 @@ const collectManifestConflicts = async (
     }
   }
 
-  for (const requiredDomain of REQUIRED_PHASE_DOMAINS) {
+  for (const requiredDomain of requiredPhaseDomains) {
     if (!phaseGate.activeCapabilityDomains.includes(requiredDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
         message: "Current frozen phase gate is missing a required capability domain.",
         capabilityDomain: requiredDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+  }
+
+  for (const deletedOwnerDomain of frozenBaseline.deletedOwnerDomains) {
+    if (phaseGate.activeCapabilityDomains.includes(deletedOwnerDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Current frozen phase gate must not reactivate a deleted owner domain.",
+        capabilityDomain: deletedOwnerDomain,
         file: toRepoRelativePath(defaultPhaseGatePath),
       });
     }
@@ -171,6 +184,7 @@ export const buildAuditArtifacts = async (): Promise<{
   const { laws, conflicts: lawConflicts } = await parseModuleLaws();
   const manifests = await loadDomainManifests();
   const phaseGate = await readJsonFile<PhaseGate>(defaultPhaseGatePath);
+  const frozenBaseline = await loadFrozenBaselineDomains();
 
   const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
   const lawsByDomain = new Map<string, LawRecord[]>();
@@ -232,12 +246,23 @@ export const buildAuditArtifacts = async (): Promise<{
   };
 
   const plannedDomains = new Set(auditPlanOwners.map((owner) => owner.capabilityDomain));
-  for (const requiredDomain of REQUIRED_PHASE_DOMAINS) {
+  for (const requiredDomain of frozenBaseline.activeCapabilityDomains) {
     if (!plannedDomains.has(requiredDomain)) {
       auditConflicts.conflicts.push({
         kind: "PLAN",
         message: "Generated audit plan is missing a required capability domain.",
         capabilityDomain: requiredDomain,
+        file: toRepoRelativePath(generatedArtifactPaths.auditPlan),
+      });
+    }
+  }
+
+  for (const deletedOwnerDomain of frozenBaseline.deletedOwnerDomains) {
+    if (plannedDomains.has(deletedOwnerDomain)) {
+      auditConflicts.conflicts.push({
+        kind: "PLAN",
+        message: "Generated audit plan must not reactivate a deleted owner domain.",
+        capabilityDomain: deletedOwnerDomain,
         file: toRepoRelativePath(generatedArtifactPaths.auditPlan),
       });
     }

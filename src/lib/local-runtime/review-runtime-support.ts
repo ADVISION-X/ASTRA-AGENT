@@ -8,7 +8,7 @@ import type { ImageEvidence, EvidenceRef } from "../../types/evidence.js";
 import type { RuntimeDeliveryState } from "../../types/runtime.js";
 import type { StructuredRuntimeSnapshotSummary } from "../../types/structured-log.js";
 import { isLocalAiRuntimeError } from "../local-ai/local-ai-runtime-error.js";
-import { finalizeRoundArtifacts } from "../../capabilities/orchestration/bounded-local-runtime-execution/round-finalization/finalize-runtime-round.js";
+import { finalizeRoundArtifacts } from "../../capabilities/orchestration/index.js";
 import { emitRuntimeSnapshotSummary, emitSupplementalRuntimeEvent, recordRoundLifecycleStep } from "./runtime-proof-support.js";
 
 function describeLocalAiFailure(error: unknown): {

@@ -1,11 +1,32 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
-import { mapDispositionToCommandType, mapReviewStatusToCommandType } from "../capabilities/commander-console/shared/review-decision.js";
 import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
 import { parseJsonBody } from "./workbench-api-helpers.js";
 
 const getCandidateIdFromPath = (url: URL): string | undefined => url.pathname.split("/")[3];
+
+function mapReviewStatusToChildId(reviewStatus: "approved" | "rejected" | "archived" | "pending") {
+  switch (reviewStatus) {
+    case "approved":
+      return "approve-candidate" as const;
+    case "rejected":
+      return "reject-candidate" as const;
+    default:
+      return "mark-review-required" as const;
+  }
+}
+
+function mapDispositionToChildId(disposition: "approve" | "reject" | "hold" | "pending") {
+  switch (disposition) {
+    case "approve":
+      return "approve-candidate" as const;
+    case "reject":
+      return "reject-candidate" as const;
+    default:
+      return "mark-review-required" as const;
+  }
+}
 
 export async function handleCandidateReview(
   request: IncomingMessage,
@@ -20,13 +41,15 @@ export async function handleCandidateReview(
     return;
   }
 
+  const result = await activeWorkbench.commanderConsole.execute({
+    childCapabilityId: mapReviewStatusToChildId(body.reviewStatus),
+    operatorRef: "commander-console:http",
+    input: {
+      candidateId,
+      operatorNote: body.note?.trim() || null,
+    },
+  });
   response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-  const commandType = mapReviewStatusToCommandType(body.reviewStatus);
-  const result = commandType === "approve-candidate"
-    ? await activeWorkbench.commanderConsole.approveCandidate(candidateId, body.note)
-    : commandType === "reject-candidate"
-      ? await activeWorkbench.commanderConsole.rejectCandidate(candidateId, body.note)
-      : await activeWorkbench.commanderConsole.markReviewRequired(candidateId, body.note);
   response.end(JSON.stringify(result, null, 2));
 }
 
@@ -43,13 +66,15 @@ export async function handleCandidateDisposition(
     return;
   }
 
+  const result = await activeWorkbench.commanderConsole.execute({
+    childCapabilityId: mapDispositionToChildId(body.disposition),
+    operatorRef: "commander-console:http",
+    input: {
+      candidateId,
+      operatorNote: body.note?.trim() || null,
+    },
+  });
   response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-  const commandType = mapDispositionToCommandType(body.disposition);
-  const result = commandType === "approve-candidate"
-    ? await activeWorkbench.commanderConsole.approveCandidate(candidateId, body.note)
-    : commandType === "reject-candidate"
-      ? await activeWorkbench.commanderConsole.rejectCandidate(candidateId, body.note)
-      : await activeWorkbench.commanderConsole.markReviewRequired(candidateId, body.note);
   response.end(JSON.stringify(result, null, 2));
 }
 
