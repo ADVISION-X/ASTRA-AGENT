@@ -173,13 +173,25 @@ export type AiChildCapability = {
   implementation: AiChildImplementation;
 };
 
+export type AiChildCapabilityRegistryEntry = {
+  childCapabilityId: AiChildCapabilityId;
+  providerKind: AiProviderKind;
+  allowedTaskTypes: readonly AiTaskType[];
+  executable: boolean;
+  inputSchema: z.ZodType<unknown>;
+  outputSchema: z.ZodType<unknown>;
+  boundaryPolicy: AiChildContract["boundaryPolicy"];
+  proofPolicy: AiChildContract["proofPolicy"];
+  disabledPolicy: "enabled" | "disabled_by_policy";
+  contract: AiChildContract;
+  implementation: AiChildImplementation;
+};
+
 export interface AiAbilityGroup {
   listChildCapabilityIds(): AiChildCapabilityId[];
   execute(input: AiAbilityInput): Promise<AiAbilityOutcome>;
   getHealth(): Promise<AiHealthReport>;
   getRuntimeHealth(): Promise<AiRuntimeHealth>;
-  getPromptContract(taskType: AiTaskType): AiPromptContract;
-  getModelRoster(): Promise<AiModelRoster>;
 }
 
 export type { AiRuntimePort } from "./ports/ai-runtime-port.js";

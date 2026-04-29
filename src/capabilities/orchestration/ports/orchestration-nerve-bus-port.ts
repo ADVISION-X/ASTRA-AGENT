@@ -7,7 +7,7 @@ import type {
   TransitionStatusSchema,
 } from "../schema.js";
 
-export type AbilityDispatchTarget = z.output<typeof AllowedAbilityGroupIdSchema>;
+export type AbilityDispatchTarget = Exclude<z.output<typeof AllowedAbilityGroupIdSchema>, "ai">;
 export type AbilityDispatchStatus = z.output<typeof TransitionStatusSchema>;
 export type OrchestrationDispatchPayload = z.output<typeof PayloadRefBundleSchema>;
 

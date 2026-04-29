@@ -8,7 +8,7 @@ export const RESUME_MISSION_CHILD: CommanderConsoleChildDefinition<ResumeMission
   inputSchema: ResumeMissionInputSchema,
   outputSchema: ResumeMissionOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: RESUME_MISSION_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const RESUME_MISSION_CHILD: CommanderConsoleChildDefinition<ResumeMission
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : ResumeMissionOutputSchema.parse(outcome.output),
+    };
   },
 };

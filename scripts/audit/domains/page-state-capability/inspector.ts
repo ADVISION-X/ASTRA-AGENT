@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ArrayLiteralExpression, type SourceFile } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import { fileExists } from "../../core/filesystem.js";
@@ -133,7 +133,24 @@ function hasForbiddenEscape(sourceFile: SourceFile): boolean {
     || text.includes("@ts-expect-error")
     || text.includes("eslint-disable")
     || text.includes("require(")
-    || sourceFile.getDescendantsOfKind(SyntaxKind.ImportExpression).length > 0;
+    || sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getKind() === SyntaxKind.ImportKeyword);
+}
+
+function toArrayLiteralExpression(node: Node | undefined): ArrayLiteralExpression | null {
+  if (!node) {
+    return null;
+  }
+
+  if (Node.isArrayLiteralExpression(node)) {
+    return node;
+  }
+
+  if (Node.isAsExpression(node)) {
+    const expression = node.getExpression();
+    return Node.isArrayLiteralExpression(expression) ? expression : null;
+  }
+
+  return null;
 }
 
 function getEnumValuesFromSchema(sourceFile: SourceFile, declarationName: string): string[] {
@@ -150,19 +167,14 @@ function getEnumValuesFromSchema(sourceFile: SourceFile, declarationName: string
   }
 
   const valuesDeclaration = sourceFile.getVariableDeclaration(firstArgument.getText());
-  const valuesInitializerNode = valuesDeclaration?.getInitializer();
-  const valuesInitializer = Node.isArrayLiteralExpression(valuesInitializerNode)
-    ? valuesInitializerNode
-    : Node.isAsExpression(valuesInitializerNode) && Node.isArrayLiteralExpression(valuesInitializerNode.getExpression())
-      ? valuesInitializerNode.getExpression()
-      : null;
+  const valuesInitializer = toArrayLiteralExpression(valuesDeclaration?.getInitializer());
   if (!valuesInitializer) {
     return [];
   }
 
   return valuesInitializer
     .getElements()
-    .filter((element) => Node.isStringLiteral(element))
+    .filter((element): element is ReturnType<ArrayLiteralExpression["getElements"]>[number] & { getLiteralText(): string } => Node.isStringLiteral(element))
     .map((element) => element.getLiteralText());
 }
 
@@ -181,17 +193,15 @@ function getProceedTypesForChild(sourceFile: SourceFile, childId: string): strin
     return [];
   }
 
-  const value = property.getInitializer();
-  const arrayLiteral = Node.isArrayLiteralExpression(value)
-    ? value
-    : Node.isAsExpression(value) && Node.isArrayLiteralExpression(value.getExpression())
-      ? value.getExpression()
-      : null;
+  const arrayLiteral = toArrayLiteralExpression(property.getInitializer());
   if (!arrayLiteral) {
     return [];
   }
 
-  return arrayLiteral.getElements().filter((element) => Node.isStringLiteral(element)).map((element) => element.getLiteralText());
+  return arrayLiteral
+    .getElements()
+    .filter((element): element is ReturnType<ArrayLiteralExpression["getElements"]>[number] & { getLiteralText(): string } => Node.isStringLiteral(element))
+    .map((element) => element.getLiteralText());
 }
 
 export default createPendingDomainInspector({

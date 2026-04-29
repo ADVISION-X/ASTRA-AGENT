@@ -17,13 +17,14 @@ import type { NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.
 import type { NerveBusRuntimeContext, NerveBusRunnerOutcome } from "../runtime/transport-runner.js";
 
 export type SupportedEnvelope = AbilityCommandEnvelope | AiRequestEnvelope | HumanCommandEnvelope;
+export type SupportedTransportEnvelope = SupportedEnvelope | AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;
 export type SupportedResultEnvelope = AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;
 
-export type NerveBusChildDefinition<TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope> = {
+export type NerveBusChildDefinition<TEnvelope extends SupportedTransportEnvelope, TResult extends SupportedResultEnvelope> = {
   childCapabilityId: NerveBusChannelRegistryEntry<TEnvelope, TResult>["childCapabilityId"];
   channelId: NerveBusChannelRegistryEntry<TEnvelope, TResult>["channelId"];
-  inputSchema: ZodType<TEnvelope>;
-  outputSchema: ZodType<TResult>;
+  inputSchema: ZodType<unknown>;
+  outputSchema: ZodType<unknown>;
   execute(input: {
     envelope: TEnvelope;
     inputPayload: NerveBusPayloadDocument;

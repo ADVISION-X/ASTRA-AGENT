@@ -21,8 +21,8 @@ export type NerveBusChannelRegistryEntry<TEnvelope, TResult extends ChannelResul
   channelId: NerveBusChannelId;
   allowedFrom: readonly string[];
   allowedTo: readonly string[];
-  envelopeSchema: ZodType<TEnvelope>;
-  resultSchema: ZodType<TResult>;
+  envelopeSchema: ZodType<unknown>;
+  resultSchema: ZodType<unknown>;
   requiresPayloadRef: boolean;
   requiresIdempotencyKey: boolean;
   requiresExpiry: boolean;

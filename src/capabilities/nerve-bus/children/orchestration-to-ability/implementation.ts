@@ -9,12 +9,12 @@ export const ORCHESTRATION_TO_ABILITY_CHILD: NerveBusChildDefinition<Orchestrati
   inputSchema: OrchestrationToAbilityEnvelopeSchema,
   outputSchema: OrchestrationToAbilityResultSchema,
   async execute(input) {
-    return runTransportHandler({
+    return runTransportHandler<OrchestrationToAbilityResult>({
       envelope: input.envelope,
       inputPayload: input.inputPayload,
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
-      resultSchema: input.registryEntry.resultSchema,
+      resultSchema: OrchestrationToAbilityResultSchema,
       invoke: () => input.context.handlerPort.dispatchAbilityCommand({
         envelope: input.envelope,
         inputPayload: input.inputPayload,

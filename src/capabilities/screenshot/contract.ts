@@ -68,8 +68,8 @@ export type ScreenshotAbilityContext = {
 
 export type ScreenshotChildRegistryEntry = {
   childCapabilityId: ScreenshotChildCapabilityId;
-  inputSchema: typeof ScreenshotAbilityInputSchema;
-  outputSchema: typeof ScreenshotExecutionOutputSchema;
+  inputSchema: z.ZodType<unknown>;
+  outputSchema: z.ZodType<unknown>;
   requiresBrowserSession: boolean;
   requiresPageStateProof: boolean;
   requiresPrivacyApproval: boolean;

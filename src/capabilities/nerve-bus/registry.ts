@@ -5,8 +5,6 @@ import { COMMANDER_TO_ORCHESTRATION_CHILD } from "./children/commander-to-orches
 import { ORCHESTRATION_TO_ABILITY_CHILD } from "./children/orchestration-to-ability/implementation.js";
 import { ORCHESTRATION_TO_AI_CHILD } from "./children/orchestration-to-ai/implementation.js";
 import { ORCHESTRATION_TO_COMMANDER_CHILD } from "./children/orchestration-to-commander/implementation.js";
-import type { NerveBusChildDefinition, SupportedEnvelope, SupportedResultEnvelope } from "./shared/nerve-bus-channel.js";
-import type { NerveBusChannelRegistryEntry } from "./shared/nerve-bus-policy.js";
 
 const DEFAULT_MAX_DURATION_MS = 15_000;
 const DEFAULT_MAX_ENVELOPE_AGE_MS = 120_000;
@@ -123,10 +121,10 @@ export function listNerveBusChildren(): string[] {
   return Object.keys(CHILDREN);
 }
 
-export function getNerveBusChild(channelId: keyof typeof CHILDREN): NerveBusChildDefinition<SupportedEnvelope, SupportedResultEnvelope> {
+export function getNerveBusChild<TChannelId extends keyof typeof CHILDREN>(channelId: TChannelId): (typeof CHILDREN)[TChannelId] {
   return CHILDREN[channelId];
 }
 
-export function getNerveBusChannelRegistryEntry(channelId: keyof typeof NERVE_BUS_CHANNEL_REGISTRY): NerveBusChannelRegistryEntry<SupportedEnvelope, SupportedResultEnvelope> {
+export function getNerveBusChannelRegistryEntry<TChannelId extends keyof typeof NERVE_BUS_CHANNEL_REGISTRY>(channelId: TChannelId): (typeof NERVE_BUS_CHANNEL_REGISTRY)[TChannelId] {
   return NERVE_BUS_CHANNEL_REGISTRY[channelId];
 }

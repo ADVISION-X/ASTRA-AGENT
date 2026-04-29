@@ -104,7 +104,7 @@ function hasDynamicImport(sourceFile: ReturnType<typeof getSourceFileOrThrow>): 
 }
 
 function hasAnyCast(sourceFile: ReturnType<typeof getSourceFileOrThrow>): boolean {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getTypeNode().getText() === "any");
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getTypeNode()?.getText() === "any");
 }
 
 function hasUnknownAs(sourceFile: ReturnType<typeof getSourceFileOrThrow>): boolean {

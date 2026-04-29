@@ -86,6 +86,20 @@ function buildEnvelopeBase(input: {
   };
 }
 
+function buildTypedEnvelopeBase<TChannelId extends "orchestration-to-ability" | "orchestration-to-ai">(input: {
+  channelId: TChannelId;
+  envelopeId: string;
+  missionId: string;
+  mapId: string;
+  stepId: string;
+  inputRef: string;
+  payloadRefs: Record<string, string | null>;
+  summary: string;
+  tags: string[];
+}) {
+  return buildEnvelopeBase(input) as ReturnType<typeof buildEnvelopeBase> & { channelId: TChannelId };
+}
+
 function createOrchestrationNerveBusPort(nerveBus: NerveBusAbilityGroup): OrchestrationExecutionContext["nerveBus"] {
   return {
     async sendCommandToAbility(input) {
@@ -100,7 +114,7 @@ function createOrchestrationNerveBusPort(nerveBus: NerveBusAbilityGroup): Orches
       const envelopeId = `${input.missionId}:${input.mapId}:${input.stepId}:command`;
       const transport = await nerveBus.dispatchAbilityCommand({
         envelope: {
-          ...buildEnvelopeBase({
+          ...buildTypedEnvelopeBase({
             channelId: "orchestration-to-ability",
             envelopeId,
             missionId: input.missionId,
@@ -145,7 +159,7 @@ function createOrchestrationNerveBusPort(nerveBus: NerveBusAbilityGroup): Orches
       const envelopeId = `${input.missionId}:${input.mapId}:${input.stepId}:ai-request`;
       const transport = await nerveBus.requestAi({
         envelope: {
-          ...buildEnvelopeBase({
+          ...buildTypedEnvelopeBase({
             channelId: "orchestration-to-ai",
             envelopeId,
             missionId: input.missionId,
@@ -212,17 +226,15 @@ export function createOrchestrationAbilityGroup(input: {
     statePort: createInMemoryOrchestrationStatePort(),
   };
 
-  const children = new Map([
-    ["start-mission", createStartMissionCapability()],
-    ["pause-mission", createPauseMissionCapability()],
-    ["resume-mission", createResumeMissionCapability()],
-    ["stop-mission", createStopMissionCapability()],
-    ["emergency-stop", createEmergencyStopCapability()],
-    ["execute-map-step", createExecuteMapStepCapability()],
-    ["evaluate-step-transition", createEvaluateStepTransitionCapability()],
-    ["request-human-review", createRequestHumanReviewCapability()],
-    ["finalize-mission", createFinalizeMissionCapability()],
-  ]);
+  const startMissionChild = createStartMissionCapability();
+  const pauseMissionChild = createPauseMissionCapability();
+  const resumeMissionChild = createResumeMissionCapability();
+  const stopMissionChild = createStopMissionCapability();
+  const emergencyStopChild = createEmergencyStopCapability();
+  const executeMapStepChild = createExecuteMapStepCapability();
+  const evaluateStepTransitionChild = createEvaluateStepTransitionCapability();
+  const requestHumanReviewChild = createRequestHumanReviewCapability();
+  const finalizeMissionChild = createFinalizeMissionCapability();
 
   return {
     listChildCapabilityIds() {
@@ -240,12 +252,28 @@ export function createOrchestrationAbilityGroup(input: {
     },
 
     async execute(inputValue) {
-      const capability = children.get(inputValue.childCapabilityId);
-      if (!capability) {
-        throw new Error(`Unknown orchestration child capability ${inputValue.childCapabilityId}.`);
+      switch (inputValue.childCapabilityId) {
+        case "start-mission":
+          return startMissionChild.execute(inputValue.payload as never, context);
+        case "pause-mission":
+          return pauseMissionChild.execute(inputValue.payload as never, context);
+        case "resume-mission":
+          return resumeMissionChild.execute(inputValue.payload as never, context);
+        case "stop-mission":
+          return stopMissionChild.execute(inputValue.payload as never, context);
+        case "emergency-stop":
+          return emergencyStopChild.execute(inputValue.payload as never, context);
+        case "execute-map-step":
+          return executeMapStepChild.execute(inputValue.payload as never, context);
+        case "evaluate-step-transition":
+          return evaluateStepTransitionChild.execute(inputValue.payload as never, context);
+        case "request-human-review":
+          return requestHumanReviewChild.execute(inputValue.payload as never, context);
+        case "finalize-mission":
+          return finalizeMissionChild.execute(inputValue.payload as never, context);
+        default:
+          throw new Error(`Unknown orchestration child capability ${inputValue.childCapabilityId}.`);
       }
-
-      return capability.execute(inputValue.payload as never, context);
     },
 
     executeMission(command) {
@@ -259,20 +287,20 @@ export function createOrchestrationAbilityGroup(input: {
 
     async pauseMission(missionId) {
       return MissionStateSchema.parse(
-        await children.get("pause-mission")!.execute({ missionId }, context),
+        await pauseMissionChild.execute({ missionId, reason: null, note: null }, context),
       );
     },
 
     async resumeMission(missionId) {
       return MissionStateSchema.parse(
-        await children.get("resume-mission")!.execute({ missionId }, context),
+        await resumeMissionChild.execute({ missionId, reason: null, note: null }, context),
       );
     },
 
     async stopMission(inputValue) {
       return MissionStateSchema.parse(
-        await children.get("stop-mission")!.execute(
-          { missionId: inputValue.missionId, reason: inputValue.reason ?? null },
+        await stopMissionChild.execute(
+          { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null },
           context,
         ),
       );
@@ -280,8 +308,8 @@ export function createOrchestrationAbilityGroup(input: {
 
     async emergencyStop(inputValue) {
       return MissionStateSchema.parse(
-        await children.get("emergency-stop")!.execute(
-          { missionId: inputValue.missionId, reason: inputValue.reason ?? null },
+        await emergencyStopChild.execute(
+          { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null },
           context,
         ),
       );

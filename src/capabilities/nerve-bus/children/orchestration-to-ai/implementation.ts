@@ -9,12 +9,12 @@ export const ORCHESTRATION_TO_AI_CHILD: NerveBusChildDefinition<OrchestrationToA
   inputSchema: OrchestrationToAiEnvelopeSchema,
   outputSchema: OrchestrationToAiResultSchema,
   async execute(input) {
-    return runTransportHandler({
+    return runTransportHandler<OrchestrationToAiResult>({
       envelope: input.envelope,
       inputPayload: input.inputPayload,
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
-      resultSchema: input.registryEntry.resultSchema,
+      resultSchema: OrchestrationToAiResultSchema,
       invoke: () => input.context.handlerPort.requestAi({
         envelope: input.envelope,
         inputPayload: input.inputPayload,

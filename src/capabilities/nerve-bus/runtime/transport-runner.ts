@@ -4,7 +4,6 @@ import type { NerveBusIdempotencyPort } from "../ports/nerve-bus-idempotency-por
 import type { NerveBusQueuePort } from "../ports/nerve-bus-queue-port.js";
 import type { NerveBusTransportPort, NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.js";
 import type { SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve-bus-channel.js";
-import type { NerveBusChannelRegistryEntry } from "../shared/nerve-bus-policy.js";
 
 export type NerveBusRuntimeContext = {
   clock: NerveBusClockPort;
@@ -44,7 +43,7 @@ export async function runTransportHandler<TResult extends SupportedResultEnvelop
   context: NerveBusRuntimeContext;
   timeoutMs: number;
   invoke(): Promise<NerveBusHandledResult<TResult> | null>;
-  resultSchema: NerveBusChannelRegistryEntry<SupportedEnvelope, TResult>["resultSchema"];
+  resultSchema: { parse(data: unknown): TResult };
 }): Promise<NerveBusRunnerOutcome<TResult>> {
   try {
     const handled = await withTimeout(input.invoke(), input.timeoutMs);

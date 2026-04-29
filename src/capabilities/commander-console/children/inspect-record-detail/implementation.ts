@@ -33,7 +33,7 @@ export const INSPECT_RECORD_DETAIL_CHILD: CommanderConsoleChildDefinition<Inspec
         }
         : {
           targetRecordRef: detail.recordId
-            ? { recordType: detail.recordType === "not-found" ? "runtime-event" : detail.recordType, recordId: detail.recordId }
+            ? { recordType: detail.recordType, recordId: detail.recordId }
             : null,
         },
     });

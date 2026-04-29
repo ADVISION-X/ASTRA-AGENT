@@ -9,7 +9,7 @@ export const ABILITY_TO_ORCHESTRATION_CHILD: NerveBusChildDefinition<AbilityToOr
   outputSchema: AbilityToOrchestrationResultSchema,
   async execute(input) {
     return {
-      resultEnvelope: input.registryEntry.resultSchema.parse(input.envelope),
+      resultEnvelope: AbilityToOrchestrationResultSchema.parse(input.envelope),
       outputPayload: input.inputPayload,
       handlerDecision: "executed",
       failureReason: input.envelope.failureReason,

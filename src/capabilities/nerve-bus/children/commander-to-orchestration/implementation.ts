@@ -9,12 +9,12 @@ export const COMMANDER_TO_ORCHESTRATION_CHILD: NerveBusChildDefinition<Commander
   inputSchema: CommanderToOrchestrationEnvelopeSchema,
   outputSchema: CommanderToOrchestrationResultSchema,
   async execute(input) {
-    return runTransportHandler({
+    return runTransportHandler<CommanderToOrchestrationResult>({
       envelope: input.envelope,
       inputPayload: input.inputPayload,
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
-      resultSchema: input.registryEntry.resultSchema,
+      resultSchema: CommanderToOrchestrationResultSchema,
       invoke: () => input.context.handlerPort.dispatchHumanCommand({
         envelope: input.envelope,
         inputPayload: input.inputPayload,

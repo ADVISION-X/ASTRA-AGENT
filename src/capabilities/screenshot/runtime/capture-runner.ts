@@ -29,23 +29,31 @@ export async function runCaptureRunner(input: {
   failure: ReturnType<typeof createScreenshotFailure> | null;
 }> {
   try {
-    const capturePromise = input.plan.operation === "browser-viewport"
-      ? input.context.capturePort.captureBrowserViewport({
+    if (input.plan.operation === "browser-viewport") {
+      const captureResult = await withTimeout(
+        input.context.capturePort.captureBrowserViewport({
           regionLabel: input.plan.regionLabel,
           contentLines: input.plan.contentLines,
-        })
-      : input.context.capturePort.captureDesktopScreen({
-          screenId: input.plan.screenId,
-          outputPath: path.join(input.context.artifactPort.getRootDir(), ".tmp", `${input.evidenceId}.png`),
-          createdAt: input.createdAt,
-        });
-
-    const captureResult = await withTimeout(capturePromise, input.timeoutMs);
-    if (captureResult.kind === "browser") {
+        }),
+        input.timeoutMs,
+      );
       ScreenshotBrowserCaptureSchema.parse(captureResult.capture);
-    } else {
-      ScreenshotDesktopCaptureSchema.parse(captureResult.capture);
+      return {
+        decision: { status: "passed", reason: null },
+        captureResult,
+        failure: null,
+      };
     }
+
+    const captureResult = await withTimeout(
+      input.context.capturePort.captureDesktopScreen({
+        screenId: input.plan.screenId,
+        outputPath: path.join(input.context.artifactPort.getRootDir(), ".tmp", `${input.evidenceId}.png`),
+        createdAt: input.createdAt,
+      }),
+      input.timeoutMs,
+    );
+    ScreenshotDesktopCaptureSchema.parse(captureResult.capture);
     return {
       decision: { status: "passed", reason: null },
       captureResult,

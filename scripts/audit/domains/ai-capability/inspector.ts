@@ -50,7 +50,6 @@ const REQUIRED_FILES = [
   `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`,
   `${AI_ROOT}/shared/ai-types.ts`,
   `${AI_ROOT}/shared/ai-policy.ts`,
-  `${AI_ROOT}/shared/ai-result.ts`,
   `${AI_ROOT}/shared/ai-proof.ts`,
   `${AI_ROOT}/shared/ai-failure.ts`,
   `${AI_ROOT}/shared/ai-json-extract.ts`,
@@ -429,6 +428,15 @@ export default createPendingDomainInspector({
 
     if (indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport())) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/index.ts`, line: 1, severity: "fatal", message: "AI index must not use export-star barrels." }));
+    }
+    const publicAbilityGroup = indexSource.getExportedDeclarations().get("AiAbilityGroup")?.at(0);
+    if (publicAbilityGroup && Node.isInterfaceDeclaration(publicAbilityGroup)) {
+      const publicMethods = publicAbilityGroup.getMethods().map((method) => method.getName());
+      for (const forbiddenMethod of ["getPromptContract", "getModelRoster"]) {
+        if (publicMethods.includes(forbiddenMethod)) {
+          findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/contract.ts`, line: 1, severity: "fatal", message: "AI public ability-group contract must not leak prompt or model-roster internals." }));
+        }
+      }
     }
 
     for (const sourceFile of aiSources) {

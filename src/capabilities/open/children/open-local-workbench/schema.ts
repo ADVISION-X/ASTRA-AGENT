@@ -8,8 +8,8 @@ export const OpenLocalWorkbenchRequestSchema = OpenRequestSchema.extend({
   targetKind: z.literal("local-workbench"),
 }).strict();
 
-export const OpenLocalWorkbenchResultSchema = OpenResultSchema.extend({
+export const OpenLocalWorkbenchResultSchema = OpenResultSchema.and(z.object({
   childCapabilityId: z.literal("open-local-workbench"),
   platformId: z.literal("local-workbench"),
   targetKind: z.literal("local-workbench"),
-}).strict();
+}).strict());

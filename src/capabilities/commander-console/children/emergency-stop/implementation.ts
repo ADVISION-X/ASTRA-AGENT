@@ -8,7 +8,7 @@ export const EMERGENCY_STOP_CHILD: CommanderConsoleChildDefinition<EmergencyStop
   inputSchema: EmergencyStopInputSchema,
   outputSchema: EmergencyStopOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: EMERGENCY_STOP_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const EMERGENCY_STOP_CHILD: CommanderConsoleChildDefinition<EmergencyStop
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : EmergencyStopOutputSchema.parse(outcome.output),
+    };
   },
 };

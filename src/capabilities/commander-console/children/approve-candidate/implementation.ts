@@ -8,7 +8,7 @@ export const APPROVE_CANDIDATE_CHILD: CommanderConsoleChildDefinition<ApproveCan
   inputSchema: ApproveCandidateInputSchema,
   outputSchema: ApproveCandidateOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: APPROVE_CANDIDATE_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const APPROVE_CANDIDATE_CHILD: CommanderConsoleChildDefinition<ApproveCan
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : ApproveCandidateOutputSchema.parse(outcome.output),
+    };
   },
 };

@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-29T15:37:28.976Z",
+  "generatedAt": "2026-04-29T16:52:08.341Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 17,
-    "passed": 10,
-    "failed": 7,
+    "passed": 11,
+    "failed": 6,
     "blocking": 6
   },
   "results": [
@@ -16,14 +16,14 @@
         {
           "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
           "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 772,
+          "line": 773,
           "severity": "error",
           "message": "Owner inspector capabilityDomain literal does not match its manifest."
         },
         {
           "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
           "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 772,
+          "line": 773,
           "severity": "error",
           "message": "Owner inspectorId literal does not match its manifest."
         }
@@ -93,7 +93,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 798 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 797 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "cleanup-hygiene",
@@ -708,32 +708,32 @@
         },
         {
           "name": "post-action-verification-required-shape",
-          "classification": true,
-          "passed": "PASS",
+          "classification": "PASS",
+          "passed": true,
           "summary": "Required shape exists: schema, registry, executor, gates, builders, ports, and child contracts are in place."
         },
         {
           "name": "post-action-verification-forbidden-shape",
-          "classification": true,
-          "passed": "PASS",
+          "classification": "PASS",
+          "passed": true,
           "summary": "Forbidden shape remnants such as export * and capability-check.ts are gone."
         },
         {
           "name": "post-action-verification-boundary",
-          "classification": true,
-          "passed": "PASS",
+          "classification": "PASS",
+          "passed": true,
           "summary": "Boundary holds: thin ability group and no forbidden runtime owner imports."
         },
         {
           "name": "post-action-verification-anti-escape",
-          "classification": true,
-          "passed": "PASS",
+          "classification": "PASS",
+          "passed": true,
           "summary": "Anti-escape checks passed."
         }
       ],
-      "classification": true,
-      "summary": "Required shape exists: schema, registry, executor, gates, builders, ports, and child contracts are in place.",
-      "passed": false,
+      "classification": "PASS",
+      "summary": "Anti-escape checks passed.",
+      "passed": true,
       "violationCount": 0
     },
     {

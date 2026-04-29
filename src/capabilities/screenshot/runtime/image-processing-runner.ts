@@ -36,58 +36,81 @@ export async function runImageProcessingRunner(input: {
   failure: ReturnType<typeof createScreenshotFailure> | null;
 }> {
   try {
-    const operation = input.plan.operation;
-    const promise = operation === "capture-region"
-      ? input.context.imageProcessingPort.cropRegion({
-          sourceFilePath: input.plan.sourceFilePath,
-          region: input.plan.region,
+    if (input.plan.operation === "capture-region") {
+      const captureRegionPlan = input.plan;
+      const output = await withTimeout(
+        input.context.imageProcessingPort.cropRegion({
+          sourceFilePath: captureRegionPlan.sourceFilePath,
+          region: captureRegionPlan.region,
         }).then((result) => ({
           outputFilePath: result.outputFilePath,
           width: result.width,
           height: result.height,
           mimeType: result.mimeType,
           equivalence: null,
-          sourceWidth: input.plan.region.width,
-          sourceHeight: input.plan.region.height,
-          cropOffsetX: input.plan.region.x,
-          cropOffsetY: input.plan.region.y,
-        }))
-      : operation === "optimize-lossless"
-        ? input.context.imageProcessingPort.optimizeLossless({
-            sourceFilePath: input.plan.sourceFilePath,
-          }).then(async (result) => {
-            const sourceMeta = await input.context.imageProcessingPort.inspectImage(input.plan.sourceFilePath);
-            return {
-              outputFilePath: result.outputFilePath,
-              width: result.width,
-              height: result.height,
-              mimeType: result.mimeType,
-              equivalence: result.equivalence,
-              sourceWidth: sourceMeta.width,
-              sourceHeight: sourceMeta.height,
-              cropOffsetX: 0,
-              cropOffsetY: 0,
-            };
-          })
-        : input.context.imageProcessingPort.prepareAiInput({
-            sourceFilePath: input.plan.sourceFilePath,
-            region: input.plan.region,
-            maxAiWidth: input.plan.maxAiWidth,
-          }).then((result) => ({
+          sourceWidth: captureRegionPlan.region.width,
+          sourceHeight: captureRegionPlan.region.height,
+          cropOffsetX: captureRegionPlan.region.x,
+          cropOffsetY: captureRegionPlan.region.y,
+        })),
+        input.timeoutMs,
+      );
+      return {
+        decision: { status: "passed", reason: null },
+        output,
+        failure: null,
+      };
+    }
+
+    if (input.plan.operation === "optimize-lossless") {
+      const output = await withTimeout(
+        input.context.imageProcessingPort.optimizeLossless({
+          sourceFilePath: input.plan.sourceFilePath,
+        }).then(async (result) => {
+          const sourceMeta = await input.context.imageProcessingPort.inspectImage(input.plan.sourceFilePath);
+          return {
             outputFilePath: result.outputFilePath,
             width: result.width,
             height: result.height,
             mimeType: result.mimeType,
-            equivalence: null,
-            sourceWidth: result.sourceWidth,
-            sourceHeight: result.sourceHeight,
-            cropOffsetX: result.cropOffsetX,
-            cropOffsetY: result.cropOffsetY,
-          }));
+            equivalence: result.equivalence,
+            sourceWidth: sourceMeta.width,
+            sourceHeight: sourceMeta.height,
+            cropOffsetX: 0,
+            cropOffsetY: 0,
+          };
+        }),
+        input.timeoutMs,
+      );
+      return {
+        decision: { status: "passed", reason: null },
+        output,
+        failure: null,
+      };
+    }
 
+    const prepareAiInputPlan = input.plan;
+    const output = await withTimeout(
+      input.context.imageProcessingPort.prepareAiInput({
+        sourceFilePath: prepareAiInputPlan.sourceFilePath,
+        region: prepareAiInputPlan.region,
+        maxAiWidth: prepareAiInputPlan.maxAiWidth,
+      }).then((result) => ({
+        outputFilePath: result.outputFilePath,
+        width: result.width,
+        height: result.height,
+        mimeType: result.mimeType,
+        equivalence: null,
+        sourceWidth: result.sourceWidth,
+        sourceHeight: result.sourceHeight,
+        cropOffsetX: result.cropOffsetX,
+        cropOffsetY: result.cropOffsetY,
+      })),
+      input.timeoutMs,
+    );
     return {
       decision: { status: "passed", reason: null },
-      output: await withTimeout(promise, input.timeoutMs),
+      output,
       failure: null,
     };
   } catch (error) {

@@ -56,7 +56,7 @@ export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiA
         });
       }
 
-      if (!entry.implementation.execute) {
+      if (!entry.executable || !entry.implementation.execute) {
         return dispatchAiFailure({
           rawInput: parsed.data,
           context,
@@ -94,12 +94,6 @@ export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiA
     },
     async getRuntimeHealth() {
       return context.runtime.getRuntimeHealth();
-    },
-    getPromptContract(taskType) {
-      return context.promptRegistry.resolvePromptContract(taskType);
-    },
-    async getModelRoster() {
-      return context.modelRoster.load(context.clock);
     },
   };
 }

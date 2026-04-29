@@ -9,7 +9,7 @@ export const ORCHESTRATION_TO_COMMANDER_CHILD: NerveBusChildDefinition<Orchestra
   outputSchema: OrchestrationToCommanderResultSchema,
   async execute(input) {
     return {
-      resultEnvelope: input.registryEntry.resultSchema.parse(input.envelope),
+      resultEnvelope: OrchestrationToCommanderResultSchema.parse(input.envelope),
       outputPayload: input.inputPayload,
       handlerDecision: "executed",
       failureReason: input.envelope.failureReason,

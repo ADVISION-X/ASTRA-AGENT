@@ -8,8 +8,8 @@ export const OpenFacebookRequestSchema = OpenRequestSchema.extend({
   targetKind: z.literal("platform-feed"),
 }).strict();
 
-export const OpenFacebookResultSchema = OpenResultSchema.extend({
+export const OpenFacebookResultSchema = OpenResultSchema.and(z.object({
   childCapabilityId: z.literal("open-facebook"),
   platformId: z.literal("facebook-web"),
   targetKind: z.literal("platform-feed"),
-}).strict();
+}).strict());

@@ -62,7 +62,9 @@ export async function dispatchOperationalStep(input: {
         missionId: input.state.missionId ?? "unknown-mission",
         mapId: input.map.mapId,
         stepId: step.stepId,
-        targetAbilityGroupId: step.targetAbilityGroupId ?? "page-state",
+        targetAbilityGroupId: step.targetAbilityGroupId && step.targetAbilityGroupId !== "ai"
+          ? step.targetAbilityGroupId
+          : "page-state",
         childCapabilityId: step.childCapabilityId,
         payloadRefs: input.state.payloadRefs,
       });

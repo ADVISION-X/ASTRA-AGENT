@@ -8,7 +8,7 @@ export const ISSUE_HUMAN_COMMAND_CHILD: CommanderConsoleChildDefinition<IssueHum
   inputSchema: IssueHumanCommandInputSchema,
   outputSchema: IssueHumanCommandOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: ISSUE_HUMAN_COMMAND_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const ISSUE_HUMAN_COMMAND_CHILD: CommanderConsoleChildDefinition<IssueHum
         initialPayload: commandInput.initialPayload ?? null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : IssueHumanCommandOutputSchema.parse(outcome.output),
+    };
   },
 };

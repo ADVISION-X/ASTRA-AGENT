@@ -8,7 +8,7 @@ export const STOP_MISSION_CHILD: CommanderConsoleChildDefinition<StopMissionInpu
   inputSchema: StopMissionInputSchema,
   outputSchema: StopMissionOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: STOP_MISSION_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const STOP_MISSION_CHILD: CommanderConsoleChildDefinition<StopMissionInpu
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : StopMissionOutputSchema.parse(outcome.output),
+    };
   },
 };

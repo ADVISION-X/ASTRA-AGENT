@@ -223,8 +223,8 @@ function createViolation(input: {
   line?: number;
   severity?: "error" | "fatal";
   message: string;
-  detail?: string;
-  hint?: string;
+  detail?: string | undefined;
+  hint?: string | undefined;
 }): Finding {
   return createFinding({
     lawId: input.lawId,
@@ -232,8 +232,8 @@ function createViolation(input: {
     line: input.line ?? 1,
     severity: input.severity ?? "error",
     message: input.message,
-    detail: input.detail,
-    hint: input.hint,
+    ...(input.detail === undefined ? {} : { detail: input.detail }),
+    ...(input.hint === undefined ? {} : { hint: input.hint }),
   });
 }
 
@@ -265,13 +265,13 @@ function getIllegalDateNodes(sourceFile: SourceFile): Node[] {
 
 function getUnknownCastEscapes(sourceFile: SourceFile): Node[] {
   return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).filter((asExpression) => {
-    const currentType = asExpression.getTypeNode().getText();
+    const currentType = asExpression.getTypeNode()?.getText();
     if (currentType === "any") {
       return true;
     }
 
     const expression = asExpression.getExpression();
-    return Node.isAsExpression(expression) && expression.getTypeNode().getText() === "unknown";
+    return Node.isAsExpression(expression) && expression.getTypeNode()?.getText() === "unknown";
   });
 }
 
@@ -303,7 +303,8 @@ function extractImportResolutionDetail(typeChecker: TypeChecker, declaration: Im
   }
 
   const aliasedSymbol = symbol.getAliasedSymbol();
-  const referencePaths = [...new Set(targetNode.findReferencesAsNodes().map((node) => toRootRelative(node.getSourceFile())))].sort((left, right) => left.localeCompare(right));
+  const referenceNodes = Node.isIdentifier(targetNode) ? targetNode.findReferencesAsNodes() : [];
+  const referencePaths = [...new Set<string>(referenceNodes.map((node) => toRootRelative(node.getSourceFile())))].sort((left, right) => left.localeCompare(right));
   return `symbol=${symbol.getName()} aliased=${aliasedSymbol?.getName() ?? "none"} refs=${referencePaths.join(", ")}`;
 }
 
@@ -606,7 +607,7 @@ async function runBoundaryAttack(project: Project, typeChecker: TypeChecker): Pr
       sourceFile.getVariableDeclaration("VisualTargetBaseResultSchema"),
       sourceFile.getVariableDeclaration("VisualTargetRuntimeProofSchema"),
       sourceFile.getInterface("VisualTargetAbilityGroup"),
-    ].filter((node): node is Node => Boolean(node));
+    ].flatMap((node) => node ? [node] : []);
     if (duplicateNodes.length > 0) {
       findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: relativePath, line: toLine(duplicateNodes[0]), severity: "fatal", message: "Visual Target canonical contract/schema symbols must not be redeclared outside contract.ts or schema.ts." }));
     }

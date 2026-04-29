@@ -8,8 +8,6 @@ export {
   type AiAbilityResult,
   type AiDispatchFailureEnvelope,
   type AiChildCapabilityId,
-  type AiPromptContract,
-  type AiModelRoster,
   type AiRuntimePort,
 } from "./contract.js";
 export {
@@ -18,7 +16,5 @@ export {
   AiDispatchFailureEnvelopeSchema,
   AiResultSchema,
   AiRuntimeProofSchema,
-  AiPromptContractSchema,
-  AiModelRosterSchema,
 } from "./schema.js";
 export { listAiChildren } from "./registry.js";

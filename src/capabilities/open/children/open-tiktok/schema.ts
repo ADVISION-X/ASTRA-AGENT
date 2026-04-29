@@ -8,8 +8,8 @@ export const OpenTikTokRequestSchema = OpenRequestSchema.extend({
   targetKind: z.literal("platform-feed"),
 }).strict();
 
-export const OpenTikTokResultSchema = OpenResultSchema.extend({
+export const OpenTikTokResultSchema = OpenResultSchema.and(z.object({
   childCapabilityId: z.literal("open-tiktok"),
   platformId: z.literal("tiktok-web"),
   targetKind: z.literal("platform-feed"),
-}).strict();
+}).strict());

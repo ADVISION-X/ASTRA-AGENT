@@ -5,7 +5,7 @@ export function buildOrchestrationRuntimeProof(input: {
   mapId: import("../contract.js").OperationalMapId;
   stepId: string;
   childCapabilityId: string;
-  commandKind: import("../schema.js").MissionHumanCommandKindSchema["_output"];
+  commandKind: "start-mission" | "pause-mission" | "resume-mission" | "stop-mission" | "emergency-stop" | "submit-review-decision";
   caller: "commander-console" | "orchestration";
   idempotencyKey: string;
   sequenceNo: number;

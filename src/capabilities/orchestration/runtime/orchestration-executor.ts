@@ -7,6 +7,7 @@ import type {
   OperationalMap,
   OrchestrationExecutionContext,
 } from "../contract.js";
+import { PayloadRefBundleSchema } from "../schema.js";
 import { buildDispatchFailure } from "./orchestration-dispatch-failure.js";
 import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
 import { buildMissionExecutionResult, buildMissionStateUpdate } from "./orchestration-result-builder.js";
@@ -37,7 +38,7 @@ function createInitialMissionState(command: MissionCommand, map: OperationalMap,
     lastResultRef: null,
     lastRuntimeProofRef: null,
     runtimeProofRefs: [],
-    payloadRefs: {
+    payloadRefs: PayloadRefBundleSchema.parse({
       requestedPlatformId: command.requestedPlatform,
       selectedMapId: map.mapId,
       operatorNote: command.initialPayload.operatorNote,
@@ -47,7 +48,7 @@ function createInitialMissionState(command: MissionCommand, map: OperationalMap,
       sourceTargetRef: command.initialPayload.sourceTargetRef,
       promptInputRef: command.initialPayload.promptInputRef,
       commandInputRef: command.initialPayload.commandInputRef,
-    },
+    }),
     emergencyStopLatched: false,
     startedAt,
     updatedAt: startedAt,
@@ -64,6 +65,18 @@ function toMissionControlState(state: MissionState, updatedAt: string, updates: 
   });
 }
 
+function createEmptyPayloadRefs() {
+  return PayloadRefBundleSchema.parse({});
+}
+
+function toRuntimeProofStatus(status: MissionState["status"]): "completed" | "failed" | "review_required" | "stopped" {
+  if (status === "failed" || status === "review_required" || status === "completed" || status === "stopped") {
+    return status;
+  }
+
+  return status === "running" ? "completed" : "stopped";
+}
+
 async function runMissionLoop(input: {
   state: MissionState;
   map: OperationalMap;
@@ -77,6 +90,7 @@ async function runMissionLoop(input: {
   let lastProof: import("../contract.js").RuntimeProof | null = null;
 
   while (state.currentStepId && state.status === "running") {
+    const currentStepId = state.currentStepId;
     const loopGuard = evaluateLoopGuard({ state, map: input.map });
     if (loopGuard.loopDecision !== "continue") {
       const endedAt = input.context.clock.now().isoTimestamp;
@@ -90,7 +104,7 @@ async function runMissionLoop(input: {
       lastProof = buildOrchestrationRuntimeProof({
         missionId: state.missionId ?? "unknown-mission",
         mapId: state.mapId ?? input.map.mapId,
-        stepId: state.currentStepId,
+        stepId: currentStepId,
         childCapabilityId: "loop-guard",
         commandKind: input.commandKind,
         caller: input.caller,
@@ -106,7 +120,7 @@ async function runMissionLoop(input: {
         startedAt: endedAt,
         endedAt,
         durationMs: 0,
-        status: state.status,
+        status: toRuntimeProofStatus(state.status),
         failureReason: state.failureReason,
         reviewRequiredReason: state.reviewRequiredReason,
         mapDecision: "selected",
@@ -128,10 +142,10 @@ async function runMissionLoop(input: {
     lastResult = await dispatchOperationalStep({
       state,
       map: input.map,
-      stepId: state.currentStepId,
+      stepId: currentStepId,
       context: input.context,
     });
-    const transition = evaluateStepTransition({ map: input.map, currentStepId: state.currentStepId, result: lastResult });
+    const transition = evaluateStepTransition({ map: input.map, currentStepId: currentStepId, result: lastResult });
     const endedSnapshot = input.context.clock.now();
     const nextStatus = transition.finalStatus ?? "running";
     const nextStepId = nextStatus === "running" ? transition.toStepId : null;
@@ -154,7 +168,7 @@ async function runMissionLoop(input: {
       startedAt: startedSnapshot.isoTimestamp,
       endedAt: endedSnapshot.isoTimestamp,
       durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      status: nextStatus,
+      status: toRuntimeProofStatus(nextStatus),
       failureReason: nextStatus === "failed" ? (lastResult.failureReason ?? "transition_invalid") : null,
       reviewRequiredReason: nextStatus === "review_required" ? (lastResult.reviewRequiredReason ?? "review required") : null,
       mapDecision: "selected",
@@ -205,7 +219,7 @@ async function runMissionLoop(input: {
       startedAt: now,
       endedAt: now,
       durationMs: 0,
-      status: state.status === "running" ? "completed" : state.status,
+      status: toRuntimeProofStatus(state.status),
       failureReason: state.failureReason,
       reviewRequiredReason: state.reviewRequiredReason,
       mapDecision: "selected",
@@ -246,7 +260,7 @@ export async function executeMissionCommand(input: {
     });
   } catch (error) {
     return buildDispatchFailure({
-      state: buildMissionStateUpdate({ missionId: null, mapId: null, requestedPlatform: null, humanGoal: null, status: "failed", currentStepId: null, previousStepId: null, activeTaskRunId: null, currentRoundIndex: 0, sequenceNo: 0, hopCount: 0, reviewRequiredReason: null, failureReason: null, lastHumanCommand: "start-mission", lastEnvelopeId: null, lastResultRef: null, lastRuntimeProofRef: null, runtimeProofRefs: [], payloadRefs: {}, emergencyStopLatched: false, startedAt: startedSnapshot.isoTimestamp, updatedAt: startedSnapshot.isoTimestamp, pausedAt: null, endedAt: startedSnapshot.isoTimestamp }),
+      state: buildMissionStateUpdate({ missionId: null, mapId: null, requestedPlatform: null, humanGoal: null, status: "failed", currentStepId: null, previousStepId: null, activeTaskRunId: null, currentRoundIndex: 0, sequenceNo: 0, hopCount: 0, reviewRequiredReason: null, failureReason: null, lastHumanCommand: "start-mission", lastEnvelopeId: null, lastResultRef: null, lastRuntimeProofRef: null, runtimeProofRefs: [], payloadRefs: createEmptyPayloadRefs(), emergencyStopLatched: false, startedAt: startedSnapshot.isoTimestamp, updatedAt: startedSnapshot.isoTimestamp, pausedAt: null, endedAt: startedSnapshot.isoTimestamp }),
       commandKind: "start-mission",
       caller: input.caller,
       stepId: "start-mission",

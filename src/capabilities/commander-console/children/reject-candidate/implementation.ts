@@ -8,7 +8,7 @@ export const REJECT_CANDIDATE_CHILD: CommanderConsoleChildDefinition<RejectCandi
   inputSchema: RejectCandidateInputSchema,
   outputSchema: RejectCandidateOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: REJECT_CANDIDATE_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const REJECT_CANDIDATE_CHILD: CommanderConsoleChildDefinition<RejectCandi
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : RejectCandidateOutputSchema.parse(outcome.output),
+    };
   },
 };

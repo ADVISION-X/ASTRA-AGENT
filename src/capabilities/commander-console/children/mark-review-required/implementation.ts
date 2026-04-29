@@ -8,7 +8,7 @@ export const MARK_REVIEW_REQUIRED_CHILD: CommanderConsoleChildDefinition<MarkRev
   inputSchema: MarkReviewRequiredInputSchema,
   outputSchema: MarkReviewRequiredOutputSchema,
   async execute(input, context) {
-    return executeCommanderCommandChild({
+    const outcome = await executeCommanderCommandChild({
       contract: MARK_REVIEW_REQUIRED_CONTRACT,
       operatorRef: input.operatorRef,
       input: input.input,
@@ -24,5 +24,9 @@ export const MARK_REVIEW_REQUIRED_CHILD: CommanderConsoleChildDefinition<MarkRev
         initialPayload: null,
       }),
     });
+    return {
+      ...outcome,
+      output: outcome.output === null ? null : MarkReviewRequiredOutputSchema.parse(outcome.output),
+    };
   },
 };

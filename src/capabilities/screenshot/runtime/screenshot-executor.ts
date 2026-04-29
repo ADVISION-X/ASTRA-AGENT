@@ -5,9 +5,9 @@ import type {
   ScreenshotAbilityInput,
   ScreenshotAbilityResult,
   ScreenshotArtifactRef,
-  ScreenshotChildCapability,
   ScreenshotChildCapabilityId,
   ScreenshotExecutionPlan,
+  ScreenshotRuntimeProof,
   ScreenshotSourceProof,
 } from "../contract.js";
 import { getScreenshotChildRegistryEntry } from "../registry.js";
@@ -33,16 +33,47 @@ import { captureRegionChildCapability } from "../children/capture-region/impleme
 import { optimizeLosslessChildCapability } from "../children/optimize-lossless/implementation.js";
 import { prepareAiInputChildCapability } from "../children/prepare-ai-input/implementation.js";
 
-const CHILD_CAPABILITIES: ReadonlyMap<ScreenshotChildCapabilityId, ScreenshotChildCapability> = new Map([
-  ["capture-browser-viewport", captureBrowserViewportChildCapability],
-  ["capture-desktop-screen", captureDesktopScreenChildCapability],
-  ["capture-region", captureRegionChildCapability],
-  ["optimize-lossless", optimizeLosslessChildCapability],
-  ["prepare-ai-input", prepareAiInputChildCapability],
-]);
-
 function buildRef(prefix: string, input: string): string {
   return `${prefix}:${createHash("sha256").update(input).digest("hex").slice(0, 24)}`;
+}
+
+async function executeScreenshotChildPlan(input: {
+  request: ScreenshotAbilityInput;
+  context: ScreenshotAbilityContext;
+  resolvedMaxAiWidth: number | null;
+}): Promise<ScreenshotExecutionPlan | null> {
+  switch (input.request.childCapabilityId) {
+    case "capture-browser-viewport":
+      return captureBrowserViewportChildCapability.execute({
+        request: input.request,
+        context: input.context,
+      });
+    case "capture-desktop-screen":
+      return captureDesktopScreenChildCapability.execute({
+        request: input.request,
+        context: input.context,
+      });
+    case "capture-region":
+      return captureRegionChildCapability.execute({
+        request: input.request,
+        context: input.context,
+      });
+    case "optimize-lossless":
+      return optimizeLosslessChildCapability.execute({
+        request: input.request,
+        context: input.context,
+      });
+    case "prepare-ai-input":
+      return prepareAiInputChildCapability.execute({
+        request: {
+          ...input.request,
+          maxAiWidth: input.resolvedMaxAiWidth,
+        },
+        context: input.context,
+      });
+    default:
+      return null;
+  }
 }
 
 export async function executeScreenshotRequest(input: {
@@ -181,8 +212,12 @@ export async function executeScreenshotRequest(input: {
     });
   }
 
-  const capability = CHILD_CAPABILITIES.get(input.request.childCapabilityId);
-  if (!capability) {
+  const plan = await executeScreenshotChildPlan({
+    request: input.request,
+    context: input.context,
+    resolvedMaxAiWidth: inputGate.resolvedMaxAiWidth,
+  });
+  if (!plan) {
     const finished = finishScreenshotClock({
       clockPort: input.context.clockPort,
       startedAt: clockStart.startedAt,
@@ -224,13 +259,6 @@ export async function executeScreenshotRequest(input: {
       dataQualityFlags: [],
     });
   }
-
-  const plan = await capability.execute({
-    request: input.request.childCapabilityId === "prepare-ai-input"
-      ? { ...input.request, maxAiWidth: inputGate.resolvedMaxAiWidth }
-      : input.request,
-    context: input.context,
-  });
 
   const regionGate = runRegionProofGate({
     sourceProof: sourceGate.sourceProof,
@@ -528,7 +556,7 @@ export async function executeScreenshotRequest(input: {
     startedAt: clockStart.startedAt,
     startedMonotonicMs: clockStart.startedMonotonicMs,
   });
-  const dataQualityFlags = [
+  const dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"] = [
     "artifact_persisted",
     plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
     browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
@@ -536,7 +564,7 @@ export async function executeScreenshotRequest(input: {
     regionGate.decision.status === "passed" ? "region_proof_verified" : null,
     plan.kind === "image-processing" && plan.operation === "optimize-lossless" ? "lossless_equivalence_verified" : null,
     input.request.childCapabilityId === "capture-desktop-screen" ? "desktop_capture_requested" : null,
-  ].filter((value): value is NonNullable<typeof value> => value !== null);
+  ].filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
 
   const runtimeProof = buildScreenshotRuntimeProof({
     request: input.request,

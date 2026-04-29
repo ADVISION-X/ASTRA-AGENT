@@ -10,7 +10,7 @@ import type {
   CommanderHumanCommandEnvelope,
   CommanderMissionDashboardView,
 } from "../../capabilities/commander-console/index.js";
-import { createOrchestrationAbilityGroup, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
+import { createOrchestrationAbilityGroup, OperationalMapIdSchema, type OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
 import type { OpenAbilityGroup } from "../../capabilities/open/contract.js";
 import { createOpenAbilityGroup } from "../../capabilities/open/index.js";
 import { AI_ABILITY_GROUP_ID, createAiAbilityGroup, type AiAbilityGroup } from "../../capabilities/ai/index.js";
@@ -31,6 +31,7 @@ import { createVisualTargetAbilityGroup, type VisualTargetAbilityGroup } from ".
 import {
   type AiResponseEnvelope,
   createNerveBusAbilityGroup,
+  type HumanCommandDispatchInput,
   type HumanCommandEnvelope,
   type HumanCommandResultEnvelope,
   type NerveBusAbilityGroup,
@@ -210,15 +211,19 @@ export class GrassEyeWorkbench {
           missionReadModel: {
             readMission: async () => {
               const mission = await this.orchestrationAbilityGroup.getMissionState();
+              const missionStatus = mission.status === "pending" ? "idle" : mission.status;
+              const lastHumanCommand = mission.lastHumanCommand === "submit-review-decision"
+                ? null
+                : mission.lastHumanCommand;
               return {
                 missionId: mission.missionId,
                 humanGoal: mission.humanGoal ?? "",
-                status: mission.status,
+                status: missionStatus,
                 missionRunRef: mission.activeTaskRunId,
                 currentRoundIndex: mission.currentRoundIndex,
                 requestedPlatform: mission.requestedPlatform,
                 selectedMapId: mission.mapId,
-                lastHumanCommand: mission.lastHumanCommand,
+                lastHumanCommand,
                 reviewRequiredReason: mission.reviewRequiredReason,
                 failureReason: mission.failureReason,
                 startedAt: mission.startedAt,
@@ -359,8 +364,9 @@ export class GrassEyeWorkbench {
             readRuntimeSummary: async () => {
               const mission = await this.orchestrationAbilityGroup.getMissionState();
               const state = await this.evidenceStore.getOperatorSnapshot();
+              const runtimeStatus = mission.status === "pending" ? "idle" : mission.status;
               return {
-                runtimeStatus: mission.status,
+                runtimeStatus,
                 currentStep: mission.currentStepId,
                 reviewReason: mission.reviewRequiredReason,
                 totalSeenCount: state.roundStructuralLogs.length,
@@ -518,8 +524,8 @@ export class GrassEyeWorkbench {
     return result.output as CommanderMissionDashboardView;
   }
 
-  private buildTransportEnvelopeBase(input: {
-    channelId: "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ai" | "ai-to-orchestration";
+  private buildTransportEnvelopeBase<TChannelId extends "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ai" | "ai-to-orchestration">(input: {
+    channelId: TChannelId;
     envelopeId: string;
     missionId: string;
     mapId: string;
@@ -582,6 +588,10 @@ export class GrassEyeWorkbench {
     return Object.fromEntries(payload.contentBlocks.map((block) => [block.key, block.value]));
   }
 
+  private payloadValueToString(value: string | number | boolean | null | undefined): string | null {
+    return typeof value === "string" ? value : null;
+  }
+
   private buildHumanCommandDispatchInput(command: CommanderHumanCommandEnvelope) {
     const commandId = createId("commander_command");
     const inputPayload = this.buildPayloadDocument({
@@ -613,12 +623,12 @@ export class GrassEyeWorkbench {
       }),
       commandId,
       envelopeKind: "human_command" as const,
-      from: "commander-console",
+      from: "commander-console" as const,
       to: "orchestration" as const,
       commandType: command.commandType,
       },
       inputPayload,
-    };
+    } satisfies HumanCommandDispatchInput;
   }
 
   private describeHumanCommandTransportMessage(resultEnvelope: HumanCommandResultEnvelope): string {
@@ -680,10 +690,13 @@ export class GrassEyeWorkbench {
     try {
       const payload = this.payloadDocumentToObject(inputPayload);
       if (envelope.commandType === "start-mission") {
-          const requestedPlatformId = typeof payload.requestedPlatformId === "string" ? payload.requestedPlatformId as GrassEyePlatformTarget : null;
-          const humanGoal = typeof payload.humanGoal === "string" ? payload.humanGoal : null;
-          const selectedMapId = typeof payload.selectedMapId === "string" ? payload.selectedMapId : null;
-          const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : null;
+          const requestedPlatformId = this.payloadValueToString(payload.requestedPlatformId) as GrassEyePlatformTarget | null;
+          const humanGoal = this.payloadValueToString(payload.humanGoal);
+          const parsedSelectedMapId = typeof payload.selectedMapId === "string"
+            ? OperationalMapIdSchema.safeParse(payload.selectedMapId)
+            : null;
+          const selectedMapId = parsedSelectedMapId?.success ? parsedSelectedMapId.data : null;
+          const operatorNote = this.payloadValueToString(payload.operatorNote);
           if (!requestedPlatformId) {
             return this.buildHumanCommandResultEnvelope({
               envelope,
@@ -696,10 +709,17 @@ export class GrassEyeWorkbench {
             missionId: envelope.missionId,
             humanGoal: humanGoal ?? "Discover evidence-backed product opportunities from the active social feed.",
             requestedPlatform: requestedPlatformId,
+            preferredMapId: selectedMapId,
             initialPayload: {
               requestedBy: "commander-console",
-              ...(selectedMapId ? { selectedMapId } : {}),
-              ...(operatorNote ? { operatorNote } : {}),
+              selectedMapId,
+              operatorNote,
+              targetUrl: null,
+              targetTitle: null,
+              sourceEvidenceRef: null,
+              sourceTargetRef: null,
+              promptInputRef: null,
+              commandInputRef: null,
             },
           });
           return this.buildHumanCommandResultEnvelope({
@@ -720,7 +740,7 @@ export class GrassEyeWorkbench {
           });
         }
 
-        const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : null;
+        const operatorNote = this.payloadValueToString(payload.operatorNote);
         if (envelope.commandType === "pause-mission") {
           const missionState = await this.orchestrationAbilityGroup.pauseMission(missionId);
           return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
@@ -737,8 +757,8 @@ export class GrassEyeWorkbench {
         const missionState = await this.orchestrationAbilityGroup.emergencyStop({ missionId, reason: operatorNote ?? "emergency stop requested by commander console" });
         return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
 
-      const candidateId = typeof payload.targetRecordId === "string" ? payload.targetRecordId : null;
-      if (!candidateId) {
+      const candidateId = this.payloadValueToString(payload.targetRecordId);
+      if (candidateId === null) {
         return this.buildHumanCommandResultEnvelope({
           envelope,
           status: "failed",
@@ -746,14 +766,14 @@ export class GrassEyeWorkbench {
           failureReason: "Candidate review commands require a target candidate id.",
         });
       }
-
+      const governedCandidateId = candidateId!;
       const disposition = envelope.commandType === "approve-candidate"
         ? "approve"
         : envelope.commandType === "reject-candidate"
           ? "reject"
           : "hold";
-      const operatorNote = typeof payload.operatorNote === "string" ? payload.operatorNote : undefined;
-      const candidate = await this.evidenceStore.setCandidateDisposition(candidateId, disposition, operatorNote);
+      const candidateOperatorNote = this.payloadValueToString(payload.operatorNote) ?? undefined;
+      const candidate = await this.evidenceStore.setCandidateDisposition(governedCandidateId, disposition, candidateOperatorNote);
       return this.buildHumanCommandResultEnvelope({
         envelope,
         status: "success",

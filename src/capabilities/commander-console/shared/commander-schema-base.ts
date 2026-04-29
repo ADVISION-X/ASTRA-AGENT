@@ -194,14 +194,16 @@ export const CommanderReadinessSchema = z.object({
   requiresHardPath: z.boolean(),
 }).strict();
 
-export const StartMissionTransportPayloadSchema = z.object({
+const StartMissionTransportPayloadBaseSchema = z.object({
   kind: z.literal("start-mission"),
   requestedBy: z.literal("commander-console"),
   requestedPlatformId: RequestedPlatformIdSchema.optional(),
   selectedMapId: NonEmptyStringSchema.optional(),
   humanGoal: CommanderGoalSchema.optional(),
   operatorNote: CommanderNoteSchema.optional(),
-}).strict().superRefine((value, ctx) => {
+}).strict();
+
+export const StartMissionTransportPayloadSchema = StartMissionTransportPayloadBaseSchema.superRefine((value, ctx) => {
   if (!value.requestedPlatformId && !value.selectedMapId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -260,7 +262,7 @@ export const MarkReviewRequiredTransportPayloadSchema = z.object({
 }).strict();
 
 export const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
-  StartMissionTransportPayloadSchema,
+  StartMissionTransportPayloadBaseSchema,
   PauseMissionTransportPayloadSchema,
   ResumeMissionTransportPayloadSchema,
   StopMissionTransportPayloadSchema,
@@ -268,7 +270,14 @@ export const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
   ApproveCandidateTransportPayloadSchema,
   RejectCandidateTransportPayloadSchema,
   MarkReviewRequiredTransportPayloadSchema,
-]);
+]).superRefine((value, ctx) => {
+  if (value.kind === "start-mission" && !value.requestedPlatformId && !value.selectedMapId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "start-mission payload requires requestedPlatformId or selectedMapId",
+    });
+  }
+});
 
 export const HumanCommandInputSchema = z.object({
   commandType: CommanderCommandTypeSchema,

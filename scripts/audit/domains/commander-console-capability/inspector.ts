@@ -158,7 +158,7 @@ function hasDynamicImportOrRequire(sourceFile: SourceFile): boolean {
 }
 
 function hasAsAny(sourceFile: SourceFile): boolean {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getTypeNode().getText() === "any");
+  return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getTypeNode()?.getText() === "any");
 }
 
 function hasUnknownAs(sourceFile: SourceFile): boolean {

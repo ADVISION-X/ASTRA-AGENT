@@ -12,6 +12,9 @@ export const OPEN_PLATFORM_IDS = [
   "local-workbench",
 ] as const;
 
+export const TIKTOK_PLATFORM_ID = "tiktok-web" as const;
+export const DEFAULT_TIKTOK_URL = "https://www.tiktok.com/foryou";
+
 export const OPEN_TARGET_KINDS = [
   "platform-feed",
   "local-workbench",

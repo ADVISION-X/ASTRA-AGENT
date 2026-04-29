@@ -25,9 +25,9 @@ import {
   OpenUrlSafetyDecisionSchema,
   PostOpenStateDecisionSchema,
 } from "./schema.js";
-import { OPEN_ABILITY_GROUP_ID } from "./shared/open-target-profile.js";
+import { DEFAULT_TIKTOK_URL, OPEN_ABILITY_GROUP_ID, TIKTOK_PLATFORM_ID } from "./shared/open-target-profile.js";
 
-export { OPEN_ABILITY_GROUP_ID };
+export { DEFAULT_TIKTOK_URL, OPEN_ABILITY_GROUP_ID, TIKTOK_PLATFORM_ID };
 
 export type OpenAbilityGroupId = typeof OPEN_ABILITY_GROUP_ID;
 export type OpenChildCapabilityId = z.output<typeof OpenChildCapabilityIdSchema>;

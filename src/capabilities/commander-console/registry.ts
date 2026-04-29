@@ -18,6 +18,7 @@ import { SHOW_REVIEW_QUEUE_CHILD } from "./children/show-review-queue/implementa
 import { SHOW_RUNTIME_PROOF_TIMELINE_CHILD } from "./children/show-runtime-proof-timeline/implementation.js";
 import { STOP_MISSION_CHILD } from "./children/stop-mission/implementation.js";
 import type { CommanderConsoleChildAbilityId, CommanderDispatchChildId } from "./contract.js";
+import { CommanderConsoleChildAbilityIdSchema } from "./schema.js";
 import type { CommanderConsoleChildDefinition } from "./runtime/commander-console-executor.js";
 
 export type CommanderConsoleChildRegistryEntry<TInput, TOutput> = {
@@ -79,7 +80,10 @@ const COMMANDER_CONSOLE_CHILD_REGISTRY = [
 }));
 
 const COMMANDER_CONSOLE_CHILD_MAP = new Map(
-  COMMANDER_CONSOLE_CHILD_REGISTRY.map((entry) => [entry.childCapabilityId, entry.implementation]),
+  COMMANDER_CONSOLE_CHILD_REGISTRY.map((entry) => [
+    entry.childCapabilityId,
+    entry.implementation as CommanderConsoleChildDefinition<unknown, unknown>,
+  ]),
 );
 
 export function listCommanderConsoleChildMetadata() {
@@ -87,5 +91,6 @@ export function listCommanderConsoleChildMetadata() {
 }
 
 export function getCommanderConsoleChild(childCapabilityId: CommanderDispatchChildId) {
-  return COMMANDER_CONSOLE_CHILD_MAP.get(childCapabilityId) ?? null;
+  const parsed = CommanderConsoleChildAbilityIdSchema.safeParse(childCapabilityId);
+  return parsed.success ? COMMANDER_CONSOLE_CHILD_MAP.get(parsed.data) ?? null : null;
 }

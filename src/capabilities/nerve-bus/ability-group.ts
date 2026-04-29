@@ -27,7 +27,7 @@ export function createNerveBusAbilityGroup(input: CreateNerveBusAbilityGroupInpu
       const registryEntry = getNerveBusChannelRegistryEntry("commander-to-orchestration");
       return executeNerveBusChild({
         child,
-        envelope: child.inputSchema.parse(parsedInput.envelope),
+        envelope: parsedInput.envelope,
         inputPayload: parsedInput.inputPayload,
         registryEntry,
         context,
@@ -39,7 +39,7 @@ export function createNerveBusAbilityGroup(input: CreateNerveBusAbilityGroupInpu
       const registryEntry = getNerveBusChannelRegistryEntry("orchestration-to-ability");
       return executeNerveBusChild({
         child,
-        envelope: child.inputSchema.parse(parsedInput.envelope),
+        envelope: parsedInput.envelope,
         inputPayload: parsedInput.inputPayload,
         registryEntry,
         context,
@@ -51,7 +51,7 @@ export function createNerveBusAbilityGroup(input: CreateNerveBusAbilityGroupInpu
       const registryEntry = getNerveBusChannelRegistryEntry("orchestration-to-ai");
       return executeNerveBusChild({
         child,
-        envelope: child.inputSchema.parse(parsedInput.envelope),
+        envelope: parsedInput.envelope,
         inputPayload: parsedInput.inputPayload,
         registryEntry,
         context,
