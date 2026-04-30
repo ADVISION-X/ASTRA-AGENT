@@ -297,7 +297,7 @@ export async function executeRuntimeTask(input: {
 }): Promise<LocalAiTaskResult> {
   const createdAt = new Date().toISOString();
   if (input.request.taskType === "product.signal_summary") {
-    throw new LocalAiRuntimeError("disabled_by_policy", "product.signal_summary is not allowed in phase-03 runtime flow.");
+    throw new LocalAiRuntimeError("disabled_by_policy", "product.signal_summary is not allowed in phase-04 runtime flow.");
   }
 
   if (input.request.taskType === "vision.productPresence") {

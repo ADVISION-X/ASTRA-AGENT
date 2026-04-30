@@ -1,4 +1,5 @@
 import { fileExists, writeJsonFile, writeTextFile } from "./core/filesystem.js";
+import { fileURLToPath } from "node:url";
 import { parseModuleLaws } from "./core/law-parser.js";
 import { loadDomainManifests } from "./core/manifests.js";
 import {
@@ -57,6 +58,15 @@ const collectManifestConflicts = async (
         kind: "MANIFEST",
         message: "Active capability domain has no owner manifest.",
         capabilityDomain: lawDomain,
+      });
+    }
+
+    if (!phaseGate.activeCapabilityDomains.includes(lawDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Active law domain is not enabled in the current phase gate.",
+        capabilityDomain: lawDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
       });
     }
   }
@@ -296,8 +306,16 @@ const main = async (): Promise<void> => {
     `Generated ${artifacts.lawRegistry.laws.length} active laws, ${artifacts.enforcementMatrix.owners.length} owners, ${artifacts.auditPlan.owners.length} planned inspections, ${artifacts.auditConflicts.conflicts.length} conflicts.\n`,
   );
   if (artifacts.auditConflicts.conflicts.length > 0) {
-    process.exitCode = 1;
+    process.exit(1);
   }
+  process.stdout.write("[AUDIT-BUILD PASS] generated artifacts with zero conflicts.\n");
+  process.exit(0);
 };
 
-void main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    process.stderr.write(`[AUDIT-BUILD ERROR] ${message}\n`);
+    process.exit(1);
+  });
+}

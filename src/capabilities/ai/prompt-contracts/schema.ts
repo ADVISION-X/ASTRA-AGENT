@@ -35,6 +35,7 @@ export const PromptContractCatalogEntrySchema = z.object({
   legacyTaskType: PromptContractCatalogLegacyTaskTypeSchema,
   modelRole: PromptContractCatalogModelRoleSchema,
   promptVersion: z.string().min(1),
+  schemaVersion: z.string().min(1),
   inputContract: z.string().min(1),
   requiredInputRefs: z.array(z.string().min(1)).min(1),
   outputSchemaRef: z.string().min(1),

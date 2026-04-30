@@ -17,6 +17,7 @@ export const REQUIRED_PHASE_DOMAINS = [
   "mouse-scroll-capability",
   "visual-target-capability",
   "forensics-persistence-capability",
+  "map-plugin-package",
 ] as const;
 
 export type RequiredPhaseDomain = typeof REQUIRED_PHASE_DOMAINS[number];

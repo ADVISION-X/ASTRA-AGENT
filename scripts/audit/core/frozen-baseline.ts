@@ -18,6 +18,7 @@ const ABILITY_GROUP_DOMAIN_MAP: Record<string, string> = {
   "post-action-verification": "post-action-verification-capability",
   "forensics-persistence": "forensics-persistence-capability",
   "page-state": "page-state-capability",
+  "map-plugin-package": "map-plugin-package",
 };
 
 const SUPPORT_LAW_DOMAIN_MAP: Record<string, string> = {

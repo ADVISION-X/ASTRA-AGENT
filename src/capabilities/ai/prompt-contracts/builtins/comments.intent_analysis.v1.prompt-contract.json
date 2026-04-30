@@ -5,6 +5,7 @@
   "legacyTaskType": "comments.intent_analysis",
   "modelRole": "commentUnderstanding",
   "promptVersion": "comments.intent_analysis.v1",
+  "schemaVersion": "comment-signal.v1",
   "inputContract": "structured_record.cleaned_comments",
   "requiredInputRefs": ["commentsEvidenceRef"],
   "outputSchemaRef": "ai.comment_signal_summary.v1",

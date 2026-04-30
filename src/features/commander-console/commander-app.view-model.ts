@@ -1,6 +1,6 @@
 import { localizeCommanderText } from "./locale.js";
 import type { CommanderConsoleViewModel } from "./types.js";
-import type { CommanderAppPageId, CommanderAppViewModel } from "./commander-app.types.js";
+import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, CommanderAppViewModel } from "./commander-app.types.js";
 import { buildActionableErrors } from "./view-helpers.js";
 
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
@@ -16,50 +16,52 @@ export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel,
 }): CommanderAppViewModel {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   const initialPageId = parseCommanderAppPageId(options?.initialPageId);
+  const navItems: CommanderAppNavItem[] = [
+    { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
+    { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
+    { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
+    { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },
+    { pageId: "health", label: t("健康", "Health"), shortLabel: t("健康", "Health") },
+    { pageId: "developer", label: t("开发者", "Developer"), shortLabel: t("开发者", "Dev"), requiresDeveloperMode: true },
+  ];
+  const tabGroups: CommanderAppTabGroup[] = [
+    {
+      pageId: "mission",
+      groupId: "mission",
+      defaultTabId: "mission-overview",
+      options: [
+        { id: "mission-overview", label: t("总览", "Overview") },
+        { id: "mission-timeline", label: t("时间线", "Timeline") },
+        { id: "mission-proof", label: t("证明摘要", "Proof Summary") },
+      ],
+    },
+    {
+      pageId: "results",
+      groupId: "results",
+      defaultTabId: "results-summary",
+      options: [
+        { id: "results-summary", label: t("摘要", "Summary") },
+        { id: "results-evidence", label: t("证据包", "Evidence") },
+        { id: "results-browse", label: t("Browse Ledger", "Browse") },
+        { id: "results-failed", label: t("失败记录", "Failed") },
+        { id: "results-export", label: t("导出", "Export") },
+      ],
+    },
+    {
+      pageId: "health",
+      groupId: "health",
+      defaultTabId: "health-capabilities",
+      options: [
+        { id: "health-capabilities", label: t("能力健康", "Capabilities") },
+        { id: "health-failures", label: t("故障雷达", "Failures") },
+        { id: "health-logs", label: t("结构化日志", "Logs") },
+      ],
+    },
+  ];
 
-  const commonViewModel = {
-    navItems: [
-      { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
-      { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
-      { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
-      { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },
-      { pageId: "health", label: t("健康", "Health"), shortLabel: t("健康", "Health") },
-      { pageId: "developer", label: t("开发者", "Developer"), shortLabel: t("开发者", "Dev"), requiresDeveloperMode: true },
-    ],
-    tabGroups: [
-      {
-        pageId: "mission",
-        groupId: "mission",
-        defaultTabId: "mission-overview",
-        options: [
-          { id: "mission-overview", label: t("总览", "Overview") },
-          { id: "mission-timeline", label: t("时间线", "Timeline") },
-          { id: "mission-proof", label: t("证明摘要", "Proof Summary") },
-        ],
-      },
-      {
-        pageId: "results",
-        groupId: "results",
-        defaultTabId: "results-summary",
-        options: [
-          { id: "results-summary", label: t("摘要", "Summary") },
-          { id: "results-evidence", label: t("证据包", "Evidence") },
-          { id: "results-browse", label: t("Browse Ledger", "Browse") },
-          { id: "results-failed", label: t("失败记录", "Failed") },
-          { id: "results-export", label: t("导出", "Export") },
-        ],
-      },
-      {
-        pageId: "health",
-        groupId: "health",
-        defaultTabId: "health-capabilities",
-        options: [
-          { id: "health-capabilities", label: t("能力健康", "Capabilities") },
-          { id: "health-failures", label: t("故障雷达", "Failures") },
-          { id: "health-logs", label: t("结构化日志", "Logs") },
-        ],
-      },
-    ],
+  const commonViewModel: Omit<CommanderAppViewModel, "initialPageId"> = {
+    navItems,
+    tabGroups,
     viewportGate: {
       minWidth: 900,
       maxWidth: 1366,

@@ -1,8 +1,7 @@
-import { readFile, unlink, writeFile } from "node:fs/promises";
-
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
+import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
 type Mutation = {
   name: string;
@@ -101,22 +100,8 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
 
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
-  let original = "";
-  let existed = false;
-
-  try {
-    original = await readFile(filePath, "utf8");
-    existed = true;
-  } catch {
-    existed = false;
-  }
-
-  if (!original.includes(mutation.search)) {
-    throw new Error(`Mutation seed not found for ${mutation.name} in ${mutation.file}`);
-  }
-
-  const mutated = original.replace(mutation.search, mutation.replace);
-  await writeFile(filePath, mutated, "utf8");
+  const state = await readAuditFileState(filePath);
+  await applyAuditMutation(filePath, state.original, mutation);
 
   try {
     const result = await runInspector();
@@ -124,11 +109,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
-    if (existed) {
-      await writeFile(filePath, original, "utf8");
-    } else {
-      await unlink(filePath);
-    }
+    await restoreAuditFileState(filePath, state);
   }
 
   const restored = await runInspector();

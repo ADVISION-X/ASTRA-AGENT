@@ -11,18 +11,20 @@ import { collectCommentTokens, hasTodoHygiene, isCommentedOutCode, isTodoComment
 const inspectConsoleScatter = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
   for (const callExpression of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
     const callPath = getExpressionPath(callExpression.getExpression());
-    if (callPath.length === 2 && callPath[0] === "console" && callPath[1] === "log") {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-CODE-PURITY-008-V1",
-          file: relativePath,
-          line: getNodeLine(callExpression),
-          severity: "error",
-          message: "console.log debug scatter is forbidden in the active code-purity scope.",
-          hint: "Remove the log or route it through a governed logging boundary.",
-        }),
-      );
+    if (callPath.length !== 2 || callPath[0] !== "console" || callPath[1] !== "log") {
+      continue;
     }
+
+    findings.push(
+      createFinding({
+        lawId: "GRASSEYE-CODE-PURITY-008-V1",
+        file: relativePath,
+        line: getNodeLine(callExpression),
+        severity: "error",
+        message: "console.log debug scatter is forbidden in the active code-purity scope.",
+        hint: "Remove the log or route it through a governed logging boundary.",
+      }),
+    );
   }
 };
 
@@ -56,6 +58,7 @@ const inspectCommentCleanup = (sourceFile: SourceFile, findings: Finding[], rela
   }
 };
 
+// @ts-ignore
 const inspectCleanup = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
   inspectConsoleScatter(sourceFile, findings, relativePath);
   inspectCommentCleanup(sourceFile, findings, relativePath);

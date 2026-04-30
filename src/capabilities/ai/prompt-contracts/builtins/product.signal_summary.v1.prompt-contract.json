@@ -5,6 +5,7 @@
   "legacyTaskType": "product.signal_summary",
   "modelRole": "productSignal",
   "promptVersion": "product.signal_summary.v1",
+  "schemaVersion": "product-opportunity-candidate.v1",
   "inputContract": "structured_record.product_signal_inputs",
   "requiredInputRefs": ["aiResultRef"],
   "outputSchemaRef": "ai.product_signal_summary.v1",

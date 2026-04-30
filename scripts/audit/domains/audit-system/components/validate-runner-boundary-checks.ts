@@ -72,7 +72,7 @@ export const getManualOwnerListViolationLine = (sourceFile: AuditSourceFile): nu
 };
 
 export const hasFailureExitAssignment = (sourceFile: AuditSourceFile): boolean => {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
+  const hasExitCodeAssignment = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
     if (expression.getOperatorToken().getKind() !== SyntaxKind.EqualsToken) {
       return false;
     }
@@ -87,4 +87,18 @@ export const hasFailureExitAssignment = (sourceFile: AuditSourceFile): boolean =
       right.getLiteralText() === "1"
     );
   });
+
+  const hasFailFastExitCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expressionPath = getExpressionPath(callExpression.getExpression());
+    const firstArgument = callExpression.getArguments()[0];
+    return (
+      expressionPath.length === 1 &&
+      expressionPath[0] === "exitNow" &&
+      firstArgument !== undefined &&
+      Node.isNumericLiteral(firstArgument) &&
+      firstArgument.getLiteralText() === "1"
+    );
+  });
+
+  return hasExitCodeAssignment || hasFailFastExitCall;
 };

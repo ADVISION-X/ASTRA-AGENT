@@ -1,5 +1,5 @@
 import { validateCapabilityRegistry } from "./map-capability-registry-validator.js";
-import { validateCompatibility } from "./map-compatibility-validator.js";
+import { validateMapVersionRequirements } from "./map-version-requirement-validator.js";
 import { validateMapDependencies } from "./map-dependency-validator.js";
 import { validateMapDryRun } from "./map-dry-run-validator.js";
 import { validatePlatformProfiles } from "./map-platform-profile-validator.js";
@@ -29,7 +29,7 @@ export function validateMapPackage(input: unknown): MapPackageValidationResult {
     ...validateCapabilityRegistry(schemaResult.parsed),
     ...validatePromptContracts(schemaResult.parsed),
     ...validatePlatformProfiles(schemaResult.parsed),
-    ...validateCompatibility(schemaResult.parsed),
+    ...validateMapVersionRequirements(schemaResult.parsed),
     ...validateMapSecurity(schemaResult.parsed),
     ...validateMapDryRun(schemaResult.parsed)
   ];

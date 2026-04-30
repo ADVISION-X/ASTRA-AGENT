@@ -1,7 +1,7 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
-import { createMapPluginAuditProject, INSPECTOR_PATH } from "./ast-utils.js";
+import { createMapPluginAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
@@ -15,7 +15,7 @@ const inspector: DomainInspector = async (context) => {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "map-plugin-package",
     inspectorId: "map-plugin-package-governance",
-    inspectorEntry: INSPECTOR_PATH,
+    inspectorEntry: "scripts/audit/domains/map-plugin-package/inspector.ts",
   });
   const foundationFindings = base.findings.filter((finding) => finding.message !== "Generated audit plan does not contain this owner.");
   const foundationPhase = foundationFindings.length === 0

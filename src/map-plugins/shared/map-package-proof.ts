@@ -6,6 +6,9 @@ export type MapActivationRecord = {
   approvedBy: string;
   activatedAt: string;
   reason: string;
+  humanApprovalRef: string | null;
+  capabilityCatalogVersion: string | null;
+  promptCatalogVersion: string | null;
 };
 
 export type MapRollbackRecord = {

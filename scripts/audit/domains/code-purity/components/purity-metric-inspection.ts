@@ -177,7 +177,8 @@ export const inspectPurityMetrics = (sourceFile: SourceFile, relativePath: strin
   for (const functionNode of getFunctionNodes(sourceFile)) {
     const metrics = getFunctionMetrics(functionNode);
     const name = getFunctionName(functionNode, relativePath);
-    const statements = functionNode.getBody()?.getStatements().length ?? 0;
+    const body = functionNode.getBody();
+    const statements = body ? (Node.isBlock(body) ? body.getStatements().length : 1) : 0;
     const returns = functionNode.getDescendantsOfKind(SyntaxKind.ReturnStatement).length;
     const switchCases = functionNode.getDescendantsOfKind(SyntaxKind.CaseClause).length;
     const ifChain = Math.max(0, ...functionNode.getDescendantsOfKind(SyntaxKind.IfStatement).map((statement) => countIfChain(statement)));

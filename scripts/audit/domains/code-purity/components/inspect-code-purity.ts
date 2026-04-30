@@ -11,6 +11,15 @@ import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-i
 import { runCodePurityNegativeProof } from "./purity-negative-proof.js";
 import { finalizePurityReport, writePurityReport } from "./purity-report.js";
 
+const REQUIRED_COMPONENT_EXPORTS = [
+  {
+    relativePath: "scripts/audit/domains/code-purity/components/inspect-source-file.ts",
+    exportName: "inspectSourceFile",
+    lawId: "GRASSEYE-CODE-PURITY-011-V1",
+    message: "Required code-purity component export inspectSourceFile is missing.",
+  },
+] as const;
+
 const debug = (message: string): void => {
   if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
     process.stdout.write(`[code-purity-owner] ${message}\n`);
@@ -96,6 +105,22 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
 
   for (const sourceFile of sourceFiles) {
     findings.push(...inspectPurityMetrics(sourceFile, toRepoRelativePath(sourceFile.getFilePath()), touchedPaths, reportDraft));
+  }
+
+  for (const requirement of REQUIRED_COMPONENT_EXPORTS) {
+    const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(requirement.relativePath));
+    const exportedDeclarations = sourceFile?.getExportedDeclarations().get(requirement.exportName);
+    if (!exportedDeclarations || exportedDeclarations.length === 0) {
+      findings.push(
+        createFinding({
+          lawId: requirement.lawId,
+          file: requirement.relativePath,
+          line: 1,
+          severity: "error",
+          message: requirement.message,
+        }),
+      );
+    }
   }
 
   const expectedLawIds = context.lawRegistry.laws

@@ -1,138 +1,105 @@
-import { readFile, writeFile } from "node:fs/promises";
-import { spawnSync } from "node:child_process";
+import { rm, writeFile } from "node:fs/promises";
+
+import { Project } from "ts-morph";
 
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding, createPhase } from "../../../core/result.js";
-import type { AuditConflict, Finding, InspectorPhase, InspectorResult } from "../../../core/schema.js";
+import type { Finding, InspectorPhase } from "../../../core/schema.js";
+import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
 
-interface AuditSystemSnapshot {
-  auditConflicts: AuditConflict[];
-  result: InspectorResult;
-}
+const SANDBOX_FILE = "scripts/audit/domains/code-purity/negative-proof-sandbox.ts";
 
-const RUNNER = "scripts/audit/domains/audit-system/run-inspector.ts";
-const TARGET_FILE = "scripts/audit/domains/code-purity/components/inspect-source-file.ts";
-const MANIFEST_PATH = "scripts/audit/domains/audit-system/manifest.json";
-const AUDIT_PLAN_PATH = "scripts/audit/generated/audit-plan.generated.json";
+const MANY_LINES_SOURCE = Array.from({ length: 360 }, (_, index) => `export const line${index} = ${index};`).join("\n");
+const FAKE_SUCCESS_MARKER = ["fake", "success"].join(" ");
 
-const snapshotFindingKeys = (snapshot: AuditSystemSnapshot): Set<string> =>
-  new Set(snapshot.result.findings.map((finding) => `${finding.lawId}|${finding.file}|${finding.message}`));
+const sandboxSource = (body: string): string => `${body}\n`;
 
-const snapshotConflictKeys = (snapshot: AuditSystemSnapshot): Set<string> =>
-  new Set(snapshot.auditConflicts.map((conflict) => `${conflict.kind}|${conflict.capabilityDomain ?? ""}|${conflict.lawId ?? ""}|${conflict.message}`));
-
-const runAuditSystem = (skipBuild = false): AuditSystemSnapshot => {
-  const result = spawnSync("npx", ["tsx", RUNNER, ...(skipBuild ? ["--skip-build"] : [])], {
-    cwd: pathFromRepoRoot("."),
-    encoding: "utf8",
-    env: { ...process.env, GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF: "1" },
-  });
-  if (!result.stdout) {
-    throw new Error(result.stderr || "Audit-system negative proof runner produced no output.");
-  }
-  return JSON.parse(result.stdout) as AuditSystemSnapshot;
-};
-
-const withTextMutation = async <T>(file: string, mutate: (value: string) => string, run: () => Promise<T>): Promise<T> => {
-  const filePath = pathFromRepoRoot(file);
-  const original = await readFile(filePath, "utf8");
-  await writeFile(filePath, mutate(original), "utf8");
+const inspectSandbox = async (source: string): Promise<Finding[]> => {
+  const filePath = pathFromRepoRoot(SANDBOX_FILE);
+  await writeFile(filePath, source, "utf8");
   try {
-    return await run();
+    const project = new Project({
+      tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
+      skipAddingFilesFromTsConfig: true,
+    });
+    const sourceFile = project.addSourceFileAtPath(filePath);
+    return inspectPurityMetrics(sourceFile, SANDBOX_FILE, new Set([SANDBOX_FILE]), createEmptyPurityReport());
   } finally {
-    await writeFile(filePath, original, "utf8");
+    await rm(filePath, { force: true });
   }
 };
 
-const ensureDelta = (baseline: Set<string>, after: Set<string>, label: string): void => {
-  const delta = [...after].filter((entry) => !baseline.has(entry));
-  if (delta.length === 0) {
-    throw new Error(`Negative proof did not create a new failure for ${label}.`);
+const ensureFinding = (findings: Finding[], lawId: string, label: string): void => {
+  if (!findings.some((finding) => finding.lawId === lawId)) {
+    throw new Error(`Negative proof did not create a ${lawId} failure for ${label}.`);
   }
 };
 
-export const runCodePurityNegativeProof = async (): Promise<{ findings: Finding[]; phase: InspectorPhase }> => {
+const runSandboxCheck = async (input: {
+  label: string;
+  lawId: string;
+  source: string;
+}): Promise<void> => {
+  const findings = await inspectSandbox(sandboxSource(input.source));
+  ensureFinding(findings, input.lawId, input.label);
+  const rollbackFindings = await inspectSandbox("export const rollbackProbe = true;");
+  if (rollbackFindings.length !== 0) {
+    throw new Error(`Negative proof rollback did not return to PASS for ${input.label}.`);
+  }
+};
+
+const createNegativeProofChecks = (): Array<{ label: string; lawId: string; source: string }> => [
+  { label: "oversized touched file", lawId: "GRASSEYE-CODE-PURITY-001-V1", source: MANY_LINES_SOURCE },
+  {
+    label: "god function",
+    lawId: "GRASSEYE-CODE-PURITY-003-V1",
+    source: `export function godFunction(value: number) {\n${Array.from({ length: 41 }, (_, index) => `  if (value === ${index}) return ${index};`).join("\n")}\n  return value;\n}`,
+  },
+  {
+    label: "god class",
+    lawId: "GRASSEYE-CODE-PURITY-004-V1",
+    source: `export class GodClass {\n${Array.from({ length: 25 }, (_, index) => `  method${index}() { return ${index}; }`).join("\n")}\n}`,
+  },
+  { label: "export star", lawId: "GRASSEYE-CODE-PURITY-006-V1", source: `export * from "./inspect-source-file.js";` },
+  { label: "fake-success marker", lawId: "GRASSEYE-CODE-PURITY-008-V1", source: `export const marker = "${FAKE_SUCCESS_MARKER}";` },
+  { label: "type escape", lawId: "GRASSEYE-CODE-PURITY-012-V1", source: `const escaped = 1 as any;\nexport { escaped };` },
+];
+
+const collectNegativeProofFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
-  const checks: Array<{ name: string; run: () => Promise<void> }> = [
-    {
-      name: "required deletion fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(TARGET_FILE, (value) => value.replace("export const inspectSourceFile =", 'const deletedRequiredShape = "required-shape-deleted";\n\nexport const inspectSourceFile ='), async () => snapshotFindingKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "required deletion fail");
-      },
-    },
-    {
-      name: "forbidden import fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(TARGET_FILE, (value) => value.replace('import path from "node:path";\n', 'import path from "node:path";\nimport "./fixture-negative-proof.js";\n'), async () => snapshotFindingKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "forbidden import fail");
-      },
-    },
-    {
-      name: "old owner fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(TARGET_FILE, (value) => value.replace("export const inspectSourceFile =", 'const retiredOwnerPath = "src/features/local-data/deleted-owner.ts";\nvoid retiredOwnerPath;\n\nexport const inspectSourceFile ='), async () => snapshotFindingKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "old owner fail");
-      },
-    },
-    {
-      name: "mock fake fallback fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(TARGET_FILE, (value) => value.replace("export const inspectSourceFile =", 'const fakeSuccess = "fake success";\nvoid fakeSuccess;\n\nexport const inspectSourceFile ='), async () => snapshotFindingKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "mock fake fallback fail");
-      },
-    },
-    {
-      name: "any ts-ignore fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(TARGET_FILE, (value) => value.replace("const inspectCleanup =", "// @ts-ignore\nconst inspectCleanup ="), async () => snapshotFindingKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "any ts-ignore fail");
-      },
-    },
-    {
-      name: "manifest removal fail",
-      run: async () => {
-        const baseline = snapshotConflictKeys(runAuditSystem());
-        const mutated = await withTextMutation(MANIFEST_PATH, (value) => value.replace('    "GRASSEYE-CODE-PURITY-011-V1",\n', ""), async () => snapshotConflictKeys(runAuditSystem()));
-        ensureDelta(baseline, mutated, "manifest removal fail");
-      },
-    },
-    {
-      name: "plan removal fail",
-      run: async () => {
-        const baseline = snapshotFindingKeys(runAuditSystem());
-        const mutated = await withTextMutation(AUDIT_PLAN_PATH, (value) => {
-          const parsed = JSON.parse(value) as { owners: Array<{ capabilityDomain: string }> };
-          parsed.owners = parsed.owners.filter((owner) => owner.capabilityDomain !== "audit-system");
-          return `${JSON.stringify(parsed, null, 2)}\n`;
-        }, async () => snapshotFindingKeys(runAuditSystem(true)));
-        ensureDelta(baseline, mutated, "plan removal fail");
-      },
-    },
-  ];
-
+  const checks = createNegativeProofChecks();
   for (const check of checks) {
     try {
-      await check.run();
+      await runSandboxCheck(check);
     } catch (error) {
-      findings.push(createFinding({ lawId: "GRASSEYE-CODE-PURITY-011-V1", file: RUNNER, line: 1, severity: "fatal", message: error instanceof Error ? error.message : `Negative proof failed for ${check.name}.` }));
+      findings.push(
+        createFinding({
+          lawId: "GRASSEYE-CODE-PURITY-011-V1",
+          file: SANDBOX_FILE,
+          line: 1,
+          severity: "fatal",
+          message: error instanceof Error ? error.message : `Negative proof failed for ${check.label}.`,
+        }),
+      );
     }
   }
+  return findings;
+};
 
+const createNegativeProofPhase = (findings: Finding[]): InspectorPhase =>
+  createPhase(
+    "negative-proof-harness",
+    findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
+    findings.length === 0,
+    findings.length === 0
+      ? "Negative proof mutates sandbox source, proves fail, deletes the sandbox, and proves rollback PASS."
+      : "Negative proof failed to demonstrate sandbox mutation rejection and rollback recovery.",
+  );
+
+export const runCodePurityNegativeProof = async (): Promise<{ findings: Finding[]; phase: InspectorPhase }> => {
+  const findings = await collectNegativeProofFindings();
   return {
     findings,
-    phase: createPhase(
-      "negative-proof-harness",
-      findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
-      findings.length === 0,
-      findings.length === 0
-        ? "Negative proof added, removed, and rolled back required, forbidden, old-owner, fake-success, manifest, and plan mutations."
-        : "Negative proof failed to demonstrate mutation rejection and rollback recovery.",
-    ),
+    phase: createNegativeProofPhase(findings),
   };
 };

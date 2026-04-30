@@ -35,7 +35,7 @@ function toLocalPromptContract(taskType: LocalAiTaskType): PromptContract {
     modelRole: contract.modelRole as LocalAiModelRole,
     promptId: contract.promptId,
     promptVersion: contract.promptVersion,
-    schemaVersion: contract.outputSchemaRef,
+    schemaVersion: contract.schemaVersion,
     purpose: taskType === "vision.productPresence"
       ? VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT.purpose
       : contract.purpose,

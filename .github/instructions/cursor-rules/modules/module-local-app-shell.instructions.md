@@ -27,7 +27,7 @@ summary: local-app-shell is a commander-console child sub-contract for local she
 
 ### 法条
 
-GrassEye phase-three must remain a local-first desktop workbench with local operator UI, local browser session, local AI execution, and local evidence storage.
+GrassEye phase-four must remain a local-first desktop workbench with local operator UI, local browser session, local AI execution, local evidence storage, and full-law audit enforcement.
 
 Required direction:
 - localhost operator console is an allowed shell form during the current implementation window.

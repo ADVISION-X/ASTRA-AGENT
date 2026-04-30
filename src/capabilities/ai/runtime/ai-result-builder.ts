@@ -1,5 +1,6 @@
-import type { AiAbilityResult, AiChildContract, AiPromptContract, ParsedAiAbilityInput } from "../contract.js";
+import type { AiAbilityResult, AiChildContract, ParsedAiAbilityInput } from "../contract.js";
 import type { AiClockEnd, AiClockStart } from "../ports/ai-clock-port.js";
+import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
 import { AiResultSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
 import { buildAiRuntimeProof } from "./ai-proof-builder.js";
@@ -7,7 +8,7 @@ import { buildAiRuntimeProof } from "./ai-proof-builder.js";
 export function buildAiResult(input: {
   request: ParsedAiAbilityInput;
   childContract: AiChildContract;
-  promptContract: AiPromptContract;
+  promptContract: ResolvedAiPromptContract;
   status: AiAbilityResult["status"];
   modelProvider: AiAbilityResult["modelProvider"];
   modelName: string;

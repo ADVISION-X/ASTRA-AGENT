@@ -83,6 +83,7 @@ import { createBrowserControllerMouseScrollPrimitivePort } from "../browser/mous
 import { createSystemClipboardPort } from "../browser/system-clipboard-port.js";
 import { createMouseScrollExecutionContext } from "../../capabilities/mouse-scroll/runtime/mouse-scroll-execution-context.js";
 import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { loadLocalAiModelConfig, type LocalAiModelConfig, type LocalModelRole } from "../local-ai/model-config.js";
 import { getDefaultLocalDataDir } from "./default-data-dir.js";
 import { createId } from "./ids.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
@@ -1169,6 +1170,58 @@ export class GrassEyeWorkbench {
     return result.output as CommanderMissionDashboardView;
   }
 
+  async listRuntimeDebugEvents(tail = 200) {
+    return this.evidenceStore.listStructuredRuntimeEvents(tail);
+  }
+
+  async listRuntimeDebugActions(tail = 200) {
+    return this.evidenceStore.listStructuredActionLogs(tail);
+  }
+
+  async getLocalAiRoleControls() {
+    return this.buildLocalAiRoleControls(await loadLocalAiModelConfig());
+  }
+
+  async setLocalAiRoleStartupState(input: { role: LocalModelRole; enabled: boolean }) {
+    if (!input.enabled) {
+      throw new Error(`Role ${input.role} cannot be disabled because phase-04 full-enforcement posture requires all configured local AI roles at startup.`);
+    }
+
+    return {
+      ...this.buildLocalAiRoleControls(await loadLocalAiModelConfig()),
+      mutation: {
+        role: input.role,
+        requestedEnabled: input.enabled,
+        applied: false,
+        status: "accepted-noop" as const,
+        message: `Role ${input.role} is already required at startup under the phase-04 full-enforcement posture.`,
+      },
+    };
+  }
+
+  private buildLocalAiRoleControls(config: LocalAiModelConfig) {
+    return {
+      phase: config.phase,
+      executionPosture: config.executionPosture,
+      allowCloudFallback: config.allowCloudFallback,
+      allowPaidApi: config.allowPaidApi,
+      allowMockForAcceptance: config.allowMockForAcceptance,
+      roles: Object.values(config.roles).map((roleConfig) => ({
+        role: roleConfig.role,
+        enabled: true,
+        startupState: "required" as const,
+        provider: roleConfig.provider,
+        runtime: roleConfig.runtime,
+        model: roleConfig.model,
+        executionMode: roleConfig.executionMode,
+        promptVersion: roleConfig.promptVersion,
+        schemaVersion: roleConfig.schemaVersion,
+        failureBehavior: roleConfig.failureBehavior,
+        requiredForPhase: roleConfig.requiredForPhase,
+      })),
+    };
+  }
+
   private buildTransportEnvelopeBase<TChannelId extends "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ability" | "ability-to-orchestration" | "orchestration-to-ai" | "ai-to-orchestration">(input: {
     channelId: TChannelId;
     envelopeId: string;
@@ -1863,7 +1916,7 @@ export class GrassEyeWorkbench {
     try {
       const [runnerSummaryText, phaseGateText] = await Promise.all([
         readFile(path.join(process.cwd(), "scripts", "audit", "generated", "runner-summary.json"), "utf8"),
-        readFile(path.join(process.cwd(), "scripts", "audit", "phase-gates", "phase-02-local-workbench.json"), "utf8"),
+        readFile(path.join(process.cwd(), "scripts", "audit", "phase-gates", "phase-04-full-enforcement.json"), "utf8"),
       ]);
       const runnerSummary = JSON.parse(runnerSummaryText) as {
         generatedAt?: string;
@@ -1882,7 +1935,7 @@ export class GrassEyeWorkbench {
       };
     } catch {
       return {
-        phase: "phase-02-local-workbench",
+        phase: "phase-04-full-enforcement",
         activeCapabilityDomains: [],
         lastGeneratedAt: null,
         lastRunGeneratedAt: null,

@@ -1,10 +1,9 @@
-import { readFile, unlink, writeFile } from "node:fs/promises";
-
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
+import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
 import { LAW_ID } from "./ast-utils.js";
 
@@ -69,27 +68,8 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
 
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
-  let original = "";
-  let existed = false;
-
-  try {
-    original = await readFile(filePath, "utf8");
-    existed = true;
-  } catch {
-    existed = false;
-  }
-
-  if (mutation.mode === "write") {
-    await writeFile(filePath, mutation.content ?? "", "utf8");
-  } else {
-    if (!mutation.search || mutation.replace === undefined) {
-      throw new Error(`Replace mutation is missing search/replace for ${mutation.name}`);
-    }
-    if (!original.includes(mutation.search)) {
-      throw new Error(`Mutation seed not found for ${mutation.name} in ${mutation.file}`);
-    }
-    await writeFile(filePath, original.replace(mutation.search, mutation.replace), "utf8");
-  }
+  const state = await readAuditFileState(filePath);
+  await applyAuditMutation(filePath, state.original, mutation);
 
   try {
     const result = await runInspector();
@@ -97,11 +77,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
-    if (existed) {
-      await writeFile(filePath, original, "utf8");
-    } else {
-      await unlink(filePath);
-    }
+    await restoreAuditFileState(filePath, state);
   }
 
   const restored = await runInspector();
@@ -110,51 +86,48 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   }
 }
 
+function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [],
+    phase: createPhase("negative-proof-harness", "PASS", true, summary),
+  };
+}
+
+function createFatalResult(message: string, summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [
+      createFinding({
+        lawId: LAW_ID,
+        file: INSPECTOR_ENTRY,
+        line: 1,
+        severity: "fatal",
+        message,
+      }),
+    ],
+    phase: createPhase("negative-proof-harness", "FAKE ENFORCEMENT", false, summary),
+  };
+}
+
+async function runMutations(): Promise<void> {
+  for (const mutation of MUTATIONS) {
+    await mutateAndVerify(mutation);
+  }
+}
+
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
     const baseline = await runInspector();
     if (!baseline.passed) {
-      return {
-        findings: [],
-        phase: createPhase(
-          "negative-proof-harness",
-          "PASS",
-          true,
-          "Negative proof is intentionally deferred until the baseline scorecard and shape gates are fully clean.",
-        ),
-      };
+      return createPassResult("Negative proof is intentionally deferred until the baseline scorecard and shape gates are fully clean.");
     }
 
-    for (const mutation of MUTATIONS) {
-      await mutateAndVerify(mutation);
-    }
+    await runMutations();
 
-    return {
-      findings: [],
-      phase: createPhase(
-        "negative-proof-harness",
-        "PASS",
-        true,
-        "Negative proof rejected all 19 compact-shell mutations and recovered after rollback.",
-      ),
-    };
+    return createPassResult("Negative proof rejected all 19 compact-shell mutations and recovered after rollback.");
   } catch (error) {
-    return {
-      findings: [
-        createFinding({
-          lawId: LAW_ID,
-          file: INSPECTOR_ENTRY,
-          line: 1,
-          severity: "fatal",
-          message: error instanceof Error ? error.message : "Commander Console user-love negative proof failed.",
-        }),
-      ],
-      phase: createPhase(
-        "negative-proof-harness",
-        "FAKE ENFORCEMENT",
-        false,
-        "Negative proof failed to demonstrate mutation rejection and rollback recovery.",
-      ),
-    };
+    return createFatalResult(
+      error instanceof Error ? error.message : "Commander Console user-love negative proof failed.",
+      "Negative proof failed to demonstrate mutation rejection and rollback recovery.",
+    );
   }
 }

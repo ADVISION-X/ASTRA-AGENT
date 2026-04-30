@@ -1,7 +1,7 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
-import { INSPECTOR_PATH, createIntegrationAuditProject } from "./ast-utils.js";
+import { createIntegrationAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
@@ -14,7 +14,7 @@ const inspector: DomainInspector = async (context) => {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "map-plugin-orchestration-integration",
     inspectorId: "map-plugin-orchestration-integration",
-    inspectorEntry: INSPECTOR_PATH,
+    inspectorEntry: "scripts/audit/domains/map-plugin-orchestration-integration/inspector.ts",
   });
   const ignoredFoundationMessages = new Set([
     "Generated enforcement matrix does not contain this owner.",

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
-import type { AiAbilityResult, AiChildContract, AiPromptContract, ParsedAiAbilityInput } from "../contract.js";
+import type { AiAbilityResult, AiChildContract, ParsedAiAbilityInput } from "../contract.js";
 import type { AiClockEnd, AiClockStart } from "../ports/ai-clock-port.js";
+import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
 import { AiRuntimeProofSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
 
@@ -12,7 +13,7 @@ function hashValue(value: unknown): string {
 export function buildAiRuntimeProof(input: {
   request: ParsedAiAbilityInput;
   childContract: AiChildContract;
-  promptContract: AiPromptContract;
+  promptContract: ResolvedAiPromptContract;
   result: Pick<AiAbilityResult, "status" | "failureReason" | "reviewRequiredReason" | "modelProvider" | "modelName" | "modelRole" | "runtime">;
   outputRef: string | null;
   started: AiClockStart;

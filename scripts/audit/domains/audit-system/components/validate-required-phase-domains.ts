@@ -8,7 +8,8 @@ export const validateRequiredPhaseDomains = async (
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
   const frozenBaseline = await loadFrozenBaselineDomains();
-  const requiredPhaseDomains = frozenBaseline.activeCapabilityDomains;
+  const lawDomains = [...new Set(context.lawRegistry.laws.map((law) => law.capabilityDomain))].sort();
+  const requiredPhaseDomains = [...new Set([...frozenBaseline.activeCapabilityDomains, ...lawDomains])].sort();
 
   for (const capabilityDomain of requiredPhaseDomains) {
     if (!context.phaseGate.activeCapabilityDomains.includes(capabilityDomain)) {
@@ -68,8 +69,8 @@ export const validateRequiredPhaseDomains = async (
       findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
       findings.length === 0,
       findings.length === 0
-        ? `Current phase gate and generated plan match the frozen active owner baseline from ${frozenBaseline.baselineFile}.`
-        : "The current phase gate or generated audit plan drifted away from the frozen owner baseline.",
+        ? `Current phase gate and generated plan include every frozen owner and every active law domain from ${frozenBaseline.baselineFile}.`
+        : "The current phase gate or generated audit plan drifted away from the frozen owner baseline or active law registry.",
     ),
   ];
 

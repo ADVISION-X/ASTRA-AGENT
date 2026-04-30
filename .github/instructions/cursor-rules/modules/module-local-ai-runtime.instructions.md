@@ -138,7 +138,7 @@ Required direction:
 FORBIDDEN:
 - provider = cloud or paid-api in current phase.
 - allowCloudFallback = true.
-- allowMock = true for phase-three acceptance.
+- allowMock = true for phase-four acceptance.
 - hidden paid fallback or implicit provider substitution.
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-005-V1

@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Index"
-description: "Use when routing GrassEye phase-three work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
+description: "Use when routing GrassEye phase-four full enforcement work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 

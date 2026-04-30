@@ -1,10 +1,9 @@
-import { readFile, writeFile } from "node:fs/promises";
-
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
+import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
 type Mutation = {
   name: string;
@@ -71,13 +70,8 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
 
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
-  const original = await readFile(filePath, "utf8");
-
-  if (!original.includes(mutation.search)) {
-    throw new Error(`Mutation seed not found for ${mutation.name} in ${mutation.file}`);
-  }
-
-  await writeFile(filePath, original.replace(mutation.search, mutation.replace), "utf8");
+  const state = await readAuditFileState(filePath);
+  await applyAuditMutation(filePath, state.original, mutation);
 
   try {
     const mutated = await runInspector();
@@ -85,7 +79,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
-    await writeFile(filePath, original, "utf8");
+    await restoreAuditFileState(filePath, state);
   }
 
   const restored = await runInspector();
@@ -94,59 +88,51 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   }
 }
 
+function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [],
+    phase: createPhase("negative-proof-harness", "PASS", true, summary),
+  };
+}
+
+function createFatalResult(message: string, summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [
+      createFinding({
+        lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
+        file: INSPECTOR_ENTRY,
+        line: 1,
+        severity: "fatal",
+        message,
+      }),
+    ],
+    phase: createPhase("negative-proof-harness", "FAKE ENFORCEMENT", false, summary),
+  };
+}
+
+async function runMutations(): Promise<void> {
+  for (const mutation of MUTATIONS) {
+    await mutateAndVerify(mutation);
+  }
+}
+
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
     const baseline = await runInspector();
     if (!baseline.passed) {
-      return {
-        findings: [
-          createFinding({
-            lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-            file: INSPECTOR_ENTRY,
-            line: 1,
-            severity: "fatal",
-            message: "Screenshot inspector baseline must pass before negative-proof mutation checks.",
-          }),
-        ],
-        phase: createPhase(
-          "negative-proof-harness",
-          "FAKE ENFORCEMENT",
-          false,
-          "Screenshot negative-proof harness cannot start because the baseline inspector is not passing.",
-        ),
-      };
+      return createFatalResult(
+        "Screenshot inspector baseline must pass before negative-proof mutation checks.",
+        "Screenshot negative-proof harness cannot start because the baseline inspector is not passing.",
+      );
     }
 
-    for (const mutation of MUTATIONS) {
-      await mutateAndVerify(mutation);
-    }
+    await runMutations();
 
-    return {
-      findings: [],
-      phase: createPhase(
-        "negative-proof-harness",
-        "PASS",
-        true,
-        "Screenshot negative-proof harness rejects export-star, contract leak, payload-gate bypass, private-runtime import, and non-success output escape mutations.",
-      ),
-    };
+    return createPassResult("Screenshot negative-proof harness rejects export-star, contract leak, payload-gate bypass, private-runtime import, and non-success output escape mutations.");
   } catch (error) {
-    return {
-      findings: [
-        createFinding({
-          lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          file: INSPECTOR_ENTRY,
-          line: 1,
-          severity: "fatal",
-          message: error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",
-        }),
-      ],
-      phase: createPhase(
-        "negative-proof-harness",
-        "FAKE ENFORCEMENT",
-        false,
-        "Screenshot negative-proof harness failed to prove mutation rejection and rollback recovery.",
-      ),
-    };
+    return createFatalResult(
+      error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",
+      "Screenshot negative-proof harness failed to prove mutation rejection and rollback recovery.",
+    );
   }
 }

@@ -4,11 +4,11 @@
 
 当前法案源头冻结为：
 
-- 13 个 active ability groups
+- 14 个 active ability groups
 - 4 个 active support laws
 - 若干父 owner 子契约法案
 
-## 13 个 active ability groups
+## 14 个 active ability groups
 
 1. commander-console
 2. orchestration
@@ -23,6 +23,7 @@
 11. post-action-verification
 12. forensics-persistence
 13. page-state
+14. map-plugin-package
 
 ## 4 个 active support laws
 

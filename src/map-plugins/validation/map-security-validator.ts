@@ -1,8 +1,8 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
 
-const FORBIDDEN_KEYS = new Set(["handler", "function", "script", "command", "shell", "exec", "eval"]);
-const FORBIDDEN_STRING_FRAGMENTS = ["import(", "function ", "=>", "node:", "child_process", "raw prompt", "npm run"];
+const FORBIDDEN_KEYS = new Set(["handler", "function", "script", "command", "shell", "exec", "eval", "rawPrompt", "systemPrompt", "userPrompt", "executablePromptLogic"]);
+const FORBIDDEN_STRING_FRAGMENTS = ["import(", "function ", "=>", "node:", "child_process", "raw prompt", "system prompt", "user prompt", "executable prompt", "npm run"];
 
 function walk(value: unknown, path: string, issues: MapPackageValidationIssue[]): void {
   if (Array.isArray(value)) {

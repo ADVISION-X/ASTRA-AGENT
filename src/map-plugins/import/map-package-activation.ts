@@ -20,6 +20,9 @@ export function activateMapPackage(input: {
   if (mapPackage.manifest.approvalStatus !== "approved") {
     return { activated: false, reason: "map_not_approved" as const };
   }
+  if (mapPackage.manifest.aiGenerated && mapPackage.manifest.humanApprovalRef === null) {
+    return { activated: false, reason: "map_not_approved" as const };
+  }
 
   const activationRecord = {
     activationId: randomUUID(),
@@ -28,7 +31,10 @@ export function activateMapPackage(input: {
     mapId: mapPackage.manifest.mapId,
     approvedBy: input.approvedBy,
     activatedAt: new Date().toISOString(),
-    reason: input.reason
+    reason: input.reason,
+    humanApprovalRef: mapPackage.manifest.humanApprovalRef,
+    capabilityCatalogVersion: mapPackage.manifest.capabilityCatalogVersion,
+    promptCatalogVersion: mapPackage.manifest.promptCatalogVersion
   };
   input.registry.activations.write(activationRecord);
   input.registry.active.activate(mapPackage, activationRecord);

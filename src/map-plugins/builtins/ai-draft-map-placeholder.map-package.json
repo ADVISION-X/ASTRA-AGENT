@@ -11,7 +11,13 @@
     "minimumGrassEyeVersion": "0.1.0",
     "mapSchemaVersion": "1",
     "approvalStatus": "draft",
-    "aiGenerated": true
+    "aiGenerated": true,
+    "authoringPromptRef": "audit://map-authoring/draft-placeholder",
+    "authoringModelRef": "local-map-authoring-simulator",
+    "capabilityCatalogVersion": "2026-04-map-prompt-contract-v1",
+    "promptCatalogVersion": "2025-04-30-v1",
+    "validationReportRef": null,
+    "humanApprovalRef": null
   },
   "taskTemplate": {
     "taskTemplateId": "ai-generated-map-placeholder",

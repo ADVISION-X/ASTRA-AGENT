@@ -2,7 +2,7 @@
   "name": "grasseye-local-workbench",
   "version": "0.1.0",
   "private": true,
-  "description": "GrassEye phase-three real-platform local workbench",
+  "description": "GrassEye phase-four full-enforcement local workbench",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -13,12 +13,15 @@
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node scripts/startup/launch-grasseye.mjs",
     "internal:app-server:dev": "GRASSEYE_PLATFORM_TARGET=tiktok-web tsx src/app/server.ts",
-    "audit:build": "tsx scripts/audit/build-audit-artifacts.ts",
-    "audit": "tsx scripts/audit/runner.ts",
+    "audit:build": "node --import tsx scripts/audit/build-audit-artifacts.ts",
+    "audit": "node --import tsx scripts/audit/runner.ts",
+    "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
     "audit:nerve-bus": "tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
     "audit:capability-runtime-wiring": "tsx scripts/audit/domains/capability-runtime-wiring/run-inspector.ts",
     "audit:text-input-capability": "tsx scripts/audit/domains/text-input-capability/run-inspector.ts",
     "audit:map-plugin-package": "tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
+    "audit:map-prompt-contract": "tsx scripts/audit/domains/map-prompt-contract/run-inspector.ts",
+    "audit:runtime-debug-transparency": "tsx scripts/audit/domains/runtime-debug-transparency/run-inspector.ts",
     "audit:commander-console-user-love": "tsx scripts/audit/domains/commander-console-user-love/run-inspector.ts",
     "audit:agent-mechanical-skills": "tsx scripts/audit/domains/agent-mechanical-skills/run-inspector.ts",
     "audit:local-ai-runtime": "tsx scripts/audit/domains/local-ai-runtime/run-inspector.ts",
@@ -26,7 +29,7 @@
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
     "acceptance:phase3": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke",
-    "ci:full": "npm run typecheck && npm run audit:build && npm run audit",
+    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck"
   },
   "dependencies": {

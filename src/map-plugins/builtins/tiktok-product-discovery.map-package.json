@@ -95,7 +95,7 @@
   },
   "promptBindings": {
     "bindings": [
-      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "expectedOutputSchema": "vision.productPresence.v1.output", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }
+      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }
     ]
   },
   "changelog": "Initial built-in product discovery map package.",

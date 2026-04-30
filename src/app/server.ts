@@ -15,7 +15,7 @@ if (configuredPlatformTarget !== "tiktok-web") {
 }
 const browserProfileDirectory = process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY?.trim();
 const platformTarget = configuredPlatformTarget;
-const realPlatformDataDir = path.join(getDefaultLocalDataDir(), "phase-03-real-platform");
+const realPlatformDataDir = path.join(getDefaultLocalDataDir(), "phase-04-full-enforcement");
 const defaultDataDir = realPlatformDataDir;
 
 const workbench = new GrassEyeWorkbench({

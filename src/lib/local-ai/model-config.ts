@@ -18,14 +18,14 @@ const LocalModelRoleConfigSchema = z.object({
   promptVersion: z.string().trim().min(1),
   schemaVersion: z.string().trim().min(1),
   failureBehavior: FailureBehaviorSchema,
-  requiredForPhase: z.literal("phase-03"),
+  requiredForPhase: z.literal("phase-04"),
   allowMock: z.literal(false),
   allowCloudFallback: z.literal(false),
 }).strict();
 
 const LocalAiModelConfigSchema = z.object({
   version: z.string().trim().min(1),
-  phase: z.literal("phase-03"),
+  phase: z.literal("phase-04"),
   executionPosture: z.literal("local-only"),
   allowCloudFallback: z.literal(false),
   allowPaidApi: z.literal(false),

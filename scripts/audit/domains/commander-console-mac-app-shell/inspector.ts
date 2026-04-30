@@ -50,7 +50,7 @@ async function runOwnerFoundation(context: InspectorContext): Promise<{ findings
   }
   const planOwner = context.planOwnersByDomain.get(CAPABILITY_DOMAIN);
   if (!planOwner) {
-    findings.push(createFinding({ lawId: AUDIT_LAW_ID, file: "scripts/audit/phase-gates/phase-02-local-workbench.json", line: 1, severity: "fatal", message: "Phase gate does not activate commander-console-mac-app-shell, so the audit runner would skip it." }));
+    findings.push(createFinding({ lawId: AUDIT_LAW_ID, file: "scripts/audit/phase-gates/phase-04-full-enforcement.json", line: 1, severity: "fatal", message: "Phase gate does not activate commander-console-mac-app-shell, so the audit runner would skip it." }));
   }
 
   phases.push(createPhase(

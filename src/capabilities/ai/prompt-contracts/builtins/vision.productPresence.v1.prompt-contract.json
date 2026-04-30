@@ -5,6 +5,7 @@
   "legacyTaskType": "vision.productPresence",
   "modelRole": "vision",
   "promptVersion": "v1",
+  "schemaVersion": "vision.productPresence.schema.v1",
   "inputContract": "image_collection.ai_input",
   "requiredInputRefs": ["promptInputRef"],
   "outputSchemaRef": "ai.product_presence_judgment.v1",

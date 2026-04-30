@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "phase": "phase-03",
+  "phase": "phase-04",
   "executionPosture": "local-only",
   "allowCloudFallback": false,
   "allowPaidApi": false,
@@ -15,7 +15,7 @@
       "promptVersion": "v1",
       "schemaVersion": "vision.productPresence.schema.v1",
       "failureBehavior": "operatorReview",
-      "requiredForPhase": "phase-03",
+      "requiredForPhase": "phase-04",
       "allowMock": false,
       "allowCloudFallback": false
     },
@@ -28,7 +28,7 @@
       "promptVersion": "comments.ocr_cleanup.v1",
       "schemaVersion": "ocr-text.v1",
       "failureBehavior": "operatorReview",
-      "requiredForPhase": "phase-03",
+      "requiredForPhase": "phase-04",
       "allowMock": false,
       "allowCloudFallback": false
     },
@@ -41,7 +41,7 @@
       "promptVersion": "comments.intent_analysis.v1",
       "schemaVersion": "comment-signal.v1",
       "failureBehavior": "operatorReview",
-      "requiredForPhase": "phase-03",
+      "requiredForPhase": "phase-04",
       "allowMock": false,
       "allowCloudFallback": false
     },
@@ -54,7 +54,7 @@
       "promptVersion": "product.signal_summary.v1",
       "schemaVersion": "product-opportunity-candidate.v1",
       "failureBehavior": "candidateReview",
-      "requiredForPhase": "phase-03",
+      "requiredForPhase": "phase-04",
       "allowMock": false,
       "allowCloudFallback": false
     }

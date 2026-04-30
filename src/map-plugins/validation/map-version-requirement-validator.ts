@@ -4,7 +4,7 @@ import type { MapPackage } from "../shared/map-package-types.js";
 const CURRENT_GRASSEYE_VERSION = "0.1.0";
 const CURRENT_SCHEMA_VERSION = "1";
 
-export function validateCompatibility(mapPackage: MapPackage): MapPackageValidationIssue[] {
+export function validateMapVersionRequirements(mapPackage: MapPackage): MapPackageValidationIssue[] {
   const issues: MapPackageValidationIssue[] = [];
   if (!CURRENT_GRASSEYE_VERSION.startsWith(mapPackage.compatibility.requiresGrassEye.split(".")[0] ?? "")) {
     issues.push({

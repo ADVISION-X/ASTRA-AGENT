@@ -248,7 +248,7 @@ export const inspectLocalAiRuntimeBoundary = async () => {
     }
 
     const phase3PolicyPassed =
-      runtimeExecutionSource.includes("product.signal_summary is not allowed in phase-03 runtime flow") &&
+      runtimeExecutionSource.includes("product.signal_summary is not allowed in phase-04 runtime flow") &&
       runtimeExecutionSource.includes("disabled_by_policy");
     if (!phase3PolicyPassed) {
       findings.push(

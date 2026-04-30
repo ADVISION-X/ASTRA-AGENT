@@ -5,6 +5,7 @@
   "legacyTaskType": "comments.ocr_cleanup",
   "modelRole": "ocr",
   "promptVersion": "comments.ocr_cleanup.v1",
+  "schemaVersion": "ocr-text.v1",
   "inputContract": "text_blocks.comment_capture",
   "requiredInputRefs": ["commentsEvidenceRef"],
   "outputSchemaRef": "ai.ocr_cleanup.v1",

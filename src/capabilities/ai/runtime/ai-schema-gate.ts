@@ -1,4 +1,5 @@
-import type { AiAbilityResult, AiPromptContract, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
+import type { AiAbilityResult, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
+import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
 import {
   AiCommentSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisOutputSchema,
@@ -27,7 +28,7 @@ function schemaForTaskType(taskType: AiTaskType) {
   }
 }
 
-export function resolveAiSchemaContract(request: ParsedAiAbilityInput, promptContract: AiPromptContract): { decision: "resolved" | "review_required" | "blocked"; reason: string | null; schemaId: string | null; outputSchema: ReturnType<typeof schemaForTaskType>["schema"] | null } {
+export function resolveAiSchemaContract(request: ParsedAiAbilityInput, promptContract: ResolvedAiPromptContract): { decision: "resolved" | "review_required" | "blocked"; reason: string | null; schemaId: string | null; outputSchema: ReturnType<typeof schemaForTaskType>["schema"] | null } {
   const resolved = schemaForTaskType(request.taskType);
   if (resolved.schemaId !== request.expectedOutputSchema || promptContract.outputSchemaRef !== request.expectedOutputSchema) {
     return { decision: "blocked", reason: "expected_output_schema_mismatch", schemaId: null, outputSchema: null };
@@ -52,7 +53,7 @@ export function validateAiRuntimeOutput(outputSchema: NonNullable<ReturnType<typ
   };
 }
 
-export function validateAiInternalCandidate(request: ParsedAiAbilityInput, promptContract: AiPromptContract): { valid: true; output: { valid: true; issues: string[] } } | { valid: false; issues: string[] } {
+export function validateAiInternalCandidate(request: ParsedAiAbilityInput, promptContract: ResolvedAiPromptContract): { valid: true; output: { valid: true; issues: string[] } } | { valid: false; issues: string[] } {
   if (request.taskType !== "schema_validation_only") {
     return { valid: false, issues: ["internal_validation_failed"] };
   }

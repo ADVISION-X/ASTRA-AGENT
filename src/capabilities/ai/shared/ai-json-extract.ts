@@ -14,6 +14,10 @@ export function extractFirstJsonBlock(input: string): string | null {
   return null;
 }
 
+function describeJsonParseError(error: unknown): string {
+  return error instanceof Error ? error.message : "JSON parse failed.";
+}
+
 export function parseExtractedJson(input: string): { ok: true; value: unknown } | { ok: false; error: string } {
   const block = extractFirstJsonBlock(input);
   if (!block) {
@@ -23,9 +27,10 @@ export function parseExtractedJson(input: string): { ok: true; value: unknown } 
   try {
     return { ok: true, value: JSON.parse(block) };
   } catch (error) {
+    const errorMessage = describeJsonParseError(error);
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "JSON parse failed.",
+      error: errorMessage,
     };
   }
 }

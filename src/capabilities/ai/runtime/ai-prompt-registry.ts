@@ -2,9 +2,9 @@ import {
   getPromptContractCatalogEntry,
   listPromptContractCatalogEntries,
 } from "../prompt-contracts/index.js";
-import type { AiPromptContract, AiTaskType } from "../contract.js";
-import type { AiPromptRegistryPort } from "../ports/ai-prompt-registry-port.js";
-function toAiPromptContract(taskType: AiTaskType, promptContractId: string | null = null): AiPromptContract {
+import type { AiTaskType } from "../contract.js";
+import type { AiPromptRegistryPort, ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
+function toAiPromptContract(taskType: AiTaskType, promptContractId: string | null = null): ResolvedAiPromptContract {
   if (taskType === "evidence_packet_analysis") {
     return {
       promptContractId: promptContractId ?? "ai.evidence_packet_analysis.disabled",
@@ -62,7 +62,7 @@ function toAiPromptContract(taskType: AiTaskType, promptContractId: string | nul
     modelRole: contract.modelRole,
     promptId: contract.promptId,
     promptVersion: contract.promptVersion,
-    schemaVersion: contract.outputSchemaRef,
+    schemaVersion: contract.schemaVersion,
     outputSchemaRef: contract.outputSchemaRef,
     requiredInputRefs: [...contract.requiredInputRefs],
     allowedBranchFields: [...contract.allowedBranchFields],
