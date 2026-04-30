@@ -140,6 +140,43 @@ FORBIDDEN:
 
 ---
 
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1
+
+status: active
+tier: P0
+capabilityDomain: commander-console-capability
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Commander Console may import governed map packages and expose task-template UX without becoming map execution or activation truth.
+
+### 主题
+
+地图包导入与任务模板用户界面边界
+
+### 法条
+
+Commander Console may import map packages and display validation status through governed public ports, but it must not execute maps, validate maps as final truth, mutate active registry directly, or expose internal map fields to ordinary users.
+
+Required direction:
+- ordinary users may see only taskTemplate displayName, description, availability, version, safetyLevel, run limits, and start action.
+- ordinary users may start from taskTemplateId-backed approved task templates without reading internal mapId or package binding fields.
+- developer or advanced mode may expose mapId, packageId, activationId, stepId, childCapabilityId, dependency list, validation findings, and compatibility matrix.
+- quarantined, disabled, or draft map packages must not appear as runnable tasks on the ordinary start surface.
+- ordinary-mode start flows must resolve approved active bindings through governed registry lookups rather than making the shell own map selection truth.
+- Commander Console may request import, approval, activation, disable, and rollback through governed map-package ports or APIs only.
+
+### 禁止
+
+FORBIDDEN:
+- ordinary mode exposing mapId, stepId, childCapabilityId, promptContractId, or package dependency graph.
+- ordinary mode requiring mapId or requestedPlatformId as the user-facing task launch key.
+- Commander Console directly writing active registry or approval records.
+- Commander Console treating its preflight summary as the final map validation truth.
+- Commander Console executing a draft-only AI map.
+
+---
+
 ## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1
 
 status: active

@@ -12,7 +12,6 @@ export const SCREENSHOT_RESULT_STATUSES = [
   "success",
   "failed",
   "review_required",
-  "blocked",
 ] as const;
 
 export const SCREENSHOT_SOURCE_KINDS = [

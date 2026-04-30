@@ -1,4 +1,5 @@
-import type { OrchestrationChildCapability, StopMissionChildInput, StopMissionChildOutput } from "../../contract.js";
+import type { OrchestrationChildCapability } from "../../internal.js";
+import type { StopMissionChildInput, StopMissionChildOutput } from "../../contract.js";
 import { stopMissionCommand } from "../../runtime/orchestration-executor.js";
 
 export function createStopMissionCapability(): OrchestrationChildCapability<StopMissionChildInput, StopMissionChildOutput> {

@@ -6,7 +6,7 @@ import {
   CommanderProofPolicySchema,
   CommanderReadinessSchema,
   MissionControlInputSchema,
-} from "../../schema.js";
+} from "../../shared/commander-schema-base.js";
 
 export const StopMissionInputSchema = MissionControlInputSchema.extend({});
 

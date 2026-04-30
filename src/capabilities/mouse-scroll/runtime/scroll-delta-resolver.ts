@@ -1,4 +1,10 @@
 import type { MouseScrollCoordinateSpace, MouseScrollDelta, MouseScrollDirection, MouseScrollMagnitude, MouseScrollRegion, ParsedMouseScrollAbilityInput } from "../contract.js";
+import {
+  MOUSE_SCROLL_HALF_PAGE_RATIO,
+  MOUSE_SCROLL_ONE_PAGE_RATIO,
+  MOUSE_SCROLL_SMALL_PIXELS,
+  MOUSE_SCROLL_TWO_PAGES_RATIO,
+} from "../shared/scroll-magnitude.js";
 
 type DeltaResolutionInput = {
   request: ParsedMouseScrollAbilityInput;
@@ -62,25 +68,25 @@ function resolveAxisMagnitude(input: {
   region: MouseScrollRegion | null;
   coordinateSpace: MouseScrollCoordinateSpace;
   maxDeltaAbs: number;
-}): { requestedAxisDelta: number; executableAxisDelta: number; dataQualityFlags: string[] } {
+}): { requestedAxisDelta: number; executableAxisDelta: number; deltaResolutionDecision: string; deltaCapDecision: string; dataQualityFlags: string[] } {
   const axis = isVertical(input.direction)
     ? Math.round((input.region?.height ?? input.bounds.height))
     : Math.round((input.region?.width ?? input.bounds.width));
   const requestedAxisDelta =
     input.magnitude === "small"
-      ? Math.max(48, Math.round(axis * 0.12))
+      ? MOUSE_SCROLL_SMALL_PIXELS
       : input.magnitude === "halfPage"
-        ? Math.max(64, Math.round(axis * 0.5))
+        ? Math.max(1, Math.round(axis * MOUSE_SCROLL_HALF_PAGE_RATIO))
         : input.magnitude === "onePage"
-          ? Math.max(96, Math.round(axis * 0.9))
-          : Math.max(128, Math.round(axis * 1.8));
-  const effectiveLimit = input.coordinateSpace === "desktopScreen"
-    ? Math.min(input.maxDeltaAbs, Math.max(96, Math.round(axis * 0.75)))
-    : input.maxDeltaAbs;
+          ? Math.max(1, Math.round(axis * MOUSE_SCROLL_ONE_PAGE_RATIO))
+          : Math.max(1, Math.round(axis * MOUSE_SCROLL_TWO_PAGES_RATIO));
+  const effectiveLimit = input.maxDeltaAbs;
   const executableAxisDelta = Math.min(requestedAxisDelta, effectiveLimit);
   return {
     requestedAxisDelta,
     executableAxisDelta,
+    deltaResolutionDecision: input.magnitude === "small" ? "magnitude_small_pixels" : "magnitude_ratio_resolved",
+    deltaCapDecision: requestedAxisDelta !== executableAxisDelta ? "capped_to_max_delta" : "not_capped",
     dataQualityFlags: requestedAxisDelta !== executableAxisDelta ? ["delta_capped"] : [],
   };
 }
@@ -90,6 +96,8 @@ export function resolveScrollDelta(input: DeltaResolutionInput):
       ok: true;
       requestedDelta: MouseScrollDelta;
       executableDelta: MouseScrollDelta;
+      deltaResolutionDecision: string;
+      deltaCapDecision: string;
       dataQualityFlags: string[];
     }
   | {
@@ -129,6 +137,8 @@ export function resolveScrollDelta(input: DeltaResolutionInput):
       ok: true,
       requestedDelta: normalized,
       executableDelta: normalized,
+      deltaResolutionDecision: "custom_delta_normalized",
+      deltaCapDecision: "not_capped",
       dataQualityFlags: [],
     };
   }
@@ -155,6 +165,8 @@ export function resolveScrollDelta(input: DeltaResolutionInput):
     ok: true,
     requestedDelta,
     executableDelta,
+    deltaResolutionDecision: resolved.deltaResolutionDecision,
+    deltaCapDecision: resolved.deltaCapDecision,
     dataQualityFlags: resolved.dataQualityFlags,
   };
 }

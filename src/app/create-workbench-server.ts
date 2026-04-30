@@ -1,6 +1,4 @@
-import { createReadStream } from "node:fs";
 import { createServer } from "node:http";
-import path from "node:path";
 import { URL } from "node:url";
 
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
@@ -9,7 +7,6 @@ import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
-import { getArtifactContentType } from "./workbench-api-helpers.js";
 
 async function handleArtifactOrRootRequest(
   request: import("node:http").IncomingMessage,
@@ -18,10 +15,8 @@ async function handleArtifactOrRootRequest(
   url: URL,
 ): Promise<boolean> {
   if (request.method === "GET" && url.pathname.startsWith("/artifacts/")) {
-    const artifactName = path.basename(url.pathname);
-    const filePath = path.join(activeWorkbench.evidenceStore.getDataDir(), "artifacts", artifactName);
-    response.writeHead(200, { "content-type": getArtifactContentType(filePath) });
-    createReadStream(filePath).pipe(response);
+    response.writeHead(410, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({ error: "artifact_streaming_removed_from_commander_console_ui" }));
     return true;
   }
 

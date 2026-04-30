@@ -1,54 +1,21 @@
 import type {
-  ParsedVisualTargetAbilityInput,
   VisualTargetAbilityGroup,
   VisualTargetAbilityInput,
   VisualTargetAbilityResult,
-  VisualTargetChildCapabilityId,
 } from "./contract.js";
-import type { VisualTargetClockPort } from "./ports/visual-target-clock-port.js";
-import type { VisualTargetProfilePort } from "./ports/visual-target-profile-port.js";
 import { VisualTargetAbilityResultSchema } from "./schema.js";
 import { createVisualTargetCapabilityRegistry, listVisualTargetChildren } from "./registry.js";
-import { createSystemVisualTargetClock } from "./runtime/visual-target-clock.js";
-import { dispatchVisualTargetFailure } from "./runtime/visual-target-dispatch-failure.js";
+import { dispatchParsedVisualTargetFailure, dispatchVisualTargetInvalidInputFailure } from "./runtime/visual-target-dispatch-failure.js";
 import { parseVisualTargetAbilityInput } from "./runtime/visual-target-input-gate.js";
+import type { VisualTargetRuntimeContext } from "./runtime/visual-target-runtime-context.js";
 
 type CreateVisualTargetAbilityGroupInput = {
-  clock?: VisualTargetClockPort;
-  profilePort?: VisualTargetProfilePort;
+  runtimeContext: VisualTargetRuntimeContext;
 };
 
-export function createVisualTargetAbilityGroup(input: CreateVisualTargetAbilityGroupInput = {}): VisualTargetAbilityGroup {
+export function createVisualTargetAbilityGroup(input: CreateVisualTargetAbilityGroupInput): VisualTargetAbilityGroup {
   const registry = createVisualTargetCapabilityRegistry();
-  const context = {
-    clock: input.clock ?? createSystemVisualTargetClock(),
-    profilePort: input.profilePort ?? null,
-  };
-
-  const executeById = async (childCapabilityId: VisualTargetChildCapabilityId, callInput: ParsedVisualTargetAbilityInput): Promise<VisualTargetAbilityResult> => {
-    const capability = registry.get(childCapabilityId);
-    if (!capability) {
-      return dispatchVisualTargetFailure({
-        rawInput: callInput,
-        childCapabilityId,
-        context,
-        failureReason: "unknown_child_capability",
-        statusMessage: `Visual Target child capability is not registered for ${childCapabilityId}.`,
-      });
-    }
-
-    try {
-      return VisualTargetAbilityResultSchema.parse(await capability.execute(callInput, context));
-    } catch (error) {
-      return dispatchVisualTargetFailure({
-        rawInput: callInput,
-        childCapabilityId,
-        context,
-        failureReason: "child_execution_failed",
-        statusMessage: error instanceof Error ? error.message : "Visual Target child execution failed.",
-      });
-    }
-  };
+  const context = input.runtimeContext;
 
   return {
     listChildCapabilityIds() {
@@ -57,14 +24,34 @@ export function createVisualTargetAbilityGroup(input: CreateVisualTargetAbilityG
     async execute(inputValue) {
       const parsed = parseVisualTargetAbilityInput(inputValue);
       if (!parsed.success) {
-        return dispatchVisualTargetFailure({
+        return dispatchVisualTargetInvalidInputFailure({
           rawInput: inputValue,
-          context,
-          failureReason: "input_schema_invalid",
+          clock: context.clock,
+          parseError: parsed.error.message,
           statusMessage: "Visual Target rejected invalid input schema.",
         });
       }
-      return executeById(parsed.data.childCapabilityId, parsed.data);
+
+      const capability = registry.get(parsed.data.childCapabilityId);
+      if (!capability) {
+        return dispatchParsedVisualTargetFailure({
+          request: parsed.data,
+          clock: context.clock,
+          failureReason: "unknown_child_capability",
+          statusMessage: `Visual Target child capability is not registered for ${parsed.data.childCapabilityId}.`,
+        });
+      }
+
+      try {
+        return VisualTargetAbilityResultSchema.parse(await capability.execute(parsed.data, context));
+      } catch (error) {
+        return dispatchParsedVisualTargetFailure({
+          request: parsed.data,
+          clock: context.clock,
+          failureReason: "child_execution_failed",
+          statusMessage: error instanceof Error ? error.message : "Visual Target child execution failed.",
+        });
+      }
     },
   };
 }

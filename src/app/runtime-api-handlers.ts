@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
 import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
-import { parseTailParam } from "./workbench-api-helpers.js";
 
 export async function handleRuntimeReadRequest(
   request: IncomingMessage,
@@ -16,6 +15,12 @@ export async function handleRuntimeReadRequest(
     return true;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/runtime/mission-readiness") {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify(await activeWorkbench.getMissionReadinessReport(), null, 2));
+    return true;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/runtime/snapshot") {
     response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
     response.end(JSON.stringify(await activeWorkbench.getCommanderConsoleSnapshot(), null, 2));
@@ -23,14 +28,14 @@ export async function handleRuntimeReadRequest(
   }
 
   if (request.method === "GET" && url.pathname === "/api/runtime/logs") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.evidenceStore.listStructuredRuntimeEvents(parseTailParam(url)), null, 2));
+    response.writeHead(410, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({ error: "runtime_logs_removed_from_commander_console_ui" }));
     return true;
   }
 
   if (request.method === "GET" && url.pathname === "/api/runtime/actions") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.evidenceStore.listStructuredActionLogs(parseTailParam(url)), null, 2));
+    response.writeHead(410, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({ error: "runtime_actions_removed_from_commander_console_ui" }));
     return true;
   }
 

@@ -445,30 +445,31 @@ export const inspectCodeTopology = async (
 
   const typeBoundaryPhaseStart = findings.length;
   const workbenchSource = getAuditProject().getSourceFile(pathFromRepoRoot("src/lib/local-runtime/workbench.ts"));
-  const assertPlatformAdapterType = (sourceFile: SourceFile | undefined): void => {
+  const assertNoLegacyPlatformOwner = (sourceFile: SourceFile | undefined): void => {
     if (!sourceFile) {
       return;
     }
 
     const workbenchClass = sourceFile.getClass("GrassEyeWorkbench");
     const platformAdapterProperty = workbenchClass?.getProperty("platformAdapter");
-    const platformAdapterTypeNode = platformAdapterProperty?.getTypeNode();
-    const platformAdapterType = platformAdapterTypeNode ? typeChecker.getTypeAtLocation(platformAdapterTypeNode) : undefined;
-    const platformAdapterSymbol = platformAdapterType?.getSymbol();
-    if (!platformAdapterProperty || platformAdapterSymbol?.getName() !== "PlatformAdapter") {
+    const legacyPlatformImport = sourceFile.getImportDeclarations().find((declaration) => {
+      const specifier = declaration.getModuleSpecifierValue() ?? "";
+      return specifier.includes("/tiktok-platform/") || specifier.includes("platform-runtime-contract");
+    });
+    if (platformAdapterProperty || legacyPlatformImport) {
       findings.push(
         createFinding({
           lawId: LAW_ID_001,
           file: toRelativeSourcePath(sourceFile),
-          line: getNodeLine(platformAdapterProperty ?? workbenchClass ?? sourceFile),
+          line: getNodeLine(legacyPlatformImport ?? platformAdapterProperty ?? workbenchClass ?? sourceFile),
           severity: "error",
-          message: "Workbench must expose the platform-neutral PlatformAdapter type at the topology boundary.",
+          message: "Workbench must not retain a legacy platform-adapter boundary or import the retired TikTok runtime chain.",
         }),
       );
     }
   };
 
-  assertPlatformAdapterType(workbenchSource);
+  assertNoLegacyPlatformOwner(workbenchSource);
 
   phases.push(
     createPhase(
@@ -476,8 +477,8 @@ export const inspectCodeTopology = async (
       findings.length === typeBoundaryPhaseStart ? "PASS" : "CODE VIOLATION",
       findings.length === typeBoundaryPhaseStart,
       findings.length === typeBoundaryPhaseStart
-        ? "Platform boundary types resolve to the shared PlatformAdapter abstraction."
-        : "Platform boundary types leaked a concrete adapter implementation.",
+        ? "Workbench stays free of retired platform-adapter topology and concrete TikTok runtime owners."
+        : "Workbench still exposes a retired platform-adapter topology or concrete TikTok runtime owner.",
     ),
   );
 

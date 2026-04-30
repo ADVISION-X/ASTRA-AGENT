@@ -1,0 +1,103 @@
+{
+  "manifest": {
+    "packageId": "builtin.tiktok-product-discovery",
+    "packageKind": "operational-map-package",
+    "packageVersion": "1.0.0",
+    "mapId": "tiktok.discovery.intake.v1",
+    "taskTemplateId": "tiktok-product-discovery",
+    "displayName": "TikTok Product Discovery",
+    "author": "GrassEye Builtins",
+    "createdAt": "2026-04-30T00:00:00.000Z",
+    "minimumGrassEyeVersion": "0.1.0",
+    "mapSchemaVersion": "1",
+    "approvalStatus": "approved",
+    "aiGenerated": false
+  },
+  "taskTemplate": {
+    "taskTemplateId": "tiktok-product-discovery",
+    "displayName": "TikTok Product Discovery",
+    "description": "Browse the TikTok feed, prepare AI input, judge product presence, and preserve evidence.",
+    "recommended": true,
+    "taskCategory": "product-discovery",
+    "version": "1.0.0",
+    "defaultRunLimit": { "maxRounds": 3, "maxMinutes": 20 },
+    "maxAllowedRunLimit": { "maxRounds": 6, "maxMinutes": 45 },
+    "safetyLevel": "guarded autopilot",
+    "userVisibleCapabilities": ["Browse the TikTok feed", "Judge product videos", "Preserve evidence and browse records"],
+    "availabilityPolicy": "active",
+    "requestedPlatformId": "tiktok-web",
+    "platformProfileRef": "tiktok-web:persistent-local-profile",
+    "targetProfileRef": "tiktok-web:persistent-local-profile",
+    "defaultHumanGoal": "Automatically browse the TikTok feed, identify product videos, and preserve evidence."
+  },
+  "operationalMap": {
+    "mapId": "tiktok.discovery.intake.v1",
+    "displayName": "TikTok Product Discovery",
+    "humanGoal": "Detect whether the current short video likely contains a product opportunity.",
+    "allowedAbilityGroups": ["page-state", "screenshot", "ai", "forensics-persistence"],
+    "initialStepId": "detect-feed-ready",
+    "steps": [
+      { "stepId": "detect-feed-ready", "capabilityId": "orchestration", "childCapabilityId": "detect-feed-ready", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "targetUrl"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "detect-feed-ready:failed", "reviewBranch": "detect-feed-ready:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "capture-video-viewport", "capabilityId": "orchestration", "childCapabilityId": "capture-browser-viewport", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["targetUrl", "targetTitle"], "outputRefPolicy": { "storeAs": ["screenshotEvidenceRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "capture-video-viewport:failed", "reviewBranch": "capture-video-viewport:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "prepare-ai-input", "capabilityId": "orchestration", "childCapabilityId": "prepare-ai-input", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["promptInputRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "prepare-ai-input:failed", "reviewBranch": "prepare-ai-input:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "ask-product-presence", "capabilityId": "orchestration", "childCapabilityId": "product-presence-judgment", "stepKind": "ai", "targetAbilityGroupId": "ai", "inputRefs": ["promptInputRef"], "outputRefPolicy": { "storeAs": ["aiResultRef"] }, "promptContractId": "vision.productPresence.v1", "successCondition": { "source": "decision", "equals": "product_yes" }, "failureBranch": "ask-product-presence:failed", "reviewBranch": "ask-product-presence:review", "timeoutPolicy": { "maxDurationMs": 15000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "persist-detection-log", "capabilityId": "orchestration", "childCapabilityId": "write-structured-runtime-event", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["screenshotEvidenceRef", "aiResultRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "persist-detection-log:failed", "reviewBranch": "persist-detection-log:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "finalize-mission", "capabilityId": "orchestration", "childCapabilityId": "finalize-mission", "stepKind": "finalize", "targetAbilityGroupId": null, "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": [] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "finalize-mission:failed", "reviewBranch": "finalize-mission:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } }
+    ],
+    "transitions": [
+      { "transitionId": "detect-feed-ready:success", "fromStepId": "detect-feed-ready", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "capture-video-viewport", "finalStatus": null },
+      { "transitionId": "detect-feed-ready:failed", "fromStepId": "detect-feed-ready", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "detect-feed-ready:review", "fromStepId": "detect-feed-ready", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "capture-video-viewport:success", "fromStepId": "capture-video-viewport", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "prepare-ai-input", "finalStatus": null },
+      { "transitionId": "capture-video-viewport:failed", "fromStepId": "capture-video-viewport", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "capture-video-viewport:review", "fromStepId": "capture-video-viewport", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "prepare-ai-input:success", "fromStepId": "prepare-ai-input", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "ask-product-presence", "finalStatus": null },
+      { "transitionId": "prepare-ai-input:failed", "fromStepId": "prepare-ai-input", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "prepare-ai-input:review", "fromStepId": "prepare-ai-input", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "ask-product-presence:success", "fromStepId": "ask-product-presence", "onStatus": "success", "condition": { "source": "decision", "equals": "product_yes" }, "toStepId": "persist-detection-log", "finalStatus": null },
+      { "transitionId": "ask-product-presence:failed", "fromStepId": "ask-product-presence", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "ask-product-presence:review", "fromStepId": "ask-product-presence", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-detection-log:success", "fromStepId": "persist-detection-log", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-detection-log:failed", "fromStepId": "persist-detection-log", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-detection-log:review", "fromStepId": "persist-detection-log", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "finalize-mission:success", "fromStepId": "finalize-mission", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": null, "finalStatus": "completed" },
+      { "transitionId": "finalize-mission:failed", "fromStepId": "finalize-mission", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "finalize-mission:review", "fromStepId": "finalize-mission", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
+    ],
+    "failureBranches": ["detect-feed-ready:failed", "capture-video-viewport:failed", "prepare-ai-input:failed", "ask-product-presence:failed", "persist-detection-log:failed", "finalize-mission:failed"],
+    "reviewBranches": ["detect-feed-ready:review", "capture-video-viewport:review", "prepare-ai-input:review", "ask-product-presence:review", "persist-detection-log:review", "finalize-mission:review"],
+    "finalStates": ["completed", "failed", "review_required"],
+    "forbiddenDirectCalls": ["PlatformAdapter", "EvidenceStoreService", "direct-ability-call"],
+    "sequencePolicy": { "maxHops": 8, "maxRetriesPerStep": 1, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },
+    "mapVersion": "1.0.0",
+    "proofPolicy": { "runtimeProof": "required", "recordPackageSelection": true }
+  },
+  "dependencies": {
+    "requiredCapabilities": ["page-state", "screenshot", "ai", "forensics-persistence"],
+    "requiredChildCapabilities": ["detect-feed-ready", "capture-browser-viewport", "prepare-ai-input", "product-presence-judgment", "write-structured-runtime-event"],
+    "requiredPromptContracts": ["vision.productPresence.v1"],
+    "requiredPlatformProfiles": ["tiktok-web:persistent-local-profile"],
+    "requiredForensicsRecords": ["structured_runtime_event"]
+  },
+  "compatibility": {
+    "requiresGrassEye": "0.1.0",
+    "requiresMapSchema": "1",
+    "requiresCapabilityRegistry": ["page-state", "screenshot", "ai", "forensics-persistence"],
+    "requiresPromptRegistry": ["vision.productPresence.v1"],
+    "requiresPlatformProfileRegistry": ["tiktok-web:persistent-local-profile"]
+  },
+  "policy": {
+    "safetyPolicy": "guarded autopilot",
+    "runLimitPolicy": { "defaultMaxRounds": 3, "maxAllowedMaxRounds": 6, "maxAllowedMaxMinutes": 45 },
+    "reviewPolicy": "review-required on ambiguity",
+    "exportPolicy": "forensics only",
+    "debugPolicy": "developer-inspect only"
+  },
+  "promptBindings": {
+    "bindings": [
+      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "expectedOutputSchema": "vision.productPresence.v1.output", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }
+    ]
+  },
+  "changelog": "Initial built-in product discovery map package.",
+  "signature": null
+}

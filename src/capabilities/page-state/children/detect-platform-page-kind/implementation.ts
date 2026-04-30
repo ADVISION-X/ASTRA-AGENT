@@ -1,4 +1,5 @@
 import { PAGE_STATE_ABILITY_GROUP_ID } from "../../contract.js";
+import { isLocalWorkbenchUrl, resolvePageStatePlatformProfile, urlMatchesFeedPath, urlMatchesVideoPath } from "../../shared/page-state-profile.js";
 import type { DetectPlatformPageKindChildCapability } from "./contract.js";
 import { DetectPlatformPageKindChildInputSchema, DetectPlatformPageKindChildOutputSchema } from "./schema.js";
 
@@ -8,9 +9,8 @@ export function createDetectPlatformPageKindCapability(): DetectPlatformPageKind
     childCapabilityId: "detect-platform-page-kind",
     async execute(input) {
       const request = DetectPlatformPageKindChildInputSchema.parse(input);
-      const parsed = new URL(request.snapshot.currentUrl);
-      const pathname = parsed.pathname.toLowerCase();
-      const output = request.snapshot.currentUrl.includes("localhost") || request.snapshot.currentUrl.includes("127.0.0.1")
+      const resolvedProfile = resolvePageStatePlatformProfile(request.openHandoff.platformProfileId);
+      const output = request.statePolicy.allowLocalWorkbench && isLocalWorkbenchUrl(request.snapshot.currentUrl)
         ? {
             childCapabilityId: "detect-platform-page-kind" as const,
             pageStateType: "local_workbench" as const,
@@ -22,7 +22,7 @@ export function createDetectPlatformPageKindCapability(): DetectPlatformPageKind
             supportingEvidenceRefs: [...request.sourceEvidenceRefs],
             supportingReasons: ["snapshot.currentUrl host is local workbench"],
           }
-        : pathname.includes("/video/")
+        : resolvedProfile && urlMatchesVideoPath(request.snapshot.currentUrl, resolvedProfile)
           ? {
               childCapabilityId: "detect-platform-page-kind" as const,
               pageStateType: "platform_video_page" as const,
@@ -32,9 +32,9 @@ export function createDetectPlatformPageKindCapability(): DetectPlatformPageKind
               dataQualityFlags: [],
               matchedObservationIds: [],
               supportingEvidenceRefs: [...request.sourceEvidenceRefs],
-              supportingReasons: ["URL pathname contains /video/"],
+              supportingReasons: [`URL path matches governed video marker for ${resolvedProfile.profileId}`],
             }
-          : pathname === "/" || pathname === "/foryou" || pathname === "/following" || pathname.startsWith("/@")
+          : resolvedProfile && urlMatchesFeedPath(request.snapshot.currentUrl, resolvedProfile)
             ? {
                 childCapabilityId: "detect-platform-page-kind" as const,
                 pageStateType: "platform_feed" as const,
@@ -44,7 +44,7 @@ export function createDetectPlatformPageKindCapability(): DetectPlatformPageKind
                 dataQualityFlags: [],
                 matchedObservationIds: [],
                 supportingEvidenceRefs: [...request.sourceEvidenceRefs],
-                supportingReasons: ["URL pathname matches feed profile"],
+                supportingReasons: [`URL path matches governed feed marker for ${resolvedProfile.profileId}`],
               }
             : {
                 childCapabilityId: "detect-platform-page-kind" as const,

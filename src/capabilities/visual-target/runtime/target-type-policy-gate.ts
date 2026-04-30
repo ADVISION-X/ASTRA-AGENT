@@ -1,14 +1,16 @@
-import type { ParsedVisualTargetAbilityInput, VisualTargetCandidate, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
+import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
+import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
+import type { ResolvedVisualTargetProfile } from "./visual-target-input-gate.js";
 
 export function validateTargetTypePolicy(input: {
   request: ParsedVisualTargetAbilityInput;
-  candidates: VisualTargetCandidate[];
-  requireClickPoint: boolean;
+  candidates: VisualTargetResolvedCandidate[];
+  profile: ResolvedVisualTargetProfile;
 }):
   | {
       ok: true;
       decision: "allow";
-      candidates: VisualTargetCandidate[];
+      candidates: VisualTargetResolvedCandidate[];
       rejectedCandidateRefs: string[];
       dataQualityFlags: VisualTargetDataQualityFlag[];
     }
@@ -24,17 +26,36 @@ export function validateTargetTypePolicy(input: {
     } {
   const rejectedCandidateRefs: string[] = [];
   const dataQualityFlags = new Set<VisualTargetDataQualityFlag>();
+
+  if (input.request.targetType !== input.profile.targetType || input.request.targetNature !== input.profile.targetNature) {
+    return {
+      ok: false,
+      status: "failed",
+      decision: "block",
+      failureReason: "invalid_target_type",
+      statusMessage: "Visual Target request targetType/targetNature drifted from the child policy.",
+      reviewRequiredReason: null,
+      rejectedCandidateRefs,
+      dataQualityFlags: [],
+    };
+  }
+
   const candidates = input.candidates.filter((candidate) => {
     if (candidate.targetType !== input.request.targetType) {
       rejectedCandidateRefs.push(candidate.candidateRef);
       return false;
     }
-    if (input.requireClickPoint && !candidate.clickPoint) {
+    if (!input.profile.allowedCoordinateSpaces.includes(candidate.originalCoordinateSpace)) {
+      rejectedCandidateRefs.push(candidate.candidateRef);
+      dataQualityFlags.add("candidate_coordinate_non_executable");
+      return false;
+    }
+    if (input.profile.requireClickPoint && !candidate.executableClickPoint) {
       rejectedCandidateRefs.push(candidate.candidateRef);
       dataQualityFlags.add("candidate_missing_click_point");
       return false;
     }
-    if (!input.requireClickPoint && candidate.clickPoint) {
+    if (!input.profile.requireClickPoint && candidate.executableClickPoint) {
       rejectedCandidateRefs.push(candidate.candidateRef);
       dataQualityFlags.add("candidate_click_point_forbidden");
       return false;
@@ -42,7 +63,7 @@ export function validateTargetTypePolicy(input: {
     return true;
   });
 
-  if (input.request.targetNature === "action" && !input.requireClickPoint) {
+  if (input.request.targetNature === "action" && !input.profile.requireClickPoint) {
     return {
       ok: false,
       status: "failed",

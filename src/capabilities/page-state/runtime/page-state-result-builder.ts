@@ -9,6 +9,17 @@ export function buildPageStateResult(input: {
   observationRefs: readonly string[];
   pageStateFingerprint: string;
 }): PageStateAbilityResult {
+  const output = input.outcome.status === "success"
+    ? {
+        pageStateType: input.outcome.pageStateType,
+        stateSummary: input.outcome.stateSummary,
+        confidence: input.outcome.confidence,
+        evidenceRefs: [...input.outcome.supportingEvidenceRefs],
+        observationRefs: [...input.observationRefs],
+        pageStateFingerprint: input.pageStateFingerprint,
+      }
+    : null;
+
   return PageStateAbilityResultSchema.parse({
     status: input.outcome.status,
     decision: input.outcome.decision,
@@ -19,17 +30,21 @@ export function buildPageStateResult(input: {
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
-    pageStateType: input.outcome.pageStateType,
-    stateSummary: input.outcome.stateSummary,
-    confidence: input.outcome.confidence,
-    evidenceRefs: [...input.request.sourceEvidenceRefs],
-    observationRefs: [...input.observationRefs],
+    output,
+    pageStateType: output?.pageStateType ?? null,
+    stateSummary: output?.stateSummary ?? null,
+    confidence: output?.confidence ?? null,
+    evidenceRefs: output?.evidenceRefs ?? [],
+    observationRefs: output?.observationRefs ?? [],
     sourceEvidenceRefs: [...input.request.sourceEvidenceRefs],
-    pageStateFingerprint: input.pageStateFingerprint,
+    pageStateFingerprint: output?.pageStateFingerprint ?? null,
     previousPageStateFingerprint: input.request.previousPageStateFingerprint,
     failureReason: input.outcome.failureReason,
     reviewRequiredReason: input.outcome.reviewRequiredReason,
     dataQualityFlags: [...input.outcome.dataQualityFlags],
+    debugLogRef: input.runtimeProof.debugLogRef,
+    structuredRuntimeEventRef: input.runtimeProof.structuredRuntimeEventRef,
+    diagnosticPayloadRef: input.runtimeProof.diagnosticPayloadRef,
     runtimeProof: input.runtimeProof,
   });
 }

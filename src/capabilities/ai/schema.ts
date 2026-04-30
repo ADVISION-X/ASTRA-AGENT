@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { EvidenceRefSchema } from "../../types/evidence.js";
-import { VisionProductPresencePayloadSchema, VisionProductPresenceRequestInputSchema } from "../../types/vision-product-presence.js";
+import { VisionProductPresenceMissingFrameSchema, VisionProductPresencePayloadSchema, VisionProductPresenceRequestInputSchema } from "../../types/vision-product-presence.js";
 import { DEFAULT_AI_COST_POLICY, DEFAULT_AI_DATA_POLICY, DEFAULT_AI_PROVIDER_POLICY, DEFAULT_AI_QUALITY_POLICY, DEFAULT_AI_SAFETY_POLICY } from "./shared/ai-policy.js";
 import {
   AI_ABILITY_GROUP_ID,
@@ -26,6 +26,17 @@ import {
 
 const nullableString = z.string().min(1).nullable().default(null);
 const nonNegativeNumber = z.number().finite().nonnegative();
+const nonNegativeInteger = z.number().int().nonnegative();
+const CircuitBreakerStateSchema = z.enum(["closed", "open", "half_open", "not_applicable"]);
+
+const MAX_AI_INPUT_REFS = 50;
+const MAX_AI_FRAME_REFS = 10;
+const MAX_AI_COMMENT_BLOCKS = 200;
+const MAX_AI_COMMENT_LENGTH = 1000;
+const MAX_AI_PACKET_SUMMARY_LENGTH = 5000;
+const MAX_AI_NOTES = 50;
+const MAX_AI_NOTE_LENGTH = 500;
+const MAX_AI_SHORT_TEXT = 1000;
 
 export const AiAbilityGroupIdSchema = z.literal(AI_ABILITY_GROUP_ID);
 export const AiChildCapabilityIdSchema = z.enum(AI_CHILD_CAPABILITY_IDS);
@@ -84,12 +95,19 @@ export const AiPromptContractSchema = z.object({
   forbiddenOutputs: z.array(z.string().min(1)).default([]),
 }).strict();
 
+export const AiVisionRequestInputSchema = VisionProductPresenceRequestInputSchema.extend({
+  frameEvidenceIds: z.array(z.string().min(1)).max(MAX_AI_FRAME_REFS).default([]),
+  missingFrames: z.array(VisionProductPresenceMissingFrameSchema).max(MAX_AI_FRAME_REFS).default([]),
+  summary: z.string().min(1).max(MAX_AI_PACKET_SUMMARY_LENGTH),
+  tags: z.array(z.string().min(1).max(MAX_AI_SHORT_TEXT)).max(MAX_AI_NOTES).default([]),
+}).strict();
+
 export const AiOcrCleanupInputSchema = z.object({
-  rawCommentBlocks: z.array(z.string()),
+  rawCommentBlocks: z.array(z.string().min(1).max(MAX_AI_COMMENT_LENGTH)).min(1).max(MAX_AI_COMMENT_BLOCKS),
 }).strict();
 
 export const AiCommentSignalSummaryInputSchema = z.object({
-  cleanedComments: z.array(z.string().min(1)).min(1),
+  cleanedComments: z.array(z.string().min(1).max(MAX_AI_COMMENT_LENGTH)).min(1).max(MAX_AI_COMMENT_BLOCKS),
 }).strict();
 
 export const AiCommentSignalSummaryOutputSchema = z.object({
@@ -107,7 +125,7 @@ export const AiOcrCleanupOutputSchema = z.object({
 }).strict();
 
 export const AiProductSignalSummaryInputSchema = z.object({
-  videoSummary: z.string().min(1),
+  videoSummary: z.string().min(1).max(MAX_AI_PACKET_SUMMARY_LENGTH),
   productPresence: VisionProductPresencePayloadSchema.omit({
     taskType: true,
     promptId: true,
@@ -129,20 +147,30 @@ export const AiProductSignalSummaryOutputSchema = z.object({
 }).strict();
 
 export const AiEvidencePacketAnalysisInputSchema = z.object({
-  packetSummary: z.string().min(1),
-  evidenceIds: z.array(z.string().min(1)).min(1),
-  notes: z.array(z.string().min(1)).default([]),
+  packetSummary: z.string().min(1).max(MAX_AI_PACKET_SUMMARY_LENGTH),
+  evidenceIds: z.array(z.string().min(1)).min(1).max(MAX_AI_INPUT_REFS),
+  notes: z.array(z.string().min(1).max(MAX_AI_NOTE_LENGTH)).max(MAX_AI_NOTES).default([]),
 }).strict();
 
 export const AiEvidencePacketAnalysisOutputSchema = z.object({
-  summary: z.string().min(1),
-  notableEvidenceRefs: z.array(z.string().min(1)).default([]),
-  reviewNotes: z.array(z.string().min(1)).default([]),
+  packetSummary: z.string().min(1).max(MAX_AI_PACKET_SUMMARY_LENGTH),
+  evidenceIds: z.array(z.string().min(1)).min(1).max(MAX_AI_INPUT_REFS),
+  notes: z.array(z.string().min(1).max(MAX_AI_NOTE_LENGTH)).max(MAX_AI_NOTES).default([]),
 }).strict();
 
 export const AiSchemaValidationOnlyInputSchema = z.object({
   candidate: z.unknown(),
-}).strict();
+  sourceRef: nullableString,
+  validationContextRef: nullableString,
+}).strict().superRefine((value, context) => {
+  if (value.sourceRef === null && value.validationContextRef === null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "schema_validation_only requires sourceRef or validationContextRef",
+      path: ["sourceRef"],
+    });
+  }
+});
 
 export const AiSchemaValidationOnlyOutputSchema = z.object({
   valid: z.boolean(),
@@ -159,7 +187,7 @@ export const AiVisualOutputSchema = VisionProductPresencePayloadSchema.omit({
 const AiBaseInputSchema = z.object({
   abilityGroupId: AiAbilityGroupIdSchema.default(AI_ABILITY_GROUP_ID),
   missionId: z.string().min(1).nullable().default(null),
-  inputRefs: z.array(EvidenceRefSchema),
+  inputRefs: z.array(EvidenceRefSchema).max(MAX_AI_INPUT_REFS),
   promptContractId: z.string().min(1),
   expectedOutputSchema: z.string().min(1),
   requestedBy: z.literal("orchestration"),
@@ -182,36 +210,42 @@ const AiBaseInputSchema = z.object({
 export const ProductPresenceJudgmentInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("product_presence_judgment"),
   inputModality: z.literal("image_collection"),
-  input: VisionProductPresenceRequestInputSchema,
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
+  input: AiVisionRequestInputSchema,
 }).strict();
 
 export const VisualObservationInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("visual_observation"),
   inputModality: z.literal("image_collection"),
-  input: VisionProductPresenceRequestInputSchema,
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
+  input: AiVisionRequestInputSchema,
 }).strict();
 
 export const VisualTargetCandidateAnalysisInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("visual_target_candidate_analysis"),
   inputModality: z.literal("image_collection"),
-  input: VisionProductPresenceRequestInputSchema,
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
+  input: AiVisionRequestInputSchema,
 }).strict();
 
 export const OcrCleanupInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("ocr_cleanup"),
   inputModality: z.literal("text_blocks"),
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
   input: AiOcrCleanupInputSchema,
 }).strict();
 
 export const CommentSignalSummaryInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("comment_signal_summary"),
   inputModality: z.literal("text_blocks"),
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
   input: AiCommentSignalSummaryInputSchema,
 }).strict();
 
 export const ProductSignalSummaryInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("product_signal_summary"),
   inputModality: z.literal("structured_record"),
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
   input: AiProductSignalSummaryInputSchema,
 }).strict();
 
@@ -275,9 +309,21 @@ const AiBaseRuntimeProofSchema = z.object({
   modelName: z.string().min(1),
   modelRole: AiModelRoleSchema,
   runtime: z.string().min(1),
+  requestHash: z.string().min(1),
+  inputPayloadHash: z.string().min(1),
+  promptContractHash: z.string().min(1),
+  modelConfigHash: z.string().min(1),
+  runtimeCallId: nullableString,
   inputRefs: z.array(z.string().min(1)),
   outputRefs: z.array(z.string().min(1)),
   evidenceRefs: z.array(z.string().min(1)),
+  rawOutputRef: nullableString,
+  rawOutputHash: nullableString,
+  timeoutMs: nonNegativeNumber.nullable(),
+  attemptIndex: nonNegativeInteger,
+  retryCount: nonNegativeInteger,
+  circuitBreakerState: CircuitBreakerStateSchema,
+  gatewayDurationMs: nonNegativeNumber.nullable(),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: nonNegativeNumber,
@@ -292,6 +338,9 @@ const AiBaseRuntimeProofSchema = z.object({
   qualityDecision: AiQualityDecisionSchema,
   outputBoundaryDecision: AiOutputBoundaryDecisionSchema,
   disabledProviderDecision: AiDisabledProviderDecisionSchema,
+  schemaIssueCount: nonNegativeInteger,
+  boundaryViolationCount: nonNegativeInteger,
+  qualityDecisionReason: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   clockPortKind: z.literal("system-monotonic-clock"),
 }).strict();
@@ -322,6 +371,15 @@ export const AiRuntimeExecutionOutputSchema = z.object({
   costEstimate: nonNegativeNumber.nullable(),
   output: z.unknown(),
   rawOutputRef: nullableString,
+  rawOutputHash: nullableString,
+  runtimeCallId: nullableString,
+  timeoutMs: nonNegativeNumber.nullable(),
+  attemptIndex: nonNegativeInteger.default(0),
+  retryCount: nonNegativeInteger.default(0),
+  circuitBreakerState: CircuitBreakerStateSchema.default("not_applicable"),
+  gatewayDurationMs: nonNegativeNumber.nullable().default(null),
+  modelHealthBefore: nullableString,
+  modelHealthAfter: nullableString,
 }).strict();
 
 export const AiForbiddenActionOutputFieldSchema = z.object({
@@ -401,47 +459,88 @@ const AiBaseResultSchema = z.object({
   createdAt: z.string().datetime(),
 }).strict();
 
-export const ProductPresenceJudgmentResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("product_presence_judgment"),
-  output: AiVisualOutputSchema,
-}).strict();
+function createAiSuccessResultSchema<TTaskType extends z.infer<typeof AiTaskTypeSchema>>(taskType: TTaskType, outputSchema: z.ZodTypeAny) {
+  return AiBaseResultSchema.extend({
+    taskType: z.literal(taskType),
+    status: z.literal("success"),
+    outputAuthority: z.literal("authoritative"),
+    output: outputSchema,
+    failureReason: z.null().default(null),
+    reviewRequiredReason: z.null().default(null),
+  }).strict();
+}
 
-export const VisualObservationResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("visual_observation"),
-  output: AiVisualOutputSchema,
-}).strict();
+function createAiFailedResultSchema<TTaskType extends z.infer<typeof AiTaskTypeSchema>>(taskType: TTaskType) {
+  return AiBaseResultSchema.extend({
+    taskType: z.literal(taskType),
+    status: z.literal("failed"),
+    outputAuthority: z.literal("non_authoritative"),
+    output: z.null(),
+    failureReason: z.string().min(1),
+    reviewRequiredReason: z.null().default(null),
+  }).strict();
+}
 
-export const VisualTargetCandidateAnalysisResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("visual_target_candidate_analysis"),
-  output: AiVisualOutputSchema,
-}).strict();
+function createAiReviewRequiredResultSchema<TTaskType extends z.infer<typeof AiTaskTypeSchema>>(taskType: TTaskType) {
+  return AiBaseResultSchema.extend({
+    taskType: z.literal(taskType),
+    status: z.literal("review_required"),
+    outputAuthority: z.literal("non_authoritative"),
+    output: z.null(),
+    failureReason: z.null().default(null),
+    reviewRequiredReason: z.string().min(1),
+  }).strict();
+}
 
-export const OcrCleanupResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("ocr_cleanup"),
-  output: AiOcrCleanupOutputSchema,
-}).strict();
+export const ProductPresenceJudgmentResultSchema = z.union([
+  createAiSuccessResultSchema("product_presence_judgment", AiVisualOutputSchema),
+  createAiFailedResultSchema("product_presence_judgment"),
+  createAiReviewRequiredResultSchema("product_presence_judgment"),
+]);
 
-export const CommentSignalSummaryResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("comment_signal_summary"),
-  output: AiCommentSignalSummaryOutputSchema,
-}).strict();
+export const VisualObservationResultSchema = z.union([
+  createAiSuccessResultSchema("visual_observation", AiVisualOutputSchema),
+  createAiFailedResultSchema("visual_observation"),
+  createAiReviewRequiredResultSchema("visual_observation"),
+]);
 
-export const ProductSignalSummaryResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("product_signal_summary"),
-  output: AiProductSignalSummaryOutputSchema,
-}).strict();
+export const VisualTargetCandidateAnalysisResultSchema = z.union([
+  createAiSuccessResultSchema("visual_target_candidate_analysis", AiVisualOutputSchema),
+  createAiFailedResultSchema("visual_target_candidate_analysis"),
+  createAiReviewRequiredResultSchema("visual_target_candidate_analysis"),
+]);
 
-export const EvidencePacketAnalysisResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("evidence_packet_analysis"),
-  output: AiEvidencePacketAnalysisOutputSchema,
-}).strict();
+export const OcrCleanupResultSchema = z.union([
+  createAiSuccessResultSchema("ocr_cleanup", AiOcrCleanupOutputSchema),
+  createAiFailedResultSchema("ocr_cleanup"),
+  createAiReviewRequiredResultSchema("ocr_cleanup"),
+]);
 
-export const SchemaValidationOnlyResultSchema = AiBaseResultSchema.extend({
-  taskType: z.literal("schema_validation_only"),
-  output: AiSchemaValidationOnlyOutputSchema,
-}).strict();
+export const CommentSignalSummaryResultSchema = z.union([
+  createAiSuccessResultSchema("comment_signal_summary", AiCommentSignalSummaryOutputSchema),
+  createAiFailedResultSchema("comment_signal_summary"),
+  createAiReviewRequiredResultSchema("comment_signal_summary"),
+]);
 
-export const AiResultSchema = z.discriminatedUnion("taskType", [
+export const ProductSignalSummaryResultSchema = z.union([
+  createAiSuccessResultSchema("product_signal_summary", AiProductSignalSummaryOutputSchema),
+  createAiFailedResultSchema("product_signal_summary"),
+  createAiReviewRequiredResultSchema("product_signal_summary"),
+]);
+
+export const EvidencePacketAnalysisResultSchema = z.union([
+  createAiSuccessResultSchema("evidence_packet_analysis", AiEvidencePacketAnalysisOutputSchema),
+  createAiFailedResultSchema("evidence_packet_analysis"),
+  createAiReviewRequiredResultSchema("evidence_packet_analysis"),
+]);
+
+export const SchemaValidationOnlyResultSchema = z.union([
+  createAiSuccessResultSchema("schema_validation_only", AiSchemaValidationOnlyOutputSchema),
+  createAiFailedResultSchema("schema_validation_only"),
+  createAiReviewRequiredResultSchema("schema_validation_only"),
+]);
+
+export const AiResultSchema = z.union([
   ProductPresenceJudgmentResultSchema,
   VisualObservationResultSchema,
   VisualTargetCandidateAnalysisResultSchema,
@@ -462,6 +561,12 @@ export const AiResultSchema = z.discriminatedUnion("taskType", [
   }
   if (value.status === "success" && value.outputAuthority !== "authoritative") {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must be authoritative", path: ["outputAuthority"] });
+  }
+  if (value.status !== "success" && value.output !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required result output must be null", path: ["output"] });
+  }
+  if (value.status === "success" && value.confidence === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires confidence", path: ["confidence"] });
   }
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must match result.status", path: ["runtimeProof", "status"] });

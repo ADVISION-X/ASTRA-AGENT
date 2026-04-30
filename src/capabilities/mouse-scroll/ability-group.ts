@@ -4,35 +4,25 @@ import type {
   MouseScrollChildCapabilityId,
   ParsedMouseScrollAbilityInput,
 } from "./contract.js";
-import type { MouseScrollClockPort } from "./ports/mouse-scroll-clock-port.js";
-import type { MouseScrollPrimitivePort } from "./ports/mouse-scroll-primitive-port.js";
 import { MouseScrollAbilityResultSchema } from "./schema.js";
 import { createMouseScrollCapabilityRegistry, listMouseScrollChildren } from "./registry.js";
-import { createSystemMouseScrollClock } from "./runtime/mouse-scroll-clock.js";
 import { dispatchMouseScrollFailure } from "./runtime/mouse-scroll-dispatch-failure.js";
-import { createMouseScrollIdempotencyRegistry, type MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idempotency.js";
 import { parseMouseScrollAbilityInput } from "./runtime/mouse-scroll-input-gate.js";
+import type { MouseScrollExecutionContext } from "./runtime/mouse-scroll-runtime-context.js";
 
 type CreateMouseScrollAbilityGroupInput = {
-  primitivePort: MouseScrollPrimitivePort;
-  clock?: MouseScrollClockPort;
-  idempotency?: MouseScrollIdempotencyRegistry;
+  context: MouseScrollExecutionContext;
 };
 
 export function createMouseScrollAbilityGroup(input: CreateMouseScrollAbilityGroupInput): MouseScrollAbilityGroup {
   const registry = createMouseScrollCapabilityRegistry();
-  const context = {
-    primitivePort: input.primitivePort,
-    clock: input.clock ?? createSystemMouseScrollClock(),
-    idempotency: input.idempotency ?? createMouseScrollIdempotencyRegistry(),
-  };
 
   const executeById = async (childCapabilityId: MouseScrollChildCapabilityId, callInput: ParsedMouseScrollAbilityInput) => {
     const capability = registry.get(childCapabilityId);
     if (!capability) {
       return dispatchMouseScrollFailure({
         rawInput: callInput,
-        context,
+        context: input.context,
         childCapabilityId,
         failureReason: "unknown_child_capability",
         statusMessage: `Mouse Scroll child capability is not registered for ${childCapabilityId}.`,
@@ -40,11 +30,11 @@ export function createMouseScrollAbilityGroup(input: CreateMouseScrollAbilityGro
     }
 
     try {
-      return MouseScrollAbilityResultSchema.parse(await capability.execute(callInput, context));
+      return MouseScrollAbilityResultSchema.parse(await capability.execute(callInput, input.context));
     } catch (error) {
       return dispatchMouseScrollFailure({
         rawInput: callInput,
-        context,
+        context: input.context,
         childCapabilityId,
         failureReason: "child_execution_failed",
         statusMessage: error instanceof Error ? error.message : "Mouse Scroll child execution failed.",
@@ -61,7 +51,7 @@ export function createMouseScrollAbilityGroup(input: CreateMouseScrollAbilityGro
       if (!parsed.success) {
         return dispatchMouseScrollFailure({
           rawInput: inputValue,
-          context,
+          context: input.context,
           failureReason: "input_schema_invalid",
           statusMessage: "Mouse Scroll rejected invalid input schema.",
         });

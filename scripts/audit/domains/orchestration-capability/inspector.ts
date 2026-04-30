@@ -19,6 +19,8 @@ const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
 const REGISTRY_PATH = `${ROOT}/registry.ts`;
+const MAP_SELECTION_GATE_PATH = `${ROOT}/runtime/map-selection-gate.ts`;
+const RUNTIME_CONTEXT_PATH = `${ROOT}/runtime/orchestration-runtime-context.ts`;
 
 const REQUIRED_CHILD_IDS = [
   "start-mission",
@@ -30,14 +32,6 @@ const REQUIRED_CHILD_IDS = [
   "evaluate-step-transition",
   "request-human-review",
   "finalize-mission",
-] as const;
-
-const REQUIRED_MAP_IDS = [
-  "product-video-detection",
-  "browse-next-video",
-  "comment-evidence",
-  "recovery",
-  "human-review",
 ] as const;
 
 const REQUIRED_RUNTIME_FILES = [
@@ -81,11 +75,6 @@ const REQUIRED_PATHS = [
   ...REQUIRED_RUNTIME_FILES.map((fileName) => `${ROOT}/runtime/${fileName}`),
   ...REQUIRED_PORT_FILES.map((fileName) => `${ROOT}/ports/${fileName}`),
   ...REQUIRED_SHARED_FILES.map((fileName) => `${ROOT}/shared/${fileName}`),
-  ...REQUIRED_MAP_IDS.flatMap((mapId) => [
-    `${ROOT}/maps/${mapId}/contract.ts`,
-    `${ROOT}/maps/${mapId}/schema.ts`,
-    `${ROOT}/maps/${mapId}/map.ts`,
-  ]),
   ...REQUIRED_CHILD_IDS.flatMap((childId) => [
     `${ROOT}/children/${childId}/contract.ts`,
     `${ROOT}/children/${childId}/schema.ts`,
@@ -166,6 +155,8 @@ export default createPendingDomainInspector({
     const contractSource = getSourceFileOrThrow(project, CONTRACT_PATH);
     const schemaSource = getSourceFileOrThrow(project, SCHEMA_PATH);
     const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
+    const mapSelectionSource = getSourceFileOrThrow(project, MAP_SELECTION_GATE_PATH);
+    const runtimeContextSource = getSourceFileOrThrow(project, RUNTIME_CONTEXT_PATH);
 
     const requiredPresence = await Promise.all(
       REQUIRED_PATHS.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })),
@@ -221,18 +212,21 @@ export default createPendingDomainInspector({
       }));
     }
 
-    const mapIds = getZodEnumValues(schemaSource, "OperationalMapIdSchema");
-    if (!arraysEqual(mapIds, REQUIRED_MAP_IDS)) {
+    const schemaText = await readTextFile(pathFromRepoRoot(SCHEMA_PATH));
+    const operationalMapIdPass = schemaText.includes("export const OperationalMapIdSchema = z.string().min(1);");
+    if (!operationalMapIdPass) {
       findings.push(createFinding({
         lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
         file: SCHEMA_PATH,
         line: 1,
         severity: "error",
-        message: "Operational map ids drifted away from the canonical map set.",
+        message: "Operational map id schema must stay dynamic and registry-backed under controlled map packages.",
       }));
     }
 
     const registrySourceText = await readTextFile(pathFromRepoRoot(REGISTRY_PATH));
+    const mapSelectionText = await readTextFile(pathFromRepoRoot(MAP_SELECTION_GATE_PATH));
+    const runtimeContextText = await readTextFile(pathFromRepoRoot(RUNTIME_CONTEXT_PATH));
     const registryPass = registrySourceText.includes("createOrchestrationCapabilityRegistry")
       && registrySourceText.includes("getOrchestrationRegistryEntry");
     if (!registryPass) {
@@ -259,9 +253,10 @@ export default createPendingDomainInspector({
 
     const abilityGroupText = await readTextFile(pathFromRepoRoot(ABILITY_GROUP_PATH));
     const nerveBusPass = hasImportModuleSpecifier(abilityGroupSource, "../nerve-bus/")
-      && hasCallExpressionPath(abilityGroupSource, ["nerveBus", "dispatchAbilityCommand"])
-      && hasCallExpressionPath(abilityGroupSource, ["nerveBus", "requestAi"])
-      && !abilityGroupText.includes("local-ai-decision");
+      && hasCallExpressionPath(runtimeContextSource, ["nerveBus", "dispatchAbilityCommand"])
+      && hasCallExpressionPath(runtimeContextSource, ["nerveBus", "requestAi"])
+      && !abilityGroupText.includes("local-ai-decision")
+      && !runtimeContextText.includes("local-ai-decision");
     if (!nerveBusPass) {
       findings.push(createFinding({
         lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
@@ -341,9 +336,22 @@ export default createPendingDomainInspector({
     const shapePass = requiredPresence.every((entry) => entry.exists)
       && legacyPresence.every((entry) => !entry.exists)
       && publicMethodPass;
+    const dynamicMapTruthPass = operationalMapIdPass
+      && hasCallExpressionPath(mapSelectionSource, ["input", "mapStore", "getActiveMapRecordByTaskTemplateId"])
+      && hasCallExpressionPath(mapSelectionSource, ["input", "mapStore", "getActiveMapRecordByActivationId"])
+      && !mapSelectionText.includes("resolvePreferredMapId")
+      && !mapSelectionText.includes("platform_policy")
+      && !mapSelectionText.includes("product-video-detection")
+      && hasImportModuleSpecifier(runtimeContextSource, "map-plugin-registry")
+      && runtimeContextText.includes("listActivePackages")
+      && !runtimeContextText.includes("../maps/")
+      && abilityGroupText.includes("getDefaultMapPluginRegistry")
+      && abilityGroupText.includes("listActivePackages")
+      && !abilityGroupText.includes("STATIC_MAP_IDS");
+
     const schemaPass = arraysEqual(childIds, REQUIRED_CHILD_IDS)
-      && arraysEqual(mapIds, REQUIRED_MAP_IDS)
-      && registryPass;
+      && registryPass
+      && dynamicMapTruthPass;
 
     return {
       findings,
@@ -361,7 +369,7 @@ export default createPendingDomainInspector({
           schemaPass ? "PASS" : "CODE VIOLATION",
           schemaPass,
           schemaPass
-            ? "Schema enums and registry truth match the canonical orchestration child and map set."
+            ? "Schema ids and runtime wiring match the canonical orchestration child set plus governed map package registry truth."
             : "Schema ids or registry truth drifted away from the canonical orchestration package.",
         ),
         createPhase(

@@ -1,10 +1,11 @@
 export const OPEN_CLOCK_KIND = "open-clock-port" as const;
 
 export const OPEN_NAVIGATION_DECISION_STATUSES = [
-  "navigated",
+  "executed",
   "already_on_target",
-  "timeout",
-  "browser_failed",
+  "timed_out",
+  "aborted",
+  "failed",
   "review_required",
 ] as const;
 

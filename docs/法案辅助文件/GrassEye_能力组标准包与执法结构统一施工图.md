@@ -44,7 +44,7 @@ GrassEye 当前法案源头已冻结。
 
 ### 1.1 当前 active ability groups
 
-固定为 13 个：
+固定为 14 个：
 
 1. commander-console
 2. orchestration
@@ -55,10 +55,11 @@ GrassEye 当前法案源头已冻结。
 7. visual-target
 8. geometry-guard
 9. mouse-click
-10. mouse-scroll
-11. post-action-verification
-12. forensics-persistence
-13. page-state
+10. text-input
+11. mouse-scroll
+12. post-action-verification
+13. forensics-persistence
+14. page-state
 
 ### 1.2 当前 active support laws
 
@@ -215,6 +216,7 @@ B. 删除后重构
 - Visual Target
 - Geometry Guard
 - Mouse Click
+- Text Input
 - Mouse Scroll
 - Page State
 - Post-action Verification
@@ -793,6 +795,14 @@ outputRefs
 - 输出引用
 - review policy
 
+能力组仍然静态冻结、受法案治理。
+
+执行地图可以作为受控数据包插件，但地图插件包不属于能力组。
+
+地图插件包只能被 Orchestration 读取、校验、选择和执行，不得成为 owner，不得执行代码。
+
+Orchestration 只消费 active approved map package。
+
 ### 10.2 Prompt 不立组
 
 Prompt 不是能力组。
@@ -811,6 +821,8 @@ failureBranch
 ```
 
 执行地图禁止保存 raw prompt 大段正文。
+
+地图插件包只能保存 promptContractId，不得保存 raw prompt 正文。
 
 ---
 

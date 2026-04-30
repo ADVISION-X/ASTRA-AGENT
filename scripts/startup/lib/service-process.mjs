@@ -60,6 +60,7 @@ export async function startLocalService({
   npmCommand = getDefaultNpmCommand(),
   preStartScripts = ["build"],
   scriptName = "internal:app-server",
+  env = {},
   onStdoutLine,
   onStderrLine,
 }) {
@@ -75,7 +76,11 @@ export async function startLocalService({
 
   const child = spawn(npmCommand, ["run", scriptName], {
     cwd: rootDir,
-    env: process.env,
+    env: {
+      ...process.env,
+      GRASSEYE_PLATFORM_TARGET: process.env.GRASSEYE_PLATFORM_TARGET ?? "tiktok-web",
+      ...env,
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
 

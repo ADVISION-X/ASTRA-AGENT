@@ -3,7 +3,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 本文件只服从当前 14 个 active ability groups 与 4 个 active support laws，不重新分配主权。
 - 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
 - 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
 
@@ -85,6 +85,7 @@ Post-action Verification Ability Group 是动作执行后的结果裁决能力�
 ## 调用边界
 
 - Open / Mouse Click / Mouse Scroll 只执行动作。
+- Text Input 只执行受治理写字动作，不裁决最终页面结果。
 - Screenshot 提供 before / after 图像证据。
 - AI / PageState / VisualTarget 提供观察结果。
 - Page State 只回答“当前页面此刻是什么状态”，不回答动作是否成功。
@@ -93,6 +94,7 @@ Post-action Verification Ability Group 是动作执行后的结果裁决能力�
 - Forensics Persistence 负责落盘，不负责验证逻辑。
 - Mouse Click primitive success 不是 verified；verified 只能由 Post-action Verification 产出。
 - Mouse Scroll primitive success 不是 verified；滚动是否真的换视频只能由 Post-action Verification 产出。
+- Text Input primitive success 不是 verified；输入内容是否被页面接受只能由 Post-action Verification 或 Page State 产出。
 
 ## 文件路径
 

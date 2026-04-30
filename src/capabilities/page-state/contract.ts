@@ -3,7 +3,6 @@ import {
   type PageStateAbilityInput,
   type PageStateAbilityResult,
   type PageStateChildCapabilityId,
-  type PageStateChildDetection,
 } from "./schema.js";
 
 export {
@@ -13,14 +12,15 @@ export {
   PageStateAbilityResultSchema,
   createPageStateChildInputSchema,
   createPageStateChildOutputSchema,
-  PageStateChildDetectionSchema,
   PageStateChildCapabilityIdSchema,
+  PageStateChildDetectionSchema,
   PageStateConfidencePolicySchema,
   PageStateDecisionSchema,
   PageStateFailureReasonSchema,
   PageStateFreshnessPolicySchema,
   PageStateOpenHandoffPolicySchema,
   PageStateObservationSchema,
+  PageStateOutputSchema,
   PageStatePolicySchema,
   PageStateRuntimeProofSchema,
   PageStateSnapshotSchema,
@@ -40,6 +40,7 @@ export type {
   PageStateFreshnessPolicy,
   PageStateObservation,
   PageStateOpenHandoffPolicy,
+  PageStateOutput,
   PageStatePolicy,
   PageStateRuntimeProof,
   PageStateSnapshot,
@@ -47,14 +48,9 @@ export type {
   PageStateType,
 } from "./schema.js";
 
+export type { PageStateChildCapability } from "./runtime/page-state-child-contract.js";
+
 export type PageStateAbilityGroupId = typeof PAGE_STATE_ABILITY_GROUP_ID;
-
-export interface PageStateChildCapability {
-  readonly abilityGroupId: PageStateAbilityGroupId;
-  readonly childCapabilityId: PageStateChildCapabilityId;
-
-  execute(input: PageStateAbilityInput): Promise<PageStateChildDetection>;
-}
 
 export interface PageStateAbilityGroup {
   listChildCapabilityIds(): PageStateChildCapabilityId[];

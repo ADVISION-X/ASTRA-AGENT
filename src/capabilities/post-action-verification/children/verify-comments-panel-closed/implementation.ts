@@ -1,4 +1,5 @@
-import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation, type PostActionVerificationAbilityContext, type PostActionVerificationChildCapability } from "../../contract.js";
+import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation } from "../../contract.js";
+import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext } from "../../runtime/post-action-verification-runtime-context.js";
 import { VerifyCommentsPanelClosedOutputSchema } from "./schema.js";
 
 function getObservationsByKind<K extends PostActionObservation["kind"]>(
@@ -12,17 +13,17 @@ export function createVerifyCommentsPanelClosedCapability(): PostActionVerificat
   return {
     abilityGroupId: POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
     childCapabilityId: "verify-comments-panel-closed" as const,
-    async execute(input: Parameters<PostActionVerificationAbilityContext["evidenceReadPort"]["listObservations"]>[0], context: PostActionVerificationAbilityContext) {
+    async execute(input, context: PostActionVerificationRuntimeContext) {
       const observations = context.evidenceReadPort.listObservations(input);
       const pageState = getObservationsByKind(observations, "page_state")[0] ?? null;
       const visualTarget = getObservationsByKind(observations, "visual_target")[0] ?? null;
-      const isOpen = [
-        pageState?.payload.commentsPanelOpen ?? null,
-        visualTarget?.payload.commentsPanelOpen ?? null,
-        visualTarget?.payload.targetType === "comments_panel" ? true : null,
-      ].find((value) => value !== null) ?? null;
+      const pageStateSignal = pageState?.payload.commentsPanelOpen ?? null;
+      const visualSignal = visualTarget?.payload.commentsPanelOpen
+        ?? (visualTarget?.payload.targetType === "comments_panel" ? true : null);
+      const alignedObservationRefs = [pageState?.ref, visualTarget?.ref].filter((value): value is string => value !== null);
+      const alignedSourceProofRefs = [pageState?.source.sourceProofRef, visualTarget?.source.sourceProofRef].filter((value): value is string => value !== null);
 
-      if (isOpen === null) {
+      if (pageStateSignal === null || visualSignal === null) {
         return VerifyCommentsPanelClosedOutputSchema.parse({
           observedOutcome: "comments_panel_unknown",
           verificationDecision: "review_required",
@@ -31,17 +32,44 @@ export function createVerifyCommentsPanelClosedCapability(): PostActionVerificat
           reviewRequiredReason: "Comments panel close state is not observable from the governed after evidence.",
           statusMessage: "Comments panel close verification requires stronger after evidence.",
           dataQualityFlags: ["comments_state_unknown"],
+          supportingEvidenceRefs: input.beforeAfterEvidence.afterEvidence ? [input.beforeAfterEvidence.afterEvidence.evidenceRef] : [],
+          supportingObservationRefs: alignedObservationRefs,
+          supportingSourceProofRefs: alignedSourceProofRefs,
+          verifiedByEvidenceKinds: ["page_state", "visual_target"],
+          confidenceSource: "page_state_visual_target_alignment",
+        });
+      }
+
+      if (pageStateSignal !== visualSignal) {
+        return VerifyCommentsPanelClosedOutputSchema.parse({
+          observedOutcome: "comments_panel_conflict",
+          verificationDecision: "review_required",
+          confidence: 0.3,
+          failureReason: "conflicting_observation",
+          reviewRequiredReason: "Page-state and visual-target evidence disagree on comments panel close state.",
+          statusMessage: "Comments panel close verification encountered conflicting after evidence.",
+          dataQualityFlags: ["conflicting_observation"],
+          supportingEvidenceRefs: input.beforeAfterEvidence.afterEvidence ? [input.beforeAfterEvidence.afterEvidence.evidenceRef] : [],
+          supportingObservationRefs: alignedObservationRefs,
+          supportingSourceProofRefs: alignedSourceProofRefs,
+          verifiedByEvidenceKinds: ["page_state", "visual_target"],
+          confidenceSource: "page_state_visual_target_alignment",
         });
       }
 
       return VerifyCommentsPanelClosedOutputSchema.parse({
-        observedOutcome: isOpen ? "comments_panel_open" : "comments_panel_closed",
-        verificationDecision: isOpen ? "failed" : "verified",
-        confidence: isOpen ? 0.88 : 0.92,
-        failureReason: isOpen ? "unexpected_state" : null,
+        observedOutcome: pageStateSignal ? "comments_panel_open" : "comments_panel_closed",
+        verificationDecision: pageStateSignal ? "failed" : "verified",
+        confidence: pageStateSignal ? 0.88 : 0.92,
+        failureReason: pageStateSignal ? "unexpected_state" : null,
         reviewRequiredReason: null,
-        statusMessage: isOpen ? "Comments panel remained open after the close action." : "Comments panel closed successfully.",
+        statusMessage: pageStateSignal ? "Comments panel remained open after the close action." : "Comments panel closed successfully.",
         dataQualityFlags: [],
+        supportingEvidenceRefs: input.beforeAfterEvidence.afterEvidence ? [input.beforeAfterEvidence.afterEvidence.evidenceRef] : [],
+        supportingObservationRefs: alignedObservationRefs,
+        supportingSourceProofRefs: alignedSourceProofRefs,
+        verifiedByEvidenceKinds: ["page_state", "visual_target"],
+        confidenceSource: "page_state_visual_target_alignment",
       });
     },
   };

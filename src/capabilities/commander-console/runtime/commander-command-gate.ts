@@ -62,6 +62,8 @@ function buildTransportPayload(commandInput: CommanderHumanCommandInput): Comman
           ...(commandInput.requestedPlatformId ? { requestedPlatformId: commandInput.requestedPlatformId } : {}),
           ...(commandInput.selectedMapId ? { selectedMapId: commandInput.selectedMapId } : {}),
           ...(commandInput.humanGoal ? { humanGoal: commandInput.humanGoal } : {}),
+          ...(commandInput.maxRounds ? { maxRounds: commandInput.maxRounds } : {}),
+          ...(commandInput.maxMinutes ? { maxMinutes: commandInput.maxMinutes } : {}),
           ...(commandInput.operatorNote ? { operatorNote: commandInput.operatorNote } : {}),
         },
       );
@@ -211,6 +213,8 @@ export function gateCommanderCommand(input: {
       targetRecordRef: parsed.data.targetRecordRef ?? null,
       requestedPlatformId: parsed.data.requestedPlatformId ?? null,
       humanGoal: parsed.data.humanGoal ?? null,
+      maxRounds: parsed.data.maxRounds ?? null,
+      maxMinutes: parsed.data.maxMinutes ?? null,
       operatorNote: parsed.data.operatorNote ?? null,
       payload,
     },

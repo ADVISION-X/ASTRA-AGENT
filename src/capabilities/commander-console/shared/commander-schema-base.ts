@@ -120,6 +120,8 @@ export const CommanderReadModelSourceSchema = z.enum([
 
 export const CommanderGoalSchema = NonEmptyStringSchema.max(400);
 export const CommanderNoteSchema = NonEmptyStringSchema.max(400);
+export const CommanderMaxRoundsSchema = z.number().int().min(1).max(9);
+export const CommanderMaxMinutesSchema = z.number().int().min(1).max(180);
 export const NullableMissionIdSchema = NonEmptyStringSchema.nullable();
 export const NullableSelectedMapIdSchema = NonEmptyStringSchema.nullable();
 export const NullableCommanderGoalSchema = CommanderGoalSchema.nullable();
@@ -199,15 +201,19 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   requestedBy: z.literal("commander-console"),
   requestedPlatformId: RequestedPlatformIdSchema.optional(),
   selectedMapId: NonEmptyStringSchema.optional(),
+  taskTemplateId: NonEmptyStringSchema.optional(),
+  activationId: NonEmptyStringSchema.optional(),
   humanGoal: CommanderGoalSchema.optional(),
+  maxRounds: CommanderMaxRoundsSchema.optional(),
+  maxMinutes: CommanderMaxMinutesSchema.optional(),
   operatorNote: CommanderNoteSchema.optional(),
 }).strict();
 
 export const StartMissionTransportPayloadSchema = StartMissionTransportPayloadBaseSchema.superRefine((value, ctx) => {
-  if (!value.requestedPlatformId && !value.selectedMapId) {
+  if (!value.requestedPlatformId || !value.selectedMapId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "start-mission payload requires requestedPlatformId or selectedMapId",
+      message: "start-mission payload requires both requestedPlatformId and selectedMapId",
     });
   }
 });
@@ -271,10 +277,10 @@ export const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
   RejectCandidateTransportPayloadSchema,
   MarkReviewRequiredTransportPayloadSchema,
 ]).superRefine((value, ctx) => {
-  if (value.kind === "start-mission" && !value.requestedPlatformId && !value.selectedMapId) {
+  if (value.kind === "start-mission" && (!value.requestedPlatformId || !value.selectedMapId)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "start-mission payload requires requestedPlatformId or selectedMapId",
+      message: "start-mission payload requires both requestedPlatformId and selectedMapId",
     });
   }
 });
@@ -286,6 +292,8 @@ export const HumanCommandInputSchema = z.object({
   targetRecordRef: CommanderTargetRecordRefSchema.nullable().optional(),
   requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(),
   humanGoal: NullableCommanderGoalSchema.optional(),
+  maxRounds: CommanderMaxRoundsSchema.optional(),
+  maxMinutes: CommanderMaxMinutesSchema.optional(),
   operatorNote: NullableOperatorNoteSchema.optional(),
   initialPayload: CommanderTransportPayloadSchema.nullable().optional(),
 }).strict().superRefine((value, ctx) => {
@@ -315,6 +323,12 @@ export const HumanCommandInputSchema = z.object({
   }
   if (commandType !== "start-mission" && value.humanGoal) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "humanGoal is only allowed on start-mission" });
+  }
+  if (commandType !== "start-mission" && value.maxRounds) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "maxRounds is only allowed on start-mission" });
+  }
+  if (commandType !== "start-mission" && value.maxMinutes) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "maxMinutes is only allowed on start-mission" });
   }
 });
 
@@ -412,6 +426,8 @@ export const CommanderCapabilityHealthEntrySchema = z.object({
   label: NonEmptyStringSchema,
   tone: z.enum(["normal", "good", "warn", "danger", "muted"]),
   detail: NonEmptyStringSchema,
+  ownerResponsible: NonEmptyStringSchema.nullable().optional(),
+  actionableMessage: NonEmptyStringSchema.nullable().optional(),
 }).strict();
 
 export const CommanderCapabilityRosterEntrySchema = z.object({

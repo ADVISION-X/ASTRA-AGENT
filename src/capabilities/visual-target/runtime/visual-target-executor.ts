@@ -1,8 +1,9 @@
 import type {
   ParsedVisualTargetAbilityInput,
-  VisualTargetAbilityContext,
   VisualTargetAbilityResult,
   VisualTargetDataQualityFlag,
+  VisualTargetFailureReason,
+  VisualTargetOutput,
 } from "../contract.js";
 import { validateAiResultProof } from "./ai-result-proof-gate.js";
 import { validateAmbiguity } from "./ambiguity-gate.js";
@@ -12,275 +13,252 @@ import { validatePageStateConsistency } from "./page-state-consistency-gate.js";
 import { validateScreenshotProof } from "./screenshot-proof-gate.js";
 import { selectTargetCandidate } from "./target-selection-gate.js";
 import { validateTargetTypePolicy } from "./target-type-policy-gate.js";
+import { validateVisualTargetOutputBoundary } from "./visual-target-output-boundary-gate.js";
+import { validateVisualTargetPayloadBudget } from "./visual-target-payload-budget-gate.js";
 import { buildVisualTargetResult } from "./visual-target-result-builder.js";
-import { buildVisualTargetExecutionSeed, resolveVisualTargetExecutionProfile } from "./visual-target-input-gate.js";
+import { resolveVisualTargetExecutionProfile } from "./visual-target-input-gate.js";
+import type { VisualTargetRuntimeDecisionTrace, VisualTargetRuntimeTelemetry } from "./visual-target-proof-builder.js";
+import type { VisualTargetRuntimeContext } from "./visual-target-runtime-context.js";
+import { hashVisualTargetPayload } from "../shared/visual-target-types.js";
 
 export async function executeVisualTarget(input: {
   request: ParsedVisualTargetAbilityInput;
-  context: VisualTargetAbilityContext;
+  context: VisualTargetRuntimeContext;
 }): Promise<VisualTargetAbilityResult> {
   const started = input.context.clock.now();
-  const nowIso = started.isoTimestamp;
   const profile = resolveVisualTargetExecutionProfile({
     request: input.request,
     profilePort: input.context.profilePort,
   });
-  const seed = buildVisualTargetExecutionSeed(input.request);
   const rejectedCandidateRefs = new Set<string>();
   const dataQualityFlags = new Set<VisualTargetDataQualityFlag>();
-  const decisions: Parameters<typeof buildVisualTargetResult>[0]["decisions"] = {
-    screenshotDecision: "allow" as const,
-    aiDecision: "not_required" as const,
-    pageStateDecision: "allow" as const,
-    candidateSourceDecision: "allow" as const,
-    coordinateSpaceDecision: "allow" as const,
-    targetTypeDecision: "allow" as const,
-    selectionDecision: "selected" as const,
-    ambiguityDecision: "clear" as const,
+  const decisions: VisualTargetRuntimeDecisionTrace = {
+    payloadBudgetDecision: "allow",
+    screenshotDecision: "allow",
+    aiDecision: input.request.sourceProof.ai ? "allow" : "not_required",
+    pageStateDecision: "allow",
+    candidateSourceDecision: "allow",
+    candidateSourceBindingDecision: "allow",
+    coordinateSpaceDecision: "allow",
+    targetTypeDecision: "allow",
+    selectionDecision: "selected",
+    ambiguityDecision: "clear",
+    outputBoundaryDecision: "allow",
+    criticalDataQualityDecision: "clear",
+  };
+  const trace = {
+    childCapabilityId: input.request.childCapabilityId,
+    sessionId: input.request.sessionId,
+    roundId: input.request.roundId,
+    videoVisitId: input.request.videoVisitId,
+    sourceAbilityGroupId: input.request.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.request.sourceChildCapabilityId,
+    inputRef: input.request.inputRef,
+    targetType: input.request.targetType,
+    targetNature: input.request.targetNature,
+    receivedShapeHash: hashVisualTargetPayload(input.request),
+  };
+  const telemetry: Omit<VisualTargetRuntimeTelemetry, "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef"> = {
+    inputPayloadHash: hashVisualTargetPayload(input.request),
+    candidateSetHash: hashVisualTargetPayload(input.request.candidates.map((candidate) => candidate.candidateRef)),
+    selectedCandidateHash: null as string | null,
+    screenshotHash: input.request.sourceProof.screenshot.imageHash,
+    aiInputHash: input.request.sourceProof.ai?.aiInputHash ?? null,
+    aiOutputPayloadHash: input.request.sourceProof.ai?.outputPayloadHash ?? null,
+    pageStateHash: input.request.sourceProof.pageState.pageStateHash,
+    candidateScoreTrace: [] as import("./target-selection-gate.js").VisualTargetCandidateScoreTrace[],
+    selectionTrace: [] as string[],
+    ambiguityTrace: [] as string[],
+    coordinateTransformTrace: [] as string[],
   };
 
-  const screenshotGate = validateScreenshotProof({
-    request: input.request,
-    nowIso,
-    freshnessTtlMs: profile.freshnessTtlMs,
-  });
-  if (!screenshotGate.ok) {
-    decisions.screenshotDecision = screenshotGate.decision;
+  const finalize = (output: VisualTargetOutput | null, status: "success" | "failed" | "review_required", failureReason: VisualTargetFailureReason | null, reviewRequiredReason: string | null, statusMessage: string) => {
     const ended = input.context.clock.now();
     return buildVisualTargetResult({
       request: input.request,
-      targetNature: seed.targetNature,
-      status: screenshotGate.status,
-      failureReason: screenshotGate.failureReason,
-      reviewRequiredReason: screenshotGate.reviewRequiredReason,
-      statusMessage: screenshotGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [],
+      trace,
+      status,
+      failureReason,
+      reviewRequiredReason,
+      statusMessage,
+      output,
+      rejectedCandidateRefs: [...rejectedCandidateRefs],
       startedAt: started.isoTimestamp,
       endedAt: ended.isoTimestamp,
       durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
       decisions,
-      dataQualityFlags: screenshotGate.dataQualityFlags,
+      telemetry,
+      dataQualityFlags: [...dataQualityFlags],
       clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
     });
+  };
+
+  const payloadGate = validateVisualTargetPayloadBudget({ request: input.request });
+  decisions.payloadBudgetDecision = payloadGate.decision;
+  telemetry.candidateSetHash = payloadGate.candidateSetHash;
+  for (const flag of payloadGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
+  if (!payloadGate.ok) {
+    return finalize(null, payloadGate.status, payloadGate.failureReason, payloadGate.reviewRequiredReason, payloadGate.statusMessage);
+  }
+
+  const screenshotGate = validateScreenshotProof({
+    request: input.request,
+    nowEpochMs: started.epochMs,
+    freshnessTtlMs: profile.freshnessTtlMs,
+  });
+  decisions.screenshotDecision = screenshotGate.decision;
+  telemetry.screenshotHash = screenshotGate.screenshotHash;
+  for (const flag of screenshotGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
+  if (!screenshotGate.ok) {
+    return finalize(null, screenshotGate.status, screenshotGate.failureReason, screenshotGate.reviewRequiredReason, screenshotGate.statusMessage);
   }
 
   const aiGate = validateAiResultProof({
     request: input.request,
-    nowIso,
+    nowEpochMs: started.epochMs,
     freshnessTtlMs: profile.freshnessTtlMs,
     minimumConfidence: profile.minimumConfidence,
   });
-  if (!aiGate.ok) {
-    decisions.aiDecision = aiGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: aiGate.status,
-      failureReason: aiGate.failureReason,
-      reviewRequiredReason: aiGate.reviewRequiredReason,
-      statusMessage: aiGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: aiGate.dataQualityFlags,
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
-  }
   decisions.aiDecision = aiGate.decision;
+  telemetry.aiInputHash = aiGate.aiInputHash;
+  telemetry.aiOutputPayloadHash = aiGate.aiOutputPayloadHash;
+  for (const flag of aiGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
+  if (!aiGate.ok) {
+    return finalize(null, aiGate.status, aiGate.failureReason, aiGate.reviewRequiredReason, aiGate.statusMessage);
+  }
 
   const pageStateGate = validatePageStateConsistency({
     request: input.request,
     allowedPageStateTypes: profile.allowedPageStateTypes,
   });
+  decisions.pageStateDecision = pageStateGate.decision;
+  for (const flag of pageStateGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!pageStateGate.ok) {
-    decisions.pageStateDecision = pageStateGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: pageStateGate.status,
-      failureReason: pageStateGate.failureReason,
-      reviewRequiredReason: pageStateGate.reviewRequiredReason,
-      statusMessage: pageStateGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: pageStateGate.dataQualityFlags,
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    return finalize(null, pageStateGate.status, pageStateGate.failureReason, pageStateGate.reviewRequiredReason, pageStateGate.statusMessage);
   }
 
   const candidateSourceGate = validateCandidateSources({
     request: input.request,
-    nowIso,
-    freshnessTtlMs: profile.freshnessTtlMs,
-    allowOperatorManual: profile.allowOperatorManual,
+    nowEpochMs: started.epochMs,
+    profile,
   });
+  decisions.candidateSourceDecision = candidateSourceGate.decision;
+  decisions.candidateSourceBindingDecision = candidateSourceGate.bindingDecision;
+  for (const flag of candidateSourceGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!candidateSourceGate.ok) {
-    decisions.candidateSourceDecision = candidateSourceGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: candidateSourceGate.status,
-      failureReason: candidateSourceGate.failureReason,
-      reviewRequiredReason: candidateSourceGate.reviewRequiredReason,
-      statusMessage: candidateSourceGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: candidateSourceGate.rejectedCandidateRefs,
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: candidateSourceGate.dataQualityFlags,
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    for (const candidateRef of candidateSourceGate.rejectedCandidateRefs) {
+      rejectedCandidateRefs.add(candidateRef);
+    }
+    return finalize(null, candidateSourceGate.status, candidateSourceGate.failureReason, candidateSourceGate.reviewRequiredReason, candidateSourceGate.statusMessage);
   }
   for (const candidateRef of candidateSourceGate.rejectedCandidateRefs) {
     rejectedCandidateRefs.add(candidateRef);
-  }
-  for (const flag of candidateSourceGate.dataQualityFlags) {
-    dataQualityFlags.add(flag);
   }
 
   const coordinateGate = validateCoordinateSpace({
     request: input.request,
     candidates: candidateSourceGate.candidates,
   });
+  decisions.coordinateSpaceDecision = coordinateGate.decision;
+  telemetry.coordinateTransformTrace = coordinateGate.coordinateTransformTrace;
+  for (const flag of coordinateGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!coordinateGate.ok) {
-    decisions.coordinateSpaceDecision = coordinateGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: coordinateGate.status,
-      failureReason: coordinateGate.failureReason,
-      reviewRequiredReason: coordinateGate.reviewRequiredReason,
-      statusMessage: coordinateGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [...rejectedCandidateRefs, ...coordinateGate.rejectedCandidateRefs],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: [...dataQualityFlags, ...coordinateGate.dataQualityFlags],
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    for (const candidateRef of coordinateGate.rejectedCandidateRefs) {
+      rejectedCandidateRefs.add(candidateRef);
+    }
+    return finalize(null, coordinateGate.status, coordinateGate.failureReason, coordinateGate.reviewRequiredReason, coordinateGate.statusMessage);
   }
   for (const candidateRef of coordinateGate.rejectedCandidateRefs) {
     rejectedCandidateRefs.add(candidateRef);
-  }
-  for (const flag of coordinateGate.dataQualityFlags) {
-    dataQualityFlags.add(flag);
   }
 
   const targetTypeGate = validateTargetTypePolicy({
     request: input.request,
     candidates: coordinateGate.candidates,
-    requireClickPoint: profile.requireClickPoint,
+    profile,
   });
+  decisions.targetTypeDecision = targetTypeGate.decision;
+  for (const flag of targetTypeGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!targetTypeGate.ok) {
-    decisions.targetTypeDecision = targetTypeGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: targetTypeGate.status,
-      failureReason: targetTypeGate.failureReason,
-      reviewRequiredReason: targetTypeGate.reviewRequiredReason,
-      statusMessage: targetTypeGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [...rejectedCandidateRefs, ...targetTypeGate.rejectedCandidateRefs],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: [...dataQualityFlags, ...targetTypeGate.dataQualityFlags],
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    for (const candidateRef of targetTypeGate.rejectedCandidateRefs) {
+      rejectedCandidateRefs.add(candidateRef);
+    }
+    return finalize(null, targetTypeGate.status, targetTypeGate.failureReason, targetTypeGate.reviewRequiredReason, targetTypeGate.statusMessage);
   }
   for (const candidateRef of targetTypeGate.rejectedCandidateRefs) {
     rejectedCandidateRefs.add(candidateRef);
   }
-  for (const flag of targetTypeGate.dataQualityFlags) {
-    dataQualityFlags.add(flag);
-  }
 
   const selectionGate = selectTargetCandidate({
     candidates: targetTypeGate.candidates,
-    nowIso,
+    nowEpochMs: started.epochMs,
     freshnessTtlMs: profile.freshnessTtlMs,
     minimumConfidence: profile.minimumConfidence,
   });
+  decisions.selectionDecision = selectionGate.decision;
+  telemetry.candidateScoreTrace = selectionGate.candidateScoreTrace;
+  telemetry.selectionTrace = selectionGate.selectionTrace;
+  for (const flag of selectionGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!selectionGate.ok) {
-    decisions.selectionDecision = selectionGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: selectionGate.status,
-      failureReason: selectionGate.failureReason,
-      reviewRequiredReason: selectionGate.reviewRequiredReason,
-      statusMessage: selectionGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [...rejectedCandidateRefs],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: [...dataQualityFlags, ...selectionGate.dataQualityFlags],
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    return finalize(null, selectionGate.status, selectionGate.failureReason, selectionGate.reviewRequiredReason, selectionGate.statusMessage);
   }
 
   const ambiguityGate = validateAmbiguity({
     candidates: selectionGate.candidates,
     minimumAmbiguityGap: profile.minimumAmbiguityGap,
   });
+  decisions.ambiguityDecision = ambiguityGate.decision;
+  telemetry.ambiguityTrace = ambiguityGate.ambiguityTrace;
+  for (const flag of ambiguityGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
   if (!ambiguityGate.ok) {
-    decisions.ambiguityDecision = ambiguityGate.decision;
-    const ended = input.context.clock.now();
-    return buildVisualTargetResult({
-      request: input.request,
-      targetNature: seed.targetNature,
-      status: ambiguityGate.status,
-      failureReason: ambiguityGate.failureReason,
-      reviewRequiredReason: ambiguityGate.reviewRequiredReason,
-      statusMessage: ambiguityGate.statusMessage,
-      selectedCandidate: null,
-      rejectedCandidateRefs: [...rejectedCandidateRefs],
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-      decisions,
-      dataQualityFlags: [...dataQualityFlags, ...ambiguityGate.dataQualityFlags],
-      clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
-    });
+    return finalize(null, ambiguityGate.status, ambiguityGate.failureReason, ambiguityGate.reviewRequiredReason, ambiguityGate.statusMessage);
   }
 
-  const ended = input.context.clock.now();
-  return buildVisualTargetResult({
+  const outputBoundaryGate = validateVisualTargetOutputBoundary({
     request: input.request,
-    targetNature: seed.targetNature,
-    status: "success",
-    failureReason: null,
-    reviewRequiredReason: null,
-    statusMessage: `${input.request.childCapabilityId} selected governed visual target candidate ${selectionGate.selectedCandidate.candidateRef}.`,
+    profile,
     selectedCandidate: selectionGate.selectedCandidate,
-    rejectedCandidateRefs: [...rejectedCandidateRefs],
-    startedAt: started.isoTimestamp,
-    endedAt: ended.isoTimestamp,
-    durationMs: Math.max(0, Math.round(ended.monotonicMs - started.monotonicMs)),
-    decisions,
-    dataQualityFlags: [...dataQualityFlags, ...selectionGate.dataQualityFlags],
-    clock: { startedMonotonicMs: started.monotonicMs, endedMonotonicMs: ended.monotonicMs },
+    accumulatedDataQualityFlags: [...dataQualityFlags],
   });
+  decisions.outputBoundaryDecision = outputBoundaryGate.decision;
+  decisions.criticalDataQualityDecision = outputBoundaryGate.criticalDataQualityDecision;
+  for (const flag of outputBoundaryGate.dataQualityFlags) {
+    dataQualityFlags.add(flag);
+  }
+  if (!outputBoundaryGate.ok) {
+    return finalize(null, outputBoundaryGate.status, outputBoundaryGate.failureReason, outputBoundaryGate.reviewRequiredReason, outputBoundaryGate.statusMessage);
+  }
+
+  telemetry.selectedCandidateHash = hashVisualTargetPayload({
+    candidateRef: selectionGate.selectedCandidate.candidateRef,
+    coordinateSpace: selectionGate.selectedCandidate.executableCoordinateSpace,
+    boundingBox: selectionGate.selectedCandidate.executableBoundingBox,
+    clickPoint: selectionGate.selectedCandidate.executableClickPoint,
+  });
+
+  return finalize(
+    outputBoundaryGate.output,
+    "success",
+    null,
+    null,
+    `${input.request.childCapabilityId} selected governed visual target candidate ${selectionGate.selectedCandidate.candidateRef}.`,
+  );
 }

@@ -1,11 +1,8 @@
-import type { ZodTypeAny, z } from "zod";
+import type { z } from "zod";
 
 import type { OpenBrowserPort } from "./ports/open-browser-port.js";
 import type { OpenClockPort } from "./ports/open-clock-port.js";
-import type {
-  OpenIdempotencyPort,
-  OpenIdempotencyReservation,
-} from "./ports/open-idempotency-port.js";
+import type { OpenIdempotencyPort } from "./ports/open-idempotency-port.js";
 import type { OpenProfilePort } from "./ports/open-profile-port.js";
 import {
   BrowserSessionSnapshotSchema,
@@ -29,6 +26,7 @@ import {
   OpenTargetKindSchema,
   OpenTargetPolicyDecisionSchema,
   OpenTargetProfileSchema,
+  OpenTargetUrlSourceSchema,
   OpenTimeoutPolicySchema,
   OpenUrlSafetyDecisionSchema,
   PostOpenStateDecisionSchema,
@@ -52,6 +50,7 @@ export type OpenFailurePolicy = z.output<typeof OpenFailurePolicySchema>;
 export type OpenTimeoutPolicy = z.output<typeof OpenTimeoutPolicySchema>;
 export type OpenIdempotencyPolicy = z.output<typeof OpenIdempotencyPolicySchema>;
 export type OpenDataQualityFlag = z.output<typeof OpenDataQualityFlagSchema>;
+export type OpenTargetUrlSource = z.output<typeof OpenTargetUrlSourceSchema>;
 export type BrowserSessionSnapshot = z.output<typeof BrowserSessionSnapshotSchema>;
 export type OpenBrowserNavigationResult = z.output<typeof NavigationResultSchema>;
 export type OpenTargetPolicyDecision = z.output<typeof OpenTargetPolicyDecisionSchema>;
@@ -64,37 +63,11 @@ export type ParsedOpenRequest = z.output<typeof OpenRequestSchema>;
 export type OpenResult = z.output<typeof OpenResultSchema>;
 export type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
 
-export type OpenAbilityContext = {
+export type CreateOpenAbilityGroupInput = {
   browser: OpenBrowserPort;
-  clock: OpenClockPort;
-  idempotency: OpenIdempotencyPort;
+  clock?: OpenClockPort;
+  idempotency?: OpenIdempotencyPort;
   profilePort?: OpenProfilePort;
-};
-
-export type OpenChildExecutionContext = OpenAbilityContext & {
-  reserveIdempotency(input: {
-    sessionId: string;
-    childCapabilityId: OpenChildCapabilityId;
-    targetUrl: string;
-    roundId: string | null;
-    currentUrl: string;
-    allowReplay: boolean;
-  }): OpenIdempotencyReservation;
-};
-
-export interface OpenChildCapability {
-  readonly abilityGroupId: OpenAbilityGroupId;
-  readonly childCapabilityId: OpenChildCapabilityId;
-  readonly inputSchema: ZodTypeAny;
-  readonly outputSchema: ZodTypeAny;
-
-  execute(input: unknown, context: OpenChildExecutionContext, profile: OpenTargetProfile): Promise<OpenResult>;
-}
-
-export type OpenRegistryEntry = OpenTargetProfile & {
-  readonly inputSchema: ZodTypeAny;
-  readonly outputSchema: ZodTypeAny;
-  readonly implementation: OpenChildCapability;
 };
 
 export interface OpenAbilityGroup {

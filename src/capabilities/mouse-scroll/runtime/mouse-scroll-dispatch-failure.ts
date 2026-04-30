@@ -1,29 +1,30 @@
-import type { MouseScrollAbilityContext, MouseScrollChildCapabilityId } from "../contract.js";
+import type { MouseScrollChildCapabilityId } from "../contract.js";
 import { buildMouseScrollResult } from "./mouse-scroll-result-builder.js";
-import { coerceMouseScrollFailureSeed } from "./mouse-scroll-input-gate.js";
+import { resolveMouseScrollFailureSeed } from "./mouse-scroll-input-gate.js";
 import { buildStableMouseScrollRef } from "../shared/mouse-scroll-types.js";
+import type { MouseScrollExecutionContext } from "./mouse-scroll-runtime-context.js";
 
 export function dispatchMouseScrollFailure(input: {
   rawInput: unknown;
-  context: MouseScrollAbilityContext;
+  context: MouseScrollExecutionContext;
   childCapabilityId?: MouseScrollChildCapabilityId;
   failureReason: "input_schema_invalid" | "unknown_child_capability" | "child_execution_failed";
   statusMessage: string;
 }) {
-  const seed = coerceMouseScrollFailureSeed(input.rawInput);
+  const seed = resolveMouseScrollFailureSeed(input.rawInput, input.childCapabilityId);
   const startedSnapshot = input.context.clock.now();
   const endedSnapshot = input.context.clock.now();
-  const resolvedChild = input.childCapabilityId ?? seed.childCapabilityId;
-  const idempotencyKey = buildStableMouseScrollRef("mouse-scroll-dispatch", [seed.sessionId, resolvedChild, input.failureReason]);
+  const rejectionRef = buildStableMouseScrollRef("mouse-scroll-rejection", [seed.attemptRef, input.failureReason]);
 
   return buildMouseScrollResult({
     seed: {
       ...seed,
-      childCapabilityId: resolvedChild,
-      coordinateSpace: resolvedChild === "scroll-desktop-screen" ? "desktopScreen" : seed.coordinateSpace,
+      childCapabilityId: input.childCapabilityId ?? seed.childCapabilityId,
+      coordinateSpace: (input.childCapabilityId ?? seed.childCapabilityId) === "scroll-desktop-screen" ? "desktopScreen" : seed.coordinateSpace,
     },
-    idempotencyKey,
-    scrollExecutionRef: buildStableMouseScrollRef("mouse-scroll-action", [idempotencyKey]),
+    idempotencyKey: null,
+    scrollExecutionRef: null,
+    rejectionRef,
     status: "failed",
     failureReason: input.failureReason,
     reviewRequiredReason: null,
@@ -34,12 +35,30 @@ export function dispatchMouseScrollFailure(input: {
     executableAnchor: null,
     primitiveExecutionRefs: [],
     policyDecision: "block",
+    policyDecisionReason: "dispatch_failure",
     geometryDecision: "block",
+    geometryDecisionReason: "dispatch_failure",
+    safetyDecision: "block",
+    safetyDecisionReason: "dispatch_failure",
     primitiveDecision: "not_run",
+    deltaResolutionDecision: null,
+    deltaCapDecision: null,
+    idempotencyDecision: null,
     startedAt: startedSnapshot.isoTimestamp,
     endedAt: endedSnapshot.isoTimestamp,
     durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
     clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
+    primitiveCallId: null,
+    primitiveStartedAt: null,
+    primitiveEndedAt: null,
+    primitivePortKind: "browser-controller",
+    timeoutDecision: "within_limit",
+    abortDecision: "not_requested",
+    circuitBreakerState: "closed",
+    portHangDetected: false,
+    perIterationPrimitiveProofs: [],
+    primitiveTimeoutMs: seed.safetyPolicy.primitiveTimeoutMs,
+    maxDurationMs: seed.safetyPolicy.maxDurationMs,
     dataQualityFlags: [input.failureReason],
   });
 }

@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import type { PostActionVerificationChildCapability } from "../../contract.js";
+import type { PostActionVerificationChildCapability } from "../../runtime/post-action-verification-runtime-context.js";
 import { VerifyCommentsPanelOpenedInputSchema, VerifyCommentsPanelOpenedOutputSchema } from "./schema.js";
 
 export type VerifyCommentsPanelOpenedInput = z.output<typeof VerifyCommentsPanelOpenedInputSchema>;

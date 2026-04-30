@@ -1,5 +1,6 @@
-import type { ScreenshotAbilityInput, ScreenshotChildRegistryEntry } from "../contract.js";
+import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 export function runScreenshotInputGate(input: {
   request: ScreenshotAbilityInput;

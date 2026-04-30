@@ -6,6 +6,8 @@ import {
   CommanderBoundaryPolicySchema,
   CommanderCommandReceiptSchema,
   CommanderEvidencePolicySchema,
+  CommanderMaxMinutesSchema,
+  CommanderMaxRoundsSchema,
   CommanderProofPolicySchema,
   CommanderReadinessSchema,
   NullableCommanderGoalSchema,
@@ -13,18 +15,20 @@ import {
   NullableSelectedMapIdSchema,
   RequestedPlatformIdSchema,
   StartMissionTransportPayloadSchema,
-} from "../../schema.js";
+} from "../../shared/commander-schema-base.js";
 
 export const IssueHumanCommandInputSchema = z.object({
   commandType: z.literal("start-mission"),
   requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(),
   selectedMapId: NullableSelectedMapIdSchema.optional(),
   humanGoal: NullableCommanderGoalSchema.optional(),
+  maxRounds: CommanderMaxRoundsSchema.optional(),
+  maxMinutes: CommanderMaxMinutesSchema.optional(),
   operatorNote: NullableOperatorNoteSchema.optional(),
   initialPayload: StartMissionTransportPayloadSchema.nullable().optional(),
 }).strict().superRefine((value, ctx) => {
-  if (!value.requestedPlatformId && !value.selectedMapId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "start-mission requires requestedPlatformId or selectedMapId" });
+  if (!value.requestedPlatformId || !value.selectedMapId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "start-mission requires both requestedPlatformId and selectedMapId" });
   }
 });
 

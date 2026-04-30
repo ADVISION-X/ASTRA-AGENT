@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CommanderBoundaryPolicySchema, CommanderMissionViewSchema, CommanderProofPolicySchema, CommanderReadinessSchema, EmptyCommanderChildInputSchema } from "../../schema.js";
+import { CommanderBoundaryPolicySchema, CommanderMissionViewSchema, CommanderProofPolicySchema, CommanderReadinessSchema, EmptyCommanderChildInputSchema } from "../../shared/commander-schema-base.js";
 
 export const ShowOperationalMapProgressInputSchema = EmptyCommanderChildInputSchema;
 export const ShowOperationalMapProgressOutputSchema = CommanderMissionViewSchema;

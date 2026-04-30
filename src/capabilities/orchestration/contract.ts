@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { RequestedPlatformIdSchema } from "../../map-plugins/schema/platform-id.schema.js";
 
 import {
   EmergencyStopChildInputSchema,
@@ -23,7 +24,6 @@ import {
   PauseMissionChildInputSchema,
   PauseMissionChildOutputSchema,
   PayloadRefBundleSchema,
-  RequestedPlatformIdSchema,
   RequestHumanReviewChildInputSchema,
   RequestHumanReviewChildOutputSchema,
   ResumeMissionChildInputSchema,
@@ -34,11 +34,6 @@ import {
   StopMissionChildInputSchema,
   StopMissionChildOutputSchema,
 } from "./schema.js";
-import type { OrchestrationClockPort } from "./ports/orchestration-clock-port.js";
-import type { OrchestrationIdempotencyPort } from "./ports/orchestration-idempotency-port.js";
-import type { OrchestrationMapStorePort } from "./ports/orchestration-map-store-port.js";
-import type { OrchestrationNerveBusPort } from "./ports/orchestration-nerve-bus-port.js";
-import type { OrchestrationStatePort } from "./ports/orchestration-state-port.js";
 
 export { ORCHESTRATION_ABILITY_GROUP_ID };
 
@@ -78,20 +73,6 @@ export type EvaluateStepTransitionChildOutput = z.output<typeof EvaluateStepTran
 export type RequestHumanReviewChildOutput = z.output<typeof RequestHumanReviewChildOutputSchema>;
 export type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSchema>;
 
-export type OrchestrationExecutionContext = {
-  clock: OrchestrationClockPort;
-  idempotency: OrchestrationIdempotencyPort;
-  mapStore: OrchestrationMapStorePort;
-  nerveBus: OrchestrationNerveBusPort;
-  statePort: OrchestrationStatePort;
-};
-
-export interface OrchestrationChildCapability<InputValue, OutputValue> {
-  readonly abilityGroupId: OrchestrationAbilityGroupId;
-  readonly childCapabilityId: OrchestrationChildCapabilityId;
-  execute(input: InputValue, context: OrchestrationExecutionContext): Promise<OutputValue>;
-}
-
 export interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];
   listMapIds(): OperationalMapId[];
@@ -105,3 +86,4 @@ export interface OrchestrationAbilityGroup {
   executeMission(command: MissionCommand): Promise<MissionExecutionResult>;
   submitReviewDecision(input: MissionReviewDecisionInput): Promise<MissionControlState>;
 }
+

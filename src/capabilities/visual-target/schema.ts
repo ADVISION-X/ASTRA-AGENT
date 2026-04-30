@@ -2,20 +2,26 @@ import { z } from "zod";
 
 import { VISUAL_TARGET_DATA_QUALITY_FLAGS } from "./shared/visual-target-candidate.js";
 import { VISUAL_TARGET_FAILURE_REASONS } from "./shared/visual-target-failure.js";
-import { VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY, VISUAL_TARGET_CLOCK_KIND } from "./shared/visual-target-proof.js";
+import { VISUAL_TARGET_EXECUTION_BOUNDARY, VISUAL_TARGET_GEOMETRY_HANDOFF_KIND } from "./shared/visual-target-geometry-handoff.js";
+import { VISUAL_TARGET_CLOCK_KIND, VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY, VISUAL_TARGET_NON_EXECUTABLE_COORDINATE_POLICY } from "./shared/visual-target-proof.js";
 import {
   VISUAL_TARGET_AI_DECISIONS,
   VISUAL_TARGET_AMBIGUITY_DECISIONS,
   VISUAL_TARGET_ABILITY_GROUP_ID,
   VISUAL_TARGET_CANDIDATE_KINDS,
   VISUAL_TARGET_CANDIDATE_SOURCE_DECISIONS,
+  VISUAL_TARGET_CRITICAL_DATA_QUALITY_DECISIONS,
   VISUAL_TARGET_CHILD_CAPABILITY_IDS,
   VISUAL_TARGET_COORDINATE_DECISIONS,
   VISUAL_TARGET_COORDINATE_SPACES,
+  VISUAL_TARGET_GEOMETRY_HANDOFF_DECISIONS,
   VISUAL_TARGET_NATURES,
+  VISUAL_TARGET_OUTPUT_BOUNDARY_DECISIONS,
   VISUAL_TARGET_PAGE_STATE_DECISIONS,
+  VISUAL_TARGET_PAYLOAD_BUDGET_DECISIONS,
   VISUAL_TARGET_SCREENSHOT_DECISIONS,
   VISUAL_TARGET_SELECTION_DECISIONS,
+  VISUAL_TARGET_SOURCE_BINDING_DECISIONS,
   VISUAL_TARGET_STATUSES,
   VISUAL_TARGET_TARGET_TYPE_DECISIONS,
   VISUAL_TARGET_TYPES,
@@ -25,6 +31,7 @@ const nullableString = z.string().min(1).nullable().optional().default(null);
 const finiteNumber = z.number().finite();
 const confidenceNumber = z.number().min(0).max(1);
 const nonNegativeInt = z.number().int().nonnegative();
+const limitedString = (max: number) => z.string().min(1).max(max);
 
 export const VisualTargetChildCapabilityIdSchema = z.enum(VISUAL_TARGET_CHILD_CAPABILITY_IDS);
 export const VisualTargetStatusSchema = z.enum(VISUAL_TARGET_STATUSES);
@@ -34,6 +41,11 @@ export const VisualTargetCandidateKindSchema = z.enum(VISUAL_TARGET_CANDIDATE_KI
 export const VisualTargetCoordinateSpaceSchema = z.enum(VISUAL_TARGET_COORDINATE_SPACES);
 export const VisualTargetFailureReasonSchema = z.enum(VISUAL_TARGET_FAILURE_REASONS);
 export const VisualTargetDataQualityFlagSchema = z.enum(VISUAL_TARGET_DATA_QUALITY_FLAGS);
+export const VisualTargetPayloadBudgetDecisionSchema = z.enum(VISUAL_TARGET_PAYLOAD_BUDGET_DECISIONS);
+export const VisualTargetOutputBoundaryDecisionSchema = z.enum(VISUAL_TARGET_OUTPUT_BOUNDARY_DECISIONS);
+export const VisualTargetSourceBindingDecisionSchema = z.enum(VISUAL_TARGET_SOURCE_BINDING_DECISIONS);
+export const VisualTargetCriticalDataQualityDecisionSchema = z.enum(VISUAL_TARGET_CRITICAL_DATA_QUALITY_DECISIONS);
+export const VisualTargetGeometryHandoffDecisionSchema = z.enum(VISUAL_TARGET_GEOMETRY_HANDOFF_DECISIONS);
 
 export const VisualBoundingBoxSchema = z.object({
   x: finiteNumber,
@@ -48,6 +60,7 @@ export const VisualClickPointSchema = z.object({
 }).strict();
 
 export const VisualTargetScaleMappingSchema = z.object({
+  sourceScreenshotEvidenceId: limitedString(160),
   sourceWidth: z.number().positive(),
   sourceHeight: z.number().positive(),
   targetWidth: z.number().positive(),
@@ -61,52 +74,64 @@ export const VisualTargetScaleMappingSchema = z.object({
 }).strict();
 
 export const VisualTargetScreenshotSourceProofSchema = z.object({
-  screenshotEvidenceId: z.string().min(1),
-  artifactRef: z.string().min(1),
-  screenshotProofRef: z.string().min(1),
+  screenshotEvidenceId: limitedString(160),
+  artifactRef: limitedString(200),
+  screenshotProofRef: limitedString(200),
+  artifactHash: limitedString(128),
+  imageHash: limitedString(128),
   imageWidth: z.number().positive(),
   imageHeight: z.number().positive(),
   coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet"]),
+  coordinateAuthority: z.enum(["evidence_original", "ai_input_non_executable", "region_crop", "optimized_equivalent"]),
+  sourceScreenshotEvidenceId: nullableString,
+  scaleMapping: VisualTargetScaleMappingSchema.nullable().default(null),
   capturedAt: z.string().datetime(),
-  sessionId: z.string().min(1),
+  sessionId: limitedString(160),
   roundId: nullableString,
   videoVisitId: nullableString,
 }).strict();
 
 export const VisualTargetAiSourceProofSchema = z.object({
-  aiResultRef: z.string().min(1),
-  aiProofRef: z.string().min(1),
-  promptContractId: z.string().min(1),
-  outputSchemaRef: z.string().min(1),
+  aiResultRef: limitedString(200),
+  aiProofRef: limitedString(200),
+  promptContractId: limitedString(160),
+  outputSchemaRef: limitedString(160),
+  aiInputArtifactRef: limitedString(200),
+  aiInputHash: limitedString(128),
+  outputPayloadHash: limitedString(128),
+  sourceImageHash: limitedString(128),
+  sourceScreenshotEvidenceId: limitedString(160),
+  sourceScreenshotProofRef: limitedString(200),
   capturedAt: z.string().datetime(),
-  sessionId: z.string().min(1),
+  sessionId: limitedString(160),
   roundId: nullableString,
   videoVisitId: nullableString,
   confidence: confidenceNumber,
-  modelRole: z.string().min(1),
+  modelRole: limitedString(120),
 }).strict();
 
 export const VisualTargetPageStateProofSchema = z.object({
-  pageStateProofRef: z.string().min(1),
-  pageStateType: z.string().min(1),
-  pageStateFingerprint: z.string().min(1),
+  pageStateProofRef: limitedString(200),
+  pageStateType: limitedString(120),
+  pageStateFingerprint: limitedString(200),
+  pageStateHash: limitedString(128),
   decision: z.enum(["allow", "review_required", "block"]),
-  currentUrl: z.string().min(1),
+  currentUrl: limitedString(500),
   currentTitle: nullableString,
   observedAt: z.string().datetime(),
-  sessionId: z.string().min(1),
+  sessionId: limitedString(160),
   roundId: nullableString,
   videoVisitId: nullableString,
 }).strict();
 
 export const VisualTargetOperatorApprovalProofSchema = z.object({
-  operatorApprovalRef: z.string().min(1),
+  operatorApprovalRef: limitedString(200),
   approvedAt: z.string().datetime(),
-  operatorId: z.string().min(1),
+  operatorId: limitedString(120),
 }).strict();
 
 export const VisualTargetSourceProofSchema = z.object({
-  sourceProofRef: z.string().min(1),
+  sourceProofRef: limitedString(200),
   screenshot: VisualTargetScreenshotSourceProofSchema,
   ai: VisualTargetAiSourceProofSchema.nullable().default(null),
   pageState: VisualTargetPageStateProofSchema,
@@ -114,74 +139,151 @@ export const VisualTargetSourceProofSchema = z.object({
 }).strict();
 
 export const VisualTargetCandidateSchema = z.object({
-  candidateRef: z.string().min(1),
+  candidateRef: limitedString(160),
   candidateKind: VisualTargetCandidateKindSchema,
   targetType: VisualTargetTypeSchema,
   boundingBox: VisualBoundingBoxSchema,
   clickPoint: VisualClickPointSchema.nullable().default(null),
   confidence: confidenceNumber,
   coordinateSpace: VisualTargetCoordinateSpaceSchema,
-  sourceProofRef: z.string().min(1),
+  sourceProofRef: limitedString(200),
   capturedAt: z.string().datetime(),
-  sourceFrameRef: nullableString,
-  detectionMethod: z.string().min(1),
-  visibleText: nullableString,
-  uncertainty: z.array(z.string().min(1)).default([]),
-  blockedReason: nullableString,
+  sourceFrameRef: z.string().min(1).max(160).nullable().optional().default(null),
+  detectionMethod: limitedString(120),
+  visibleText: z.string().min(1).max(500).nullable().optional().default(null),
+  uncertainty: z.array(limitedString(120)).max(20).default([]),
+  blockedReason: z.string().min(1).max(500).nullable().optional().default(null),
   isVisible: z.boolean(),
   scaleMapping: VisualTargetScaleMappingSchema.nullable().default(null),
-  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema).default([]),
+  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema).max(30).default([]),
 }).strict();
 
 export const VisualTargetAbilityInputSchema = z.object({
   abilityGroupId: z.literal(VISUAL_TARGET_ABILITY_GROUP_ID).default(VISUAL_TARGET_ABILITY_GROUP_ID),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
-  sessionId: z.string().min(1),
+  sessionId: limitedString(160),
   roundId: nullableString,
   videoVisitId: nullableString,
-  requestedBy: z.string().min(1),
-  sourceAbilityGroupId: z.string().min(1),
+  requestedBy: limitedString(120),
+  sourceAbilityGroupId: limitedString(120),
   sourceChildCapabilityId: nullableString,
-  inputRef: z.string().min(1),
+  inputRef: limitedString(200),
   targetType: VisualTargetTypeSchema,
   targetNature: VisualTargetNatureSchema,
   sourceProof: VisualTargetSourceProofSchema,
-  candidates: z.array(VisualTargetCandidateSchema),
+  candidates: z.array(VisualTargetCandidateSchema).max(50),
 }).strict();
+
+export const VisualTargetGeometryGuardHandoffSchema = z.object({
+  handoffRef: limitedString(200),
+  handoffKind: z.literal(VISUAL_TARGET_GEOMETRY_HANDOFF_KIND),
+  executionBoundary: z.literal(VISUAL_TARGET_EXECUTION_BOUNDARY),
+  sourceScreenshotEvidenceId: limitedString(160),
+  sourceScreenshotProofRef: limitedString(200),
+  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["ai_input", "contact_sheet"]),
+  originalCandidateCoordinateSpace: VisualTargetCoordinateSpaceSchema,
+  boundingBox: VisualBoundingBoxSchema,
+  clickPoint: VisualClickPointSchema,
+  scaleMapping: VisualTargetScaleMappingSchema.nullable().default(null),
+}).strict();
+
+export const VisualTargetActionOutputSchema = z.object({
+  targetNature: z.literal("action"),
+  targetId: limitedString(200),
+  sourceCandidateRef: limitedString(160),
+  sourceScreenshotEvidenceId: limitedString(160),
+  sourceScreenshotProofRef: limitedString(200),
+  sourceAiResultRef: nullableString,
+  sourceAiProofRef: nullableString,
+  sourcePageStateProofRef: limitedString(200),
+  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["ai_input", "contact_sheet"]),
+  originalCandidateCoordinateSpace: VisualTargetCoordinateSpaceSchema,
+  boundingBox: VisualBoundingBoxSchema,
+  candidateClickPoint: VisualClickPointSchema,
+  confidence: confidenceNumber,
+  executable: z.literal(false),
+  actionIntentCandidate: z.literal(true),
+  notExecutableUntilGeometryGuard: z.literal(true),
+  geometryGuardHandoffRequired: z.literal(true),
+  geometryGuardHandoffRef: limitedString(200),
+  geometryGuardHandoff: VisualTargetGeometryGuardHandoffSchema,
+  visibleText: nullableString,
+  parsedValue: z.null(),
+  metricValue: z.null(),
+}).strict();
+
+export const VisualTargetRegionOutputSchema = z.object({
+  targetNature: z.literal("region"),
+  targetId: limitedString(200),
+  sourceCandidateRef: limitedString(160),
+  sourceScreenshotEvidenceId: limitedString(160),
+  sourceScreenshotProofRef: limitedString(200),
+  sourceAiResultRef: nullableString,
+  sourceAiProofRef: nullableString,
+  sourcePageStateProofRef: limitedString(200),
+  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["ai_input", "contact_sheet"]),
+  originalCandidateCoordinateSpace: VisualTargetCoordinateSpaceSchema,
+  boundingBox: VisualBoundingBoxSchema,
+  candidateClickPoint: z.null(),
+  confidence: confidenceNumber,
+  executable: z.literal(false),
+  actionIntentCandidate: z.literal(false),
+  notExecutableUntilGeometryGuard: z.boolean(),
+  geometryGuardHandoffRequired: z.boolean(),
+  geometryGuardHandoffRef: nullableString,
+  geometryGuardHandoff: VisualTargetGeometryGuardHandoffSchema.nullable().default(null),
+  visibleText: nullableString,
+  parsedValue: z.null(),
+  metricValue: z.null(),
+}).strict();
+
+export const VisualTargetMetricOutputSchema = z.object({
+  targetNature: z.literal("metric"),
+  targetId: limitedString(200),
+  sourceCandidateRef: limitedString(160),
+  sourceScreenshotEvidenceId: limitedString(160),
+  sourceScreenshotProofRef: limitedString(200),
+  sourceAiResultRef: nullableString,
+  sourceAiProofRef: nullableString,
+  sourcePageStateProofRef: limitedString(200),
+  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["ai_input", "contact_sheet"]),
+  originalCandidateCoordinateSpace: VisualTargetCoordinateSpaceSchema,
+  boundingBox: VisualBoundingBoxSchema,
+  candidateClickPoint: z.null(),
+  confidence: confidenceNumber,
+  executable: z.literal(false),
+  actionIntentCandidate: z.literal(false),
+  notExecutableUntilGeometryGuard: z.literal(false),
+  geometryGuardHandoffRequired: z.literal(false),
+  geometryGuardHandoffRef: z.null(),
+  geometryGuardHandoff: z.null(),
+  visibleText: nullableString,
+  parsedValue: finiteNumber.nullable().default(null),
+  metricValue: finiteNumber.nullable().default(null),
+}).strict();
+
+export const VisualTargetOutputSchema = z.discriminatedUnion("targetNature", [
+  VisualTargetActionOutputSchema,
+  VisualTargetRegionOutputSchema,
+  VisualTargetMetricOutputSchema,
+]);
 
 const VisualTargetBaseResultSchema = z.object({
   abilityGroupId: z.literal(VISUAL_TARGET_ABILITY_GROUP_ID),
-  childCapabilityId: VisualTargetChildCapabilityIdSchema,
-  targetNature: VisualTargetNatureSchema,
+  childCapabilityId: VisualTargetChildCapabilityIdSchema.nullable().default(null),
+  targetNature: VisualTargetNatureSchema.nullable().default(null),
   status: VisualTargetStatusSchema,
-  sessionId: z.string().min(1),
+  sessionId: z.string().min(1).max(160).nullable().default(null),
   roundId: nullableString,
   videoVisitId: nullableString,
-  targetType: VisualTargetTypeSchema,
-  targetId: nullableString,
-  sourceScreenshotEvidenceId: z.string().min(1),
-  sourceScreenshotProofRef: z.string().min(1),
-  sourceAiResultRef: nullableString,
-  sourceAiProofRef: nullableString,
-  sourcePageStateProofRef: z.string().min(1),
-  sourceCandidateRef: nullableString,
-  coordinateSpace: VisualTargetCoordinateSpaceSchema.nullable().default(null),
-  boundingBox: VisualBoundingBoxSchema.nullable().default(null),
-  clickPoint: VisualClickPointSchema.nullable().default(null),
-  executableCoordinate: z.null(),
-  confidence: confidenceNumber.nullable().default(null),
-  requiresGeometryGuard: z.boolean(),
-  geometryGuardHandoffRequired: z.boolean(),
-  actionable: z.boolean(),
-  detectionMethod: nullableString,
-  visibleText: nullableString,
-  uncertainty: z.array(z.string().min(1)),
-  blockedReason: nullableString,
+  targetType: VisualTargetTypeSchema.nullable().default(null),
+  output: VisualTargetOutputSchema.nullable().default(null),
   failureReason: VisualTargetFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
-  statusMessage: z.string().min(1),
-  debugLogRef: z.string().min(1),
-  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema),
+  statusMessage: limitedString(500),
+  debugLogRef: limitedString(200),
+  diagnosticPayloadRef: nullableString,
+  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema).max(30),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   createdAt: z.string().datetime(),
@@ -191,95 +293,119 @@ const VisualTargetBaseResultSchema = z.object({
 export const VisualTargetActionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("action"),
-  targetId: z.string().min(1),
-  sourceCandidateRef: z.string().min(1),
-  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet", "ai_input"]),
-  boundingBox: VisualBoundingBoxSchema,
-  clickPoint: VisualClickPointSchema,
-  confidence: confidenceNumber,
-  requiresGeometryGuard: z.literal(true),
-  geometryGuardHandoffRequired: z.literal(true),
-  actionable: z.literal(true),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema,
+  sessionId: limitedString(160),
+  targetType: VisualTargetTypeSchema,
+  output: VisualTargetActionOutputSchema,
   failureReason: z.null(),
   reviewRequiredReason: z.null(),
+  diagnosticPayloadRef: z.null(),
 }).strict();
 
 export const VisualTargetRegionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("region"),
-  targetId: z.string().min(1),
-  sourceCandidateRef: z.string().min(1),
-  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet"]),
-  boundingBox: VisualBoundingBoxSchema,
-  clickPoint: z.null(),
-  confidence: confidenceNumber,
-  requiresGeometryGuard: z.literal(true),
-  geometryGuardHandoffRequired: z.literal(true),
-  actionable: z.literal(false),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema,
+  sessionId: limitedString(160),
+  targetType: VisualTargetTypeSchema,
+  output: VisualTargetRegionOutputSchema,
   failureReason: z.null(),
   reviewRequiredReason: z.null(),
+  diagnosticPayloadRef: z.null(),
 }).strict();
 
 export const VisualTargetMetricSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("metric"),
-  targetId: z.string().min(1),
-  sourceCandidateRef: z.string().min(1),
-  coordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet"]),
-  boundingBox: VisualBoundingBoxSchema,
-  clickPoint: z.null(),
-  confidence: confidenceNumber,
-  requiresGeometryGuard: z.literal(true),
-  geometryGuardHandoffRequired: z.literal(true),
-  actionable: z.literal(false),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema,
+  sessionId: limitedString(160),
+  targetType: VisualTargetTypeSchema,
+  output: VisualTargetMetricOutputSchema,
   failureReason: z.null(),
   reviewRequiredReason: z.null(),
+  diagnosticPayloadRef: z.null(),
 }).strict();
 
 export const VisualTargetNonSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: VisualTargetStatusSchema.exclude(["success"]),
-  targetId: z.null(),
-  sourceCandidateRef: nullableString,
-  coordinateSpace: z.null(),
-  boundingBox: z.null(),
-  clickPoint: z.null(),
-  confidence: z.null(),
-  actionable: z.literal(false),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema,
+  targetType: VisualTargetTypeSchema,
+  targetNature: VisualTargetNatureSchema,
+  sessionId: limitedString(160),
+  output: z.null(),
+  diagnosticPayloadRef: limitedString(200),
 }).strict();
 
-export const VisualTargetResultSchema = z.discriminatedUnion("status", [
+export const VisualTargetInvalidInputFailureResultSchema = VisualTargetBaseResultSchema.extend({
+  status: z.literal("failed"),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema.nullable().default(null),
+  targetType: VisualTargetTypeSchema.nullable().default(null),
+  targetNature: VisualTargetNatureSchema.nullable().default(null),
+  sessionId: z.string().min(1).max(160).nullable().default(null),
+  output: z.null(),
+  failureReason: z.literal("input_schema_invalid"),
+  diagnosticPayloadRef: limitedString(200),
+}).strict();
+
+export const VisualTargetResultSchema = z.union([
   VisualTargetActionSuccessResultSchema,
   VisualTargetRegionSuccessResultSchema,
   VisualTargetMetricSuccessResultSchema,
   VisualTargetNonSuccessResultSchema,
+  VisualTargetInvalidInputFailureResultSchema,
 ]);
 
+export const VisualTargetCandidateScoreTraceSchema = z.object({
+  candidateRef: limitedString(160),
+  rawConfidence: confidenceNumber,
+  freshnessPenalty: z.number().min(0),
+  dataQualityPenalty: z.number().min(0),
+  sourcePenalty: z.number().min(0),
+  finalScore: finiteNumber,
+  tieBreakKey: limitedString(200),
+}).strict();
+
 export const VisualTargetRuntimeProofSchema = z.object({
-  proofId: z.string().min(1),
-  runId: z.string().min(1),
-  missionId: z.string().min(1),
-  sessionId: z.string().min(1),
+  proofId: limitedString(200),
+  runId: limitedString(200),
+  missionId: nullableString,
+  sessionId: z.string().min(1).max(160).nullable().default(null),
   roundId: nullableString,
   videoVisitId: nullableString,
   abilityGroupId: z.literal(VISUAL_TARGET_ABILITY_GROUP_ID),
-  childCapabilityId: VisualTargetChildCapabilityIdSchema,
-  sourceAbilityGroupId: z.string().min(1),
+  childCapabilityId: VisualTargetChildCapabilityIdSchema.nullable().default(null),
+  sourceAbilityGroupId: z.string().min(1).max(120).nullable().default(null),
   sourceChildCapabilityId: nullableString,
-  inputRef: z.string().min(1),
-  outputRef: z.string().min(1),
-  screenshotEvidenceId: z.string().min(1),
-  screenshotProofRef: z.string().min(1),
+  inputRef: nullableString,
+  outputRef: nullableString,
+  diagnosticPayloadRef: nullableString,
+  debugLogRef: limitedString(200),
+  structuredRuntimeEventRef: limitedString(200),
+  inputPayloadHash: limitedString(128),
+  screenshotEvidenceId: nullableString,
+  screenshotProofRef: nullableString,
+  screenshotHash: nullableString,
   aiResultRef: nullableString,
   aiProofRef: nullableString,
-  pageStateProofRef: z.string().min(1),
-  candidateRef: nullableString,
-  selectedTargetType: VisualTargetTypeSchema,
+  aiInputHash: nullableString,
+  aiOutputPayloadHash: nullableString,
+  pageStateProofRef: nullableString,
+  pageStateHash: nullableString,
+  selectedTargetType: VisualTargetTypeSchema.nullable().default(null),
   candidateCount: nonNegativeInt,
-  rejectedCandidateRefs: z.array(z.string().min(1)),
+  candidateSetHash: limitedString(128),
+  rejectedCandidateRefs: z.array(limitedString(160)).max(50),
+  candidateScoreTrace: z.array(VisualTargetCandidateScoreTraceSchema).max(50),
+  selectionTrace: z.array(limitedString(500)).max(20),
+  ambiguityTrace: z.array(limitedString(500)).max(20),
+  coordinateTransformTrace: z.array(limitedString(500)).max(50),
   selectedCandidateRef: nullableString,
+  selectedCandidateHash: nullableString,
   coordinateSpace: VisualTargetCoordinateSpaceSchema.nullable().default(null),
   boundingBox: VisualBoundingBoxSchema.nullable().default(null),
   clickPoint: VisualClickPointSchema.nullable().default(null),
+  geometryGuardHandoffRef: nullableString,
+  notExecutableUntilGeometryGuard: z.boolean(),
   geometryGuardHandoffRequired: z.boolean(),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -287,16 +413,21 @@ export const VisualTargetRuntimeProofSchema = z.object({
   status: VisualTargetStatusSchema,
   failureReason: VisualTargetFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
+  payloadBudgetDecision: VisualTargetPayloadBudgetDecisionSchema,
   screenshotDecision: z.enum(VISUAL_TARGET_SCREENSHOT_DECISIONS),
   aiDecision: z.enum(VISUAL_TARGET_AI_DECISIONS),
   pageStateDecision: z.enum(VISUAL_TARGET_PAGE_STATE_DECISIONS),
   candidateSourceDecision: z.enum(VISUAL_TARGET_CANDIDATE_SOURCE_DECISIONS),
+  candidateSourceBindingDecision: VisualTargetSourceBindingDecisionSchema,
   coordinateSpaceDecision: z.enum(VISUAL_TARGET_COORDINATE_DECISIONS),
   targetTypeDecision: z.enum(VISUAL_TARGET_TARGET_TYPE_DECISIONS),
   selectionDecision: z.enum(VISUAL_TARGET_SELECTION_DECISIONS),
   ambiguityDecision: z.enum(VISUAL_TARGET_AMBIGUITY_DECISIONS),
-  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema),
+  outputBoundaryDecision: VisualTargetOutputBoundaryDecisionSchema,
+  criticalDataQualityDecision: VisualTargetCriticalDataQualityDecisionSchema,
+  dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema).max(30),
   geometryGuardHandoffPolicy: z.literal(VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY),
+  nonExecutableCoordinatePolicy: z.literal(VISUAL_TARGET_NON_EXECUTABLE_COORDINATE_POLICY),
   clock: z.object({
     portKind: z.literal(VISUAL_TARGET_CLOCK_KIND),
     startedMonotonicMs: finiteNumber,
@@ -306,14 +437,27 @@ export const VisualTargetRuntimeProofSchema = z.object({
   if (value.startedAt > value.endedAt) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
   }
-  if (value.status === "success" && !value.geometryGuardHandoffRequired) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires geometryGuardHandoffRequired=true", path: ["geometryGuardHandoffRequired"] });
+  if (value.status === "success" && value.outputRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
   }
-  if (value.status !== "success" && value.selectedCandidateRef && value.clickPoint) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose actionable clickPoint", path: ["clickPoint"] });
+  if (value.status !== "success" && value.outputRef !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must keep outputRef null", path: ["outputRef"] });
+  }
+  if (value.status !== "success" && value.diagnosticPayloadRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must keep diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
   }
 });
 
 export const VisualTargetAbilityResultSchema = VisualTargetResultSchema.and(z.object({
   runtimeProof: VisualTargetRuntimeProofSchema,
-}));
+})).superRefine((value, context) => {
+  if (value.runtimeProof.status !== value.status) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
+  }
+  if (value.status === "success" && value.output === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
+  }
+  if (value.status !== "success" && value.output !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must keep output null", path: ["output"] });
+  }
+});

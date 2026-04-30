@@ -1,21 +1,12 @@
 import { AbilityCommandDispatchInputSchema, AiRequestDispatchInputSchema, HumanCommandDispatchInputSchema } from "./schema.js";
 import type { CreateNerveBusAbilityGroupInput, NerveBusAbilityGroup } from "./contract.js";
 import type { AbilityTransportResult, AiTransportResult, HumanCommandTransportResult } from "./shared/nerve-bus-result.js";
-import { createSystemNerveBusClockPort } from "./ports/nerve-bus-clock-port.js";
-import { createInMemoryNerveBusIdempotencyPort } from "./ports/nerve-bus-idempotency-port.js";
-import { createInMemoryNerveBusQueuePort } from "./ports/nerve-bus-queue-port.js";
-import { createInMemoryNerveBusTransportPort } from "./ports/nerve-bus-transport-port.js";
 import { executeNerveBusChild } from "./runtime/nerve-bus-executor.js";
+import { createNerveBusRuntimeContext } from "./runtime/transport-context.js";
 import { getNerveBusChannelRegistryEntry, getNerveBusChild, listNerveBusChildren } from "./registry.js";
 
 export function createNerveBusAbilityGroup(input: CreateNerveBusAbilityGroupInput): NerveBusAbilityGroup {
-  const context = {
-    clock: input.clock ?? createSystemNerveBusClockPort(),
-    transport: input.transport ?? createInMemoryNerveBusTransportPort(),
-    idempotency: input.idempotency ?? createInMemoryNerveBusIdempotencyPort(),
-    queue: input.queue ?? createInMemoryNerveBusQueuePort(),
-    handlerPort: input.handlerPort,
-  };
+  const context = createNerveBusRuntimeContext({ handlerPort: input.handlerPort });
 
   return {
     listChannelIds() {

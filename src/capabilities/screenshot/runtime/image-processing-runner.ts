@@ -1,5 +1,6 @@
-import type { ScreenshotAbilityContext, ScreenshotExecutionPlan } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
+import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -16,7 +17,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export async function runImageProcessingRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }>;
-  context: ScreenshotAbilityContext;
+  context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }): Promise<{
   decision: { status: "passed" | "failed" | "review_required"; reason: string | null };

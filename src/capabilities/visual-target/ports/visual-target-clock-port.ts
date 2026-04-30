@@ -1,5 +1,6 @@
 export type VisualTargetClockSnapshot = {
   isoTimestamp: string;
+  epochMs: number;
   monotonicMs: number;
 };
 

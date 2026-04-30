@@ -1,4 +1,5 @@
-import type { PostActionVerificationChildCapability, PostActionVerificationChildCapabilityId } from "./contract.js";
+import type { PostActionVerificationChildCapability } from "./runtime/post-action-verification-runtime-context.js";
+import type { PostActionVerificationChildCapabilityId } from "./contract.js";
 import { POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS } from "./contract.js";
 import { createVerifyCommentsPanelClosedCapability } from "./children/verify-comments-panel-closed/implementation.js";
 import { createVerifyCommentsPanelOpenedCapability } from "./children/verify-comments-panel-opened/implementation.js";

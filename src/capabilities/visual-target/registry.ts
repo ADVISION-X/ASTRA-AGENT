@@ -1,4 +1,4 @@
-import type { VisualTargetChildCapability, VisualTargetChildCapabilityId } from "./contract.js";
+import type { VisualTargetChildCapabilityId } from "./contract.js";
 import { createDetectCloseCommentsButtonCapability } from "./children/detect-close-comments-button/implementation.js";
 import { createDetectCommentsButtonCapability } from "./children/detect-comments-button/implementation.js";
 import { createDetectCommentsPanelCapability } from "./children/detect-comments-panel/implementation.js";
@@ -8,6 +8,7 @@ import { createDetectMetricLikeCountCapability } from "./children/detect-metric-
 import { createDetectNextVideoRegionCapability } from "./children/detect-next-video-region/implementation.js";
 import { createDetectNotInterestedButtonCapability } from "./children/detect-not-interested-button/implementation.js";
 import { createDetectSaveButtonCapability } from "./children/detect-save-button/implementation.js";
+import type { VisualTargetChildCapability } from "./runtime/visual-target-child-contract.js";
 
 const CHILDREN = [
   createDetectLikeButtonCapability(),

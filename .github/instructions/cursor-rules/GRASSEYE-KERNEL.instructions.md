@@ -46,6 +46,7 @@ One issue has one active owner plus any directly governing shared foundation.
 - visual-target
 - geometry-guard
 - mouse-click
+- text-input
 - mouse-scroll
 - post-action-verification
 - forensics-persistence
@@ -97,6 +98,7 @@ One issue has one active owner plus any directly governing shared foundation.
 - visual-target-capability: modules/module-visual-target-capability.instructions.md
 - geometry-guard-capability: modules/module-geometry-guard-capability.instructions.md
 - mouse-click-capability: modules/module-mouse-click-capability.instructions.md
+- text-input-capability: modules/module-text-input-capability.instructions.md
 - mouse-scroll-capability: modules/module-mouse-scroll-capability.instructions.md
 - post-action-verification-capability: modules/module-post-action-verification-capability.instructions.md
 - forensics-persistence-capability: modules/module-forensics-persistence-capability.instructions.md

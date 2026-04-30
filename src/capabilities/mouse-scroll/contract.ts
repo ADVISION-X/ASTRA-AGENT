@@ -6,6 +6,7 @@ import type { MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idem
 import {
   MouseScrollAbilityInputSchema,
   MouseScrollAbilityResultSchema,
+  MouseScrollSuccessOutputSchema,
   MouseScrollAnchorSchema,
   MouseScrollBoundsSchema,
   MouseScrollChildCapabilityIdSchema,
@@ -46,6 +47,7 @@ export type MouseScrollGeometryScrollProof = z.output<typeof MouseScrollGeometry
 export type MouseScrollRuntimeProof = z.output<typeof MouseScrollRuntimeProofSchema>;
 export type MouseScrollAbilityInput = z.input<typeof MouseScrollAbilityInputSchema>;
 export type ParsedMouseScrollAbilityInput = z.output<typeof MouseScrollAbilityInputSchema>;
+export type MouseScrollSuccessOutput = z.output<typeof MouseScrollSuccessOutputSchema>;
 export type ScrollBrowserViewportInput = z.output<typeof ScrollBrowserViewportInputSchema>;
 export type ScrollDesktopScreenInput = z.output<typeof ScrollDesktopScreenInputSchema>;
 export type ScrollRegionInput = z.output<typeof ScrollRegionInputSchema>;
@@ -54,19 +56,6 @@ export type ScrollDesktopScreenResult = z.output<typeof ScrollDesktopScreenResul
 export type ScrollRegionResult = z.output<typeof ScrollRegionResultSchema>;
 export type MouseScrollAbilityResult = z.output<typeof MouseScrollAbilityResultSchema>;
 export type MouseScrollPublicResult = z.output<typeof MouseScrollResultSchema>;
-
-export type MouseScrollAbilityContext = {
-  primitivePort: MouseScrollPrimitivePort;
-  clock: MouseScrollClockPort;
-  idempotency: MouseScrollIdempotencyRegistry;
-};
-
-export interface MouseScrollChildCapability {
-  readonly abilityGroupId: typeof MOUSE_SCROLL_ABILITY_GROUP_ID;
-  readonly childCapabilityId: MouseScrollChildCapabilityId;
-
-  execute(input: ParsedMouseScrollAbilityInput, context: MouseScrollAbilityContext): Promise<MouseScrollAbilityResult>;
-}
 
 export interface MouseScrollAbilityGroup {
   listChildCapabilityIds(): MouseScrollChildCapabilityId[];

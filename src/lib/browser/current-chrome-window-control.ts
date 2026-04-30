@@ -11,8 +11,11 @@ export type ChromeWindowState = {
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
-export const runSpawn = async (command: string, args: string[]): Promise<string> => new Promise((resolve, reject) => {
-  const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+export const runSpawn = async (command: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> => new Promise((resolve, reject) => {
+  const child = spawn(command, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+    ...(options?.signal ? { signal: options.signal } : {}),
+  });
   let stdout = "";
   let stderr = "";
 
@@ -33,9 +36,9 @@ export const runSpawn = async (command: string, args: string[]): Promise<string>
   });
 });
 
-export const runAppleScript = async (script: string): Promise<string> => runSpawn("osascript", ["-e", script]);
+export const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-e", script], options);
 
-export const runJxa = async (script: string): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script]);
+export const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
 
 export const buildOpenUrlScript = (url: string): string => {
   const escapedUrl = escapeAppleScriptString(url);

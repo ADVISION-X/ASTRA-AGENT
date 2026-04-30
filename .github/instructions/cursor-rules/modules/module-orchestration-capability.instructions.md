@@ -7,7 +7,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-orchestration-capabil
 # GrassEye Orchestration Capability
 
 Scope: governs mission command, operational maps, mission state ownership, branch evaluation, and map-level proof.
-Boundary: this module governs only the Orchestration Ability Group and its child operational maps.
+Boundary: this module governs only the Orchestration Ability Group and its consumption of governed operational-map packages.
 Excludes: human command entry, transport execution internals, platform action primitives, AI runtime internals, and storage internals.
 Authority: this file is authoritative only for the orchestration-capability domain.
 
@@ -56,7 +56,7 @@ enforcementMode: manual-first
 evidenceMode: law
 alias: APEX-ORCH-002-V1
 
-summary: operational maps are Orchestration child modules.
+summary: operational maps are declarative map packages consumed by Orchestration, not child capabilities.
 
 ### 主题
 
@@ -64,13 +64,39 @@ summary: operational maps are Orchestration child modules.
 
 ### 法条
 
-Operational maps are child modules of the Orchestration Ability Group. They define route shape only and do not execute abilities.
+Operational maps are governed declarative map packages consumed by Orchestration. Orchestration remains the only owner of operational-map selection, mission state, step state, branch evaluation, and execution. Map packages define route shape only and do not execute abilities.
+
+Required direction:
+- operational maps are not child capabilities and do not expand the fixed ability-group catalog.
+- Orchestration-owned child capabilities remain the fixed mission lifecycle and transition actions only.
+- map package must pass schema validation.
+- map package must pass dependency validation.
+- map package must pass transition closure validation.
+- map package must pass capability registry validation.
+- map package must pass prompt contract validation.
+- map package must pass platform profile validation.
+- map package must pass compatibility validation.
+- map package must enter quarantine before activation.
+- map package must be human approved before active registry.
+- Orchestration active truth must come only from the active approved map registry rather than legacy static TypeScript map modules.
+- Orchestration may select only active approved maps.
 
 ### 禁止
 
 FORBIDDEN:
+- maps being modeled as Orchestration child capabilities.
+- map package containing executable code.
+- map package importing TypeScript modules.
 - maps calling private ability implementations.
+- map package dispatching Nerve Bus directly.
+- map package mutating mission state.
+- map package writing Forensics records directly.
+- map package bypassing Orchestration validation.
+- unvalidated map package becoming active.
+- active map selected from unapproved package.
+- AI generated draft map executing without validation and human approval.
 - maps becoming platform-specific browse-flow narratives.
+- legacy static TypeScript maps acting as active runtime selection truth.
 
 ## Law GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1
 

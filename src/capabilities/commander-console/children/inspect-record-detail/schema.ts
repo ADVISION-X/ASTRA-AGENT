@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRecordDetailViewSchema, InspectRecordInputSchema } from "../../schema.js";
+import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRecordDetailViewSchema, InspectRecordInputSchema } from "../../shared/commander-schema-base.js";
 
 export const InspectRecordDetailInputSchema = InspectRecordInputSchema;
 export const InspectRecordDetailOutputSchema = CommanderRecordDetailViewSchema;

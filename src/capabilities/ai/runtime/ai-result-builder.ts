@@ -33,9 +33,22 @@ export function buildAiResult(input: {
   qualityDecision: AiAbilityResult["runtimeProof"]["qualityDecision"];
   outputBoundaryDecision: AiAbilityResult["runtimeProof"]["outputBoundaryDecision"];
   disabledProviderDecision: AiAbilityResult["runtimeProof"]["disabledProviderDecision"];
+  rawOutputHash: string | null;
+  runtimeCallId: string | null;
+  timeoutMs: number | null;
+  attemptIndex: number;
+  retryCount: number;
+  circuitBreakerState: AiAbilityResult["runtimeProof"]["circuitBreakerState"];
+  gatewayDurationMs: number | null;
+  schemaIssueCount: number;
+  boundaryViolationCount: number;
+  qualityDecisionReason: string | null;
   dataQualityFlags: string[];
 }) {
-  const outputRef = buildStableAiRef("ai-output", [input.request.missionId, input.request.sessionId, input.childContract.childCapabilityId, input.request.taskType, input.request.roundId, input.request.videoVisitId]);
+  const outputRef = input.status === "success" && input.output !== null
+    ? buildStableAiRef("ai-output", [input.request.missionId, input.request.sessionId, input.childContract.childCapabilityId, input.request.taskType, input.request.roundId, input.request.videoVisitId])
+    : null;
+
   return AiResultSchema.parse({
     status: input.status,
     abilityGroupId: "ai",
@@ -81,6 +94,17 @@ export function buildAiResult(input: {
       qualityDecision: input.qualityDecision,
       outputBoundaryDecision: input.outputBoundaryDecision,
       disabledProviderDecision: input.disabledProviderDecision,
+      rawOutputRef: input.rawOutputRef,
+      rawOutputHash: input.rawOutputHash,
+      runtimeCallId: input.runtimeCallId,
+      timeoutMs: input.timeoutMs,
+      attemptIndex: input.attemptIndex,
+      retryCount: input.retryCount,
+      circuitBreakerState: input.circuitBreakerState,
+      gatewayDurationMs: input.gatewayDurationMs,
+      schemaIssueCount: input.schemaIssueCount,
+      boundaryViolationCount: input.boundaryViolationCount,
+      qualityDecisionReason: input.qualityDecisionReason,
       dataQualityFlags: input.dataQualityFlags,
     }),
     promptVersion: input.promptContract.promptVersion,

@@ -15,7 +15,7 @@ export const ORCHESTRATION_TO_ABILITY_CHILD: NerveBusChildDefinition<Orchestrati
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
       resultSchema: OrchestrationToAbilityResultSchema,
-      invoke: () => input.context.handlerPort.dispatchAbilityCommand({
+      invoke: (_signal) => input.context.handlerPort.dispatchAbilityCommand({
         envelope: input.envelope,
         inputPayload: input.inputPayload,
       }),

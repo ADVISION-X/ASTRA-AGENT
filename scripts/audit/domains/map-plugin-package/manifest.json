@@ -1,0 +1,31 @@
+{
+  "inspectorId": "map-plugin-package-governance",
+  "capabilityDomain": "map-plugin-package",
+  "owner": true,
+  "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-MAP-PLUGIN-001-V1",
+    "GRASSEYE-MAP-PLUGIN-002-V1",
+    "GRASSEYE-MAP-PLUGIN-003-V1",
+    "GRASSEYE-MAP-PLUGIN-004-V1",
+    "GRASSEYE-MAP-PLUGIN-005-V1",
+    "GRASSEYE-MAP-PLUGIN-006-V1",
+    "GRASSEYE-MAP-PLUGIN-007-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+    "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
+    "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+    "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+    "docs/why/map-plugin-package.WHY.md",
+    "docs/audit/map-plugin-package-scorecard.md"
+  ]
+}

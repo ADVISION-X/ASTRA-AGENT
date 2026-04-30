@@ -13,9 +13,17 @@ export function buildTransportProof(input: {
   policyDecision: "allowed" | "forbidden_route";
   integrityDecision: "valid" | "invalid_schema" | "missing_payload_ref" | "missing_input_ref" | "stale" | "expired" | "out_of_order" | "mismatched_result" | "payload_ref_policy_failed";
   idempotencyDecision: "executed" | "duplicate_skipped" | "replay_rejected";
+  sequenceDecision: "accepted" | "out_of_order" | "duplicate" | "not_started";
+  queueDecision: "acquired" | "queue_rejected" | "not_started";
   timeoutDecision: "within_timeout" | "timed_out" | "not_started";
-  handlerDecision: "executed" | "missing_handler" | "threw" | "invalid_result" | "not_invoked";
+  handlerDecision: "executed" | "missing_handler" | "threw" | "invalid_result" | "timed_out" | "aborted" | "not_invoked";
+  handlerCallId: string;
+  handlerStartedAt: string;
+  handlerEndedAt: string;
+  handlerDurationMs: number;
+  circuitBreakerState: "closed";
   outputRef: string | null;
+  diagnosticPayloadRef: string | null;
   status: "success" | "failed" | "review_required";
   failureReason: string | null;
   reviewRequiredReason: string | null;
@@ -33,11 +41,13 @@ export function buildTransportProof(input: {
     from: input.envelope.from,
     to: input.envelope.to,
     envelopeId: input.envelope.envelopeId,
+    attemptId: input.envelope.attemptId,
     idempotencyKey: input.envelope.idempotencyKey,
     sequenceNo: input.envelope.sequenceNo,
     payloadRef: input.envelope.payloadRef,
     inputRef: input.envelope.inputRef,
     outputRef: input.outputRef,
+    diagnosticPayloadRef: input.diagnosticPayloadRef,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: Math.max(0, Math.trunc(input.durationMs)),
@@ -47,8 +57,15 @@ export function buildTransportProof(input: {
     policyDecision: input.policyDecision,
     integrityDecision: input.integrityDecision,
     idempotencyDecision: input.idempotencyDecision,
+    sequenceDecision: input.sequenceDecision,
+    queueDecision: input.queueDecision,
     timeoutDecision: input.timeoutDecision,
     handlerDecision: input.handlerDecision,
+    handlerCallId: input.handlerCallId,
+    handlerStartedAt: input.handlerStartedAt,
+    handlerEndedAt: input.handlerEndedAt,
+    handlerDurationMs: Math.max(0, Math.trunc(input.handlerDurationMs)),
+    circuitBreakerState: input.circuitBreakerState,
     dataQualityFlags: input.dataQualityFlags,
   });
 }

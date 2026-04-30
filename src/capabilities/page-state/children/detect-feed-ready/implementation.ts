@@ -1,13 +1,8 @@
 import { PAGE_STATE_ABILITY_GROUP_ID } from "../../contract.js";
 import { findPageMarker, findPlatformCaptures, findVisualTargets } from "../../shared/page-state-observation.js";
+import { resolvePageStatePlatformProfile, urlMatchesFeedPath } from "../../shared/page-state-profile.js";
 import type { DetectFeedReadyChildCapability } from "./contract.js";
 import { DetectFeedReadyChildInputSchema, DetectFeedReadyChildOutputSchema } from "./schema.js";
-
-function isFeedPath(url: string): boolean {
-  const parsed = new URL(url);
-  const path = parsed.pathname.toLowerCase();
-  return path === "/" || path === "/foryou" || path === "/following" || path.startsWith("/@");
-}
 
 export function createDetectFeedReadyCapability(): DetectFeedReadyChildCapability {
   return {
@@ -15,6 +10,7 @@ export function createDetectFeedReadyCapability(): DetectFeedReadyChildCapabilit
     childCapabilityId: "detect-feed-ready",
     async execute(input) {
       const request = DetectFeedReadyChildInputSchema.parse(input);
+      const resolvedProfile = resolvePageStatePlatformProfile(request.openHandoff.platformProfileId);
       const feedMarkers = findPageMarker(request.observations, "feed_shell");
       const feedTargets = findVisualTargets(request.observations, "feed_card");
       const captures = findPlatformCaptures(request.observations, "post_open_capture");
@@ -34,7 +30,7 @@ export function createDetectFeedReadyCapability(): DetectFeedReadyChildCapabilit
             supportingEvidenceRefs: [...request.sourceEvidenceRefs],
             supportingReasons: ["snapshot.browserLoginState is not logged_in"],
           }
-        : hasFeedEvidence && isFeedPath(request.snapshot.currentUrl)
+        : resolvedProfile && hasFeedEvidence && urlMatchesFeedPath(request.snapshot.currentUrl, resolvedProfile)
           ? {
               childCapabilityId: "detect-feed-ready" as const,
               pageStateType: "feed_ready" as const,
@@ -44,7 +40,7 @@ export function createDetectFeedReadyCapability(): DetectFeedReadyChildCapabilit
               dataQualityFlags: [],
               matchedObservationIds,
               supportingEvidenceRefs: [...request.sourceEvidenceRefs],
-              supportingReasons: ["feed markers and post-open capture agree on feed readiness"],
+              supportingReasons: [`feed markers and post-open capture agree on feed readiness for ${resolvedProfile.profileId}`],
             }
           : {
               childCapabilityId: "detect-feed-ready" as const,
@@ -55,7 +51,7 @@ export function createDetectFeedReadyCapability(): DetectFeedReadyChildCapabilit
               dataQualityFlags: ["insufficient_signal"],
               matchedObservationIds,
               supportingEvidenceRefs: [...request.sourceEvidenceRefs],
-              supportingReasons: ["feed-ready requires markers, captures, and a feed path"],
+              supportingReasons: ["feed-ready requires markers, captures, and a resolved platform feed path"],
             };
 
       return DetectFeedReadyChildOutputSchema.parse(output);

@@ -15,6 +15,12 @@ import {
   hasImportModuleSpecifier,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { runAntiEscapeAttack as runMacShellAntiEscapeAttack } from "../commander-console-mac-app-shell/anti-escape.js";
+import { runAtomicQualityGate as runCommanderAtomicQualityGate } from "../commander-console-mac-app-shell/atomic-quality-gate.js";
+import { runBoundaryAttack as runMacShellBoundaryAttack } from "../commander-console-mac-app-shell/boundary-attack.js";
+import { runForbiddenShapeAttack as runMacShellForbiddenShapeAttack } from "../commander-console-mac-app-shell/forbidden-shape.js";
+import { runRequiredShapeAttack as runMacShellRequiredShapeAttack } from "../commander-console-mac-app-shell/required-shape.js";
+import { runScorecardGate as runCommanderMacShellScorecardGate } from "../commander-console-mac-app-shell/scorecard-gate.js";
 
 const ROOT = "src/capabilities/commander-console";
 const CHILDREN_ROOT = `${ROOT}/children`;
@@ -329,7 +335,7 @@ export default createPendingDomainInspector({
     const candidateHandlerSource = getSourceFileOrThrow(project, CANDIDATE_HANDLER_PATH);
     const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
     const shellRenderSource = getSourceFileOrThrow(project, SHELL_RENDER_PATH);
-    const shellPageClientSource = getSourceFileOrThrow(project, SHELL_PAGE_CLIENT_PATH);
+    const shellPageClientSource = project.getSourceFile(pathFromRepoRoot(SHELL_PAGE_CLIENT_PATH));
     const manifestText = await readTextFile(pathFromRepoRoot(MANIFEST_PATH));
     const startupText = await readTextFile(pathFromRepoRoot(STARTUP_PATH));
     const childFiles = await listFilesRecursive(pathFromRepoRoot(CHILDREN_ROOT), { extensions: [".ts"] });
@@ -581,8 +587,8 @@ export default createPendingDomainInspector({
     }
 
     if (shellRenderSource.getFullText().includes("command-transport-port")
-      || shellPageClientSource.getFullText().includes("command-transport-port")
-      || shellPageClientSource.getFullText().includes("dispatchHumanCommand")) {
+      || shellPageClientSource?.getFullText().includes("command-transport-port")
+      || shellPageClientSource?.getFullText().includes("dispatchHumanCommand")) {
       findings.push(createFinding({
         lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1",
         file: SHELL_PAGE_CLIENT_PATH,
@@ -778,8 +784,24 @@ export default createPendingDomainInspector({
     const boundaryPassed = !forbiddenImportFile
       && !externalLeakFile
       && !startupText.includes("dispatchHumanCommand(")
-      && !shellPageClientSource.getFullText().includes("command-transport-port");
+      && !(shellPageClientSource?.getFullText().includes("command-transport-port") ?? false);
     const antiEscapePassed = !antiEscapeFile;
+
+    const macShellRequired = await runMacShellRequiredShapeAttack();
+    const macShellForbidden = await runMacShellForbiddenShapeAttack();
+    const macShellBoundary = runMacShellBoundaryAttack();
+    const macShellAntiEscape = runMacShellAntiEscapeAttack();
+    const commanderAtomicQuality = await runCommanderAtomicQualityGate();
+    const commanderMacShellScorecard = await runCommanderMacShellScorecardGate();
+
+    findings.push(
+      ...macShellRequired.findings,
+      ...macShellForbidden.findings,
+      ...macShellBoundary.findings,
+      ...macShellAntiEscape.findings,
+      ...commanderAtomicQuality.findings,
+      ...commanderMacShellScorecard.findings,
+    );
 
     return {
       findings,
@@ -816,6 +838,12 @@ export default createPendingDomainInspector({
             ? "Anti-escape checks passed."
             : "Anti-escape violations were detected inside Commander sources.",
         ),
+        macShellRequired.phase,
+        macShellForbidden.phase,
+        macShellBoundary.phase,
+        macShellAntiEscape.phase,
+        commanderAtomicQuality.phase,
+        commanderMacShellScorecard.phase,
       ],
     };
   },

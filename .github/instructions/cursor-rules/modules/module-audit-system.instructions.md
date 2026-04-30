@@ -40,6 +40,7 @@ Required direction:
 - Public-index leakage, private-path escape, and legacy-contract escape must also close through decisive AST, symbol resolution, or import-graph checks.
 - Per-child capability-check or verify files may be referenced only as forbidden-shape targets and must never become inspection substitutes.
 - startup bootstrap checks are enforced by the commander-console-capability inspector as the startup child-contract checker and may not fall back to verify or smoke scripts.
+- governed non-owner domains such as map-plugin-package must still provide manifest, inspector, required-shape, forbidden-shape, boundary-attack, anti-escape, negative-proof-harness, and scorecard-gate coverage when they become enforcement truth for a controlled package architecture.
 
 ### 禁止
 
@@ -50,3 +51,4 @@ FORBIDDEN:
 - Empty audit plans, missing owner manifests, or multi-owner capability domains.
 - Compatibility, legacy, or bridge enforcement chains beside the generated audit chain.
 - Treating capability-check.ts, self-check, smoke-check, or child readiness helpers as accepted audit owners.
+- map-package enforcement that stops at filename checks, string includes, or unparsed JSON scans.

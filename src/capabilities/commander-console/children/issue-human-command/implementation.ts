@@ -20,6 +20,8 @@ export const ISSUE_HUMAN_COMMAND_CHILD: CommanderConsoleChildDefinition<IssueHum
         targetRecordRef: null,
         requestedPlatformId: commandInput.requestedPlatformId ?? null,
         humanGoal: commandInput.humanGoal ?? null,
+        maxRounds: commandInput.maxRounds,
+        maxMinutes: commandInput.maxMinutes,
         operatorNote: commandInput.operatorNote ?? null,
         initialPayload: commandInput.initialPayload ?? null,
       }),

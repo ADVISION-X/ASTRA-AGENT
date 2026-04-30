@@ -1,14 +1,15 @@
 import type { AiAbilityResult, AiChildContract, AiExecutionContext, ParsedAiAbilityInput } from "../contract.js";
-import { AiRuntimeExecutionOutputSchema } from "../schema.js";
-import { buildNonAuthoritativeOutput } from "../shared/ai-output.js";
 import { buildAiDisabledProviderOutput } from "./ai-disabled-provider-result.js";
 import { parseAiExecutorInput } from "./ai-input-gate.js";
 import { evaluateAiCostPolicy } from "./ai-cost-policy-gate.js";
 import { evaluateAiDataPolicy } from "./ai-data-policy-gate.js";
 import { evaluateAiOutputBoundary } from "./ai-output-boundary-gate.js";
+import { evaluateAiPayloadBudgetGate } from "./ai-payload-budget-gate.js";
 import { evaluateAiProviderPolicy } from "./ai-provider-policy-gate.js";
 import { evaluateAiQualityGate } from "./ai-quality-gate.js";
 import { buildAiResult } from "./ai-result-builder.js";
+import { runAiRuntimeCall } from "./ai-runtime-call-runner.js";
+import { evaluateAiRuntimeHealthGate } from "./ai-runtime-health-gate.js";
 import { evaluateAiSafetyPolicy } from "./ai-safety-policy-gate.js";
 import { resolveAiSchemaContract, validateAiInternalCandidate, validateAiRuntimeOutput } from "./ai-schema-gate.js";
 
@@ -36,8 +37,18 @@ function finalizeTerminalResult(input: {
   outputBoundaryDecision: AiAbilityResult["runtimeProof"]["outputBoundaryDecision"];
   disabledProviderDecision: AiAbilityResult["runtimeProof"]["disabledProviderDecision"];
   dataQualityFlags: string[];
-  output?: AiAbilityResult["output"];
+  output: AiAbilityResult["output"];
   rawOutputRef?: string | null;
+  rawOutputHash?: string | null;
+  runtimeCallId?: string | null;
+  timeoutMs?: number | null;
+  attemptIndex?: number;
+  retryCount?: number;
+  circuitBreakerState?: AiAbilityResult["runtimeProof"]["circuitBreakerState"];
+  gatewayDurationMs?: number | null;
+  schemaIssueCount?: number;
+  boundaryViolationCount?: number;
+  qualityDecisionReason?: string | null;
   createdAt?: string | null;
 }) {
   const started = input.context.clock.startRun();
@@ -53,7 +64,7 @@ function finalizeTerminalResult(input: {
     runtime: input.runtime,
     implementationStatus: input.implementationStatus,
     outputAuthority: input.status === "success" ? "authoritative" : "non_authoritative",
-    output: input.output ?? buildNonAuthoritativeOutput(input.request.taskType, input.failureReason ?? input.reviewRequiredReason ?? input.implementationStatus),
+    output: input.status === "success" ? input.output : null,
     rawOutputRef: input.rawOutputRef ?? null,
     schemaValidationStatus: input.schemaValidationStatus,
     confidence: input.confidence,
@@ -71,6 +82,16 @@ function finalizeTerminalResult(input: {
     qualityDecision: input.qualityDecision,
     outputBoundaryDecision: input.outputBoundaryDecision,
     disabledProviderDecision: input.disabledProviderDecision,
+    rawOutputHash: input.rawOutputHash ?? null,
+    runtimeCallId: input.runtimeCallId ?? null,
+    timeoutMs: input.timeoutMs ?? null,
+    attemptIndex: input.attemptIndex ?? 0,
+    retryCount: input.retryCount ?? 0,
+    circuitBreakerState: input.circuitBreakerState ?? "not_applicable",
+    gatewayDurationMs: input.gatewayDurationMs ?? null,
+    schemaIssueCount: input.schemaIssueCount ?? 0,
+    boundaryViolationCount: input.boundaryViolationCount ?? 0,
+    qualityDecisionReason: input.qualityDecisionReason ?? null,
     dataQualityFlags: input.dataQualityFlags,
   });
 }
@@ -104,12 +125,14 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       outputBoundaryDecision: "allow",
       disabledProviderDecision: "not_applicable",
       dataQualityFlags: [inputGate.reason],
+      output: null,
     });
   }
 
   const providerDecision = evaluateAiProviderPolicy(inputGate.request, input.childContract);
   const dataDecision = evaluateAiDataPolicy(inputGate.request, input.childContract);
   const costDecision = evaluateAiCostPolicy(inputGate.request, input.childContract);
+  const payloadBudgetDecision = evaluateAiPayloadBudgetGate(inputGate.request);
   const resolvedSchema = resolveAiSchemaContract(inputGate.request, promptContract);
 
   if (providerDecision.decision === "disabled") {
@@ -138,12 +161,12 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       outputBoundaryDecision: "allow",
       disabledProviderDecision: "disabled",
       dataQualityFlags: ["provider_disabled"],
-      output: buildNonAuthoritativeOutput(inputGate.request.taskType, "provider disabled"),
+      output: null,
     });
   }
 
-  if (providerDecision.decision === "blocked" || resolvedSchema.decision === "blocked" || dataDecision.decision === "blocked" || costDecision.decision === "blocked") {
-    const reason = providerDecision.reason ?? dataDecision.reason ?? costDecision.reason ?? resolvedSchema.reason ?? "provider_policy_blocked";
+  if (providerDecision.decision === "blocked" || resolvedSchema.decision === "blocked" || dataDecision.decision === "blocked" || costDecision.decision === "blocked" || payloadBudgetDecision.decision === "blocked") {
+    const reason = providerDecision.reason ?? dataDecision.reason ?? costDecision.reason ?? resolvedSchema.reason ?? payloadBudgetDecision.reason ?? "provider_policy_blocked";
     return finalizeTerminalResult({
       request: inputGate.request,
       childContract: input.childContract,
@@ -167,7 +190,8 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       qualityDecision: "blocked",
       outputBoundaryDecision: "allow",
       disabledProviderDecision: "not_applicable",
-      dataQualityFlags: [reason],
+      dataQualityFlags: [reason, ...payloadBudgetDecision.flags],
+      output: null,
     });
   }
 
@@ -197,6 +221,8 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       outputBoundaryDecision: "allow",
       disabledProviderDecision: "not_applicable",
       dataQualityFlags: [reason],
+      output: null,
+      qualityDecisionReason: reason,
     });
   }
 
@@ -227,10 +253,9 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
         outputBoundaryDecision: "allow",
         disabledProviderDecision: "not_applicable",
         dataQualityFlags: validation.issues,
-        output: {
-          valid: false,
-          issues: validation.issues,
-        },
+        output: null,
+        schemaIssueCount: validation.issues.length,
+        qualityDecisionReason: "internal_validation_failed",
       });
     }
 
@@ -259,10 +284,50 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       disabledProviderDecision: "not_applicable",
       dataQualityFlags: [],
       output: validation.output,
+      qualityDecisionReason: null,
     });
   }
 
-  const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));
+  const runtimeHealthDecision = await evaluateAiRuntimeHealthGate({
+    request: inputGate.request,
+    context: input.context,
+  });
+
+  if (runtimeHealthDecision.decision !== "allow") {
+    const reason = runtimeHealthDecision.reason ?? "runtime_health_blocked";
+    return finalizeTerminalResult({
+      request: inputGate.request,
+      childContract: input.childContract,
+      context: input.context,
+      promptContract,
+      status: runtimeHealthDecision.decision === "review_required" ? "review_required" : "failed",
+      failureReason: runtimeHealthDecision.decision === "blocked" ? reason : null,
+      reviewRequiredReason: runtimeHealthDecision.decision === "review_required" ? reason : null,
+      implementationStatus: "runtime_health_gate_blocked",
+      modelProvider: input.childContract.providerKind,
+      runtime: "ai-executor",
+      modelName: "unavailable",
+      confidence: null,
+      costEstimate: null,
+      schemaValidationStatus: "not_applicable",
+      providerDecision: providerDecision.decision,
+      dataPolicyDecision: dataDecision.decision,
+      costPolicyDecision: costDecision.decision,
+      safetyPolicyDecision: "allow",
+      schemaDecision: resolvedSchema.decision,
+      qualityDecision: runtimeHealthDecision.decision === "review_required" ? "review_required" : "blocked",
+      outputBoundaryDecision: "allow",
+      disabledProviderDecision: "not_applicable",
+      dataQualityFlags: [reason],
+      output: null,
+      qualityDecisionReason: reason,
+    });
+  }
+
+  const runtimeResult = await runAiRuntimeCall({
+    request: inputGate.request,
+    context: input.context,
+  });
   const boundaryDecision = evaluateAiOutputBoundary(runtimeResult.output);
   const safetyDecision = evaluateAiSafetyPolicy({
     request: inputGate.request,
@@ -272,21 +337,24 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
   const schemaIssues = resolvedSchema.outputSchema
     ? validateAiRuntimeOutput(resolvedSchema.outputSchema, runtimeResult.output)
     : { valid: false as const, issues: ["expected_output_schema_missing"] };
+  const terminalRuntimeFailure = ["runtime_threw", "runtime_timeout", "circuit_breaker_open", "concurrency_limited"].includes(runtimeResult.implementationStatus)
+    ? runtimeResult.implementationStatus
+    : null;
   const qualityDecision = evaluateAiQualityGate({
     request: inputGate.request,
     confidence: runtimeResult.confidence,
     schemaIssues: schemaIssues.valid === false ? schemaIssues.issues : [],
-    policyReason: boundaryDecision.reason ?? safetyDecision.reason ?? (runtimeResult.implementationStatus === "runtime_threw" ? "runtime_execution_failed" : null),
+    policyReason: boundaryDecision.reason ?? safetyDecision.reason ?? terminalRuntimeFailure,
   });
 
-  if (runtimeResult.implementationStatus === "runtime_threw") {
+  if (terminalRuntimeFailure !== null) {
     return finalizeTerminalResult({
       request: inputGate.request,
       childContract: input.childContract,
       context: input.context,
       promptContract,
       status: "failed",
-      failureReason: "runtime_execution_failed",
+      failureReason: terminalRuntimeFailure,
       reviewRequiredReason: null,
       implementationStatus: runtimeResult.implementationStatus,
       modelProvider: runtimeResult.modelProvider,
@@ -303,7 +371,17 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       qualityDecision: "blocked",
       outputBoundaryDecision: boundaryDecision.decision,
       disabledProviderDecision: "not_applicable",
-      dataQualityFlags: ["runtime_execution_failed"],
+      dataQualityFlags: [terminalRuntimeFailure],
+      output: null,
+      rawOutputRef: runtimeResult.rawOutputRef,
+      rawOutputHash: runtimeResult.rawOutputHash,
+      runtimeCallId: runtimeResult.runtimeCallId,
+      timeoutMs: runtimeResult.timeoutMs,
+      attemptIndex: runtimeResult.attemptIndex,
+      retryCount: runtimeResult.retryCount,
+      circuitBreakerState: runtimeResult.circuitBreakerState,
+      gatewayDurationMs: runtimeResult.gatewayDurationMs,
+      qualityDecisionReason: terminalRuntimeFailure,
     });
   }
 
@@ -333,8 +411,18 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
       outputBoundaryDecision: boundaryDecision.decision,
       disabledProviderDecision: "not_applicable",
       dataQualityFlags: [...qualityDecision.flags, ...boundaryDecision.flags, ...safetyDecision.flags],
-      output: buildNonAuthoritativeOutput(inputGate.request.taskType, reason),
+      output: null,
       rawOutputRef: runtimeResult.rawOutputRef,
+      rawOutputHash: runtimeResult.rawOutputHash,
+      runtimeCallId: runtimeResult.runtimeCallId,
+      timeoutMs: runtimeResult.timeoutMs,
+      attemptIndex: runtimeResult.attemptIndex,
+      retryCount: runtimeResult.retryCount,
+      circuitBreakerState: runtimeResult.circuitBreakerState,
+      gatewayDurationMs: runtimeResult.gatewayDurationMs,
+      schemaIssueCount: schemaIssues.valid ? 0 : schemaIssues.issues.length,
+      boundaryViolationCount: boundaryDecision.flags.length,
+      qualityDecisionReason: reason,
       createdAt: runtimeResult.createdAt,
     });
   }
@@ -365,6 +453,16 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
     dataQualityFlags: [],
     output: schemaIssues.output,
     rawOutputRef: runtimeResult.rawOutputRef,
+    rawOutputHash: runtimeResult.rawOutputHash,
+    runtimeCallId: runtimeResult.runtimeCallId,
+    timeoutMs: runtimeResult.timeoutMs,
+    attemptIndex: runtimeResult.attemptIndex,
+    retryCount: runtimeResult.retryCount,
+    circuitBreakerState: runtimeResult.circuitBreakerState,
+    gatewayDurationMs: runtimeResult.gatewayDurationMs,
+    schemaIssueCount: 0,
+    boundaryViolationCount: 0,
+    qualityDecisionReason: null,
     createdAt: runtimeResult.createdAt,
   });
 }

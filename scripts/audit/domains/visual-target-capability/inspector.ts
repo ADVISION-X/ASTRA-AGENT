@@ -565,7 +565,7 @@ async function runForbiddenShapeAttack(project: Project): Promise<AttackOutcome>
 async function runBoundaryAttack(project: Project, typeChecker: TypeChecker): Promise<AttackOutcome> {
   const findings: Finding[] = [];
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-  const platformAdapterSource = getSourceFileOrThrow(project, PLATFORM_ADAPTER_PATH);
+  const legacyPlatformAdapterExists = await fileExists(pathFromRepoRoot(PLATFORM_ADAPTER_PATH));
 
   for (const sourceFile of project.getSourceFiles()) {
     const relativePath = toRootRelative(sourceFile);
@@ -622,12 +622,8 @@ async function runBoundaryAttack(project: Project, typeChecker: TypeChecker): Pr
     findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: WORKBENCH_PATH, message: "Workbench must wire Visual Target through createVisualTargetAbilityGroup() from the public index surface." }));
   }
 
-  const adapterUsesExecuteOnly = platformAdapterSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const path = flattenPropertyAccess(callExpression.getExpression());
-    return path.join(".") === "this.visualTargetAbilityGroup.execute";
-  });
-  if (!adapterUsesExecuteOnly) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: PLATFORM_ADAPTER_PATH, message: "TikTok runtime must consume Visual Target through visualTargetAbilityGroup.execute()." }));
+  if (legacyPlatformAdapterExists) {
+    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: PLATFORM_ADAPTER_PATH, message: "Retired TikTok visual-target adapter chain must be physically removed instead of kept as a second consumer path." }));
   }
 
   for (const sourceFile of project.getSourceFiles()) {

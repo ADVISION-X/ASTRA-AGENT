@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-29T17:32:56.090Z",
+  "generatedAt": "2026-04-30T12:32:59.956Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -266,6 +266,17 @@
       "line": 105
     },
     {
+      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Commander Console may import governed map packages and expose task-template UX without becoming map execution or activation truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+      "line": 143
+    },
+    {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1",
       "status": "active",
       "tier": "P0",
@@ -274,7 +285,7 @@
       "evidenceMode": "law",
       "summary": "Commander Console must own one canonical root, one child catalog, and zero compat bridges.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 143
+      "line": 180
     },
     {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -285,7 +296,7 @@
       "evidenceMode": "law",
       "summary": "Commander Console may read Forensics truth only through governed read models and must not import store internals.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 180
+      "line": 217
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V1",
@@ -563,6 +574,83 @@
       "line": 50
     },
     {
+      "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map plugins are declarative data packages consumed by Orchestration, not runtime code or child capabilities.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 14
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map plugins must enter quarantine on import and cannot become active without validation and approval.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 39
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map plugins must declare full package governance metadata and own their package schemas.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 53
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map plugins must never carry executable payloads or direct ability control.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 74
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map plugins expose task-template UX while keeping internal runtime identifiers private in ordinary mode.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 88
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI-generated maps are draft-only until validation and human approval.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 109
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map package enforcement closes through the map-plugin-package inspector and audit runner scripts.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 123
+    },
+    {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1",
       "status": "active",
       "tier": "P0",
@@ -756,7 +844,7 @@
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "manual-first",
       "evidenceMode": "law",
-      "summary": "operational maps are Orchestration child modules.",
+      "summary": "operational maps are declarative map packages consumed by Orchestration, not child capabilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 50
     },
@@ -769,7 +857,7 @@
       "evidenceMode": "law",
       "summary": "Orchestration dispatches only through Nerve Bus and public ability-group interfaces.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 75
+      "line": 101
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V1",
@@ -780,7 +868,7 @@
       "evidenceMode": "law",
       "summary": "Orchestration is enforced by owner inspector and audit runner only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 100
+      "line": 126
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V2",
@@ -791,7 +879,7 @@
       "evidenceMode": "law",
       "summary": "Orchestration may request persistence but may not hide round-finalization logic under Forensics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 126
+      "line": 152
     },
     {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V1",
@@ -1034,6 +1122,160 @@
       "summary": "runtime proof must link to Forensics record refs and may not depend on hidden round finalizers.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
       "line": 49
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "DEBUG level runtime transparency must expose what was sent, what was received, and why a decision or failure happened.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 79
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "every AI model request must emit a structured AI_REQUEST_DEBUG event before the model call.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 116
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "every AI model response must emit a structured AI_RESPONSE_DEBUG event before parser output is allowed to hide raw model output.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 180
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI failures must report exact cause, actual and max values, missing preconditions, owner responsible, and required upstream action.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 235
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "user command flow must emit structured debug events from UI command receipt through mission preflight acceptance or rejection.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 288
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "App shell liveness and mission readiness must be logged separately.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 331
+    },
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "service shutdown and unexpected exits must be classified and linked to last runtime events.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
+      "line": 375
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input Ability Group is the only owner of governed text writing capability.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 14
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input is write-only capability, not cognition, targeting, gesture, or verification truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 39
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input accepts only approved text payloads and verified target handoff.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 72
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input executes only through governed input, clipboard, and clock ports.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 105
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input success is primitive write success only and never verification truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 135
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input enforcement closes through owner inspector and audit runner only.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 165
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Text Input canonical topology is one standard package with six governed execution children.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 189
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",

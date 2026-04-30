@@ -1,5 +1,6 @@
-import type { ScreenshotAbilityInput, ScreenshotChildRegistryEntry } from "../contract.js";
+import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 export function runPrivacyPolicyGate(input: {
   request: ScreenshotAbilityInput;
@@ -63,7 +64,10 @@ export function runPrivacyPolicyGate(input: {
   }
 
   return {
-    decision: { status: "passed", reason: null },
-    failure: null,
+    decision: { status: "review_required", reason: "desktop_capture_not_enabled_for_success" },
+    failure: createScreenshotFailure({
+      code: "privacy_policy_blocked",
+      message: "Desktop screenshot remains review_required until bounded desktop capture is implemented.",
+    }),
   };
 }

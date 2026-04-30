@@ -1,5 +1,6 @@
-import type { ScreenshotAbilityInput, ScreenshotChildRegistryEntry } from "../contract.js";
+import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 export function runPageStateHandoffGate(input: {
   request: ScreenshotAbilityInput;
@@ -21,9 +22,12 @@ export function runPageStateHandoffGate(input: {
   if (!pageStateProof) {
     if (input.request.capturePolicy.allowFirstCaptureWithoutPageStateProof) {
       return {
-        decision: { status: "passed", reason: "first_capture_without_page_state_proof" },
+        decision: { status: "review_required", reason: "bootstrap_capture_without_page_state_proof" },
         pageStateProofRef: null,
-        failure: null,
+        failure: createScreenshotFailure({
+          code: "page_state_missing",
+          message: "Screenshot bootstrap capture without pageStateProof is review_required and non-authoritative.",
+        }),
       };
     }
     return {

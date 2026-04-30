@@ -15,7 +15,7 @@ export const COMMANDER_TO_ORCHESTRATION_CHILD: NerveBusChildDefinition<Commander
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
       resultSchema: CommanderToOrchestrationResultSchema,
-      invoke: () => input.context.handlerPort.dispatchHumanCommand({
+      invoke: (_signal) => input.context.handlerPort.dispatchHumanCommand({
         envelope: input.envelope,
         inputPayload: input.inputPayload,
       }),

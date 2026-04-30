@@ -1,19 +1,11 @@
 import type { AiChildCapability } from "../../contract.js";
-import { executeAiChild } from "../../runtime/ai-executor.js";
 import { PaidVisionAiChildContract as contract } from "./contract.js";
-import { PaidVisionAiChildInputSchema, PaidVisionAiChildReadinessSchema, PaidVisionAiChildResultSchema } from "./schema.js";
+import { PaidVisionAiChildReadinessSchema } from "./schema.js";
 
 export function createPaidVisionAiCapability(): AiChildCapability {
   return {
     contract,
     implementation: {
-      async execute(input, context) {
-        return PaidVisionAiChildResultSchema.parse(await executeAiChild({
-          request: PaidVisionAiChildInputSchema.parse(input),
-          childContract: contract,
-          context,
-        }));
-      },
       async checkReadiness() {
         return PaidVisionAiChildReadinessSchema.parse({
           abilityGroupId: "ai",

@@ -1,4 +1,5 @@
-import type { OrchestrationChildCapability, RequestHumanReviewChildInput, RequestHumanReviewChildOutput } from "../../contract.js";
+import type { OrchestrationChildCapability } from "../../internal.js";
+import type { RequestHumanReviewChildInput, RequestHumanReviewChildOutput } from "../../contract.js";
 import { buildMissionStateUpdate } from "../../runtime/orchestration-result-builder.js";
 
 export function createRequestHumanReviewCapability(): OrchestrationChildCapability<RequestHumanReviewChildInput, RequestHumanReviewChildOutput> {
@@ -7,6 +8,9 @@ export function createRequestHumanReviewCapability(): OrchestrationChildCapabili
     childCapabilityId: "request-human-review",
     async execute(input, context) {
       const state = await context.statePort.getMissionState(input.missionId);
+      if (!state) {
+        throw new Error(`Mission ${input.missionId} not found for request-human-review.`);
+      }
       const now = context.clock.now().isoTimestamp;
       const nextState = buildMissionStateUpdate({
         ...state,
@@ -14,6 +18,7 @@ export function createRequestHumanReviewCapability(): OrchestrationChildCapabili
         reviewRequiredReason: input.reason,
         updatedAt: now,
         endedAt: now,
+        stateRevision: (state.stateRevision ?? 0) + 1,
       });
       await context.statePort.putMissionState(nextState);
       return nextState;

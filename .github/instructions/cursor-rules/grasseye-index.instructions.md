@@ -27,7 +27,7 @@ Index only locates the narrowest current authority.
 
 - Load GRASSEYE-KERNEL before any module match.
 - Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug runtime proof.
-- Index may route only to the 13 active ability groups and active support laws.
+- Index may route only to the 14 active ability groups and active support laws.
 - Match the narrowest domain by path and task keywords.
 - Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
 - Do not activate absent historical paths.
@@ -43,6 +43,7 @@ Index only locates the narrowest current authority.
 | commander console, human command, mission dashboard, runtime proof timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
 | ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix | module-capability-group-governance.instructions.md | Shared ability-group governance only |
 | orchestration ability group, mission state, mission command execution, operational map, map registry, step state, branch, runtime loop, observe, classify, act, record, orchestrator, facebook-product-discovery-map, tiktok-product-discovery-map | module-orchestration-capability.instructions.md | Legacy runtime-loop vocabulary remaps to Orchestration mission-map authority |
+| map plugin, map package, operational map package, task template package, map import, map activation, map rollback, map quarantine, map compatibility, map validator, AI draft map | module-map-plugin-package.instructions.md | Controlled pluggable map-package governance routes here first, then to Orchestration and Commander Console as the direct owners |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
 | ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
@@ -50,6 +51,7 @@ Index only locates the narrowest current authority.
 | visual target, target bbox, target confidence, target catalog, candidate selection, clickPoint | module-visual-target-capability.instructions.md | Visual target authority only |
 | geometry guard, coordinate action, coordinate safety, coordinate-space validation, scale mapping, executable geometry, normalized geometry | module-geometry-guard-capability.instructions.md | Route coordinate-action vocabulary to Geometry Guard first for safety ownership |
 | src/capabilities/mouse-click, mouse click, click capability, primitive click, browser click, screen click | module-mouse-click-capability.instructions.md | Mouse click primitive authority only |
+| src/capabilities/text-input, text input, type text, paste text, clear input, replace input, press key, commit input, keyboard input, input target | module-text-input-capability.instructions.md | Text input write authority only |
 | src/capabilities/mouse-scroll, mouse scroll ability group, scroll capability, wheel scroll, scroll magnitude, region-wheel-scroll, browser-viewport-scroll, desktop-screen-scroll | module-mouse-scroll-capability.instructions.md | Mouse scroll capability authority only |
 | post-action verification, action result verification, verification decision, result proof, after-click verification, after-scroll verification | module-post-action-verification-capability.instructions.md | Verification truth only |
 | page state, page readiness, login wall, modal overlay, platform page kind, comment panel state, safety page | module-page-state-capability.instructions.md | Page-state truth only |

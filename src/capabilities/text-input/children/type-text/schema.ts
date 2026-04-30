@@ -1,0 +1,1 @@
+export { TypeTextAbilityInputSchema } from "../../schema.js";

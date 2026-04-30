@@ -1,0 +1,19 @@
+{
+  "inspectorId": "commander-console-ui-owner",
+  "capabilityDomain": "commander-console-ui",
+  "owner": true,
+  "entry": "scripts/audit/domains/commander-console-ui/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "allowedLawIds": [],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+    "docs/归档/prototypes/ge-console-v6-blueprint-pages.html"
+  ]
+}

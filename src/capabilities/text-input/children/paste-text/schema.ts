@@ -1,0 +1,1 @@
+export { PasteTextAbilityInputSchema } from "../../schema.js";

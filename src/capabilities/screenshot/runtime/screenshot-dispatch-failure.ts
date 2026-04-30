@@ -20,7 +20,7 @@ export function dispatchScreenshotFailure(input: {
   runId: string;
   missionId: string;
   inputRef: string;
-  outputRef: string;
+  outputRef: string | null;
   idempotencyKey: string;
   startedAt: string;
   endedAt: string;
@@ -37,6 +37,7 @@ export function dispatchScreenshotFailure(input: {
     captureDecision: ScreenshotRuntimeProof["captureDecision"];
     imageProcessingDecision: ScreenshotRuntimeProof["imageProcessingDecision"];
     artifactDecision: ScreenshotRuntimeProof["artifactDecision"];
+    outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
   };
   browserSessionRef: string | null;
   pageStateProofRef: string | null;
@@ -48,7 +49,7 @@ export function dispatchScreenshotFailure(input: {
     runId: input.runId,
     missionId: input.missionId,
     inputRef: input.inputRef,
-    outputRef: input.outputRef,
+    outputRef: null,
     idempotencyKey: input.idempotencyKey,
     startedAt: input.startedAt,
     endedAt: input.endedAt,

@@ -2,6 +2,14 @@ import { z } from "zod";
 
 import { BrowserLoginStateSchema } from "../../types/local-browser-session.js";
 
+const MAX_OBSERVATIONS = 50;
+const MAX_EVIDENCE_REFS = 50;
+const MAX_TAGS = 20;
+const MAX_DETAIL_LENGTH = 1000;
+const MAX_SUMMARY_LENGTH = 1000;
+const MAX_SUPPORTING_REASONS = 20;
+const MAX_DATA_QUALITY_FLAGS = 20;
+
 export const PAGE_STATE_ABILITY_GROUP_ID = "page-state";
 
 export const PAGE_STATE_CHILD_CAPABILITY_IDS = [
@@ -16,11 +24,8 @@ export const PAGE_STATE_CHILD_CAPABILITY_IDS = [
 ] as const;
 
 export const PageStateChildCapabilityIdSchema = z.enum(PAGE_STATE_CHILD_CAPABILITY_IDS);
-
-export const PageStateStatusSchema = z.enum(["success", "failed", "review_required", "blocked"]);
-
+export const PageStateStatusSchema = z.enum(["success", "failed", "review_required"]);
 export const PageStateDecisionSchema = z.enum(["proceed", "block", "review_required", "fail"]);
-
 export const PageStateTypeSchema = z.enum([
   "unknown_page",
   "logged_in",
@@ -43,7 +48,6 @@ export const PageStateTypeSchema = z.enum([
   "wrong_domain",
   "local_workbench",
 ]);
-
 export const PageStateFailureReasonSchema = z.enum([
   "invalid_input",
   "invalid_snapshot",
@@ -64,8 +68,9 @@ export const PageStateFailureReasonSchema = z.enum([
   "classification_failed",
   "child_not_registered",
   "execution_failed",
+  "payload_budget_exceeded",
+  "output_boundary_violation",
 ]);
-
 export const PageStateDataQualityFlagSchema = z.enum([
   "low_confidence",
   "missing_observation",
@@ -76,8 +81,9 @@ export const PageStateDataQualityFlagSchema = z.enum([
   "insufficient_signal",
   "unsupported_platform",
   "fingerprint_changed",
+  "payload_budget_exceeded",
+  "output_boundary_violation",
 ]);
-
 export const PageStateSourceAbilityGroupIdSchema = z.enum([
   "open",
   "screenshot",
@@ -85,6 +91,9 @@ export const PageStateSourceAbilityGroupIdSchema = z.enum([
   "post-action-verification",
   "runtime-signal",
 ]);
+
+const LimitedStringSchema = z.string().min(1).max(MAX_DETAIL_LENGTH);
+const OptionalLimitedStringSchema = z.string().min(1).max(MAX_DETAIL_LENGTH).nullable().default(null);
 
 export const PageStateViewportSchema = z.object({
   width: z.number().int().positive(),
@@ -115,7 +124,7 @@ const RuntimeSignalObservationPayloadSchema = z.object({
     "page_normal",
   ]),
   value: z.boolean(),
-  detail: z.string().min(1).nullable().default(null),
+  detail: OptionalLimitedStringSchema,
 });
 
 const PageMarkerObservationPayloadSchema = z.object({
@@ -130,25 +139,27 @@ const PageMarkerObservationPayloadSchema = z.object({
     "abnormal_page",
   ]),
   present: z.boolean(),
-  detail: z.string().min(1).nullable().default(null),
+  detail: OptionalLimitedStringSchema,
 });
 
 const VisualTargetObservationPayloadSchema = z.object({
   targetType: z.enum(["feed_card", "video_player", "comment_panel", "modal_overlay", "captcha", "login_form"]),
   targetCount: z.number().int().min(0),
   matched: z.boolean(),
+  detail: OptionalLimitedStringSchema,
 });
 
 const PlatformCaptureObservationPayloadSchema = z.object({
   captureKind: z.enum(["page_snapshot", "viewport_capture", "post_open_capture"]),
-  tags: z.array(z.string().min(1)).default([]),
+  tags: z.array(LimitedStringSchema).max(MAX_TAGS).default([]),
   confidence: z.number().min(0).max(1),
+  detail: OptionalLimitedStringSchema,
 });
 
 const PostActionVerificationObservationPayloadSchema = z.object({
   verificationKind: z.enum(["open_handoff", "page_transition", "safety_check"]),
   passed: z.boolean(),
-  summary: z.string().min(1),
+  summary: LimitedStringSchema,
 });
 
 export const PageStateObservationSchema = z.discriminatedUnion("kind", [
@@ -202,7 +213,7 @@ export const PageStateObservationSchema = z.discriminatedUnion("kind", [
 export const PageStateSnapshotSchema = z.object({
   snapshotId: z.string().min(1),
   currentUrl: z.string().url(),
-  currentTitle: z.string(),
+  currentTitle: z.string().max(MAX_SUMMARY_LENGTH),
   browserLoginState: BrowserLoginStateSchema,
   viewport: PageStateViewportSchema,
   scrollOffset: PageStateScrollOffsetSchema,
@@ -245,8 +256,8 @@ export const PageStateAbilityInputSchema = z.object({
   videoVisitId: z.string().min(1),
   requestedBy: z.string().min(1),
   snapshot: PageStateSnapshotSchema,
-  observations: z.array(PageStateObservationSchema),
-  sourceEvidenceRefs: z.array(z.string().min(1)).min(1),
+  observations: z.array(PageStateObservationSchema).max(MAX_OBSERVATIONS),
+  sourceEvidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_EVIDENCE_REFS),
   freshnessPolicy: PageStateFreshnessPolicySchema,
   confidencePolicy: PageStateConfidencePolicySchema,
   statePolicy: PageStatePolicySchema,
@@ -254,66 +265,104 @@ export const PageStateAbilityInputSchema = z.object({
   previousPageStateFingerprint: z.string().min(1).nullable().default(null),
 });
 
+export const PageStateOutputSchema = z.object({
+  pageStateType: PageStateTypeSchema,
+  stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
+  confidence: z.number().min(0).max(1),
+  evidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS),
+  observationRefs: z.array(z.string().min(1)).max(MAX_OBSERVATIONS),
+  pageStateFingerprint: z.string().min(1),
+});
+
 export const PageStateRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
-  runId: z.string().min(1),
-  missionId: z.string().min(1),
-  sessionId: z.string().min(1),
-  roundId: z.string().min(1),
-  videoVisitId: z.string().min(1),
+  runId: z.string().min(1).nullable(),
+  missionId: z.string().min(1).nullable(),
+  sessionId: z.string().min(1).nullable(),
+  roundId: z.string().min(1).nullable(),
+  videoVisitId: z.string().min(1).nullable(),
   abilityGroupId: z.literal(PAGE_STATE_ABILITY_GROUP_ID),
-  childCapabilityId: PageStateChildCapabilityIdSchema,
-  sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema,
-  sourceChildCapabilityId: z.string().min(1),
+  childCapabilityId: PageStateChildCapabilityIdSchema.nullable(),
   inputRef: z.string().min(1),
-  outputRef: z.string().min(1),
-  snapshotId: z.string().min(1),
-  snapshotProofRef: z.string().min(1),
-  observationRefs: z.array(z.string().min(1)),
-  sourceEvidenceRefs: z.array(z.string().min(1)),
-  currentUrl: z.string().url(),
-  currentTitle: z.string(),
-  pageStateFingerprint: z.string().min(1),
+  outputRef: z.string().min(1).nullable(),
+  diagnosticPayloadRef: z.string().min(1).nullable(),
+  debugLogRef: z.string().min(1),
+  structuredRuntimeEventRef: z.string().min(1).nullable(),
+  snapshotId: z.string().min(1).nullable(),
+  snapshotProofRef: z.string().min(1).nullable(),
+  openHandoffProofRef: z.string().min(1).nullable(),
+  browserSessionRef: z.string().min(1).nullable(),
+  platformProfileId: z.string().min(1).nullable(),
+  resolvedPlatformProfileId: z.string().min(1).nullable(),
+  matchedHost: z.string().min(1).nullable(),
+  sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema.nullable(),
+  sourceChildCapabilityId: z.string().min(1).nullable(),
+  observationRefs: z.array(z.string().min(1)).max(MAX_OBSERVATIONS),
+  sourceEvidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS),
+  inputPayloadHash: z.string().min(1),
+  snapshotHash: z.string().min(1).nullable(),
+  observationHash: z.string().min(1).nullable(),
+  pageStateFingerprint: z.string().min(1).nullable(),
   previousPageStateFingerprint: z.string().min(1).nullable(),
-  capturedAt: z.string().datetime(),
+  currentUrl: z.string().url().nullable(),
+  currentTitle: z.string().max(MAX_SUMMARY_LENGTH).nullable(),
+  classificationSource: z.enum(["child_capability", "invalid_input_failure"]),
+  inputDecision: z.enum(["allow", "fail"]),
+  sourceBindingDecision: z.enum(["allow", "review_required", "fail"]),
+  observationBindingDecision: z.enum(["bound", "review_required", "fail"]),
+  freshnessDecision: z.enum(["fresh", "review_required", "fail"]),
+  platformDecision: z.enum(["match", "review_required", "block", "fail"]),
+  classificationDecision: z.enum(["proceed", "review_required", "block", "fail"]),
+  outputBoundaryDecision: z.enum(["allow", "review_required", "fail"]),
+  criticalDataQualityDecision: z.enum(["allow", "review_required", "fail"]),
+  proceedDecision: PageStateDecisionSchema,
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative(),
   status: PageStateStatusSchema,
   decision: PageStateDecisionSchema,
-  pageStateType: PageStateTypeSchema,
-  confidence: z.number().min(0).max(1),
   failureReason: PageStateFailureReasonSchema.nullable(),
-  reviewRequiredReason: z.string().min(1).nullable(),
-  inputDecision: z.enum(["allow", "fail"]),
-  sourceDecision: z.enum(["allow", "review_required", "fail"]),
-  freshnessDecision: z.enum(["fresh", "review_required", "fail"]),
-  platformDecision: z.enum(["match", "review_required", "block"]),
-  classificationDecision: z.enum(["proceed", "review_required", "block", "fail"]),
-  proceedDecision: PageStateDecisionSchema,
-  dataQualityFlags: z.array(PageStateDataQualityFlagSchema),
+  reviewRequiredReason: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
+  dataQualityFlags: z.array(PageStateDataQualityFlagSchema).max(MAX_DATA_QUALITY_FLAGS),
+  receivedShapeHash: z.string().min(1).nullable().default(null),
 }).superRefine((proof, ctx) => {
-  if (proof.reviewRequiredReason && proof.status === "success") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "reviewRequiredReason cannot coexist with success status",
-      path: ["status"],
-    });
-  }
-
-  if ((proof.status === "blocked" || proof.status === "review_required") && proof.decision === "proceed") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "blocked or review_required proof cannot proceed",
-      path: ["decision"],
-    });
-  }
-
   if (proof.status === "success" && proof.decision !== "proceed") {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "success proof must proceed",
       path: ["decision"],
+    });
+  }
+
+  if (proof.status !== "success" && proof.decision === "proceed") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failed or review_required proof cannot proceed",
+      path: ["decision"],
+    });
+  }
+
+  if (proof.status === "success" && !proof.outputRef) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "success proof must retain outputRef",
+      path: ["outputRef"],
+    });
+  }
+
+  if (proof.status !== "success" && proof.outputRef !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failed or review_required proof must null outputRef",
+      path: ["outputRef"],
+    });
+  }
+
+  if (proof.status !== "success" && !proof.diagnosticPayloadRef) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failed or review_required proof must retain diagnosticPayloadRef",
+      path: ["diagnosticPayloadRef"],
     });
   }
 });
@@ -322,33 +371,30 @@ export const PageStateAbilityResultSchema = z.object({
   status: PageStateStatusSchema,
   decision: PageStateDecisionSchema,
   abilityGroupId: z.literal(PAGE_STATE_ABILITY_GROUP_ID),
-  childCapabilityId: PageStateChildCapabilityIdSchema,
-  runId: z.string().min(1),
-  missionId: z.string().min(1),
-  sessionId: z.string().min(1),
-  roundId: z.string().min(1),
-  videoVisitId: z.string().min(1),
-  pageStateType: PageStateTypeSchema,
-  stateSummary: z.string().min(1),
-  confidence: z.number().min(0).max(1),
-  evidenceRefs: z.array(z.string().min(1)),
-  observationRefs: z.array(z.string().min(1)),
-  sourceEvidenceRefs: z.array(z.string().min(1)),
-  pageStateFingerprint: z.string().min(1),
+  childCapabilityId: PageStateChildCapabilityIdSchema.nullable(),
+  runId: z.string().min(1).nullable(),
+  missionId: z.string().min(1).nullable(),
+  sessionId: z.string().min(1).nullable(),
+  roundId: z.string().min(1).nullable(),
+  videoVisitId: z.string().min(1).nullable(),
+  output: PageStateOutputSchema.nullable(),
+  pageStateType: PageStateTypeSchema.nullable(),
+  stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
+  confidence: z.number().min(0).max(1).nullable(),
+  evidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS),
+  observationRefs: z.array(z.string().min(1)).max(MAX_OBSERVATIONS),
+  sourceEvidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS),
+  pageStateFingerprint: z.string().min(1).nullable(),
   previousPageStateFingerprint: z.string().min(1).nullable(),
   failureReason: PageStateFailureReasonSchema.nullable(),
-  reviewRequiredReason: z.string().min(1).nullable(),
-  dataQualityFlags: z.array(PageStateDataQualityFlagSchema),
+  reviewRequiredReason: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
+  dataQualityFlags: z.array(PageStateDataQualityFlagSchema).max(MAX_DATA_QUALITY_FLAGS),
+  debugLogRef: z.string().min(1),
+  structuredRuntimeEventRef: z.string().min(1).nullable(),
+  diagnosticPayloadRef: z.string().min(1).nullable(),
+  receivedShapeHash: z.string().min(1).nullable().default(null),
   runtimeProof: PageStateRuntimeProofSchema,
 }).superRefine((result, ctx) => {
-  if (result.reviewRequiredReason && result.status === "success") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "reviewRequiredReason cannot coexist with success status",
-      path: ["status"],
-    });
-  }
-
   if (result.runtimeProof.status !== result.status) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -365,22 +411,71 @@ export const PageStateAbilityResultSchema = z.object({
     });
   }
 
-  if (result.status === "success" && result.decision !== "proceed") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "success result must proceed",
-      path: ["decision"],
-    });
+  if (result.status === "success") {
+    if (!result.output) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success result must include output",
+        path: ["output"],
+      });
+    }
+    if (result.decision !== "proceed") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success result must proceed",
+        path: ["decision"],
+      });
+    }
   }
 
-  if ((result.status === "blocked" || result.status === "review_required") && result.decision === "proceed") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "blocked or review_required result cannot proceed",
-      path: ["decision"],
-    });
+  if (result.status !== "success") {
+    if (result.output !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "failed or review_required result must null output",
+        path: ["output"],
+      });
+    }
+    if (result.decision === "proceed") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "failed or review_required result cannot proceed",
+        path: ["decision"],
+      });
+    }
+    if (!result.diagnosticPayloadRef) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "failed or review_required result must retain diagnosticPayloadRef",
+        path: ["diagnosticPayloadRef"],
+      });
+    }
   }
 });
+
+export const PageStateChildDetectionSchema = z.object({
+  childCapabilityId: PageStateChildCapabilityIdSchema,
+  pageStateType: PageStateTypeSchema,
+  stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
+  confidence: z.number().min(0).max(1),
+  reviewRequiredReason: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable().default(null),
+  dataQualityFlags: z.array(PageStateDataQualityFlagSchema).max(MAX_DATA_QUALITY_FLAGS).default([]),
+  matchedObservationIds: z.array(z.string().min(1)).max(MAX_OBSERVATIONS).default([]),
+  supportingEvidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS).default([]),
+  supportingReasons: z.array(z.string().min(1).max(MAX_DETAIL_LENGTH)).max(MAX_SUPPORTING_REASONS).default([]),
+});
+
+export function createPageStateChildInputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
+  return PageStateAbilityInputSchema.extend({
+    childCapabilityId: z.literal(childCapabilityId),
+  });
+}
+
+export function createPageStateChildOutputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
+  return PageStateChildDetectionSchema.extend({
+    childCapabilityId: z.literal(childCapabilityId),
+  });
+}
 
 export type PageStateChildCapabilityId = z.infer<typeof PageStateChildCapabilityIdSchema>;
 export type PageStateStatus = z.infer<typeof PageStateStatusSchema>;
@@ -399,31 +494,7 @@ export type PageStateConfidencePolicy = z.infer<typeof PageStateConfidencePolicy
 export type PageStatePolicy = z.infer<typeof PageStatePolicySchema>;
 export type PageStateOpenHandoffPolicy = z.infer<typeof PageStateOpenHandoffPolicySchema>;
 export type PageStateAbilityInput = z.infer<typeof PageStateAbilityInputSchema>;
+export type PageStateOutput = z.infer<typeof PageStateOutputSchema>;
 export type PageStateRuntimeProof = z.infer<typeof PageStateRuntimeProofSchema>;
 export type PageStateAbilityResult = z.infer<typeof PageStateAbilityResultSchema>;
-
-export const PageStateChildDetectionSchema = z.object({
-  childCapabilityId: PageStateChildCapabilityIdSchema,
-  pageStateType: PageStateTypeSchema,
-  stateSummary: z.string().min(1),
-  confidence: z.number().min(0).max(1),
-  reviewRequiredReason: z.string().min(1).nullable().default(null),
-  dataQualityFlags: z.array(PageStateDataQualityFlagSchema).default([]),
-  matchedObservationIds: z.array(z.string().min(1)).default([]),
-  supportingEvidenceRefs: z.array(z.string().min(1)).default([]),
-  supportingReasons: z.array(z.string().min(1)).default([]),
-});
-
-export function createPageStateChildInputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
-  return PageStateAbilityInputSchema.extend({
-    childCapabilityId: z.literal(childCapabilityId),
-  });
-}
-
-export function createPageStateChildOutputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
-  return PageStateChildDetectionSchema.extend({
-    childCapabilityId: z.literal(childCapabilityId),
-  });
-}
-
 export type PageStateChildDetection = z.infer<typeof PageStateChildDetectionSchema>;

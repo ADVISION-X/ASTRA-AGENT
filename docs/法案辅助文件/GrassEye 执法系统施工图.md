@@ -54,3 +54,24 @@ law file -> owner manifest -> generated registry / matrix / audit plan -> owner 
 - generated 文件被手工修改
 - current plan 出现 deleted owner
 - 文档把 verify 脚本写成主链
+
+## map-plugin-package domain
+
+map-plugin-package 是受 audit-system 治理的受控包治理域，不是新的 active ability owner。
+
+该域必须提供：
+
+- required-shape
+- forbidden-shape
+- boundary-attack
+- anti-escape
+- negative-proof-harness
+- scorecard-gate
+
+执法必须覆盖：
+
+- map package schema validation
+- no code plugin enforcement
+- active registry enforcement
+- ordinary UI no internal map field enforcement
+- negative proof for quarantine, approval, activation, rollback, and validation bypass

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CommanderBoundaryPolicySchema, CommanderCapabilityRosterEntrySchema, CommanderProofPolicySchema, CommanderReadinessSchema, EmptyCommanderChildInputSchema } from "../../schema.js";
+import { CommanderBoundaryPolicySchema, CommanderCapabilityRosterEntrySchema, CommanderProofPolicySchema, CommanderReadinessSchema, EmptyCommanderChildInputSchema } from "../../shared/commander-schema-base.js";
 
 export const ShowCapabilityRosterInputSchema = EmptyCommanderChildInputSchema;
 export const ShowCapabilityRosterOutputSchema = z.array(CommanderCapabilityRosterEntrySchema);

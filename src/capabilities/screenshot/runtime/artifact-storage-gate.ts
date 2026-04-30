@@ -1,10 +1,11 @@
 import path from "node:path";
 
-import type { ScreenshotAbilityContext, ScreenshotChildCapabilityId, ScreenshotImageKind } from "../contract.js";
+import type { ScreenshotChildCapabilityId, ScreenshotImageKind } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
 export async function runArtifactStorageGate(input: {
-  context: ScreenshotAbilityContext;
+  context: ScreenshotRuntimeContext;
   childCapabilityId: ScreenshotChildCapabilityId;
   evidenceId: string;
   outputFilePath: string;
@@ -15,7 +16,7 @@ export async function runArtifactStorageGate(input: {
   createdAt: string;
 }): Promise<{
   decision: { status: "passed" | "failed"; reason: string | null };
-  artifactRef: Awaited<ReturnType<ScreenshotAbilityContext["artifactPort"]["storeArtifact"]>> | null;
+  artifactRef: Awaited<ReturnType<ScreenshotRuntimeContext["artifactPort"]["storeArtifact"]>> | null;
   outputHash: string | null;
   failure: ReturnType<typeof createScreenshotFailure> | null;
 }> {
@@ -36,7 +37,9 @@ export async function runArtifactStorageGate(input: {
       imageKind: input.imageKind,
       createdAt: input.createdAt,
     });
-    if (!path.resolve(artifactRef.storageRef).startsWith(rootDir)) {
+    const resolvedStorageRef = path.resolve(artifactRef.storageRef);
+    const relativePath = path.relative(rootDir, resolvedStorageRef);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
       return {
         decision: { status: "failed", reason: "artifact_path_outside_root" },
         artifactRef: null,

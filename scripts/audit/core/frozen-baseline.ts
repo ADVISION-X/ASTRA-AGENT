@@ -13,6 +13,7 @@ const ABILITY_GROUP_DOMAIN_MAP: Record<string, string> = {
   "visual-target": "visual-target-capability",
   "geometry-guard": "geometry-guard-capability",
   "mouse-click": "mouse-click-capability",
+  "text-input": "text-input-capability",
   "mouse-scroll": "mouse-scroll-capability",
   "post-action-verification": "post-action-verification-capability",
   "forensics-persistence": "forensics-persistence-capability",
@@ -64,7 +65,7 @@ export const loadFrozenBaselineDomains = async (): Promise<{
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    if (line === "## 13 个 active ability groups") {
+    if (line === "## 13 个 active ability groups" || line === "## 14 个 active ability groups") {
       section = "active-ability-groups";
       continue;
     }

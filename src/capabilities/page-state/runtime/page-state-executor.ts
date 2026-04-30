@@ -1,10 +1,12 @@
-import type { PageStateChildCapability } from "../contract.js";
+import type { PageStateChildCapability } from "./page-state-child-contract.js";
 import type { PageStateAbilityInput } from "../schema.js";
 import type { PageStateClockPort } from "../ports/page-state-clock-port.js";
 import type { PageStateProfilePort } from "../ports/page-state-profile-port.js";
 import { createPageStateFingerprint } from "./page-state-fingerprint.js";
 import { dispatchPageStateFailure } from "./page-state-dispatch-failure.js";
+import { gatePageStatePayloadBudget } from "./page-state-payload-budget-gate.js";
 import { gateObservationSources } from "./observation-source-gate.js";
+import { gateObservationProofBinding } from "./observation-proof-binding-gate.js";
 import { buildPageStateRuntimeProof } from "./page-state-proof-builder.js";
 import { buildPageStateResult } from "./page-state-result-builder.js";
 import { gatePlatformProfile } from "./platform-profile-gate.js";
@@ -35,6 +37,21 @@ export async function executePageState(input: {
     });
   }
 
+  const payloadBudgetGate = gatePageStatePayloadBudget(input.request);
+  if (!payloadBudgetGate.ok) {
+    return dispatchPageStateFailure({
+      request: input.request,
+      failureReason: payloadBudgetGate.failure.failureReason,
+      stateSummary: payloadBudgetGate.failure.stateSummary,
+      reviewRequiredReason: payloadBudgetGate.failure.reviewRequiredReason,
+      pageStateType: payloadBudgetGate.failure.pageStateType,
+      status: payloadBudgetGate.failure.status,
+      decision: payloadBudgetGate.failure.decision,
+      dataQualityFlags: payloadBudgetGate.failure.dataQualityFlags,
+      clock: input.clock,
+    });
+  }
+
   const sourceGate = gateObservationSources(input.request);
   if (!sourceGate.ok) {
     return dispatchPageStateFailure({
@@ -46,6 +63,21 @@ export async function executePageState(input: {
       status: sourceGate.failure.status,
       decision: sourceGate.failure.decision,
       dataQualityFlags: sourceGate.failure.dataQualityFlags,
+      clock: input.clock,
+    });
+  }
+
+  const proofBindingGate = gateObservationProofBinding(input.request);
+  if (!proofBindingGate.ok) {
+    return dispatchPageStateFailure({
+      request: input.request,
+      failureReason: proofBindingGate.failure.failureReason,
+      stateSummary: proofBindingGate.failure.stateSummary,
+      reviewRequiredReason: proofBindingGate.failure.reviewRequiredReason,
+      pageStateType: proofBindingGate.failure.pageStateType,
+      status: proofBindingGate.failure.status,
+      decision: proofBindingGate.failure.decision,
+      dataQualityFlags: proofBindingGate.failure.dataQualityFlags,
       clock: input.clock,
     });
   }
@@ -100,9 +132,13 @@ export async function executePageState(input: {
       trace: {
         inputDecision: inputGate.inputDecision,
         sourceDecision: sourceGate.sourceDecision,
+        payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision,
+        observationBindingDecision: proofBindingGate.observationBindingDecision,
         freshnessDecision: freshnessGate.freshnessDecision,
         platformDecision: platformGate.platformDecision,
         classificationDecision: outcome.decision === "proceed" ? "proceed" : outcome.decision,
+        outputBoundaryDecision: outcome.status === "success" ? "allow" : outcome.failureReason === "output_boundary_violation" ? "fail" : "review_required",
+        criticalDataQualityDecision: outcome.status === "success" ? "allow" : outcome.failureReason === "low_confidence" ? "review_required" : outcome.failureReason === "insufficient_signal" ? "review_required" : "allow",
         proceedDecision: outcome.decision,
       },
       status: outcome.status,
@@ -114,6 +150,8 @@ export async function executePageState(input: {
       pageStateFingerprint,
       observationRefs,
       dataQualityFlags: outcome.dataQualityFlags,
+      resolvedPlatformProfileId: outcome.resolvedProfileId,
+      matchedHost: outcome.matchedHost,
     });
     return buildPageStateResult({
       request: input.request,

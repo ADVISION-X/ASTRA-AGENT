@@ -110,7 +110,9 @@ export function isStructuredLogStdoutEnabled(): boolean {
 }
 
 export function resolveStructuredLogLevel(): StructuredLogLevel {
-  return process.env.GRASSEYE_STRUCTURED_LOG_LEVEL === "debug" ? "debug" : "info";
+  return process.env.GRASSEYE_STRUCTURED_LOG_LEVEL === "debug" || process.env.GRASSEYE_LOG_LEVEL === "debug"
+    ? "debug"
+    : "info";
 }
 
 export function createStructuredTerminalLogListener(level: StructuredLogLevel = resolveStructuredLogLevel()): StructuredLogListener {

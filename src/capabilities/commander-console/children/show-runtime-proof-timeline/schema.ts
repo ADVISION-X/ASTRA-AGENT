@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRuntimeProofTimelineEntrySchema, LimitedReadInputSchema } from "../../schema.js";
+import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRuntimeProofTimelineEntrySchema, LimitedReadInputSchema } from "../../shared/commander-schema-base.js";
 
 export const ShowRuntimeProofTimelineInputSchema = LimitedReadInputSchema;
 export const ShowRuntimeProofTimelineOutputSchema = z.array(CommanderRuntimeProofTimelineEntrySchema);

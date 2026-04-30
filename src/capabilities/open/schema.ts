@@ -20,15 +20,13 @@ import {
   OPEN_ABILITY_GROUP_ID,
   OPEN_ALLOWED_CALLERS,
   OPEN_CHILD_CAPABILITY_IDS,
-  OPEN_FAILURE_INPUT_PARSE_DECISIONS,
   OPEN_PLATFORM_IDS,
   OPEN_POST_OPEN_CLASSIFICATIONS,
-  OPEN_TRACE_FIELD_SOURCES,
   OPEN_TARGET_KINDS,
 } from "./shared/open-target-profile.js";
 
-const nullableString = z.string().min(1).nullable().optional().default(null);
-const nullableUrl = z.string().url().nullable().optional().default(null);
+const nullableString = z.string().min(1).nullable().default(null);
+const nullableUrl = z.string().url().nullable().default(null);
 const nonNegativeInt = z.number().int().nonnegative();
 
 export const OpenChildCapabilityIdSchema = z.enum(OPEN_CHILD_CAPABILITY_IDS);
@@ -37,8 +35,20 @@ export const OpenPlatformIdSchema = z.enum(OPEN_PLATFORM_IDS);
 export const OpenStatusSchema = z.enum(OPEN_RESULT_STATUSES);
 export const OpenFailureCodeSchema = z.enum(OPEN_FAILURE_CODES);
 export const OpenAllowedCallerSchema = z.enum(OPEN_ALLOWED_CALLERS);
-export const OpenTraceFieldSourceSchema = z.enum(OPEN_TRACE_FIELD_SOURCES);
-export const OpenFailureInputParseDecisionSchema = z.enum(OPEN_FAILURE_INPUT_PARSE_DECISIONS);
+export const OpenTargetUrlSourceSchema = z.enum(["provided", "registered_profile", "rejected_missing"]);
+export const OpenTraceFieldSourceSchema = z.enum(["provided", "unavailable"]);
+export const OpenFailureInputParseDecisionSchema = z.enum(["parsed", "fallback_trace_only"]);
+export const OpenTimeoutDecisionSchema = z.enum(["within_limit", "timed_out"]);
+export const OpenAbortDecisionSchema = z.enum(["not_requested", "timeout_abort_requested", "operator_abort_requested"]);
+export const OpenCircuitBreakerStateSchema = z.enum(["closed", "open"]);
+export const OpenIdempotencyDecisionSchema = z.enum([
+  "reserved",
+  "duplicate_review_required",
+  "already_on_target",
+  "scope_capacity_exceeded",
+  "not_started",
+]);
+export const OpenAlreadyOnTargetFreshnessDecisionSchema = z.enum(["not_applicable", "freshness_required", "freshness_verified"]);
 
 export const OpenDataQualityFlagSchema = z.object({
   code: z.string().min(1),
@@ -53,8 +63,10 @@ export const OpenTimeoutPolicySchema = z.object({
 
 export const OpenIdempotencyPolicySchema = z.object({
   allowReplay: z.boolean().default(false),
-  scope: z.literal("session_target_round"),
+  scope: z.literal("session_target_round_video_visit"),
   duplicateStatus: z.literal("review_required"),
+  ttlMs: z.number().int().positive(),
+  maxReservations: z.number().int().positive(),
 }).strict();
 
 export const OpenBoundaryPolicySchema = z.object({
@@ -129,7 +141,7 @@ export const OpenRequestSchema = z.object({
   platformId: OpenPlatformIdSchema,
   targetKind: OpenTargetKindSchema,
   requestedBy: OpenAllowedCallerSchema,
-  sourceAbilityGroupId: OpenAllowedCallerSchema,
+  sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: nullableString,
   missionId: z.string().min(1),
   runId: z.string().min(1),
@@ -139,6 +151,7 @@ export const OpenRequestSchema = z.object({
   reason: z.string().min(1),
   targetUrl: nullableString,
   targetTitle: nullableString,
+  targetProfileRef: nullableString,
   sourceRef: nullableString,
 }).strict();
 
@@ -162,11 +175,14 @@ export const BrowserSessionSnapshotSchema = z.object({
 }).strict();
 
 export const NavigationResultSchema = z.object({
-  browserActionId: z.string().min(1),
+  browserActionId: nullableString,
   ok: z.boolean(),
   message: z.string().min(1),
   createdAt: z.string().datetime(),
-  fallbackUsed: z.boolean(),
+  openedUrl: nullableUrl,
+  pageTitleAfter: nullableString,
+  redirectChain: z.array(z.string().url()).default([]),
+  portKind: z.string().min(1),
 }).strict();
 
 export const OpenTargetPolicyDecisionSchema = z.object({
@@ -175,9 +191,21 @@ export const OpenTargetPolicyDecisionSchema = z.object({
   targetProfileRef: nullableString,
   resolvedTargetUrl: nullableUrl,
   resolvedTargetTitle: nullableString,
+  targetUrlSource: OpenTargetUrlSourceSchema,
 }).strict().superRefine((value, context) => {
   if (value.status === "allow" && (!value.targetProfileRef || !value.resolvedTargetUrl || !value.resolvedTargetTitle)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "allow target policy decision requires target profile and resolved target fields", path: ["resolvedTargetUrl"] });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "allow target policy decision requires target profile and resolved target fields",
+      path: ["resolvedTargetUrl"],
+    });
+  }
+  if (value.status === "allow" && value.targetUrlSource === "rejected_missing") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "allow target policy decision cannot use rejected_missing targetUrlSource",
+      path: ["targetUrlSource"],
+    });
   }
 });
 
@@ -186,10 +214,14 @@ export const OpenUrlSafetyDecisionSchema = z.object({
   reason: nullableString,
   normalizedUrl: nullableUrl,
   hostname: nullableString,
-  scheme: z.enum(["http", "https"]).nullable().optional().default(null),
+  scheme: z.enum(["http", "https"]).nullable().default(null),
 }).strict().superRefine((value, context) => {
   if (value.status === "allow" && (!value.normalizedUrl || !value.hostname || !value.scheme)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "allow url safety decision requires normalized url, hostname, and scheme", path: ["normalizedUrl"] });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "allow url safety decision requires normalized url, hostname, and scheme",
+      path: ["normalizedUrl"],
+    });
   }
 });
 
@@ -205,26 +237,42 @@ export const OpenNavigationDecisionSchema = z.object({
   status: z.enum(OPEN_NAVIGATION_DECISION_STATUSES),
   reason: nullableString,
   browserActionId: nullableString,
-  fallbackUsed: z.boolean(),
-  openedUrl: nullableString,
+  openedUrl: nullableUrl,
   pageTitleAfter: nullableString,
   navigationAttemptRef: z.string().min(1),
+  navigationCallId: z.string().min(1),
   redirectChain: z.array(z.string().url()).default([]),
+  timeoutDecision: OpenTimeoutDecisionSchema,
+  abortDecision: OpenAbortDecisionSchema,
+  circuitBreakerState: OpenCircuitBreakerStateSchema,
+  browserOpenStillRunningGuard: z.boolean(),
+  alreadyOnTargetFreshnessDecision: OpenAlreadyOnTargetFreshnessDecisionSchema,
 }).strict();
 
 export const PostOpenStateDecisionSchema = z.object({
   status: OpenStatusSchema,
   classification: z.enum(OPEN_POST_OPEN_CLASSIFICATIONS),
   reason: nullableString,
-  openedUrl: nullableString,
+  openedUrl: nullableUrl,
   pageTitleAfter: nullableString,
   pageStateHandoffRequired: z.boolean(),
-}).strict();
+  pageStateHandoffRef: nullableString,
+  authoritative: z.literal(false),
+  documentReadyState: z.enum(["loading", "interactive", "complete"]).nullable().default(null),
+}).strict().superRefine((value, context) => {
+  if (value.status === "success" && (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "success post-open decision requires page-state handoff",
+      path: ["pageStateHandoffRef"],
+    });
+  }
+});
 
 export const OpenOutputSchema = z.object({
   targetProfileRef: z.string().min(1),
   targetUrl: z.string().url(),
-  openedUrl: nullableString,
+  openedUrl: z.string().url(),
   redirectChain: z.array(z.string().url()).default([]),
   pageTitleAfter: nullableString,
   browserSessionRef: z.string().min(1),
@@ -235,10 +283,8 @@ export const OpenOutputSchema = z.object({
   loginStateAfter: BrowserLoginStateSchema,
   sourceRef: z.string().min(1),
   openAttemptRef: z.string().min(1),
-  pageStateRef: nullableString,
-  forensicsRef: nullableString,
-  fallbackUsed: z.boolean(),
-  pageStateHandoffRequired: z.boolean(),
+  pageStateHandoffRef: z.string().min(1),
+  pageStateHandoffRequired: z.literal(true),
 }).strict();
 
 export const OpenRuntimeProofSchema = z.object({
@@ -249,49 +295,56 @@ export const OpenRuntimeProofSchema = z.object({
   roundId: nullableString,
   videoVisitId: nullableString,
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),
-  childCapabilityId: OpenChildCapabilityIdSchema.nullable().optional().default(null),
-  platformId: OpenPlatformIdSchema.nullable().optional().default(null),
-  targetKind: OpenTargetKindSchema.nullable().optional().default(null),
+  childCapabilityId: OpenChildCapabilityIdSchema.nullable().default(null),
+  platformId: OpenPlatformIdSchema.nullable().default(null),
+  targetKind: OpenTargetKindSchema.nullable().default(null),
   sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: nullableString,
+  missionIdSource: OpenTraceFieldSourceSchema,
+  runIdSource: OpenTraceFieldSourceSchema,
+  sessionIdSource: OpenTraceFieldSourceSchema,
+  childCapabilityIdSource: OpenTraceFieldSourceSchema,
+  failureInputParseDecision: OpenFailureInputParseDecisionSchema,
   inputRef: z.string().min(1),
-  outputRef: z.string().min(1),
+  outputRef: nullableString,
+  diagnosticPayloadRef: nullableString,
   targetProfileRef: nullableString,
   targetUrl: nullableUrl,
-  openedUrl: nullableString,
+  targetUrlSource: OpenTargetUrlSourceSchema,
+  openedUrl: nullableUrl,
   redirectChain: z.array(z.string().url()).default([]),
-  browserProfileRef: z.string().min(1),
+  browserProfileRef: nullableString,
   browserMode: BrowserModeSchema,
   profileVerificationStatus: BrowserProfileVerificationStatusSchema,
   loginStateBefore: BrowserLoginStateSchema,
   loginStateAfter: BrowserLoginStateSchema,
   pageTitleAfter: nullableString,
   idempotencyKey: z.string().min(1),
+  idempotencyDecision: OpenIdempotencyDecisionSchema,
+  openAttemptRef: z.string().min(1),
+  navigationCallId: z.string().min(1),
   navigationAttemptRef: z.string().min(1),
+  timeoutDecision: OpenTimeoutDecisionSchema,
+  abortDecision: OpenAbortDecisionSchema,
+  circuitBreakerState: OpenCircuitBreakerStateSchema,
+  targetPolicyDecision: OpenTargetPolicyDecisionSchema,
+  urlSafetyDecision: OpenUrlSafetyDecisionSchema,
+  sessionDecision: OpenSessionDecisionSchema,
+  navigationDecision: OpenNavigationDecisionSchema,
+  postOpenDecision: PostOpenStateDecisionSchema,
+  preliminaryOpenClassification: z.enum(OPEN_POST_OPEN_CLASSIFICATIONS),
   pageStateHandoffRequired: z.boolean(),
+  pageStateHandoffRef: nullableString,
+  sourceRef: z.string().min(1),
+  sessionSnapshotAvailable: z.boolean(),
+  sessionSnapshotFailureReason: nullableString,
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: nonNegativeInt,
   status: OpenStatusSchema,
   failureReason: OpenFailureSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
-  targetPolicyDecision: OpenTargetPolicyDecisionSchema,
-  urlSafetyDecision: OpenUrlSafetyDecisionSchema,
-  sessionDecision: OpenSessionDecisionSchema,
-  navigationDecision: OpenNavigationDecisionSchema,
-  postOpenStateDecision: PostOpenStateDecisionSchema,
   dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),
-  browserSessionRef: z.string().min(1),
-  sourceRef: z.string().min(1),
-  openAttemptRef: z.string().min(1),
-  pageStateRef: nullableString,
-  forensicsRef: nullableString,
-  missionIdSource: OpenTraceFieldSourceSchema,
-  runIdSource: OpenTraceFieldSourceSchema,
-  sessionIdSource: OpenTraceFieldSourceSchema,
-  targetUrlSource: OpenTraceFieldSourceSchema,
-  childCapabilityIdSource: OpenTraceFieldSourceSchema,
-  failureInputParseDecision: OpenFailureInputParseDecisionSchema,
   clock: z.object({
     portKind: z.literal(OPEN_CLOCK_KIND),
     startedMonotonicMs: z.number().finite(),
@@ -299,28 +352,53 @@ export const OpenRuntimeProofSchema = z.object({
   }).strict(),
 }).strict().superRefine((value, context) => {
   if (value.clock.startedMonotonicMs > value.clock.endedMonotonicMs) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedMonotonicMs must not be after endedMonotonicMs", path: ["clock", "startedMonotonicMs"] });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "startedMonotonicMs must not be after endedMonotonicMs",
+      path: ["clock", "startedMonotonicMs"],
+    });
   }
-  if (value.status !== value.postOpenStateDecision.status) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "proof status must equal postOpenStateDecision.status", path: ["postOpenStateDecision", "status"] });
+  if (value.status !== value.postOpenDecision.status) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "proof status must equal postOpenDecision.status",
+      path: ["postOpenDecision", "status"],
+    });
   }
-  if (value.status === "success" && !value.pageStateHandoffRequired) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires pageStateHandoffRequired=true", path: ["pageStateHandoffRequired"] });
+  if (value.status === "success") {
+    if (value.outputRef === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success proof requires outputRef",
+        path: ["outputRef"],
+      });
+    }
+    if (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success proof requires page-state handoff",
+        path: ["pageStateHandoffRef"],
+      });
+    }
   }
-  if (value.status === "success" && (!value.childCapabilityId || !value.platformId || !value.targetKind || !value.runId || !value.missionId || !value.sessionId || !value.targetProfileRef || !value.targetUrl)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires complete identity and target fields", path: ["childCapabilityId"] });
+  if (value.status !== "success" && value.outputRef !== null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failed and review_required proof must not expose outputRef",
+      path: ["outputRef"],
+    });
   }
 });
 
 export const OpenResultSchema = z.object({
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),
-  childCapabilityId: OpenChildCapabilityIdSchema.nullable().optional().default(null),
-  platformId: OpenPlatformIdSchema.nullable().optional().default(null),
-  targetKind: OpenTargetKindSchema.nullable().optional().default(null),
+  childCapabilityId: OpenChildCapabilityIdSchema.nullable().default(null),
+  platformId: OpenPlatformIdSchema.nullable().default(null),
+  targetKind: OpenTargetKindSchema.nullable().default(null),
   status: OpenStatusSchema,
   message: z.string().min(1),
   targetUrl: nullableUrl,
-  openedUrl: nullableString,
+  openedUrl: nullableUrl,
   targetTitle: nullableString,
   pageTitleAfter: nullableString,
   pageStateHandoffRequired: z.boolean(),
@@ -330,16 +408,34 @@ export const OpenResultSchema = z.object({
   runtimeProof: OpenRuntimeProofSchema,
 }).strict().superRefine((value, context) => {
   if (value.runtimeProof.status !== value.status) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "runtimeProof.status must equal result.status",
+      path: ["runtimeProof", "status"],
+    });
   }
-  if (value.status === "success" && !value.pageStateHandoffRequired) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires pageStateHandoffRequired=true", path: ["pageStateHandoffRequired"] });
-  }
-  if (value.status === "success" && (!value.output || !value.childCapabilityId || !value.platformId || !value.targetKind || !value.targetUrl)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output and target identity fields", path: ["output"] });
+  if (value.status === "success") {
+    if (value.output === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success result requires output",
+        path: ["output"],
+      });
+    }
+    if (!value.pageStateHandoffRequired) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "success result requires pageStateHandoffRequired=true",
+        path: ["pageStateHandoffRequired"],
+      });
+    }
   }
   if (value.status !== "success" && value.output !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed or review_required result must not expose executable output", path: ["output"] });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "failed or review_required result must not expose executable output",
+      path: ["output"],
+    });
   }
 });
 

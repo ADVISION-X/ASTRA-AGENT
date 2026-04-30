@@ -10,19 +10,22 @@ export function createDefaultPageStateProfilePort(): PageStateProfilePort {
     },
     resolve(currentUrl, expectedProfileId) {
       const parsed = new URL(currentUrl);
-      const matchedProfile = DEFAULT_PAGE_STATE_PLATFORM_PROFILES.find((profile) => profile.profileId === expectedProfileId)
-        ?? DEFAULT_PAGE_STATE_PLATFORM_PROFILES.find((profile) => profile.hosts.includes(parsed.hostname.toLowerCase()));
-      if (!matchedProfile) {
+      const normalizedHost = parsed.hostname.toLowerCase().replace(/\.$/, "");
+      const expectedProfile = DEFAULT_PAGE_STATE_PLATFORM_PROFILES.find((profile) => profile.profileId === expectedProfileId);
+      if (!expectedProfile) {
         return null;
       }
-
-      const matchedHost = matchedProfile.hosts.find((host) => host === parsed.hostname.toLowerCase())
-        ?? parsed.hostname.toLowerCase();
+      const matchedHost = expectedProfile.hosts.find((host) => host === normalizedHost) ?? null;
+      if (!matchedHost) {
+        return null;
+      }
       return {
-        profile: matchedProfile,
-        profileId: matchedProfile.profileId,
-        matchKind: matchedProfile.kind === "local_workbench" ? "local_workbench" : "host",
+        profile: expectedProfile,
+        profileId: expectedProfile.profileId,
+        expectedProfileId,
+        matchKind: expectedProfile.kind === "local_workbench" ? "local_workbench" : "host",
         matchedHost,
+        hostMatched: true,
       };
     },
   };
@@ -40,7 +43,7 @@ export function gatePlatformProfile(input: {
       ok: false,
       platformDecision: "block",
       failure: {
-        status: "blocked",
+        status: "failed",
         decision: "block",
         failureReason: "platform_mismatch",
         stateSummary: "Page State blocked execution because the browser is still at about:blank.",
@@ -58,7 +61,7 @@ export function gatePlatformProfile(input: {
       ok: false,
       platformDecision: "block",
       failure: {
-        status: "blocked",
+        status: "failed",
         decision: "block",
         failureReason: "platform_mismatch",
         stateSummary: "Page State blocked execution because the URL does not match any governed platform profile.",
@@ -75,7 +78,7 @@ export function gatePlatformProfile(input: {
       ok: false,
       platformDecision: "block",
       failure: {
-        status: "blocked",
+        status: "failed",
         decision: "block",
         failureReason: "platform_mismatch",
         stateSummary: "Page State blocked execution because local workbench is not allowed for this request.",
@@ -88,7 +91,7 @@ export function gatePlatformProfile(input: {
   }
 
   const expectedHost = input.request.statePolicy.expectedPlatformHost;
-  if (expectedHost && !resolvedProfile.profile.hosts.includes(expectedHost)) {
+  if (expectedHost && resolvedProfile.matchedHost !== expectedHost.toLowerCase().replace(/\.$/, "")) {
     return {
       ok: false,
       platformDecision: "review_required",

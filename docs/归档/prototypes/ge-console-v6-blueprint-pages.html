@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GrassEye Commander Console - Frozen Mac App Blueprint</title>
+<style>
+:root{
+  --bg:#030814;--bg2:#050b18;--panel:#071222;--panel2:#0a182c;--panel3:#0d2038;
+  --line:rgba(77,168,255,.22);--line2:rgba(77,168,255,.42);--lineSoft:rgba(77,168,255,.10);
+  --blue:#4da8ff;--blue2:#82c4ff;--green:#50fa7b;--amber:#ffd060;--red:#ff5c5c;
+  --text:#bddcf3;--text2:#83abc9;--muted:#456480;--faint:#20384f;
+  --shadow:0 18px 45px rgba(0,0,0,.35);
+  --radius:14px;--mono:"SFMono-Regular","Cascadia Code","Menlo",Consolas,monospace;--ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--ui);background:var(--bg);color:var(--text);font-size:14px;overflow:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(77,168,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(77,168,255,.025) 1px,transparent 1px);background-size:34px 34px;z-index:0}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 45% at 50% -8%,rgba(77,168,255,.10),transparent 70%),radial-gradient(ellipse 40% 55% at 105% 55%,rgba(80,250,123,.045),transparent 70%);z-index:0}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.36}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(77,168,255,.18);border-radius:12px}
+
+.app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;min-width:1180px}
+
+.titlebar{height:48px;background:rgba(5,11,24,.96);border-bottom:1px solid var(--line);display:grid;grid-template-columns:140px 1fr 180px;align-items:center;padding:0 16px 0 12px;flex-shrink:0}
+.window-controls{display:flex;gap:8px;align-items:center}
+.window-dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.window-dot.close{background:#ff5f57}.window-dot.min{background:#febc2e}.window-dot.zoom{background:#28c840}
+.title-copy{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0}
+.title-lockup{display:flex;flex-direction:column;align-items:center;min-width:0}
+.title-lockup strong{font-size:13px;letter-spacing:.3px;color:var(--text)}
+.title-lockup span{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:var(--muted);margin-top:2px;text-transform:uppercase}
+.freeze-badge{border:1px solid rgba(80,250,123,.34);color:var(--green);background:rgba(80,250,123,.08);border-radius:999px;padding:5px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.8px;white-space:nowrap}
+.locale-switch{display:flex;justify-content:flex-end;gap:8px}
+.locale-btn{border:1px solid var(--line);background:rgba(77,168,255,.06);color:var(--text2);border-radius:999px;padding:6px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.8px}
+.locale-btn.active{border-color:var(--blue);background:rgba(77,168,255,.12);color:var(--blue2)}
+
+.toolbar{height:78px;background:rgba(5,11,24,.9);border-bottom:1px solid var(--lineSoft);display:grid;grid-template-columns:minmax(300px,1fr) minmax(360px,1.2fr) auto;align-items:center;gap:16px;padding:0 18px;flex-shrink:0}
+.toolbar-primary,.toolbar-metrics,.toolbar-actions{display:flex;align-items:center;gap:12px;min-width:0}
+.toolbar-primary{justify-content:space-between}
+.toolbar-title-copy{min-width:0}
+.eyebrow{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.3px;text-transform:uppercase}
+.toolbar-title-copy h1{font-size:22px;letter-spacing:.2px;color:var(--text);line-height:1.1;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.runtime-pill,.pill{border:1px solid var(--line);background:rgba(7,18,34,.82);border-radius:999px;padding:8px 12px;font-family:var(--mono);font-size:11px;white-space:nowrap}
+.runtime-pill.good,.pill.good{color:var(--green);border-color:rgba(80,250,123,.35);background:rgba(80,250,123,.07)}
+.runtime-pill.warn,.pill.warn{color:var(--amber);border-color:rgba(255,208,96,.35);background:rgba(255,208,96,.07)}
+.runtime-pill.bad,.pill.bad{color:var(--red);border-color:rgba(255,92,92,.35);background:rgba(255,92,92,.07)}
+.metric{min-width:0;border-left:1px solid var(--lineSoft);padding-left:12px}
+.metric:first-child{border-left:0;padding-left:0}
+.metric .k{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.1px;text-transform:uppercase}
+.metric .v{font-size:13px;color:var(--text);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmd{border:1px solid var(--line2);background:rgba(77,168,255,.06);color:var(--blue2);border-radius:10px;padding:8px 13px;font-family:var(--mono);font-size:11px;letter-spacing:.8px}
+.cmd:hover{background:rgba(77,168,255,.12)}
+.cmd.primary{border-color:rgba(80,250,123,.45);color:var(--green);background:rgba(80,250,123,.08)}
+.cmd.danger{border-color:rgba(255,92,92,.45);color:var(--red);background:rgba(255,92,92,.06)}
+
+.shell{display:grid;grid-template-columns:96px 1fr 340px;flex:1;min-height:0}
+.rail{background:rgba(5,11,24,.92);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:10px}
+.rail-btn{border:1px solid transparent;background:transparent;color:var(--muted);border-radius:14px;padding:11px 6px;display:flex;flex-direction:column;align-items:center;gap:7px;transition:.15s}
+.rail-btn:hover{background:rgba(77,168,255,.05);color:var(--text2)}
+.rail-btn.active{border-color:var(--line2);background:rgba(77,168,255,.10);color:var(--blue2)}
+.rail-btn .ico{font-size:20px}
+.rail-btn .txt{font-size:10px;font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase}
+.rail-btn.hidden{display:none}
+
+.main{min-width:0;display:flex;flex-direction:column;background:rgba(3,8,20,.50)}
+.page{display:none;height:100%;min-height:0;flex-direction:column}
+.page.active{display:flex}
+.page-head{height:86px;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--lineSoft);flex-shrink:0}
+.crumb{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:1.3px;text-transform:uppercase}
+.page-title{font-size:24px;font-weight:700;color:var(--text);margin-top:4px;letter-spacing:.2px}
+.page-desc{font-size:13px;color:var(--text2);margin-top:5px}
+.head-right{display:flex;align-items:center;gap:10px}
+.subnav{display:flex;gap:8px;padding:12px 24px;border-bottom:1px solid var(--lineSoft);background:rgba(5,11,24,.52);overflow:auto;flex-shrink:0}
+.subtab{border:1px solid var(--lineSoft);background:rgba(7,18,34,.70);color:var(--text2);border-radius:999px;padding:8px 13px;font-size:12px}
+.subtab.active{border-color:var(--blue);background:rgba(77,168,255,.12);color:var(--blue2)}
+.content{flex:1;overflow:auto;padding:24px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.focus-grid{display:grid;grid-template-columns:minmax(460px,1.05fr) minmax(360px,.95fr);gap:18px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:linear-gradient(180deg,rgba(7,18,34,.96),rgba(5,14,28,.96));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.card.compact{padding:14px}
+.card-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.card-title h3{font-size:15px;letter-spacing:.2px;color:var(--text)}
+.card-title .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mini{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.note{font-size:12px;color:var(--text2);line-height:1.7}
+
+.error-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border:1px solid rgba(255,208,96,.34);background:rgba(255,208,96,.08);border-radius:16px;padding:15px 16px;margin-bottom:18px}
+.error-banner strong{display:block;color:var(--amber);margin-bottom:5px}
+.error-banner p{font-size:13px;color:var(--text);line-height:1.55}
+.error-banner small{display:block;margin-top:6px;color:var(--text2);line-height:1.55}
+
+.template-list{display:grid;gap:10px}
+.template-chip{border:1px solid var(--lineSoft);border-radius:14px;background:rgba(3,8,20,.45);padding:14px}
+.template-chip.selected{border-color:var(--blue);background:rgba(77,168,255,.08)}
+.template-chip .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.template-chip strong{font-size:14px;color:var(--text)}
+.template-chip small{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px}
+.template-chip p{color:var(--text2);font-size:13px;line-height:1.6;margin-top:10px}
+
+.home-actions,.inline-actions{display:flex;gap:10px;flex-wrap:wrap}
+.button{border:1px solid var(--line2);background:rgba(77,168,255,.06);color:var(--blue2);border-radius:10px;padding:10px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.6px}
+.button.primary{border-color:rgba(80,250,123,.45);color:var(--green);background:rgba(80,250,123,.08)}
+.button.danger{border-color:rgba(255,92,92,.45);color:var(--red);background:rgba(255,92,92,.06)}
+.button.tight{padding:8px 11px}
+
+.summary-list{display:grid;gap:10px}
+.summary-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(77,168,255,.08);padding-bottom:8px}
+.summary-row:last-child{border-bottom:0;padding-bottom:0}
+.summary-row dt{font-size:12px;color:var(--muted)}
+.summary-row dd{font-family:var(--mono);font-size:12px;color:var(--text);text-align:right}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.8px}
+.fake-input{background:rgba(3,8,20,.76);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 11px;font-size:13px}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-tile{background:rgba(10,24,44,.78);border:1px solid var(--lineSoft);border-radius:14px;padding:13px}
+.stat-tile span{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.stat-tile strong{display:block;font-family:var(--mono);font-size:22px;font-weight:700;margin-top:8px;color:var(--blue2)}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.list-row{border:1px solid var(--lineSoft);border-radius:14px;padding:12px;background:rgba(3,8,20,.38);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.list-row strong{font-size:13px;color:var(--text)}
+.list-row small{display:block;font-size:12px;color:var(--text2);line-height:1.5;margin-top:4px}
+.tag{font-family:var(--mono);font-size:10px;padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--blue2);white-space:nowrap}
+.tag.good{border-color:rgba(80,250,123,.35);color:var(--green)}
+.tag.warn{border-color:rgba(255,208,96,.35);color:var(--amber)}
+.tag.bad{border-color:rgba(255,92,92,.35);color:var(--red)}
+
+.timeline{display:flex;flex-direction:column;gap:10px}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start;border:1px solid var(--lineSoft);border-radius:14px;padding:12px;background:rgba(3,8,20,.38)}
+.step .mark{width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--blue)}
+.step.done .mark{background:rgba(80,250,123,.12);border-color:rgba(80,250,123,.42);color:var(--green)}
+.step.run .mark{background:rgba(77,168,255,.14);box-shadow:0 0 16px rgba(77,168,255,.18)}
+.step.warn .mark{background:rgba(255,208,96,.12);border-color:rgba(255,208,96,.42);color:var(--amber)}
+.step h4{font-family:var(--mono);font-size:12px;color:var(--text)}
+.step p{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.55}
+.step .time{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.table{width:100%;border-collapse:separate;border-spacing:0 8px}
+.table th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:500;letter-spacing:.8px;text-transform:uppercase;padding:0 10px}
+.table td{background:rgba(10,24,44,.66);border-top:1px solid var(--lineSoft);border-bottom:1px solid var(--lineSoft);padding:11px 10px;color:var(--text2);font-size:13px}
+.table td:first-child{border-left:1px solid var(--lineSoft);border-radius:12px 0 0 12px;color:var(--text);font-family:var(--mono)}
+.table td:last-child{border-right:1px solid var(--lineSoft);border-radius:0 12px 12px 0}
+
+.context{background:rgba(5,11,24,.92);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.ctx-head{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;border-bottom:1px solid var(--line)}
+.ctx-head h3{font-size:13px;letter-spacing:.3px}
+.ctx-body{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.ctx-section{border:1px solid var(--lineSoft);background:rgba(7,18,34,.58);border-radius:14px;padding:14px}
+.ctx-section h4{font-size:12px;color:var(--blue2);font-family:var(--mono);margin-bottom:10px}
+.keyrow{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(77,168,255,.08);padding:7px 0}
+.keyrow:last-child{border-bottom:0}
+.keyrow span:first-child{color:var(--muted);font-size:12px}
+.keyrow span:last-child{font-family:var(--mono);font-size:11px;color:var(--text);text-align:right}
+
+.runtime-strip{height:44px;border-top:1px solid var(--line);background:rgba(5,11,24,.94);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px;flex-shrink:0}
+.runtime-strip-copy{display:flex;align-items:center;gap:10px;min-width:0}
+.runtime-strip-copy strong{font-size:12px}
+.runtime-strip-copy span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.runtime-strip-items{display:flex;gap:16px;overflow:auto;font-family:var(--mono);font-size:11px;color:var(--text2)}
+
+.drawer{position:fixed;z-index:20;top:48px;right:-520px;width:520px;bottom:44px;background:rgba(5,11,24,.98);border-left:1px solid var(--blue);box-shadow:-28px 0 60px rgba(0,0,0,.45);transition:right .22s ease;display:flex;flex-direction:column}
+.drawer.open{right:0}
+.drawer-head{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--line)}
+.drawer-body{padding:18px;overflow:auto}
+.json{font-family:var(--mono);font-size:12px;line-height:1.75;color:var(--text2);background:rgba(3,8,20,.65);border:1px solid var(--lineSoft);border-radius:12px;padding:14px;white-space:pre-wrap}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+.linkish{color:var(--blue2);text-decoration:underline;text-decoration-color:rgba(77,168,255,.35);cursor:pointer}
+
+@media(max-width:1320px){
+  .shell{grid-template-columns:88px 1fr 0}
+  .context{display:none}
+  .focus-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="titlebar">
+    <div class="window-controls" aria-hidden="true">
+      <span class="window-dot close"></span>
+      <span class="window-dot min"></span>
+      <span class="window-dot zoom"></span>
+    </div>
+    <div class="title-copy">
+      <div class="title-lockup">
+        <strong>GrassEye Commander Console</strong>
+        <span>Local Mac Agent Console</span>
+      </div>
+      <span class="freeze-badge">FROZEN APP BLUEPRINT</span>
+    </div>
+    <div class="locale-switch" role="group" aria-label="Interface language">
+      <button type="button" class="locale-btn active" data-locale="zh">中文</button>
+      <button type="button" class="locale-btn" data-locale="en">EN</button>
+    </div>
+  </header>
+
+  <section class="toolbar">
+    <div class="toolbar-primary">
+      <div class="toolbar-title-copy">
+        <p class="eyebrow">当前任务</p>
+        <h1>TikTok Product Discovery</h1>
+      </div>
+      <div class="runtime-pill good">运行中</div>
+    </div>
+    <div class="toolbar-metrics">
+      <div class="metric"><div class="k">当前动作</div><div class="v">正在询问本地 AI</div></div>
+      <div class="metric"><div class="k">已处理</div><div class="v">42</div></div>
+      <div class="metric"><div class="k">待复核</div><div class="v">2</div></div>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" class="cmd" id="developer-toggle">开发者模式</button>
+      <button type="button" class="cmd danger">E-Stop</button>
+    </div>
+  </section>
+
+  <section class="shell">
+    <nav class="rail" aria-label="Commander Mac navigation">
+      <button class="rail-btn active" data-page="start"><span class="ico">⌂</span><span class="txt">Start</span></button>
+      <button class="rail-btn" data-page="mission"><span class="ico">◎</span><span class="txt">Mission</span></button>
+      <button class="rail-btn" data-page="results"><span class="ico">▤</span><span class="txt">Results</span></button>
+      <button class="rail-btn" data-page="review"><span class="ico">✓</span><span class="txt">Review</span></button>
+      <button class="rail-btn" data-page="health"><span class="ico">⚕</span><span class="txt">Health</span></button>
+      <button class="rail-btn hidden" data-page="developer" id="developer-nav"><span class="ico">⌘</span><span class="txt">Dev</span></button>
+    </nav>
+
+    <main class="main">
+      <section class="page active" id="page-start">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Start</div>
+            <div class="page-title">开始</div>
+            <div class="page-desc">桌面启动页只保留启动任务、运行边界和当前状态，不把运行详情、结果、复核和健康堆回同一页。</div>
+          </div>
+          <div class="head-right">
+            <span class="pill warn">待复核 2</span>
+            <span class="pill good">Mac Shell 已收束</span>
+          </div>
+        </div>
+        <div class="content">
+          <section class="error-banner">
+            <div>
+              <strong>任务进入人工复核</strong>
+              <p>系统已经暂停部分自动推进，并把当前结果挂起等待你决定。</p>
+              <small>下一步：打开复核队列，检查当前记录后选择批准、拒绝，或继续保持待复核。</small>
+            </div>
+            <div class="inline-actions">
+              <button type="button" class="button tight" onclick="openDrawer('当前错误详情','error')">查看详情</button>
+              <button type="button" class="button tight" onclick="activatePage('review')">去复核</button>
+            </div>
+          </section>
+          <div class="focus-grid">
+            <div class="stack">
+              <div class="card">
+                <div class="card-title"><h3>开始任务</h3><span class="meta">Start Surface</span></div>
+                <div class="template-list">
+                  <article class="template-chip selected">
+                    <div class="row">
+                      <div>
+                        <strong>TikTok Product Discovery</strong>
+                        <small>guarded autopilot</small>
+                      </div>
+                      <span class="tag good">READY</span>
+                    </div>
+                    <p>Browse the TikTok feed, identify product videos, and preserve evidence packets plus browse ledger records.</p>
+                  </article>
+                  <article class="template-chip">
+                    <div class="row">
+                      <div>
+                        <strong>TikTok Comment Evidence Capture</strong>
+                        <small>review-first</small>
+                      </div>
+                      <span class="tag good">READY</span>
+                    </div>
+                    <p>Capture candidate comments along the review path while preserving review context and operator note entry.</p>
+                  </article>
+                  <article class="template-chip">
+                    <div class="row">
+                      <div>
+                        <strong>AI Generated Map</strong>
+                        <small>execution blocked</small>
+                      </div>
+                      <span class="tag warn">BLOCKED</span>
+                    </div>
+                    <p>Reserved for future AI-authored temporary task programs, but execution is disabled in the current phase.</p>
+                  </article>
+                </div>
+                <p class="note" style="margin-top:14px">当前蓝图已经固定为“模板选择 + 运行边界 + 当前状态”的桌面启动面，不再保留旧的 Command Center 一级页。</p>
+                <div class="home-actions" style="margin-top:16px">
+                  <button type="button" class="button primary" disabled="disabled">Start Task</button>
+                  <button type="button" class="button" onclick="activatePage('mission')">Open Mission</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <div class="card">
+                <div class="card-title"><h3>当前任务</h3><button type="button" class="button tight" onclick="activatePage('mission')">Open Mission</button></div>
+                <dl class="summary-list">
+                  <div class="summary-row"><dt>状态</dt><dd>运行中</dd></div>
+                  <div class="summary-row"><dt>当前动作</dt><dd>正在询问本地 AI</dd></div>
+                  <div class="summary-row"><dt>已运行</dt><dd>18m</dd></div>
+                  <div class="summary-row"><dt>已处理</dt><dd>42</dd></div>
+                </dl>
+              </div>
+
+              <div class="card">
+                <div class="card-title"><h3>运行限制</h3><span class="meta">Runs are bounded by default</span></div>
+                <div class="field-grid">
+                  <div class="field"><label>Minutes</label><div class="fake-input">20</div></div>
+                  <div class="field"><label>Items</label><div class="fake-input">3</div></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title"><h3>安全控制</h3><span class="meta">E-Stop stays global</span></div>
+                <p class="note">急停保持全局可见；这个区块只保留 Pause / Resume / Stop，不再在标题栏重复一整排命令。</p>
+                <div class="inline-actions" style="margin-top:14px">
+                  <button type="button" class="button tight">Pause</button>
+                  <button type="button" class="button tight" disabled="disabled">Resume</button>
+                  <button type="button" class="button tight">Stop</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title"><h3>结果摘要</h3><button type="button" class="button tight" onclick="activatePage('results')">Open Results</button></div>
+                <div class="stat-grid">
+                  <article class="stat-tile"><span>Evidence</span><strong>12</strong></article>
+                  <article class="stat-tile"><span>Browse Ledger</span><strong>29</strong></article>
+                  <article class="stat-tile"><span>Failed</span><strong>3</strong></article>
+                  <article class="stat-tile"><span>Review</span><strong>2</strong></article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-mission">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Mission</div>
+            <div class="page-title">运行</div>
+            <div class="page-desc">Mission 只显示运行过程，不把结果、复核、健康和开发者信息重新堆回这一页。</div>
+          </div>
+          <div class="head-right"><span class="pill good">Current Step · ask_ai_product_presence</span></div>
+        </div>
+        <div class="subnav">
+          <button class="subtab active" data-tab-scope="mission" data-tab-target="mission-overview">Overview</button>
+          <button class="subtab" data-tab-scope="mission" data-tab-target="mission-timeline">Timeline</button>
+          <button class="subtab" data-tab-scope="mission" data-tab-target="mission-proof">Proof Summary</button>
+        </div>
+        <div class="content">
+          <section class="tab-panel active" id="tab-mission-overview">
+            <div class="stack">
+              <div class="card">
+                <div class="card-title"><h3>Current Mission</h3><span class="meta">Mission Summary</span></div>
+                <dl class="summary-list">
+                  <div class="summary-row"><dt>Task</dt><dd>TikTok Product Discovery</dd></div>
+                  <div class="summary-row"><dt>State</dt><dd>Running</dd></div>
+                  <div class="summary-row"><dt>Platform</dt><dd>tiktok-web</dd></div>
+                  <div class="summary-row"><dt>Goal</dt><dd>Identify product videos and preserve governed evidence.</dd></div>
+                </dl>
+              </div>
+              <div class="card">
+                <div class="card-title"><h3>Current Step</h3><span class="meta">Human Summary</span></div>
+                <div class="list">
+                  <article class="list-row">
+                    <div>
+                      <strong>正在询问本地 AI</strong>
+                      <small>系统已经完成多帧截图和接触表拼接，正在等待本地视觉模型返回产品判断 JSON。</small>
+                    </div>
+                    <span class="tag good">RUNNING</span>
+                  </article>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title"><h3>Mission Actions</h3><span class="meta">Within Mission</span></div>
+                <div class="inline-actions">
+                  <button type="button" class="button tight" onclick="activatePage('health')">Open Health</button>
+                  <button type="button" class="button tight" onclick="openDrawer('Open Debug Bundle','round')">Open Debug Bundle</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-mission-timeline">
+            <div class="card">
+              <div class="card-title"><h3>Recent Key Events</h3><span class="meta">3-5 events</span></div>
+              <div class="timeline">
+                <div class="step done"><div class="mark">1</div><div><h4>open_target_page</h4><p>open.open-tiktok returned governed success and preserved open proof.</p></div><span class="time">1240ms</span></div>
+                <div class="step done"><div class="mark">2</div><div><h4>capture_multi_frame</h4><p>screenshot.capture-browser-viewport bound 3 frames plus contact sheet.</p></div><span class="time">890ms</span></div>
+                <div class="step run"><div class="mark">3</div><div><h4>ask_ai_product_presence</h4><p>ai.local-vision-product-detection is waiting for structured output.</p></div><span class="time">running</span></div>
+                <div class="step warn"><div class="mark">4</div><div><h4>branch_decision</h4><p>Orchestration is waiting for governed AI result before selecting finalize_record or browse_ledger.</p></div><span class="time">pending</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-mission-proof">
+            <div class="card">
+              <div class="card-title"><h3>Proof Summary</h3><span class="meta">Inspect Entry</span></div>
+              <div class="list">
+                <article class="list-row"><div><strong>HumanCommandEnvelope</strong><small>Commander Console only issues human commands.</small></div><button type="button" class="button tight" onclick="openDrawer('HumanCommandEnvelope','proof')">Open Proof</button></article>
+                <article class="list-row"><div><strong>NerveBusTransportProof</strong><small>traceId / idempotencyKey / transport status remain governed.</small></div><button type="button" class="button tight" onclick="openDrawer('NerveBusTransportProof','proof')">Open Proof</button></article>
+                <article class="list-row"><div><strong>OrchestrationRuntimeProof</strong><small>map / step / transition / state revision are owned by orchestration.</small></div><button type="button" class="button tight" onclick="openDrawer('OrchestrationRuntimeProof','proof')">Open Proof</button></article>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="page-results">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Results</div>
+            <div class="page-title">结果</div>
+            <div class="page-desc">Results 只显示结果摘要、结果列表和导出入口，不再混进启动表单或运行过程。</div>
+          </div>
+          <div class="head-right"><span class="pill warn">Export Unavailable</span></div>
+        </div>
+        <div class="subnav">
+          <button class="subtab active" data-tab-scope="results" data-tab-target="results-summary">Summary</button>
+          <button class="subtab" data-tab-scope="results" data-tab-target="results-evidence">Evidence</button>
+          <button class="subtab" data-tab-scope="results" data-tab-target="results-browse">Browse</button>
+          <button class="subtab" data-tab-scope="results" data-tab-target="results-failed">Failed</button>
+          <button class="subtab" data-tab-scope="results" data-tab-target="results-export">Export</button>
+        </div>
+        <div class="content">
+          <section class="tab-panel active" id="tab-results-summary">
+            <div class="stack">
+              <div class="card">
+                <div class="card-title"><h3>Result Summary</h3><button type="button" class="button tight" disabled="disabled">Export Unavailable</button></div>
+                <div class="stat-grid">
+                  <article class="stat-tile"><span>Evidence</span><strong>12</strong></article>
+                  <article class="stat-tile"><span>Browse Ledger</span><strong>29</strong></article>
+                  <article class="stat-tile"><span>Failed</span><strong>3</strong></article>
+                  <article class="stat-tile"><span>Review</span><strong>2</strong></article>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title"><h3>Recent Results</h3><span class="meta">Latest Outputs</span></div>
+                <div class="list">
+                  <article class="list-row"><div><strong>pkt_042</strong><small>round rnd_042 · product_candidate · confidence 0.84</small></div><button type="button" class="button tight" onclick="openDrawer('Evidence Packet pkt_042','record')">Inspect</button></article>
+                  <article class="list-row"><div><strong>pkt_037</strong><small>round rnd_037 · product_candidate · confidence 0.91</small></div><button type="button" class="button tight" onclick="openDrawer('Evidence Packet pkt_037','record')">Inspect</button></article>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-results-evidence">
+            <div class="card">
+              <div class="card-title"><h3>Evidence Packets</h3><span class="meta">Results</span></div>
+              <table class="table">
+                <tr><th>packet</th><th>secondary</th><th>detail</th><th>inspect</th></tr>
+                <tr><td>pkt_042</td><td>rnd_042</td><td>product_candidate · confidence 0.84</td><td><span class="linkish" onclick="openDrawer('Evidence Packet pkt_042','record')">open</span></td></tr>
+                <tr><td>pkt_037</td><td>rnd_037</td><td>product_candidate · confidence 0.91</td><td><span class="linkish" onclick="openDrawer('Evidence Packet pkt_037','record')">open</span></td></tr>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-results-browse">
+            <div class="card">
+              <div class="card-title"><h3>Browse Ledger</h3><span class="meta">Results</span></div>
+              <table class="table">
+                <tr><th>ledger</th><th>secondary</th><th>detail</th><th>inspect</th></tr>
+                <tr><td>led_041</td><td>rnd_041</td><td>no_product · confidence_low</td><td><span class="linkish" onclick="openDrawer('Browse Ledger led_041','record')">open</span></td></tr>
+                <tr><td>led_040</td><td>rnd_040</td><td>skipped · duplicate_video</td><td><span class="linkish" onclick="openDrawer('Browse Ledger led_040','record')">open</span></td></tr>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-results-failed">
+            <div class="card">
+              <div class="card-title"><h3>Failed Records</h3><span class="meta">Results</span></div>
+              <table class="table">
+                <tr><th>record</th><th>secondary</th><th>detail</th><th>inspect</th></tr>
+                <tr><td>fail_038</td><td>visual-target</td><td>ambiguous_candidates</td><td><span class="linkish" onclick="openDrawer('Failure Proof fail_038','proof')">inspect</span></td></tr>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tab-results-export">
+            <div class="card">
+              <div class="card-title"><h3>Export</h3><span class="meta">Results</span></div>
+              <p class="note">Governed export requests are not implemented in this build, so the page no longer presents export as an executable action. 这份蓝图也明确把导出冻结为不可执行态，避免未来 App 原图误导实现。</p>
+              <div class="inline-actions" style="margin-top:16px">
+                <button type="button" class="button primary" disabled="disabled">Export Unavailable</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="page-review">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Review</div>
+            <div class="page-title">复核</div>
+            <div class="page-desc">Review 只处理待复核对象、证据摘要和人工决定，不再混排健康、日志或运行调试。</div>
+          </div>
+          <div class="head-right"><span class="pill warn">2 pending</span></div>
+        </div>
+        <div class="content">
+          <div class="card">
+            <div class="card-title"><h3>Review Queue</h3><button type="button" class="button tight">Stop Mission</button></div>
+            <div class="list">
+              <article class="list-row">
+                <div>
+                  <strong>Hair loss serum</strong>
+                  <small>beauty_care · 3 evidence</small>
+                </div>
+                <div class="inline-actions">
+                  <button type="button" class="button tight" onclick="openDrawer('Review Candidate cand_042','record')">Inspect</button>
+                  <button type="button" class="button tight primary">Approve</button>
+                  <button type="button" class="button tight">Keep Pending</button>
+                  <button type="button" class="button tight danger">Reject</button>
+                </div>
+              </article>
+              <article class="list-row">
+                <div>
+                  <strong>Hard water filter demo</strong>
+                  <small>home_improvement · 2 evidence</small>
+                </div>
+                <div class="inline-actions">
+                  <button type="button" class="button tight" onclick="openDrawer('Review Candidate cand_038','record')">Inspect</button>
+                  <button type="button" class="button tight primary">Approve</button>
+                  <button type="button" class="button tight">Keep Pending</button>
+                  <button type="button" class="button tight danger">Reject</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-health">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Health</div>
+            <div class="page-title">健康</div>
+            <div class="page-desc">Health 是唯一显示能力健康、故障雷达和结构化日志的页面。</div>
+          </div>
+          <div class="head-right"><span class="pill warn">geom-guard degraded</span></div>
+        </div>
+        <div class="subnav">
+          <button class="subtab active" data-tab-scope="health" data-tab-target="health-capabilities">Capabilities</button>
+          <button class="subtab" data-tab-scope="health" data-tab-target="health-failures">Failures</button>
+          <button class="subtab" data-tab-scope="health" data-tab-target="health-logs">Logs</button>
+        </div>
+        <div class="content">
+          <section class="tab-panel active" id="tab-health-capabilities">
+            <div class="card">
+              <div class="card-title"><h3>Capability Health</h3><span class="meta">Health</span></div>
+              <div class="list">
+                <article class="list-row"><div><strong>open</strong><small>login ok</small></div><span class="tag good">READY</span></article>
+                <article class="list-row"><div><strong>screenshot</strong><small>3 frames captured</small></div><span class="tag good">READY</span></article>
+                <article class="list-row"><div><strong>geometry-guard</strong><small>viewport_uncalibrated conf=0.41 threshold=0.70</small></div><span class="tag warn">ATTENTION</span></article>
+              </div>
+            </div>
+          </section>
+          <section class="tab-panel" id="tab-health-failures">
+            <div class="card">
+              <div class="card-title"><h3>Failure Radar</h3><span class="meta">Health</span></div>
+              <div class="list">
+                <article class="list-row"><div><strong>ambiguous target</strong><small>2 recent failures were caused by multiple competing visual candidates.</small></div><span class="tag warn">2</span></article>
+                <article class="list-row"><div><strong>timeout</strong><small>1 action exceeded governed runtime limit and requires replay review.</small></div><span class="tag bad">1</span></article>
+              </div>
+            </div>
+          </section>
+          <section class="tab-panel" id="tab-health-logs">
+            <div class="card">
+              <div class="card-title"><h3>Structured Logs</h3><span class="meta">Health Only</span></div>
+              <div class="timeline">
+                <div class="step done"><div class="mark">i</div><div><h4>screenshot.capture</h4><p>frames=3 refs=ev_042_f3s,f6s,f10s proof=prf_ss_042</p></div><span class="time">05:17:06</span></div>
+                <div class="step warn"><div class="mark">!</div><div><h4>geometry-guard</h4><p>viewport_uncalibrated conf=0.41 threshold=0.70</p></div><span class="time">05:16:47</span></div>
+                <div class="step done"><div class="mark">i</div><div><h4>forensics.ledger</h4><p>finalize_browse_ledger decision=no_product</p></div><span class="time">05:16:30</span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="page-developer">
+        <div class="page-head">
+          <div>
+            <div class="crumb">Level 1 / Developer</div>
+            <div class="page-title">开发者</div>
+            <div class="page-desc">这些字段只在显式打开开发者模式后出现，保持与当前真实壳一致。</div>
+          </div>
+          <div class="head-right"><span class="pill">Developer Only</span></div>
+        </div>
+        <div class="content">
+          <div class="stack">
+            <div class="card">
+              <div class="card-title"><h3>Developer References</h3><span class="meta">Developer Only</span></div>
+              <div class="summary-list">
+                <div class="summary-row"><dt>selectedMapId</dt><dd>product-video-detection</dd></div>
+                <div class="summary-row"><dt>requestedPlatformId</dt><dd>tiktok-web</dd></div>
+                <div class="summary-row"><dt>targetProfileRef</dt><dd>profile:tiktok:persistent</dd></div>
+                <div class="summary-row"><dt>stepId</dt><dd>ask_ai_product_presence</dd></div>
+                <div class="summary-row"><dt>proofRef</dt><dd>round:ask_ai_product_presence-0</dd></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><h3>Debug JSON</h3><span class="meta">Developer Only</span></div>
+              <pre class="json">{
+  "selectedMapId": "product-video-detection",
+  "requestedPlatformId": "tiktok-web",
+  "targetProfileRef": "profile:tiktok:persistent",
+  "stepId": "ask_ai_product_presence",
+  "proofRef": "round:ask_ai_product_presence-0",
+  "runtimeProof": "prf_orch_042"
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="context">
+      <div class="ctx-head"><h3>Level 3 · Inspect</h3><button class="cmd" onclick="openDrawer('Current Mission Summary','summary')">Open</button></div>
+      <div class="ctx-body">
+        <div class="ctx-section">
+          <h4>Selected Object</h4>
+          <div class="keyrow"><span>object</span><span>msn_043 / rnd_042</span></div>
+          <div class="keyrow"><span>proof</span><span>prf_orch_042</span></div>
+          <div class="keyrow"><span>owner</span><span>orchestration</span></div>
+        </div>
+        <div class="ctx-section">
+          <h4>Why This Panel Exists</h4>
+          <p class="note">三级信息不塞回主工作区。点击 result、review、proof、round 或 error 时，详细 JSON、引用、归属和只读检查内容只在这里或右侧抽屉展开。</p>
+        </div>
+        <div class="ctx-section">
+          <h4>Freeze Scope</h4>
+          <div class="keyrow"><span>Primary IA</span><span>Start / Mission / Results / Review / Health / Developer</span></div>
+          <div class="keyrow"><span>Removed</span><span>Command / Records / Diagnostics / Map Lab / Policy as top-level pages</span></div>
+          <div class="keyrow"><span>App Form</span><span>Mac toolbar + sidebar + workspace + inspector + runtime strip</span></div>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <footer class="runtime-strip">
+    <div class="runtime-strip-copy">
+      <strong>运行带</strong>
+      <span>底部只保留状态脉冲，不重复主内容。</span>
+    </div>
+    <div class="runtime-strip-items">
+      <span>State: Running</span>
+      <span>Task: TikTok Product Discovery</span>
+      <span>Elapsed: 18m</span>
+    </div>
+  </footer>
+</div>
+
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3 id="drawer-title">Inspect</h3>
+    <button class="cmd" onclick="closeDrawer()">Close</button>
+  </div>
+  <div class="drawer-body">
+    <div class="card compact">
+      <div class="card-title"><h3>Level 3 Detail</h3><span class="meta" id="drawer-kind">summary</span></div>
+      <pre class="json" id="drawer-json"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const samples = {
+  summary: {
+    missionId: 'msn_043',
+    status: 'running',
+    selectedMapSource: 'governed_map_registry',
+    currentStep: 'ask_ai_product_presence',
+    currentRoundId: 'rnd_042'
+  },
+  error: {
+    title: 'Task requires human review',
+    whatHappened: 'The system paused automatic progress and held the current result for operator decision.',
+    nextAction: 'Open Review, inspect the candidate, then approve, reject, or keep it pending.'
+  },
+  round: {
+    roundId: 'rnd_042',
+    videoVisitId: 'vv_7f2a',
+    evidenceRefs: ['ev_042_f3s', 'ev_042_f6s', 'ev_042_f10s', 'cs_042'],
+    aiPromptContractId: 'local-vision-product-detection',
+    runtimeProofRef: 'prf_round_042'
+  },
+  proof: {
+    chain: ['HumanCommandEnvelope', 'NerveBusTransportProof', 'OrchestrationRuntimeProof', 'AbilityRuntimeProof'],
+    outputRef: null,
+    diagnosticPayloadRef: 'diag_042',
+    note: 'UI only opens read-only inspect content. It does not own proof truth.'
+  },
+  record: {
+    id: 'pkt_042',
+    primary: 'product_candidate',
+    secondary: 'rnd_042',
+    detail: 'confidence 0.84 · evidence packet preserved',
+    owner: 'forensics-persistence'
+  }
+};
+
+const state = {
+  activePage: 'start',
+  developerMode: false
+};
+
+function activatePage(pageId) {
+  if (pageId === 'developer' && !state.developerMode) {
+    return;
+  }
+  state.activePage = pageId;
+  document.querySelectorAll('.page').forEach((page) => page.classList.toggle('active', page.id === 'page-' + pageId));
+  document.querySelectorAll('.rail-btn').forEach((button) => button.classList.toggle('active', button.dataset.page === pageId));
+}
+
+function openDrawer(title, kind) {
+  document.getElementById('drawer-title').textContent = title;
+  document.getElementById('drawer-kind').textContent = kind;
+  document.getElementById('drawer-json').textContent = JSON.stringify(samples[kind] || samples.summary, null, 2);
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+}
+
+document.querySelectorAll('.rail-btn').forEach((button) => {
+  button.addEventListener('click', () => activatePage(button.dataset.page));
+});
+
+document.querySelectorAll('.subtab').forEach((button) => {
+  button.addEventListener('click', () => {
+    const scope = button.dataset.tabScope;
+    const target = button.dataset.tabTarget;
+    document.querySelectorAll('[data-tab-scope="' + scope + '"]').forEach((item) => item.classList.remove('active'));
+    button.classList.add('active');
+    document.querySelectorAll('#page-' + scope + ' .tab-panel').forEach((panel) => panel.classList.remove('active'));
+    document.getElementById('tab-' + target).classList.add('active');
+  });
+});
+
+document.getElementById('developer-toggle').addEventListener('click', () => {
+  state.developerMode = !state.developerMode;
+  const nav = document.getElementById('developer-nav');
+  nav.classList.toggle('hidden', !state.developerMode);
+  document.getElementById('developer-toggle').textContent = state.developerMode ? '关闭开发者模式' : '开发者模式';
+  if (!state.developerMode && state.activePage === 'developer') {
+    activatePage('start');
+  }
+});
+
+document.querySelectorAll('.locale-btn').forEach((button) => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.locale-btn').forEach((item) => item.classList.remove('active'));
+    button.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

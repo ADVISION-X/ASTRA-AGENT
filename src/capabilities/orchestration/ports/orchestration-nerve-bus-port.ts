@@ -20,6 +20,13 @@ export type OrchestrationDispatchResult = {
   payloadRefs: OrchestrationDispatchPayload;
 };
 
+export type OrchestrationReviewDispatchResult = {
+  status: "review_required";
+  reviewDispatchRef: string;
+  failureReason: string | null;
+  payloadRefs: OrchestrationDispatchPayload;
+};
+
 export interface OrchestrationNerveBusPort {
   sendCommandToAbility(input: {
     missionId: string;
@@ -28,6 +35,9 @@ export interface OrchestrationNerveBusPort {
     targetAbilityGroupId: AbilityDispatchTarget;
     childCapabilityId: string;
     payloadRefs: OrchestrationDispatchPayload;
+    sequenceNo: number;
+    idempotencyKey: string;
+    timeoutMs: number;
   }): Promise<OrchestrationDispatchResult>;
   sendRequestToAi(input: {
     missionId: string;
@@ -35,6 +45,9 @@ export interface OrchestrationNerveBusPort {
     stepId: string;
     promptContractId: string;
     payloadRefs: OrchestrationDispatchPayload;
+    sequenceNo: number;
+    idempotencyKey: string;
+    timeoutMs: number;
   }): Promise<OrchestrationDispatchResult>;
   sendReviewRequestToCommander(input: {
     missionId: string;
@@ -42,5 +55,7 @@ export interface OrchestrationNerveBusPort {
     stepId: string;
     reason: string;
     payloadRefs: OrchestrationDispatchPayload;
-  }): Promise<OrchestrationDispatchResult>;
+    sequenceNo: number;
+    idempotencyKey: string;
+  }): Promise<OrchestrationReviewDispatchResult>;
 }

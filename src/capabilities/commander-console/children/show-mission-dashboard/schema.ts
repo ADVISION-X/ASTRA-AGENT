@@ -6,7 +6,7 @@ import {
   CommanderProofPolicySchema,
   CommanderReadinessSchema,
   EmptyCommanderChildInputSchema,
-} from "../../schema.js";
+} from "../../shared/commander-schema-base.js";
 
 export const ShowMissionDashboardInputSchema = EmptyCommanderChildInputSchema;
 export const ShowMissionDashboardOutputSchema = CommanderMissionDashboardViewSchema;

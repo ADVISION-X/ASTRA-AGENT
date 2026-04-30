@@ -1,9 +1,5 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 
-function buildExpectedFingerprint(input: ParsedVisualTargetAbilityInput): string {
-  return `${input.sourceProof.pageState.currentUrl}|${input.sourceProof.pageState.currentTitle ?? ""}|${input.sourceProof.pageState.pageStateType}`;
-}
-
 export function validatePageStateConsistency(input: {
   request: ParsedVisualTargetAbilityInput;
   allowedPageStateTypes: readonly string[];
@@ -11,7 +7,7 @@ export function validatePageStateConsistency(input: {
   | { ok: true; decision: "allow"; dataQualityFlags: VisualTargetDataQualityFlag[] }
   | {
       ok: false;
-      status: "review_required" | "blocked";
+      status: "failed" | "review_required";
       decision: "review_required" | "block";
       failureReason: VisualTargetFailureReason;
       statusMessage: string;
@@ -22,7 +18,7 @@ export function validatePageStateConsistency(input: {
   if (pageStateProof.decision === "block") {
     return {
       ok: false,
-      status: "blocked",
+      status: "failed",
       decision: "block",
       failureReason: "page_state_blocked",
       statusMessage: "Page State blocked governed target selection for the current page.",
@@ -41,6 +37,17 @@ export function validatePageStateConsistency(input: {
       dataQualityFlags: ["page_state_conflict"],
     };
   }
+  if (pageStateProof.sessionId !== input.request.sessionId) {
+    return {
+      ok: false,
+      status: "failed",
+      decision: "block",
+      failureReason: "page_state_blocked",
+      statusMessage: "Page State proof session binding must match the Visual Target request.",
+      reviewRequiredReason: null,
+      dataQualityFlags: ["page_state_conflict"],
+    };
+  }
   if (!input.allowedPageStateTypes.includes(pageStateProof.pageStateType)) {
     return {
       ok: false,
@@ -52,14 +59,14 @@ export function validatePageStateConsistency(input: {
       dataQualityFlags: ["page_state_conflict"],
     };
   }
-  if (pageStateProof.pageStateFingerprint !== buildExpectedFingerprint(input.request)) {
+  if (!pageStateProof.pageStateFingerprint || !pageStateProof.pageStateHash) {
     return {
       ok: false,
-      status: "review_required",
-      decision: "review_required",
-      failureReason: "page_state_fingerprint_mismatch",
-      statusMessage: "Page State fingerprint does not match the governed visual target request.",
-      reviewRequiredReason: "Visual Target requires review because the page-state fingerprint is inconsistent.",
+      status: "failed",
+      decision: "block",
+      failureReason: "page_state_hash_missing",
+      statusMessage: "Page State proof must carry fingerprint and pageStateHash.",
+      reviewRequiredReason: null,
       dataQualityFlags: ["page_state_conflict"],
     };
   }

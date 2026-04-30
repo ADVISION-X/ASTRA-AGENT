@@ -4,8 +4,9 @@ import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { createAuditProject, getSourceFileOrThrow, getZodEnumValues } from "../_shared/ast-helpers.js";
+import { createAuditProject, getSourceFileOrThrow, getZodEnumValues, getZodObjectPropertyNames, hasMethodNamed, hasPropertyAccessPath, hasStringLiteral } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
 
 const LAW_OWNER = "GRASSEYE-FORENSICS-PERSISTENCE-001-V1";
 const LAW_CHILDREN = "GRASSEYE-FORENSICS-PERSISTENCE-002-V1";
@@ -15,6 +16,15 @@ const LAW_ENFORCEMENT = "GRASSEYE-FORENSICS-PERSISTENCE-005-V1";
 const LAW_CONTRACT = "GRASSEYE-FORENSICS-PERSISTENCE-006-V2";
 const LAW_STORAGE = "GRASSEYE-FORENSICS-PERSISTENCE-007-V2";
 const LAW_RUNTIME = "GRASSEYE-FORENSICS-PERSISTENCE-008-V2";
+const LAW_STRUCTURED_LOGGING_DISCIPLINE = "GRASSEYE-STRUCTURED-LOGGING-001-V1";
+const LAW_STRUCTURED_LOGGING_REFS = "GRASSEYE-STRUCTURED-LOGGING-002-V2";
+const LAW_STRUCTURED_LOGGING_DEBUG = "GRASSEYE-STRUCTURED-LOGGING-003-V1";
+const LAW_STRUCTURED_LOGGING_AI_REQUEST = "GRASSEYE-STRUCTURED-LOGGING-004-V1";
+const LAW_STRUCTURED_LOGGING_AI_RESPONSE = "GRASSEYE-STRUCTURED-LOGGING-005-V1";
+const LAW_STRUCTURED_LOGGING_AI_ERROR = "GRASSEYE-STRUCTURED-LOGGING-006-V1";
+const LAW_STRUCTURED_LOGGING_COMMAND_FLOW = "GRASSEYE-STRUCTURED-LOGGING-007-V1";
+const LAW_STRUCTURED_LOGGING_HEALTH = "GRASSEYE-STRUCTURED-LOGGING-008-V1";
+const LAW_STRUCTURED_LOGGING_EXIT = "GRASSEYE-STRUCTURED-LOGGING-009-V1";
 
 const ROOT = "src/capabilities/forensics-persistence";
 const CHILDREN_ROOT = `${ROOT}/children`;
@@ -29,7 +39,12 @@ const INDEX_PATH = `${ROOT}/index.ts`;
 const RECORD_ID_PATH = `${ROOT}/record-id.ts`;
 const STORAGE_ADAPTER_PATH = "src/lib/storage/evidence-store/forensics-storage-adapter.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
+const STRUCTURED_LOG_PATH = "src/types/structured-log.ts";
+const AI_RUNTIME_ADAPTER_PATH = "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts";
+const COMMAND_HANDLER_PATH = "src/app/task-api-handlers.ts";
+const STARTUP_ENTRYPOINT_PATH = "scripts/startup/launch-grasseye.mjs";
 const INSPECTOR_PATH = "scripts/audit/domains/forensics-persistence-capability/inspector.ts";
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF";
 const LEGACY_LOCAL_DATA_ROOT = "src/features/local-data";
 const LEGACY_STORAGE_PORT_PATH = `${ROOT}/storage-ports.ts`;
 
@@ -97,6 +112,17 @@ const FORBIDDEN_IMPORT_ROOTS = [
 const FORBIDDEN_PATH_SEGMENTS = new Set(["mock", "fake", "fixture", "demo"]);
 const FORBIDDEN_STORAGE_METHODS = new Set(["appendRecord", "replaceRecordByRound", "replaceRecordBySession", "updateRuntimeSnapshot"]);
 const COMMENT_DIRECTIVES = new Set(["@ts-ignore", "@ts-expect-error", "eslint-disable"]);
+const STRUCTURED_LOGGING_LAW_IDS = new Set([
+  LAW_STRUCTURED_LOGGING_DISCIPLINE,
+  LAW_STRUCTURED_LOGGING_REFS,
+  LAW_STRUCTURED_LOGGING_DEBUG,
+  LAW_STRUCTURED_LOGGING_AI_REQUEST,
+  LAW_STRUCTURED_LOGGING_AI_RESPONSE,
+  LAW_STRUCTURED_LOGGING_AI_ERROR,
+  LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
+  LAW_STRUCTURED_LOGGING_HEALTH,
+  LAW_STRUCTURED_LOGGING_EXIT,
+]);
 
 function getResolvedModulePath(declaration: ImportDeclaration | ExportDeclaration): string | null {
   const sourceFile = declaration.getModuleSpecifierSourceFile();
@@ -392,6 +418,7 @@ export default createPendingDomainInspector({
     }
 
     const schemaSource = getSourceFileOrThrow(project, SCHEMA_PATH);
+    const structuredLogSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PATH);
     const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
     const registrySource = getSourceFileOrThrow(project, REGISTRY_PATH);
     const indexSource = getSourceFileOrThrow(project, INDEX_PATH);
@@ -402,7 +429,164 @@ export default createPendingDomainInspector({
     const proofBuilderSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-proof-builder.ts`);
     const adapterSource = getSourceFileOrThrow(project, STORAGE_ADAPTER_PATH);
     const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
+    const aiRuntimeAdapterSource = getSourceFileOrThrow(project, AI_RUNTIME_ADAPTER_PATH);
+    const commandHandlerSource = getSourceFileOrThrow(project, COMMAND_HANDLER_PATH);
+    const startupSource = project.addSourceFileAtPath(pathFromRepoRoot(STARTUP_ENTRYPOINT_PATH));
     const inspectorSource = getSourceFileOrThrow(project, INSPECTOR_PATH);
+
+    const structuredRuntimeEventProperties = getZodObjectPropertyNames(structuredLogSource, "StructuredRuntimeEventSchema");
+    const missingStructuredLoggingDisciplineFields = ["level", "traceId", "spanId", "eventId", "eventType", "ownerResponsible", "missionId", "mapId", "stepId", "taskTemplateId", "refs", "durationMs"]
+      .filter((fieldName) => !structuredRuntimeEventProperties.has(fieldName));
+    if (missingStructuredLoggingDisciplineFields.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_DEBUG,
+        file: STRUCTURED_LOG_PATH,
+        line: 1,
+        severity: "error",
+        message: "StructuredRuntimeEvent schema is missing required DEBUG transparency fields.",
+        detail: missingStructuredLoggingDisciplineFields.join(", "),
+      }));
+    }
+
+    const missingStructuredLoggingRefFields = ["proofRefs", "artifactRefs", "rawResponseRef", "promptDebugRef"]
+      .filter((fieldName) => !structuredRuntimeEventProperties.has(fieldName));
+    if (missingStructuredLoggingRefFields.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_REFS,
+        file: STRUCTURED_LOG_PATH,
+        line: 1,
+        severity: "error",
+        message: "StructuredRuntimeEvent schema is missing trace-back refs required for Forensics linkage.",
+        detail: missingStructuredLoggingRefFields.join(", "),
+      }));
+    }
+
+    const missingStructuredLoggingAiRequestFields = ["promptContractId", "promptVersion", "outputSchemaRef", "promptDebugRef", "systemPromptHash", "userPromptHash", "promptPreview", "promptFullText", "imageInputs", "sourceScreenshotEvidenceId", "aiInputArtifactRef", "tokenEstimate"]
+      .filter((fieldName) => !structuredRuntimeEventProperties.has(fieldName));
+    if (missingStructuredLoggingAiRequestFields.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_AI_REQUEST,
+        file: STRUCTURED_LOG_PATH,
+        line: 1,
+        severity: "error",
+        message: "StructuredRuntimeEvent schema is missing AI request DEBUG fields.",
+        detail: missingStructuredLoggingAiRequestFields.join(", "),
+      }));
+    }
+
+    const missingStructuredLoggingAiResponseFields = ["rawResponsePreview", "rawResponseText", "rawResponseHash", "rawResponseRef", "parsedJson", "parsedDecision", "parserErrors"]
+      .filter((fieldName) => !structuredRuntimeEventProperties.has(fieldName));
+    if (missingStructuredLoggingAiResponseFields.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_AI_RESPONSE,
+        file: STRUCTURED_LOG_PATH,
+        line: 1,
+        severity: "error",
+        message: "StructuredRuntimeEvent schema is missing AI response DEBUG fields.",
+        detail: missingStructuredLoggingAiResponseFields.join(", "),
+      }));
+    }
+
+    const missingStructuredLoggingAiErrorFields = ["actionableMessage", "ownerResponsible"]
+      .filter((fieldName) => !structuredRuntimeEventProperties.has(fieldName));
+    if (missingStructuredLoggingAiErrorFields.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_AI_ERROR,
+        file: STRUCTURED_LOG_PATH,
+        line: 1,
+        severity: "error",
+        message: "StructuredRuntimeEvent schema is missing actionable AI error fields.",
+        detail: missingStructuredLoggingAiErrorFields.join(", "),
+      }));
+    }
+
+    if (
+      !hasStringLiteral(aiRuntimeAdapterSource, "AI_REQUEST_DEBUG")
+      || !hasStringLiteral(aiRuntimeAdapterSource, "AI_RESPONSE_DEBUG")
+      || !hasStringLiteral(aiRuntimeAdapterSource, "AI_ERROR_DEBUG")
+      || !hasMethodNamed(workbenchSource, "recordAiDebugEvent")
+    ) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE,
+        file: AI_RUNTIME_ADAPTER_PATH,
+        line: 1,
+        severity: "fatal",
+        message: "Structured logging discipline is not wired through the AI runtime and Forensics write path.",
+      }));
+    }
+
+    if (!hasPropertyAccessPath(workbenchSource, ["this", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE,
+        file: WORKBENCH_PATH,
+        line: 1,
+        severity: "fatal",
+        message: "Workbench debug event relays must persist structured runtime events through Forensics Persistence.",
+      }));
+    }
+
+    const missingCommandFlowEvents = [
+      "HUMAN_COMMAND_DRAFTED",
+      "HUMAN_COMMAND_RECEIVED",
+      "HUMAN_COMMAND_VALIDATED",
+      "MISSION_PREFLIGHT_STARTED",
+      "MISSION_PREFLIGHT_PASSED",
+      "MISSION_PREFLIGHT_FAILED",
+      "COMMAND_ACCEPTED",
+      "COMMAND_REJECTED",
+    ].filter((eventType) => !hasStringLiteral(commandHandlerSource, eventType));
+    if (missingCommandFlowEvents.length > 0) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
+        file: COMMAND_HANDLER_PATH,
+        line: 1,
+        severity: "error",
+        message: "Commander command flow is missing required structured debug events.",
+        detail: missingCommandFlowEvents.join(", "),
+      }));
+    }
+
+    if (
+      !hasStringLiteral(workbenchSource, "app-shell-health")
+      || !hasStringLiteral(workbenchSource, "mission-readiness")
+      || !hasStringLiteral(startupSource, "APP_SHELL_HEALTH_CHECK_STARTED")
+      || !hasStringLiteral(startupSource, "APP_SHELL_HEALTH_PASSED")
+      || !hasStringLiteral(startupSource, "MISSION_READINESS_CHECK_STARTED")
+      || !hasStringLiteral(startupSource, "MISSION_READINESS_PASSED")
+      || !hasStringLiteral(startupSource, "MISSION_READINESS_DEGRADED")
+      || !hasStringLiteral(commandHandlerSource, "LOCAL_AI_READINESS_DEGRADED")
+    ) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_HEALTH,
+        file: STARTUP_ENTRYPOINT_PATH,
+        line: 1,
+        severity: "error",
+        message: "AppShellHealth and MissionReadiness structured logging is not fully wired across startup and mission preflight surfaces.",
+      }));
+    }
+
+    if (
+      !hasStringLiteral(startupSource, "SERVICE_SHUTDOWN_REQUESTED")
+      || !hasStringLiteral(startupSource, "SERVICE_SHUTDOWN_COMPLETED")
+      || !hasStringLiteral(startupSource, "SERVICE_UNEXPECTED_EXIT")
+      || !hasStringLiteral(startupSource, "SERVICE_EXIT_CLASSIFICATION")
+      || !structuredRuntimeEventProperties.has("exitCode")
+      || !structuredRuntimeEventProperties.has("signal")
+      || !structuredRuntimeEventProperties.has("pid")
+      || !structuredRuntimeEventProperties.has("lastRuntimeEventId")
+      || !structuredRuntimeEventProperties.has("lastCommandEventId")
+      || !structuredRuntimeEventProperties.has("lastAiEventId")
+      || !structuredRuntimeEventProperties.has("likelyCauseRef")
+      || !structuredRuntimeEventProperties.has("crashBundleRef")
+    ) {
+      findings.push(createFinding({
+        lawId: LAW_STRUCTURED_LOGGING_EXIT,
+        file: STARTUP_ENTRYPOINT_PATH,
+        line: 1,
+        severity: "error",
+        message: "Service shutdown and unexpected-exit structured logging is missing required event classifications or persisted fields.",
+      }));
+    }
 
     const childIds = new Set(getZodEnumValues(schemaSource, "ForensicsChildCapabilityIdSchema"));
     const missingChildIds = REQUIRED_SCHEMA_ENUM_VALUES.filter((childId) => !childIds.has(childId));
@@ -629,13 +813,27 @@ export default createPendingDomainInspector({
       }));
     }
 
-    const requiredShapePassed = findings.every((finding) => finding.lawId !== LAW_OWNER && finding.lawId !== LAW_CHILDREN && finding.lawId !== LAW_CONTRACT);
-    const forbiddenShapePassed = findings.every((finding) => finding.lawId !== LAW_RETIRED_ROOT && finding.lawId !== LAW_STORAGE && finding.lawId !== LAW_RUNTIME);
-    const boundaryPassed = findings.every((finding) => finding.lawId !== LAW_BOUNDARY);
-    const antiEscapePassed = findings.every((finding) => finding.lawId !== LAW_ENFORCEMENT);
+    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+      ? {
+          findings: [],
+          phase: createPhase(
+            "negative-proof-harness",
+            "PASS",
+            true,
+            "Forensics negative-proof harness was skipped for nested inspector execution.",
+          ),
+        }
+      : await runNegativeProofHarness();
+
+    const combinedFindings = [...findings, ...negativeProof.findings];
+    const requiredShapePassed = combinedFindings.every((finding) => finding.lawId !== LAW_OWNER && finding.lawId !== LAW_CHILDREN && finding.lawId !== LAW_CONTRACT);
+    const forbiddenShapePassed = combinedFindings.every((finding) => finding.lawId !== LAW_RETIRED_ROOT && finding.lawId !== LAW_STORAGE && finding.lawId !== LAW_RUNTIME);
+    const boundaryPassed = combinedFindings.every((finding) => finding.lawId !== LAW_BOUNDARY);
+    const antiEscapePassed = combinedFindings.every((finding) => finding.lawId !== LAW_ENFORCEMENT);
+    const structuredLoggingPassed = combinedFindings.every((finding) => !STRUCTURED_LOGGING_LAW_IDS.has(finding.lawId));
 
     return {
-      findings,
+      findings: combinedFindings,
       phases: [
         createPhase(
           "required-shape",
@@ -669,6 +867,15 @@ export default createPendingDomainInspector({
             ? "Forensics source and inspector are free of comment escapes, casts, dynamic imports, and test-path laundering."
             : "Forensics source or inspector still exposes comment escapes, casts, dynamic imports, or test-path laundering.",
         ),
+        createPhase(
+          "structured-debug-transparency",
+          structuredLoggingPassed ? "PASS" : "CODE VIOLATION",
+          structuredLoggingPassed,
+          structuredLoggingPassed
+            ? "Structured logging DEBUG transparency, AI I/O debug, command flow, health layering, and service exit classification are wired through Forensics-owned runtime events."
+            : "Structured logging DEBUG transparency, AI I/O debug, command flow, health layering, or service exit classification is incomplete.",
+        ),
+        negativeProof.phase,
       ],
     };
   },

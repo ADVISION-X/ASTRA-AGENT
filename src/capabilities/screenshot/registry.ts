@@ -1,5 +1,6 @@
 import { CaptureBrowserViewportInputSchema, CaptureDesktopScreenInputSchema, CaptureRegionInputSchema, OptimizeLosslessInputSchema, PrepareAiInputInputSchema, ScreenshotExecutionOutputSchema } from "./schema.js";
-import type { ScreenshotChildRegistryEntry, ScreenshotChildCapabilityId } from "./contract.js";
+import type { ScreenshotChildCapabilityId } from "./contract.js";
+import type { ScreenshotChildRegistryEntry } from "./runtime/screenshot-child-contract.js";
 
 const REGISTRY_ENTRIES = [
   {

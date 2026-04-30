@@ -28,6 +28,17 @@ function mapDispositionToChildId(disposition: "approve" | "reject" | "hold" | "p
   }
 }
 
+function mapReviewDecisionToChildId(disposition: "approve" | "reject" | "pending") {
+  switch (disposition) {
+    case "approve":
+      return "approve-candidate" as const;
+    case "reject":
+      return "reject-candidate" as const;
+    default:
+      return "mark-review-required" as const;
+  }
+}
+
 export async function handleCandidateReview(
   request: IncomingMessage,
   response: ServerResponse,
@@ -101,38 +112,80 @@ async function handleCandidateMutationRequest(
 async function handleCandidateDeleteRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  _activeWorkbench: GrassEyeWorkbench,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "DELETE" || !url.pathname.startsWith("/api/candidates/")) {
     return false;
   }
 
-  const candidateId = getCandidateIdFromPath(url);
-  if (!candidateId) {
-    response.writeHead(400, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify({ error: "invalid_candidate_id" }));
-    return true;
-  }
-
-  await activeWorkbench.deleteCandidate(candidateId);
-  response.writeHead(204);
-  response.end();
+  response.writeHead(410, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify({ error: "candidate_delete_removed_from_commander_console_ui" }));
   return true;
 }
 
 async function handleCandidateExportRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  _activeWorkbench: GrassEyeWorkbench,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "GET" || url.pathname !== "/api/candidates/export") {
     return false;
   }
 
+  response.writeHead(410, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify({ error: "candidate_export_removed_from_commander_console_ui" }));
+  return true;
+}
+
+async function handleCandidateReviewDecisionRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  activeWorkbench: GrassEyeWorkbench,
+  url: URL,
+): Promise<boolean> {
+  if (request.method !== "POST" || url.pathname !== "/api/candidates/review-decision") {
+    return false;
+  }
+
+  const body = await parseJsonBody(request) as {
+    candidateId?: string;
+    disposition?: "approve" | "reject" | "pending";
+    note?: string;
+  };
+  const candidateId = body.candidateId?.trim();
+  if (!candidateId || !body.disposition) {
+    response.writeHead(400, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({ error: "invalid_candidate_review_decision_request" }));
+    return true;
+  }
+
+  const result = await activeWorkbench.commanderConsole.execute({
+    childCapabilityId: mapReviewDecisionToChildId(body.disposition),
+    operatorRef: "commander-console:http",
+    input: {
+      candidateId,
+      operatorNote: body.note?.trim() || null,
+    },
+  });
   response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-  response.end(JSON.stringify(await activeWorkbench.exportCandidateSummaries(), null, 2));
+  response.end(JSON.stringify(result, null, 2));
+  return true;
+}
+
+async function handleCandidateExportRequestCommand(
+  request: IncomingMessage,
+  response: ServerResponse,
+  _activeWorkbench: GrassEyeWorkbench,
+  url: URL,
+): Promise<boolean> {
+  if (request.method !== "POST" || url.pathname !== "/api/candidates/request-export") {
+    return false;
+  }
+
+  response.writeHead(501, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify({ error: "governed_export_request_not_implemented" }));
   return true;
 }
 
@@ -142,6 +195,14 @@ export async function handleCandidateRequest(
   activeWorkbench: GrassEyeWorkbench,
   url: URL,
 ): Promise<boolean> {
+  if (await handleCandidateReviewDecisionRequest(request, response, activeWorkbench, url)) {
+    return true;
+  }
+
+  if (await handleCandidateExportRequestCommand(request, response, activeWorkbench, url)) {
+    return true;
+  }
+
   if (await handleCandidateMutationRequest(request, response, activeWorkbench, url)) {
     return true;
   }

@@ -1,0 +1,1 @@
+export { PressKeyAbilityInputSchema } from "../../schema.js";

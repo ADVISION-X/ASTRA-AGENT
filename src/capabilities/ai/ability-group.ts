@@ -1,27 +1,12 @@
 import type { AiAbilityGroup } from "./contract.js";
-import { createAiModelRosterPort } from "./model-roster.js";
-import { createAiPromptRegistry } from "./runtime/ai-prompt-registry.js";
-import { createLocalAiRuntimePort } from "./runtime-adapters/local-ai-runtime-adapter.js";
+import type { AiExecutionContext } from "./contract.js";
 import { AiHealthReportSchema, AiResultSchema, parseAiInput } from "./schema.js";
 import { createAiCapabilityRegistry, listAiChildren } from "./registry.js";
-import { createSystemAiClock } from "./runtime/ai-clock.js";
 import { dispatchAiFailure } from "./runtime/ai-dispatch-failure.js";
+import { createAiExecutionContext } from "./runtime/ai-execution-context.js";
 import { routeAiTaskToChild } from "./task-router.js";
 
-type CreateAiAbilityGroupInput = Partial<{
-  runtime: Parameters<typeof dispatchAiFailure>[0]["context"]["runtime"];
-  clock: Parameters<typeof dispatchAiFailure>[0]["context"]["clock"];
-  modelRoster: Parameters<typeof dispatchAiFailure>[0]["context"]["modelRoster"];
-  promptRegistry: Parameters<typeof dispatchAiFailure>[0]["context"]["promptRegistry"];
-}>;
-
-export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiAbilityGroup {
-  const context = {
-    runtime: input.runtime ?? createLocalAiRuntimePort(),
-    clock: input.clock ?? createSystemAiClock(),
-    modelRoster: input.modelRoster ?? createAiModelRosterPort(),
-    promptRegistry: input.promptRegistry ?? createAiPromptRegistry(),
-  };
+export function createAiAbilityGroup(context: AiExecutionContext = createAiExecutionContext()): AiAbilityGroup {
   const registry = createAiCapabilityRegistry();
 
   return {
@@ -43,6 +28,18 @@ export function createAiAbilityGroup(input: CreateAiAbilityGroupInput = {}): AiA
       }
 
       const childCapabilityId = routeAiTaskToChild(parsed.data.taskType);
+      if (childCapabilityId === null) {
+        return dispatchAiFailure({
+          rawInput: parsed.data,
+          context,
+          childCapabilityId: null,
+          taskType: parsed.data.taskType,
+          providerKind: null,
+          failureReason: "task_route_unavailable",
+          statusMessage: `AI task route is unavailable for ${parsed.data.taskType}.`,
+        });
+      }
+
       const entry = registry.get(childCapabilityId);
       if (!entry) {
         return dispatchAiFailure({

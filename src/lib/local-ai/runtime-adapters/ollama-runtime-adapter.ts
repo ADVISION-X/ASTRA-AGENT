@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
 import { rm, stat } from "node:fs/promises";
+
+import sharp from "sharp";
 
 import type { LocalAiRuntimeAdapter, LocalAiRuntimeAdapterHealth, TextInvocationInput, VisionInvocationInput } from "./local-ai-runtime-adapter.js";
 import { LocalAiRuntimeError } from "../local-ai-runtime-error.js";
@@ -17,12 +20,16 @@ type PreparedVisionImage = {
   base64: string;
   sourceBytes: number;
   preparedBytes: number;
+  sourceHash: string;
+  width: number | null;
+  height: number | null;
   optimized: boolean;
   preparedPath: string;
   tempDir?: string;
 };
 
 const MAX_VISION_IMAGE_BYTES = 1_000_000;
+const shouldIncludeFullAiIo = () => process.env.GRASSEYE_DEBUG_AI_IO === "full";
 const truncatePreview = (value: string, maxLength = 220): string => {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) {
@@ -93,6 +100,15 @@ export class OllamaRuntimeAdapter implements LocalAiRuntimeAdapter {
       await input.debugHook?.({
         eventType: "local_ai_adapter_request_started",
         detail: `runtime=ollama; model=${input.modelName}; baseUrl=${this.baseUrl}; imageCount=${imageArtifacts.length}; optimizedImageCount=${optimizedImageCount}; originalTotalImageBytes=${originalTotalBytes}; preparedTotalImageBytes=${preparedTotalBytes}; totalBase64Chars=${totalBase64Chars}; imagePaths=${imageArtifacts.map((artifact) => artifact.sourcePath).join(",")}`,
+        modelName: input.modelName,
+        runtime: this.runtime,
+        imageInputs: imageArtifacts.map((artifact) => ({
+          filePath: artifact.sourcePath,
+          hash: artifact.sourceHash,
+          bytes: artifact.sourceBytes,
+          ...(typeof artifact.width === "number" ? { width: artifact.width } : {}),
+          ...(typeof artifact.height === "number" ? { height: artifact.height } : {}),
+        })),
       });
       return this.invokeGenerate({
         model: input.modelName,
@@ -151,6 +167,10 @@ export class OllamaRuntimeAdapter implements LocalAiRuntimeAdapter {
     await input.debugHook?.({
       eventType: "local_ai_adapter_response_received",
       detail: `runtime=ollama; model=${input.model}; responsePreview=${truncatePreview(parsed.response)}`,
+      modelName: input.model,
+      runtime: this.runtime,
+      rawResponsePreview: truncatePreview(parsed.response),
+      ...(shouldIncludeFullAiIo() ? { rawResponseText: parsed.response } : {}),
       durationMs: Date.now() - startedAt,
     });
 
@@ -167,12 +187,16 @@ export class OllamaRuntimeAdapter implements LocalAiRuntimeAdapter {
     }
 
     const base64 = await readImageAsBase64(imagePath);
+    const metadata = await sharp(imagePath).metadata();
     return {
       sourcePath: imagePath,
       preparedPath: imagePath,
       base64,
       sourceBytes: sourceStat.size,
       preparedBytes: sourceStat.size,
+      sourceHash: createHash("sha256").update(base64).digest("hex"),
+      width: typeof metadata.width === "number" ? metadata.width : null,
+      height: typeof metadata.height === "number" ? metadata.height : null,
       optimized: false,
     };
   }

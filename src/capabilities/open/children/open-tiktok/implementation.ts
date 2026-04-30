@@ -1,5 +1,5 @@
-import type { OpenChildCapability } from "../../contract.js";
 import { OPEN_ABILITY_GROUP_ID } from "../../contract.js";
+import type { OpenChildCapability } from "../../runtime/open-runtime-context.js";
 import { executeOpenChild } from "../../runtime/open-executor.js";
 import { OpenTikTokRequestSchema, OpenTikTokResultSchema } from "./schema.js";
 

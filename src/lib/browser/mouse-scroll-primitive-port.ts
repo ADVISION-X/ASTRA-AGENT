@@ -29,6 +29,7 @@ export function createBrowserControllerMouseScrollPrimitivePort(
           message: result.message,
           startedAt,
           endedAt: new Date().toISOString(),
+          portKind: "browser-controller",
         };
       } catch (error) {
         return {
@@ -37,6 +38,7 @@ export function createBrowserControllerMouseScrollPrimitivePort(
           message: error instanceof Error ? error.message : "mouse scroll primitive failed",
           startedAt,
           endedAt: new Date().toISOString(),
+          portKind: "browser-controller",
         };
       }
     },

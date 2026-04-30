@@ -17,6 +17,7 @@ export function validateBeforeAfterConsistency(request: ParsedPostActionVerifica
       statusMessage: "Required after evidence is missing.",
       dataQualityFlags: ["after_evidence_missing"],
       beforeAfterDecision: "review_required:missing_after_evidence" as const,
+      beforeAfterPairDecision: "missing_after_evidence" as const,
     };
   }
 
@@ -29,7 +30,23 @@ export function validateBeforeAfterConsistency(request: ParsedPostActionVerifica
       statusMessage: "Before/after evidence pair is incomplete.",
       dataQualityFlags: ["before_after_pair_missing"],
       beforeAfterDecision: "review_required:missing_before_after_evidence" as const,
+      beforeAfterPairDecision: "missing_before_after_pair" as const,
     };
+  }
+
+  if (beforeEvidence !== null && afterEvidence !== null) {
+    if (beforeEvidence.evidenceKind !== afterEvidence.evidenceKind) {
+      return {
+        ok: false,
+        status: "review_required" as const,
+        failureReason: "before_after_conflict" as const,
+        reviewRequiredReason: "Before and after evidence kinds must match for governed comparison.",
+        statusMessage: "Before/after evidence kinds do not match.",
+        dataQualityFlags: ["before_after_conflict"],
+        beforeAfterDecision: "review_required:evidence_kind_mismatch" as const,
+        beforeAfterPairDecision: "evidence_kind_mismatch" as const,
+      };
+    }
   }
 
   if (beforeEvidence !== null && parsePostActionTimestampMs(beforeEvidence.capturedAt) > actionStartedAtMs) {
@@ -41,6 +58,7 @@ export function validateBeforeAfterConsistency(request: ParsedPostActionVerifica
       statusMessage: "Before evidence ordering is invalid.",
       dataQualityFlags: ["before_after_conflict"],
       beforeAfterDecision: "review_required:before_after_conflict" as const,
+      beforeAfterPairDecision: "before_after_time_conflict" as const,
     };
   }
 
@@ -55,6 +73,7 @@ export function validateBeforeAfterConsistency(request: ParsedPostActionVerifica
         statusMessage: "After evidence ordering is invalid.",
         dataQualityFlags: ["after_window_conflict"],
         beforeAfterDecision: "review_required:after_window_conflict" as const,
+        beforeAfterPairDecision: "after_window_conflict" as const,
       };
     }
   }
@@ -62,5 +81,6 @@ export function validateBeforeAfterConsistency(request: ParsedPostActionVerifica
   return {
     ok: true,
     beforeAfterDecision: "allow" as const,
+    beforeAfterPairDecision: "allow" as const,
   };
 }

@@ -1,33 +1,16 @@
 import type { PostActionEvidenceReadPort } from "./ports/post-action-evidence-read-port.js";
 import type { PostActionVerificationClockPort } from "./ports/post-action-verification-clock-port.js";
-import { type PostActionVerificationAbilityGroup, type PostActionVerificationAbilityInput, type PostActionVerificationChildCapabilityId, type ParsedPostActionVerificationAbilityInput } from "./contract.js";
+import { type CreatePostActionVerificationAbilityGroupInput, type PostActionVerificationAbilityGroup, type PostActionVerificationAbilityInput, type PostActionVerificationChildCapabilityId, type ParsedPostActionVerificationAbilityInput } from "./contract.js";
 import { PostActionVerificationAbilityResultSchema, PostActionVerificationAbilityInputSchema } from "./schema.js";
 import { createPostActionVerificationRegistry, listPostActionVerificationChildren } from "./registry.js";
 import { executePostActionVerification } from "./runtime/post-action-verification-executor.js";
-import { createSystemPostActionVerificationClock } from "./runtime/verification-clock.js";
 import { dispatchPostActionVerificationFailure } from "./runtime/verification-dispatch-failure.js";
 
-type CreatePostActionVerificationAbilityGroupInput = {
-  clock?: PostActionVerificationClockPort;
-  evidenceReadPort?: PostActionEvidenceReadPort;
-};
-
-function createInlinePostActionEvidenceReadPort(): PostActionEvidenceReadPort {
-  return {
-    listObservations(request) {
-      return request.observationSet.observations;
-    },
-    getObservationByRef(request, ref) {
-      return request.observationSet.observations.find((observation) => observation.ref === ref) ?? null;
-    },
-  };
-}
-
-export function createPostActionVerificationAbilityGroup(input: CreatePostActionVerificationAbilityGroupInput = {}): PostActionVerificationAbilityGroup {
+export function createPostActionVerificationAbilityGroup(input: CreatePostActionVerificationAbilityGroupInput): PostActionVerificationAbilityGroup {
   const registry = createPostActionVerificationRegistry();
   const context = {
-    clock: input.clock ?? createSystemPostActionVerificationClock(),
-    evidenceReadPort: input.evidenceReadPort ?? createInlinePostActionEvidenceReadPort(),
+    clock: input.clock,
+    evidenceReadPort: input.evidenceReadPort,
   };
 
   const executeById = async (childCapabilityId: PostActionVerificationChildCapabilityId, callInput: ParsedPostActionVerificationAbilityInput) => {
@@ -36,8 +19,7 @@ export function createPostActionVerificationAbilityGroup(input: CreatePostAction
       return dispatchPostActionVerificationFailure({
         rawInput: callInput,
         context,
-        childCapabilityId,
-        status: "blocked",
+          status: "failed",
         failureReason: "unknown_child_capability",
         statusMessage: `Post Action Verification child capability is not registered for ${childCapabilityId}.`,
       });
@@ -53,7 +35,6 @@ export function createPostActionVerificationAbilityGroup(input: CreatePostAction
       return dispatchPostActionVerificationFailure({
         rawInput: callInput,
         context,
-        childCapabilityId,
         failureReason: "child_execution_failed",
         statusMessage: error instanceof Error ? error.message : "Post Action Verification child execution failed.",
       });
@@ -70,9 +51,10 @@ export function createPostActionVerificationAbilityGroup(input: CreatePostAction
         return dispatchPostActionVerificationFailure({
           rawInput: inputValue,
           context,
-          status: "blocked",
+          status: "failed",
           failureReason: "input_schema_invalid",
           statusMessage: "Post Action Verification rejected invalid input schema.",
+          parseErrors: parsed.error.issues.map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`),
         });
       }
       return executeById(parsed.data.childCapabilityId, parsed.data);

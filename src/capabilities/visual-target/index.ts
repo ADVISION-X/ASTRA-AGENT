@@ -1,7 +1,10 @@
 export { createVisualTargetAbilityGroup } from "./ability-group.js";
+export { createSystemVisualTargetClock } from "./runtime/visual-target-clock.js";
+export { createVisualTargetRuntimeContext } from "./runtime/visual-target-runtime-context.js";
 export {
 	VISUAL_TARGET_ABILITY_GROUP_ID,
 	VisualTargetSchema,
+	type VisualTargetActionOutput,
 	type SuccessfulVisualTarget,
 	type VisualBoundingBox,
 	type VisualClickPoint,
@@ -15,8 +18,11 @@ export {
 	type VisualTargetCoordinateSpace,
 	type VisualTargetDataQualityFlag,
 	type VisualTargetFailureReason,
+	type VisualTargetGeometryGuardHandoff,
 	type VisualTargetNature,
+	type VisualTargetOutput,
 	type VisualTargetPageStateProof,
+	type VisualTargetPublicTypes,
 	type VisualTargetRuntimeProof,
 	type VisualTargetScaleMapping,
 	type VisualTargetScreenshotSourceProof,
@@ -30,10 +36,13 @@ export {
 	VisualClickPointSchema,
 	VisualTargetAbilityInputSchema,
 	VisualTargetAbilityResultSchema,
+	VisualTargetActionOutputSchema,
 	VisualTargetAiSourceProofSchema,
 	VisualTargetCandidateSchema,
 	VisualTargetChildCapabilityIdSchema,
 	VisualTargetCoordinateSpaceSchema,
+	VisualTargetGeometryGuardHandoffSchema,
+	VisualTargetOutputSchema,
 	VisualTargetPageStateProofSchema,
 	VisualTargetResultSchema,
 	VisualTargetRuntimeProofSchema,

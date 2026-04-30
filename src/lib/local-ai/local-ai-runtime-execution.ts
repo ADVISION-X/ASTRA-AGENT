@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
 import {
@@ -15,22 +17,39 @@ import type { LocalAiDebugHook, LocalAiRuntimeAdapter } from "./runtime-adapters
 import { extractFirstJsonObject } from "./runtime-adapters/runtime-adapter-utils.js";
 import { getPromptContract } from "./prompt-registry.js";
 import { parseVisionRuntimeOutput } from "./local-ai-runtime-vision.js";
-import { buildVisionPrompt } from "./local-ai-runtime-vision-prompt.js";
+import { buildVisionPromptParts } from "./local-ai-runtime-vision-prompt.js";
 
 const MODEL_TIMEOUT_MS = {
   text: 30_000,
   ocr: 30_000,
 } as const;
 
-const buildCommentPrompt = (request: Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>): string => {
+function hashText(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function isFullAiIoDebugEnabled(): boolean {
+  return process.env.GRASSEYE_DEBUG_AI_IO === "full";
+}
+
+function buildPromptPreview(value: string): string {
+  return truncatePreview(value, 320);
+}
+
+const buildCommentPromptParts = (request: Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>) => {
   const contract = getPromptContract(request.taskType);
-  return [
-    contract.purpose,
+  const userPrompt = [
     "Analyze the cleaned comments and return JSON only.",
     `Schema: ${JSON.stringify({ purchaseIntent: "low|medium|high", painPoints: ["string"], complaints: ["string"], demandTerms: ["string"], confidence: "0..1" })}`,
     `Forbidden outputs: ${contract.forbiddenOutputs.join("; ")}`,
     `Comments: ${JSON.stringify(request.input.cleanedComments)}`,
   ].join("\n\n");
+
+  return {
+    systemPrompt: contract.purpose,
+    userPrompt,
+    fullPrompt: [contract.purpose, userPrompt].join("\n\n"),
+  };
 };
 
 const parseRuntimeJsonOutput = (text: string, taskType: string): unknown => {
@@ -91,10 +110,33 @@ async function executeVisionRuntimeTask(
 ): Promise<LocalAiTaskResult> {
   const request = input.request as Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
   const imagePaths = request.evidenceRefs.map((ref) => ref.filePath).filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0);
-  const prompt = buildVisionPrompt(request);
+  const promptParts = buildVisionPromptParts(request);
+  const prompt = promptParts.fullPrompt;
+  const promptFullText = isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined;
+  const sourceScreenshotEvidenceId = typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined;
+  const aiInputArtifactRef = request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id;
   await input.debugHook?.({
     eventType: "local_ai_runtime_request_started",
     detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=60000; promptLength=${prompt.length}; imageCount=${imagePaths.length}`,
+    taskType: request.taskType,
+    promptContractId: "vision.productPresence.v1",
+    promptVersion: request.promptVersion,
+    outputSchemaRef: request.schemaVersion,
+    modelName: input.roleConfig.model,
+    modelRole: request.modelRole,
+    runtime: input.roleConfig.runtime,
+    systemPromptText: promptParts.systemPrompt,
+    userPromptText: promptParts.userPrompt,
+    systemPromptHash: hashText(promptParts.systemPrompt),
+    userPromptHash: hashText(promptParts.userPrompt),
+    promptPreview: buildPromptPreview(promptParts.fullPrompt),
+    ...(promptFullText ? { promptFullText } : {}),
+    ...(sourceScreenshotEvidenceId ? { sourceScreenshotEvidenceId } : {}),
+    ...(aiInputArtifactRef ? { aiInputArtifactRef } : {}),
+    imageInputs: request.evidenceRefs.map((ref) => ({
+      refId: ref.id,
+      filePath: ref.filePath ?? "",
+    })),
   });
   const responseText = await input.ollamaAdapter.invokeVisionTask({
     modelName: input.roleConfig.model,
@@ -114,6 +156,9 @@ async function executeVisionRuntimeTask(
   await input.debugHook?.({
     eventType: "local_ai_output_parsed",
     detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; reason=${truncatePreview(payload.reason)}`,
+    taskType: request.taskType,
+    parsedJson: payload,
+    parsedDecision: payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain",
   });
   return VisionTaskResultSchema.parse({
     id: request.id,
@@ -141,12 +186,37 @@ async function executeOcrCleanupRuntimeTask(
   if (!imagePath) {
     throw new LocalAiRuntimeError("missing_evidence", "OCR cleanup requires screenshot evidence with a file path.");
   }
+  const ocrInputArtifactRef = request.evidenceRefs[0]?.id;
+  await input.debugHook?.({
+    eventType: "local_ai_runtime_request_started",
+    detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=${MODEL_TIMEOUT_MS.ocr}; imageCount=1`,
+    taskType: request.taskType,
+    promptContractId: request.promptVersion,
+    promptVersion: request.promptVersion,
+    outputSchemaRef: request.schemaVersion,
+    modelName: input.roleConfig.model,
+    modelRole: request.modelRole,
+    runtime: input.roleConfig.runtime,
+    ...(ocrInputArtifactRef ? { aiInputArtifactRef: ocrInputArtifactRef } : {}),
+    imageInputs: request.evidenceRefs.map((ref) => ({
+      refId: ref.id,
+      filePath: ref.filePath ?? "",
+    })),
+  });
   const ocrText = await input.ocrAdapter.invokeOcrTask({
     toolName: input.roleConfig.model,
     imagePath,
     timeoutMs: MODEL_TIMEOUT_MS.ocr,
+    ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const payload = normalizeOcrText(ocrText);
+  await input.debugHook?.({
+    eventType: "local_ai_output_parsed",
+    detail: `taskType=${request.taskType}; cleanedComments=${payload.cleanedComments.length}; uncertainText=${payload.uncertainText.length}`,
+    taskType: request.taskType,
+    parsedJson: payload,
+    parsedDecision: payload.cleanedComments.length > 0 ? "ocr_cleaned" : "ocr_empty",
+  });
   return OcrTaskResultSchema.parse({
     id: request.id,
     taskType: request.taskType,
@@ -165,23 +235,53 @@ async function executeOcrCleanupRuntimeTask(
 }
 
 async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInput, createdAt: string): Promise<LocalAiTaskResult> {
+  const request = input.request as Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>;
+  const promptParts = buildCommentPromptParts(request);
+  const promptFullText = isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined;
+  const aiInputArtifactRef = request.evidenceRefs[0]?.id;
+  await input.debugHook?.({
+    eventType: "local_ai_runtime_request_started",
+    detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=${MODEL_TIMEOUT_MS.text}; commentCount=${request.input.cleanedComments.length}`,
+    taskType: request.taskType,
+    promptContractId: request.promptVersion,
+    promptVersion: request.promptVersion,
+    outputSchemaRef: request.schemaVersion,
+    modelName: input.roleConfig.model,
+    modelRole: request.modelRole,
+    runtime: input.roleConfig.runtime,
+    systemPromptText: promptParts.systemPrompt,
+    userPromptText: promptParts.userPrompt,
+    systemPromptHash: hashText(promptParts.systemPrompt),
+    userPromptHash: hashText(promptParts.userPrompt),
+    promptPreview: buildPromptPreview(promptParts.fullPrompt),
+    ...(promptFullText ? { promptFullText } : {}),
+    ...(aiInputArtifactRef ? { aiInputArtifactRef } : {}),
+  });
   const responseText = await input.ollamaAdapter.invokeTextTask({
     modelName: input.roleConfig.model,
-    prompt: buildCommentPrompt(input.request as Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>),
+    prompt: promptParts.fullPrompt,
     timeoutMs: MODEL_TIMEOUT_MS.text,
+    ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const payload = toJsonPayload(responseText, CommentSignalPayloadSchema, input.request.taskType);
+  await input.debugHook?.({
+    eventType: "local_ai_output_parsed",
+    detail: `taskType=${request.taskType}; purchaseIntent=${payload.purchaseIntent}; confidence=${payload.confidence}`,
+    taskType: request.taskType,
+    parsedJson: payload,
+    parsedDecision: payload.purchaseIntent,
+  });
   return CommentSignalTaskResultSchema.parse({
-    id: input.request.id,
-    taskType: input.request.taskType,
-    modelRole: input.request.modelRole,
+    id: request.id,
+    taskType: request.taskType,
+    modelRole: request.modelRole,
     provider: "local",
     runtime: input.roleConfig.runtime,
     model: input.roleConfig.model,
     implementationStatus: "model_backed",
-    promptVersion: input.request.promptVersion,
-    schemaVersion: input.request.schemaVersion,
-    evidenceRefs: input.request.evidenceRefs,
+    promptVersion: request.promptVersion,
+    schemaVersion: request.schemaVersion,
+    evidenceRefs: request.evidenceRefs,
     confidence: payload.confidence,
     createdAt,
     result: payload,

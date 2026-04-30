@@ -1,0 +1,103 @@
+{
+  "manifest": {
+    "packageId": "builtin.tiktok-comment-evidence",
+    "packageKind": "operational-map-package",
+    "packageVersion": "1.0.0",
+    "mapId": "tiktok.comment.harvest.review.v1",
+    "taskTemplateId": "tiktok-comment-evidence",
+    "displayName": "TikTok Comment Evidence Capture",
+    "author": "GrassEye Builtins",
+    "createdAt": "2026-04-30T00:00:00.000Z",
+    "minimumGrassEyeVersion": "0.1.0",
+    "mapSchemaVersion": "1",
+    "approvalStatus": "approved",
+    "aiGenerated": false
+  },
+  "taskTemplate": {
+    "taskTemplateId": "tiktok-comment-evidence",
+    "displayName": "TikTok Comment Evidence Capture",
+    "description": "Open the comment panel through visual targeting, verify the action, and preserve review evidence.",
+    "recommended": false,
+    "taskCategory": "comment-review",
+    "version": "1.0.0",
+    "defaultRunLimit": { "maxRounds": 3, "maxMinutes": 15 },
+    "maxAllowedRunLimit": { "maxRounds": 5, "maxMinutes": 30 },
+    "safetyLevel": "review-first",
+    "userVisibleCapabilities": ["Collect comment clues", "Preserve review context", "Support human review"],
+    "availabilityPolicy": "active",
+    "requestedPlatformId": "tiktok-web",
+    "platformProfileRef": "tiktok-web:persistent-local-profile",
+    "targetProfileRef": "tiktok-web:persistent-local-profile",
+    "defaultHumanGoal": "Capture TikTok comment candidates and preserve review evidence."
+  },
+  "operationalMap": {
+    "mapId": "tiktok.comment.harvest.review.v1",
+    "displayName": "TikTok Comment Evidence",
+    "humanGoal": "Capture comment evidence after a candidate video is identified.",
+    "allowedAbilityGroups": ["visual-target", "geometry-guard", "mouse-click", "post-action-verification", "screenshot", "forensics-persistence"],
+    "initialStepId": "detect-comments-button",
+    "steps": [
+      { "stepId": "detect-comments-button", "capabilityId": "orchestration", "childCapabilityId": "detect-comments-button", "stepKind": "ability", "targetAbilityGroupId": "visual-target", "inputRefs": ["screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["visualTargetRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "detect-comments-button:failed", "reviewBranch": "detect-comments-button:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "normalize-comments-target", "capabilityId": "orchestration", "childCapabilityId": "normalize-coordinate-geometry", "stepKind": "ability", "targetAbilityGroupId": "geometry-guard", "inputRefs": ["visualTargetRef"], "outputRefPolicy": { "storeAs": ["geometryProofRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "normalize-comments-target:failed", "reviewBranch": "normalize-comments-target:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "click-comments-button", "capabilityId": "orchestration", "childCapabilityId": "click-browser-coordinate", "stepKind": "ability", "targetAbilityGroupId": "mouse-click", "inputRefs": ["visualTargetRef", "geometryProofRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "click-comments-button:failed", "reviewBranch": "click-comments-button:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "verify-comments-open", "capabilityId": "orchestration", "childCapabilityId": "verify-action-result", "stepKind": "ability", "targetAbilityGroupId": "post-action-verification", "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "verify-comments-open:failed", "reviewBranch": "verify-comments-open:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "capture-comments-panel", "capabilityId": "orchestration", "childCapabilityId": "capture-region", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["visualTargetRef", "targetUrl"], "outputRefPolicy": { "storeAs": ["commentsEvidenceRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "capture-comments-panel:failed", "reviewBranch": "capture-comments-panel:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "persist-comment-evidence", "capabilityId": "orchestration", "childCapabilityId": "write-evidence-record", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["commentsEvidenceRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "persist-comment-evidence:failed", "reviewBranch": "persist-comment-evidence:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "finalize-mission", "capabilityId": "orchestration", "childCapabilityId": "finalize-mission", "stepKind": "finalize", "targetAbilityGroupId": null, "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": [] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "finalize-mission:failed", "reviewBranch": "finalize-mission:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } }
+    ],
+    "transitions": [
+      { "transitionId": "detect-comments-button:success", "fromStepId": "detect-comments-button", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "normalize-comments-target", "finalStatus": null },
+      { "transitionId": "detect-comments-button:failed", "fromStepId": "detect-comments-button", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "detect-comments-button:review", "fromStepId": "detect-comments-button", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "normalize-comments-target:success", "fromStepId": "normalize-comments-target", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "click-comments-button", "finalStatus": null },
+      { "transitionId": "normalize-comments-target:failed", "fromStepId": "normalize-comments-target", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "normalize-comments-target:review", "fromStepId": "normalize-comments-target", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "click-comments-button:success", "fromStepId": "click-comments-button", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "verify-comments-open", "finalStatus": null },
+      { "transitionId": "click-comments-button:failed", "fromStepId": "click-comments-button", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "click-comments-button:review", "fromStepId": "click-comments-button", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "verify-comments-open:success", "fromStepId": "verify-comments-open", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "capture-comments-panel", "finalStatus": null },
+      { "transitionId": "verify-comments-open:failed", "fromStepId": "verify-comments-open", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "verify-comments-open:review", "fromStepId": "verify-comments-open", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "capture-comments-panel:success", "fromStepId": "capture-comments-panel", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "persist-comment-evidence", "finalStatus": null },
+      { "transitionId": "capture-comments-panel:failed", "fromStepId": "capture-comments-panel", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "capture-comments-panel:review", "fromStepId": "capture-comments-panel", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-comment-evidence:success", "fromStepId": "persist-comment-evidence", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-comment-evidence:failed", "fromStepId": "persist-comment-evidence", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-comment-evidence:review", "fromStepId": "persist-comment-evidence", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "finalize-mission:success", "fromStepId": "finalize-mission", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": null, "finalStatus": "completed" },
+      { "transitionId": "finalize-mission:failed", "fromStepId": "finalize-mission", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "finalize-mission:review", "fromStepId": "finalize-mission", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
+    ],
+    "failureBranches": ["detect-comments-button:failed", "normalize-comments-target:failed", "click-comments-button:failed", "verify-comments-open:failed", "capture-comments-panel:failed", "persist-comment-evidence:failed", "finalize-mission:failed"],
+    "reviewBranches": ["detect-comments-button:review", "normalize-comments-target:review", "click-comments-button:review", "verify-comments-open:review", "capture-comments-panel:review", "persist-comment-evidence:review", "finalize-mission:review"],
+    "finalStates": ["completed", "failed", "review_required"],
+    "forbiddenDirectCalls": ["PlatformAdapter", "EvidenceStoreService", "direct-ability-call"],
+    "sequencePolicy": { "maxHops": 10, "maxRetriesPerStep": 1, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },
+    "mapVersion": "1.0.0",
+    "proofPolicy": { "runtimeProof": "required", "recordPackageSelection": true }
+  },
+  "dependencies": {
+    "requiredCapabilities": ["visual-target", "geometry-guard", "mouse-click", "post-action-verification", "screenshot", "forensics-persistence"],
+    "requiredChildCapabilities": ["detect-comments-button", "normalize-coordinate-geometry", "click-browser-coordinate", "verify-action-result", "capture-region", "write-evidence-record"],
+    "requiredPromptContracts": [],
+    "requiredPlatformProfiles": ["tiktok-web:persistent-local-profile"],
+    "requiredForensicsRecords": ["evidence_record"]
+  },
+  "compatibility": {
+    "requiresGrassEye": "0.1.0",
+    "requiresMapSchema": "1",
+    "requiresCapabilityRegistry": ["visual-target", "geometry-guard", "mouse-click", "post-action-verification", "screenshot", "forensics-persistence"],
+    "requiresPromptRegistry": [],
+    "requiresPlatformProfileRegistry": ["tiktok-web:persistent-local-profile"]
+  },
+  "policy": {
+    "safetyPolicy": "review-first",
+    "runLimitPolicy": { "defaultMaxRounds": 3, "maxAllowedMaxRounds": 5, "maxAllowedMaxMinutes": 30 },
+    "reviewPolicy": "review-first",
+    "exportPolicy": "forensics only",
+    "debugPolicy": "developer-inspect only"
+  },
+  "promptBindings": { "bindings": [] },
+  "changelog": "Initial built-in comment evidence map package.",
+  "signature": null
+}

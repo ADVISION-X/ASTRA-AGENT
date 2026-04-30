@@ -2,8 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
-import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
+import { probeCommanderConsolePage, probeHealth, waitForHealth } from "./lib/health-check.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
@@ -13,6 +12,7 @@ const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
 const healthUrl = `${baseUrl}/api/runtime/health`;
+const missionReadinessUrl = `${baseUrl}/api/runtime/mission-readiness`;
 const terminalLogger = createTerminalStructuredLogger();
 
 function toFailureReason(error) {
@@ -29,6 +29,16 @@ function logPass(phase, component, eventType, status, message, extra = {}) {
 
 function logFail(phase, component, eventType, status, message, extra = {}) {
   terminalLogger.fail({ phase, component, eventType, status, message, ...extra });
+}
+
+function formatFailingComponents(report) {
+  if (!Array.isArray(report?.components)) {
+    return [];
+  }
+
+  return report.components
+    .filter((component) => component?.ok !== true)
+    .map((component) => `${component.name}=${component.detail}`);
 }
 
 function parseFlags(argv) {
@@ -105,6 +115,10 @@ async function performLaunch(flags, root) {
   const serviceHandle = await startLocalService({
     rootDir: root,
     preStartScripts: [],
+    scriptName: "internal:app-server:dev",
+    env: {
+      GRASSEYE_PLATFORM_TARGET: "tiktok-web",
+    },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
   });
@@ -112,25 +126,42 @@ async function performLaunch(flags, root) {
     durationMs: Date.now() - serviceStart,
   });
 
-  const aiStart = Date.now();
-  logEvent("AI", "local_ai_runtime", "local_ai_readiness", "checking", "checking local AI runtime readiness");
-  const localAiResult = await ensureLocalAiRuntimeReady({
-    logger: (message) => logEvent("AI", "local_ai_runtime", "local_ai_detail", "event", message),
-  });
-  logPass("AI", "local_ai_runtime", "local_ai_readiness", "passed", `local AI runtime reachable with ${localAiResult.availableModels.length} models`, {
-    durationMs: Date.now() - aiStart,
-  });
-
   const healthStart = Date.now();
-  logEvent("COMMANDER", "commander_console", "health_check", "started", `waiting for health at ${healthUrl}`);
+  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `waiting for health at ${healthUrl}`);
   const healthReport = await waitForHealth({ url: healthUrl, serviceProcess: serviceHandle.child });
   const pageReport = await probeCommanderConsolePage({ url: baseUrl });
-  logPass("COMMANDER", "commander_console", "console_reachable", "passed", `Commander Console reachable at ${baseUrl}`, {
+  logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `Commander Console reachable at ${baseUrl}`, {
     refs: [`components=${Array.isArray(healthReport.components) ? healthReport.components.length : 0}`, `contentType=${pageReport.contentType}`],
     durationMs: Date.now() - healthStart,
   });
 
   await openReadyPage(flags);
+
+  const readinessStart = Date.now();
+  logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", `checking mission readiness at ${missionReadinessUrl}`);
+  try {
+    const missionReadiness = await probeHealth({ url: missionReadinessUrl });
+    const failingComponents = formatFailingComponents(missionReadiness);
+    if (failingComponents.length === 0 && missionReadiness?.status === "ready") {
+      logPass("MISSION", "mission_readiness", "MISSION_READINESS_PASSED", "passed", "mission readiness passed", {
+        durationMs: Date.now() - readinessStart,
+      });
+    } else {
+      logEvent("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "degraded", missionReadiness?.actionableMessage ?? "mission readiness degraded", {
+        refs: failingComponents,
+        durationMs: Date.now() - readinessStart,
+      });
+    }
+  } catch (error) {
+    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_FAILED", "failed", "mission readiness check failed after App Shell passed; keeping Commander Console alive", {
+      failureReason: toFailureReason(error),
+      durationMs: Date.now() - readinessStart,
+    });
+  }
+
+  logPass("RUNTIME", "startup_entrypoint", "terminal_structured_log_relay", "ready", "terminal structured log relay active", {
+    refs: ["/api/runtime/logs", "/api/runtime/actions", "/api/runtime/mission-readiness"],
+  });
   logEvent("RUNTIME", "startup_entrypoint", "waiting_for_human_command", "ready", `waiting for human command at ${baseUrl}`);
   return serviceHandle;
 }
@@ -174,11 +205,11 @@ async function main() {
       return;
     }
     shuttingDown = true;
-    logEvent("SERVICE", "app_server", "shutdown", "started", `stopping local service with ${signal}`);
+    logEvent("SERVICE", "app_server", "SERVICE_SHUTDOWN_REQUESTED", "started", `stopping local service with ${signal}`);
     if (serviceHandle) {
       await stopLocalService(serviceHandle.child, signal);
     }
-    logPass("SERVICE", "app_server", "shutdown", "passed", `local service stopped with ${signal}`);
+    logPass("SERVICE", "app_server", "SERVICE_SHUTDOWN_COMPLETED", "passed", `local service stopped with ${signal}`);
   };
 
   registerSignalHandlers(shutdown);
@@ -187,7 +218,10 @@ async function main() {
     serviceHandle = await performLaunch(flags, rootDir);
     const exit = await serviceHandle.waitForExit();
     if (!shuttingDown) {
-      logFail("SERVICE", "app_server", "unexpected_exit", "failed", "local service exited unexpectedly", {
+      logFail("SERVICE", "app_server", "SERVICE_UNEXPECTED_EXIT", "failed", "local service exited unexpectedly", {
+        failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
+      });
+      logFail("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "failed", "classified local service exit", {
         failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
       });
       process.exitCode = exit.code ?? 1;

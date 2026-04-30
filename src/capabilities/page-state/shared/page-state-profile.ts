@@ -29,3 +29,50 @@ export const DEFAULT_PAGE_STATE_PLATFORM_PROFILES: readonly PageStatePlatformPro
     videoPathMarkers: ["/workbench"],
   },
 ];
+
+function normalizeHost(host: string): string {
+  return host.toLowerCase().replace(/\.$/, "");
+}
+
+function normalizePathname(pathname: string): string {
+  if (!pathname) {
+    return "/";
+  }
+
+  const lowered = pathname.toLowerCase();
+  return lowered.endsWith("/") && lowered !== "/" ? lowered.slice(0, -1) : lowered;
+}
+
+export function resolvePageStatePlatformProfile(profileId: string): PageStatePlatformProfile | null {
+  return DEFAULT_PAGE_STATE_PLATFORM_PROFILES.find((profile) => profile.profileId === profileId) ?? null;
+}
+
+export function urlMatchesPlatformHost(currentUrl: string, profile: PageStatePlatformProfile): boolean {
+  const parsed = new URL(currentUrl);
+  const host = normalizeHost(parsed.hostname);
+  return profile.hosts.some((candidateHost) => normalizeHost(candidateHost) === host);
+}
+
+export function urlMatchesFeedPath(currentUrl: string, profile: PageStatePlatformProfile): boolean {
+  const parsed = new URL(currentUrl);
+  const pathname = normalizePathname(parsed.pathname);
+  return profile.feedPathPrefixes.some((prefix) => {
+    const normalizedPrefix = normalizePathname(prefix);
+    return pathname === normalizedPrefix || (normalizedPrefix !== "/" && pathname.startsWith(`${normalizedPrefix}/`));
+  });
+}
+
+export function urlMatchesVideoPath(currentUrl: string, profile: PageStatePlatformProfile): boolean {
+  const parsed = new URL(currentUrl);
+  const pathname = normalizePathname(parsed.pathname);
+  return profile.videoPathMarkers.some((marker) => {
+    const normalizedMarker = normalizePathname(marker);
+    return pathname === normalizedMarker || pathname.startsWith(`${normalizedMarker}/`) || pathname.includes(normalizedMarker);
+  });
+}
+
+export function isLocalWorkbenchUrl(currentUrl: string): boolean {
+  const parsed = new URL(currentUrl);
+  const host = normalizeHost(parsed.hostname);
+  return host === "localhost" || host === "127.0.0.1";
+}

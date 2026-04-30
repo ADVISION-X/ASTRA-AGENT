@@ -39,6 +39,7 @@ export function buildOpenResult(input: {
   navigationDecision: OpenNavigationDecision;
   postOpenStateDecision: PostOpenStateDecision;
   idempotencyKey: string;
+  idempotencyDecision: "reserved" | "duplicate_review_required" | "already_on_target" | "scope_capacity_exceeded" | "not_started";
   beforeSession: BrowserSessionSnapshot;
   afterSession: BrowserSessionSnapshot;
   startedAt: string;
@@ -48,13 +49,12 @@ export function buildOpenResult(input: {
   failureReason: OpenFailure | null;
   reviewRequiredReason: string | null;
   dataQualityFlags: OpenDataQualityFlag[];
+  sessionSnapshotAvailable: boolean;
+  sessionSnapshotFailureReason: string | null;
 }): OpenResult {
   const sourceRef = input.request.sourceRef ?? `${input.request.sourceAbilityGroupId}:${input.request.sourceChildCapabilityId ?? "unknown"}:${input.request.runId}`;
   const openAttemptRef = input.navigationDecision.navigationAttemptRef;
-  const pageStateRef = input.postOpenStateDecision.pageStateHandoffRequired
-    ? `page-state:${input.request.roundId ?? "no-round"}:${input.request.childCapabilityId}`
-    : null;
-  const forensicsRef = null;
+  const pageStateHandoffRef = input.postOpenStateDecision.pageStateHandoffRef;
 
   const status = input.postOpenStateDecision.status;
   const output = status === "success"
@@ -72,10 +72,8 @@ export function buildOpenResult(input: {
         loginStateAfter: input.afterSession.loginState,
         sourceRef,
         openAttemptRef,
-        pageStateRef,
-        forensicsRef,
-        fallbackUsed: input.navigationDecision.fallbackUsed,
-        pageStateHandoffRequired: input.postOpenStateDecision.pageStateHandoffRequired,
+        pageStateHandoffRef,
+        pageStateHandoffRequired: true,
       })
     : null;
 
@@ -109,6 +107,7 @@ export function buildOpenResult(input: {
       navigationDecision: input.navigationDecision,
       postOpenStateDecision: input.postOpenStateDecision,
       idempotencyKey: input.idempotencyKey,
+      idempotencyDecision: input.idempotencyDecision,
       beforeSession: input.beforeSession,
       afterSession: input.afterSession,
       startedAt: input.startedAt,
@@ -119,8 +118,9 @@ export function buildOpenResult(input: {
       reviewRequiredReason: input.reviewRequiredReason,
       sourceRef,
       openAttemptRef,
-      pageStateRef,
-      forensicsRef,
+      pageStateHandoffRef,
+      sessionSnapshotAvailable: input.sessionSnapshotAvailable,
+      sessionSnapshotFailureReason: input.sessionSnapshotFailureReason,
       dataQualityFlags: input.dataQualityFlags,
     }),
   });

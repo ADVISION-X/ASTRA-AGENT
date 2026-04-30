@@ -10,6 +10,8 @@ import type {
   BrowserGeometrySnapshot,
   BrowserScrollCoordinateSpace,
   BrowserStateSnapshot,
+  BrowserTextInputAction,
+  BrowserTextInputKey,
 } from "./browser-controller.js";
 import { createId } from "../local-runtime/ids.js";
 import type { ChromeWindowState } from "./current-chrome-window-control.js";
@@ -33,10 +35,12 @@ const REVIEW_TOKENS = ["captcha", "challenge", "verify", "safety"];
 
 const containsToken = (value: string, tokens: string[]): boolean => tokens.some((token) => value.includes(token));
 const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
-const runAppleScript = async (script: string): Promise<string> => runCurrentChromeAppleScript(script);
-const runJxa = async (script: string): Promise<string> => runCurrentChromeJxa(script);
+const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
+const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
 
 const activateChrome = async (): Promise<void> => { await runAppleScript('tell application "Google Chrome" to activate'); };
+
+const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
 const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
 
@@ -78,13 +82,56 @@ for (let count = 0; count < ${clickCount}; count += 1) {
 `);
 };
 
-const pressBrowserKey = async (keyCode: number): Promise<void> => {
+const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
     key code ${keyCode}
 end tell
-`);
+`, abortSignal ? { signal: abortSignal } : undefined);
+};
+
+const keystrokeBrowserText = async (text: string, abortSignal?: AbortSignal): Promise<void> => {
+  await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "System Events"
+    keystroke "${escapeAppleScriptText(text)}"
+end tell
+`, abortSignal ? { signal: abortSignal } : undefined);
+};
+
+const selectAllBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
+  await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "System Events"
+    keystroke "a" using command down
+end tell
+`, abortSignal ? { signal: abortSignal } : undefined);
+};
+
+const pasteBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
+  await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "System Events"
+    keystroke "v" using command down
+end tell
+`, abortSignal ? { signal: abortSignal } : undefined);
+};
+
+const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
+  Enter: 36,
+  Tab: 48,
+  Escape: 53,
+  Backspace: 51,
+  Delete: 117,
+  ArrowUp: 126,
+  ArrowDown: 125,
+  ArrowLeft: 123,
+  ArrowRight: 124,
+};
+
+const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: AbortSignal): Promise<void> => {
+  await pressBrowserKey(BROWSER_TEXT_INPUT_KEY_CODES[key], abortSignal);
 };
 
 const scrollAt = async (x: number, y: number, deltaX: number, deltaY: number): Promise<void> => {
@@ -189,12 +236,66 @@ export class CurrentChromeBrowserController implements BrowserController {
     return this.createActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
-  async screenshotRegion(input: { regionLabel: string; contentLines?: string[] }): Promise<BrowserCaptureResult> {
+  async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
+    await activateChrome();
+
+    if ((input.action === "type-text" || input.action === "replace-input") && (!input.text || input.text.length === 0)) {
+      return this.createActionResult({
+        ok: false,
+        message: `missing text for ${input.action} on ${input.targetLabel}`,
+        fallbackUsed: input.fallbackUsed ?? false,
+      });
+    }
+
+    if ((input.action === "press-key" || input.action === "commit-input") && !input.key) {
+      return this.createActionResult({
+        ok: false,
+        message: `missing key for ${input.action} on ${input.targetLabel}`,
+        fallbackUsed: input.fallbackUsed ?? false,
+      });
+    }
+
+    switch (input.action) {
+      case "type-text":
+        await keystrokeBrowserText(input.text ?? "", input.abortSignal);
+        break;
+      case "paste-text":
+        await pasteBrowserText(input.abortSignal);
+        break;
+      case "clear-input":
+        await selectAllBrowserText(input.abortSignal);
+        await pressNamedBrowserKey("Backspace", input.abortSignal);
+        break;
+      case "replace-input":
+        await selectAllBrowserText(input.abortSignal);
+        await pressNamedBrowserKey("Backspace", input.abortSignal);
+        await keystrokeBrowserText(input.text ?? "", input.abortSignal);
+        break;
+      case "press-key":
+        await pressNamedBrowserKey(input.key ?? "Enter", input.abortSignal);
+        break;
+      case "commit-input":
+        await pressNamedBrowserKey(input.key ?? "Enter", input.abortSignal);
+        break;
+    }
+
+    await this.wait(300);
+    return this.createActionResult({
+      message: `${input.action} executed for ${input.targetLabel}`,
+      fallbackUsed: input.fallbackUsed ?? false,
+    });
+  }
+
+  async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
     const geometry = await this.getGeometrySnapshot();
     await mkdir(this.options.screenshotDir, { recursive: true });
     const screenshotPath = path.join(this.options.screenshotDir, `${createId(input.regionLabel)}.png`);
     await activateChrome();
-    await runSpawn("screencapture", ["-x", "-R", `${Math.round(geometry.windowX)},${Math.round(geometry.windowY)},${Math.round(geometry.viewportWidth)},${Math.round(geometry.viewportHeight)}`, screenshotPath]);
+    await runSpawn(
+      "screencapture",
+      ["-x", "-R", `${Math.round(geometry.windowX)},${Math.round(geometry.windowY)},${Math.round(geometry.viewportWidth)},${Math.round(geometry.viewportHeight)}`, screenshotPath],
+      input.abortSignal ? { signal: input.abortSignal } : undefined,
+    );
     await this.refreshSnapshot();
 
     return {

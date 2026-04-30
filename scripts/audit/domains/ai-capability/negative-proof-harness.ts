@@ -16,8 +16,17 @@ type Mutation = {
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
 const EXPORT_STAR_MUTATION = `export ${"*"} from "./schema.js";`;
 const AS_ANY_MUTATION = `const mutatedEscape = runtimeResult as ${"any"};`;
+const DYNAMIC_IMPORT_MUTATION = `void ${"import"}("./schema.js");`;
+const REQUIRE_MUTATION = `const mutatedRequire = ${"require"}("./schema.js");`;
+const AS_UNKNOWN_AS_MUTATION = `const escapedInput = input as ${"unknown"} as { status: string };`;
 
 const MUTATIONS: Mutation[] = [
+  {
+    name: "input gate mutation",
+    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    search: "parseAiExecutorInput(input.request, input.childContract.childCapabilityId)",
+    replace: '({ ok: true, request: input.request })',
+  },
   {
     name: "provider gate mutation",
     file: "src/capabilities/ai/runtime/ai-executor.ts",
@@ -41,6 +50,24 @@ const MUTATIONS: Mutation[] = [
     file: "src/capabilities/ai/runtime/ai-result-builder.ts",
     search: "buildAiRuntimeProof({",
     replace: "buildAiRuntimeProofRemoved({",
+  },
+  {
+    name: "payload budget mutation",
+    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    search: "evaluateAiPayloadBudgetGate(inputGate.request)",
+    replace: '({ decision: "allow", reason: null, flags: [] })',
+  },
+  {
+    name: "runtime health gate mutation",
+    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    search: "evaluateAiRuntimeHealthGate({",
+    replace: "evaluateAiRuntimeHealthGateRemoved({",
+  },
+  {
+    name: "runtime runner mutation",
+    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    search: "runAiRuntimeCall({",
+    replace: "runAiRuntimeCallRemoved({",
   },
   {
     name: "output boundary mutation",
@@ -75,8 +102,20 @@ const MUTATIONS: Mutation[] = [
   {
     name: "paid gateway mutation",
     file: "src/capabilities/ai/children/paid-analysis-ai/implementation.ts",
-    search: 'import { executeAiChild } from "../../runtime/ai-executor.js";',
-    replace: 'import { executeAiChild } from "../../runtime/ai-executor.js";\nimport { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";',
+    search: 'import { PaidAnalysisAiChildContract as contract } from "./contract.js";',
+    replace: 'import { PaidAnalysisAiChildContract as contract } from "./contract.js";\nimport { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";',
+  },
+  {
+    name: "paid execute mutation",
+    file: "src/capabilities/ai/children/paid-analysis-ai/implementation.ts",
+    search: "implementation: {\n      async checkReadiness()",
+    replace: 'implementation: {\n      async execute() {\n        return Promise.reject(new Error("mutated disabled execute"));\n      },\n      async checkReadiness()',
+  },
+  {
+    name: "future execute mutation",
+    file: "src/capabilities/ai/children/future-api-ai/implementation.ts",
+    search: "implementation: {\n      async checkReadiness()",
+    replace: 'implementation: {\n      async execute() {\n        return Promise.reject(new Error("mutated future execute"));\n      },\n      async checkReadiness()',
   },
   {
     name: "internal gateway mutation",
@@ -99,8 +138,32 @@ const MUTATIONS: Mutation[] = [
   {
     name: "as-any mutation",
     file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));",
-    replace: `const runtimeResult = AiRuntimeExecutionOutputSchema.parse(await input.context.runtime.execute(inputGate.request));\n  ${AS_ANY_MUTATION}`,
+    search: "const runtimeResult = await runAiRuntimeCall({",
+    replace: `${AS_ANY_MUTATION}\n  const runtimeResult = await runAiRuntimeCall({`,
+  },
+  {
+    name: "as-unknown-as mutation",
+    file: "src/capabilities/ai/runtime/ai-result-builder.ts",
+    search: "const outputRef = input.status === \"success\" && input.output !== null",
+    replace: `${AS_UNKNOWN_AS_MUTATION}\n  const outputRef = input.status === "success" && input.output !== null`,
+  },
+  {
+    name: "dynamic import mutation",
+    file: "src/capabilities/ai/index.ts",
+    search: 'export { listAiChildren } from "./registry.js";',
+    replace: `export { listAiChildren } from "./registry.js";\n${DYNAMIC_IMPORT_MUTATION}`,
+  },
+  {
+    name: "require mutation",
+    file: "src/capabilities/ai/index.ts",
+    search: 'export { listAiChildren } from "./registry.js";',
+    replace: `export { listAiChildren } from "./registry.js";\n${REQUIRE_MUTATION}`,
+  },
+  {
+    name: "ability-group adapter import mutation",
+    file: "src/capabilities/ai/ability-group.ts",
+    search: 'import { routeAiTaskToChild } from "./task-router.js";',
+    replace: 'import { routeAiTaskToChild } from "./task-router.js";\nimport { createLocalAiRuntimePort } from "./runtime-adapters/local-ai-runtime-adapter.js";',
   },
 ];
 

@@ -1,28 +1,50 @@
+import { POST_ACTION_CHILD_POLICY_MAP } from "../shared/post-action-policy.js";
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
+import type { PostActionVerificationRuntimeContext } from "./post-action-verification-runtime-context.js";
 
-function matchesActionSource(request: ParsedPostActionVerificationAbilityInput): boolean {
-  if (request.childCapabilityId === "verify-page-opened") {
-    return request.actionProof.sourceAbilityGroupId === "open";
-  }
-
-  if (request.childCapabilityId === "verify-video-changed-after-scroll") {
-    return request.actionProof.sourceAbilityGroupId === "mouse-scroll";
-  }
-
-  return request.actionProof.sourceAbilityGroupId === "mouse-click";
-}
-
-export function validateActionProof(request: ParsedPostActionVerificationAbilityInput) {
+export function validateActionProof(input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  context: PostActionVerificationRuntimeContext;
+}) {
+  const request = input.request;
   const proof = request.actionProof;
-  if (!matchesActionSource(request)) {
+  const childPolicy = POST_ACTION_CHILD_POLICY_MAP[request.childCapabilityId];
+  const allowedSourceChildCapabilityIds: readonly string[] = childPolicy.allowedSourceChildCapabilityIds;
+  const allowedActionTypes: readonly string[] = childPolicy.allowedActionTypes;
+
+  if (proof.sourceAbilityGroupId !== childPolicy.allowedSourceAbilityGroupId) {
     return {
       ok: false,
-      status: "blocked" as const,
+      status: "failed" as const,
       failureReason: "forbidden_action_source" as const,
       reviewRequiredReason: null,
       statusMessage: `${request.childCapabilityId} does not accept action proofs from ${proof.sourceAbilityGroupId}.`,
       dataQualityFlags: ["forbidden_action_source"],
-      actionProofDecision: "blocked:forbidden_action_source" as const,
+      actionProofDecision: "failed:forbidden_action_source" as const,
+    };
+  }
+
+  if (!allowedSourceChildCapabilityIds.includes(proof.sourceChildCapabilityId)) {
+    return {
+      ok: false,
+      status: "failed" as const,
+      failureReason: "forbidden_action_source" as const,
+      reviewRequiredReason: null,
+      statusMessage: `${request.childCapabilityId} does not accept action proofs from ${proof.sourceChildCapabilityId}.`,
+      dataQualityFlags: ["forbidden_action_source"],
+      actionProofDecision: "failed:forbidden_action_source_child" as const,
+    };
+  }
+
+  if (!allowedActionTypes.includes(proof.actionType)) {
+    return {
+      ok: false,
+      status: "failed" as const,
+      failureReason: "forbidden_action_source" as const,
+      reviewRequiredReason: null,
+      statusMessage: `${request.childCapabilityId} does not accept action type ${proof.actionType}.`,
+      dataQualityFlags: ["forbidden_action_source"],
+      actionProofDecision: "failed:forbidden_action_type" as const,
     };
   }
 
@@ -38,28 +60,92 @@ export function validateActionProof(request: ParsedPostActionVerificationAbility
     };
   }
 
-  const executionRefPresent = proof.navigationAttemptRef !== null || proof.primitiveExecutionRef !== null || proof.scrollExecutionRef !== null;
-  if (!executionRefPresent) {
+  if (proof.actionLogRef === null && proof.actionRecordRef === null) {
     return {
       ok: false,
-      status: "blocked" as const,
+      status: "failed" as const,
+      failureReason: "action_log_missing" as const,
+      reviewRequiredReason: null,
+      statusMessage: "Action proof must expose actionLogRef or actionRecordRef.",
+      dataQualityFlags: ["action_log_missing"],
+      actionProofDecision: "failed:action_log_missing" as const,
+    };
+  }
+
+  const requiredExecutionRef = proof[childPolicy.requiredExecutionRef];
+  if (requiredExecutionRef === null) {
+    return {
+      ok: false,
+      status: "failed" as const,
       failureReason: "missing_action_proof" as const,
       reviewRequiredReason: null,
-      statusMessage: "Action proof must expose a governed execution ref.",
+      statusMessage: `${childPolicy.requiredExecutionRef} is required for ${request.childCapabilityId}.`,
       dataQualityFlags: ["action_execution_ref_missing"],
-      actionProofDecision: "blocked:missing_execution_ref" as const,
+      actionProofDecision: "failed:missing_required_execution_ref" as const,
+    };
+  }
+
+  if (!proof.sourceRuntimeProofRef) {
+    return {
+      ok: false,
+      status: "failed" as const,
+      failureReason: "source_runtime_proof_missing" as const,
+      reviewRequiredReason: null,
+      statusMessage: "Action proof must expose sourceRuntimeProofRef.",
+      dataQualityFlags: ["source_runtime_proof_missing"],
+      actionProofDecision: "failed:source_runtime_proof_missing" as const,
     };
   }
 
   if (proof.sessionId !== request.sessionId || proof.roundId !== request.roundId || proof.videoVisitId !== request.videoVisitId) {
     return {
       ok: false,
-      status: "blocked" as const,
+      status: "failed" as const,
       failureReason: "action_binding_conflict" as const,
       reviewRequiredReason: null,
       statusMessage: "Action proof binding does not match verification session, round, or video visit.",
       dataQualityFlags: ["action_binding_conflict"],
-      actionProofDecision: "blocked:binding_conflict" as const,
+      actionProofDecision: "failed:binding_conflict" as const,
+    };
+  }
+
+  const actionLogRef = proof.actionLogRef ?? proof.actionRecordRef;
+  if (actionLogRef !== null) {
+    const actionLog = input.context.evidenceReadPort.getActionLogByRef(request, actionLogRef);
+    if (actionLog === null) {
+      return {
+        ok: false,
+        status: "review_required" as const,
+        failureReason: "action_log_missing" as const,
+        reviewRequiredReason: "Action log could not be resolved from the governed read model.",
+        statusMessage: "Action log binding could not be verified.",
+        dataQualityFlags: ["action_log_missing"],
+        actionProofDecision: "review_required:action_log_unresolved" as const,
+      };
+    }
+
+    if (actionLog.sourceRuntimeProofRef !== proof.sourceRuntimeProofRef) {
+      return {
+        ok: false,
+        status: "failed" as const,
+        failureReason: "action_binding_conflict" as const,
+        reviewRequiredReason: null,
+        statusMessage: "Action log binding conflicts with sourceRuntimeProofRef.",
+        dataQualityFlags: ["action_binding_conflict"],
+        actionProofDecision: "failed:action_log_runtime_proof_conflict" as const,
+      };
+    }
+  }
+
+  if (!input.context.evidenceReadPort.verifyProofRef(request, proof.sourceRuntimeProofRef)) {
+    return {
+      ok: false,
+      status: "review_required" as const,
+      failureReason: "source_runtime_proof_missing" as const,
+      reviewRequiredReason: "sourceRuntimeProofRef is not yet verifiable from the governed proof chain.",
+      statusMessage: "Action proof runtime proof binding could not be verified.",
+      dataQualityFlags: ["source_runtime_proof_missing"],
+      actionProofDecision: "review_required:source_runtime_proof_unverified" as const,
     };
   }
 

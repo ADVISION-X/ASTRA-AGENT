@@ -1,4 +1,4 @@
-import type { MouseScrollAbilityContext, MouseScrollCoordinateSpace, MouseScrollFailureReason, ParsedMouseScrollAbilityInput } from "../contract.js";
+import type { MouseScrollCoordinateSpace, MouseScrollFailureReason, ParsedMouseScrollAbilityInput } from "../contract.js";
 import { validateGeometryScrollProof } from "./geometry-scroll-proof-gate.js";
 import { buildMouseScrollExecutionSeed } from "./mouse-scroll-input-gate.js";
 import { buildMouseScrollResult } from "./mouse-scroll-result-builder.js";
@@ -6,24 +6,30 @@ import { validatePreScrollSafety } from "./pre-scroll-safety-gate.js";
 import { runPrimitiveScroll } from "./primitive-scroll-runner.js";
 import { resolveScrollDelta } from "./scroll-delta-resolver.js";
 import { validateScrollPolicy } from "./scroll-policy-gate.js";
+import type { MouseScrollExecutionContext } from "./mouse-scroll-runtime-context.js";
 
 function buildBlockedResult(input: {
   seed: ReturnType<typeof buildMouseScrollExecutionSeed>;
-  context: MouseScrollAbilityContext;
+  context: MouseScrollExecutionContext;
   status: "failed" | "review_required";
   failureReason: MouseScrollFailureReason;
   reviewRequiredReason: string | null;
   statusMessage: string;
-  policyDecision: "allow" | "block" | "review_required" | "duplicate_skipped";
-  geometryDecision: "allow" | "block" | "review_required";
+  policyDecision: "allow" | "block" | "review_required" | "duplicate_review_required";
+  policyDecisionReason: string | null;
+  geometryDecision: "allow" | "block";
+  geometryDecisionReason: string | null;
+  safetyDecision: "allow" | "block";
+  safetyDecisionReason: string | null;
   dataQualityFlags: string[];
 }) {
   const startedSnapshot = input.context.clock.now();
   const endedSnapshot = input.context.clock.now();
   return buildMouseScrollResult({
     seed: input.seed,
-    idempotencyKey: `blocked:${input.seed.sessionId}:${input.seed.childCapabilityId}:${input.failureReason}`,
-    scrollExecutionRef: `blocked:${input.seed.sessionId}:${input.seed.childCapabilityId}:${input.failureReason}`,
+    idempotencyKey: null,
+    scrollExecutionRef: null,
+    rejectionRef: `blocked:${input.seed.attemptRef}:${input.failureReason}`,
     status: input.status,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
@@ -34,12 +40,30 @@ function buildBlockedResult(input: {
     executableAnchor: null,
     primitiveExecutionRefs: [],
     policyDecision: input.policyDecision,
+    policyDecisionReason: input.policyDecisionReason,
     geometryDecision: input.geometryDecision,
+    geometryDecisionReason: input.geometryDecisionReason,
+    safetyDecision: input.safetyDecision,
+    safetyDecisionReason: input.safetyDecisionReason,
     primitiveDecision: "not_run",
+    deltaResolutionDecision: null,
+    deltaCapDecision: null,
+    idempotencyDecision: null,
     startedAt: startedSnapshot.isoTimestamp,
     endedAt: endedSnapshot.isoTimestamp,
     durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
     clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
+    primitiveCallId: null,
+    primitiveStartedAt: null,
+    primitiveEndedAt: null,
+    primitivePortKind: "browser-controller",
+    timeoutDecision: "within_limit",
+    abortDecision: "not_requested",
+    circuitBreakerState: "closed",
+    portHangDetected: false,
+    perIterationPrimitiveProofs: [],
+    primitiveTimeoutMs: input.seed.safetyPolicy.primitiveTimeoutMs,
+    maxDurationMs: input.seed.safetyPolicy.maxDurationMs,
     dataQualityFlags: input.dataQualityFlags,
   });
 }
@@ -47,9 +71,10 @@ function buildBlockedResult(input: {
 export async function executeMouseScroll(input: {
   request: ParsedMouseScrollAbilityInput;
   expectedCoordinateSpace: MouseScrollCoordinateSpace;
-  context: MouseScrollAbilityContext;
+  context: MouseScrollExecutionContext;
 }) {
   const seed = buildMouseScrollExecutionSeed(input.request);
+  const policySnapshot = input.context.clock.now();
 
   const geometryGate = validateGeometryScrollProof({ request: input.request, expectedCoordinateSpace: input.expectedCoordinateSpace });
   if (!geometryGate.ok) {
@@ -60,13 +85,17 @@ export async function executeMouseScroll(input: {
       failureReason: geometryGate.failureReason,
       reviewRequiredReason: geometryGate.reviewRequiredReason,
       statusMessage: geometryGate.statusMessage,
-      policyDecision: geometryGate.status === "review_required" ? "review_required" : "block",
+      policyDecision: "block",
+      policyDecisionReason: geometryGate.geometryDecisionReason,
       geometryDecision: geometryGate.geometryDecision,
+      geometryDecisionReason: geometryGate.geometryDecisionReason,
+      safetyDecision: "block",
+      safetyDecisionReason: geometryGate.geometryDecisionReason,
       dataQualityFlags: geometryGate.dataQualityFlags,
     });
   }
 
-  const policyGate = validateScrollPolicy({ request: input.request, expectedCoordinateSpace: input.expectedCoordinateSpace });
+  const policyGate = validateScrollPolicy({ request: input.request, expectedCoordinateSpace: input.expectedCoordinateSpace, nowIsoTimestamp: policySnapshot.isoTimestamp });
   if (!policyGate.ok) {
     return buildBlockedResult({
       seed,
@@ -76,7 +105,11 @@ export async function executeMouseScroll(input: {
       reviewRequiredReason: policyGate.reviewRequiredReason,
       statusMessage: policyGate.statusMessage,
       policyDecision: policyGate.policyDecision,
+      policyDecisionReason: policyGate.policyDecisionReason,
       geometryDecision: "allow",
+      geometryDecisionReason: "geometry_proof_bound",
+      safetyDecision: "block",
+      safetyDecisionReason: policyGate.policyDecisionReason,
       dataQualityFlags: policyGate.dataQualityFlags,
     });
   }
@@ -91,7 +124,11 @@ export async function executeMouseScroll(input: {
       reviewRequiredReason: null,
       statusMessage: safetyGate.statusMessage,
       policyDecision: safetyGate.policyDecision,
+      policyDecisionReason: safetyGate.safetyDecisionReason,
       geometryDecision: "allow",
+      geometryDecisionReason: "geometry_proof_bound",
+      safetyDecision: safetyGate.safetyDecision,
+      safetyDecisionReason: safetyGate.safetyDecisionReason,
       dataQualityFlags: safetyGate.dataQualityFlags,
     });
   }
@@ -113,7 +150,11 @@ export async function executeMouseScroll(input: {
       reviewRequiredReason: null,
       statusMessage: deltaResolution.statusMessage,
       policyDecision: "block",
+      policyDecisionReason: deltaResolution.failureReason,
       geometryDecision: "allow",
+      geometryDecisionReason: "geometry_proof_bound",
+      safetyDecision: "allow",
+      safetyDecisionReason: safetyGate.safetyDecisionReason,
       dataQualityFlags: deltaResolution.dataQualityFlags,
     });
   }
@@ -131,12 +172,15 @@ export async function executeMouseScroll(input: {
     nowMs: input.context.clock.now().monotonicMs,
     allowReplay: seed.safetyPolicy.allowReplay,
     cooldownMs: seed.safetyPolicy.cooldownMs,
+    ttlMs: seed.safetyPolicy.idempotencyTtlMs,
   });
   if (!reservation.ok) {
+    const blockedSnapshot = input.context.clock.now();
     return buildMouseScrollResult({
       seed,
       idempotencyKey: reservation.idempotencyKey,
       scrollExecutionRef: reservation.scrollExecutionRef,
+      rejectionRef: reservation.rejectionRef,
       status: reservation.status,
       failureReason: reservation.failureReason,
       reviewRequiredReason: reservation.reviewRequiredReason,
@@ -147,19 +191,46 @@ export async function executeMouseScroll(input: {
       executableAnchor: null,
       primitiveExecutionRefs: [],
       policyDecision: reservation.policyDecision,
+      policyDecisionReason: reservation.idempotencyDecision,
       geometryDecision: "allow",
+      geometryDecisionReason: geometryGate.geometryDecisionReason,
+      safetyDecision: safetyGate.safetyDecision,
+      safetyDecisionReason: safetyGate.safetyDecisionReason,
       primitiveDecision: "not_run",
-      startedAt: input.context.clock.now().isoTimestamp,
-      endedAt: input.context.clock.now().isoTimestamp,
+      deltaResolutionDecision: deltaResolution.deltaResolutionDecision,
+      deltaCapDecision: deltaResolution.deltaCapDecision,
+      idempotencyDecision: reservation.idempotencyDecision,
+      startedAt: blockedSnapshot.isoTimestamp,
+      endedAt: blockedSnapshot.isoTimestamp,
       durationMs: 0,
-      clock: { startedMonotonicMs: input.context.clock.now().monotonicMs, endedMonotonicMs: input.context.clock.now().monotonicMs },
+      clock: { startedMonotonicMs: blockedSnapshot.monotonicMs, endedMonotonicMs: blockedSnapshot.monotonicMs },
+      primitiveCallId: null,
+      primitiveStartedAt: null,
+      primitiveEndedAt: null,
+      primitivePortKind: "browser-controller",
+      timeoutDecision: "within_limit",
+      abortDecision: "not_requested",
+      circuitBreakerState: "closed",
+      portHangDetected: false,
+      perIterationPrimitiveProofs: [],
+      primitiveTimeoutMs: seed.safetyPolicy.primitiveTimeoutMs,
+      maxDurationMs: seed.safetyPolicy.maxDurationMs,
       dataQualityFlags: reservation.dataQualityFlags,
     });
   }
 
   const primitiveResult = await runPrimitiveScroll({
     context: input.context,
+    attemptRef: seed.attemptRef,
     scrollExecutionRef: reservation.scrollExecutionRef,
+    idempotencyKey: reservation.idempotencyKey,
+    sessionId: seed.sessionId,
+    roundId: seed.roundId,
+    videoVisitId: seed.videoVisitId,
+    geometryGuardProofRef: seed.geometryGuardProofRef ?? seed.sourceCoordinateProofRef,
+    sourceCoordinateProofRef: seed.sourceCoordinateProofRef,
+    sourceTargetRef: seed.sourceTargetRef ?? "mouse-scroll-target-missing",
+    operatorApprovalRef: seed.safetyPolicy.desktopScreenOperatorApprovalRef,
     targetLabel: `${seed.purpose}:${seed.childCapabilityId}`,
     coordinateSpace: input.expectedCoordinateSpace,
     executableAnchor: safetyGate.executableAnchor,
@@ -174,6 +245,7 @@ export async function executeMouseScroll(input: {
       seed,
       idempotencyKey: reservation.idempotencyKey,
       scrollExecutionRef: reservation.scrollExecutionRef,
+      rejectionRef: null,
       status: "failed",
       failureReason: primitiveResult.failureReason,
       reviewRequiredReason: null,
@@ -184,12 +256,30 @@ export async function executeMouseScroll(input: {
       executableAnchor: null,
       primitiveExecutionRefs: primitiveResult.primitiveExecutionRefs,
       policyDecision: "allow",
+      policyDecisionReason: policyGate.policyDecisionReason,
       geometryDecision: "allow",
+      geometryDecisionReason: geometryGate.geometryDecisionReason,
+      safetyDecision: safetyGate.safetyDecision,
+      safetyDecisionReason: safetyGate.safetyDecisionReason,
       primitiveDecision: primitiveResult.primitiveDecision,
+      deltaResolutionDecision: deltaResolution.deltaResolutionDecision,
+      deltaCapDecision: deltaResolution.deltaCapDecision,
+      idempotencyDecision: reservation.idempotencyDecision,
       startedAt: primitiveResult.startedAt,
       endedAt: primitiveResult.endedAt,
       durationMs: primitiveResult.durationMs,
       clock: primitiveResult.clock,
+      primitiveCallId: primitiveResult.primitiveCallId,
+      primitiveStartedAt: primitiveResult.primitiveStartedAt,
+      primitiveEndedAt: primitiveResult.primitiveEndedAt,
+      primitivePortKind: primitiveResult.primitivePortKind,
+      timeoutDecision: primitiveResult.timeoutDecision,
+      abortDecision: primitiveResult.abortDecision,
+      circuitBreakerState: primitiveResult.circuitBreakerState,
+      portHangDetected: primitiveResult.portHangDetected,
+      perIterationPrimitiveProofs: primitiveResult.perIterationPrimitiveProofs,
+      primitiveTimeoutMs: seed.safetyPolicy.primitiveTimeoutMs,
+      maxDurationMs: seed.safetyPolicy.maxDurationMs,
       dataQualityFlags: primitiveResult.dataQualityFlags,
     });
   }
@@ -198,6 +288,7 @@ export async function executeMouseScroll(input: {
     seed,
     idempotencyKey: reservation.idempotencyKey,
     scrollExecutionRef: reservation.scrollExecutionRef,
+    rejectionRef: null,
     status: "success",
     failureReason: null,
     reviewRequiredReason: null,
@@ -208,12 +299,30 @@ export async function executeMouseScroll(input: {
     executableAnchor: safetyGate.executableAnchor,
     primitiveExecutionRefs: primitiveResult.primitiveExecutionRefs,
     policyDecision: "allow",
+    policyDecisionReason: policyGate.policyDecisionReason,
     geometryDecision: "allow",
+    geometryDecisionReason: geometryGate.geometryDecisionReason,
+    safetyDecision: safetyGate.safetyDecision,
+    safetyDecisionReason: safetyGate.safetyDecisionReason,
     primitiveDecision: primitiveResult.primitiveDecision,
+    deltaResolutionDecision: deltaResolution.deltaResolutionDecision,
+    deltaCapDecision: deltaResolution.deltaCapDecision,
+    idempotencyDecision: reservation.idempotencyDecision,
     startedAt: primitiveResult.startedAt,
     endedAt: primitiveResult.endedAt,
     durationMs: primitiveResult.durationMs,
     clock: primitiveResult.clock,
+    primitiveCallId: primitiveResult.primitiveCallId,
+    primitiveStartedAt: primitiveResult.primitiveStartedAt,
+    primitiveEndedAt: primitiveResult.primitiveEndedAt,
+    primitivePortKind: primitiveResult.primitivePortKind,
+    timeoutDecision: primitiveResult.timeoutDecision,
+    abortDecision: primitiveResult.abortDecision,
+    circuitBreakerState: primitiveResult.circuitBreakerState,
+    portHangDetected: primitiveResult.portHangDetected,
+    perIterationPrimitiveProofs: primitiveResult.perIterationPrimitiveProofs,
+    primitiveTimeoutMs: seed.safetyPolicy.primitiveTimeoutMs,
+    maxDurationMs: seed.safetyPolicy.maxDurationMs,
     dataQualityFlags: deltaResolution.dataQualityFlags,
   });
 }

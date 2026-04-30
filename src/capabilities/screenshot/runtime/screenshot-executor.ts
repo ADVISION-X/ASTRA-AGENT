@@ -1,19 +1,15 @@
 import { createHash } from "node:crypto";
 
 import type {
-  ScreenshotAbilityContext,
   ScreenshotAbilityInput,
   ScreenshotAbilityResult,
-  ScreenshotArtifactRef,
-  ScreenshotChildCapabilityId,
-  ScreenshotExecutionPlan,
   ScreenshotRuntimeProof,
-  ScreenshotSourceProof,
 } from "../contract.js";
 import { getScreenshotChildRegistryEntry } from "../registry.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import { runScreenshotInputGate } from "./screenshot-input-gate.js";
+import { runScreenshotPayloadBudgetGate } from "./screenshot-payload-budget-gate.js";
 import { runScreenshotSourceGate } from "./screenshot-source-gate.js";
 import { runBrowserSessionGate } from "./browser-session-gate.js";
 import { runPageStateHandoffGate } from "./page-state-handoff-gate.js";
@@ -24,6 +20,7 @@ import { startScreenshotClock, finishScreenshotClock } from "./screenshot-clock.
 import { runCaptureRunner } from "./capture-runner.js";
 import { runImageProcessingRunner } from "./image-processing-runner.js";
 import { runArtifactStorageGate } from "./artifact-storage-gate.js";
+import { runScreenshotOutputBoundaryGate } from "./screenshot-output-boundary-gate.js";
 import { buildScreenshotRuntimeProof } from "./screenshot-proof-builder.js";
 import { buildScreenshotResult, buildScreenshotSuccessOutput } from "./screenshot-result-builder.js";
 import { dispatchScreenshotFailure } from "./screenshot-dispatch-failure.js";
@@ -32,6 +29,8 @@ import { captureDesktopScreenChildCapability } from "../children/capture-desktop
 import { captureRegionChildCapability } from "../children/capture-region/implementation.js";
 import { optimizeLosslessChildCapability } from "../children/optimize-lossless/implementation.js";
 import { prepareAiInputChildCapability } from "../children/prepare-ai-input/implementation.js";
+import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
+import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
 function buildRef(prefix: string, input: string): string {
   return `${prefix}:${createHash("sha256").update(input).digest("hex").slice(0, 24)}`;
@@ -39,7 +38,7 @@ function buildRef(prefix: string, input: string): string {
 
 async function executeScreenshotChildPlan(input: {
   request: ScreenshotAbilityInput;
-  context: ScreenshotAbilityContext;
+  context: ScreenshotRuntimeContext;
   resolvedMaxAiWidth: number | null;
 }): Promise<ScreenshotExecutionPlan | null> {
   switch (input.request.childCapabilityId) {
@@ -78,7 +77,7 @@ async function executeScreenshotChildPlan(input: {
 
 export async function executeScreenshotRequest(input: {
   request: ScreenshotAbilityInput;
-  context: ScreenshotAbilityContext;
+  context: ScreenshotRuntimeContext;
 }): Promise<ScreenshotAbilityResult> {
   const registryEntry = getScreenshotChildRegistryEntry(input.request.childCapabilityId);
   const clockStart = startScreenshotClock(input.context.clockPort);
@@ -124,6 +123,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: { status: "not_applicable", reason: null },
         imageProcessingDecision: { status: "not_applicable", reason: null },
         artifactDecision: { status: "not_applicable", reason: null },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: null,
       pageStateProofRef: null,
@@ -136,11 +136,16 @@ export async function executeScreenshotRequest(input: {
     registryEntry,
     defaultAiMaxWidth: input.context.defaultAiMaxWidth,
   });
-  const sourceGate = runScreenshotSourceGate({
+  const payloadBudgetGate = runScreenshotPayloadBudgetGate({
+    request: input.request,
+  });
+  const sourceGate = await runScreenshotSourceGate({
     request: input.request,
     registryEntry,
+    context: input.context,
   });
   const browserSessionGate = await runBrowserSessionGate({
+    request: input.request,
     registryEntry,
     context: input.context,
   });
@@ -162,14 +167,12 @@ export async function executeScreenshotRequest(input: {
     idempotencyKey,
   });
 
-  const failEarly = inputGate.failure ?? sourceGate.failure ?? browserSessionGate.failure ?? pageStateGate.failure ?? privacyGate.failure;
-  const earlyStatus = privacyGate.decision.status === "blocked"
-    ? "blocked"
-    : browserSessionGate.decision.status === "review_required" || pageStateGate.decision.status === "review_required" || privacyGate.decision.status === "review_required"
+  const failEarly = inputGate.failure ?? payloadBudgetGate.failure ?? sourceGate.failure ?? browserSessionGate.failure ?? pageStateGate.failure ?? privacyGate.failure;
+  const earlyStatus = browserSessionGate.decision.status === "review_required" || pageStateGate.decision.status === "review_required" || privacyGate.decision.status === "review_required"
       ? "review_required"
       : "failed";
 
-  if (failEarly || inputGate.decision.status === "failed" || sourceGate.decision.status === "failed" || browserSessionGate.decision.status === "failed" || pageStateGate.decision.status === "failed" || privacyGate.decision.status === "blocked" || privacyGate.decision.status === "review_required") {
+  if (failEarly || inputGate.decision.status === "failed" || payloadBudgetGate.decision.status === "failed" || sourceGate.decision.status === "failed" || browserSessionGate.decision.status === "failed" || pageStateGate.decision.status === "failed" || privacyGate.decision.status === "blocked" || privacyGate.decision.status === "review_required") {
     const finished = finishScreenshotClock({
       clockPort: input.context.clockPort,
       startedAt: clockStart.startedAt,
@@ -205,6 +208,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: { status: "not_applicable", reason: null },
         imageProcessingDecision: { status: "not_applicable", reason: null },
         artifactDecision: { status: "not_applicable", reason: null },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -253,6 +257,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: { status: "failed", reason: "missing_child_implementation" },
         imageProcessingDecision: { status: "not_applicable", reason: null },
         artifactDecision: { status: "not_applicable", reason: null },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -300,6 +305,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: { status: "not_applicable", reason: null },
         imageProcessingDecision: regionGate.decision,
         artifactDecision: { status: "not_applicable", reason: null },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -364,6 +370,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: captureRun?.decision ?? { status: "not_applicable", reason: null },
         imageProcessingDecision: imageRun?.decision ?? { status: "not_applicable", reason: null },
         artifactDecision: { status: "not_applicable", reason: null },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -423,6 +430,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: captureRun?.decision ?? { status: "not_applicable", reason: null },
         imageProcessingDecision: imageRun?.decision ?? { status: "not_applicable", reason: null },
         artifactDecision: { status: "failed", reason: "missing_output_metadata" },
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -477,6 +485,7 @@ export async function executeScreenshotRequest(input: {
         captureDecision: captureRun?.decision ?? { status: "not_applicable", reason: null },
         imageProcessingDecision: imageRun?.decision ?? { status: "not_applicable", reason: null },
         artifactDecision: artifactGate.decision,
+        outputBoundaryDecision: { status: "not_applicable", reason: null },
       },
       browserSessionRef: browserSessionGate.browserSessionRef,
       pageStateProofRef: pageStateGate.pageStateProofRef,
@@ -551,6 +560,55 @@ export async function executeScreenshotRequest(input: {
       : input.request.childCapabilityId,
   });
 
+  const outputBoundaryGate = await runScreenshotOutputBoundaryGate({
+    context: input.context,
+    registryEntry,
+    output: successOutput,
+  });
+  if (outputBoundaryGate.failure || outputBoundaryGate.decision.status !== "passed") {
+    const finished = finishScreenshotClock({
+      clockPort: input.context.clockPort,
+      startedAt: clockStart.startedAt,
+      startedMonotonicMs: clockStart.startedMonotonicMs,
+    });
+    return dispatchScreenshotFailure({
+      request: input.request,
+      status: "failed",
+      message: outputBoundaryGate.failure?.message ?? "Screenshot output boundary validation failed.",
+      failureReason: outputBoundaryGate.failure ?? createScreenshotFailure({
+        code: "output_schema_invalid",
+        message: "Screenshot output boundary validation failed.",
+      }),
+      reviewRequiredReason: null,
+      proofId: buildRef("screenshot-proof", `${inputRef}:${idempotencyKey}:output-boundary`),
+      runId,
+      missionId,
+      inputRef,
+      outputRef,
+      idempotencyKey,
+      startedAt: clockStart.startedAt,
+      endedAt: finished.endedAt,
+      durationMs: finished.durationMs,
+      startedMonotonicMs: clockStart.startedMonotonicMs,
+      endedMonotonicMs: finished.endedMonotonicMs,
+      sourceProof: sourceGate.sourceProof,
+      sourceArtifactRef: fallbackSourceArtifactRef,
+      decisions: {
+        privacyDecision: privacyGate.decision,
+        sourceDecision: sourceGate.decision,
+        browserSessionDecision: browserSessionGate.decision,
+        pageStateDecision: pageStateGate.decision,
+        captureDecision: captureRun?.decision ?? { status: "not_applicable", reason: null },
+        imageProcessingDecision: imageRun?.decision ?? { status: "not_applicable", reason: null },
+        artifactDecision: artifactGate.decision,
+        outputBoundaryDecision: outputBoundaryGate.decision,
+      },
+      browserSessionRef: browserSessionGate.browserSessionRef,
+      pageStateProofRef: pageStateGate.pageStateProofRef,
+      dataQualityFlags: [],
+    });
+  }
+
   const finished = finishScreenshotClock({
     clockPort: input.context.clockPort,
     startedAt: clockStart.startedAt,
@@ -604,6 +662,7 @@ export async function executeScreenshotRequest(input: {
       captureDecision: captureRun?.decision ?? { status: "not_applicable", reason: null },
       imageProcessingDecision: imageRun?.decision ?? { status: "not_applicable", reason: null },
       artifactDecision: artifactGate.decision,
+      outputBoundaryDecision: outputBoundaryGate.decision,
     },
     dataQualityFlags,
   });

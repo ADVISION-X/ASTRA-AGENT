@@ -20,6 +20,11 @@ const nullableString = z.string().min(1).nullable().optional().default(null);
 const finiteNumber = z.number().finite();
 const positiveFiniteNumber = z.number().finite().positive();
 const nonNegativeInt = z.number().int().nonnegative();
+const requestedByString = z.string().min(1).max(120);
+const purposeString = z.string().min(1).max(300);
+const pageUrlString = z.string().min(1).max(2000).nullable().optional().default(null);
+const pageTitleString = z.string().min(1).max(300).nullable().optional().default(null);
+const sourceStorageRefString = z.string().min(1).max(1000);
 
 export const ScreenshotChildCapabilityIdSchema = z.enum(SCREENSHOT_CHILD_CAPABILITY_IDS);
 export const ScreenshotStatusSchema = z.enum(SCREENSHOT_RESULT_STATUSES);
@@ -73,7 +78,7 @@ export const ScreenshotScaleMappingSchema = z.object({
 export const ScreenshotArtifactRefSchema = z.object({
   artifactId: z.string().min(1),
   evidenceId: z.string().min(1),
-  storageRef: z.string().min(1),
+  storageRef: sourceStorageRefString,
   fileName: z.string().min(1),
   mimeType: z.string().min(1),
   sha256: z.string().min(1),
@@ -86,7 +91,7 @@ export const ScreenshotArtifactRefSchema = z.object({
 export const ScreenshotSourceProofSchema = z.object({
   proofRef: z.string().min(1),
   sourceKind: ScreenshotSourceKindSchema,
-  sourceStorageRef: nullableString,
+  sourceStorageRef: sourceStorageRefString.nullable().optional().default(null),
   sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
   sourceScreenshotEvidenceId: nullableString,
   sourceHash: nullableString,
@@ -103,14 +108,14 @@ export const ScreenshotSourceProofSchema = z.object({
 export const ScreenshotCapturePolicySchema = z.object({
   allowMissingRoundId: z.boolean().default(true),
   allowMissingVideoVisitId: z.boolean().default(true),
-  allowFirstCaptureWithoutPageStateProof: z.boolean().default(true),
+  allowFirstCaptureWithoutPageStateProof: z.boolean().default(false),
   maxContentLines: z.number().int().positive().default(12),
   contentLineMaxLength: z.number().int().positive().default(200),
   maxAiWidth: positiveFiniteNumber.nullable().optional().default(DEFAULT_AI_INPUT_MAX_WIDTH),
   preservePixels: z.boolean().default(true),
   evidencePolicy: ScreenshotEvidencePolicySchema.default("evidence_original"),
   maxDurationMs: z.number().int().positive().default(10_000),
-  onTimeoutStatus: ScreenshotStatusSchema.exclude(["success", "blocked"]).default("failed"),
+  onTimeoutStatus: ScreenshotStatusSchema.exclude(["success"]).default("failed"),
 }).strict();
 
 export const ScreenshotPrivacyPolicySchema = z.object({
@@ -124,8 +129,8 @@ export const ScreenshotPrivacyPolicySchema = z.object({
 export const ScreenshotPageStateProofSchema = z.object({
   proofRef: z.string().min(1),
   status: ScreenshotPageStateStatusSchema,
-  pageUrl: nullableString,
-  pageTitle: nullableString,
+  pageUrl: pageUrlString,
+  pageTitle: pageTitleString,
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
@@ -139,8 +144,8 @@ export const ScreenshotDecisionSchema = z.object({
 
 export const ScreenshotBrowserSessionSnapshotSchema = z.object({
   open: z.boolean(),
-  currentUrl: z.string().min(1),
-  currentTitle: nullableString,
+  currentUrl: z.string().min(1).max(2000),
+  currentTitle: pageTitleString,
   browserExecutable: nullableString,
   browserMode: z.enum(["real_chrome_persistent", "fixture", "unsupported"]),
   browserProfileRef: z.string().min(1),
@@ -166,8 +171,8 @@ export const ScreenshotBrowserSessionSnapshotSchema = z.object({
 
 export const ScreenshotBrowserCaptureSchema = z.object({
   browserActionId: z.string().min(1),
-  pageUrl: z.string().min(1),
-  pageTitle: nullableString,
+  pageUrl: z.string().min(1).max(2000),
+  pageTitle: pageTitleString,
   regionLabel: z.string().min(1),
   regionType: z.string().min(1),
   width: positiveFiniteNumber,
@@ -187,7 +192,7 @@ export const ScreenshotDesktopCaptureSchema = z.object({
 
 export const ScreenshotStoredImageSourceSchema = z.object({
   kind: z.literal("stored_image"),
-  sourceStorageRef: z.string().min(1),
+  sourceStorageRef: sourceStorageRefString,
   sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
   sourceProof: ScreenshotSourceProofSchema,
   coordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).default("source_image_pixels"),
@@ -195,8 +200,8 @@ export const ScreenshotStoredImageSourceSchema = z.object({
 
 export const ScreenshotBrowserViewportSourceSchema = z.object({
   kind: z.literal("browser_viewport"),
-  pageUrl: nullableString,
-  pageTitle: nullableString,
+  pageUrl: pageUrlString,
+  pageTitle: pageTitleString,
   browserSessionRef: nullableString,
 }).strict();
 
@@ -212,8 +217,8 @@ const ScreenshotBaseInputSchema = z.object({
   videoVisitId: nullableString,
   missionId: nullableString,
   runId: nullableString,
-  requestedBy: z.string().min(1),
-  purpose: z.string().min(1),
+  requestedBy: requestedByString,
+  purpose: purposeString,
   sourceAbilityGroupId: z.string().min(1).default("orchestration"),
   sourceChildCapabilityId: nullableString,
   region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
@@ -233,7 +238,7 @@ const ScreenshotBaseInputSchema = z.object({
   capturePolicy: ScreenshotCapturePolicySchema.default({
     allowMissingRoundId: true,
     allowMissingVideoVisitId: true,
-    allowFirstCaptureWithoutPageStateProof: true,
+    allowFirstCaptureWithoutPageStateProof: false,
     maxContentLines: 12,
     contentLineMaxLength: 200,
     maxAiWidth: DEFAULT_AI_INPUT_MAX_WIDTH,
@@ -324,7 +329,7 @@ export const ScreenshotRuntimeProofSchema = z.object({
   sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: nullableString,
   inputRef: z.string().min(1),
-  outputRef: z.string().min(1),
+  outputRef: nullableString,
   sourceProofRef: nullableString,
   pageStateProofRef: nullableString,
   browserSessionRef: nullableString,
@@ -348,6 +353,7 @@ export const ScreenshotRuntimeProofSchema = z.object({
   captureDecision: ScreenshotDecisionSchema,
   imageProcessingDecision: ScreenshotDecisionSchema,
   artifactDecision: ScreenshotDecisionSchema,
+  outputBoundaryDecision: ScreenshotDecisionSchema,
   idempotencyKey: z.string().min(1),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -368,8 +374,14 @@ export const ScreenshotRuntimeProofSchema = z.object({
   if (value.status === "success" && (!value.artifactRef || !value.screenshotEvidenceId || !value.outputHash || !value.outputWidth || !value.outputHeight)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires artifactRef, screenshotEvidenceId, outputHash, and output dimensions", path: ["artifactRef"] });
   }
+  if (value.status === "success" && !value.outputRef) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
+  }
   if (value.status !== "success" && value.artifactRef) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose artifactRef", path: ["artifactRef"] });
+  }
+  if (value.status !== "success" && value.outputRef) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose outputRef", path: ["outputRef"] });
   }
   if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-ai-input proof requires scaleMapping", path: ["scaleMapping"] });

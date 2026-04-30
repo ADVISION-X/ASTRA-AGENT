@@ -1,7 +1,8 @@
-import type { PageStateChildCapability } from "../contract.js";
+import type { PageStateChildCapability } from "./page-state-child-contract.js";
 import type { PageStateAbilityInput } from "../schema.js";
 import { childAllowsProceed, isBlockedPageStateType, isReviewRequiredPageStateType } from "../shared/page-state-policy.js";
 import type { PageStateClassificationOutcome, PageStateResolvedPlatformProfile } from "../shared/page-state-types.js";
+import { gatePageStateOutputBoundary } from "./page-state-output-boundary-gate.js";
 
 function mapFailureReason(pageStateType: PageStateClassificationOutcome["pageStateType"]): PageStateClassificationOutcome["failureReason"] {
   switch (pageStateType) {
@@ -30,6 +31,26 @@ export async function classifyPageState(input: {
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): Promise<PageStateClassificationOutcome> {
   const detection = await input.childCapability.execute(input.request);
+  const boundary = gatePageStateOutputBoundary({ request: input.request, detection });
+  if (!boundary.ok) {
+    return {
+      ...detection,
+      status: boundary.failure.status,
+      decision: boundary.failure.decision,
+      failureReason: boundary.failure.failureReason,
+      resolvedProfileId: input.resolvedProfile.profileId,
+      matchedHost: input.resolvedProfile.matchedHost,
+      pageStateType: boundary.failure.pageStateType,
+      stateSummary: boundary.failure.stateSummary,
+      confidence: 0,
+      reviewRequiredReason: boundary.failure.reviewRequiredReason,
+      dataQualityFlags: boundary.failure.dataQualityFlags,
+      matchedObservationIds: [],
+      supportingEvidenceRefs: [],
+      supportingReasons: [boundary.failure.stateSummary],
+      childCapabilityId: input.request.childCapabilityId,
+    };
+  }
   const lowConfidence = detection.confidence < input.request.confidencePolicy.minimumConfidence;
 
   if (lowConfidence) {
@@ -39,6 +60,7 @@ export async function classifyPageState(input: {
       decision: input.request.confidencePolicy.allowReviewRequired ? "review_required" : "fail",
       failureReason: "low_confidence",
       resolvedProfileId: input.resolvedProfile.profileId,
+      matchedHost: input.resolvedProfile.matchedHost,
       reviewRequiredReason: detection.reviewRequiredReason ?? "Review required because confidence is below the minimum confidence policy.",
       dataQualityFlags: [...detection.dataQualityFlags, "low_confidence"],
     };
@@ -47,10 +69,11 @@ export async function classifyPageState(input: {
   if (isBlockedPageStateType(detection.pageStateType)) {
     return {
       ...detection,
-      status: "blocked",
+      status: "failed",
       decision: "block",
       failureReason: mapFailureReason(detection.pageStateType) ?? "classification_failed",
       resolvedProfileId: input.resolvedProfile.profileId,
+      matchedHost: input.resolvedProfile.matchedHost,
     };
   }
 
@@ -61,6 +84,7 @@ export async function classifyPageState(input: {
       decision: "review_required",
       failureReason: mapFailureReason(detection.pageStateType) ?? "classification_failed",
       resolvedProfileId: input.resolvedProfile.profileId,
+      matchedHost: input.resolvedProfile.matchedHost,
       reviewRequiredReason: detection.reviewRequiredReason ?? `Review required for ${detection.pageStateType}.`,
     };
   }
@@ -72,6 +96,7 @@ export async function classifyPageState(input: {
       decision: input.request.statePolicy.allowUnknownState ? "review_required" : "fail",
       failureReason: "classification_failed",
       resolvedProfileId: input.resolvedProfile.profileId,
+      matchedHost: input.resolvedProfile.matchedHost,
       reviewRequiredReason: `Review required because ${detection.pageStateType} is not a governed proceed state for ${input.request.childCapabilityId}.`,
       dataQualityFlags: [...detection.dataQualityFlags, "insufficient_signal"],
     };
@@ -83,5 +108,6 @@ export async function classifyPageState(input: {
     decision: "proceed",
     failureReason: null,
     resolvedProfileId: input.resolvedProfile.profileId,
+    matchedHost: input.resolvedProfile.matchedHost,
   };
 }

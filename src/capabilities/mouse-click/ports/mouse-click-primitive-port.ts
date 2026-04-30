@@ -5,14 +5,24 @@ export type MouseClickButton = (typeof MOUSE_CLICK_BUTTONS)[number];
 export type MouseClickCount = (typeof MOUSE_CLICK_COUNTS)[number];
 
 export type MouseClickPrimitiveInput = {
+  attemptRef: string;
   actionExecutionRef: string;
-  x: number;
-  y: number;
+  idempotencyKey: string;
+  sessionId: string;
+  roundId: string | null;
+  videoVisitId: string | null;
+  geometryGuardProofRef: string;
+  sourceCoordinateProofRef: string;
+  sourceTargetRef: string;
   coordinateSpace: MouseClickCoordinateSpace;
+  executableCoordinate: { x: number; y: number };
   button: MouseClickButton;
   clickCount: MouseClickCount;
   targetLabel: string;
   timeoutMs: number;
+  postActionVerificationRequired: true;
+  operatorApprovalRef: string | null;
+  abortSignal?: AbortSignal;
 };
 
 export type MouseClickPrimitiveResult = {
@@ -21,6 +31,7 @@ export type MouseClickPrimitiveResult = {
   message: string;
   startedAt: string | null;
   endedAt: string | null;
+  portKind: string;
 };
 
 export interface MouseClickPrimitivePort {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRecordSummaryViewSchema, LimitedReadInputSchema } from "../../schema.js";
+import { CommanderBoundaryPolicySchema, CommanderProofPolicySchema, CommanderReadinessSchema, CommanderRecordSummaryViewSchema, LimitedReadInputSchema } from "../../shared/commander-schema-base.js";
 
 export const ShowFailedRecordsInputSchema = LimitedReadInputSchema;
 export const ShowFailedRecordsOutputSchema = z.array(CommanderRecordSummaryViewSchema);

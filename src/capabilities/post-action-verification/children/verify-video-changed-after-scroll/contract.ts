@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import type { PostActionVerificationChildCapability } from "../../contract.js";
+import type { PostActionVerificationChildCapability } from "../../runtime/post-action-verification-runtime-context.js";
 import { VerifyVideoChangedAfterScrollInputSchema, VerifyVideoChangedAfterScrollOutputSchema } from "./schema.js";
 
 export type VerifyVideoChangedAfterScrollInput = z.output<typeof VerifyVideoChangedAfterScrollInputSchema>;

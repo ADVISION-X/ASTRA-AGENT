@@ -37,7 +37,8 @@ export async function buildGovernedFailureResult(input: {
   reviewRequiredReason?: string | null;
   status?: "failed" | "review_required";
   proof: NerveBusTransportProof;
-  outputPayloadRef: { outputRef: string; payloadRefs: string[] };
+  diagnosticPayloadRef: { outputRef: string; payloadRefs: string[] };
+  transportDecision?: "executed" | "duplicate_skipped" | "replay_rejected" | "queue_rejected";
 }) {
   const status = input.status ?? "failed";
   const common = {
@@ -52,11 +53,12 @@ export async function buildGovernedFailureResult(input: {
     idempotencyKey: input.envelope.idempotencyKey,
     sequenceNo: input.envelope.sequenceNo,
     inputRef: input.envelope.inputRef,
-    payloadRef: input.outputPayloadRef.payloadRefs,
+    payloadRef: input.diagnosticPayloadRef.payloadRefs,
     payload: input.envelope.payload,
     createdAt: input.proof.endedAt,
     expiresAt: input.envelope.expiresAt,
-    outputRef: input.outputPayloadRef.outputRef,
+    outputRef: null,
+    diagnosticPayloadRef: input.diagnosticPayloadRef.outputRef,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
     status,
@@ -76,7 +78,7 @@ export async function buildGovernedFailureResult(input: {
       abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
       channelId: input.envelope.channelId,
       status,
-      transportDecision: "executed",
+      transportDecision: input.transportDecision ?? "executed",
       commandEnvelope: input.envelope,
       resultEnvelope,
       proof: input.proof,
@@ -101,7 +103,7 @@ export async function buildGovernedFailureResult(input: {
       abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
       channelId: input.envelope.channelId,
       status,
-      transportDecision: "executed",
+      transportDecision: input.transportDecision ?? "executed",
       requestEnvelope: input.envelope,
       responseEnvelope,
       proof: input.proof,
@@ -123,7 +125,7 @@ export async function buildGovernedFailureResult(input: {
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
     channelId: input.envelope.channelId,
     status,
-    transportDecision: "executed",
+    transportDecision: input.transportDecision ?? "executed",
     commandEnvelope: input.envelope,
     resultEnvelope,
     proof: input.proof,

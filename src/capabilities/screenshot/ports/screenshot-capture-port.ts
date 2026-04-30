@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 
 import sharp from "sharp";
 
@@ -7,7 +6,19 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import { ScreenshotBrowserCaptureSchema, ScreenshotBrowserSessionSnapshotSchema, ScreenshotDesktopCaptureSchema } from "../schema.js";
 import { SCREENSHOT_CAPTURE_PORT_KIND } from "../shared/screenshot-result.js";
 
-const execFileAsync = promisify(execFile);
+function runAbortableExecFile(command: string, args: string[], signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = execFile(command, args, signal ? { signal } : undefined, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+
+    child.once("error", reject);
+  });
+}
 
 export type ScreenshotCapturePortBrowserCapture = {
   kind: "browser";
@@ -25,11 +36,13 @@ export interface ScreenshotCapturePort {
   captureBrowserViewport(input: {
     regionLabel: string;
     contentLines: string[];
+    abortSignal?: AbortSignal;
   }): Promise<ScreenshotCapturePortBrowserCapture>;
   captureDesktopScreen(input: {
     screenId: string;
     outputPath: string;
     createdAt: string;
+    abortSignal?: AbortSignal;
   }): Promise<ScreenshotCapturePortDesktopCapture>;
 }
 
@@ -51,6 +64,7 @@ export function createBrowserControllerScreenshotCapturePort(browserController: 
       const capture = await browserController.screenshotRegion({
         regionLabel: input.regionLabel,
         contentLines: input.contentLines,
+        ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
       });
       return {
         kind: "browser",
@@ -61,7 +75,7 @@ export function createBrowserControllerScreenshotCapturePort(browserController: 
       };
     },
     async captureDesktopScreen(input) {
-      await execFileAsync("screencapture", ["-x", input.outputPath]);
+      await runAbortableExecFile("screencapture", ["-x", input.outputPath], input.abortSignal);
       const dimensions = await readImageSize(input.outputPath);
       return {
         kind: "desktop",

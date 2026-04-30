@@ -1,5 +1,4 @@
-import { POST_ACTION_OBSERVATION_SOURCE_ABILITY_GROUP_IDS } from "../shared/post-action-observation.js";
-import { POST_ACTION_EVIDENCE_MAX_AGE_MS } from "../shared/post-action-policy.js";
+import { POST_ACTION_EVIDENCE_MAX_AGE_MS, POST_ACTION_CHILD_POLICY_MAP } from "../shared/post-action-policy.js";
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
 import { parsePostActionTimestampMs } from "./verification-clock.js";
 
@@ -9,6 +8,8 @@ export function validateEvidenceSources(input: {
 }) {
   const request = input.request;
   const observations = request.observationSet.observations;
+  const childPolicy = POST_ACTION_CHILD_POLICY_MAP[request.childCapabilityId];
+  const allowedObservationKinds: readonly string[] = childPolicy.allowedObservationKinds;
   if (observations.length === 0) {
     return {
       ok: false,
@@ -22,15 +23,15 @@ export function validateEvidenceSources(input: {
   }
 
   for (const observation of observations) {
-    if (!POST_ACTION_OBSERVATION_SOURCE_ABILITY_GROUP_IDS.includes(observation.source.sourceAbilityGroupId)) {
+    if (!allowedObservationKinds.includes(observation.kind)) {
       return {
         ok: false,
-        status: "blocked" as const,
-        failureReason: "evidence_binding_conflict" as const,
+        status: "failed" as const,
+        failureReason: "missing_observation_support" as const,
         reviewRequiredReason: null,
-        statusMessage: `Observation source ${observation.source.sourceAbilityGroupId} is not allowed.`,
-        dataQualityFlags: ["forbidden_observation_source"],
-        evidenceSourceDecision: "blocked:forbidden_observation_source" as const,
+        statusMessage: `Observation kind ${observation.kind} is not allowed for ${request.childCapabilityId}.`,
+        dataQualityFlags: ["observation_kind_forbidden"],
+        evidenceSourceDecision: "failed:forbidden_observation_kind" as const,
       };
     }
 
@@ -41,12 +42,12 @@ export function validateEvidenceSources(input: {
     ) {
       return {
         ok: false,
-        status: "blocked" as const,
+        status: "failed" as const,
         failureReason: "evidence_binding_conflict" as const,
         reviewRequiredReason: null,
         statusMessage: `Observation ${observation.ref} does not match the action binding.`,
         dataQualityFlags: ["observation_binding_conflict"],
-        evidenceSourceDecision: "blocked:observation_binding_conflict" as const,
+        evidenceSourceDecision: "failed:observation_binding_conflict" as const,
       };
     }
   }
@@ -60,12 +61,12 @@ export function validateEvidenceSources(input: {
     if (evidence.sessionId !== request.sessionId || evidence.roundId !== request.roundId || evidence.videoVisitId !== request.videoVisitId) {
       return {
         ok: false,
-        status: "blocked" as const,
+        status: "failed" as const,
         failureReason: "evidence_binding_conflict" as const,
         reviewRequiredReason: null,
         statusMessage: `Evidence ${evidence.evidenceRef} does not match the action binding.`,
         dataQualityFlags: ["evidence_binding_conflict"],
-        evidenceSourceDecision: "blocked:evidence_binding_conflict" as const,
+        evidenceSourceDecision: "failed:evidence_binding_conflict" as const,
       };
     }
 

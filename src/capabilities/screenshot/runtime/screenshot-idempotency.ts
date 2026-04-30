@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
-import type { ScreenshotAbilityInput, ScreenshotChildRegistryEntry } from "../contract.js";
+import type { ScreenshotAbilityInput } from "../contract.js";
+import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 function stableRegionKey(request: ScreenshotAbilityInput): string {
   if (!request.region) {

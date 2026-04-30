@@ -3,7 +3,6 @@ export {
   POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
   POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS,
   type PostActionActionProof,
-  type PostActionChildAssessment,
   type PostActionConfidencePolicy,
   type PostActionEvidenceRef,
   type PostActionExpectedOutcome,
@@ -15,8 +14,10 @@ export {
   type PostActionVerificationAbilityResult,
   type PostActionVerificationChildCapabilityId,
   type PostActionVerificationDecision,
+  type PostActionVerificationOutput,
   type PostActionVerificationPolicy,
   type PostActionVerificationStatus,
+  type CreatePostActionVerificationAbilityGroupInput,
 } from "./contract.js";
 export {
   PostActionActionProofSchema,
@@ -29,6 +30,7 @@ export {
   PostActionVerificationAbilityResultSchema,
   PostActionVerificationChildCapabilityIdSchema,
   PostActionVerificationDecisionSchema,
+  PostActionVerificationOutputSchema,
   PostActionVerificationPolicySchema,
   PostActionVerificationStatusSchema,
 } from "./schema.js";

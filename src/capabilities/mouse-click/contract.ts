@@ -8,6 +8,7 @@ import {
   ClickDesktopCoordinateInputSchema,
   MouseClickAbilityInputSchema,
   MouseClickAbilityResultSchema,
+  MouseClickSuccessOutputSchema,
   MouseClickButtonSchema,
   MouseClickChildCapabilityIdSchema,
   MouseClickCoordinateSpaceSchema,
@@ -33,6 +34,7 @@ export type MouseClickGeometryGuardProof = z.output<typeof MouseClickGeometryGua
 export type MouseClickRuntimeProof = z.output<typeof MouseClickRuntimeProofSchema>;
 export type MouseClickAbilityInput = z.input<typeof MouseClickAbilityInputSchema>;
 export type ParsedMouseClickAbilityInput = z.output<typeof MouseClickAbilityInputSchema>;
+export type MouseClickSuccessOutput = z.output<typeof MouseClickSuccessOutputSchema>;
 export type ClickBrowserCoordinateInput = z.output<typeof ClickBrowserCoordinateInputSchema>;
 export type ClickDesktopCoordinateInput = z.output<typeof ClickDesktopCoordinateInputSchema>;
 export type MouseClickAbilityResult = z.output<typeof MouseClickAbilityResultSchema>;

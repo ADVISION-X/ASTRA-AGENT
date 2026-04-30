@@ -1,19 +1,20 @@
 import type { z } from "zod";
 
-import type { VisualTargetClockPort } from "./ports/visual-target-clock-port.js";
-import type { VisualTargetProfilePort } from "./ports/visual-target-profile-port.js";
 import {
   VisualBoundingBoxSchema,
   VisualClickPointSchema,
   VisualTargetAbilityInputSchema,
   VisualTargetAbilityResultSchema,
   VisualTargetActionSuccessResultSchema,
+  VisualTargetActionOutputSchema,
   VisualTargetAiSourceProofSchema,
   VisualTargetCandidateSchema,
   VisualTargetChildCapabilityIdSchema,
   VisualTargetCoordinateSpaceSchema,
   VisualTargetDataQualityFlagSchema,
   VisualTargetFailureReasonSchema,
+  VisualTargetGeometryGuardHandoffSchema,
+  VisualTargetOutputSchema,
   VisualTargetNatureSchema,
   VisualTargetPageStateProofSchema,
   VisualTargetResultSchema,
@@ -45,6 +46,9 @@ export type VisualTargetPageStateProof = z.output<typeof VisualTargetPageStatePr
 export type VisualTargetSourceProof = z.output<typeof VisualTargetSourceProofSchema>;
 export type VisualTargetCandidate = z.output<typeof VisualTargetCandidateSchema>;
 export type VisualTargetRuntimeProof = z.output<typeof VisualTargetRuntimeProofSchema>;
+export type VisualTargetOutput = z.output<typeof VisualTargetOutputSchema>;
+export type VisualTargetActionOutput = z.output<typeof VisualTargetActionOutputSchema>;
+export type VisualTargetGeometryGuardHandoff = z.output<typeof VisualTargetGeometryGuardHandoffSchema>;
 export type VisualTargetAbilityInput = z.input<typeof VisualTargetAbilityInputSchema>;
 export type ParsedVisualTargetAbilityInput = z.output<typeof VisualTargetAbilityInputSchema>;
 export type VisualTarget = z.output<typeof VisualTargetResultSchema>;
@@ -52,17 +56,15 @@ export type VisualTargetResult = VisualTarget;
 export type VisualTargetAbilityResult = z.output<typeof VisualTargetAbilityResultSchema>;
 export type SuccessfulVisualTarget = z.output<typeof VisualTargetActionSuccessResultSchema>;
 
-export type VisualTargetAbilityContext = {
-  clock: VisualTargetClockPort;
-  profilePort: VisualTargetProfilePort | null;
+export type { VisualTargetChildCapability } from "./runtime/visual-target-child-contract.js";
+
+export type VisualTargetPublicTypes = {
+  abilityGroupId: typeof VISUAL_TARGET_ABILITY_GROUP_ID;
+  childCapabilityId: VisualTargetChildCapabilityId;
+  targetType: VisualTargetType;
+  targetNature: VisualTargetNature;
+  result: VisualTargetAbilityResult;
 };
-
-export interface VisualTargetChildCapability {
-  readonly abilityGroupId: typeof VISUAL_TARGET_ABILITY_GROUP_ID;
-  readonly childCapabilityId: VisualTargetChildCapabilityId;
-
-  execute(input: ParsedVisualTargetAbilityInput, context: VisualTargetAbilityContext): Promise<VisualTargetAbilityResult>;
-}
 
 export interface VisualTargetAbilityGroup {
   listChildCapabilityIds(): VisualTargetChildCapabilityId[];

@@ -27,11 +27,11 @@ summary: GrassEye uses one fixed ability-group constitution and one execution ch
 
 ### 法条
 
-GrassEye = 13 active ability groups + child abilities + Nerve Bus + Orchestration + Commander Console + runtime proof + Forensics Persistence.
+GrassEye = 14 active ability groups + child abilities + Nerve Bus + Orchestration + Commander Console + runtime proof + Forensics Persistence.
 
 Required direction:
-- Only the following ability groups are active owners: commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, mouse-scroll, post-action-verification, forensics-persistence, and page-state.
-- Child abilities may exist only under one of the 13 active ability groups.
+- Only the following ability groups are active owners: commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, text-input, mouse-scroll, post-action-verification, forensics-persistence, and page-state.
+- Child abilities may exist only under one of the 14 active ability groups.
 - Support boundaries may describe shell, topology, schema, logging, privacy, and audit rules, but they do not become active execution owners.
 - The only execution chain is: child capability -> parent capability group -> Nerve Bus -> Orchestration -> Commander Console -> Forensics evidence.
 
@@ -205,6 +205,7 @@ Required direction:
 - Visual Target finds points.
 - Geometry Guard validates and normalizes executable geometry.
 - Mouse Click and Mouse Scroll execute primitives.
+- Text Input writes approved text into verified input targets through governed ports.
 - Post-action Verification validates action results.
 
 ### 禁止

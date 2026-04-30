@@ -1,9 +1,13 @@
+import { createHash } from "node:crypto";
+
 import type { MouseClickAbilityInput, MouseClickButton, MouseClickChildCapabilityId, MouseClickCoordinateSpace, MouseClickCount, MouseClickSafetyPolicy, ParsedMouseClickAbilityInput } from "../contract.js";
 import { MouseClickAbilityInputSchema, MouseClickSafetyPolicySchema } from "../schema.js";
 
 type UnknownObject = { [key: string]: unknown };
 
 export type MouseClickExecutionSeed = {
+  attemptRef: string;
+  inputRef: string;
   childCapabilityId: MouseClickChildCapabilityId;
   sessionId: string;
   roundId: string | null;
@@ -13,17 +17,51 @@ export type MouseClickExecutionSeed = {
   geometryGuardRef: string | null;
   geometryGuardProofRef: string | null;
   sourceCoordinateProofRef: string | null;
-  sourceAbilityGroupId: string;
+  sourceAbilityGroupId: string | null;
   sourceChildCapabilityId: string | null;
   sourceEvidenceRef: string | null;
   sourceTargetRef: string | null;
+  parseErrorRef: string | null;
+  receivedShapeHash: string | null;
   coordinateSpace: MouseClickCoordinateSpace;
+  sourceCoordinateSpace: MouseClickCoordinateSpace | null;
   requestedCoordinate: { x: number; y: number } | null;
-  bounds: { width: number; height: number } | null;
+  sourceBounds: { width: number; height: number } | null;
+  targetBounds: { width: number; height: number } | null;
   button: MouseClickButton;
   clickCount: MouseClickCount;
   safetyPolicy: MouseClickSafetyPolicy;
 };
+
+export type MouseClickFailureEnvelope = {
+  attemptRef: string;
+  inputRef: string;
+  childCapabilityId: MouseClickChildCapabilityId;
+  sessionId: string | null;
+  roundId: string | null;
+  videoVisitId: string | null;
+  requestedBy: string | null;
+  purpose: string | null;
+  geometryGuardRef: string | null;
+  geometryGuardProofRef: string | null;
+  sourceCoordinateProofRef: string | null;
+  sourceAbilityGroupId: string | null;
+  sourceChildCapabilityId: string | null;
+  sourceEvidenceRef: string | null;
+  sourceTargetRef: string | null;
+  parseErrorRef: string | null;
+  receivedShapeHash: string | null;
+  coordinateSpace: MouseClickCoordinateSpace;
+  sourceCoordinateSpace: MouseClickCoordinateSpace | null;
+  requestedCoordinate: { x: number; y: number } | null;
+  sourceBounds: { width: number; height: number } | null;
+  targetBounds: { width: number; height: number } | null;
+  button: MouseClickButton;
+  clickCount: MouseClickCount;
+  safetyPolicy: MouseClickSafetyPolicy;
+};
+
+export type MouseClickResultSeed = MouseClickExecutionSeed | MouseClickFailureEnvelope;
 
 function isObject(value: unknown): value is UnknownObject {
   return typeof value === "object" && value !== null;
@@ -56,12 +94,53 @@ function resolveClickCount(value: unknown): MouseClickCount {
   return value === 2 ? 2 : 1;
 }
 
-export function parseMouseClickAbilityInput(input: MouseClickAbilityInput) {
-  return MouseClickAbilityInputSchema.safeParse(input);
+function stableHash(prefix: string, value: unknown): string {
+  const serialized = (() => {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  })();
+  return `${prefix}:${createHash("sha256").update(serialized).digest("hex").slice(0, 18)}`;
+}
+
+function formatParseIssues(input: unknown): string {
+  const parsed = MouseClickAbilityInputSchema.safeParse(input);
+  if (parsed.success) {
+    return "Mouse Click rejected invalid input schema.";
+  }
+
+  return parsed.error.issues
+    .map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`)
+    .join(" | ");
+}
+
+export function parseMouseClickAbilityInput(input: MouseClickAbilityInput | unknown):
+  | { success: true; data: ParsedMouseClickAbilityInput }
+  | { success: false; statusMessage: string } {
+  const parsed = MouseClickAbilityInputSchema.safeParse(input);
+  if (parsed.success) {
+    return parsed;
+  }
+  return {
+    success: false,
+    statusMessage: `Mouse Click rejected invalid input schema. ${formatParseIssues(input)}`,
+  };
 }
 
 export function buildMouseClickExecutionSeed(input: ParsedMouseClickAbilityInput): MouseClickExecutionSeed {
+  const inputRef = stableHash("mouse-click-input", [
+    input.sessionId,
+    input.childCapabilityId,
+    input.sourceCoordinateProofRef,
+    input.purpose,
+    input.geometryGuardProof.proofId,
+  ]);
+
   return {
+    attemptRef: stableHash("mouse-click-attempt", [inputRef, input.requestedBy]),
+    inputRef,
     childCapabilityId: input.childCapabilityId,
     sessionId: input.sessionId,
     roundId: input.roundId,
@@ -75,45 +154,74 @@ export function buildMouseClickExecutionSeed(input: ParsedMouseClickAbilityInput
     sourceChildCapabilityId: input.geometryGuardProof.sourceChildCapabilityId,
     sourceEvidenceRef: input.sourceEvidenceRef,
     sourceTargetRef: input.sourceTargetRef,
+    parseErrorRef: null,
+    receivedShapeHash: null,
     coordinateSpace: input.geometryGuardProof.normalizedCoordinateSpace,
+    sourceCoordinateSpace: input.geometryGuardProof.normalizedCoordinateSpace,
     requestedCoordinate: input.geometryGuardProof.normalizedClickPoint,
-    bounds: input.bounds,
+    sourceBounds: input.geometryGuardProof.sourceBounds,
+    targetBounds: input.bounds,
     button: input.button,
     clickCount: input.clickCount,
     safetyPolicy: input.safetyPolicy,
   };
 }
 
-export function coerceMouseClickFailureSeed(input: unknown): MouseClickExecutionSeed {
+export function buildInvalidInputFailureEnvelope(input: unknown, fallbackChildCapabilityId?: MouseClickChildCapabilityId): MouseClickFailureEnvelope {
   const raw = isObject(input) ? input : null;
-  const childCapabilityId = resolveChildCapabilityId(raw?.childCapabilityId);
+  const childCapabilityId = fallbackChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
   const geometryProof = raw && isObject(raw.geometryGuardProof) ? raw.geometryGuardProof : null;
   const safetyPolicy = MouseClickSafetyPolicySchema.safeParse(raw && isObject(raw.safetyPolicy) ? raw.safetyPolicy : undefined);
   const coordinateSpace = resolveCoordinateSpace(geometryProof?.normalizedCoordinateSpace, childCapabilityId);
-  const requestedX = geometryProof ? readFiniteNumber(geometryProof.normalizedClickPoint && isObject(geometryProof.normalizedClickPoint) ? geometryProof.normalizedClickPoint.x : null) : null;
-  const requestedY = geometryProof ? readFiniteNumber(geometryProof.normalizedClickPoint && isObject(geometryProof.normalizedClickPoint) ? geometryProof.normalizedClickPoint.y : null) : null;
+  const requestedX = geometryProof && isObject(geometryProof.normalizedClickPoint)
+    ? readFiniteNumber(geometryProof.normalizedClickPoint.x)
+    : null;
+  const requestedY = geometryProof && isObject(geometryProof.normalizedClickPoint)
+    ? readFiniteNumber(geometryProof.normalizedClickPoint.y)
+    : null;
   const boundsWidth = raw && isObject(raw.bounds) ? readFiniteNumber(raw.bounds.width) : null;
   const boundsHeight = raw && isObject(raw.bounds) ? readFiniteNumber(raw.bounds.height) : null;
+  const sourceBoundsWidth = geometryProof && isObject(geometryProof.sourceBounds) ? readFiniteNumber(geometryProof.sourceBounds.width) : null;
+  const sourceBoundsHeight = geometryProof && isObject(geometryProof.sourceBounds) ? readFiniteNumber(geometryProof.sourceBounds.height) : null;
+  const receivedShapeHash = stableHash("mouse-click-input-shape", raw ?? input);
+  const parseErrorRef = stableHash("mouse-click-parse-error", formatParseIssues(input));
 
   return {
+    attemptRef: stableHash("mouse-click-attempt", [receivedShapeHash, childCapabilityId]),
+    inputRef: stableHash("mouse-click-input", [receivedShapeHash, childCapabilityId]),
     childCapabilityId,
-    sessionId: readNonEmptyString(raw?.sessionId) ?? "unknown-session",
+    sessionId: null,
     roundId: readNonEmptyString(raw?.roundId),
     videoVisitId: readNonEmptyString(raw?.videoVisitId),
-    requestedBy: readNonEmptyString(raw?.requestedBy) ?? "unknown-requester",
-    purpose: readNonEmptyString(raw?.purpose) ?? "unknown-purpose",
+    requestedBy: readNonEmptyString(raw?.requestedBy),
+    purpose: readNonEmptyString(raw?.purpose),
     geometryGuardRef: geometryProof ? readNonEmptyString(geometryProof.geometryGuardRef) : null,
     geometryGuardProofRef: geometryProof ? readNonEmptyString(geometryProof.proofId) : null,
     sourceCoordinateProofRef: readNonEmptyString(raw?.sourceCoordinateProofRef),
-    sourceAbilityGroupId: geometryProof ? (readNonEmptyString(geometryProof.sourceAbilityGroupId) ?? "unknown-source-ability-group") : "unknown-source-ability-group",
+    sourceAbilityGroupId: geometryProof ? readNonEmptyString(geometryProof.sourceAbilityGroupId) : null,
     sourceChildCapabilityId: geometryProof ? readNonEmptyString(geometryProof.sourceChildCapabilityId) : null,
     sourceEvidenceRef: readNonEmptyString(raw?.sourceEvidenceRef),
     sourceTargetRef: readNonEmptyString(raw?.sourceTargetRef),
+    parseErrorRef,
+    receivedShapeHash,
     coordinateSpace,
+    sourceCoordinateSpace: geometryProof?.normalizedCoordinateSpace === "desktopScreen" || geometryProof?.normalizedCoordinateSpace === "browserViewport"
+      ? geometryProof.normalizedCoordinateSpace
+      : null,
     requestedCoordinate: requestedX === null || requestedY === null ? null : { x: requestedX, y: requestedY },
-    bounds: boundsWidth === null || boundsHeight === null ? null : { width: boundsWidth, height: boundsHeight },
+    sourceBounds: sourceBoundsWidth === null || sourceBoundsHeight === null ? null : { width: sourceBoundsWidth, height: sourceBoundsHeight },
+    targetBounds: boundsWidth === null || boundsHeight === null ? null : { width: boundsWidth, height: boundsHeight },
     button: resolveButton(raw?.button),
     clickCount: resolveClickCount(raw?.clickCount),
     safetyPolicy: safetyPolicy.success ? safetyPolicy.data : MouseClickSafetyPolicySchema.parse(undefined),
   };
+}
+
+export function resolveMouseClickFailureSeed(input: unknown, fallbackChildCapabilityId?: MouseClickChildCapabilityId): MouseClickResultSeed {
+  const parsed = MouseClickAbilityInputSchema.safeParse(input);
+  if (parsed.success) {
+    return buildMouseClickExecutionSeed(parsed.data);
+  }
+
+  return buildInvalidInputFailureEnvelope(input, fallbackChildCapabilityId);
 }

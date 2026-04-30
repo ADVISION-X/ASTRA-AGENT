@@ -3,7 +3,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 本文件只服从当前 14 个 active ability groups 与 4 个 active support laws，不重新分配主权。
 - 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
 - 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
 
@@ -62,3 +62,41 @@ Orchestration 是总调度能力组。
 - workbench 或 runtime helper 直接推进 step
 - 文档重新把浏览决策树写成主权文件
 - verify 脚本重新充当能力验收
+
+## Controlled Pluggable Map Package
+
+Orchestration 继续保持唯一作战地图选择、mission state、step state、branch evaluation 和 execution owner。
+
+地图包是受控声明式数据包，不是代码插件，也不是新 owner。
+
+### 生命周期
+
+- import -> quarantine -> validation -> human approval -> activation -> active registry -> rollback
+- imported package 未经验证和批准前不得进入 active registry
+- rollback 必须保留 activation record 与 rollback record
+
+### 校验门
+
+- schema validation
+- dependency validation
+- transition closure validation
+- capability registry validation
+- prompt contract validation
+- platform profile validation
+- compatibility validation
+- dry-run validation
+
+### 执行前置条件
+
+- AI vision step 前必须有 prepare-ai-input
+- mouse-click 前必须有 visual-target 与 geometry-guard
+- text-input 前必须有 approved text 与 verified input target handoff
+- 动作后必须有 post-action-verification
+- evidence output 必须路由到 forensics-persistence
+
+### 运行证明
+
+- runtime proof 必须记录 packageId
+- runtime proof 必须记录 mapVersion
+- runtime proof 必须记录 activationId
+- selection proof 必须记录 selectedMapSource 与 compatibility decision

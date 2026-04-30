@@ -1,18 +1,33 @@
 {
-  "generatedAt": "2026-04-29T17:33:13.516Z",
+  "generatedAt": "2026-04-30T00:13:24.366Z",
   "phase": "phase-02-local-workbench",
   "totals": {
     "inspectors": 17,
-    "passed": 17,
-    "failed": 0,
-    "blocking": 0
+    "passed": 12,
+    "failed": 5,
+    "blocking": 5
   },
   "results": [
     {
       "inspector": "GrassEye Audit System Owner Inspector",
       "inspectorId": "audit-system-owner",
       "capabilityDomain": "audit-system",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/page-state-capability/inspector.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Owner inspector must call shared owner inspection."
+        },
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Owner inspector must call shared owner inspection."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -52,9 +67,9 @@
         },
         {
           "name": "owner-evidence",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Every owner inspector exposes shared owner evidence and domain alignment."
+          "classification": "FAKE ENFORCEMENT",
+          "passed": false,
+          "summary": "Some owner inspectors do not provide authentic owner evidence."
         },
         {
           "name": "audit-quality-authority",
@@ -78,7 +93,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 797 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 858 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "cleanup-hygiene",
@@ -93,16 +108,41 @@
           "summary": "Active scope contains no compatibility-bridge style files."
         }
       ],
-      "summary": "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
+      "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
+      "passed": false,
+      "classification": "FAKE ENFORCEMENT",
+      "violationCount": 2
     },
     {
       "inspector": "GrassEye Capability Group Governance Owner Inspector",
       "inspectorId": "capability-group-governance-owner",
       "capabilityDomain": "capability-group-governance",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+          "file": "src/lib/local-runtime/workbench.ts",
+          "line": 22,
+          "severity": "fatal",
+          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
+          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/mouse-click/runtime/mouse-click-clock.ts"
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+          "file": "src/lib/local-runtime/workbench.ts",
+          "line": 23,
+          "severity": "fatal",
+          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
+          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/mouse-click/runtime/mouse-click-idempotency.ts"
+        },
+        {
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+          "file": "src/lib/local-runtime/workbench.ts",
+          "line": 60,
+          "severity": "fatal",
+          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
+          "detail": "src/lib/local-runtime/workbench.ts -> src/capabilities/mouse-scroll/runtime/mouse-scroll-execution-context.ts"
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -118,9 +158,9 @@
         },
         {
           "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Ability groups stay isolated from retired support roots."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Ability groups still depend on retired support roots."
         },
         {
           "name": "anti-escape",
@@ -136,9 +176,9 @@
         },
         {
           "name": "boundary-imports",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Cross-group imports stay on public capability indexes or contracts."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Cross-group imports still reach private capability paths."
         },
         {
           "name": "forbidden-owner-literals",
@@ -201,10 +241,10 @@
           "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
         }
       ],
-      "classification": "PASS",
-      "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering.",
-      "passed": true,
-      "violationCount": 0
+      "classification": "CODE VIOLATION",
+      "summary": "Ability groups still depend on retired support roots.",
+      "passed": false,
+      "violationCount": 3
     },
     {
       "inspector": "GrassEye Type Safety Owner Inspector",
@@ -294,7 +334,15 @@
       "inspector": "GrassEye Orchestration Capability Owner Inspector",
       "inspectorId": "orchestration-capability-owner",
       "capabilityDomain": "orchestration-capability",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1",
+          "file": "src/capabilities/orchestration/ability-group.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Orchestration ability-group must dispatch through Nerve Bus only and must not reference local-ai-decision."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -322,9 +370,9 @@
         },
         {
           "name": "orchestration-nerve-bus-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Ability-group dispatches through Nerve Bus only and orchestration root avoids forbidden owners."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Orchestration still bypasses Nerve Bus, leaks local-ai-decision, reintroduces export-star forwarding, or imports forbidden owners."
         },
         {
           "name": "orchestration-private-boundary",
@@ -333,10 +381,10 @@
           "summary": "External code does not reach into orchestration private internals."
         }
       ],
-      "classification": "PASS",
-      "summary": "External code does not reach into orchestration private internals.",
-      "passed": true,
-      "violationCount": 0
+      "classification": "CODE VIOLATION",
+      "summary": "Orchestration still bypasses Nerve Bus, leaks local-ai-decision, reintroduces export-star forwarding, or imports forbidden owners.",
+      "passed": false,
+      "violationCount": 1
     },
     {
       "inspector": "GrassEye Commander Console Capability Owner Inspector",
@@ -402,35 +450,41 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "nerve-bus-capability is implemented as the governed transport spine with runtime gates, child channels, and proof generation"
+          "summary": "nerve-bus-capability is implemented as a schema-first governed transport spine with AST-backed enforcement"
         },
         {
-          "name": "nerve-bus-required-shape",
+          "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Nerve Bus exposes the required executor, gates, ports, schemas, registry, and child folders."
+          "summary": "Nerve Bus required package, thin entry, executor chain, and governed builders are present."
         },
         {
-          "name": "nerve-bus-forbidden-shape",
+          "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Nerve Bus legacy transfer patterns have been removed."
+          "summary": "Nerve Bus avoids export laundering, token escapes, wall-clock drift, and forbidden imports."
         },
         {
-          "name": "nerve-bus-boundary",
+          "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Nerve Bus channel policy boundaries are enforced in the canonical root."
+          "summary": "Nerve Bus runtime, child, and port internals stay behind the owning public boundary."
         },
         {
-          "name": "nerve-bus-anti-escape",
+          "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Nerve Bus avoids anti-escape patterns."
+          "summary": "Nerve Bus resists gate bypass, proof dropping, timeout relabeling, and handler-access laundering."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations."
         }
       ],
       "classification": "PASS",
-      "summary": "Nerve Bus avoids anti-escape patterns.",
+      "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations.",
       "passed": true,
       "violationCount": 0
     },
@@ -441,51 +495,33 @@
       "findings": [],
       "phases": [
         {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "page-state exposes a thin ability-group, governed runtime gates, typed child capabilities, and enforced proof/result boundaries"
-        },
-        {
           "name": "page-state-required-shape",
           "classification": "PASS",
           "passed": true,
           "summary": "Page State canonical package shape is present."
         },
         {
-          "name": "page-state-package-contract",
+          "name": "page-state-forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Page State public contract, thin ability-group, registry, and explicit index are governed."
+          "summary": "Page State forbidden shapes are absent."
         },
         {
-          "name": "page-state-runtime-chain",
+          "name": "page-state-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Page State executor routes through all governed gates, fingerprint, result, and proof builders."
-        },
-        {
-          "name": "page-state-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Page State boundary is isolated from forbidden imports and private child leaks."
+          "summary": "Page State owner boundary is isolated."
         },
         {
           "name": "page-state-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Page State root avoids export-star, escape hatches, and scattered Date usage."
+          "summary": "Page State anti-escape checks are closed."
         }
       ],
-      "classification": "PASS",
-      "summary": "Page State root avoids export-star, escape hatches, and scattered Date usage.",
+      "summary": "page-state owner inspector passed required, forbidden, boundary, and anti-escape phases",
       "passed": true,
+      "classification": "PASS",
       "violationCount": 0
     },
     {
@@ -495,45 +531,33 @@
       "findings": [],
       "phases": [
         {
-          "name": "owner-foundation",
+          "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+          "summary": "Post Action Verification canonical package shape is present."
         },
         {
-          "name": "implementation-window",
+          "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "post-action-verification-capability is implemented as a governed post-action judge with executor, gates, proof builder, and anti-escape boundaries"
+          "summary": "Post Action Verification forbidden shapes are absent."
         },
         {
-          "name": "post-action-verification-required-shape",
+          "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Required shape exists: schema, registry, executor, gates, builders, ports, and child contracts are in place."
+          "summary": "Post Action Verification owner boundary is isolated."
         },
         {
-          "name": "post-action-verification-forbidden-shape",
+          "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Forbidden shape remnants such as export * and capability-check.ts are gone."
-        },
-        {
-          "name": "post-action-verification-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Boundary holds: thin ability group and no forbidden runtime owner imports."
-        },
-        {
-          "name": "post-action-verification-anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Anti-escape checks passed."
+          "summary": "Post Action Verification anti-escape checks are closed."
         }
       ],
-      "classification": "PASS",
-      "summary": "Anti-escape checks passed.",
+      "summary": "post-action-verification owner inspector passed required, forbidden, boundary, and anti-escape phases",
       "passed": true,
+      "classification": "PASS",
       "violationCount": 0
     },
     {
@@ -552,31 +576,31 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "open-capability exposes one execute-only ability-group surface, child registry, runtime gates, and governed proof/result output"
+          "summary": "open-capability exposes one governed package with metadata registry, runtime gates, child-local contracts, and negative proof enforcement"
         },
         {
-          "name": "open-required-shape",
+          "name": "open-required-shape-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Open canonical root contains schema, registry, runtime gates, ports, shared files, and child contract/schema/implementation triplets."
+          "summary": "Open standard package shape, metadata registry, child-local contracts, and negative proof harness are present."
         },
         {
-          "name": "open-architecture",
+          "name": "open-forbidden-shape-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Open public surface is execute-only, thin, and routes through governed target/url/session/navigation/post-open gates plus proof/result builders."
+          "summary": "Open forbids fake allow decisions, fake target profiles, export-star barrels, forbidden imports, and cookie access."
         },
         {
-          "name": "open-cutover",
+          "name": "open-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Workbench composes the rebuilt Open ability-group and no private open internals leak across domain boundaries."
+          "summary": "Open child implementations stay private and workbench wiring stays on the public surface."
         },
         {
-          "name": "open-anti-escape",
+          "name": "open-anti-escape-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Open keeps one canonical root with no BrowserController leakage, no export-star barrels, and no escape hatches."
+          "summary": "Open avoids any, unknown-as, comment directives, dynamic import, require, and unmanaged time APIs."
         },
         {
           "name": "platform-profile-root-removal",
@@ -762,29 +786,35 @@
           "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click production topology exists with schema, runtime executor chain, ports, and child triplets."
+          "summary": "Mouse Click required package, runtime chain, and governed schema/result surfaces exist."
         },
         {
           "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click avoids naked throws, direct primitive leaks, legacy files, and direct wall-clock usage."
+          "summary": "Mouse Click avoids export laundering, direct primitive leaks, wall-clock drift, and escape tokens."
         },
         {
           "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click stays behind the workbench boundary and receives Geometry Guard proof handoff from visual runtime."
+          "summary": "Mouse Click runtime and child internals stay behind the owning boundary and composition root."
         },
         {
           "name": "anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Mouse Click avoids dynamic import, export laundering, and type/comment escape hatches."
+          "summary": "Mouse Click resists gate bypass, proof dropping, and primitive wrapper escape patterns."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click negative-proof harness rejects gate bypass, proof drop, timeout escape, computed click, and composition drift mutations."
         }
       ],
       "classification": "PASS",
-      "summary": "Mouse Click avoids dynamic import, export laundering, and type/comment escape hatches.",
+      "summary": "Mouse Click negative-proof harness rejects gate bypass, proof drop, timeout escape, computed click, and composition drift mutations.",
       "passed": true,
       "violationCount": 0
     },
@@ -792,7 +822,71 @@
       "inspector": "GrassEye Mouse Scroll Capability Owner Inspector",
       "inspectorId": "mouse-scroll-capability-owner",
       "capabilityDomain": "mouse-scroll-capability",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V1",
+          "file": "src/lib/local-runtime/workbench.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "External code must not import mouse-scroll runtime internals."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep geometryGate as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep policyGate as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep safetyGate as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep deltaResolution as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep reservation as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll executor must keep primitiveResult as a governed checkpoint."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll result builder must preserve the proof builder output."
+        },
+        {
+          "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+          "file": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Mouse Scroll inspector baseline must pass before negative-proof mutation checks."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -804,37 +898,191 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "mouse-scroll-capability is implemented as a schema-gated, geometry-approved, idempotent scroll owner with AST-backed enforcement"
+          "summary": "mouse-scroll-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement"
         },
         {
           "name": "required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "mouse-scroll required shape uses schema/runtime/child contracts"
+          "summary": "Mouse Scroll required package, runtime chain, and governed schema/result surfaces exist."
         },
         {
           "name": "forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "mouse-scroll forbidden legacy and escape shapes are blocked"
+          "summary": "Mouse Scroll avoids export laundering, direct primitive leaks, wall-clock drift, and escape tokens."
         },
         {
-          "name": "boundary-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "mouse-scroll boundary is geometry-approved and caller-scoped"
+          "name": "boundary-attack",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Mouse Scroll still leaks private runtime or child boundaries."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Mouse Scroll still exposes anti-escape gaps in the governed chain."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "FAKE ENFORCEMENT",
+          "passed": false,
+          "summary": "Mouse Scroll negative-proof harness cannot start because the baseline inspector is not passing."
         }
       ],
-      "classification": "PASS",
-      "summary": "mouse-scroll boundary is geometry-approved and caller-scoped",
-      "passed": true,
-      "violationCount": 0
+      "classification": "FAKE ENFORCEMENT",
+      "summary": "Mouse Scroll still leaks private runtime or child boundaries.",
+      "passed": false,
+      "violationCount": 9
     },
     {
       "inspector": "GrassEye Visual Target Capability Owner Inspector",
       "inspectorId": "visual-target-capability-owner",
       "capabilityDomain": "visual-target-capability",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/runtime/visual-target-time.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Visual Target required-shape is incomplete.",
+          "detail": "Missing files: src/capabilities/visual-target/runtime/visual-target-time.ts"
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing targetId."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourceScreenshotEvidenceId."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourceScreenshotProofRef."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourceAiResultRef."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourceAiProofRef."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourcePageStateProofRef."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing sourceCandidateRef."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing coordinateSpace."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing boundingBox."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing clickPoint."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing executableCoordinate."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing confidence."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing requiresGeometryGuard."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing geometryGuardHandoffRequired."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetBaseResultSchema is missing actionable."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetActionSuccessResultSchema must exclude contact_sheet from success coordinateSpace."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetRegionSuccessResultSchema must exclude contact_sheet from success coordinateSpace."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetMetricSuccessResultSchema must exclude contact_sheet from success coordinateSpace."
+        },
+        {
+          "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1",
+          "file": "src/capabilities/visual-target/schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "VisualTargetActionSuccessResultSchema must exclude ai_input from actionable success coordinateSpace."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -850,9 +1098,9 @@
         },
         {
           "name": "required-shape-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Visual Target required-shape is present: standard package files, child triplets, execute-only contract, and governed schemas all exist."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Visual Target required-shape is incomplete or drifted from the standard package contract."
         },
         {
           "name": "forbidden-shape-attack",
@@ -891,10 +1139,10 @@
           "summary": "Visual Target inspector retains explicit attack-function structure, so audit failures remain attributable and reviewable."
         }
       ],
-      "classification": "PASS",
-      "summary": "Visual Target inspector retains explicit attack-function structure, so audit failures remain attributable and reviewable.",
-      "passed": true,
-      "violationCount": 0
+      "classification": "CODE VIOLATION",
+      "summary": "Visual Target required-shape is incomplete or drifted from the standard package contract.",
+      "passed": false,
+      "violationCount": 20
     },
     {
       "inspector": "forensics-persistence-owner",

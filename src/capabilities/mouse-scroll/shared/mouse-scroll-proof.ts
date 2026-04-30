@@ -1,5 +1,10 @@
-export const MOUSE_SCROLL_CLOCK_KIND = "system-monotonic-clock";
-export const MOUSE_SCROLL_POLICY_DECISIONS = ["allow", "block", "review_required", "duplicate_skipped"] as const;
-export const MOUSE_SCROLL_GEOMETRY_DECISIONS = ["allow", "block", "review_required"] as const;
-export const MOUSE_SCROLL_PRIMITIVE_DECISIONS = ["not_run", "succeeded", "failed", "threw"] as const;
-export const MOUSE_SCROLL_VERIFICATION_REF_POLICY = "required-by-post-action-verification";
+export const MOUSE_SCROLL_CLOCK_KIND = "system-monotonic-clock" as const;
+export const MOUSE_SCROLL_POLICY_DECISIONS = ["allow", "block", "review_required", "duplicate_review_required"] as const;
+export const MOUSE_SCROLL_GEOMETRY_DECISIONS = ["allow", "block"] as const;
+export const MOUSE_SCROLL_SAFETY_DECISIONS = ["allow", "block"] as const;
+export const MOUSE_SCROLL_PRIMITIVE_DECISIONS = ["not_run", "succeeded", "failed", "threw", "aborted"] as const;
+export const MOUSE_SCROLL_IDEMPOTENCY_DECISIONS = ["reserved", "duplicate_review_required", "cooldown_blocked"] as const;
+export const MOUSE_SCROLL_TIMEOUT_DECISIONS = ["within_limit", "timed_out"] as const;
+export const MOUSE_SCROLL_ABORT_DECISIONS = ["not_requested", "timeout_abort_requested"] as const;
+export const MOUSE_SCROLL_CIRCUIT_BREAKER_STATES = ["closed", "open"] as const;
+export const MOUSE_SCROLL_VERIFICATION_REF_POLICY = "geometry_guard_proof_ref+source_target_ref+scroll_execution_ref" as const;

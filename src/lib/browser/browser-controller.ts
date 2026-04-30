@@ -19,7 +19,7 @@ export type BrowserCaptureResult = {
   width: number;
   height: number;
   contentLines?: string[];
-  sourceFilePath?: string;
+  sourceFilePath: string;
   createdAt: string;
 };
 
@@ -52,6 +52,8 @@ export type BrowserGeometrySnapshot = {
 export type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
 export type BrowserClickButton = "left" | "right" | "middle";
 export type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
+export type BrowserTextInputAction = "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input";
+export type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
 export interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
@@ -74,7 +76,15 @@ export interface BrowserController {
     clickCount?: 1 | 2;
     fallbackUsed?: boolean;
   }): Promise<BrowserActionResult>;
-  screenshotRegion(input: { regionLabel: string; contentLines?: string[] }): Promise<BrowserCaptureResult>;
+  textInput(input: {
+    targetLabel: string;
+    action: BrowserTextInputAction;
+    text?: string | null;
+    key?: BrowserTextInputKey | null;
+    fallbackUsed?: boolean;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
+  screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }

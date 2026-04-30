@@ -46,6 +46,12 @@ const REQUIRED_FILES = [
   `${AI_ROOT}/runtime/ai-dispatch-failure.ts`,
   `${AI_ROOT}/runtime/ai-disabled-provider-result.ts`,
   `${AI_ROOT}/runtime/ai-clock.ts`,
+  `${AI_ROOT}/runtime/ai-idempotency.ts`,
+  `${AI_ROOT}/runtime/ai-timeout-policy-gate.ts`,
+  `${AI_ROOT}/runtime/ai-payload-budget-gate.ts`,
+  `${AI_ROOT}/runtime/ai-runtime-health-gate.ts`,
+  `${AI_ROOT}/runtime/ai-runtime-call-runner.ts`,
+  `${AI_ROOT}/runtime/ai-execution-context.ts`,
   `${AI_ROOT}/runtime/ai-prompt-registry.ts`,
   `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`,
   `${AI_ROOT}/shared/ai-types.ts`,
@@ -354,7 +360,7 @@ export default createPendingDomainInspector({
     if (registryChildIds.sort().join(",") !== normalizedExpected) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/registry.ts`, line: 1, severity: "fatal", message: "listAiChildren must match the governed child package set." }));
     }
-    if ([...new Set(routedChildIds)].sort().join(",") !== ["internal-schema-validator", "local-ocr-ai", "local-text-ai", "local-vision-ai", "paid-analysis-ai"].sort().join(",")) {
+    if ([...new Set(routedChildIds)].sort().join(",") !== ["internal-schema-validator", "local-ocr-ai", "local-text-ai", "local-vision-ai"].sort().join(",")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/task-router.ts`, line: 1, severity: "fatal", message: "AI task router must only route to governed enabled children." }));
     }
     if ([...new Set(rosterChildIds)].sort().join(",") !== normalizedExpected) {
@@ -366,6 +372,9 @@ export default createPendingDomainInspector({
       "evaluateAiProviderPolicy",
       "evaluateAiDataPolicy",
       "evaluateAiCostPolicy",
+      "evaluateAiPayloadBudgetGate",
+      "evaluateAiRuntimeHealthGate",
+      "runAiRuntimeCall",
       "evaluateAiSafetyPolicy",
       "resolveAiSchemaContract",
       "validateAiInternalCandidate",
@@ -381,6 +390,9 @@ export default createPendingDomainInspector({
     }
     if (!hasGovernedFailureStatusBranch(executorSource)) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI executor must keep schema/policy/quality rejection paths governed as review_required or failed, never clean success." }));
+    }
+    if (executorSource.getText().includes("context.runtime.execute(")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI executor must call runtime only through ai-runtime-call-runner." }));
     }
 
     const dispatchFailureSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-dispatch-failure.ts`);
@@ -420,6 +432,11 @@ export default createPendingDomainInspector({
 
     if (!hasCallExpression(abilityGroupSource, "parseAiInput") || !hasCallExpression(abilityGroupSource, "createAiCapabilityRegistry") || !hasCallExpression(abilityGroupSource, "routeAiTaskToChild")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "AI ability-group must stay thin and route through parse, registry, router, and child execution only." }));
+    }
+    for (const forbiddenThinEntryImport of ["local-ai-runtime-adapter", "model-roster", "ai-prompt-registry", "ai-clock"]) {
+      if (hasImportModuleSpecifier(abilityGroupSource, forbiddenThinEntryImport)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-003-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "AI ability-group must not assemble runtime, roster, prompt registry, or clock directly." }));
+      }
     }
 
     if (abilityGroupSource.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => expression.getExpression().getText() === "Date")) {
@@ -485,9 +502,29 @@ export default createPendingDomainInspector({
         findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005B-V2", file: `${AI_ROOT}/children/${childId}/implementation.ts`, line: 1, severity: "fatal", message: "Internal/paid/future children must not import LocalAiGateway." }));
       }
     }
+    for (const childId of ["paid-vision-ai", "paid-analysis-ai", "future-api-ai"] as const) {
+      const source = getSourceOrThrow(project, `${AI_ROOT}/children/${childId}/implementation.ts`);
+      if (source.getDescendantsOfKind(SyntaxKind.MethodDeclaration).some((method) => method.getName() === "execute") || hasCallExpression(source, "executeAiChild")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005B-V2", file: `${AI_ROOT}/children/${childId}/implementation.ts`, line: 1, severity: "fatal", message: "Disabled AI children must not expose execute or call executor." }));
+      }
+    }
 
     if (!hasImportModuleSpecifier(adapterSource, "local-ai-gateway")) {
       findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-001-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: "Local AI gateway access must stay isolated inside the local runtime adapter." }));
+    }
+    for (const requiredAdapterToken of ["AbortController", "MAX_CONCURRENT_RUNS", "circuitBreaker", "rawOutputRef", "rawOutputHash", "gatewayDurationMs", "modelHealthBefore", "modelHealthAfter", "runtimeCallId", "timeoutMs"]) {
+      if (!adapterSource.getText().includes(requiredAdapterToken)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: `Local AI adapter must preserve ${requiredAdapterToken} protection/evidence.` }));
+      }
+    }
+    for (const sourceFile of aiSources) {
+      const repoPath = toRepoRelativePath(sourceFile.getFilePath());
+      if (repoPath !== `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts` && hasImportModuleSpecifier(sourceFile, "local-ai-gateway")) {
+        findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-001-V1", file: repoPath, line: 1, severity: "fatal", message: "LocalAiGateway must not be imported outside the AI local runtime adapter." }));
+      }
+    }
+    if (!schemaSource.getText().includes("failed and review_required result output must be null") || !schemaSource.getText().includes("success result requires confidence")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema.ts`, line: 1, severity: "fatal", message: "AI result schema must reject failed/review output and success without confidence." }));
     }
 
     const projectSources = project.getSourceFiles();

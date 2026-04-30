@@ -54,10 +54,24 @@ export class LocalOcrRuntimeAdapter implements LocalAiRuntimeAdapter {
     if (!engine) {
       throw new LocalAiRuntimeError("engine_missing", "No supported local OCR engine is installed.");
     }
-    if (engine === "tesseract") {
-      return runCommand("tesseract", [input.imagePath, "stdout", "--psm", "6"], input.timeoutMs);
-    }
-
-    return runCommand("paddleocr", ["--image_dir", input.imagePath, "--type", "ocr"], input.timeoutMs);
+    await input.debugHook?.({
+      eventType: "local_ai_adapter_request_started",
+      detail: `runtime=${this.runtime}; engine=${engine}; imagePath=${input.imagePath}`,
+      runtime: this.runtime,
+      modelName: engine,
+      imageInputs: [{ filePath: input.imagePath }],
+    });
+    const ocrText = engine === "tesseract"
+      ? await runCommand("tesseract", [input.imagePath, "stdout", "--psm", "6"], input.timeoutMs)
+      : await runCommand("paddleocr", ["--image_dir", input.imagePath, "--type", "ocr"], input.timeoutMs);
+    await input.debugHook?.({
+      eventType: "local_ai_adapter_response_received",
+      detail: `runtime=${this.runtime}; engine=${engine}; responsePreview=${ocrText.slice(0, 220)}`,
+      runtime: this.runtime,
+      modelName: engine,
+      rawResponsePreview: ocrText.slice(0, 220),
+      ...(process.env.GRASSEYE_DEBUG_AI_IO === "full" ? { rawResponseText: ocrText } : {}),
+    });
+    return ocrText;
   }
 }

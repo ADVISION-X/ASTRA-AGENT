@@ -11,6 +11,7 @@
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1",
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1",
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1",
     "GRASSEYE-LOCAL-APP-SHELL-001-V1",
     "GRASSEYE-LOCAL-APP-SHELL-002-V1",
     "GRASSEYE-LOCAL-APP-SHELL-003-V1",
@@ -29,6 +30,9 @@
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+    "docs/audit/map-plugin-package-scorecard.md",
+    "docs/audit/commander-console-ui-atomic-quality.md",
+    "docs/audit/commander-console-mac-app-shell-scorecard.md",
     "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
     "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
   ]

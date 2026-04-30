@@ -156,3 +156,33 @@ Commander-facing 字段命名也必须转译成 Commander 词汇，不得保留 
 - Commander Console 重新出现 skill catalog、browse runtime snapshot、candidate builder
 - Commander Console 暴露 resetLocalStore 或 raw OrchestrationAbilityGroup
 - 再次出现 compat、legacy、bridge 叙事
+
+## 9. Map Package Import / Task Template UX
+
+Commander Console 可以导入地图包、展示验证状态和审批状态，但它不是地图执行 owner，也不是最终验证真相。
+
+普通用户只导入地图包或选择任务模板，不接触 mapId。
+
+普通 StartPage 只显示 active approved task templates：
+
+- displayName
+- description
+- version
+- availability
+- run limits
+- start button
+
+Developer Mode 或 Map Manager 才可显示：
+
+- packageId
+- mapId
+- activationId
+- stepId
+- childCapabilityId
+- dependency list
+- validation findings
+- compatibility matrix
+
+导入后必须看到 quarantine、validation、approve、active、rollback 生命周期状态。
+
+AI 临时地图只能显示为 draft-only、disabled、not runnable，不得直接进入普通任务列表。

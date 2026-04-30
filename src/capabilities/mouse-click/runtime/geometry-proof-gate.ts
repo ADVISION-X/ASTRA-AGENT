@@ -4,14 +4,15 @@ export function validateGeometryProof(input: {
   request: ParsedMouseClickAbilityInput;
   expectedCoordinateSpace: MouseClickCoordinateSpace;
 }):
-  | { ok: true }
+  | { ok: true; geometryDecision: "allow"; geometryDecisionReason: "geometry_proof_bound" }
   | {
       ok: false;
-      status: "failed" | "review_required";
-      failureReason: "missing_geometry_guard_proof" | "geometry_guard_not_allowed" | "geometry_proof_mismatch" | "geometry_proof_missing_coordinate" | "geometry_proof_missing_source_ref" | "unsupported_coordinate_space";
-      reviewRequiredReason: string | null;
+      status: "failed";
+      failureReason: "missing_geometry_guard_proof" | "geometry_guard_not_allowed" | "geometry_proof_mismatch" | "geometry_proof_missing_coordinate" | "geometry_proof_missing_source_ref" | "unsupported_coordinate_space" | "geometry_guard_ref_missing";
+      reviewRequiredReason: null;
       statusMessage: string;
-      geometryDecision: "block" | "review_required";
+      geometryDecision: "block";
+      geometryDecisionReason: string;
       dataQualityFlags: string[];
     } {
   const proof = input.request.geometryGuardProof;
@@ -23,7 +24,20 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Click requires geometryGuardProof before any primitive execution.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_guard_proof_missing",
       dataQualityFlags: ["geometry_guard_proof_missing"],
+    };
+  }
+  if (!proof.geometryGuardRef.trim()) {
+    return {
+      ok: false,
+      status: "failed",
+      failureReason: "geometry_guard_ref_missing",
+      reviewRequiredReason: null,
+      statusMessage: "Mouse Click requires geometryGuardRef before any primitive execution.",
+      geometryDecision: "block",
+      geometryDecisionReason: "geometry_guard_ref_missing",
+      dataQualityFlags: ["geometry_guard_ref_missing"],
     };
   }
   if (proof.normalizedCoordinateSpace !== input.expectedCoordinateSpace) {
@@ -34,6 +48,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: `Mouse Click child ${input.request.childCapabilityId} only accepts ${input.expectedCoordinateSpace} executable coordinates.`,
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_coordinate_space_mismatch",
       dataQualityFlags: ["geometry_coordinate_space_mismatch"],
     };
   }
@@ -45,6 +60,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Geometry Guard proof must include normalizedClickPoint.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_coordinate_missing",
       dataQualityFlags: ["geometry_coordinate_missing"],
     };
   }
@@ -56,6 +72,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Geometry Guard proof must carry sourceScreenshotEvidenceRef or sourceTargetRef.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_source_ref_missing",
       dataQualityFlags: ["geometry_source_ref_missing"],
     };
   }
@@ -67,6 +84,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "sourceCoordinateProofRef must match geometryGuardProof.proofId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_proof_ref_mismatch",
       dataQualityFlags: ["geometry_proof_ref_mismatch"],
     };
   }
@@ -78,6 +96,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "sourceTargetRef must bind to the same target as geometryGuardProof.sourceTargetRef.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_target_ref_mismatch",
       dataQualityFlags: ["geometry_target_ref_mismatch"],
     };
   }
@@ -89,6 +108,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Click sessionId must match geometryGuardProof.sessionId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_session_mismatch",
       dataQualityFlags: ["geometry_session_mismatch"],
     };
   }
@@ -100,6 +120,7 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Click roundId conflicts with geometryGuardProof.roundId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_round_mismatch",
       dataQualityFlags: ["geometry_round_mismatch"],
     };
   }
@@ -111,8 +132,9 @@ export function validateGeometryProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Click videoVisitId conflicts with geometryGuardProof.videoVisitId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_video_visit_mismatch",
       dataQualityFlags: ["geometry_video_visit_mismatch"],
     };
   }
-  return { ok: true };
+  return { ok: true, geometryDecision: "allow", geometryDecisionReason: "geometry_proof_bound" };
 }

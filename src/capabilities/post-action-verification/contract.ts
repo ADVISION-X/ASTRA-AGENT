@@ -1,14 +1,14 @@
 import type { z } from "zod";
 
-import type { PostActionEvidenceReadPort } from "./ports/post-action-evidence-read-port.js";
 import type { PostActionVerificationClockPort } from "./ports/post-action-verification-clock-port.js";
+import type { PostActionEvidenceReadPort } from "./ports/post-action-evidence-read-port.js";
 import {
   PostActionActionProofSchema,
-  PostActionChildAssessmentSchema,
   PostActionConfidencePolicySchema,
   PostActionEvidenceRefSchema,
   PostActionExpectedOutcomeSchema,
   PostActionObservationSchema,
+  PostActionVerificationOutputSchema,
   PostActionRuntimeProofSchema,
   PostActionVerificationAbilityInputSchema,
   PostActionVerificationAbilityResultSchema,
@@ -26,32 +26,22 @@ export type PostActionVerificationChildCapabilityId = z.output<typeof PostAction
 export type PostActionVerificationDecision = z.output<typeof PostActionVerificationDecisionSchema>;
 export type PostActionVerificationStatus = z.output<typeof PostActionVerificationStatusSchema>;
 export type PostActionFailureReason = z.output<typeof PostActionFailureReasonSchema>;
-export type PostActionActionProof = z.output<typeof PostActionActionProofSchema>;
-export type PostActionEvidenceRef = z.output<typeof PostActionEvidenceRefSchema>;
-export type PostActionExpectedOutcome = z.output<typeof PostActionExpectedOutcomeSchema>;
-export type PostActionObservation = z.output<typeof PostActionObservationSchema>;
-export type PostActionVerificationPolicy = z.output<typeof PostActionVerificationPolicySchema>;
-export type PostActionConfidencePolicy = z.output<typeof PostActionConfidencePolicySchema>;
+export type PostActionActionProof = z.input<typeof PostActionActionProofSchema>;
+export type PostActionEvidenceRef = z.input<typeof PostActionEvidenceRefSchema>;
+export type PostActionExpectedOutcome = z.input<typeof PostActionExpectedOutcomeSchema>;
+export type PostActionObservation = z.input<typeof PostActionObservationSchema>;
+export type PostActionVerificationPolicy = z.input<typeof PostActionVerificationPolicySchema>;
+export type PostActionConfidencePolicy = z.input<typeof PostActionConfidencePolicySchema>;
+export type PostActionVerificationOutput = z.output<typeof PostActionVerificationOutputSchema>;
 export type PostActionRuntimeProof = z.output<typeof PostActionRuntimeProofSchema>;
-export type PostActionChildAssessment = z.output<typeof PostActionChildAssessmentSchema>;
 export type PostActionVerificationAbilityInput = z.input<typeof PostActionVerificationAbilityInputSchema>;
 export type ParsedPostActionVerificationAbilityInput = z.output<typeof PostActionVerificationAbilityInputSchema>;
 export type PostActionVerificationAbilityResult = z.output<typeof PostActionVerificationAbilityResultSchema>;
 
-export type PostActionVerificationAbilityContext = {
+export type CreatePostActionVerificationAbilityGroupInput = {
   clock: PostActionVerificationClockPort;
   evidenceReadPort: PostActionEvidenceReadPort;
 };
-
-export interface PostActionVerificationChildCapability {
-  readonly abilityGroupId: typeof POST_ACTION_VERIFICATION_ABILITY_GROUP_ID;
-  readonly childCapabilityId: PostActionVerificationChildCapabilityId;
-
-  execute(
-    input: ParsedPostActionVerificationAbilityInput,
-    context: PostActionVerificationAbilityContext,
-  ): Promise<PostActionChildAssessment>;
-}
 
 export interface PostActionVerificationAbilityGroup {
   listChildCapabilityIds(): PostActionVerificationChildCapabilityId[];

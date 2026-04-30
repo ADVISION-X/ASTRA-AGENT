@@ -1,6 +1,6 @@
-import type { MouseScrollChildCapability } from "../../contract.js";
 import { MOUSE_SCROLL_ABILITY_GROUP_ID } from "../../contract.js";
 import { executeMouseScroll } from "../../runtime/mouse-scroll-executor.js";
+import type { MouseScrollChildCapability } from "../../runtime/mouse-scroll-runtime-context.js";
 import { ScrollRegionInputSchema, ScrollRegionResultSchema } from "./schema.js";
 
 export function createScrollRegionCapability(): MouseScrollChildCapability {

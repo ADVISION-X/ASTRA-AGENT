@@ -6,7 +6,7 @@ import {
   CommanderProofPolicySchema,
   CommanderReadinessSchema,
   ReviewDecisionInputSchema,
-} from "../../schema.js";
+} from "../../shared/commander-schema-base.js";
 
 export const ApproveCandidateInputSchema = ReviewDecisionInputSchema.extend({});
 

@@ -1,62 +1,102 @@
+import { createHash } from "node:crypto";
+
 import type { PageStateClockPort } from "../ports/page-state-clock-port.js";
-import { PageStateAbilityInputSchema } from "../schema.js";
+import { PAGE_STATE_ABILITY_GROUP_ID, PageStateAbilityResultSchema, PageStateAbilityInputSchema, PageStateRuntimeProofSchema } from "../schema.js";
 import type { PageStateAbilityInput, PageStateChildCapabilityId, PageStateDataQualityFlag, PageStateFailureReason, PageStateType } from "../schema.js";
 import { createPageStateFingerprint } from "./page-state-fingerprint.js";
 import { buildPageStateRuntimeProof } from "./page-state-proof-builder.js";
 import { buildPageStateResult } from "./page-state-result-builder.js";
 
-function createFallbackRequest(rawInput: unknown, childCapabilityId: PageStateChildCapabilityId): PageStateAbilityInput {
-  const fallback = PageStateAbilityInputSchema.parse({
-    childCapabilityId,
-    runId: "invalid-run",
-    missionId: "invalid-mission",
-    sessionId: "invalid-session",
-    roundId: "invalid-round",
-    videoVisitId: "invalid-video-visit",
-    requestedBy: "page-state-invalid-input",
-    snapshot: {
-      snapshotId: "invalid-snapshot",
-      currentUrl: "https://invalid.local/",
-      currentTitle: "Invalid Page State Input",
-      browserLoginState: "unknown",
-      viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
-      scrollOffset: { x: 0, y: 0 },
-      capturedAt: "1970-01-01T00:00:00.000Z",
-      sourceAbilityGroupId: "runtime-signal",
-      sourceChildCapabilityId: "invalid-input",
-      sourceProofRef: "page-state-invalid-input:proof",
-    },
-    observations: [],
-    sourceEvidenceRefs: ["page-state-invalid-input:evidence"],
-    freshnessPolicy: { maxSnapshotAgeMs: 0, maxObservationAgeMs: 0, maxObservationSkewMs: 0 },
-    confidencePolicy: { minimumConfidence: 1, allowReviewRequired: false },
-    statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: false, allowModalOverlay: false, allowUnknownState: false },
-    openHandoff: { openProofRef: "page-state-invalid-input:handoff", browserSessionRef: "page-state-invalid-input:session", platformProfileId: "invalid-profile" },
-    previousPageStateFingerprint: null,
-  });
-
-  if (typeof rawInput !== "object" || rawInput === null) {
-    return fallback;
-  }
-
-  const partial = rawInput as Partial<Record<string, unknown>>;
-  return {
-    ...fallback,
-    childCapabilityId: typeof partial.childCapabilityId === "string" ? (partial.childCapabilityId as PageStateChildCapabilityId) : childCapabilityId,
-  };
-}
-
 export function dispatchInvalidPageStateInput(input: {
   rawInput: unknown;
+  issues: readonly { path?: readonly (string | number)[]; message: string }[];
   clock: PageStateClockPort;
 }): import("../schema.js").PageStateAbilityResult {
-  const request = createFallbackRequest(input.rawInput, "detect-page-abnormality");
-  return dispatchPageStateFailure({
-    request,
+  const startedAt = input.clock.now();
+  const endedAt = input.clock.now();
+  const receivedShapeHash = createHash("sha256").update(JSON.stringify(input.rawInput)).digest("hex");
+  const issueSummary = input.issues.map((issue) => `${issue.path?.join(".") ?? "input"}: ${issue.message}`).join("; ");
+  const diagnosticPayloadRef = `page-state-diagnostic:invalid-input:${receivedShapeHash.slice(0, 24)}`;
+  const runtimeProof = PageStateRuntimeProofSchema.parse({
+    proofId: `page-state-proof:invalid-input:${receivedShapeHash.slice(0, 24)}`,
+    runId: null,
+    missionId: null,
+    sessionId: null,
+    roundId: null,
+    videoVisitId: null,
+    abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
+    childCapabilityId: null,
+    inputRef: `page-state-input:invalid:${receivedShapeHash.slice(0, 16)}`,
+    outputRef: null,
+    diagnosticPayloadRef,
+    debugLogRef: `page-state-debug:invalid-input:${receivedShapeHash.slice(0, 24)}`,
+    structuredRuntimeEventRef: null,
+    snapshotId: null,
+    snapshotProofRef: null,
+    openHandoffProofRef: null,
+    browserSessionRef: null,
+    platformProfileId: null,
+    resolvedPlatformProfileId: null,
+    matchedHost: null,
+    sourceAbilityGroupId: null,
+    sourceChildCapabilityId: null,
+    observationRefs: [],
+    sourceEvidenceRefs: [],
+    inputPayloadHash: receivedShapeHash,
+    snapshotHash: null,
+    observationHash: null,
+    pageStateFingerprint: null,
+    previousPageStateFingerprint: null,
+    currentUrl: null,
+    currentTitle: null,
+    classificationSource: "invalid_input_failure",
+    inputDecision: "fail",
+    sourceBindingDecision: "fail",
+    observationBindingDecision: "fail",
+    freshnessDecision: "fail",
+    platformDecision: "fail",
+    classificationDecision: "fail",
+    outputBoundaryDecision: "fail",
+    criticalDataQualityDecision: "fail",
+    proceedDecision: "fail",
+    startedAt: startedAt.isoTimestamp,
+    endedAt: endedAt.isoTimestamp,
+    durationMs: endedAt.epochMs - startedAt.epochMs,
+    status: "failed",
+    decision: "fail",
     failureReason: "invalid_input",
-    stateSummary: "Page State rejected the request because the public input schema did not parse.",
     reviewRequiredReason: null,
-    clock: input.clock,
+    dataQualityFlags: ["insufficient_signal"],
+    receivedShapeHash,
+  });
+
+  return PageStateAbilityResultSchema.parse({
+    status: "failed",
+    decision: "fail",
+    abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
+    childCapabilityId: null,
+    runId: null,
+    missionId: null,
+    sessionId: null,
+    roundId: null,
+    videoVisitId: null,
+    output: null,
+    pageStateType: null,
+    stateSummary: null,
+    confidence: null,
+    evidenceRefs: [],
+    observationRefs: [],
+    sourceEvidenceRefs: [],
+    pageStateFingerprint: null,
+    previousPageStateFingerprint: null,
+    failureReason: "invalid_input",
+    reviewRequiredReason: null,
+    dataQualityFlags: ["insufficient_signal"],
+    debugLogRef: runtimeProof.debugLogRef,
+    structuredRuntimeEventRef: null,
+    diagnosticPayloadRef,
+    receivedShapeHash,
+    runtimeProof,
   });
 }
 
@@ -66,7 +106,7 @@ export function dispatchPageStateFailure(input: {
   stateSummary: string;
   reviewRequiredReason?: string | null;
   pageStateType?: PageStateType;
-  status?: "failed" | "review_required" | "blocked";
+  status?: "failed" | "review_required";
   decision?: "fail" | "review_required" | "block";
   dataQualityFlags?: PageStateDataQualityFlag[];
   clock: PageStateClockPort;
@@ -90,6 +130,7 @@ export function dispatchPageStateFailure(input: {
     decision: input.decision ?? "fail",
     failureReason: input.failureReason,
     resolvedProfileId: null,
+    matchedHost: null,
   };
   const runtimeProof = buildPageStateRuntimeProof({
     request: input.request,
@@ -97,9 +138,16 @@ export function dispatchPageStateFailure(input: {
     trace: {
       inputDecision: input.failureReason === "invalid_input" ? "fail" : "allow",
       sourceDecision: input.failureReason === "observation_source_forbidden" ? "fail" : "allow",
+      payloadBudgetDecision: input.failureReason === "payload_budget_exceeded" ? "fail" : "allow",
+      observationBindingDecision: input.failureReason === "missing_observation_support" ? "fail" : "bound",
       freshnessDecision: input.failureReason === "snapshot_stale" || input.failureReason === "observation_stale" ? "review_required" : "fail",
       platformDecision: input.failureReason === "platform_mismatch" ? "block" : "match",
       classificationDecision: input.decision ?? "fail",
+      outputBoundaryDecision: input.failureReason === "output_boundary_violation" ? "fail" : "allow",
+      criticalDataQualityDecision:
+        input.failureReason === "insufficient_signal" || input.failureReason === "low_confidence"
+          ? "review_required"
+          : "fail",
       proceedDecision: input.decision ?? "fail",
     },
     status: outcome.status,
@@ -111,6 +159,7 @@ export function dispatchPageStateFailure(input: {
     pageStateFingerprint,
     observationRefs,
     dataQualityFlags: outcome.dataQualityFlags,
+    diagnosticPayloadRef: `page-state-diagnostic:${input.request.runId}:${input.request.childCapabilityId}:${input.failureReason}`,
   });
 
   return buildPageStateResult({

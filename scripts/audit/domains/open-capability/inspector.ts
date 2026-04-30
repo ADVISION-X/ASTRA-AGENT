@@ -143,12 +143,56 @@ function getOpenSourceOrThrow(project: Project, repoRelativePath: string): Sourc
 function getRegistryEntries(sourceFile: SourceFile): ObjectLiteralExpression[] {
   const declaration = sourceFile.getVariableDeclaration("OPEN_CHILDREN");
   const initializer = declaration?.getInitializer();
-  const arrayLiteral = initializer && Node.isAsExpression(initializer) ? initializer.getExpression() : initializer;
+  const arrayLiteral = unwrapExpression(initializer);
   if (!arrayLiteral || !Node.isArrayLiteralExpression(arrayLiteral)) {
     return [];
   }
 
   return arrayLiteral.getElements().filter(Node.isObjectLiteralExpression);
+}
+
+function unwrapExpression(node: Node | undefined): Node | undefined {
+  if (!node) {
+    return undefined;
+  }
+
+  if (Node.isAsExpression(node) || Node.isSatisfiesExpression(node) || Node.isParenthesizedExpression(node)) {
+    return unwrapExpression(node.getExpression());
+  }
+
+  return node;
+}
+
+function hasStrictSuccessStatusCheck(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
+    if (expression.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken) {
+      return false;
+    }
+
+    const left = expression.getLeft();
+    const right = expression.getRight();
+    const leftPath = Node.isPropertyAccessExpression(left) ? left.getName() : "";
+    return leftPath === "status" && Node.isStringLiteral(right) && right.getLiteralText() === "success";
+  });
+}
+
+function hasReturnedObjectProperty(sourceFile: SourceFile, propertyName: string): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.ReturnStatement).some((returnStatement) => {
+    const expression = returnStatement.getExpression();
+    if (!expression || !Node.isCallExpression(expression)) {
+      return false;
+    }
+
+    const argument = expression.getArguments()[0];
+    if (!argument || !Node.isObjectLiteralExpression(argument)) {
+      return false;
+    }
+
+    return argument.getProperties().some((property) => {
+      return (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property))
+        && property.getName() === propertyName;
+    });
+  });
 }
 
 function getObjectPropertyNames(objectLiteral: ObjectLiteralExpression): Set<string> {
@@ -229,6 +273,70 @@ function getFunctionIdentifier(sourceFile: SourceFile, functionName: string): Id
 
 function hasUnknownAsChain(sourceFile: SourceFile): boolean {
   return sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).some((expression) => expression.getExpression().getText().includes(" as unknown"));
+}
+
+function hasDispatchFailureFabrication(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    const name = property.getName();
+    const initializer = property.getInitializer();
+    if (!initializer) {
+      return false;
+    }
+
+    if (name === "status" && Node.isStringLiteral(initializer) && initializer.getLiteralText() === "allow") {
+      return true;
+    }
+
+    if (name === "targetProfileRef") {
+      if (Node.isStringLiteral(initializer) && initializer.getLiteralText().includes("open-target-profile:")) {
+        return true;
+      }
+      if (initializer.getText() !== "null") {
+        return true;
+      }
+    }
+
+    return false;
+  });
+}
+
+function hasStatusClassificationObject(sourceFile: SourceFile, status: string, classification: string): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((objectLiteral) => {
+    let statusMatches = false;
+    let classificationMatches = false;
+
+    for (const property of objectLiteral.getProperties()) {
+      if (!Node.isPropertyAssignment(property)) {
+        continue;
+      }
+
+      const initializer = property.getInitializer();
+      if (!initializer || !Node.isStringLiteral(initializer)) {
+        continue;
+      }
+
+      if (property.getName() === "status" && initializer.getLiteralText() === status) {
+        statusMatches = true;
+      }
+
+      if (property.getName() === "classification" && initializer.getLiteralText() === classification) {
+        classificationMatches = true;
+      }
+    }
+
+    return statusMatches && classificationMatches;
+  });
+}
+
+function hasForbiddenResolvedImport(sourceFile: SourceFile): boolean {
+  return sourceFile.getImportDeclarations().some((declaration) => {
+    const resolvedPath = resolveModuleSourcePath(declaration);
+    if (!resolvedPath) {
+      return false;
+    }
+
+    return FORBIDDEN_IMPORT_MARKERS.some((marker) => resolvedPath.includes(marker));
+  });
 }
 
 export default createPendingDomainInspector({
@@ -430,7 +538,8 @@ export default createPendingDomainInspector({
       }));
     }
 
-    if (!hasLiteralTextFragment(postOpenStateSource, "login_wall") || !hasLiteralTextFragment(postOpenStateSource, "wrong_domain")) {
+    if (!hasStatusClassificationObject(postOpenStateSource, "review_required", "login_wall")
+      || !hasStatusClassificationObject(postOpenStateSource, "failed", "wrong_domain")) {
       findings.push(createFinding({
         lawId: "GRASSEYE-OPEN-CAPABILITY-002-V1",
         file: POST_OPEN_STATE_GATE_PATH,
@@ -440,7 +549,7 @@ export default createPendingDomainInspector({
       }));
     }
 
-    if (!hasLiteralTextFragment(resultBuilderSource, 'status === "success"')) {
+    if (!hasStrictSuccessStatusCheck(resultBuilderSource)) {
       findings.push(createFinding({
         lawId: "GRASSEYE-OPEN-CAPABILITY-002-V1",
         file: RESULT_BUILDER_PATH,
@@ -460,7 +569,7 @@ export default createPendingDomainInspector({
       }));
     }
 
-    if (!hasLiteralTextFragment(proofBuilderSource, "targetUrlSource") || !hasLiteralTextFragment(proofBuilderSource, "failureInputParseDecision")) {
+    if (!hasReturnedObjectProperty(proofBuilderSource, "targetUrlSource") || !hasReturnedObjectProperty(proofBuilderSource, "failureInputParseDecision")) {
       findings.push(createFinding({
         lawId: "GRASSEYE-OPEN-CAPABILITY-002-V1",
         file: PROOF_BUILDER_PATH,
@@ -470,7 +579,7 @@ export default createPendingDomainInspector({
       }));
     }
 
-    if (hasLiteralTextFragment(dispatchFailureSource, 'status: "allow"') || hasLiteralTextFragment(dispatchFailureSource, "open-target-profile:")) {
+    if (hasDispatchFailureFabrication(dispatchFailureSource)) {
       findings.push(createFinding({
         lawId: "GRASSEYE-OPEN-CAPABILITY-002-V1",
         file: DISPATCH_FAILURE_PATH,
@@ -599,7 +708,9 @@ export default createPendingDomainInspector({
       }
     }
 
-    const forbiddenImportFile = openSources.find((sourceFile) => FORBIDDEN_IMPORT_MARKERS.some((marker) => hasImportModuleSpecifier(sourceFile, marker)));
+    const forbiddenImportFile = openSources.find((sourceFile) => {
+      return FORBIDDEN_IMPORT_MARKERS.some((marker) => hasImportModuleSpecifier(sourceFile, marker)) || hasForbiddenResolvedImport(sourceFile);
+    });
     if (forbiddenImportFile) {
       findings.push(createFinding({
         lawId: "GRASSEYE-OPEN-CAPABILITY-002-V1",

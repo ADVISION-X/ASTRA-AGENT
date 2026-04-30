@@ -30,6 +30,7 @@ export function buildOpenProof(input: {
   navigationDecision: OpenNavigationDecision;
   postOpenStateDecision: PostOpenStateDecision;
   idempotencyKey: string;
+  idempotencyDecision: "reserved" | "duplicate_review_required" | "already_on_target" | "scope_capacity_exceeded" | "not_started";
   beforeSession: BrowserSessionSnapshot;
   afterSession: BrowserSessionSnapshot;
   startedAt: string;
@@ -40,14 +41,12 @@ export function buildOpenProof(input: {
   reviewRequiredReason: string | null;
   sourceRef: string;
   openAttemptRef: string;
-  pageStateRef: string | null;
-  forensicsRef: string | null;
+  pageStateHandoffRef: string | null;
+  sessionSnapshotAvailable: boolean;
+  sessionSnapshotFailureReason: string | null;
   dataQualityFlags: OpenDataQualityFlag[];
 }): OpenRuntimeProof {
   const durationMs = Math.max(0, Math.round(input.endedMonotonicMs - input.startedMonotonicMs));
-  const targetProfileRef = `open-target-profile:${input.profile.childCapabilityId}`;
-  const browserSessionRef = `browser-session:${input.afterSession.browserProfileRef}`;
-  const targetUrlSource = input.request.targetUrl ? "provided" : "policy_resolved";
 
   return OpenRuntimeProofSchema.parse({
     proofId: buildProofId(`${input.request.runId}:${input.idempotencyKey}:${input.endedAt}`),
@@ -62,10 +61,17 @@ export function buildOpenProof(input: {
     targetKind: input.request.targetKind,
     sourceAbilityGroupId: input.request.sourceAbilityGroupId,
     sourceChildCapabilityId: input.request.sourceChildCapabilityId,
+    missionIdSource: "provided",
+    runIdSource: "provided",
+    sessionIdSource: "provided",
+    childCapabilityIdSource: "provided",
+    failureInputParseDecision: "parsed",
     inputRef: `${input.request.runId}:input`,
-    outputRef: `${input.request.runId}:output`,
-    targetProfileRef,
+    outputRef: input.postOpenStateDecision.status === "success" ? `${input.request.runId}:output` : null,
+    diagnosticPayloadRef: input.postOpenStateDecision.status === "success" ? null : `${input.request.runId}:diagnostic`,
+    targetProfileRef: input.targetPolicyDecision.targetProfileRef,
     targetUrl: input.targetPolicyDecision.resolvedTargetUrl,
+    targetUrlSource: input.targetPolicyDecision.targetUrlSource,
     openedUrl: input.navigationDecision.openedUrl,
     redirectChain: input.navigationDecision.redirectChain,
     browserProfileRef: input.afterSession.browserProfileRef,
@@ -75,31 +81,31 @@ export function buildOpenProof(input: {
     loginStateAfter: input.afterSession.loginState,
     pageTitleAfter: input.afterSession.currentTitle,
     idempotencyKey: input.idempotencyKey,
+    idempotencyDecision: input.idempotencyDecision,
+    openAttemptRef: input.openAttemptRef,
+    navigationCallId: input.navigationDecision.navigationCallId,
     navigationAttemptRef: input.navigationDecision.navigationAttemptRef,
+    timeoutDecision: input.navigationDecision.timeoutDecision,
+    abortDecision: input.navigationDecision.abortDecision,
+    circuitBreakerState: input.navigationDecision.circuitBreakerState,
+    targetPolicyDecision: input.targetPolicyDecision,
+    urlSafetyDecision: input.urlSafetyDecision,
+    sessionDecision: input.sessionDecision,
+    navigationDecision: input.navigationDecision,
+    postOpenDecision: input.postOpenStateDecision,
+    preliminaryOpenClassification: input.postOpenStateDecision.classification,
     pageStateHandoffRequired: input.postOpenStateDecision.pageStateHandoffRequired,
+    pageStateHandoffRef: input.pageStateHandoffRef,
+    sourceRef: input.sourceRef,
+    sessionSnapshotAvailable: input.sessionSnapshotAvailable,
+    sessionSnapshotFailureReason: input.sessionSnapshotFailureReason,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs,
     status: input.postOpenStateDecision.status,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
-    targetPolicyDecision: input.targetPolicyDecision,
-    urlSafetyDecision: input.urlSafetyDecision,
-    sessionDecision: input.sessionDecision,
-    navigationDecision: input.navigationDecision,
-    postOpenStateDecision: input.postOpenStateDecision,
     dataQualityFlags: input.dataQualityFlags,
-    browserSessionRef,
-    sourceRef: input.sourceRef,
-    openAttemptRef: input.openAttemptRef,
-    pageStateRef: input.pageStateRef,
-    forensicsRef: input.forensicsRef,
-    missionIdSource: "provided",
-    runIdSource: "provided",
-    sessionIdSource: "provided",
-    targetUrlSource,
-    childCapabilityIdSource: "provided",
-    failureInputParseDecision: "parsed",
     clock: {
       portKind: OPEN_CLOCK_KIND,
       startedMonotonicMs: input.startedMonotonicMs,

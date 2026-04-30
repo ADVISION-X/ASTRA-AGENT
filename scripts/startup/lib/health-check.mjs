@@ -28,9 +28,50 @@ export async function probeCommanderConsolePage({
     throw new Error(`Commander Console returned unexpected content-type: ${contentType || "unknown"}`);
   }
 
+  const html = await response.text();
+  const acceptedShellMarkerSets = [
+    {
+      name: "commander_console_full_page_shell",
+      markers: [
+        'class="cc-topbar"',
+        'data-page="command-center"',
+        'data-page="mission-cockpit"',
+        'data-drawer-root',
+        'window.__grasseyeCommanderConsoleViewModel',
+      ],
+    },
+    {
+      name: "commander_console_app_router_shell",
+      markers: [
+        'class="cc-mac-shell"',
+        'data-app-shell',
+        'data-app-router',
+        'data-app-page-host',
+        'window.__grasseyeCommanderConsoleViewModel',
+        'window.__grasseyeCommanderAppViewModel',
+      ],
+    },
+  ];
+
+  const matchingShell = acceptedShellMarkerSets.find((candidate) =>
+    candidate.markers.every((marker) => html.includes(marker)),
+  );
+
+  if (!matchingShell) {
+    const markerSummary = acceptedShellMarkerSets
+      .map((candidate) => {
+        const missing = candidate.markers.filter((marker) => !html.includes(marker));
+        return `${candidate.name} missing: ${missing.join(", ")}`;
+      })
+      .join(" | ");
+
+    throw new Error(`Commander Console is serving an unsupported shell topology. ${markerSummary}`);
+  }
+
   return {
     status: response.status,
     contentType,
+    shellTopology: matchingShell.name,
   };
 }
 

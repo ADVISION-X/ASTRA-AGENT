@@ -14,7 +14,8 @@ import type {
   HumanCommandResultEnvelope,
 } from "./nerve-bus-envelope.js";
 import type { NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.js";
-import type { NerveBusRuntimeContext, NerveBusRunnerOutcome } from "../runtime/transport-runner.js";
+import type { NerveBusRunnerOutcome } from "../runtime/transport-runner.js";
+import type { NerveBusRuntimeContext } from "../runtime/transport-context.js";
 
 export type SupportedEnvelope = AbilityCommandEnvelope | AiRequestEnvelope | HumanCommandEnvelope;
 export type SupportedTransportEnvelope = SupportedEnvelope | AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;

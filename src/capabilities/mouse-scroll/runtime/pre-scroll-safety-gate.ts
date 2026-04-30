@@ -1,5 +1,7 @@
 import type { MouseScrollCoordinateSpace, MouseScrollRegion, ParsedMouseScrollAbilityInput } from "../contract.js";
 
+const MAX_ALLOWED_BOUND = 12_000;
+
 function isPointWithinBounds(point: { x: number; y: number }, bounds: { width: number; height: number }): boolean {
   return point.x >= 0 && point.y >= 0 && point.x < bounds.width && point.y < bounds.height;
 }
@@ -34,6 +36,9 @@ export function validatePreScrollSafety(input: {
       executableAnchor: { x: number; y: number };
       bounds: { width: number; height: number };
       region: MouseScrollRegion | null;
+      coordinateRoundingDecision: string;
+      safetyDecision: "allow";
+      safetyDecisionReason: string;
     }
   | {
       ok: false;
@@ -47,9 +52,12 @@ export function validatePreScrollSafety(input: {
         | "invalid_repeat"
         | "invalid_duration_limit"
         | "invalid_primitive_timeout"
-        | "invalid_delta_limit";
+        | "invalid_delta_limit"
+        | "bounds_too_large";
       statusMessage: string;
       policyDecision: "block";
+      safetyDecision: "block";
+      safetyDecisionReason: string;
       dataQualityFlags: string[];
     } {
   const requestedAnchor = input.request.geometryScrollProof.normalizedAnchorPoint;
@@ -60,6 +68,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_coordinate_space",
       statusMessage: "Mouse Scroll coordinateSpace no longer matches this child capability.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "coordinate_space_mismatch",
       dataQualityFlags: ["coordinate_space_mismatch"],
     };
   }
@@ -72,7 +82,21 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_bounds",
       statusMessage: "Mouse Scroll bounds must be finite positive dimensions.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "invalid_bounds",
       dataQualityFlags: ["invalid_bounds"],
+    };
+  }
+  if (bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND) {
+    return {
+      ok: false,
+      status: "failed",
+      failureReason: "bounds_too_large",
+      statusMessage: "Mouse Scroll bounds exceed the governed maximum size.",
+      policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "bounds_too_large",
+      dataQualityFlags: ["bounds_too_large"],
     };
   }
   if (!Number.isInteger(input.request.repeat) || input.request.repeat <= 0 || input.request.repeat > input.request.safetyPolicy.maxRepeat) {
@@ -82,6 +106,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_repeat",
       statusMessage: "Mouse Scroll repeat must be a finite positive integer within maxRepeat.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "repeat_out_of_range",
       dataQualityFlags: ["invalid_repeat"],
     };
   }
@@ -92,16 +118,20 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_duration_limit",
       statusMessage: "Mouse Scroll requires a finite positive maxDurationMs.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "invalid_max_duration",
       dataQualityFlags: ["invalid_duration_limit"],
     };
   }
-  if (!Number.isFinite(input.request.safetyPolicy.primitiveTimeoutMs) || input.request.safetyPolicy.primitiveTimeoutMs <= 0) {
+  if (!Number.isFinite(input.request.safetyPolicy.primitiveTimeoutMs) || input.request.safetyPolicy.primitiveTimeoutMs <= 0 || input.request.safetyPolicy.primitiveTimeoutMs > input.request.safetyPolicy.maxDurationMs) {
     return {
       ok: false,
       status: "failed",
       failureReason: "invalid_primitive_timeout",
       statusMessage: "Mouse Scroll requires a finite positive primitiveTimeoutMs.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "invalid_primitive_timeout",
       dataQualityFlags: ["invalid_primitive_timeout"],
     };
   }
@@ -112,6 +142,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_delta_limit",
       statusMessage: "Mouse Scroll requires a finite positive maxDeltaAbs.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "invalid_delta_limit",
       dataQualityFlags: ["invalid_delta_limit"],
     };
   }
@@ -127,6 +159,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "anchor_out_of_bounds",
       statusMessage: "Mouse Scroll executableAnchor is outside the governed bounds window.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "anchor_out_of_bounds",
       dataQualityFlags: ["anchor_out_of_bounds"],
     };
   }
@@ -139,6 +173,8 @@ export function validatePreScrollSafety(input: {
         failureReason: "invalid_region",
         statusMessage: "Non-region Mouse Scroll children must not carry region or regionRef.",
         policyDecision: "block",
+        safetyDecision: "block",
+        safetyDecisionReason: "unexpected_region_payload",
         dataQualityFlags: ["unexpected_region_payload"],
       };
     }
@@ -149,6 +185,9 @@ export function validatePreScrollSafety(input: {
       executableAnchor,
       bounds,
       region: null,
+      coordinateRoundingDecision: "rounded_to_integer",
+      safetyDecision: "allow",
+      safetyDecisionReason: "bounds_and_anchor_valid",
     };
   }
 
@@ -161,6 +200,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_region",
       statusMessage: "scroll-region requires region, regionRef, and Geometry Guard normalizedRegion proof.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "region_payload_incomplete",
       dataQualityFlags: ["region_payload_incomplete"],
     };
   }
@@ -171,6 +212,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_region",
       statusMessage: "scroll-region region must match Geometry Guard normalizedRegion exactly.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "region_proof_mismatch",
       dataQualityFlags: ["region_proof_mismatch"],
     };
   }
@@ -181,6 +224,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "invalid_region",
       statusMessage: "scroll-region region must stay inside the governed bounds window.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "region_out_of_bounds",
       dataQualityFlags: ["region_out_of_bounds"],
     };
   }
@@ -191,6 +236,8 @@ export function validatePreScrollSafety(input: {
       failureReason: "anchor_outside_region",
       statusMessage: "scroll-region anchor must stay inside the Geometry Guard normalizedRegion.",
       policyDecision: "block",
+      safetyDecision: "block",
+      safetyDecisionReason: "anchor_outside_region",
       dataQualityFlags: ["anchor_outside_region"],
     };
   }
@@ -201,5 +248,8 @@ export function validatePreScrollSafety(input: {
     executableAnchor,
     bounds,
     region,
+    coordinateRoundingDecision: "rounded_to_integer",
+    safetyDecision: "allow",
+    safetyDecisionReason: "bounds_and_anchor_valid",
   };
 }

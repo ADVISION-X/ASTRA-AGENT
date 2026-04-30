@@ -1,4 +1,5 @@
 import type { ScreenshotAbilityInput, ScreenshotArtifactRef, ScreenshotRuntimeProof, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotStatus } from "../contract.js";
+import { ScreenshotRuntimeProofSchema } from "../schema.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "../shared/screenshot-types.js";
 
 export function buildScreenshotRuntimeProof(input: {
@@ -7,7 +8,7 @@ export function buildScreenshotRuntimeProof(input: {
   runId: string;
   missionId: string;
   inputRef: string;
-  outputRef: string;
+  outputRef: string | null;
   idempotencyKey: string;
   startedAt: string;
   endedAt: string;
@@ -39,10 +40,11 @@ export function buildScreenshotRuntimeProof(input: {
     captureDecision: ScreenshotRuntimeProof["captureDecision"];
     imageProcessingDecision: ScreenshotRuntimeProof["imageProcessingDecision"];
     artifactDecision: ScreenshotRuntimeProof["artifactDecision"];
+    outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
   };
   dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"];
 }): ScreenshotRuntimeProof {
-  return {
+  return ScreenshotRuntimeProofSchema.parse({
     proofId: input.proofId,
     runId: input.runId,
     missionId: input.missionId,
@@ -78,6 +80,7 @@ export function buildScreenshotRuntimeProof(input: {
     captureDecision: input.decisions.captureDecision,
     imageProcessingDecision: input.decisions.imageProcessingDecision,
     artifactDecision: input.decisions.artifactDecision,
+    outputBoundaryDecision: input.decisions.outputBoundaryDecision,
     idempotencyKey: input.idempotencyKey,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
@@ -91,5 +94,5 @@ export function buildScreenshotRuntimeProof(input: {
       startedMonotonicMs: input.startedMonotonicMs,
       endedMonotonicMs: input.endedMonotonicMs,
     },
-  };
+  });
 }

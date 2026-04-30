@@ -4,10 +4,10 @@ export function validateGeometryScrollProof(input: {
   request: ParsedMouseScrollAbilityInput;
   expectedCoordinateSpace: MouseScrollCoordinateSpace;
 }):
-  | { ok: true }
+  | { ok: true; geometryDecision: "allow"; geometryDecisionReason: string }
   | {
       ok: false;
-      status: "failed" | "review_required";
+      status: "failed";
       failureReason:
         | "missing_geometry_scroll_proof"
         | "geometry_guard_not_allowed"
@@ -16,9 +16,10 @@ export function validateGeometryScrollProof(input: {
         | "geometry_proof_missing_region"
         | "geometry_proof_missing_source_ref"
         | "invalid_coordinate_space";
-      reviewRequiredReason: string | null;
+      reviewRequiredReason: null;
       statusMessage: string;
-      geometryDecision: "block" | "review_required";
+      geometryDecision: "block";
+      geometryDecisionReason: string;
       dataQualityFlags: string[];
     } {
   const proof = input.request.geometryScrollProof;
@@ -30,6 +31,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Scroll requires geometryScrollProof before any primitive execution.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_scroll_proof_missing",
       dataQualityFlags: ["geometry_scroll_proof_missing"],
     };
   }
@@ -41,6 +43,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Scroll requires Geometry Guard success + allow proof.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_guard_not_allowed",
       dataQualityFlags: ["geometry_guard_not_allowed"],
     };
   }
@@ -52,6 +55,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: `Mouse Scroll child ${input.request.childCapabilityId} only accepts ${input.expectedCoordinateSpace} executable coordinates.`,
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_coordinate_space_mismatch",
       dataQualityFlags: ["geometry_coordinate_space_mismatch"],
     };
   }
@@ -63,6 +67,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Geometry Scroll proof must include normalizedAnchorPoint.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_anchor_missing",
       dataQualityFlags: ["geometry_anchor_missing"],
     };
   }
@@ -74,17 +79,19 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "scroll-region requires Geometry Guard normalizedRegion proof.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_region_missing",
       dataQualityFlags: ["geometry_region_missing"],
     };
   }
-  if (!proof.sourceScreenshotEvidenceRef && !proof.sourceTargetRef) {
+  if (!proof.sourceScreenshotEvidenceRef && !input.request.sourceEvidenceRef) {
     return {
       ok: false,
       status: "failed",
       failureReason: "geometry_proof_missing_source_ref",
       reviewRequiredReason: null,
-      statusMessage: "Geometry Scroll proof must carry sourceScreenshotEvidenceRef or sourceTargetRef.",
+      statusMessage: "Geometry Scroll proof must carry sourceScreenshotEvidenceRef or the request must carry sourceEvidenceRef.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_source_ref_missing",
       dataQualityFlags: ["geometry_source_ref_missing"],
     };
   }
@@ -96,6 +103,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "sourceCoordinateProofRef must match geometryScrollProof.proofId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_proof_ref_mismatch",
       dataQualityFlags: ["geometry_proof_ref_mismatch"],
     };
   }
@@ -107,6 +115,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "sourceTargetRef must bind to the same target as geometryScrollProof.sourceTargetRef.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_target_ref_mismatch",
       dataQualityFlags: ["geometry_target_ref_mismatch"],
     };
   }
@@ -118,6 +127,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Scroll sessionId must match geometryScrollProof.sessionId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_session_mismatch",
       dataQualityFlags: ["geometry_session_mismatch"],
     };
   }
@@ -129,6 +139,7 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Scroll roundId conflicts with geometryScrollProof.roundId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_round_mismatch",
       dataQualityFlags: ["geometry_round_mismatch"],
     };
   }
@@ -140,8 +151,9 @@ export function validateGeometryScrollProof(input: {
       reviewRequiredReason: null,
       statusMessage: "Mouse Scroll videoVisitId conflicts with geometryScrollProof.videoVisitId.",
       geometryDecision: "block",
+      geometryDecisionReason: "geometry_video_visit_mismatch",
       dataQualityFlags: ["geometry_video_visit_mismatch"],
     };
   }
-  return { ok: true };
+  return { ok: true, geometryDecision: "allow", geometryDecisionReason: "geometry_proof_bound" };
 }

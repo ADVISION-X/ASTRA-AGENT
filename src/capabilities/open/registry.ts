@@ -1,4 +1,4 @@
-import type { OpenChildCapabilityId, OpenRegistryEntry } from "./contract.js";
+import type { OpenChildCapabilityId } from "./contract.js";
 import { OpenFacebookRequestSchema, OpenFacebookResultSchema } from "./children/open-facebook/schema.js";
 import {
   OPEN_FACEBOOK_BOUNDARY_POLICY,
@@ -23,11 +23,15 @@ import {
   OPEN_TIKTOK_PROOF_POLICY,
 } from "./children/open-tiktok/contract.js";
 import { createOpenTikTokCapability } from "./children/open-tiktok/implementation.js";
+import type { OpenRegistryEntry } from "./runtime/open-runtime-context.js";
 import {
   DEFAULT_LOCAL_WORKBENCH_TIMEOUT_MS,
   DEFAULT_LOCALHOST_HOSTNAMES,
   DEFAULT_OPEN_TIMEOUT_MS,
 } from "./shared/open-policy.js";
+
+const DEFAULT_IDEMPOTENCY_TTL_MS = 30_000;
+const DEFAULT_MAX_RESERVATIONS = 512;
 
 const OPEN_CHILDREN = [
   {
@@ -62,8 +66,10 @@ const OPEN_CHILDREN = [
     },
     idempotencyPolicy: {
       allowReplay: false,
-      scope: "session_target_round",
+      scope: "session_target_round_video_visit",
       duplicateStatus: "review_required",
+      ttlMs: DEFAULT_IDEMPOTENCY_TTL_MS,
+      maxReservations: DEFAULT_MAX_RESERVATIONS,
     },
     boundaryPolicy: OPEN_TIKTOK_BOUNDARY_POLICY,
     proofPolicy: OPEN_TIKTOK_PROOF_POLICY,
@@ -103,8 +109,10 @@ const OPEN_CHILDREN = [
     },
     idempotencyPolicy: {
       allowReplay: false,
-      scope: "session_target_round",
+      scope: "session_target_round_video_visit",
       duplicateStatus: "review_required",
+      ttlMs: DEFAULT_IDEMPOTENCY_TTL_MS,
+      maxReservations: DEFAULT_MAX_RESERVATIONS,
     },
     boundaryPolicy: OPEN_FACEBOOK_BOUNDARY_POLICY,
     proofPolicy: OPEN_FACEBOOK_PROOF_POLICY,
@@ -144,8 +152,10 @@ const OPEN_CHILDREN = [
     },
     idempotencyPolicy: {
       allowReplay: false,
-      scope: "session_target_round",
+      scope: "session_target_round_video_visit",
       duplicateStatus: "review_required",
+      ttlMs: DEFAULT_IDEMPOTENCY_TTL_MS,
+      maxReservations: DEFAULT_MAX_RESERVATIONS,
     },
     boundaryPolicy: OPEN_LOCAL_WORKBENCH_BOUNDARY_POLICY,
     proofPolicy: OPEN_LOCAL_WORKBENCH_PROOF_POLICY,

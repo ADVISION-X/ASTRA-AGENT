@@ -1,95 +1,78 @@
 import type {
-  ParsedVisualTargetAbilityInput,
   VisualTargetAbilityResult,
-  VisualTargetCandidate,
   VisualTargetDataQualityFlag,
   VisualTargetFailureReason,
-  VisualTargetNature,
+  VisualTargetOutput,
 } from "../contract.js";
 import { VisualTargetAbilityResultSchema } from "../schema.js";
 import { buildStableVisualTargetRef } from "../shared/visual-target-types.js";
-import { buildVisualTargetRuntimeProof } from "./visual-target-proof-builder.js";
+import type { VisualTargetFailureTrace } from "./visual-target-input-gate.js";
+import { buildVisualTargetRuntimeProof, type VisualTargetRuntimeDecisionTrace, type VisualTargetRuntimeTelemetry } from "./visual-target-proof-builder.js";
 
 export function buildVisualTargetResult(input: {
-  request: ParsedVisualTargetAbilityInput;
-  targetNature: VisualTargetNature;
-  status: "success" | "failed" | "review_required" | "blocked";
+  request: import("../contract.js").ParsedVisualTargetAbilityInput | null;
+  trace: VisualTargetFailureTrace;
+  status: "success" | "failed" | "review_required";
   failureReason: VisualTargetFailureReason | null;
   reviewRequiredReason: string | null;
   statusMessage: string;
-  selectedCandidate: VisualTargetCandidate | null;
+  output: VisualTargetOutput | null;
   rejectedCandidateRefs: string[];
   startedAt: string;
   endedAt: string;
   durationMs: number;
-  decisions: {
-    screenshotDecision: "allow" | "review_required" | "block";
-    aiDecision: "allow" | "review_required" | "block" | "not_required";
-    pageStateDecision: "allow" | "review_required" | "block";
-    candidateSourceDecision: "allow" | "review_required" | "block";
-    coordinateSpaceDecision: "allow" | "review_required" | "block";
-    targetTypeDecision: "allow" | "review_required" | "block";
-    selectionDecision: "selected" | "no_candidate" | "review_required";
-    ambiguityDecision: "clear" | "review_required" | "block";
-  };
+  decisions: VisualTargetRuntimeDecisionTrace;
+  telemetry: Omit<VisualTargetRuntimeTelemetry, "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">;
   dataQualityFlags: VisualTargetDataQualityFlag[];
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
 }): VisualTargetAbilityResult {
-  const outputRef = buildStableVisualTargetRef("visual-target-output", [input.request.inputRef, input.status, input.selectedCandidate?.candidateRef ?? "none"]);
-  const targetId = input.status === "success"
-    ? buildStableVisualTargetRef("visual-target", [input.request.childCapabilityId, input.selectedCandidate?.candidateRef, input.request.sourceProof.screenshot.screenshotEvidenceId])
+  const refSeed = [input.trace.inputRef, input.status, input.failureReason, input.reviewRequiredReason, input.output?.sourceCandidateRef ?? null];
+  const debugLogRef = buildStableVisualTargetRef("visual-target-debug-log", refSeed);
+  const structuredRuntimeEventRef = buildStableVisualTargetRef("visual-target-runtime-event", refSeed);
+  const diagnosticPayloadRef = input.status === "success"
+    ? null
+    : buildStableVisualTargetRef("visual-target-diagnostic", refSeed);
+  const outputRef = input.status === "success" && input.output !== null
+    ? buildStableVisualTargetRef("visual-target-output", [input.trace.inputRef, input.output.targetId, input.output.sourceCandidateRef])
     : null;
   const runtimeProof = buildVisualTargetRuntimeProof({
     request: input.request,
+    trace: input.trace,
+    output: input.output,
     outputRef,
     status: input.status,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
-    selectedCandidate: input.selectedCandidate,
     rejectedCandidateRefs: input.rejectedCandidateRefs,
-    coordinateSpace: input.status === "success" ? input.selectedCandidate?.coordinateSpace ?? null : null,
-    boundingBox: input.status === "success" ? input.selectedCandidate?.boundingBox ?? null : null,
-    clickPoint: input.status === "success" ? input.selectedCandidate?.clickPoint ?? null : null,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
     decisions: input.decisions,
+    telemetry: {
+      ...input.telemetry,
+      diagnosticPayloadRef,
+      debugLogRef,
+      structuredRuntimeEventRef,
+    },
     dataQualityFlags: input.dataQualityFlags,
     clock: input.clock,
   });
 
   return VisualTargetAbilityResultSchema.parse({
     abilityGroupId: "visual-target",
-    childCapabilityId: input.request.childCapabilityId,
-    targetNature: input.targetNature,
+    childCapabilityId: input.trace.childCapabilityId,
+    targetNature: input.status === "success" ? input.output?.targetNature ?? input.trace.targetNature : input.trace.targetNature,
     status: input.status,
-    sessionId: input.request.sessionId,
-    roundId: input.request.roundId,
-    videoVisitId: input.request.videoVisitId,
-    targetType: input.request.targetType,
-    targetId,
-    sourceScreenshotEvidenceId: input.request.sourceProof.screenshot.screenshotEvidenceId,
-    sourceScreenshotProofRef: input.request.sourceProof.screenshot.screenshotProofRef,
-    sourceAiResultRef: input.request.sourceProof.ai?.aiResultRef ?? null,
-    sourceAiProofRef: input.request.sourceProof.ai?.aiProofRef ?? null,
-    sourcePageStateProofRef: input.request.sourceProof.pageState.pageStateProofRef,
-    sourceCandidateRef: input.status === "success" ? input.selectedCandidate?.candidateRef ?? null : null,
-    coordinateSpace: input.status === "success" ? input.selectedCandidate?.coordinateSpace ?? null : null,
-    boundingBox: input.status === "success" ? input.selectedCandidate?.boundingBox ?? null : null,
-    clickPoint: input.status === "success" ? input.selectedCandidate?.clickPoint ?? null : null,
-    executableCoordinate: null,
-    confidence: input.status === "success" ? input.selectedCandidate?.confidence ?? null : null,
-    requiresGeometryGuard: input.status === "success",
-    geometryGuardHandoffRequired: input.status === "success",
-    actionable: input.status === "success" && input.targetNature === "action",
-    detectionMethod: input.status === "success" ? input.selectedCandidate?.detectionMethod ?? null : null,
-    visibleText: input.status === "success" ? input.selectedCandidate?.visibleText ?? null : null,
-    uncertainty: input.status === "success" ? input.selectedCandidate?.uncertainty ?? [] : [],
-    blockedReason: input.status === "success" ? input.selectedCandidate?.blockedReason ?? null : null,
+    sessionId: input.trace.sessionId,
+    roundId: input.trace.roundId,
+    videoVisitId: input.trace.videoVisitId,
+    targetType: input.status === "success" ? input.request?.targetType ?? input.trace.targetType : input.trace.targetType,
+    output: input.output,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     statusMessage: input.statusMessage,
-    debugLogRef: outputRef,
+    debugLogRef,
+    diagnosticPayloadRef,
     dataQualityFlags: input.dataQualityFlags,
     startedAt: input.startedAt,
     endedAt: input.endedAt,

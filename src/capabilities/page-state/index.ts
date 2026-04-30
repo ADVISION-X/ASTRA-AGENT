@@ -1,13 +1,16 @@
 export { createPageStateAbilityGroup } from "./ability-group.js";
+export { createDefaultPageStateRuntimeContext } from "./runtime/page-state-runtime-context.js";
 export { PAGE_STATE_ABILITY_GROUP_ID } from "./contract.js";
 export {
 	PageStateAbilityInputSchema,
 	PageStateAbilityResultSchema,
 	PageStateChildCapabilityIdSchema,
+	PageStateChildDetectionSchema,
 	PageStateConfidencePolicySchema,
 	PageStateDecisionSchema,
 	PageStateFreshnessPolicySchema,
 	PageStateObservationSchema,
+	PageStateOutputSchema,
 	PageStatePolicySchema,
 	PageStateRuntimeProofSchema,
 	PageStateSnapshotSchema,
@@ -19,8 +22,10 @@ export type {
 	PageStateAbilityInput,
 	PageStateAbilityResult,
 	PageStateChildCapabilityId,
+	PageStateChildDetection,
 	PageStateDecision,
 	PageStateObservation,
+	PageStateOutput,
 	PageStateRuntimeProof,
 	PageStateSnapshot,
 	PageStateStatus,

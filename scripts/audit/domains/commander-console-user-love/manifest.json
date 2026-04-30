@@ -1,0 +1,25 @@
+{
+  "inspectorId": "commander-console-user-love-owner",
+  "capabilityDomain": "commander-console-user-love",
+  "owner": true,
+  "entry": "scripts/audit/domains/commander-console-user-love/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "allowedLawIds": [],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/audit/commander-console-user-love-scorecard.md",
+    "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md",
+    "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md",
+    "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+    "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md",
+    "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
+  ]
+}

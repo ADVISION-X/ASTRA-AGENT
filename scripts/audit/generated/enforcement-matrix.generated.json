@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-29T17:32:56.090Z",
+  "generatedAt": "2026-04-30T12:32:59.956Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -114,6 +114,7 @@
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1",
+        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
         "GRASSEYE-LOCAL-APP-SHELL-001-V1",
@@ -134,8 +135,88 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+        "docs/audit/map-plugin-package-scorecard.md",
+        "docs/audit/commander-console-ui-atomic-quality.md",
+        "docs/audit/commander-console-mac-app-shell-scorecard.md",
         "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
         "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "commander-console-mac-app-shell-owner",
+      "capabilityDomain": "commander-console-mac-app-shell",
+      "manifestPath": "scripts/audit/domains/commander-console-mac-app-shell/manifest.json",
+      "entry": "scripts/audit/domains/commander-console-mac-app-shell/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "hybrid"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/audit/commander-console-ui-atomic-quality.md",
+        "docs/audit/commander-console-mac-app-shell-scorecard.md",
+        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+        "docs/法案辅助文件/GrassEye Commander Console 总司令页面施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "commander-console-ui-owner",
+      "capabilityDomain": "commander-console-ui",
+      "manifestPath": "scripts/audit/domains/commander-console-ui/manifest.json",
+      "entry": "scripts/audit/domains/commander-console-ui/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "hybrid"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+        "docs/归档/prototypes/ge-console-v6-blueprint-pages.html"
+      ]
+    },
+    {
+      "inspectorId": "commander-console-user-love-owner",
+      "capabilityDomain": "commander-console-user-love",
+      "manifestPath": "scripts/audit/domains/commander-console-user-love/manifest.json",
+      "entry": "scripts/audit/domains/commander-console-user-love/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "hybrid"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/audit/commander-console-user-love-scorecard.md",
+        "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md",
+        "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md",
+        "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+        "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md",
+        "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
       ]
     },
     {
@@ -162,7 +243,14 @@
         "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
         "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
         "GRASSEYE-STRUCTURED-LOGGING-001-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-002-V2"
+        "GRASSEYE-STRUCTURED-LOGGING-002-V2",
+        "GRASSEYE-STRUCTURED-LOGGING-003-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-004-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-005-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-006-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-007-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-008-V1",
+        "GRASSEYE-STRUCTURED-LOGGING-009-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
@@ -200,6 +288,66 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "map-plugin-orchestration-integration",
+      "capabilityDomain": "map-plugin-orchestration-integration",
+      "manifestPath": "scripts/audit/domains/map-plugin-orchestration-integration/manifest.json",
+      "entry": "scripts/audit/domains/map-plugin-orchestration-integration/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "hybrid"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+        "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
+        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+        "docs/audit/map-plugin-orchestration-integration-scorecard.md"
+      ]
+    },
+    {
+      "inspectorId": "map-plugin-package-governance",
+      "capabilityDomain": "map-plugin-package",
+      "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
+      "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "hybrid"
+      ],
+      "lawIds": [
+        "GRASSEYE-MAP-PLUGIN-001-V1",
+        "GRASSEYE-MAP-PLUGIN-002-V1",
+        "GRASSEYE-MAP-PLUGIN-003-V1",
+        "GRASSEYE-MAP-PLUGIN-004-V1",
+        "GRASSEYE-MAP-PLUGIN-005-V1",
+        "GRASSEYE-MAP-PLUGIN-006-V1",
+        "GRASSEYE-MAP-PLUGIN-007-V1"
+      ],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+        "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
+        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+        "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+        "docs/why/map-plugin-package.WHY.md",
+        "docs/audit/map-plugin-package-scorecard.md"
       ]
     },
     {
@@ -437,6 +585,34 @@
         ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md"
       ],
       "readsBlueprintFiles": []
+    },
+    {
+      "inspectorId": "text-input-capability-owner",
+      "capabilityDomain": "text-input-capability",
+      "manifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
+      "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "config",
+        "hybrid"
+      ],
+      "lawIds": [
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V1",
+        "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1"
+      ],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye Text Input 输入能力组施工图.md"
+      ]
     },
     {
       "inspectorId": "type-safety-owner",

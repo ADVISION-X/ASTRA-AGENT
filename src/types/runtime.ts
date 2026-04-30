@@ -1,21 +1,44 @@
 import type { LocalAiHealth, LocalAiTaskType } from "./local-ai.js";
 
-export type RuntimeComponentName =
+export type AppShellComponentName =
   | "console"
   | "agent"
+  | "browserController"
+  | "dataStore";
+
+export type MissionReadinessComponentName =
+  | "mission"
   | "browserController"
   | "localAi"
   | "dataStore";
 
-export type RuntimeComponentHealth = {
-  name: RuntimeComponentName;
+export type RuntimeComponentHealth<TName extends string = string> = {
+  name: TName;
   ok: boolean;
   detail: string;
+  ownerResponsible?: string;
+  actionableMessage?: string;
+  severity?: "info" | "warning" | "blocked";
+  source?: string;
 };
 
 export type RuntimeHealthReport = {
+  kind: "app-shell-health";
+  status: "ready" | "failed";
+  actionableMessage: string;
   generatedAt: string;
-  components: RuntimeComponentHealth[];
+  components: RuntimeComponentHealth<AppShellComponentName>[];
+};
+
+export type MissionReadinessReport = {
+  kind: "mission-readiness";
+  status: "ready" | "degraded";
+  actionableMessage: string;
+  generatedAt: string;
+  components: RuntimeComponentHealth<MissionReadinessComponentName>[];
+  primaryBlockingReason: RuntimeComponentHealth<MissionReadinessComponentName> | null;
+  blockingReasons: RuntimeComponentHealth<MissionReadinessComponentName>[];
+  warnings: RuntimeComponentHealth<MissionReadinessComponentName>[];
 };
 
 export type RuntimePageReadyStatus =

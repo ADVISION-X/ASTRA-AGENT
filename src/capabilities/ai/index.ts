@@ -1,4 +1,5 @@
 export { createAiAbilityGroup } from "./ability-group.js";
+export { createAiExecutionContext } from "./runtime/ai-execution-context.js";
 export {
   AI_ABILITY_GROUP_ID,
   AI_CHILD_CAPABILITY_IDS,

@@ -1,4 +1,5 @@
-import type { OrchestrationChildCapability, EmergencyStopChildInput, EmergencyStopChildOutput } from "../../contract.js";
+import type { OrchestrationChildCapability } from "../../internal.js";
+import type { EmergencyStopChildInput, EmergencyStopChildOutput } from "../../contract.js";
 import { emergencyStopMissionCommand } from "../../runtime/orchestration-executor.js";
 
 export function createEmergencyStopCapability(): OrchestrationChildCapability<EmergencyStopChildInput, EmergencyStopChildOutput> {

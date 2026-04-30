@@ -13,6 +13,7 @@ export const REQUIRED_PHASE_DOMAINS = [
   "screenshot-capability",
   "geometry-guard-capability",
   "mouse-click-capability",
+  "text-input-capability",
   "mouse-scroll-capability",
   "visual-target-capability",
   "forensics-persistence-capability",

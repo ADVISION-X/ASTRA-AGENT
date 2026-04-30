@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export const VISUAL_TARGET_ABILITY_GROUP_ID = "visual-target" as const;
 
 export const VISUAL_TARGET_CHILD_CAPABILITY_IDS = [
@@ -12,7 +14,7 @@ export const VISUAL_TARGET_CHILD_CAPABILITY_IDS = [
   "detect-metric-comment-count",
 ] as const;
 
-export const VISUAL_TARGET_STATUSES = ["success", "failed", "review_required", "blocked"] as const;
+export const VISUAL_TARGET_STATUSES = ["success", "failed", "review_required"] as const;
 
 export const VISUAL_TARGET_TYPES = [
   "like_button",
@@ -38,32 +40,28 @@ export const VISUAL_TARGET_COORDINATE_SPACES = [
   "ai_input",
 ] as const;
 
-export const VISUAL_TARGET_SELECTION_DECISIONS = ["selected", "no_candidate", "review_required"] as const;
-
 export const VISUAL_TARGET_SCREENSHOT_DECISIONS = ["allow", "review_required", "block"] as const;
 export const VISUAL_TARGET_AI_DECISIONS = ["allow", "review_required", "block", "not_required"] as const;
 export const VISUAL_TARGET_PAGE_STATE_DECISIONS = ["allow", "review_required", "block"] as const;
 export const VISUAL_TARGET_CANDIDATE_SOURCE_DECISIONS = ["allow", "review_required", "block"] as const;
 export const VISUAL_TARGET_COORDINATE_DECISIONS = ["allow", "review_required", "block"] as const;
 export const VISUAL_TARGET_TARGET_TYPE_DECISIONS = ["allow", "review_required", "block"] as const;
+export const VISUAL_TARGET_SELECTION_DECISIONS = ["selected", "review_required", "no_candidate"] as const;
 export const VISUAL_TARGET_AMBIGUITY_DECISIONS = ["clear", "review_required", "block"] as const;
+export const VISUAL_TARGET_OUTPUT_BOUNDARY_DECISIONS = ["allow", "review_required", "block"] as const;
+export const VISUAL_TARGET_CRITICAL_DATA_QUALITY_DECISIONS = ["clear", "review_required", "block"] as const;
+export const VISUAL_TARGET_PAYLOAD_BUDGET_DECISIONS = ["allow", "review_required", "block"] as const;
+export const VISUAL_TARGET_SOURCE_BINDING_DECISIONS = ["allow", "review_required", "block"] as const;
+export const VISUAL_TARGET_GEOMETRY_HANDOFF_DECISIONS = ["required", "optional", "forbidden"] as const;
 
-import { createHash } from "node:crypto";
+export function normalizeVisualTargetParts(parts: readonly unknown[]): unknown[] {
+  return parts.map((part) => (part === undefined ? null : part));
+}
+
+export function hashVisualTargetPayload(payload: unknown): string {
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
 
 export function buildStableVisualTargetRef(prefix: string, parts: readonly unknown[]): string {
-  const hash = createHash("sha256")
-    .update(
-      JSON.stringify(
-        parts.map((part) => {
-          if (part === undefined) {
-            return null;
-          }
-          return part;
-        }),
-      ),
-    )
-    .digest("hex")
-    .slice(0, 16);
-
-  return `${prefix}:${hash}`;
+  return `${prefix}:${hashVisualTargetPayload(normalizeVisualTargetParts(parts)).slice(0, 16)}`;
 }

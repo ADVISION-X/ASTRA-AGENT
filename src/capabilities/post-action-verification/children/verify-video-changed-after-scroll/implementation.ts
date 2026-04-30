@@ -1,4 +1,6 @@
-import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation, type PostActionVerificationAbilityContext, type PostActionVerificationChildCapability } from "../../contract.js";
+import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation } from "../../contract.js";
+import { parsePostActionTimestampMs } from "../../runtime/verification-clock.js";
+import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext } from "../../runtime/post-action-verification-runtime-context.js";
 import { VerifyVideoChangedAfterScrollOutputSchema } from "./schema.js";
 
 function getObservationsByKind<K extends PostActionObservation["kind"]>(
@@ -12,7 +14,7 @@ export function createVerifyVideoChangedAfterScrollCapability(): PostActionVerif
   return {
     abilityGroupId: POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
     childCapabilityId: "verify-video-changed-after-scroll" as const,
-    async execute(input: Parameters<PostActionVerificationAbilityContext["evidenceReadPort"]["listObservations"]>[0], context: PostActionVerificationAbilityContext) {
+    async execute(input, context: PostActionVerificationRuntimeContext) {
       const observations = context.evidenceReadPort.listObservations(input);
       const videoIdentityObservations = getObservationsByKind(observations, "video_identity");
       const beforeObservation = videoIdentityObservations.find((observation) => observation.payload.role === "before") ?? null;
@@ -26,6 +28,31 @@ export function createVerifyVideoChangedAfterScrollCapability(): PostActionVerif
           reviewRequiredReason: "Video-change verification requires governed before and after identity observations.",
           statusMessage: "Before and after video identity observations are incomplete.",
           dataQualityFlags: ["video_identity_incomplete"],
+          supportingEvidenceRefs: [],
+          supportingObservationRefs: videoIdentityObservations.map((observation) => observation.ref),
+          supportingSourceProofRefs: videoIdentityObservations.map((observation) => observation.source.sourceProofRef),
+          verifiedByEvidenceKinds: ["video_identity"],
+          confidenceSource: "video_identity_pair",
+        });
+      }
+
+      if (
+        parsePostActionTimestampMs(beforeObservation.capturedAt) >= parsePostActionTimestampMs(input.actionProof.startedAt)
+        || parsePostActionTimestampMs(afterObservation.capturedAt) <= parsePostActionTimestampMs(input.actionProof.endedAt)
+      ) {
+        return VerifyVideoChangedAfterScrollOutputSchema.parse({
+          observedOutcome: "video_identity_out_of_window",
+          verificationDecision: "review_required",
+          confidence: 0.2,
+          failureReason: "before_after_conflict",
+          reviewRequiredReason: "Video identity observations must straddle the scroll execution window.",
+          statusMessage: "Video identity observation timing is not valid for governed scroll verification.",
+          dataQualityFlags: ["before_after_conflict"],
+          supportingEvidenceRefs: [],
+          supportingObservationRefs: [beforeObservation.ref, afterObservation.ref],
+          supportingSourceProofRefs: [beforeObservation.source.sourceProofRef, afterObservation.source.sourceProofRef],
+          verifiedByEvidenceKinds: ["video_identity"],
+          confidenceSource: "video_identity_pair",
         });
       }
 
@@ -48,6 +75,11 @@ export function createVerifyVideoChangedAfterScrollCapability(): PostActionVerif
           reviewRequiredReason: "Video-change verification could not establish before/after identity.",
           statusMessage: "Video identity evidence is insufficient for scroll verification.",
           dataQualityFlags: ["video_identity_unknown"],
+          supportingEvidenceRefs: [],
+          supportingObservationRefs: [beforeObservation.ref, afterObservation.ref],
+          supportingSourceProofRefs: [beforeObservation.source.sourceProofRef, afterObservation.source.sourceProofRef],
+          verifiedByEvidenceKinds: ["video_identity"],
+          confidenceSource: "video_identity_pair",
         });
       }
 
@@ -60,6 +92,11 @@ export function createVerifyVideoChangedAfterScrollCapability(): PostActionVerif
           reviewRequiredReason: "A new video appeared, but the after observation could not confirm the feed settled on it.",
           statusMessage: "Video-change verification requires a confirmed post-scroll landing state.",
           dataQualityFlags: ["after_unconfirmed"],
+          supportingEvidenceRefs: input.beforeAfterEvidence.afterEvidence ? [input.beforeAfterEvidence.afterEvidence.evidenceRef] : [],
+          supportingObservationRefs: [beforeObservation.ref, afterObservation.ref],
+          supportingSourceProofRefs: [beforeObservation.source.sourceProofRef, afterObservation.source.sourceProofRef],
+          verifiedByEvidenceKinds: ["video_identity"],
+          confidenceSource: "video_identity_pair",
         });
       }
 
@@ -71,6 +108,11 @@ export function createVerifyVideoChangedAfterScrollCapability(): PostActionVerif
         reviewRequiredReason: null,
         statusMessage: changed ? "Feed advanced to a different video." : "Feed remained on the same video after scroll.",
         dataQualityFlags: [],
+        supportingEvidenceRefs: [input.beforeAfterEvidence.beforeEvidence?.evidenceRef, input.beforeAfterEvidence.afterEvidence?.evidenceRef].filter((value): value is string => value !== null),
+        supportingObservationRefs: [beforeObservation.ref, afterObservation.ref],
+        supportingSourceProofRefs: [beforeObservation.source.sourceProofRef, afterObservation.source.sourceProofRef],
+        verifiedByEvidenceKinds: ["video_identity"],
+        confidenceSource: "video_identity_pair",
       });
     },
   };

@@ -25,6 +25,15 @@ export function evaluateAiQualityGate(input: {
   }
 
   const minimumConfidence = input.request.qualityPolicy.minimumConfidence;
+  if (minimumConfidence !== null && input.confidence === null) {
+    return {
+      decision: input.request.safetyPolicy.reviewOnLowConfidence ? "review_required" : "blocked",
+      reason: "confidence_missing",
+      schemaValidationStatus: "valid",
+      flags: ["confidence:null"],
+    };
+  }
+
   if (minimumConfidence !== null && input.confidence !== null && input.confidence < minimumConfidence) {
     return {
       decision: input.request.safetyPolicy.reviewOnLowConfidence ? "review_required" : "blocked",

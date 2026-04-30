@@ -18,18 +18,16 @@ import {
   StartMissionChildOutputSchema,
   StopMissionChildInputSchema,
   StopMissionChildOutputSchema,
+  type MissionHumanCommandKindSchema,
+  type MissionInternalOperationKindSchema,
 } from "./schema.js";
 import type { OrchestrationChildCapabilityId } from "./contract.js";
+import type { z } from "zod";
 
-export type OrchestrationRegistryEntry = {
+type HumanCommandEntry = {
   childCapabilityId: OrchestrationChildCapabilityId;
-  commandKind:
-    | "start-mission"
-    | "pause-mission"
-    | "resume-mission"
-    | "stop-mission"
-    | "emergency-stop"
-    | "submit-review-decision";
+  commandKind: z.output<typeof MissionHumanCommandKindSchema>;
+  internalOperationKind?: never;
   inputSchema: unknown;
   outputSchema: unknown;
   allowedCaller: "commander-console" | "orchestration";
@@ -41,7 +39,24 @@ export type OrchestrationRegistryEntry = {
   idempotencyPolicy: "per-mission-command" | "per-sequence-step" | "single-flight";
 };
 
-const REGISTRY = [
+type InternalOperationEntry = {
+  childCapabilityId: OrchestrationChildCapabilityId;
+  commandKind?: never;
+  internalOperationKind: z.output<typeof MissionInternalOperationKindSchema>;
+  inputSchema: unknown;
+  outputSchema: unknown;
+  allowedCaller: "commander-console" | "orchestration";
+  requiresMissionId: boolean;
+  requiresMapId: boolean;
+  requiresNerveBus: boolean;
+  emergencyPriority: "normal" | "hard-stop";
+  maxDurationMs: number;
+  idempotencyPolicy: "per-mission-command" | "per-sequence-step" | "single-flight";
+};
+
+export type OrchestrationRegistryEntry = HumanCommandEntry | InternalOperationEntry;
+
+const REGISTRY: readonly OrchestrationRegistryEntry[] = [
   {
     childCapabilityId: "start-mission",
     commandKind: "start-mission",
@@ -109,7 +124,7 @@ const REGISTRY = [
   },
   {
     childCapabilityId: "execute-map-step",
-    commandKind: "resume-mission",
+    internalOperationKind: "execute-map-step",
     inputSchema: ExecuteMapStepChildInputSchema,
     outputSchema: ExecuteMapStepChildOutputSchema,
     allowedCaller: "orchestration",
@@ -122,7 +137,7 @@ const REGISTRY = [
   },
   {
     childCapabilityId: "evaluate-step-transition",
-    commandKind: "resume-mission",
+    internalOperationKind: "evaluate-step-transition",
     inputSchema: EvaluateStepTransitionChildInputSchema,
     outputSchema: EvaluateStepTransitionChildOutputSchema,
     allowedCaller: "orchestration",
@@ -135,7 +150,7 @@ const REGISTRY = [
   },
   {
     childCapabilityId: "request-human-review",
-    commandKind: "submit-review-decision",
+    internalOperationKind: "request-human-review",
     inputSchema: RequestHumanReviewChildInputSchema,
     outputSchema: RequestHumanReviewChildOutputSchema,
     allowedCaller: "orchestration",
@@ -148,7 +163,7 @@ const REGISTRY = [
   },
   {
     childCapabilityId: "finalize-mission",
-    commandKind: "submit-review-decision",
+    internalOperationKind: "finalize-mission",
     inputSchema: FinalizeMissionChildInputSchema,
     outputSchema: FinalizeMissionChildOutputSchema,
     allowedCaller: "orchestration",
@@ -159,7 +174,7 @@ const REGISTRY = [
     maxDurationMs: 1000,
     idempotencyPolicy: "per-sequence-step",
   },
-] as const satisfies readonly OrchestrationRegistryEntry[];
+];
 
 const REGISTRY_BY_ID = new Map(REGISTRY.map((entry) => [entry.childCapabilityId, entry]));
 
@@ -178,3 +193,4 @@ export function getOrchestrationRegistryEntry(childCapabilityId: OrchestrationCh
   }
   return entry;
 }
+

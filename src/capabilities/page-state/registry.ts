@@ -1,8 +1,8 @@
 import type {
-  PageStateChildCapability,
   PageStateChildCapabilityId,
 } from "./contract.js";
 import { PAGE_STATE_CHILD_CAPABILITY_IDS } from "./schema.js";
+import type { PageStateChildCapability } from "./runtime/page-state-child-contract.js";
 import { createDetectCommentPanelStateCapability } from "./children/detect-comment-panel-state/implementation.js";
 import { createDetectFeedReadyCapability } from "./children/detect-feed-ready/implementation.js";
 import { createDetectLoginStateCapability } from "./children/detect-login-state/implementation.js";

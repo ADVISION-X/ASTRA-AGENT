@@ -4,6 +4,12 @@ import { getVisionProductPresencePromptContract } from "./prompt-registry.js";
 
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
 
+export type VisionPromptParts = {
+  systemPrompt: string;
+  userPrompt: string;
+  fullPrompt: string;
+};
+
 export const resolveExpectedFrameLabels = (request: VisionProductPresenceRequest): VideoFrameSamplePointLabel[] => {
   if (request.input.samplingStrategy === "fixed_3_6_10") {
     return ["frame_3s", "frame_6s", "frame_10s"];
@@ -44,11 +50,10 @@ const buildVisionOutputExample = (request: VisionProductPresenceRequest) => ({
   mustReview: true,
 });
 
-export const buildVisionPrompt = (request: VisionProductPresenceRequest): string => {
+export const buildVisionPromptParts = (request: VisionProductPresenceRequest): VisionPromptParts => {
   const contract = getVisionProductPresencePromptContract();
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
-  return [
-    contract.prompt,
+  const userPrompt = [
     "Every key in the required schema is mandatory. If uncertain, keep the key and use null, [], or review_required-compatible values instead of omitting fields.",
     `frameLevelObservations[].frameLabel must use only these labels: ${expectedFrameLabels.join(", ")}.`,
     "frameLevelObservations[].hasVisibleProduct must be true, false, or null.",
@@ -57,4 +62,12 @@ export const buildVisionPrompt = (request: VisionProductPresenceRequest): string
     `Task input: ${JSON.stringify(request.input)}`,
     `Forbidden outputs: ${contract.forbiddenOutputs.join("; ")}`,
   ].join("\n\n");
+
+  return {
+    systemPrompt: contract.prompt,
+    userPrompt,
+    fullPrompt: [contract.prompt, userPrompt].join("\n\n"),
+  };
 };
+
+export const buildVisionPrompt = (request: VisionProductPresenceRequest): string => buildVisionPromptParts(request).fullPrompt;
