@@ -4,7 +4,7 @@ import type {
   OpenTargetProfile,
   ParsedOpenRequest,
 } from "../contract.js";
-import type { OpenChildExecutionContext } from "./open-runtime-context.js";
+import type { OpenChildExecutionContext } from "./open-runtime-types.js";
 import { OpenResultSchema } from "../schema.js";
 import { createOpenFailure } from "../shared/open-failure.js";
 import { buildOpenResult } from "./open-result-builder.js";

@@ -5,25 +5,15 @@ import {
 } from "./schema.js";
 import type {
   AbilityCommandDispatchInputSchema,
-  AbilityTargetIdSchema,
   AiRequestDispatchInputSchema,
-  CommanderTargetIdSchema,
-  GovernedAbilityGroupIdSchema,
   HumanCommandDispatchInputSchema,
-  NerveBusChannelIdSchema,
-  RoutableExecutionTargetIdSchema,
 } from "./schema.js";
 import type { AbilityTransportResult, AiTransportResult, HumanCommandTransportResult } from "./shared/nerve-bus-result.js";
+import type { NerveBusChannelId } from "./shared/nerve-bus-routing-types.js";
 import type { NerveBusHandlerPort } from "./ports/nerve-bus-handler-port.js";
 
 export { NERVE_BUS_ABILITY_GROUP_ID };
 
-export type NerveBusAbilityGroupId = typeof NERVE_BUS_ABILITY_GROUP_ID;
-export type NerveBusChannelId = z.infer<typeof NerveBusChannelIdSchema>;
-export type GovernedAbilityGroupId = z.infer<typeof GovernedAbilityGroupIdSchema>;
-export type AbilityTargetId = z.infer<typeof AbilityTargetIdSchema>;
-export type CommanderTargetId = z.infer<typeof CommanderTargetIdSchema>;
-export type RoutableExecutionTargetId = z.infer<typeof RoutableExecutionTargetIdSchema>;
 export type AbilityCommandDispatchInput = z.infer<typeof AbilityCommandDispatchInputSchema>;
 export type AiRequestDispatchInput = z.infer<typeof AiRequestDispatchInputSchema>;
 export type HumanCommandDispatchInput = z.infer<typeof HumanCommandDispatchInputSchema>;

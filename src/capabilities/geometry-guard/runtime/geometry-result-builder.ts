@@ -15,7 +15,7 @@ import { GeometryGuardAbilityResultSchema } from "../schema.js";
 import { buildStableGeometryRef } from "../shared/geometry-transform.js";
 import { buildGeometryRuntimeProof } from "./geometry-proof-builder.js";
 
-export function buildGeometryGuardResult(input: {
+type BuildGeometryGuardResultInput = {
   request: ParsedGeometryGuardAbilityInput;
   status: GeometryGuardStatus;
   guardDecision: GeometryGuardDecision;
@@ -37,7 +37,9 @@ export function buildGeometryGuardResult(input: {
   endedAt: string;
   durationMs: number;
   dataQualityFlags: string[];
-}): GeometryGuardAbilityResult {
+};
+
+function buildGeometryResultRefs(input: BuildGeometryGuardResultInput) {
   const geometryGuardRef = buildStableGeometryRef([
     "geometry-guard",
     input.request.childCapabilityId,
@@ -47,16 +49,22 @@ export function buildGeometryGuardResult(input: {
     input.request.sourceTargetRef,
     input.request.sourceScreenshotEvidenceRef,
   ]);
-  const outputRef = buildStableGeometryRef([geometryGuardRef, input.status, input.guardDecision]);
 
-  return GeometryGuardAbilityResultSchema.parse({
+  return {
+    geometryGuardRef,
+    outputRef: buildStableGeometryRef([geometryGuardRef, input.status, input.guardDecision]),
+  };
+}
+
+function buildGeometryResultPayload(input: BuildGeometryGuardResultInput, refs: ReturnType<typeof buildGeometryResultRefs>) {
+  return {
     status: input.status,
     abilityGroupId: "geometry-guard",
     childCapabilityId: input.request.childCapabilityId,
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
-    geometryGuardRef,
+    geometryGuardRef: refs.geometryGuardRef,
     guardDecision: input.guardDecision,
     output: input.output,
     normalizedCoordinateSpace: input.normalizedCoordinateSpace,
@@ -68,11 +76,11 @@ export function buildGeometryGuardResult(input: {
     sourceAiResultRef: input.request.sourceAiResultRef,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
-    debugLogRef: outputRef,
+    debugLogRef: refs.outputRef,
     runtimeProof: buildGeometryRuntimeProof({
       request: input.request,
-      geometryGuardRef,
-      outputRef,
+      geometryGuardRef: refs.geometryGuardRef,
+      outputRef: refs.outputRef,
       output: input.output,
       normalizedCoordinateSpace: input.normalizedCoordinateSpace,
       normalizedBbox: input.normalizedBbox,
@@ -101,5 +109,9 @@ export function buildGeometryGuardResult(input: {
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
-  });
+  };
+}
+
+export function buildGeometryGuardResult(input: BuildGeometryGuardResultInput): GeometryGuardAbilityResult {
+  return GeometryGuardAbilityResultSchema.parse(buildGeometryResultPayload(input, buildGeometryResultRefs(input)));
 }

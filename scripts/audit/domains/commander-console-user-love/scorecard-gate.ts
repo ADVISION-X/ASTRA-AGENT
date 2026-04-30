@@ -3,9 +3,8 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 
 import { LAW_ID, SCORECARD_ITEMS, readScorecardData } from "./ast-utils.js";
 
-export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const findings: Finding[] = [];
-  const scorecard = await readScorecardData().catch((error) => {
+async function loadScorecard(findings: Finding[]) {
+  return readScorecardData().catch((error) => {
     findings.push(createFinding({
       lawId: LAW_ID,
       file: "docs/audit/commander-console-user-love-scorecard.md",
@@ -15,6 +14,51 @@ export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: 
     }));
     return null;
   });
+}
+
+function collectItemCountFindings(scorecard: NonNullable<Awaited<ReturnType<typeof readScorecardData>>>): Finding[] {
+  return scorecard.items.length !== SCORECARD_ITEMS.length
+    ? [createFinding({ lawId: LAW_ID, file: "docs/audit/commander-console-user-love-scorecard.md", line: 1, severity: "error", message: `Scorecard must contain exactly ${SCORECARD_ITEMS.length} scoring items.` })]
+    : [];
+}
+
+function collectPlaceholderFindings(item: NonNullable<Awaited<ReturnType<typeof readScorecardData>>>["items"][number]): Finding[] {
+  const findings: Finding[] = [];
+  const combinedText = [...item.failedReasons, item.requiredFix, item.userFacingAcceptance, item.developerFacingAcceptance].join(" ").toLowerCase();
+  for (const forbiddenToken of ["todo", "later", "follow-up"]) {
+    if (combinedText.includes(forbiddenToken)) {
+      findings.push(createFinding({ lawId: LAW_ID, file: "docs/audit/commander-console-user-love-scorecard.md", line: 1, severity: "error", message: "Scorecard contains a forbidden placeholder token.", detail: `${item.name}: ${forbiddenToken}` }));
+    }
+  }
+  return findings;
+}
+
+function collectScorecardItemFindings(item: NonNullable<Awaited<ReturnType<typeof readScorecardData>>>["items"][number]): Finding[] {
+  const findings: Finding[] = [];
+  if (item.score < 95) {
+    findings.push(createFinding({ lawId: LAW_ID, file: "docs/audit/commander-console-user-love-scorecard.md", line: 1, severity: "error", message: "Scorecard item is below the required 95-point threshold.", detail: `${item.name}: ${item.score}` }));
+  }
+  if (item.evidence.length === 0 || item.filesInspected.length === 0 || item.touchedFiles.length === 0 || item.proof.length === 0) {
+    findings.push(createFinding({ lawId: LAW_ID, file: "docs/audit/commander-console-user-love-scorecard.md", line: 1, severity: "error", message: "Scorecard item is missing evidence, inspected files, touched files, or proof.", detail: item.name }));
+  }
+  findings.push(...collectPlaceholderFindings(item));
+  return findings;
+}
+
+function collectItemFindings(scorecard: NonNullable<Awaited<ReturnType<typeof readScorecardData>>>): Finding[] {
+  const findings = [...collectItemCountFindings(scorecard)];
+  for (const itemName of SCORECARD_ITEMS) {
+    const item = scorecard.items.find((entry) => entry.name === itemName);
+    if (item) {
+      findings.push(...collectScorecardItemFindings(item));
+    }
+  }
+  return findings;
+}
+
+export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const findings: Finding[] = [];
+  const scorecard = await loadScorecard(findings);
 
   if (!scorecard) {
     return {
@@ -22,59 +66,7 @@ export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: 
       phase: createPhase("scorecard-gate", "FAKE ENFORCEMENT", false, "Scorecard gate could not parse the scorecard."),
     };
   }
-
-  if (scorecard.items.length !== SCORECARD_ITEMS.length) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "docs/audit/commander-console-user-love-scorecard.md",
-      line: 1,
-      severity: "error",
-      message: `Scorecard must contain exactly ${SCORECARD_ITEMS.length} scoring items.`,
-    }));
-  }
-
-  for (const itemName of SCORECARD_ITEMS) {
-    const item = scorecard.items.find((entry) => entry.name === itemName);
-    if (!item) {
-      continue;
-    }
-
-    if (item.score < 95) {
-      findings.push(createFinding({
-        lawId: LAW_ID,
-        file: "docs/audit/commander-console-user-love-scorecard.md",
-        line: 1,
-        severity: "error",
-        message: "Scorecard item is below the required 95-point threshold.",
-        detail: `${item.name}: ${item.score}`,
-      }));
-    }
-
-    if (item.evidence.length === 0 || item.filesInspected.length === 0 || item.touchedFiles.length === 0 || item.proof.length === 0) {
-      findings.push(createFinding({
-        lawId: LAW_ID,
-        file: "docs/audit/commander-console-user-love-scorecard.md",
-        line: 1,
-        severity: "error",
-        message: "Scorecard item is missing evidence, inspected files, touched files, or proof.",
-        detail: item.name,
-      }));
-    }
-
-    const combinedText = [...item.failedReasons, item.requiredFix, item.userFacingAcceptance, item.developerFacingAcceptance].join(" ").toLowerCase();
-    for (const forbiddenToken of ["todo", "later", "follow-up"]) {
-      if (combinedText.includes(forbiddenToken)) {
-        findings.push(createFinding({
-          lawId: LAW_ID,
-          file: "docs/audit/commander-console-user-love-scorecard.md",
-          line: 1,
-          severity: "error",
-          message: "Scorecard contains a forbidden placeholder token.",
-          detail: `${item.name}: ${forbiddenToken}`,
-        }));
-      }
-    }
-  }
+  findings.push(...collectItemFindings(scorecard));
 
   return {
     findings,

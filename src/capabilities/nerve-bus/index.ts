@@ -27,17 +27,19 @@ export {
 } from "./schema.js";
 export type {
   AbilityCommandDispatchInput,
-  AbilityTargetId,
   AiRequestDispatchInput,
-  CommanderTargetId,
   CreateNerveBusAbilityGroupInput,
-  GovernedAbilityGroupId,
   HumanCommandDispatchInput,
   NerveBusAbilityGroup,
+} from "./contract.js";
+export type {
+  AbilityTargetId,
+  CommanderTargetId,
+  GovernedAbilityGroupId,
   NerveBusAbilityGroupId,
   NerveBusChannelId,
   RoutableExecutionTargetId,
-} from "./contract.js";
+} from "./shared/nerve-bus-routing-types.js";
 export type {
   AbilityCommandEnvelope,
   AbilityResultEnvelope,

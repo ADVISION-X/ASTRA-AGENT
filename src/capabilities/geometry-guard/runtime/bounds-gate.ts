@@ -62,94 +62,200 @@ function resolveSourceBounds(input: ParsedGeometryGuardAbilityInput): GeometryGu
   return isValidSize(input.imageSize) ? toBounds(input.imageSize) : null;
 }
 
-export function evaluateBounds(input: ParsedGeometryGuardAbilityInput, options: BoundsGateOptions): BoundsGateResult {
-  const sourceBounds = resolveSourceBounds(input);
-  const targetBounds = resolveTargetBounds(input);
+function createBoundsFailureResult(input: {
+  failureReason: Parameters<typeof createGeometryFailure>[0]["failureReason"];
+  message: string;
+  bbox: GeometryGuardBoundingBox | null;
+  clickPoint: GeometryGuardPoint | null;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult {
+  return {
+    boundsDecision: "failed",
+    failure: createGeometryFailure({ status: "failed", failureReason: input.failureReason, message: input.message }),
+    bbox: input.bbox,
+    clickPoint: input.clickPoint,
+    sourceBounds: input.sourceBounds,
+    targetBounds: input.targetBounds,
+  };
+}
 
-  if (options.requireSourceBounds && !sourceBounds) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: "source_bounds_missing", message: "Geometry Guard requires source bounds before validation." }),
+function validateRequiredBounds(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  options: BoundsGateOptions;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | null {
+  if (input.options.requireSourceBounds && !input.sourceBounds) {
+    return createBoundsFailureResult({
+      failureReason: "source_bounds_missing",
+      message: "Geometry Guard requires source bounds before validation.",
       bbox: null,
       clickPoint: null,
       sourceBounds: null,
-      targetBounds,
-    };
+      targetBounds: input.targetBounds,
+    });
   }
 
-  if (options.requireTargetBounds && !targetBounds) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: "target_bounds_missing", message: `Geometry Guard requires ${input.requestedExecutionSpace} bounds before execution.` }),
+  return input.options.requireTargetBounds && !input.targetBounds
+    ? createBoundsFailureResult({
+        failureReason: "target_bounds_missing",
+        message: `Geometry Guard requires ${input.request.requestedExecutionSpace} bounds before execution.`,
+        bbox: null,
+        clickPoint: null,
+        sourceBounds: input.sourceBounds,
+        targetBounds: null,
+      })
+    : null;
+}
+
+function validateBoundingBox(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  options: BoundsGateOptions;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | { bbox: GeometryGuardBoundingBox | null } {
+  if (input.options.requireBBox && !isValidBoundingBox(input.request.bbox)) {
+    return createBoundsFailureResult({
+      failureReason: input.request.bbox ? "invalid_bbox" : "missing_bbox",
+      message: "Geometry Guard requires a finite positive bounding box.",
       bbox: null,
       clickPoint: null,
-      sourceBounds,
-      targetBounds: null,
-    };
+      sourceBounds: input.sourceBounds,
+      targetBounds: input.targetBounds,
+    });
   }
 
-  if (options.requireBBox && !isValidBoundingBox(input.bbox)) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: input.bbox ? "invalid_bbox" : "missing_bbox", message: "Geometry Guard requires a finite positive bounding box." }),
-      bbox: null,
+  const bbox = isValidBoundingBox(input.request.bbox) ? input.request.bbox : null;
+  return bbox && input.sourceBounds && !boxInsideBounds(bbox, input.sourceBounds)
+    ? createBoundsFailureResult({
+        failureReason: "bbox_out_of_bounds",
+        message: "Geometry Guard blocked a bounding box outside source bounds.",
+        bbox,
+        clickPoint: null,
+        sourceBounds: input.sourceBounds,
+        targetBounds: input.targetBounds,
+      })
+    : { bbox };
+}
+
+function resolveClickPoint(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  options: BoundsGateOptions;
+  bbox: GeometryGuardBoundingBox | null;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | { clickPoint: GeometryGuardPoint | null } {
+  if (input.options.requireClickPoint && !isValidPoint(input.request.clickPoint)) {
+    return createBoundsFailureResult({
+      failureReason: input.request.clickPoint ? "invalid_click_point" : "missing_click_point",
+      message: "Geometry Guard requires a finite click point.",
+      bbox: input.bbox,
       clickPoint: null,
-      sourceBounds,
-      targetBounds,
-    };
+      sourceBounds: input.sourceBounds,
+      targetBounds: input.targetBounds,
+    });
   }
 
-  const bbox = isValidBoundingBox(input.bbox) ? input.bbox : null;
-  if (bbox && sourceBounds && !boxInsideBounds(bbox, sourceBounds)) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: "bbox_out_of_bounds", message: "Geometry Guard blocked a bounding box outside source bounds." }),
-      bbox,
-      clickPoint: null,
-      sourceBounds,
-      targetBounds,
-    };
+  return { clickPoint: isValidPoint(input.request.clickPoint) ? input.request.clickPoint : null };
+}
+
+function validateClickPointLocation(input: {
+  bbox: GeometryGuardBoundingBox | null;
+  clickPoint: GeometryGuardPoint | null;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | null {
+  if (input.bbox && input.clickPoint && !pointInsideBox(input.clickPoint, input.bbox)) {
+    return createBoundsFailureResult({
+      failureReason: "click_point_outside_bbox",
+      message: "Geometry Guard requires clickPoint inside bbox.",
+      bbox: input.bbox,
+      clickPoint: input.clickPoint,
+      sourceBounds: input.sourceBounds,
+      targetBounds: input.targetBounds,
+    });
   }
 
-  if (options.requireClickPoint && !isValidPoint(input.clickPoint)) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: input.clickPoint ? "invalid_click_point" : "missing_click_point", message: "Geometry Guard requires a finite click point." }),
-      bbox,
-      clickPoint: null,
-      sourceBounds,
-      targetBounds,
-    };
+  return input.clickPoint && input.sourceBounds && !pointInsideBounds(input.clickPoint, input.sourceBounds)
+    ? createBoundsFailureResult({
+        failureReason: "bbox_out_of_bounds",
+        message: "Geometry Guard blocked a click point outside source bounds.",
+        bbox: input.bbox,
+        clickPoint: input.clickPoint,
+        sourceBounds: input.sourceBounds,
+        targetBounds: input.targetBounds,
+      })
+    : null;
+}
+
+function validateClickPoint(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  options: BoundsGateOptions;
+  bbox: GeometryGuardBoundingBox | null;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | { clickPoint: GeometryGuardPoint | null } {
+  const clickPointResult = resolveClickPoint(input);
+  if ("boundsDecision" in clickPointResult) {
+    return clickPointResult;
   }
 
-  const clickPoint = isValidPoint(input.clickPoint) ? input.clickPoint : null;
-  if (bbox && clickPoint && !pointInsideBox(clickPoint, bbox)) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: "click_point_outside_bbox", message: "Geometry Guard requires clickPoint inside bbox." }),
-      bbox,
-      clickPoint,
-      sourceBounds,
-      targetBounds,
-    };
+  const clickPointFailure = validateClickPointLocation({
+    bbox: input.bbox,
+    clickPoint: clickPointResult.clickPoint,
+    sourceBounds: input.sourceBounds,
+    targetBounds: input.targetBounds,
+  });
+  return clickPointFailure ?? clickPointResult;
+}
+
+function validateResolvedBounds(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  options: BoundsGateOptions;
+  sourceBounds: GeometryGuardBoundingBox | null;
+  targetBounds: GeometryGuardBoundingBox | null;
+}): BoundsGateResult | { bbox: GeometryGuardBoundingBox | null; clickPoint: GeometryGuardPoint | null } {
+  const requiredBoundsFailure = validateRequiredBounds(input);
+  if (requiredBoundsFailure) {
+    return requiredBoundsFailure;
   }
 
-  if (clickPoint && sourceBounds && !pointInsideBounds(clickPoint, sourceBounds)) {
-    return {
-      boundsDecision: "failed",
-      failure: createGeometryFailure({ status: "failed", failureReason: "bbox_out_of_bounds", message: "Geometry Guard blocked a click point outside source bounds." }),
-      bbox,
-      clickPoint,
-      sourceBounds,
-      targetBounds,
-    };
+  const bboxResult = validateBoundingBox(input);
+  if ("boundsDecision" in bboxResult) {
+    return bboxResult;
+  }
+
+  const clickPointResult = validateClickPoint({
+    request: input.request,
+    options: input.options,
+    bbox: bboxResult.bbox,
+    sourceBounds: input.sourceBounds,
+    targetBounds: input.targetBounds,
+  });
+  return "boundsDecision" in clickPointResult
+    ? clickPointResult
+    : { bbox: bboxResult.bbox, clickPoint: clickPointResult.clickPoint };
+}
+
+export function evaluateBounds(input: ParsedGeometryGuardAbilityInput, options: BoundsGateOptions): BoundsGateResult {
+  const sourceBounds = resolveSourceBounds(input);
+  const targetBounds = resolveTargetBounds(input);
+  const boundsResult = validateResolvedBounds({
+    request: input,
+    options,
+    sourceBounds,
+    targetBounds,
+  });
+  if ("boundsDecision" in boundsResult) {
+    return boundsResult;
   }
 
   return {
     boundsDecision: "passed",
     failure: null,
-    bbox,
-    clickPoint,
+    bbox: boundsResult.bbox,
+    clickPoint: boundsResult.clickPoint,
     sourceBounds,
     targetBounds,
   };

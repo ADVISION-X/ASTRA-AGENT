@@ -26,59 +26,115 @@ export type CoordinateSpaceGateResult = {
   failure: GeometryFailure | null;
 };
 
+type CoordinateSpaceRuleInput = {
+  request: ParsedGeometryGuardAbilityInput;
+  childRoute: ChildRoute;
+};
+
+type CoordinateSpaceRule = (input: CoordinateSpaceRuleInput) => CoordinateSpaceGateResult | null;
+
+function createCoordinateSpaceResult(input: {
+  childRoute: ChildRoute;
+  coordinateDecision: GeometryGuardCheckDecision;
+  failure: GeometryFailure | null;
+}): CoordinateSpaceGateResult {
+  return {
+    childRoute: input.childRoute,
+    coordinateDecision: input.coordinateDecision,
+    failure: input.failure,
+  };
+}
+
+function validateSourceSpace(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  childRoute: ChildRoute;
+}): CoordinateSpaceGateResult | null {
+  return input.childRoute.sourceSpaces.includes(input.request.sourceCoordinateSpace)
+    ? null
+    : createCoordinateSpaceResult({
+        childRoute: input.childRoute,
+        coordinateDecision: "failed",
+        failure: createGeometryFailure({
+          status: "failed",
+          failureReason: "child_execution_mismatch",
+          message: `Geometry Guard child ${input.request.childCapabilityId} cannot execute ${input.request.sourceCoordinateSpace}.`,
+        }),
+      });
+}
+
+function validateRequestedSpace(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  childRoute: ChildRoute;
+}): CoordinateSpaceGateResult | null {
+  return input.childRoute.requestedSpaces.includes(input.request.requestedExecutionSpace)
+    ? null
+    : createCoordinateSpaceResult({
+        childRoute: input.childRoute,
+        coordinateDecision: "failed",
+        failure: createGeometryFailure({
+          status: "failed",
+          failureReason: "requested_execution_space_mismatch",
+          message: `Geometry Guard child ${input.request.childCapabilityId} cannot normalize into ${input.request.requestedExecutionSpace}.`,
+        }),
+      });
+}
+
+function validateContactSheetRule(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  childRoute: ChildRoute;
+}): CoordinateSpaceGateResult | null {
+  if (input.request.sourceCoordinateSpace !== "contactSheet") {
+    return null;
+  }
+
+  const coordinateDecision = input.request.safetyPolicy.allowReviewRequired ? "review_required" : "failed";
+  return createCoordinateSpaceResult({
+    childRoute: input.childRoute,
+    coordinateDecision,
+    failure: createGeometryFailure({
+      status: coordinateDecision,
+      failureReason: "contact_sheet_coordinate_not_executable",
+      message: "Geometry Guard never promotes contactSheet coordinates into executable space.",
+    }),
+  });
+}
+
+function validateDesktopScaleFactor(input: {
+  request: ParsedGeometryGuardAbilityInput;
+  childRoute: ChildRoute;
+}): CoordinateSpaceGateResult | null {
+  return input.request.requestedExecutionSpace !== "desktopScreen" || input.request.deviceScaleFactor !== null
+    ? null
+    : createCoordinateSpaceResult({
+        childRoute: input.childRoute,
+        coordinateDecision: "failed",
+        failure: createGeometryFailure({
+          status: "failed",
+          failureReason: "device_scale_factor_missing",
+          message: "Geometry Guard requires deviceScaleFactor for desktopScreen execution.",
+        }),
+      });
+}
+
+const COORDINATE_SPACE_RULES: CoordinateSpaceRule[] = [
+  validateSourceSpace,
+  validateRequestedSpace,
+  validateContactSheetRule,
+  validateDesktopScaleFactor,
+];
+
+function runCoordinateSpaceRules(input: CoordinateSpaceRuleInput): CoordinateSpaceGateResult | null {
+  for (const rule of COORDINATE_SPACE_RULES) {
+    const result = rule(input);
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+}
+
 export function evaluateCoordinateSpace(input: ParsedGeometryGuardAbilityInput): CoordinateSpaceGateResult {
   const childRoute = CHILD_ROUTES[input.childCapabilityId];
-  if (!childRoute.sourceSpaces.includes(input.sourceCoordinateSpace)) {
-    return {
-      childRoute,
-      coordinateDecision: "failed",
-      failure: createGeometryFailure({
-        status: "failed",
-        failureReason: "child_execution_mismatch",
-        message: `Geometry Guard child ${input.childCapabilityId} cannot execute ${input.sourceCoordinateSpace}.`,
-      }),
-    };
-  }
-
-  if (!childRoute.requestedSpaces.includes(input.requestedExecutionSpace)) {
-    return {
-      childRoute,
-      coordinateDecision: "failed",
-      failure: createGeometryFailure({
-        status: "failed",
-        failureReason: "requested_execution_space_mismatch",
-        message: `Geometry Guard child ${input.childCapabilityId} cannot normalize into ${input.requestedExecutionSpace}.`,
-      }),
-    };
-  }
-
-  if (input.sourceCoordinateSpace === "contactSheet") {
-    return {
-      childRoute,
-      coordinateDecision: input.safetyPolicy.allowReviewRequired ? "review_required" : "failed",
-      failure: createGeometryFailure({
-        status: input.safetyPolicy.allowReviewRequired ? "review_required" : "failed",
-        failureReason: "contact_sheet_coordinate_not_executable",
-        message: "Geometry Guard never promotes contactSheet coordinates into executable space.",
-      }),
-    };
-  }
-
-  if (input.requestedExecutionSpace === "desktopScreen" && input.deviceScaleFactor === null) {
-    return {
-      childRoute,
-      coordinateDecision: "failed",
-      failure: createGeometryFailure({
-        status: "failed",
-        failureReason: "device_scale_factor_missing",
-        message: "Geometry Guard requires deviceScaleFactor for desktopScreen execution.",
-      }),
-    };
-  }
-
-  return {
-    childRoute,
-    coordinateDecision: "passed",
-    failure: null,
-  };
+  return runCoordinateSpaceRules({ request: input, childRoute }) ?? createCoordinateSpaceResult({ childRoute, coordinateDecision: "passed", failure: null });
 }

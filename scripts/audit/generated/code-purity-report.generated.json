@@ -1,71 +1,18 @@
 {
-  "generatedAt": "2026-04-30T23:28:42.509Z",
+  "generatedAt": "2026-04-30T23:51:12.989Z",
   "godFileInventory": [
     {
-      "file": "scripts/audit/domains/ai-capability/inspector.ts",
-      "lines": 521,
-      "fileType": "audit inspector",
-      "overLimitBy": 271,
-      "functionsOverLimit": [
-        "aiCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
-      "fileType": "audit inspector",
-      "overLimitBy": 267,
-      "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/code-topology/components/inspect-code-topology.ts",
-      "lines": 656,
-      "fileType": "audit phase",
-      "overLimitBy": 306,
-      "functionsOverLimit": [
-        "inspectCodeTopology"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
+      "lines": 823,
       "fileType": "audit inspector",
-      "overLimitBy": 633,
+      "overLimitBy": 573,
       "functionsOverLimit": [
         "commanderConsoleCapabilityInspector"
       ],
       "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
+      "importCount": 8,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -241,23 +188,6 @@
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-guard-executor.ts",
-      "lines": 334,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 34,
-      "functionsOverLimit": [
-        "buildChildOutput",
-        "executeGeometryGuardChild"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/mouse-click/runtime/mouse-click-executor.ts",
@@ -495,38 +425,17 @@
   ],
   "disasterFileInventory": [
     {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
-      "fileType": "audit inspector",
-      "overLimitBy": 267,
-      "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
+      "lines": 823,
       "fileType": "audit inspector",
-      "overLimitBy": 633,
+      "overLimitBy": 573,
       "functionsOverLimit": [
         "commanderConsoleCapabilityInspector"
       ],
       "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
+      "importCount": 8,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -754,89 +663,6 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/ports/nerve-bus-idempotency-port.ts",
-      "lines": 40,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/ports/nerve-bus-transport-port.ts",
-      "lines": 38,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/open/runtime/open-runtime-context.ts",
-      "lines": 41,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/orchestration/ability-group.ts",
-      "lines": 117,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createOrchestrationAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 16,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
-      "lines": 180,
-      "fileType": "orchestration coordinator",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createRegistryBackedMapStore",
-        "createOrchestrationNerveBusAdapter",
-        "sendCommandToAbility",
-        "sendRequestToAi"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/schema.ts",
@@ -1325,43 +1151,6 @@
   ],
   "ownerMixingInventory": [
     {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
-      "fileType": "audit inspector",
-      "overLimitBy": 267,
-      "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
-      "fileType": "audit inspector",
-      "overLimitBy": 633,
-      "functionsOverLimit": [
-        "commanderConsoleCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-mac-app-shell/ast-utils.ts",
       "lines": 229,
       "fileType": "audit phase",
@@ -1546,41 +1335,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/ability-group.ts",
-      "lines": 117,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createOrchestrationAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 16,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
-      "lines": 180,
-      "fileType": "orchestration coordinator",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createRegistryBackedMapStore",
-        "createOrchestrationNerveBusAdapter",
-        "sendCommandToAbility",
-        "sendRequestToAi"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/schema.ts",
@@ -1906,105 +1660,20 @@
   "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
-      "file": "scripts/audit/domains/ai-capability/inspector.ts",
-      "lines": 521,
-      "fileType": "audit inspector",
-      "overLimitBy": 271,
-      "functionsOverLimit": [
-        "aiCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
-      "fileType": "audit inspector",
-      "overLimitBy": 267,
-      "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/code-topology/components/inspect-code-topology.ts",
-      "lines": 656,
-      "fileType": "audit phase",
-      "overLimitBy": 306,
-      "functionsOverLimit": [
-        "inspectCodeTopology"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
+      "lines": 823,
       "fileType": "audit inspector",
-      "overLimitBy": 633,
+      "overLimitBy": 573,
       "functionsOverLimit": [
         "commanderConsoleCapabilityInspector"
       ],
       "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/boundary-attack.ts",
-      "lines": 62,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runBoundaryAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/forbidden-shape.ts",
-      "lines": 78,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runForbiddenShapeAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
+      "importCount": 8,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/commander-console-mac-app-shell/required-shape.ts",
@@ -2018,22 +1687,6 @@
       "importCount": 4,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/scorecard-gate.ts",
-      "lines": 67,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runScorecardGate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
@@ -2087,22 +1740,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/commander-console-user-love/boundary-attack.ts",
-      "lines": 91,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runBoundaryAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-user-love/forbidden-shape.ts",
       "lines": 170,
       "fileType": "audit phase",
@@ -2130,22 +1767,6 @@
       "importCount": 4,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-user-love/scorecard-gate.ts",
-      "lines": 90,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runScorecardGate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
@@ -2232,22 +1853,6 @@
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/local-persistence-schema/inspector.ts",
-      "lines": 123,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "inspectLocalPersistenceSchemaBoundary"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
@@ -2884,77 +2489,12 @@
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/bounds-gate.ts",
-      "lines": 156,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateBounds"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/coordinate-space-gate.ts",
-      "lines": 84,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateCoordinateSpace"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-guard-executor.ts",
-      "lines": 334,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 34,
-      "functionsOverLimit": [
-        "buildChildOutput",
-        "executeGeometryGuardChild"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-input-gate.ts",
-      "lines": 97,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateGeometryInputPolicy"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
-      "lines": 106,
+      "lines": 118,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [
-        "buildGeometryGuardResult"
+        "buildGeometryResultPayload"
       ],
       "classMembers": 0,
       "importCount": 4,
@@ -2965,28 +2505,12 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-transformer.ts",
-      "lines": 61,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "transformGeometry"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/geometry-guard/runtime/scale-mapping-gate.ts",
-      "lines": 63,
+      "lines": 153,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [
-        "evaluateScaleMapping"
+        "validateMappingSpaces"
       ],
       "classMembers": 0,
       "importCount": 3,
@@ -3599,22 +3123,6 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/orchestration/ability-group.ts",
-      "lines": 117,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createOrchestrationAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 16,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/orchestration/runtime/map-selection-gate.ts",
       "lines": 83,
       "fileType": "orchestration coordinator",
@@ -3712,25 +3220,6 @@
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
-      "lines": 180,
-      "fileType": "orchestration coordinator",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createRegistryBackedMapStore",
-        "createOrchestrationNerveBusAdapter",
-        "sendCommandToAbility",
-        "sendRequestToAi"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
       "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     },
     {
@@ -5468,22 +4957,6 @@
   ],
   "importExportOverLimitInventory": [
     {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
-      "fileType": "audit inspector",
-      "overLimitBy": 633,
-      "functionsOverLimit": [
-        "commanderConsoleCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-mac-app-shell/ast-utils.ts",
       "lines": 229,
       "fileType": "audit phase",
@@ -5670,20 +5143,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/schema.ts",
-      "lines": 291,
-      "fileType": "schema/type",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/mouse-click/contract.ts",
       "lines": 58,
       "fileType": "ordinary implementation",
@@ -5742,22 +5201,8 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/nerve-bus/contract.ts",
-      "lines": 41,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/nerve-bus/index.ts",
-      "lines": 61,
+      "lines": 63,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [],
@@ -5856,22 +5301,6 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/orchestration/ability-group.ts",
-      "lines": 117,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createOrchestrationAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 16,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/orchestration/contract.ts",
       "lines": 90,
       "fileType": "ordinary implementation",
@@ -5881,20 +5310,6 @@
       "importCount": 3,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/index.ts",
-      "lines": 33,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -6511,22 +5926,6 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
-      "fileType": "audit inspector",
-      "overLimitBy": 633,
-      "functionsOverLimit": [
-        "commanderConsoleCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/open-capability/inspector.ts",
       "lines": 838,
       "fileType": "audit inspector",
@@ -6546,6 +5945,22 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
+      "lines": 823,
+      "fileType": "audit inspector",
+      "overLimitBy": 573,
+      "functionsOverLimit": [
+        "commanderConsoleCapabilityInspector"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "lines": 618,
       "fileType": "audit inspector",
@@ -6557,27 +5972,6 @@
       "importCount": 10,
       "crossOwnerImports": 5,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
-      "fileType": "audit inspector",
-      "overLimitBy": 267,
-      "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -6797,25 +6191,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
-      "lines": 180,
-      "fileType": "orchestration coordinator",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createRegistryBackedMapStore",
-        "createOrchestrationNerveBusAdapter",
-        "sendCommandToAbility",
-        "sendRequestToAi"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-runtime/workbench-status.ts",
       "lines": 174,
       "fileType": "ordinary implementation",
@@ -6886,22 +6261,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/ability-group.ts",
-      "lines": 117,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createOrchestrationAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 16,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/workbench-ability-dispatch.ts",
@@ -7146,22 +6505,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-topology/components/inspect-code-topology.ts",
-      "lines": 656,
-      "fileType": "audit phase",
-      "overLimitBy": 306,
-      "functionsOverLimit": [
-        "inspectCodeTopology"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/text-input/runtime/text-input-executor.ts",
       "lines": 607,
       "fileType": "runtime/implementation",
@@ -7203,22 +6546,6 @@
       "importCount": 7,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/ai-capability/inspector.ts",
-      "lines": 521,
-      "fileType": "audit inspector",
-      "overLimitBy": 271,
-      "functionsOverLimit": [
-        "aiCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -7338,23 +6665,6 @@
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-guard-executor.ts",
-      "lines": 334,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 34,
-      "functionsOverLimit": [
-        "buildChildOutput",
-        "executeGeometryGuardChild"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
@@ -7590,20 +6900,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/schema.ts",
-      "lines": 291,
-      "fileType": "schema/type",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
       "file": "src/capabilities/mouse-click/schema.ts",
@@ -8334,12 +7630,12 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/bounds-gate.ts",
-      "lines": 156,
+      "file": "src/capabilities/geometry-guard/runtime/scale-mapping-gate.ts",
+      "lines": 153,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [
-        "evaluateBounds"
+        "validateMappingSpaces"
       ],
       "classMembers": 0,
       "importCount": 3,
@@ -8883,22 +8179,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/local-persistence-schema/inspector.ts",
-      "lines": 123,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "inspectLocalPersistenceSchemaBoundary"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/mouse-click/runtime/pre-click-safety-gate.ts",
       "lines": 120,
       "fileType": "runtime/implementation",
@@ -8946,6 +8226,22 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
+      "lines": 118,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "buildGeometryResultPayload"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/visual-target/runtime/target-selection-gate.ts",
@@ -9125,22 +8421,6 @@
       "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
-      "lines": 106,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "buildGeometryGuardResult"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
       "lines": 102,
       "fileType": "audit phase",
@@ -9268,22 +8548,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-input-gate.ts",
-      "lines": 97,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateGeometryInputPolicy"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/post-action-verification/runtime/verification-decision-gate.ts",
       "lines": 97,
       "fileType": "runtime/implementation",
@@ -9395,22 +8659,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/commander-console-user-love/boundary-attack.ts",
-      "lines": 91,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runBoundaryAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/post-action-verification/runtime/evidence-source-gate.ts",
       "lines": 91,
       "fileType": "runtime/implementation",
@@ -9457,22 +8705,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-user-love/scorecard-gate.ts",
-      "lines": 90,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runScorecardGate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/app/runtime-api-handlers.ts",
@@ -9627,22 +8859,6 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/coordinate-space-gate.ts",
-      "lines": 84,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateCoordinateSpace"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/screenshot/runtime/capture-runner.ts",
       "lines": 84,
       "fileType": "runtime/implementation",
@@ -9736,22 +8952,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/forbidden-shape.ts",
-      "lines": 78,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runForbiddenShapeAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/screenshot/runtime/screenshot-input-gate.ts",
@@ -10147,22 +9347,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/scorecard-gate.ts",
-      "lines": 67,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runScorecardGate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
       "lines": 67,
       "fileType": "audit phase",
@@ -10414,20 +9598,18 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/geometry-guard/runtime/scale-mapping-gate.ts",
+      "file": "src/capabilities/nerve-bus/index.ts",
       "lines": 63,
-      "fileType": "runtime/implementation",
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateScaleMapping"
-      ],
+      "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 3,
+      "importCount": 0,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/screenshot/ports/screenshot-artifact-port.ts",
@@ -10444,22 +9626,6 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-mac-app-shell/boundary-attack.ts",
-      "lines": 62,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runBoundaryAttack"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/mouse-click/runtime/mouse-click-dispatch-failure.ts",
@@ -10522,36 +9688,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/geometry-guard/runtime/geometry-transformer.ts",
-      "lines": 61,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "transformGeometry"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/index.ts",
-      "lines": 61,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/text-input/contract.ts",
@@ -10938,68 +10074,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/open/runtime/open-runtime-context.ts",
-      "lines": 41,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/contract.ts",
-      "lines": 41,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/ports/nerve-bus-idempotency-port.ts",
-      "lines": 40,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: schema-and-runtime."
-    },
-    {
-      "file": "src/capabilities/nerve-bus/ports/nerve-bus-transport-port.ts",
-      "lines": 38,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: schema-and-runtime."
-    },
-    {
       "file": "scripts/audit/domains/page-state-capability/forbidden-shape.ts",
       "lines": 38,
       "fileType": "audit phase",
@@ -11046,20 +10120,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/orchestration/index.ts",
-      "lines": 33,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -11076,22 +10136,6 @@
       "importCount": 10,
       "crossOwnerImports": 4,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 883,
-      "fileType": "audit inspector",
-      "overLimitBy": 633,
-      "functionsOverLimit": [
-        "commanderConsoleCapabilityInspector"
-      ],
-      "classMembers": 0,
-      "importCount": 22,
-      "crossOwnerImports": 16,
-      "ownerBoundaries": 4,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -11116,6 +10160,22 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
+      "lines": 823,
+      "fileType": "audit inspector",
+      "overLimitBy": 573,
+      "functionsOverLimit": [
+        "commanderConsoleCapabilityInspector"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "lines": 618,
       "fileType": "audit inspector",
@@ -11132,22 +10192,17 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/capability-group-governance/inspector.ts",
-      "lines": 517,
+      "file": "scripts/audit/domains/orchestration-capability/inspector.ts",
+      "lines": 394,
       "fileType": "audit inspector",
-      "overLimitBy": 267,
+      "overLimitBy": 144,
       "functionsOverLimit": [
-        "collectDeclaredPublicEntries",
-        "inspectAbilityContracts",
-        "inspectCrossBoundaryImports",
-        "inspectForbiddenOwnerLiterals",
-        "inspectRuntimeProofMinimums",
-        "capabilityGroupGovernanceInspector"
+        "orchestrationCapabilityInspector"
       ],
       "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
+      "importCount": 8,
+      "crossOwnerImports": 4,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."

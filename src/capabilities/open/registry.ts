@@ -23,7 +23,7 @@ import {
   OPEN_TIKTOK_PROOF_POLICY,
 } from "./children/open-tiktok/contract.js";
 import { createOpenTikTokCapability } from "./children/open-tiktok/implementation.js";
-import type { OpenRegistryEntry } from "./runtime/open-runtime-context.js";
+import type { OpenRegistryEntry } from "./runtime/open-runtime-types.js";
 import {
   DEFAULT_LOCAL_WORKBENCH_TIMEOUT_MS,
   DEFAULT_LOCALHOST_HOSTNAMES,

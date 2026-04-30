@@ -18,6 +18,65 @@ function hasCoordinateSpace(value: unknown): value is ParsedGeometryGuardAbility
   return typeof value === "string" && GEOMETRY_GUARD_COORDINATE_SPACES.includes(value as ParsedGeometryGuardAbilityInput["sourceCoordinateSpace"]);
 }
 
+type GeometryInputPolicyRule = (input: ParsedGeometryGuardAbilityInput) => GeometryFailure | null;
+
+function validateRequestedBy(input: ParsedGeometryGuardAbilityInput): GeometryFailure | null {
+  return input.requestedBy.trim()
+    ? null
+    : createGeometryFailure({
+        status: "failed",
+        failureReason: "missing_requested_by",
+        message: "Geometry Guard requires requestedBy.",
+        policyDecision: "failed",
+      });
+}
+
+function validatePurpose(input: ParsedGeometryGuardAbilityInput): GeometryFailure | null {
+  return input.purpose.trim()
+    ? null
+    : createGeometryFailure({
+        status: "failed",
+        failureReason: "missing_purpose",
+        message: "Geometry Guard requires purpose.",
+        policyDecision: "failed",
+      });
+}
+
+function validateSourceReference(input: ParsedGeometryGuardAbilityInput): GeometryFailure | null {
+  if (!input.safetyPolicy.requireSourceRef || input.sourceScreenshotEvidenceRef || input.sourceTargetRef || input.sourceAiResultRef) {
+    return null;
+  }
+
+  return createGeometryFailure({
+    status: "failed",
+    failureReason: "missing_source_ref",
+    message: "Geometry Guard requires at least one source reference.",
+    policyDecision: "failed",
+  });
+}
+
+function validateConfidenceThreshold(input: ParsedGeometryGuardAbilityInput): GeometryFailure | null {
+  if (input.safetyPolicy.minimumConfidence === null || input.safetyPolicy.coordinateConfidence === null || input.safetyPolicy.coordinateConfidence >= input.safetyPolicy.minimumConfidence) {
+    return null;
+  }
+
+  const status = input.safetyPolicy.allowReviewRequired ? "review_required" : "failed";
+  return createGeometryFailure({
+    status,
+    failureReason: "confidence_below_threshold",
+    message: "Geometry Guard blocked low-confidence coordinates.",
+    policyDecision: status,
+    dataQualityFlags: ["low_confidence"],
+  });
+}
+
+const GEOMETRY_INPUT_POLICY_RULES: GeometryInputPolicyRule[] = [
+  validateRequestedBy,
+  validatePurpose,
+  validateSourceReference,
+  validateConfidenceThreshold,
+];
+
 export function coerceGeometryGuardFailureInput(rawInput: unknown): ParsedGeometryGuardAbilityInput {
   const record = isRecord(rawInput) ? rawInput : {};
   return {
@@ -56,41 +115,11 @@ export function coerceGeometryGuardFailureInput(rawInput: unknown): ParsedGeomet
 }
 
 export function evaluateGeometryInputPolicy(input: ParsedGeometryGuardAbilityInput): GeometryFailure | null {
-  if (!input.requestedBy.trim()) {
-    return createGeometryFailure({
-      status: "failed",
-      failureReason: "missing_requested_by",
-      message: "Geometry Guard requires requestedBy.",
-      policyDecision: "failed",
-    });
-  }
-
-  if (!input.purpose.trim()) {
-    return createGeometryFailure({
-      status: "failed",
-      failureReason: "missing_purpose",
-      message: "Geometry Guard requires purpose.",
-      policyDecision: "failed",
-    });
-  }
-
-  if (input.safetyPolicy.requireSourceRef && !input.sourceScreenshotEvidenceRef && !input.sourceTargetRef && !input.sourceAiResultRef) {
-    return createGeometryFailure({
-      status: "failed",
-      failureReason: "missing_source_ref",
-      message: "Geometry Guard requires at least one source reference.",
-      policyDecision: "failed",
-    });
-  }
-
-  if (input.safetyPolicy.minimumConfidence !== null && input.safetyPolicy.coordinateConfidence !== null && input.safetyPolicy.coordinateConfidence < input.safetyPolicy.minimumConfidence) {
-    return createGeometryFailure({
-      status: input.safetyPolicy.allowReviewRequired ? "review_required" : "failed",
-      failureReason: "confidence_below_threshold",
-      message: "Geometry Guard blocked low-confidence coordinates.",
-      policyDecision: input.safetyPolicy.allowReviewRequired ? "review_required" : "failed",
-      dataQualityFlags: ["low_confidence"],
-    });
+  for (const rule of GEOMETRY_INPUT_POLICY_RULES) {
+    const failure = rule(input);
+    if (failure) {
+      return failure;
+    }
   }
 
   return null;

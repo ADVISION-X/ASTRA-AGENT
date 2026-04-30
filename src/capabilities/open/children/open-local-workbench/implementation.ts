@@ -1,5 +1,5 @@
 import { OPEN_ABILITY_GROUP_ID } from "../../contract.js";
-import type { OpenChildCapability } from "../../runtime/open-runtime-context.js";
+import type { OpenChildCapability } from "../../runtime/open-runtime-types.js";
 import { executeOpenChild } from "../../runtime/open-executor.js";
 import {
   OpenLocalWorkbenchRequestSchema,

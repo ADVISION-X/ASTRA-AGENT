@@ -143,8 +143,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "as-unknown-as mutation",
     file: "src/capabilities/ai/runtime/ai-result-builder.ts",
-    search: "const outputRef = input.status === \"success\" && input.output !== null",
-    replace: `${AS_UNKNOWN_AS_MUTATION}\n  const outputRef = input.status === "success" && input.output !== null`,
+    search: "const outputRef = resolveAiOutputRef(input);",
+    replace: `${AS_UNKNOWN_AS_MUTATION}\n  const outputRef = resolveAiOutputRef(input);`,
   },
   {
     name: "dynamic import mutation",

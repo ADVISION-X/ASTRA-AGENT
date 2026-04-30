@@ -17,36 +17,54 @@ import {
 } from "./ast-utils.js";
 import { LAW_ID } from "./ast-utils.js";
 
-export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const project = createCommanderConsoleMacShellProject();
+function collectShellBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const findings: Finding[] = [];
-
   for (const path of [MAC_SHELL_PATH, PAGE_RENDER_PATH]) {
     const sourceFile = getMacShellSourceFile(project, path);
     if (hasForbiddenImport(sourceFile)) {
       findings.push(createFinding({ lawId: LAW_ID, file: path, line: 1, severity: "fatal", message: "Mac shell crossed into forbidden runtime ownership." }));
     }
   }
+  return findings;
+}
 
+function collectServerBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const createServerSource = getMacShellSourceFile(project, CREATE_SERVER_PATH);
-  if (hasPropertyAccessPath(createServerSource, ["activeWorkbench", "evidenceStore"]) || hasPropertyAccessPath(createServerSource, ["activeWorkbench", "deleteCandidate"])) {
-    findings.push(createFinding({ lawId: APP_SHELL_LAW_ID, file: CREATE_SERVER_PATH, line: 1, severity: "fatal", message: "Workbench server must not expose evidence store or delete mutations for the shell." }));
-  }
+  return hasPropertyAccessPath(createServerSource, ["activeWorkbench", "evidenceStore"]) || hasPropertyAccessPath(createServerSource, ["activeWorkbench", "deleteCandidate"])
+    ? [createFinding({ lawId: APP_SHELL_LAW_ID, file: CREATE_SERVER_PATH, line: 1, severity: "fatal", message: "Workbench server must not expose evidence store or delete mutations for the shell." })]
+    : [];
+}
 
+function collectRuntimeBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const runtimeSource = getMacShellSourceFile(project, RUNTIME_HANDLER_PATH);
-  if (hasPropertyAccessPath(runtimeSource, ["activeWorkbench", "evidenceStore"])) {
-    findings.push(createFinding({ lawId: APP_SHELL_LAW_ID, file: RUNTIME_HANDLER_PATH, line: 1, severity: "fatal", message: "Runtime read handlers must not query evidence store directly for Commander UI reads." }));
-  }
+  return hasPropertyAccessPath(runtimeSource, ["activeWorkbench", "evidenceStore"])
+    ? [createFinding({ lawId: APP_SHELL_LAW_ID, file: RUNTIME_HANDLER_PATH, line: 1, severity: "fatal", message: "Runtime read handlers must not query evidence store directly for Commander UI reads." })]
+    : [];
+}
 
+function collectCandidateBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const candidateSource = getMacShellSourceFile(project, CANDIDATE_HANDLER_PATH);
-  if (hasPropertyAccessPath(candidateSource, ["activeWorkbench", "deleteCandidate"]) || hasPropertyAccessPath(candidateSource, ["activeWorkbench", "exportCandidateSummaries"])) {
-    findings.push(createFinding({ lawId: APP_SHELL_LAW_ID, file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "Candidate handlers must not bypass Commander public boundaries for delete/export mutations." }));
-  }
+  return hasPropertyAccessPath(candidateSource, ["activeWorkbench", "deleteCandidate"]) || hasPropertyAccessPath(candidateSource, ["activeWorkbench", "exportCandidateSummaries"])
+    ? [createFinding({ lawId: APP_SHELL_LAW_ID, file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "Candidate handlers must not bypass Commander public boundaries for delete/export mutations." })]
+    : [];
+}
 
+function collectTaskBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const taskSource = getMacShellSourceFile(project, TASK_HANDLER_PATH);
-  if (!hasStartRequiredBothCondition(taskSource)) {
-    findings.push(createFinding({ lawId: LAW_ID, file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "Task start handler must require both requestedPlatformId and selectedMapId." }));
-  }
+  return !hasStartRequiredBothCondition(taskSource)
+    ? [createFinding({ lawId: LAW_ID, file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "Task start handler must require both requestedPlatformId and selectedMapId." })]
+    : [];
+}
+
+export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhase } {
+  const project = createCommanderConsoleMacShellProject();
+  const findings = [
+    ...collectShellBoundaryFindings(project),
+    ...collectServerBoundaryFindings(project),
+    ...collectRuntimeBoundaryFindings(project),
+    ...collectCandidateBoundaryFindings(project),
+    ...collectTaskBoundaryFindings(project),
+  ];
 
   return {
     findings,
