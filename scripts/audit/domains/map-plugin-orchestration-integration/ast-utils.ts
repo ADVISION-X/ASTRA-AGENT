@@ -36,7 +36,6 @@ export const REQUIRED_SOURCE_FILES = [
 ] as const;
 
 export const REQUIRED_AUDIT_FILES = [
-  `${AUDIT_ROOT}/manifest.json`,
   `${AUDIT_ROOT}/ast-utils.ts`,
   `${AUDIT_ROOT}/required-shape.ts`,
   `${AUDIT_ROOT}/forbidden-shape.ts`,

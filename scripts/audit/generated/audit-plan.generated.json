@@ -1,8 +1,26 @@
 {
-  "generatedAt": "2026-04-30T21:56:25.786Z",
+  "generatedAt": "2026-04-30T22:04:03.527Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
+    {
+      "capabilityDomain": "map-plugin-package",
+      "inspectorId": "map-plugin-package-governance",
+      "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-MAP-PLUGIN-001-V1",
+        "GRASSEYE-MAP-PLUGIN-002-V1",
+        "GRASSEYE-MAP-PLUGIN-003-V1",
+        "GRASSEYE-MAP-PLUGIN-004-V1",
+        "GRASSEYE-MAP-PLUGIN-005-V1",
+        "GRASSEYE-MAP-PLUGIN-006-V1",
+        "GRASSEYE-MAP-PLUGIN-007-V1",
+        "GRASSEYE-MAP-PLUGIN-008-V1",
+        "GRASSEYE-MAP-PLUGIN-009-V1",
+        "GRASSEYE-MAP-PLUGIN-010-V1",
+        "GRASSEYE-MAP-PLUGIN-011-V1"
+      ]
+    },
     {
       "capabilityDomain": "audit-system",
       "inspectorId": "audit-system-owner",
@@ -266,24 +284,6 @@
         "GRASSEYE-STRUCTURED-LOGGING-007-V1",
         "GRASSEYE-STRUCTURED-LOGGING-008-V1",
         "GRASSEYE-STRUCTURED-LOGGING-009-V1"
-      ]
-    },
-    {
-      "capabilityDomain": "map-plugin-package",
-      "inspectorId": "map-plugin-package-governance",
-      "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-MAP-PLUGIN-001-V1",
-        "GRASSEYE-MAP-PLUGIN-002-V1",
-        "GRASSEYE-MAP-PLUGIN-003-V1",
-        "GRASSEYE-MAP-PLUGIN-004-V1",
-        "GRASSEYE-MAP-PLUGIN-005-V1",
-        "GRASSEYE-MAP-PLUGIN-006-V1",
-        "GRASSEYE-MAP-PLUGIN-007-V1",
-        "GRASSEYE-MAP-PLUGIN-008-V1",
-        "GRASSEYE-MAP-PLUGIN-009-V1",
-        "GRASSEYE-MAP-PLUGIN-010-V1",
-        "GRASSEYE-MAP-PLUGIN-011-V1"
       ]
     }
   ]

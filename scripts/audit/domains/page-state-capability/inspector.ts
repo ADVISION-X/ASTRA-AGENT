@@ -1,24 +1,31 @@
 import type { InspectorContext, InspectorResult } from "../../core/schema.js";
 import { finalizeInspectorResult } from "../../core/result.js";
+import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
 import { createPageStateAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runRequiredShape } from "./required-shape.js";
 
-export default async function inspectPageStateCapability(_context: InspectorContext): Promise<InspectorResult> {
+export default async function inspectPageStateCapability(context: InspectorContext): Promise<InspectorResult> {
+  const base = await runDomainOwnerInspection(context, {
+    capabilityDomain: "page-state-capability",
+    inspectorId: "page-state-capability-owner",
+    inspectorEntry: "scripts/audit/domains/page-state-capability/inspector.ts",
+  });
   const project = createPageStateAuditProject();
   const required = await runRequiredShape(project);
   const forbidden = await runForbiddenShape(project);
   const boundary = await runBoundaryAttack(project);
   const antiEscape = await runAntiEscape(project);
   const findings = [
+    ...base.findings,
     ...required.findings,
     ...forbidden.findings,
     ...boundary.findings,
     ...antiEscape.findings,
   ];
-  const phases = [required.phase, forbidden.phase, boundary.phase, antiEscape.phase];
+  const phases = [...base.phases, required.phase, forbidden.phase, boundary.phase, antiEscape.phase];
 
   return finalizeInspectorResult({
     inspector: "GrassEye Page State Capability Owner Inspector",

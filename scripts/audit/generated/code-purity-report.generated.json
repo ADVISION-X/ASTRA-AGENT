@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T21:53:48.902Z",
+  "generatedAt": "2026-04-30T22:04:12.332Z",
   "godFileInventory": [
     {
       "file": "scripts/acceptance/delivery-smoke.mjs",
@@ -93,16 +93,16 @@
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
+      "lines": 883,
       "fileType": "audit inspector",
-      "overLimitBy": 601,
+      "overLimitBy": 633,
       "functionsOverLimit": [
         "extraChecks"
       ],
       "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -742,7 +742,7 @@
     },
     {
       "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
-      "lines": 203,
+      "lines": 205,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -760,19 +760,15 @@
       "recommendedSplit": "Split audit phase by role: schema-and-runtime."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-      "lines": 271,
+      "file": "scripts/audit/domains/code-purity/components/purity-report-draft.ts",
+      "lines": 109,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
-        "createPurityFinding",
-        "collectRoleMixingSignals",
-        "inspectCleanupAndEscapes",
-        "createItem",
-        "inspectPurityMetrics"
+        "appendItemToInventories"
       ],
       "classMembers": 0,
-      "importCount": 8,
+      "importCount": 1,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [
@@ -799,16 +795,16 @@
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
+      "lines": 883,
       "fileType": "audit inspector",
-      "overLimitBy": 601,
+      "overLimitBy": 633,
       "functionsOverLimit": [
         "extraChecks"
       ],
       "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -826,6 +822,22 @@
       "importCount": 8,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 98,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspector"
+      ],
+      "classMembers": 0,
+      "importCount": 14,
+      "crossOwnerImports": 5,
+      "ownerBoundaries": 2,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -1559,15 +1571,31 @@
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
+      "lines": 883,
       "fileType": "audit inspector",
-      "overLimitBy": 601,
+      "overLimitBy": 633,
       "functionsOverLimit": [
         "extraChecks"
       ],
       "classMembers": 0,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 98,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspector"
+      ],
+      "classMembers": 0,
       "importCount": 14,
-      "crossOwnerImports": 8,
+      "crossOwnerImports": 5,
       "ownerBoundaries": 2,
       "roleMixingSignals": [],
       "severity": "DISASTER",
@@ -2355,7 +2383,7 @@
     },
     {
       "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
-      "lines": 203,
+      "lines": 205,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -2373,19 +2401,50 @@
       "recommendedSplit": "Split audit phase by role: schema-and-runtime."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-      "lines": 271,
+      "file": "scripts/audit/domains/code-purity/components/purity-metric-helpers.ts",
+      "lines": 210,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
-        "createPurityFinding",
         "collectRoleMixingSignals",
-        "inspectCleanupAndEscapes",
-        "createItem",
-        "inspectPurityMetrics"
+        "inspectCommentAndTypeEscapes",
+        "inspectFunctionLimits",
+        "inspectBoundaryAndExportLimits"
       ],
       "classMembers": 0,
       "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
+      "lines": 67,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspectPurityMetrics"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/code-purity/components/purity-report-draft.ts",
+      "lines": 109,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "appendItemToInventories"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [
@@ -2412,16 +2471,16 @@
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
+      "lines": 883,
       "fileType": "audit inspector",
-      "overLimitBy": 601,
+      "overLimitBy": 633,
       "functionsOverLimit": [
         "extraChecks"
       ],
       "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -2718,22 +2777,6 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
-      "lines": 159,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "lines": 616,
       "fileType": "audit inspector",
@@ -2881,22 +2924,6 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/map-plugin-orchestration-integration/negative-proof-harness.ts",
-      "lines": 140,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts",
       "lines": 173,
       "fileType": "audit phase",
@@ -2930,7 +2957,7 @@
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/boundary-attack.ts",
-      "lines": 140,
+      "lines": 141,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -2946,7 +2973,7 @@
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-      "lines": 101,
+      "lines": 102,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -2962,35 +2989,19 @@
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lines": 84,
+      "lines": 98,
       "fileType": "audit inspector",
       "overLimitBy": 0,
       "functionsOverLimit": [
         "inspector"
       ],
       "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
+      "importCount": 14,
+      "crossOwnerImports": 5,
+      "ownerBoundaries": 2,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-      "lines": 141,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/required-shape.ts",
@@ -3018,22 +3029,6 @@
       ],
       "classMembers": 0,
       "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-prompt-contract/negative-proof-harness.ts",
-      "lines": 58,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -3105,22 +3100,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
-      "lines": 159,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
       "lines": 137,
       "fileType": "audit phase",
@@ -3162,22 +3141,6 @@
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-      "lines": 146,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -3260,22 +3223,6 @@
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
-      "lines": 146,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -3494,22 +3441,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
-      "lines": 152,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
       "lines": 138,
       "fileType": "audit phase",
@@ -3615,22 +3546,6 @@
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
-      "lines": 194,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -7016,7 +6931,7 @@
     },
     {
       "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
-      "lines": 203,
+      "lines": 205,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -7035,16 +6950,16 @@
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
+      "lines": 883,
       "fileType": "audit inspector",
-      "overLimitBy": 601,
+      "overLimitBy": 633,
       "functionsOverLimit": [
         "extraChecks"
       ],
       "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -7120,6 +7035,22 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 98,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspector"
+      ],
+      "classMembers": 0,
+      "importCount": 14,
+      "crossOwnerImports": 5,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/mouse-click-capability/ast-utils.ts",
@@ -8461,6 +8392,22 @@
       "recommendedSplit": "Split ordinary implementation by role: generic-bucket, class-and-free-functions."
     },
     {
+      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
+      "lines": 883,
+      "fileType": "audit inspector",
+      "overLimitBy": 633,
+      "functionsOverLimit": [
+        "extraChecks"
+      ],
+      "classMembers": 0,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
       "lines": 883,
       "fileType": "audit inspector",
@@ -8473,22 +8420,6 @@
       "importCount": 8,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
-      "fileType": "audit inspector",
-      "overLimitBy": 601,
-      "functionsOverLimit": [
-        "extraChecks"
-      ],
-      "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
@@ -8770,6 +8701,22 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 98,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspector"
+      ],
+      "classMembers": 0,
+      "importCount": 14,
+      "crossOwnerImports": 5,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
       "file": "src/lib/browser/text-input-primitive-port.ts",
@@ -9660,28 +9607,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-      "lines": 271,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "createPurityFinding",
-        "collectRoleMixingSignals",
-        "inspectCleanupAndEscapes",
-        "createItem",
-        "inspectPurityMetrics"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by role: schema-and-runtime."
-    },
-    {
       "file": "scripts/audit/domains/commander-console-ui/ast-utils.ts",
       "lines": 270,
       "fileType": "audit phase",
@@ -10012,6 +9937,25 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/code-purity/components/purity-metric-helpers.ts",
+      "lines": 210,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "collectRoleMixingSignals",
+        "inspectCommentAndTypeEscapes",
+        "inspectFunctionLimits",
+        "inspectBoundaryAndExportLimits"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "src/types/local-ai.ts",
       "lines": 209,
       "fileType": "schema/type",
@@ -10024,6 +9968,25 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split schema/type by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
+      "lines": 205,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "getModuleOwner",
+        "classifyPurityFileCategory"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [
+        "schema-and-runtime"
+      ],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by role: schema-and-runtime."
     },
     {
       "file": "src/lib/local-ai/local-ai-gateway.ts",
@@ -10062,25 +10025,6 @@
       "overLimitBy": 0,
       "functionsOverLimit": [
         "runDomainOwnerInspection"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "schema-and-runtime"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by role: schema-and-runtime."
-    },
-    {
-      "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
-      "lines": 203,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "getModuleOwner",
-        "classifyPurityFileCategory"
       ],
       "classMembers": 0,
       "importCount": 4,
@@ -10167,22 +10111,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
-      "lines": 194,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/lib/storage/evidence-store/forensics-storage-adapter.ts",
@@ -10665,38 +10593,6 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
-      "lines": 159,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
-      "lines": 159,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/mouse-scroll/runtime/geometry-scroll-proof-gate.ts",
       "lines": 159,
       "fileType": "runtime/implementation",
@@ -10775,22 +10671,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
-      "lines": 152,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
@@ -10881,38 +10761,6 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
-    },
-    {
-      "file": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-      "lines": 146,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
-      "lines": 146,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/open/runtime/open-dispatch-failure.ts",
@@ -11009,40 +10857,8 @@
       "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-      "lines": 141,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-orchestration-integration/negative-proof-harness.ts",
-      "lines": 140,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/map-plugin-package/boundary-attack.ts",
-      "lines": 140,
+      "lines": 141,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -11799,6 +11615,24 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/code-purity/components/purity-report-draft.ts",
+      "lines": 109,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "appendItemToInventories"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [
+        "schema-and-runtime"
+      ],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by role: schema-and-runtime."
+    },
+    {
       "file": "scripts/audit/domains/nerve-bus-capability/anti-escape.ts",
       "lines": 109,
       "fileType": "audit phase",
@@ -11928,6 +11762,22 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
+      "lines": 102,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "runForbiddenShape"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/ai/model-roster.ts",
       "lines": 102,
       "fileType": "ordinary implementation",
@@ -11988,22 +11838,6 @@
       "importCount": 2,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-      "lines": 101,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runForbiddenShape"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
@@ -12585,22 +12419,6 @@
       ],
       "classMembers": 0,
       "importCount": 9,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lines": 84,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "inspector"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -13286,6 +13104,22 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
+      "lines": 67,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspectPurityMetrics"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/commander-console-mac-app-shell/scorecard-gate.ts",
       "lines": 67,
       "fileType": "audit phase",
@@ -13945,22 +13779,6 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by role: schema-and-runtime."
-    },
-    {
-      "file": "scripts/audit/domains/map-prompt-contract/negative-proof-harness.ts",
-      "lines": 58,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "runNegativeProofHarness"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/page-state/children/detect-safety-page/implementation.ts",
@@ -14777,6 +14595,22 @@
       "recommendedSplit": "Split ordinary implementation by role: generic-bucket, class-and-free-functions."
     },
     {
+      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
+      "lines": 883,
+      "fileType": "audit inspector",
+      "overLimitBy": 633,
+      "functionsOverLimit": [
+        "extraChecks"
+      ],
+      "classMembers": 0,
+      "importCount": 22,
+      "crossOwnerImports": 16,
+      "ownerBoundaries": 4,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
       "lines": 883,
       "fileType": "audit inspector",
@@ -14789,22 +14623,6 @@
       "importCount": 8,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "lines": 851,
-      "fileType": "audit inspector",
-      "overLimitBy": 601,
-      "functionsOverLimit": [
-        "extraChecks"
-      ],
-      "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 8,
-      "ownerBoundaries": 2,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit inspector by owner-local collaborators."

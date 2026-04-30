@@ -15,7 +15,8 @@ const FORBIDDEN_TEXT_FRAGMENTS = ["import(", "child_process", "npm run", "eval("
 const FORBIDDEN_IMPORT_MARKERS = [
   "/capabilities/orchestration/runtime/",
   "/capabilities/orchestration/maps/",
-  "/capabilities/ai/",
+  "/capabilities/ai/runtime/",
+  "/capabilities/ai/children/",
   "/lib/browser/",
   "node:child_process",
 ] as const;

@@ -58,7 +58,6 @@ const inspectCommentCleanup = (sourceFile: SourceFile, findings: Finding[], rela
   }
 };
 
-// @ts-ignore
 const inspectCleanup = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
   inspectConsoleScatter(sourceFile, findings, relativePath);
   inspectCommentCleanup(sourceFile, findings, relativePath);

@@ -1,53 +1,90 @@
 {
-  "generatedAt": "2026-04-30T21:52:32.570Z",
+  "generatedAt": "2026-04-30T22:00:54.252Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
-    "inspectors": 1,
-    "passed": 0,
+    "inspectors": 2,
+    "passed": 1,
     "failed": 1,
     "blocking": 1
   },
   "results": [
     {
+      "inspector": "GrassEye Map Plugin Package Governance Inspector",
+      "inspectorId": "map-plugin-package-governance",
+      "capabilityDomain": "map-plugin-package",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest and generated matrix align for the standalone non-phase-gated map package inspector."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package builtins remain declarative JSON and the package layer has no executable escape surfaces."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package enforcement closes through a real inspector, full audit support files, and a direct runner entry."
+        },
+        {
+          "name": "scorecard-gate",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package scorecard remains explicit, provisional, and aligned with the governed closeout gate."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map-plugin integration required schema, registry, task-template, and proof shape are established."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forbidden reverse-schema imports, platform fallback paths, ordinary mapBinding surfaces, and legacy static maps are gone."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Schema ownership, active map resolution, and ordinary task-template launch boundaries are enforced through the right seams."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package negative-proof harness rejects executable payload, hardcoded fallback, and AI draft activation mutations."
+        }
+      ],
+      "summary": "Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
       "inspector": "GrassEye Audit System Owner Inspector",
       "inspectorId": "audit-system-owner",
       "capabilityDomain": "audit-system",
       "findings": [
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/commander-console-mac-app-shell/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Owner inspector must call shared owner inspection."
-        },
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/commander-console-ui/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Owner inspector must call shared owner inspection."
-        },
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Owner inspector must call shared owner inspection."
-        },
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/page-state-capability/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Owner inspector must call shared owner inspection."
-        },
-        {
-          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          "file": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Owner inspector must call shared owner inspection."
-        },
         {
           "lawId": "GRASSEYE-CODE-PURITY-012-V1",
           "file": "scripts/acceptance/browse-live-proof.mjs",
@@ -484,35 +521,11 @@
           "message": "Function inspectCodePurity exceeds code-purity function limits."
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-012-V1",
-          "file": "scripts/audit/domains/code-purity/components/inspect-source-file.ts",
-          "line": 61,
-          "severity": "error",
-          "message": "TypeScript or ESLint suppression directives are forbidden in active source truth.",
-          "detail": "@ts-ignore"
-        },
-        {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/code-purity/components/inspect-structural-purity.ts",
           "line": 123,
           "severity": "error",
           "message": "Function inspectRuntimeEscapes exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/inspect-structural-purity.ts",
-          "line": 11,
-          "severity": "error",
-          "message": "Retired owner paths must not survive in active source truth.",
-          "detail": "features/local-data/"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/inspect-structural-purity.ts",
-          "line": 11,
-          "severity": "error",
-          "message": "Retired owner paths must not survive in active source truth.",
-          "detail": "features/platform-action/"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
@@ -536,13 +549,6 @@
           "message": "Function classifyPurityFileCategory exceeds code-purity function limits."
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
-          "line": 142,
-          "severity": "error",
-          "message": "Function getImportDeclarationSourcePaths contains a silent catch clause."
-        },
-        {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
           "file": "scripts/audit/domains/code-purity/components/purity-file-classification.ts",
           "line": 1,
@@ -558,37 +564,52 @@
           "detail": "schema-and-runtime"
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
           "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 41,
+          "line": 1,
           "severity": "error",
-          "message": "Function createPurityFinding exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 63,
-          "severity": "error",
-          "message": "Function collectRoleMixingSignals exceeds code-purity function limits."
+          "message": "File exceeds the audit phase hard limit of 350 lines.",
+          "detail": "375"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
           "line": 80,
           "severity": "error",
-          "message": "Function inspectCleanupAndEscapes exceeds code-purity function limits."
+          "message": "Function collectRoleMixingSignals exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 117,
+          "line": 112,
           "severity": "error",
-          "message": "Function createItem exceeds code-purity function limits."
+          "message": "Function inspectCommentAndTypeEscapes exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 155,
+          "line": 169,
+          "severity": "error",
+          "message": "Function inspectFunctionLimits exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
+          "line": 213,
+          "severity": "error",
+          "message": "Function inspectBoundaryAndExportLimits exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
+          "line": 267,
+          "severity": "error",
+          "message": "Function appendItemToInventories exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
+          "line": 320,
           "severity": "error",
           "message": "Function inspectPurityMetrics exceeds code-purity function limits."
         },
@@ -599,62 +620,6 @@
           "severity": "error",
           "message": "File mixes multiple roles behind neutral or broad structure.",
           "detail": "schema-and-runtime"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 38,
-          "severity": "error",
-          "message": "Retired owner paths must not survive in active source truth.",
-          "detail": "features/local-data/"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 38,
-          "severity": "error",
-          "message": "Retired owner paths must not survive in active source truth.",
-          "detail": "features/platform-action/"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 39,
-          "severity": "error",
-          "message": "Fake, fallback, no-op, or TODO success markers are forbidden in active source truth.",
-          "detail": "fake success"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 39,
-          "severity": "error",
-          "message": "Fake, fallback, no-op, or TODO success markers are forbidden in active source truth.",
-          "detail": "fallback success"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 39,
-          "severity": "error",
-          "message": "Fake, fallback, no-op, or TODO success markers are forbidden in active source truth.",
-          "detail": "no-op success"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 39,
-          "severity": "error",
-          "message": "Fake, fallback, no-op, or TODO success markers are forbidden in active source truth.",
-          "detail": "todo success"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-008-V1",
-          "file": "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
-          "line": 237,
-          "severity": "error",
-          "message": "Fake, fallback, no-op, or TODO success markers are forbidden in active source truth.",
-          "detail": "fake, fallback, no-op, or todo success markers are forbidden in active source truth."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-007-V1",
@@ -733,12 +698,12 @@
           "line": 1,
           "severity": "error",
           "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "851"
+          "detail": "883"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
-          "line": 315,
+          "line": 323,
           "severity": "error",
           "message": "Function extraChecks exceeds code-purity function limits."
         },
@@ -877,13 +842,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-ui/negative-proof-harness.ts",
-          "line": 95,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/commander-console-ui/required-shape.ts",
           "line": 29,
           "severity": "error",
@@ -940,13 +898,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/negative-proof-harness.ts",
-          "line": 89,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/commander-console-user-love/required-shape.ts",
           "line": 29,
           "severity": "error",
@@ -987,13 +938,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
-          "line": 104,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
@@ -1142,13 +1086,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/map-plugin-orchestration-integration/negative-proof-harness.ts",
-          "line": 85,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts",
           "line": 25,
           "severity": "error",
@@ -1192,16 +1129,30 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-          "line": 23,
+          "line": 24,
           "severity": "error",
           "message": "Function runForbiddenShape exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-          "line": 14,
+          "line": 18,
           "severity": "error",
           "message": "Function inspector exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
@@ -1209,13 +1160,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-          "line": 85,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -1251,20 +1195,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-012-V1",
-          "file": "scripts/audit/domains/map-prompt-contract/negative-proof-harness.ts",
-          "line": 9,
-          "severity": "error",
-          "message": "dynamic import() is forbidden in active source truth unless separately governed."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/map-prompt-contract/negative-proof-harness.ts",
-          "line": 7,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -1310,13 +1240,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
-          "line": 103,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
           "line": 31,
           "severity": "error",
@@ -1349,13 +1272,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-          "line": 91,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -1419,13 +1335,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
-          "line": 91,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -1635,13 +1544,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
-          "line": 97,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
           "line": 8,
           "severity": "error",
@@ -1717,13 +1619,6 @@
           "line": 1,
           "severity": "error",
           "message": "Default export is forbidden unless explicitly governed by a domain law."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
-          "line": 139,
-          "severity": "error",
-          "message": "Function runNegativeProofHarness exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -4857,9 +4752,9 @@
         },
         {
           "name": "owner-evidence",
-          "classification": "FAKE ENFORCEMENT",
-          "passed": false,
-          "summary": "Some owner inspectors do not provide authentic owner evidence."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Every owner inspector exposes shared owner evidence and domain alignment."
         },
         {
           "name": "audit-quality-authority",
@@ -4978,8 +4873,8 @@
       ],
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
-      "classification": "FAKE ENFORCEMENT",
-      "violationCount": 674
+      "classification": "CODE VIOLATION",
+      "violationCount": 650
     }
   ]
 }

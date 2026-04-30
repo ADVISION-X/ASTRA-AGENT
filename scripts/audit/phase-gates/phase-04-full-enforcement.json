@@ -1,6 +1,7 @@
 {
   "phase": "phase-04-full-enforcement",
   "activeCapabilityDomains": [
+    "map-plugin-package",
     "audit-system",
     "capability-group-governance",
     "type-safety",
@@ -18,7 +19,6 @@
     "text-input-capability",
     "mouse-scroll-capability",
     "visual-target-capability",
-    "forensics-persistence-capability",
-    "map-plugin-package"
+    "forensics-persistence-capability"
   ]
 }

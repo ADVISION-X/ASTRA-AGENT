@@ -8,6 +8,10 @@ import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runScorecardGate } from "./scorecard-gate.js";
+import { createIntegrationAuditProject } from "../map-plugin-orchestration-integration/ast-utils.js";
+import { runBoundaryAttack as runIntegrationBoundaryAttack } from "../map-plugin-orchestration-integration/boundary-attack.js";
+import { runForbiddenShape as runIntegrationForbiddenShape } from "../map-plugin-orchestration-integration/forbidden-shape.js";
+import { runRequiredShape as runIntegrationRequiredShape } from "../map-plugin-orchestration-integration/required-shape.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
@@ -38,6 +42,10 @@ const inspector: DomainInspector = async (context) => {
   const boundary = runBoundaryAttack(project);
   const antiEscape = await runAntiEscape(project, context);
   const scorecard = await runScorecardGate();
+  const integrationProject = createIntegrationAuditProject();
+  const integrationRequired = await runIntegrationRequiredShape(integrationProject);
+  const integrationForbidden = await runIntegrationForbiddenShape(integrationProject);
+  const integrationBoundary = runIntegrationBoundaryAttack(integrationProject);
   const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
     ? {
         findings: [],
@@ -57,6 +65,9 @@ const inspector: DomainInspector = async (context) => {
     ...boundary.findings,
     ...antiEscape.findings,
     ...scorecard.findings,
+    ...integrationRequired.findings,
+    ...integrationForbidden.findings,
+    ...integrationBoundary.findings,
     ...negativeProof.findings,
   ];
 
@@ -67,6 +78,9 @@ const inspector: DomainInspector = async (context) => {
     boundary.phase,
     antiEscape.phase,
     scorecard.phase,
+    integrationRequired.phase,
+    integrationForbidden.phase,
+    integrationBoundary.phase,
     negativeProof.phase,
   ];
 

@@ -106,7 +106,7 @@ export function runBoundaryAttack(project: Project): { findings: Finding[]; phas
   }
 
   const commanderViewModel = getSource(project, COMMANDER_VIEW_MODEL);
-  if (!hasCallExpression(commanderViewModel, "listDeveloperCatalog") || !hasCallExpression(commanderViewModel, "getDefaultMapPluginRegistry")) {
+  if (!hasCallExpression(commanderViewModel, "buildMapCatalog")) {
     findings.push(createFinding({
       lawId: "GRASSEYE-MAP-PLUGIN-005-V1",
       file: COMMANDER_VIEW_MODEL,

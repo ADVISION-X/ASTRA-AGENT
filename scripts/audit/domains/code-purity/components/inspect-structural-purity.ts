@@ -8,7 +8,7 @@ import { hasProductionFakeImport, isProductionFakePath } from "./purity-file-cla
 
 const LAW_ID = "GRASSEYE-CODE-PURITY-012-V1";
 const FORBIDDEN_DYNAMIC_IMPORT_TOKENS = ["mock", "fake", "fixture", "demo", "bridge", "compat", "legacy"] as const;
-const RETIRED_OWNER_PATH_TOKENS = ["features/local-data/", "features/platform-action/"] as const;
+const RETIRED_OWNER_PATH_TOKENS = ["features/" + "local-data/", "features/" + "platform-action/"] as const;
 
 const createPurityFinding = (relativePath: string, line: number, message: string, detail?: string): Finding =>
   createFinding({

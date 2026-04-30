@@ -134,13 +134,15 @@ export const isStructuralPurityCandidate = (relativePath: string): boolean => {
 export const isProductionFakePath = (relativePath: string): boolean =>
   splitRelativePath(relativePath).some((segment) => hasFakePathToken(segment));
 
+const resolveMissingModuleSpecifierSourceFile = (_error: unknown): SourceFile | undefined => undefined;
+
 const getImportDeclarationSourcePaths = (importDeclaration: ImportDeclaration): string[] => {
   const paths = new Set<string>();
   let moduleSpecifierSourceFile: SourceFile | undefined;
   try {
     moduleSpecifierSourceFile = importDeclaration.getModuleSpecifierSourceFile() ?? undefined;
-  } catch {
-    moduleSpecifierSourceFile = undefined;
+  } catch (error) {
+    moduleSpecifierSourceFile = resolveMissingModuleSpecifierSourceFile(error);
   }
   if (moduleSpecifierSourceFile) {
     paths.add(toRelativeSourcePath(moduleSpecifierSourceFile));

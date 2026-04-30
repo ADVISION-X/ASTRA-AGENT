@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T21:56:25.786Z",
+  "generatedAt": "2026-04-30T22:04:03.527Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -163,83 +163,6 @@
       ]
     },
     {
-      "inspectorId": "commander-console-mac-app-shell-owner",
-      "capabilityDomain": "commander-console-mac-app-shell",
-      "manifestPath": "scripts/audit/domains/commander-console-mac-app-shell/manifest.json",
-      "entry": "scripts/audit/domains/commander-console-mac-app-shell/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
-      ],
-      "lawIds": [],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/audit/commander-console-ui-atomic-quality.md",
-        "docs/audit/commander-console-mac-app-shell-scorecard.md",
-        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Commander Console 总司令页面施工图.md"
-      ]
-    },
-    {
-      "inspectorId": "commander-console-ui-owner",
-      "capabilityDomain": "commander-console-ui",
-      "manifestPath": "scripts/audit/domains/commander-console-ui/manifest.json",
-      "entry": "scripts/audit/domains/commander-console-ui/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
-      ],
-      "lawIds": [],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
-        "docs/归档/prototypes/ge-console-v6-blueprint-pages.html"
-      ]
-    },
-    {
-      "inspectorId": "commander-console-user-love-owner",
-      "capabilityDomain": "commander-console-user-love",
-      "manifestPath": "scripts/audit/domains/commander-console-user-love/manifest.json",
-      "entry": "scripts/audit/domains/commander-console-user-love/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
-      ],
-      "lawIds": [],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/audit/commander-console-user-love-scorecard.md",
-        "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md",
-        "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md",
-        "docs/法案辅助文件/GrassEye 执法系统施工图.md",
-        "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
-      ]
-    },
-    {
       "inspectorId": "forensics-persistence-owner",
       "capabilityDomain": "forensics-persistence-capability",
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
@@ -308,31 +231,6 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md"
-      ]
-    },
-    {
-      "inspectorId": "map-plugin-orchestration-integration",
-      "capabilityDomain": "map-plugin-orchestration-integration",
-      "manifestPath": "scripts/audit/domains/map-plugin-orchestration-integration/manifest.json",
-      "entry": "scripts/audit/domains/map-plugin-orchestration-integration/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
-      ],
-      "lawIds": [],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
-        "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
-        "docs/audit/map-plugin-orchestration-integration-scorecard.md"
       ]
     },
     {

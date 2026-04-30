@@ -73,13 +73,13 @@ export async function runAntiEscape(
       severity: "fatal",
       message: "Map package manifest must exist so audit runner ownership can resolve.",
     }));
-  } else if (manifest.allowedLawIds.length !== 7) {
+  } else if (manifest.allowedLawIds.length !== 11) {
     findings.push(createFinding({
       lawId: "GRASSEYE-MAP-PLUGIN-007-V1",
       file: manifest.manifestPath,
       line: 1,
       severity: "fatal",
-      message: "Map package manifest must declare the full seven-law governance set.",
+      message: "Map package manifest must declare the full active map-plugin governance set.",
     }));
   }
 

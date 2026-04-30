@@ -21,6 +21,14 @@ import { runBoundaryAttack as runMacShellBoundaryAttack } from "../commander-con
 import { runForbiddenShapeAttack as runMacShellForbiddenShapeAttack } from "../commander-console-mac-app-shell/forbidden-shape.js";
 import { runRequiredShapeAttack as runMacShellRequiredShapeAttack } from "../commander-console-mac-app-shell/required-shape.js";
 import { runScorecardGate as runCommanderMacShellScorecardGate } from "../commander-console-mac-app-shell/scorecard-gate.js";
+import { runAntiEscapeAttack as runCommanderUiAntiEscapeAttack } from "../commander-console-ui/anti-escape.js";
+import { runBoundaryAttack as runCommanderUiBoundaryAttack } from "../commander-console-ui/boundary-attack.js";
+import { runRequiredShapeAttack as runCommanderUiRequiredShapeAttack } from "../commander-console-ui/required-shape.js";
+import { runAntiEscapeAttack as runCommanderUserLoveAntiEscapeAttack } from "../commander-console-user-love/anti-escape.js";
+import { runBoundaryAttack as runCommanderUserLoveBoundaryAttack } from "../commander-console-user-love/boundary-attack.js";
+import { runForbiddenShapeAttack as runCommanderUserLoveForbiddenShapeAttack } from "../commander-console-user-love/forbidden-shape.js";
+import { runRequiredShapeAttack as runCommanderUserLoveRequiredShapeAttack } from "../commander-console-user-love/required-shape.js";
+import { runScorecardGate as runCommanderUserLoveScorecardGate } from "../commander-console-user-love/scorecard-gate.js";
 
 const ROOT = "src/capabilities/commander-console";
 const CHILDREN_ROOT = `${ROOT}/children`;
@@ -793,6 +801,14 @@ export default createPendingDomainInspector({
     const macShellAntiEscape = runMacShellAntiEscapeAttack();
     const commanderAtomicQuality = await runCommanderAtomicQualityGate();
     const commanderMacShellScorecard = await runCommanderMacShellScorecardGate();
+    const commanderUiRequired = await runCommanderUiRequiredShapeAttack();
+    const commanderUiBoundary = runCommanderUiBoundaryAttack();
+    const commanderUiAntiEscape = runCommanderUiAntiEscapeAttack();
+    const commanderUserLoveRequired = await runCommanderUserLoveRequiredShapeAttack();
+    const commanderUserLoveForbidden = await runCommanderUserLoveForbiddenShapeAttack();
+    const commanderUserLoveBoundary = runCommanderUserLoveBoundaryAttack();
+    const commanderUserLoveAntiEscape = runCommanderUserLoveAntiEscapeAttack();
+    const commanderUserLoveScorecard = await runCommanderUserLoveScorecardGate();
 
     findings.push(
       ...macShellRequired.findings,
@@ -801,6 +817,14 @@ export default createPendingDomainInspector({
       ...macShellAntiEscape.findings,
       ...commanderAtomicQuality.findings,
       ...commanderMacShellScorecard.findings,
+      ...commanderUiRequired.findings,
+      ...commanderUiBoundary.findings,
+      ...commanderUiAntiEscape.findings,
+      ...commanderUserLoveRequired.findings,
+      ...commanderUserLoveForbidden.findings,
+      ...commanderUserLoveBoundary.findings,
+      ...commanderUserLoveAntiEscape.findings,
+      ...commanderUserLoveScorecard.findings,
     );
 
     return {
@@ -844,6 +868,14 @@ export default createPendingDomainInspector({
         macShellAntiEscape.phase,
         commanderAtomicQuality.phase,
         commanderMacShellScorecard.phase,
+        commanderUiRequired.phase,
+        commanderUiBoundary.phase,
+        commanderUiAntiEscape.phase,
+        commanderUserLoveRequired.phase,
+        commanderUserLoveForbidden.phase,
+        commanderUserLoveBoundary.phase,
+        commanderUserLoveAntiEscape.phase,
+        commanderUserLoveScorecard.phase,
       ],
     };
   },
