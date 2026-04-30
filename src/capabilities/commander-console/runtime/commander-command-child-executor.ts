@@ -74,25 +74,66 @@ const buildTransportFlags = (input: {
   return flags;
 };
 
+const buildBlockedCommandReceipt = (gated: Extract<ReturnType<typeof gateCommanderCommand>, { ok: false }>) => buildCommandReceipt({
+  commandId: gated.commandId,
+  commandType: gated.commandType,
+  priority: gated.priority,
+  envelopeRef: null,
+  resultEnvelopeRef: null,
+  transportStatus: "failed",
+  failureReason: gated.reason,
+  reviewRequiredReason: null,
+  targetMissionId: gated.targetMissionId,
+  targetRecordId: gated.targetRecordRef?.recordId ?? null,
+  message: gated.reason,
+});
+
+const buildBlockedCommandFlags = (input: {
+  contract: CommanderCommandChildContract;
+  reason: string;
+}) => [
+  commanderFlag(
+    input.contract.childCapabilityId === "emergency-stop" ? "hard_stop_gate_failed" : "command_gate_blocked",
+    "fatal",
+    input.reason,
+  ),
+];
+
+const buildTransportOutcomeReceipt = (input: {
+  gated: Extract<ReturnType<typeof gateCommanderCommand>, { ok: true }>;
+  transport: ReturnType<typeof parseCommandTransportResult>;
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+}) => buildCommandReceipt({
+  commandId: input.gated.command.commandId,
+  commandType: input.gated.command.commandType,
+  priority: input.gated.command.priority,
+  envelopeRef: input.transport.envelopeRef,
+  resultEnvelopeRef: input.transport.resultEnvelopeRef,
+  transportStatus: input.transport.status,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason,
+  targetMissionId: input.gated.command.targetMissionId,
+  targetRecordId: input.gated.command.targetRecordRef?.recordId ?? null,
+  message: input.transport.message,
+});
+
+const resolveTransportOutcomeState = (transport: ReturnType<typeof parseCommandTransportResult>) => {
+  const status = transport.status === "accepted" ? "success" : transport.status;
+  return {
+    status,
+    failureReason: status === "failed" ? (transport.failureReason ?? transport.message) : null,
+    reviewRequiredReason: status === "review_required" ? (transport.reviewRequiredReason ?? transport.message) : null,
+  };
+};
+
 const createBlockedCommandOutcome = (input: {
   contract: CommanderCommandChildContract;
   commandInput: CommanderHumanCommandInput;
   gated: Extract<ReturnType<typeof gateCommanderCommand>, { ok: false }>;
 }): CommanderExecutionOutcome<CommanderCommandReceiptView> => ({
   status: "failed",
-  output: buildCommandReceipt({
-    commandId: input.gated.commandId,
-    commandType: input.gated.commandType,
-    priority: input.gated.priority,
-    envelopeRef: null,
-    resultEnvelopeRef: null,
-    transportStatus: "failed",
-    failureReason: input.gated.reason,
-    reviewRequiredReason: null,
-    targetMissionId: input.gated.targetMissionId,
-    targetRecordId: input.gated.targetRecordRef?.recordId ?? null,
-    message: input.gated.reason,
-  }),
+  output: buildBlockedCommandReceipt(input.gated),
   failureReason: input.gated.reason,
   reviewRequiredReason: null,
   inputRef: input.gated.inputRef,
@@ -107,13 +148,7 @@ const createBlockedCommandOutcome = (input: {
   readModelSource: null,
   targetRecordRef: input.gated.targetRecordRef,
   evidenceRefs: deriveCommandEvidenceRefs(input.commandInput, input.contract.evidencePolicy),
-  dataQualityFlags: [
-    commanderFlag(
-      input.contract.childCapabilityId === "emergency-stop" ? "hard_stop_gate_failed" : "command_gate_blocked",
-      "fatal",
-      input.gated.reason,
-    ),
-  ],
+  dataQualityFlags: buildBlockedCommandFlags({ contract: input.contract, reason: input.gated.reason }),
   boundaryDecision: input.contract.boundaryDecision,
   commandDecision: "blocked-by-command-gate",
   readDecision: null,
@@ -128,26 +163,17 @@ const createTransportOutcome = (input: {
   gated: Extract<ReturnType<typeof gateCommanderCommand>, { ok: true }>;
   transport: ReturnType<typeof parseCommandTransportResult>;
 }): CommanderExecutionOutcome<CommanderCommandReceiptView> => {
-  const status = input.transport.status === "accepted" ? "success" : input.transport.status;
-  const failureReason = status === "failed" ? (input.transport.failureReason ?? input.transport.message) : null;
-  const reviewRequiredReason = status === "review_required" ? (input.transport.reviewRequiredReason ?? input.transport.message) : null;
+  const outcomeState = resolveTransportOutcomeState(input.transport);
   return {
-    status,
-    output: buildCommandReceipt({
-      commandId: input.gated.command.commandId,
-      commandType: input.gated.command.commandType,
-      priority: input.gated.command.priority,
-      envelopeRef: input.transport.envelopeRef,
-      resultEnvelopeRef: input.transport.resultEnvelopeRef,
-      transportStatus: input.transport.status,
-      failureReason,
-      reviewRequiredReason,
-      targetMissionId: input.gated.command.targetMissionId,
-      targetRecordId: input.gated.command.targetRecordRef?.recordId ?? null,
-      message: input.transport.message,
+    status: outcomeState.status,
+    output: buildTransportOutcomeReceipt({
+      gated: input.gated,
+      transport: input.transport,
+      failureReason: outcomeState.failureReason,
+      reviewRequiredReason: outcomeState.reviewRequiredReason,
     }),
-    failureReason,
-    reviewRequiredReason,
+    failureReason: outcomeState.failureReason,
+    reviewRequiredReason: outcomeState.reviewRequiredReason,
     inputRef: input.gated.inputRef,
     outputRef: `commander_receipt:${input.gated.command.commandId}`,
     commandId: input.gated.command.commandId,
@@ -163,15 +189,15 @@ const createTransportOutcome = (input: {
     dataQualityFlags: buildTransportFlags({
       childCapabilityId: input.contract.childCapabilityId,
       envelopeRef: input.transport.envelopeRef,
-      status,
+      status: outcomeState.status,
       transportMessage: input.transport.message,
     }),
     boundaryDecision: input.contract.boundaryDecision,
     commandDecision: "accepted-by-command-gate",
     readDecision: null,
     transportDecision: input.transport.status,
-    hardStopDecision: resolveHardStopDecision({ hardStopPriority: input.contract.hardStopPriority, status }),
-    policyDecision: status === "success" ? "allowed" : status === "review_required" ? "review_required" : "blocked",
+    hardStopDecision: resolveHardStopDecision({ hardStopPriority: input.contract.hardStopPriority, status: outcomeState.status }),
+    policyDecision: outcomeState.status === "success" ? "allowed" : outcomeState.status === "review_required" ? "review_required" : "blocked",
   };
 };
 

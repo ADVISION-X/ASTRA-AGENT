@@ -4,15 +4,17 @@ import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import { getTypeAliasPropertyNames } from "../_shared/ast-schema-queries.js";
+import {
+  hasLiteralTextFragment,
+  hasNullishCoalescingLiteral,
+} from "../_shared/ast-literal-queries.js";
+import { hasExportModuleSpecifier } from "../_shared/ast-module-path-queries.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
-  getTypeAliasPropertyNames,
   hasAnyKeyword,
-  hasExportModuleSpecifier,
   hasImportModuleSpecifier,
-  hasLiteralTextFragment,
-  hasNullishCoalescingLiteral,
   hasPropertyAccessPath,
 } from "../_shared/ast-helpers.js";
 

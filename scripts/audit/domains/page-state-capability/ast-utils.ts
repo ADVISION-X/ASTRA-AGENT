@@ -1,6 +1,8 @@
 import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
-import { createAuditProject, getSourceFileOrThrow, hasCallExpression, hasCallExpressionPath, hasExportModuleSpecifier, hasImportModuleSpecifier, hasLiteralTextFragment } from "../_shared/ast-helpers.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
+import { hasExportModuleSpecifier } from "../_shared/ast-module-path-queries.js";
+import { createAuditProject, getSourceFileOrThrow, hasCallExpression, hasCallExpressionPath, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { fileExists } from "../../core/filesystem.js";
 

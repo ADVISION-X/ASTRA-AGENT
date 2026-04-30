@@ -2,10 +2,10 @@ import { fileExists } from "../../core/filesystem.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
-  hasInterfaceMethod,
 } from "../_shared/ast-helpers.js";
 
 const LAW_ID = "GRASSEYE-PLATFORM-ACTION-001-V1";

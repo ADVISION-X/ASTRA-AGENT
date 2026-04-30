@@ -3,7 +3,9 @@ import { Node, SyntaxKind, type CallExpression, type SourceFile } from "ts-morph
 import { toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createAuditProject, getSourceFileOrThrow, getTypeAliasPropertyNames, getZodObjectPropertyNames, hasAnyKeyword, hasConsoleLog } from "../_shared/ast-helpers.js";
+import { getTypeAliasPropertyNames, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
+import { hasConsoleLog } from "../_shared/ast-literal-queries.js";
+import { createAuditProject, getSourceFileOrThrow, hasAnyKeyword } from "../_shared/ast-helpers.js";
 
 const LAW_DISCIPLINE = "GRASSEYE-STRUCTURED-LOGGING-001-V1";
 const LAW_TRACEABILITY = "GRASSEYE-STRUCTURED-LOGGING-002-V2";

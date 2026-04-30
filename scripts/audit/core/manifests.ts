@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileExists, listImmediateDirectories, readJsonFile } from "./filesystem.js";
 import { domainsHome } from "./path-roots.js";
 import { toRepoRelativePath } from "./paths.js";
-import type { ResolvedDomainManifest } from "./schema.js";
+import type { ResolvedDomainManifest } from "./schema-manifests.js";
 
 export const loadDomainManifests = async (): Promise<ResolvedDomainManifest[]> => {
   const domainDirs = (await listImmediateDirectories(domainsHome)).sort();

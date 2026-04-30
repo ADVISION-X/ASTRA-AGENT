@@ -3,7 +3,8 @@ import { Node, SyntaxKind, type ImportDeclaration, type Project, type SourceFile
 import { fileExists, listFilesRecursive, readJsonFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
-import type { DomainManifest, Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
+import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
+import type { DomainManifest } from "../../core/schema-manifests.js";
 import {
   createAuditProject,
   flattenPropertyAccess,

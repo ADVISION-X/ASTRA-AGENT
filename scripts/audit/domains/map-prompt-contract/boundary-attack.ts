@@ -1,6 +1,7 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasImportModuleSpecifier, hasLiteralTextFragment } from "../_shared/ast-helpers.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
+import { hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { createMapPromptContractAuditProject, getSource } from "./ast-utils.js";
 
 const LAW_ID = "GRASSEYE-MAP-PLUGIN-011-V1";

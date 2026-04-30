@@ -2,7 +2,7 @@ import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
-import { hasIdentifier, hasLiteralTextFragment } from "../_shared/ast-helpers.js";
+import { hasIdentifier, hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 import { createRuntimeDebugTransparencyProject, getSource } from "./ast-utils.js";
 
 const LAW_ID = "GRASSEYE-STRUCTURED-LOGGING-002-V2";

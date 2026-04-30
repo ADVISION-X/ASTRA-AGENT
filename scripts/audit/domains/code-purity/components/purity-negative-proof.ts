@@ -1,4 +1,4 @@
-import { rm, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 
 import { Project } from "ts-morph";
 
@@ -17,16 +17,12 @@ const sandboxSource = (body: string): string => `${body}\n`;
 const inspectSandbox = async (source: string): Promise<Finding[]> => {
   const filePath = pathFromRepoRoot(SANDBOX_FILE);
   await writeFile(filePath, source, "utf8");
-  try {
-    const project = new Project({
-      tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
-      skipAddingFilesFromTsConfig: true,
-    });
-    const sourceFile = project.addSourceFileAtPath(filePath);
-    return inspectPurityMetrics(sourceFile, SANDBOX_FILE, new Set([SANDBOX_FILE]), createEmptyPurityReport());
-  } finally {
-    await rm(filePath, { force: true });
-  }
+  const project = new Project({
+    tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
+    skipAddingFilesFromTsConfig: true,
+  });
+  const sourceFile = project.addSourceFileAtPath(filePath);
+  return inspectPurityMetrics(sourceFile, SANDBOX_FILE, new Set([SANDBOX_FILE]), createEmptyPurityReport());
 };
 
 const ensureFinding = (findings: Finding[], lawId: string, label: string): void => {
@@ -92,7 +88,7 @@ const createNegativeProofPhase = (findings: Finding[]): InspectorPhase =>
     findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
     findings.length === 0,
     findings.length === 0
-      ? "Negative proof mutates sandbox source, proves fail, deletes the sandbox, and proves rollback PASS."
+      ? "Negative proof mutates sandbox source, proves fail, resets the sandbox, and proves rollback PASS."
       : "Negative proof failed to demonstrate sandbox mutation rejection and rollback recovery.",
   );
 

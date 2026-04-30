@@ -2,7 +2,7 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasLiteralTextFragment } from "../_shared/ast-helpers.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 import { getOwnedSources, getSource, hasDateOutsideClock, hasForbiddenEscape, ROOT } from "./ast-utils.js";
 
 export async function runForbiddenShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

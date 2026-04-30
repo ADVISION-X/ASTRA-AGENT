@@ -2,14 +2,14 @@ import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
+import { hasExportModuleSpecifier } from "../_shared/ast-module-path-queries.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
   hasCallExpression,
   hasCallExpressionPath,
-  hasExportModuleSpecifier,
   hasImportModuleSpecifier,
-  hasLiteralTextFragment,
 } from "../_shared/ast-helpers.js";
 
 export const ROOT = "src/capabilities/post-action-verification";

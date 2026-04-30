@@ -1,7 +1,8 @@
 import { listFilesRecursive } from "../../core/filesystem.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createAuditProject, getClassMethod, getSourceFileOrThrow, getZodEnumValues, getZodObjectPropertyNames, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
+import { getClassMethod, getZodEnumValues, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
+import { createAuditProject, getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 
 const LAW_ID = "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1";
 const TYPES_PATH = "src/types/local-persistence.ts";

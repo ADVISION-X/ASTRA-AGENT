@@ -1,7 +1,8 @@
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
-import type { Finding, InspectorContext, InspectorPhase, ResolvedDomainManifest } from "../../core/schema.js";
+import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
+import type { ResolvedDomainManifest } from "../../core/schema-manifests.js";
 
 export type DomainOwnerInspectionOptions = {
   capabilityDomain: string;

@@ -2,7 +2,8 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpressionPath, hasCallExpressionWithStringLiteralArgument, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
+import { hasCallExpressionWithStringLiteralArgument } from "../_shared/ast-module-path-queries.js";
+import { hasCallExpressionPath, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { contractLeaksInternalTypes, getRepoPath, getScreenshotSources, getSource, hasPublicIndexLeak, usesForbiddenCapabilityImport, ROOT } from "./ast-utils.js";
 
 export function runForbiddenShape(project: Project): { findings: Finding[]; phase: InspectorPhase } {

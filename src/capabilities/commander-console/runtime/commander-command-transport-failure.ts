@@ -12,6 +12,34 @@ const buildTransportFailureReason = (error: unknown) => (
     : "Commander command transport failed unexpectedly."
 );
 
+const buildTransportFailureReceipt = (input: {
+  gated: Extract<ReturnType<typeof gateCommanderCommand>, { ok: true }>;
+  failureReason: string;
+}) => buildCommanderCommandReceipt({
+  commandId: input.gated.command.commandId,
+  commandType: input.gated.command.commandType,
+  priority: input.gated.command.priority,
+  envelopeRef: null,
+  resultEnvelopeRef: null,
+  transportStatus: "failed",
+  failureReason: input.failureReason,
+  reviewRequiredReason: null,
+  targetMissionId: input.gated.command.targetMissionId,
+  targetRecordId: input.gated.command.targetRecordRef?.recordId ?? null,
+  message: input.failureReason,
+});
+
+const buildTransportFailureFlags = (input: {
+  contract: CommanderCommandChildContract;
+  failureReason: string;
+}) => [
+  commanderFlag(
+    input.contract.childCapabilityId === "emergency-stop" ? "hard_stop_guarded" : "transport_guarded",
+    "fatal",
+    input.failureReason,
+  ),
+];
+
 export const createTransportFailureOutcome = (input: {
   contract: CommanderCommandChildContract;
   commandInput: CommanderHumanCommandInput;
@@ -21,19 +49,7 @@ export const createTransportFailureOutcome = (input: {
   const failureReason = buildTransportFailureReason(input.error);
   return {
     status: "failed",
-    output: buildCommanderCommandReceipt({
-      commandId: input.gated.command.commandId,
-      commandType: input.gated.command.commandType,
-      priority: input.gated.command.priority,
-      envelopeRef: null,
-      resultEnvelopeRef: null,
-      transportStatus: "failed",
-      failureReason,
-      reviewRequiredReason: null,
-      targetMissionId: input.gated.command.targetMissionId,
-      targetRecordId: input.gated.command.targetRecordRef?.recordId ?? null,
-      message: failureReason,
-    }),
+    output: buildTransportFailureReceipt({ gated: input.gated, failureReason }),
     failureReason,
     reviewRequiredReason: null,
     inputRef: input.gated.inputRef,
@@ -48,13 +64,7 @@ export const createTransportFailureOutcome = (input: {
     readModelSource: null,
     targetRecordRef: deriveCommandTargetRecordRef(input.commandInput),
     evidenceRefs: deriveCommandEvidenceRefs(input.commandInput, input.contract.evidencePolicy),
-    dataQualityFlags: [
-      commanderFlag(
-        input.contract.childCapabilityId === "emergency-stop" ? "hard_stop_guarded" : "transport_guarded",
-        "fatal",
-        failureReason,
-      ),
-    ],
+    dataQualityFlags: buildTransportFailureFlags({ contract: input.contract, failureReason }),
     boundaryDecision: input.contract.boundaryDecision,
     commandDecision: "accepted-by-command-gate",
     readDecision: null,

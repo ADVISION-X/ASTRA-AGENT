@@ -5,18 +5,20 @@ import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { getNodeLine, getReferencePaths } from "../../core/ts-morph.js";
 import type { Finding } from "../../core/schema.js";
+import { getZodEnumValues } from "../_shared/ast-schema-queries.js";
 import {
-  createAuditProject,
-  getSourceFileOrThrow,
-  getZodEnumValues,
-  hasAnyKeyword,
-  hasCallExpression,
-  hasCallExpressionPath,
-  hasImportModuleSpecifier,
   hasLiteralTextFragment,
   hasMethodNamed,
   hasPropertyNamed,
   hasTypeReference,
+} from "../_shared/ast-literal-queries.js";
+import {
+  createAuditProject,
+  getSourceFileOrThrow,
+  hasAnyKeyword,
+  hasCallExpression,
+  hasCallExpressionPath,
+  hasImportModuleSpecifier,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { inspectLocalBrowserSessionBoundary } from "../local-browser-session/inspector.js";

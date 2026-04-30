@@ -5,7 +5,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
 import { getAuditProject, getNodeLine, toRelativeSourcePath } from "../../core/ts-morph.js";
-import { getZodObjectPropertyNames } from "../_shared/ast-helpers.js";
+import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { inspectCodeTopology } from "../code-topology/components/inspect-code-topology.js";
 

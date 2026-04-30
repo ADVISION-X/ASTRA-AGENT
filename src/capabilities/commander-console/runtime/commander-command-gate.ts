@@ -140,20 +140,20 @@ const createCommandGateFailure = (input: {
   reason: input.reason,
 });
 
-export function gateCommanderCommand(input: {
+const parseCommandGateInput = (input: {
   childCapabilityId: CommanderCommandChildAbilityId;
   operatorRef: string;
   commandInput: CommanderHumanCommandInput;
-}): CommanderCommandGateResult {
-  const inputRef = createId("commander_command_input");
-  const commandId = createId("commander_command");
-  const expectedCommandType = commandOwnedByChild(input.childCapabilityId);
+  inputRef: string;
+  commandId: string;
+  expectedCommandType: CommanderCommandType;
+}) => {
   const parsed = HumanCommandInputSchema.safeParse(input.commandInput);
   if (!parsed.success) {
     return createCommandGateFailure({
-      inputRef,
-      commandId,
-      commandType: expectedCommandType,
+      inputRef: input.inputRef,
+      commandId: input.commandId,
+      commandType: input.expectedCommandType,
       targetMissionId: input.commandInput.targetMissionId ?? null,
       targetRecordRef: input.commandInput.targetRecordRef ?? null,
       reason: parsed.error.issues[0]?.message ?? "Commander command input failed schema validation.",
@@ -162,30 +162,30 @@ export function gateCommanderCommand(input: {
 
   if (!input.operatorRef.trim()) {
     return createCommandGateFailure({
-      inputRef,
-      commandId,
-      commandType: expectedCommandType,
+      inputRef: input.inputRef,
+      commandId: input.commandId,
+      commandType: input.expectedCommandType,
       targetMissionId: parsed.data.targetMissionId ?? null,
       targetRecordRef: parsed.data.targetRecordRef ?? null,
       reason: "operatorRef is required.",
     });
   }
 
-  if (parsed.data.commandType !== expectedCommandType) {
+  if (parsed.data.commandType !== input.expectedCommandType) {
     return createCommandGateFailure({
-      inputRef,
-      commandId,
+      inputRef: input.inputRef,
+      commandId: input.commandId,
       commandType: parsed.data.commandType,
       targetMissionId: parsed.data.targetMissionId ?? null,
       targetRecordRef: parsed.data.targetRecordRef ?? null,
-      reason: `Child ${input.childCapabilityId} only owns ${expectedCommandType}.`,
+      reason: `Child ${input.childCapabilityId} only owns ${input.expectedCommandType}.`,
     });
   }
 
   if (input.childCapabilityId === "emergency-stop" && PRIORITY_BY_COMMAND[parsed.data.commandType] !== "emergency") {
     return createCommandGateFailure({
-      inputRef,
-      commandId,
+      inputRef: input.inputRef,
+      commandId: input.commandId,
       commandType: parsed.data.commandType,
       targetMissionId: parsed.data.targetMissionId ?? null,
       targetRecordRef: parsed.data.targetRecordRef ?? null,
@@ -193,23 +193,46 @@ export function gateCommanderCommand(input: {
     });
   }
 
-  const payload = buildTransportPayload(parsed.data);
+  return parsed.data;
+};
+
+export function gateCommanderCommand(input: {
+  childCapabilityId: CommanderCommandChildAbilityId;
+  operatorRef: string;
+  commandInput: CommanderHumanCommandInput;
+}): CommanderCommandGateResult {
+  const inputRef = createId("commander_command_input");
+  const commandId = createId("commander_command");
+  const expectedCommandType = commandOwnedByChild(input.childCapabilityId);
+  const parsed = parseCommandGateInput({
+    childCapabilityId: input.childCapabilityId,
+    operatorRef: input.operatorRef,
+    commandInput: input.commandInput,
+    inputRef,
+    commandId,
+    expectedCommandType,
+  });
+  if ("ok" in parsed) {
+    return parsed;
+  }
+
+  const payload = buildTransportPayload(parsed);
   return {
     ok: true,
     inputRef,
     command: {
       commandId,
-      commandType: parsed.data.commandType,
-      priority: PRIORITY_BY_COMMAND[parsed.data.commandType],
+      commandType: parsed.commandType,
+      priority: PRIORITY_BY_COMMAND[parsed.commandType],
       operatorRef: input.operatorRef,
-      targetMissionId: parsed.data.targetMissionId ?? null,
-      selectedMapId: parsed.data.selectedMapId ?? null,
-      targetRecordRef: parsed.data.targetRecordRef ?? null,
-      requestedPlatformId: parsed.data.requestedPlatformId ?? null,
-      humanGoal: parsed.data.humanGoal ?? null,
-      maxRounds: parsed.data.maxRounds ?? null,
-      maxMinutes: parsed.data.maxMinutes ?? null,
-      operatorNote: parsed.data.operatorNote ?? null,
+      targetMissionId: parsed.targetMissionId ?? null,
+      selectedMapId: parsed.selectedMapId ?? null,
+      targetRecordRef: parsed.targetRecordRef ?? null,
+      requestedPlatformId: parsed.requestedPlatformId ?? null,
+      humanGoal: parsed.humanGoal ?? null,
+      maxRounds: parsed.maxRounds ?? null,
+      maxMinutes: parsed.maxMinutes ?? null,
+      operatorNote: parsed.operatorNote ?? null,
       payload,
     },
   };

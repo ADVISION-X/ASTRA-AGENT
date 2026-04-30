@@ -117,24 +117,24 @@ function coerceRuntimeOutput(value: unknown): unknown {
 }
 
 function toLocalAiTaskRequest(input: AiAbilityInput): { ok: true; request: LocalAiTaskRequest } | { ok: false; message: string } {
-  switch (input.taskType) {
-    case "product_presence_judgment":
-    case "visual_observation":
-    case "visual_target_candidate_analysis":
-      return { ok: true, request: buildVisionTaskRequest(input) };
-    case "ocr_cleanup":
-      return { ok: true, request: buildOcrTaskRequest(input) };
-    case "comment_signal_summary":
-      return { ok: true, request: buildCommentSignalTaskRequest(input) };
-    case "product_signal_summary":
-      return { ok: true, request: buildProductSignalTaskRequest(input) };
-    case "evidence_packet_analysis":
-    case "schema_validation_only":
-      return {
-        ok: false,
-        message: `Local AI runtime adapter is not authorized to execute ${input.taskType}.`,
-      };
+  const requestBuilders = {
+    product_presence_judgment: buildVisionTaskRequest,
+    visual_observation: buildVisionTaskRequest,
+    visual_target_candidate_analysis: buildVisionTaskRequest,
+    ocr_cleanup: buildOcrTaskRequest,
+    comment_signal_summary: buildCommentSignalTaskRequest,
+    product_signal_summary: buildProductSignalTaskRequest,
+  } as const;
+
+  const builder = requestBuilders[input.taskType as keyof typeof requestBuilders];
+  if (builder) {
+    return { ok: true, request: builder(input) };
   }
+
+  return {
+    ok: false,
+    message: `Local AI runtime adapter is not authorized to execute ${input.taskType}.`,
+  };
 }
 
 export {

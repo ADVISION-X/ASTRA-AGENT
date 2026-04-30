@@ -5,14 +5,16 @@ import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding } from "../../core/schema.js";
 import {
-  createAuditProject,
   getZodObjectPropertyNames,
+  hasInterfaceMethod,
+} from "../_shared/ast-schema-queries.js";
+import { hasStringLiteral } from "../_shared/ast-literal-queries.js";
+import { hasCallExpressionWithStringLiteralArgument } from "../_shared/ast-module-path-queries.js";
+import {
+  createAuditProject,
   hasAnyKeyword,
   hasCallExpression,
   hasCallExpressionPath,
-  hasCallExpressionWithStringLiteralArgument,
-  hasInterfaceMethod,
-  hasStringLiteral,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 

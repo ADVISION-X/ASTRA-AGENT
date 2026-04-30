@@ -4,7 +4,9 @@ import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { createAuditProject, getSourceFileOrThrow, getZodEnumValues, getZodObjectPropertyNames, hasMethodNamed, hasPropertyAccessPath, hasStringLiteral } from "../_shared/ast-helpers.js";
+import { getZodEnumValues, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
+import { hasMethodNamed, hasStringLiteral } from "../_shared/ast-literal-queries.js";
+import { createAuditProject, getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 

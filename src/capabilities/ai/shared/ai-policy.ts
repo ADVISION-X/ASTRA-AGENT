@@ -12,7 +12,7 @@ import {
   AI_SCHEMA_DECISIONS,
 } from "./ai-types.js";
 
-export const AI_FORBIDDEN_ACTION_TERMS = [
+const AI_FORBIDDEN_ACTION_TERMS = [
   "click",
   "scroll",
   "open",
@@ -27,80 +27,104 @@ export const AI_FORBIDDEN_ACTION_TERMS = [
   "platform action",
 ];
 
-export const DEFAULT_AI_PROVIDER_POLICY = {
+const DEFAULT_AI_PROVIDER_POLICY = {
   requireLocalOnly: true,
   allowPaidProvider: false,
   providerAllowlist: ["local-vision-ai", "local-text-ai", "local-ocr-ai", "internal-schema-validator"] as const,
   operatorApprovalRef: null,
 };
 
-export const DEFAULT_AI_COST_POLICY = {
+const DEFAULT_AI_COST_POLICY = {
   maxEstimatedCost: 0,
 };
 
-export const DEFAULT_AI_DATA_POLICY = {
+const DEFAULT_AI_DATA_POLICY = {
   allowExternalTransmission: false,
   redactSensitiveData: true,
 };
 
-export const DEFAULT_AI_QUALITY_POLICY = {
+const DEFAULT_AI_QUALITY_POLICY = {
   minimumConfidence: 0.6,
   requireSchemaValidation: true,
 };
 
-export const DEFAULT_AI_SAFETY_POLICY = {
+const DEFAULT_AI_SAFETY_POLICY = {
   reviewOnLowConfidence: true,
   reviewOnSchemaFailure: true,
   reviewOnPolicyViolation: true,
 };
 
-export type AiProviderPolicyDecision = (typeof AI_PROVIDER_POLICY_DECISIONS)[number];
-export type AiDataPolicyDecision = (typeof AI_DATA_POLICY_DECISIONS)[number];
-export type AiCostPolicyDecision = (typeof AI_COST_POLICY_DECISIONS)[number];
-export type AiSafetyPolicyDecision = (typeof AI_SAFETY_POLICY_DECISIONS)[number];
-export type AiSchemaDecision = (typeof AI_SCHEMA_DECISIONS)[number];
-export type AiQualityDecision = (typeof AI_QUALITY_DECISIONS)[number];
-export type AiOutputBoundaryDecision = (typeof AI_OUTPUT_BOUNDARY_DECISIONS)[number];
-export type AiDisabledProviderDecision = (typeof AI_DISABLED_PROVIDER_DECISIONS)[number];
+type AiProviderPolicyDecision = (typeof AI_PROVIDER_POLICY_DECISIONS)[number];
+type AiDataPolicyDecision = (typeof AI_DATA_POLICY_DECISIONS)[number];
+type AiCostPolicyDecision = (typeof AI_COST_POLICY_DECISIONS)[number];
+type AiSafetyPolicyDecision = (typeof AI_SAFETY_POLICY_DECISIONS)[number];
+type AiSchemaDecision = (typeof AI_SCHEMA_DECISIONS)[number];
+type AiQualityDecision = (typeof AI_QUALITY_DECISIONS)[number];
+type AiOutputBoundaryDecision = (typeof AI_OUTPUT_BOUNDARY_DECISIONS)[number];
+type AiDisabledProviderDecision = (typeof AI_DISABLED_PROVIDER_DECISIONS)[number];
 
-export function isKnownAiChildCapabilityId(value: string): value is (typeof AI_CHILD_CAPABILITY_IDS)[number] {
+function isKnownAiChildCapabilityId(value: string): value is (typeof AI_CHILD_CAPABILITY_IDS)[number] {
   return AI_CHILD_CAPABILITY_IDS.includes(value as (typeof AI_CHILD_CAPABILITY_IDS)[number]);
 }
 
-export function collectForbiddenActionTerms(value: unknown): string[] {
+function collectStringTerms(matches: Set<string>, value: string) {
+  const lower = value.toLowerCase();
+  for (const term of AI_FORBIDDEN_ACTION_TERMS) {
+    if (lower.includes(term)) {
+      matches.add(term);
+    }
+  }
+}
+
+function collectObjectTerms(matches: Set<string>, value: Record<string, unknown>) {
+  for (const [key, nested] of Object.entries(value)) {
+    collectStringTerms(matches, key);
+    visitForbiddenActionTerms(matches, nested);
+  }
+}
+
+function visitForbiddenActionTerms(matches: Set<string>, current: unknown) {
+  if (typeof current === "string") {
+    collectStringTerms(matches, current);
+    return;
+  }
+
+  if (Array.isArray(current)) {
+    for (const item of current) {
+      visitForbiddenActionTerms(matches, item);
+    }
+    return;
+  }
+
+  if (current && typeof current === "object") {
+    collectObjectTerms(matches, current as Record<string, unknown>);
+  }
+}
+
+function collectForbiddenActionTerms(value: unknown): string[] {
   const matches = new Set<string>();
-
-  const visit = (current: unknown) => {
-    if (typeof current === "string") {
-      const lower = current.toLowerCase();
-      for (const term of AI_FORBIDDEN_ACTION_TERMS) {
-        if (lower.includes(term)) {
-          matches.add(term);
-        }
-      }
-      return;
-    }
-
-    if (Array.isArray(current)) {
-      for (const item of current) {
-        visit(item);
-      }
-      return;
-    }
-
-    if (current && typeof current === "object") {
-      for (const [key, nested] of Object.entries(current)) {
-        const lowerKey = key.toLowerCase();
-        for (const term of AI_FORBIDDEN_ACTION_TERMS) {
-          if (lowerKey.includes(term)) {
-            matches.add(term);
-          }
-        }
-        visit(nested);
-      }
-    }
-  };
-
-  visit(value);
+  visitForbiddenActionTerms(matches, value);
   return [...matches];
 }
+
+export {
+  AI_FORBIDDEN_ACTION_TERMS,
+  DEFAULT_AI_PROVIDER_POLICY,
+  DEFAULT_AI_COST_POLICY,
+  DEFAULT_AI_DATA_POLICY,
+  DEFAULT_AI_QUALITY_POLICY,
+  DEFAULT_AI_SAFETY_POLICY,
+  isKnownAiChildCapabilityId,
+  collectForbiddenActionTerms,
+};
+
+export type {
+  AiProviderPolicyDecision,
+  AiDataPolicyDecision,
+  AiCostPolicyDecision,
+  AiSafetyPolicyDecision,
+  AiSchemaDecision,
+  AiQualityDecision,
+  AiOutputBoundaryDecision,
+  AiDisabledProviderDecision,
+};

@@ -12,12 +12,11 @@ import type {
   AuditConflict,
   AuditConflictsSnapshot,
   AuditPlan,
-  EnforcementMatrix,
-  EnforcementMatrixOwner,
   GeneratedLawRegistry,
   LawRecord,
   PhaseGate,
-} from "./core/schema.js";
+} from "./core/schema-generated-artifacts.js";
+import type { EnforcementMatrix, EnforcementMatrixOwner } from "./core/schema-manifests.js";
 import { readJsonFile } from "./core/filesystem.js";
 import { loadFrozenBaselineDomains } from "./core/frozen-baseline.js";
 import { stringifyYaml } from "./core/yaml.js";

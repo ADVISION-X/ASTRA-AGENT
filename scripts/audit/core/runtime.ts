@@ -5,14 +5,13 @@ import { defaultPhaseGatePath, repoRoot } from "./path-roots.js";
 import type {
   AuditConflictsSnapshot,
   AuditPlan,
-  DomainInspector,
-  EnforcementMatrix,
   GeneratedArtifacts,
   GeneratedLawRegistry,
-  InspectorContext,
   PhaseGate,
-  RunnerSummary,
-} from "./schema.js";
+} from "./schema-generated-artifacts.js";
+import type { EnforcementMatrix } from "./schema-manifests.js";
+import type { RunnerSummary } from "./schema-runner.js";
+import type { DomainInspector, InspectorContext } from "./schema.js";
 import { loadDomainManifests } from "./manifests.js";
 
 export const loadGeneratedArtifacts = async (): Promise<GeneratedArtifacts> => {

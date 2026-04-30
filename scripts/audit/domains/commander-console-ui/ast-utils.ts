@@ -2,13 +2,13 @@ import { Node, SyntaxKind, type Project, type SourceFile, type TypeElementTypes 
 
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
+import { getTypeAliasPropertyNames } from "../_shared/ast-schema-queries.js";
+import { hasExportModuleSpecifier } from "../_shared/ast-module-path-queries.js";
 import {
   createAuditProject,
   flattenPropertyAccess,
   getSourceFileOrThrow,
-  getTypeAliasPropertyNames,
   hasAnyKeyword,
-  hasExportModuleSpecifier,
   hasImportModuleSpecifier,
 } from "../_shared/ast-helpers.js";
 

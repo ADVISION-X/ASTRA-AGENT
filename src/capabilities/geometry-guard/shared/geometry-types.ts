@@ -1,6 +1,6 @@
-export const GEOMETRY_GUARD_ABILITY_GROUP_ID = "geometry-guard";
+const GEOMETRY_GUARD_ABILITY_GROUP_ID = "geometry-guard";
 
-export const GEOMETRY_GUARD_CHILD_CAPABILITY_IDS = [
+const GEOMETRY_GUARD_CHILD_CAPABILITY_IDS = [
   "validate-coordinate-space",
   "validate-bbox-integrity",
   "validate-click-point",
@@ -11,7 +11,7 @@ export const GEOMETRY_GUARD_CHILD_CAPABILITY_IDS = [
   "validate-desktop-screen-bounds",
 ] as const;
 
-export const GEOMETRY_GUARD_COORDINATE_SPACES = [
+const GEOMETRY_GUARD_COORDINATE_SPACES = [
   "browserViewport",
   "desktopScreen",
   "imageEvidence",
@@ -20,17 +20,17 @@ export const GEOMETRY_GUARD_COORDINATE_SPACES = [
   "contactSheet",
 ] as const;
 
-export const GEOMETRY_GUARD_EXECUTION_SPACES = ["browserViewport", "desktopScreen"] as const;
+const GEOMETRY_GUARD_EXECUTION_SPACES = ["browserViewport", "desktopScreen"] as const;
 
-export const GEOMETRY_GUARD_RESULT_STATUSES = ["success", "failed", "review_required"] as const;
+const GEOMETRY_GUARD_RESULT_STATUSES = ["success", "failed", "review_required"] as const;
 
-export const GEOMETRY_GUARD_DECISIONS = ["allow", "block", "review_required"] as const;
+const GEOMETRY_GUARD_DECISIONS = ["allow", "block", "review_required"] as const;
 
-export const GEOMETRY_GUARD_CHECK_DECISIONS = ["passed", "failed", "review_required", "not_applicable"] as const;
+const GEOMETRY_GUARD_CHECK_DECISIONS = ["passed", "failed", "review_required", "not_applicable"] as const;
 
-export const GEOMETRY_GUARD_ROUNDING_POLICIES = ["nearest_pixel"] as const;
+const GEOMETRY_GUARD_ROUNDING_POLICIES = ["nearest_pixel"] as const;
 
-export const GEOMETRY_GUARD_FAILURE_REASONS = [
+const GEOMETRY_GUARD_FAILURE_REASONS = [
   "input_schema_invalid",
   "unknown_child_capability",
   "missing_requested_by",
@@ -64,3 +64,15 @@ export const GEOMETRY_GUARD_FAILURE_REASONS = [
   "output_schema_invalid",
   "runtime_exception",
 ] as const;
+
+export {
+  GEOMETRY_GUARD_ABILITY_GROUP_ID,
+  GEOMETRY_GUARD_CHECK_DECISIONS,
+  GEOMETRY_GUARD_CHILD_CAPABILITY_IDS,
+  GEOMETRY_GUARD_COORDINATE_SPACES,
+  GEOMETRY_GUARD_DECISIONS,
+  GEOMETRY_GUARD_EXECUTION_SPACES,
+  GEOMETRY_GUARD_FAILURE_REASONS,
+  GEOMETRY_GUARD_RESULT_STATUSES,
+  GEOMETRY_GUARD_ROUNDING_POLICIES,
+};

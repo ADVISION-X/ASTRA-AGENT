@@ -2,7 +2,8 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { getZodEnumValues, hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
+import { getZodEnumValues } from "../_shared/ast-schema-queries.js";
+import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 import { CHILDREN, ROOT, getSource, isThinAbilityGroup, missingCanonicalFiles } from "./ast-utils.js";
 
 export async function runRequiredShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

@@ -3,7 +3,7 @@ import path from "node:path";
 import { listImmediateFiles, readTextFile } from "./filesystem.js";
 import { moduleLawHome } from "./path-roots.js";
 import { toRepoRelativePath } from "./paths.js";
-import type { AuditConflict, LawRecord } from "./schema.js";
+import type { AuditConflict, LawRecord } from "./schema-generated-artifacts.js";
 
 const LAW_HEADER_PATTERN = /^## Law (GRASSEYE-[A-Z0-9-]+)$/gm;
 const REQUIRED_FIELDS = [

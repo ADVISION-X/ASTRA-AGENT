@@ -4,7 +4,8 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
-import { hasCallExpression, hasCallExpressionPath, hasMethodNamed } from "../_shared/ast-helpers.js";
+import { hasMethodNamed } from "../_shared/ast-literal-queries.js";
+import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 import {
   REQUIRED_AUDIT_FILES,
   REQUIRED_SOURCE_FILES,

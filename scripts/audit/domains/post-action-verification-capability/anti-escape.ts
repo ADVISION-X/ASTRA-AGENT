@@ -2,7 +2,8 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpression, hasPropertyNamed } from "../_shared/ast-helpers.js";
+import { hasPropertyNamed } from "../_shared/ast-literal-queries.js";
+import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { getSource, ROOT } from "./ast-utils.js";
 
 export async function runAntiEscape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

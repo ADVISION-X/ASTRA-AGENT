@@ -4,7 +4,8 @@ import { Node, SyntaxKind, type ExportDeclaration, type ImportDeclaration, type 
 
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
-import { createAuditProject, flattenPropertyAccess, getZodEnumValues } from "../_shared/ast-helpers.js";
+import { getZodEnumValues } from "../_shared/ast-schema-queries.js";
+import { createAuditProject, flattenPropertyAccess } from "../_shared/ast-helpers.js";
 
 export const ROOT = "src/capabilities/nerve-bus";
 export const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;

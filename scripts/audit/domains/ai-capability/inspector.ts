@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type ArrayLiteralExpression, type Project, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ArrayLiteralExpression, type ImportDeclaration, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
 import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
@@ -56,6 +56,12 @@ const REQUIRED_FILES = [
   `${AI_ROOT}/runtime/ai-execution-context.ts`,
   `${AI_ROOT}/runtime/ai-prompt-registry.ts`,
   `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-gateway.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-output.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-state.ts`,
+  `${AI_ROOT}/runtime-adapters/local-ai-runtime-mapper.ts`,
   `${AI_ROOT}/shared/ai-types.ts`,
   `${AI_ROOT}/shared/ai-policy.ts`,
   `${AI_ROOT}/shared/ai-proof.ts`,
@@ -132,6 +138,13 @@ function getArrayStringLiterals(sourceFile: SourceFile, variableName: string): s
     return [];
   }
   return arrayLiteral.getElements().flatMap((element) => (Node.isStringLiteral(element) ? [element.getLiteralText()] : []));
+}
+
+function getImportSpecifierText(importDeclaration: ImportDeclaration): string {
+  const moduleSpecifier = importDeclaration.getModuleSpecifier();
+  return Node.isStringLiteral(moduleSpecifier) || Node.isNoSubstitutionTemplateLiteral(moduleSpecifier)
+    ? moduleSpecifier.getLiteralText()
+    : moduleSpecifier.getText().slice(1, -1);
 }
 
 function getReturnArrayLiterals(sourceFile: SourceFile, functionName: string): string[] {
@@ -316,6 +329,8 @@ export const aiCapabilityInspector = createPendingDomainInspector({
     const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
     const resultBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-result-builder.ts`);
     const adapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
+    const adapterGatewaySource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-gateway.ts`);
+    const adapterOutputSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-output.ts`);
     const aiSources = getAiSources(project);
 
     for (const requiredFile of REQUIRED_FILES) {
@@ -517,8 +532,11 @@ export const aiCapabilityInspector = createPendingDomainInspector({
     if (!hasImportModuleSpecifier(adapterSource, "local-ai-gateway")) {
       findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-001-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: "Local AI gateway access must stay isolated inside the local runtime adapter." }));
     }
+    const adapterFamilyText = [adapterSource, adapterGatewaySource, adapterOutputSource]
+      .map((source) => source.getText())
+      .join("\n");
     for (const requiredAdapterToken of ["AbortController", "MAX_CONCURRENT_RUNS", "circuitBreaker", "rawOutputRef", "rawOutputHash", "gatewayDurationMs", "modelHealthBefore", "modelHealthAfter", "runtimeCallId", "timeoutMs"]) {
-      if (!adapterSource.getText().includes(requiredAdapterToken)) {
+      if (!adapterFamilyText.includes(requiredAdapterToken)) {
         findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: `Local AI adapter must preserve ${requiredAdapterToken} protection/evidence.` }));
       }
     }
@@ -541,12 +559,7 @@ export const aiCapabilityInspector = createPendingDomainInspector({
       }
 
       for (const importDeclaration of sourceFile.getImportDeclarations()) {
-        let specifier = "";
-        try {
-          specifier = importDeclaration.getModuleSpecifierValue();
-        } catch {
-          continue;
-        }
+        const specifier = getImportSpecifierText(importDeclaration);
         if (specifier.includes("capabilities/ai/children/") || specifier.includes("capabilities/ai/runtime/")) {
           findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-001-V1", file: repoPath, line: 1, severity: "fatal", message: "External modules must not import AI children or runtime internals." }));
           break;

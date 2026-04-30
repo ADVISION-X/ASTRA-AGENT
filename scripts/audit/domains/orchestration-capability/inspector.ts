@@ -2,14 +2,13 @@ import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesys
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
+import { getZodEnumValues, hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
+import { hasIdentifier } from "../_shared/ast-literal-queries.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
-  getZodEnumValues,
   hasCallExpressionPath,
-  hasIdentifier,
   hasImportModuleSpecifier,
-  hasInterfaceMethod,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 

@@ -1,7 +1,8 @@
 import { buildAuditArtifacts } from "./build-audit-artifacts.js";
 import { hasBlockingFindings } from "./core/result.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector, writeRunnerSummary } from "./core/runtime.js";
-import type { InspectorResult, RunnerSummary } from "./core/schema.js";
+import type { RunnerSummary } from "./core/schema-runner.js";
+import type { InspectorResult } from "./core/schema.js";
 
 const STEP_TIMEOUT_MS = 60_000;
 
