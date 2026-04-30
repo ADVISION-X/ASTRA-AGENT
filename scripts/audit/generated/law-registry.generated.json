@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T13:01:11.615Z",
+  "generatedAt": "2026-04-30T20:45:40.105Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -90,6 +90,50 @@
       "line": 276
     },
     {
+      "lawId": "GRASSEYE-AI-CAPABILITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI owns the Prompt Contract Registry and prompt execution contracts.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+      "line": 310
+    },
+    {
+      "lawId": "GRASSEYE-AI-CAPABILITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Prompt contracts must declare full governed metadata.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+      "line": 328
+    },
+    {
+      "lawId": "GRASSEYE-AI-CAPABILITY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Prompt contracts may guide reasoning only and must not command actions or privacy bypass.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+      "line": 346
+    },
+    {
+      "lawId": "GRASSEYE-AI-CAPABILITY-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI runtime must resolve prompt execution by promptContractId rather than map-specific hardcoding.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+      "line": 364
+    },
+    {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
       "status": "active",
       "tier": "P0",
@@ -99,6 +143,28 @@
       "summary": "inspector plus generated artifacts plus audit runner is the only enforcement chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
       "line": 14
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-SYSTEM-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map Prompt Contract Governance must be enforced by AST, schema, and negative proof.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
+      "line": 56
+    },
+    {
+      "lawId": "GRASSEYE-AUDIT-SYSTEM-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Prompt contract and map binding drift is audit-blocking.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
+      "line": 74
     },
     {
       "lawId": "GRASSEYE-CAPABILITY-GROUP-001-V1",
@@ -167,26 +233,180 @@
       "line": 181
     },
     {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Capability Catalog is a generated read model, not a new owner.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 221
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI-generated map authoring must use the governed capability catalog.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 239
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "active source files must stay atomic and must not exceed Code Purity Phase 3.5 file-size limits.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 124
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "touched oversized files must be split before new logic is added.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 166
+    },
+    {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "audit-system",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "code-purity is an audit-system red-line child sub-contract, not an active owner.",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "functions must stay small, shallow, and single-purpose.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 16
+      "line": 203
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-004-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "audit-system",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "refactors must simplify ownership instead of creating compatibility bridges, duplicate paths, or second systems.",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "classes and objects must not become god objects.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 55
+      "line": 245
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "owner boundaries must be counted at real capability-owner granularity.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 291
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "imports and exports must not create hidden broad ownership or barrel laundering.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 343
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "files must have one role and must not mix schema, runtime, validation, execution, persistence, and decision responsibilities.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 382
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "dead code, fake runtime paths, mocks, placeholders, and temporary bypasses must not survive in active source truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 442
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "refactors must reduce ownership, file size, complexity, and active paths rather than adding compatibility bridges.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 487
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "disaster files must be identified, blocked, and physically split before meaningful feature debugging continues.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 529
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution, and negative proof.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 572
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "type-safety and escape hatches must not be used to bypass purity enforcement.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 614
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "code-purity enforcement must produce inventories, remediation queues, and physical split plans.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 656
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "code-purity remediation must use physical deletion and physical splitting, not cosmetic renaming.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 715
     },
     {
       "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
@@ -651,6 +871,50 @@
       "line": 123
     },
     {
+      "lawId": "GRASSEYE-MAP-PLUGIN-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Map packages may reference prompt contracts but must not embed raw prompt logic or hidden runtime instructions.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 137
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI-generated map packages must be authored against governed catalogs.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 151
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Every AI step must bind to a governed prompt contract package.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 165
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI-generated map packages remain draft-only until all governance gates pass.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 179
+    },
+    {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1",
       "status": "active",
       "tier": "P0",
@@ -882,6 +1146,39 @@
       "line": 152
     },
     {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "orchestration-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Orchestration must consume promptContractId from the active approved map and must not hardcode prompt selection.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+      "line": 177
+    },
+    {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "orchestration-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "AI branch decisions must rely only on declared output schema fields.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+      "line": 196
+    },
+    {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "orchestration-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Orchestration must not build raw prompts.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+      "line": 215
+    },
+    {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V1",
       "status": "active",
       "tier": "P0",
@@ -1056,6 +1353,28 @@
       "summary": "GrassEye must operate only with user-authorized local accounts while minimizing sensitive capture and never bypassing platform security.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
       "line": 16
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "security-privacy",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Prompt contracts and AI-generated maps must never request sensitive secrets or hidden bypass channels.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
+      "line": 65
+    },
+    {
+      "lawId": "GRASSEYE-SECURITY-PRIVACY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "security-privacy",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Sensitive tasks require review gates before mutating user data or high-risk platform state.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
+      "line": 83
     },
     {
       "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-001-V1",

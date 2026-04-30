@@ -6,7 +6,7 @@ import { getNodeLine } from "../../../core/ts-morph.js";
 import { collectCommentTokens } from "./purity-comment-analysis.js";
 import { hasProductionFakeImport, isProductionFakePath } from "./purity-file-classification.js";
 
-const LAW_ID = "GRASSEYE-CODE-PURITY-003-V1";
+const LAW_ID = "GRASSEYE-CODE-PURITY-012-V1";
 const FORBIDDEN_DYNAMIC_IMPORT_TOKENS = ["mock", "fake", "fixture", "demo", "bridge", "compat", "legacy"] as const;
 const RETIRED_OWNER_PATH_TOKENS = ["features/local-data/", "features/platform-action/"] as const;
 

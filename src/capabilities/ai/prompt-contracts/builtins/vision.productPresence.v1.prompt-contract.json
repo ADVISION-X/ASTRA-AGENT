@@ -1,0 +1,32 @@
+{
+  "promptContractId": "vision.productPresence.v1",
+  "promptId": "vision.productPresence.v1",
+  "taskType": "product_presence_judgment",
+  "legacyTaskType": "vision.productPresence",
+  "modelRole": "vision",
+  "promptVersion": "v1",
+  "inputContract": "image_collection.ai_input",
+  "requiredInputRefs": ["promptInputRef"],
+  "outputSchemaRef": "ai.product_presence_judgment.v1",
+  "allowedBranchFields": ["decision"],
+  "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
+  "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
+  "purpose": "Determine whether the current visual evidence shows a concrete product demonstration before downstream branch selection.",
+  "forbiddenOutputs": [
+    "profitability judgment",
+    "supply chain judgment",
+    "procurement decision",
+    "winning product claim",
+    "advertising decision",
+    "fabricated invisible product",
+    "page assumptions outside the sampled frames"
+  ],
+  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
+  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "confidencePolicy": "review-on-low-confidence",
+  "reviewPolicy": "handoff",
+  "failurePolicy": "branch:ask-product-presence:failed",
+  "debugPolicy": "developer-inspect only",
+  "promptHash": "sha256:vision-productPresence-v1",
+  "sensitiveOperation": false
+}

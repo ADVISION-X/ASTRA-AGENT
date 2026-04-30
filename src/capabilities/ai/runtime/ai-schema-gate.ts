@@ -29,11 +29,11 @@ function schemaForTaskType(taskType: AiTaskType) {
 
 export function resolveAiSchemaContract(request: ParsedAiAbilityInput, promptContract: AiPromptContract): { decision: "resolved" | "review_required" | "blocked"; reason: string | null; schemaId: string | null; outputSchema: ReturnType<typeof schemaForTaskType>["schema"] | null } {
   const resolved = schemaForTaskType(request.taskType);
-  if (resolved.schemaId !== request.expectedOutputSchema) {
+  if (resolved.schemaId !== request.expectedOutputSchema || promptContract.outputSchemaRef !== request.expectedOutputSchema) {
     return { decision: "blocked", reason: "expected_output_schema_mismatch", schemaId: null, outputSchema: null };
   }
 
-  if (promptContract.taskType !== request.taskType || promptContract.promptId !== request.promptContractId) {
+  if (promptContract.taskType !== request.taskType || promptContract.promptContractId !== request.promptContractId) {
     return { decision: "blocked", reason: "prompt_contract_mismatch", schemaId: null, outputSchema: null };
   }
 

@@ -75,7 +75,7 @@ export const validateOwnedLawExecution = async (
     if (!importSpecifier) {
       findings.push(
         createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-003-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
           file: relativePath,
           line: 1,
           severity: "error",
@@ -88,7 +88,7 @@ export const validateOwnedLawExecution = async (
     if (!resolvesToExpectedImport(importSpecifier, requiredCall.importName)) {
       findings.push(
         createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-003-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
           file: relativePath,
           line: getNodeLine(importSpecifier),
           severity: "error",
@@ -111,7 +111,7 @@ export const validateOwnedLawExecution = async (
     if (matchingCalls.length === 0) {
       findings.push(
         createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-003-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
           file: relativePath,
           line: getNodeLine(promiseAllCall ?? sourceFile),
           severity: "error",
@@ -135,7 +135,7 @@ export const validateOwnedLawExecution = async (
     if (externalReferences.length === 0) {
       findings.push(
         createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-003-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
           file: relativePath,
           line: getNodeLine(importSpecifier),
           severity: "error",
@@ -150,7 +150,7 @@ export const validateOwnedLawExecution = async (
     if (!hasPromiseReturn) {
       findings.push(
         createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-003-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
           file: relativePath,
           line: getNodeLine(matchingCalls[0] ?? promiseAllCall ?? sourceFile),
           severity: "error",

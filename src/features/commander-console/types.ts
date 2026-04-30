@@ -3,7 +3,7 @@ import type {
   CommanderMissionDashboardView,
   CommanderRecordSummaryView,
   CommanderRuntimeProofTimelineEntry,
-} from "../../capabilities/commander-console/index.js";
+} from "../../capabilities/commander-console/shared/commander-view-types.js";
 import type { Locale } from "../../lib/localization/dictionaries.js";
 
 export type CommanderConsolePrimaryPageId =

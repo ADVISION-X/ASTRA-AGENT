@@ -46,6 +46,55 @@ grass-map-plugin/
 - active registry
 - rollback
 
+## Prompt Binding
+
+地图包可以声明 promptBindings，但 promptBindings 只描述 stepId 和 promptContractId 的绑定关系，不拥有 prompt 内容。
+
+每个 AI step 至少要有：
+
+- promptContractId
+- requiredInputRefs
+- expectedOutputSchema
+- confidencePolicy
+- reviewPolicy
+- failureBranch
+
+## Prompt Contract Reference
+
+Map package 可以引用 Prompt Contract Catalog，但不得内嵌 raw prompt、systemPrompt、userPrompt 或 executablePromptLogic。
+
+## AI-generated Map Authoring
+
+AI-generated map 只能由 authoring prompt builder 生成候选 JSON，不得直接成为 active map。
+
+## Capability Catalog Dependency
+
+AI-generated map 必须基于 machine-readable capability catalog 生成，不得编造 unknown ability groups、child capabilities 或 supportedTargets。
+
+## No Raw Prompt in Map
+
+- 禁止 rawPrompt
+- 禁止 systemPrompt
+- 禁止 userPrompt
+- 禁止 promptFullText
+
+## No Executable Prompt Logic
+
+- 禁止 handler
+- 禁止 script
+- 禁止 function body
+- 禁止运行时代码
+
+## Draft / Quarantine / Validation / Human Approval
+
+AI-generated map 固定流程：draft -> quarantine -> validation -> human approval -> activation。
+
+未通过前：
+
+- 不得 active
+- 不得出现在 ordinary runnable task feed
+- 不得绕过 validator 与 audit
+
 ## validation gates
 
 - schema

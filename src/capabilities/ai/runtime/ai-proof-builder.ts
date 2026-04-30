@@ -65,7 +65,7 @@ export function buildAiRuntimeProof(input: {
     runtime: input.result.runtime,
     requestHash,
     inputPayloadHash: hashValue(input.request.input),
-    promptContractHash: hashValue(input.promptContract),
+    promptContractHash: input.promptContract.promptHash,
     modelConfigHash: hashValue({
       childCapabilityId: input.childContract.childCapabilityId,
       providerKind: input.childContract.providerKind,

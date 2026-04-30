@@ -14,7 +14,7 @@ const inspectConsoleScatter = (sourceFile: SourceFile, findings: Finding[], rela
     if (callPath.length === 2 && callPath[0] === "console" && callPath[1] === "log") {
       findings.push(
         createFinding({
-          lawId: "GRASSEYE-CODE-PURITY-003-V1",
+          lawId: "GRASSEYE-CODE-PURITY-008-V1",
           file: relativePath,
           line: getNodeLine(callExpression),
           severity: "error",
@@ -31,7 +31,7 @@ const inspectCommentCleanup = (sourceFile: SourceFile, findings: Finding[], rela
     if (isTodoComment(comment.text) && !hasTodoHygiene(comment.text)) {
       findings.push(
         createFinding({
-          lawId: "GRASSEYE-CODE-PURITY-003-V1",
+          lawId: "GRASSEYE-CODE-PURITY-008-V1",
           file: relativePath,
           line: comment.line,
           severity: "error",
@@ -44,7 +44,7 @@ const inspectCommentCleanup = (sourceFile: SourceFile, findings: Finding[], rela
     if (isCommentedOutCode(comment.text, relativePath)) {
       findings.push(
         createFinding({
-          lawId: "GRASSEYE-CODE-PURITY-003-V1",
+          lawId: "GRASSEYE-CODE-PURITY-008-V1",
           file: relativePath,
           line: comment.line,
           severity: "error",
@@ -69,7 +69,7 @@ const inspectRefactorDirection = (findings: Finding[], relativePath: string): vo
 
   findings.push(
     createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-004-V1",
+      lawId: "GRASSEYE-CODE-PURITY-009-V1",
       file: relativePath,
       line: 1,
       severity: "error",

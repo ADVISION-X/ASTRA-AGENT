@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const MapCompatibilitySchema = z.object({
+export const MapPackageRequirementsSchema = z.object({
   requiresGrassEye: z.string().min(1),
   requiresMapSchema: z.string().min(1),
   requiresCapabilityRegistry: z.array(z.string().min(1)).default([]),

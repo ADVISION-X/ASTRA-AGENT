@@ -52,3 +52,39 @@ FORBIDDEN:
 - Compatibility, legacy, or bridge enforcement chains beside the generated audit chain.
 - Treating capability-check.ts, self-check, smoke-check, or child readiness helpers as accepted audit owners.
 - map-package enforcement that stops at filename checks, string includes, or unparsed JSON scans.
+
+## Law GRASSEYE-AUDIT-SYSTEM-002-V1
+
+status: active
+tier: P0
+capabilityDomain: audit-system
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Map Prompt Contract Governance must be enforced by AST, schema, and negative proof.
+
+### 主题
+
+地图提示词契约必须真执法
+
+### 法条
+
+Map Prompt Contract Governance must be enforced by AST, schema, and negative proof rather than documentation-only assertions.
+
+## Law GRASSEYE-AUDIT-SYSTEM-003-V1
+
+status: active
+tier: P0
+capabilityDomain: audit-system
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Prompt contract and map binding drift is audit-blocking.
+
+### 主题
+
+Prompt 绑定漂移必须拦截
+
+### 法条
+
+Prompt contract and map binding drift must be audit-blocking.

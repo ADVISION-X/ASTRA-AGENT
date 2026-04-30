@@ -29,7 +29,7 @@ export default async function inspectAuditSystem(context: InspectorContext) {
     validateNoTestArtifacts(context),
     validateOwnedLawExecution(context),
     validateNoSimulatedProductionPaths(context),
-    inspectCodePurity(),
+    inspectCodePurity(context),
   ]);
 
   const findings = [...base.findings, ...parts.flatMap((part) => part.findings)];

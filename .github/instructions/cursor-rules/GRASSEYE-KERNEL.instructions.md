@@ -17,10 +17,11 @@ applyTo: ".github/instructions/cursor-rules/**"
 
 ## Fixed Formula
 
-- GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + Debug Runtime Proof + Forensics Persistence.
+- GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + Map Packages + Prompt Contracts + Debug Runtime Proof + Forensics Persistence.
 - Startup Entrypoint is a support boundary that bootstraps the local shell; it is not an ability group, not Commander Console, and not mission truth.
 - Ability groups are the only allowed top-level execution owners.
 - Child abilities exist only inside one parent ability group.
+- Prompt contracts are governed data contracts owned by AI Capability and referenced by Map Packages; they are not new ability groups and must not execute actions.
 - Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.
 
 ## Authority Chain

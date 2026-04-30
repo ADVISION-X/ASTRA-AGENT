@@ -133,3 +133,59 @@ summary: Map package enforcement closes through the map-plugin-package inspector
 ### 法条
 
 Map package enforcement closes through the map-plugin-package inspector, its negative-proof harness, and audit-runner-compatible governance scripts.
+
+## Law GRASSEYE-MAP-PLUGIN-008-V1
+
+status: active
+tier: P0
+capabilityDomain: map-plugin-package
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Map packages may reference prompt contracts but must not embed raw prompt logic or hidden runtime instructions.
+
+### 法条
+
+Map packages may reference promptContractId and prompt binding metadata, but they must not embed raw prompt text, executable prompt logic, or hidden runtime instructions.
+
+## Law GRASSEYE-MAP-PLUGIN-009-V1
+
+status: active
+tier: P0
+capabilityDomain: map-plugin-package
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: AI-generated map packages must be authored against governed catalogs.
+
+### 法条
+
+AI-generated map packages must be built against the machine-readable capability catalog and prompt contract catalog.
+
+## Law GRASSEYE-MAP-PLUGIN-010-V1
+
+status: active
+tier: P0
+capabilityDomain: map-plugin-package
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Every AI step must bind to a governed prompt contract package.
+
+### 法条
+
+Every AI step in a map must bind to a valid prompt contract, requiredInputRefs, outputSchemaRef, review policy, and failure branch.
+
+## Law GRASSEYE-MAP-PLUGIN-011-V1
+
+status: active
+tier: P0
+capabilityDomain: map-plugin-package
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: AI-generated map packages remain draft-only until all governance gates pass.
+
+### 法条
+
+AI-generated map packages are draft-only until schema validation, capability validation, prompt contract validation, safety validation, and human approval all pass.

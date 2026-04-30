@@ -217,3 +217,39 @@ FORBIDDEN:
 - src/features/local-data or src/features/platform-action surviving as public runtime roots, bridge roots, or compat roots.
 - Commander Console reviving operator snapshot, browse runtime snapshot, task-run truth, or agent skill matrix as a second owner universe.
 - Geometry Guard owning action planning, click execution, scroll execution, screenshot truth, or AI reasoning.
+
+## Law GRASSEYE-CAPABILITY-GROUP-007-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Capability Catalog is a generated read model, not a new owner.
+
+### 主题
+
+Capability Catalog 只读不立组
+
+### 法条
+
+Capability Catalog is a generated read model from active ability group registries and child ability contracts; it is not a new ability group or new owner.
+
+## Law GRASSEYE-CAPABILITY-GROUP-008-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: AI-generated map authoring must use the governed capability catalog.
+
+### 主题
+
+地图生成不得编造能力
+
+### 法条
+
+AI-generated map authoring must use the capability catalog and must not invent unknown ability groups or child capabilities.

@@ -97,7 +97,10 @@ function finalizeTerminalResult(input: {
 }
 
 export async function executeAiChild(input: { request: ParsedAiAbilityInput; childContract: AiChildContract; context: AiExecutionContext }): Promise<AiAbilityResult> {
-  const promptContract = input.context.promptRegistry.resolvePromptContract(input.request.taskType);
+  const promptContract = input.context.promptRegistry.resolvePromptContract({
+    promptContractId: input.request.promptContractId,
+    taskType: input.request.taskType,
+  });
 
   const inputGate = parseAiExecutorInput(input.request, input.childContract.childCapabilityId);
   if (inputGate.ok === false) {

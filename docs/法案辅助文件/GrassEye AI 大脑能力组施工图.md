@@ -32,6 +32,44 @@ AI 是 GrassEye 的大脑能力组。
 - 返回结构化 AI 结果与 runtime proof
 - 暴露 AI health、child readiness、policy status
 
+## 3.1 Prompt Contract Registry
+
+- AI Capability 是 Prompt Contract Registry 的 owner。
+- Prompt Contract Registry 提供按 promptContractId 解析的治理入口。
+- Map package 只引用 promptContractId，不拥有 prompt 内容。
+
+## 3.2 Prompt Contract Data Package
+
+Prompt Contract 至少携带：
+
+- promptContractId
+- taskType
+- modelRole
+- inputContract
+- requiredInputRefs
+- outputSchemaRef
+- forbiddenOutputs
+- confidencePolicy
+- reviewPolicy
+- failurePolicy
+- debugPolicy
+- promptHash
+
+## 3.3 Prompt Hash 与版本
+
+- promptHash 用于 proof、forensics 和 drift audit。
+- promptVersion 与 schemaVersion 必须可追踪。
+
+## 3.4 Prompt Output Schema
+
+- AI runtime 必须按 outputSchemaRef 验证结果。
+- Orchestration 只能按 outputSchemaRef 中声明字段做 branch。
+
+## 3.5 Map Step Prompt Binding
+
+- AI step 必须通过 promptContractId 进入 AI runtime。
+- AI runtime 不得硬编码 map-specific prompt。
+
 ## 4. AI 能力组禁止职责
 
 - 不点击

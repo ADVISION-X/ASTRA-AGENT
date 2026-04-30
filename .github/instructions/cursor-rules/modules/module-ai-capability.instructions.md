@@ -306,3 +306,75 @@ FORBIDDEN:
 - verify* functions acting as enforcement truth.
 - regex-only, grep-only, or includes-only AI owner-cutover verdicts.
 - AI public-index leakage or AI-private path imports escaping inspector coverage.
+
+## Law GRASSEYE-AI-CAPABILITY-008-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: AI owns the Prompt Contract Registry and prompt execution contracts.
+
+### 主题
+
+Prompt Contract 主权
+
+### 法条
+
+AI owns the Prompt Contract Registry and the governed contracts used to execute prompts by promptContractId.
+
+## Law GRASSEYE-AI-CAPABILITY-009-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Prompt contracts must declare full governed metadata.
+
+### 主题
+
+Prompt Contract 完整合同
+
+### 法条
+
+AI prompt contracts must declare taskType, modelRole, input contract, output schema, forbidden outputs, review policy, confidence policy, debug policy, and prompt hash.
+
+## Law GRASSEYE-AI-CAPABILITY-010-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Prompt contracts may guide reasoning only and must not command actions or privacy bypass.
+
+### 主题
+
+Prompt 只能提问不能指挥动作
+
+### 法条
+
+AI prompt contracts must not instruct the model to click, scroll, type, open pages, bypass security, read cookies, read credentials, or make final mission decisions.
+
+## Law GRASSEYE-AI-CAPABILITY-011-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: AI runtime must resolve prompt execution by promptContractId rather than map-specific hardcoding.
+
+### 主题
+
+Prompt 执行按合同路由
+
+### 法条
+
+AI runtime must execute prompt contracts by promptContractId and must not hardcode map-specific prompts.

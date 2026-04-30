@@ -2,9 +2,9 @@ import type { OperationalMap } from "../../capabilities/orchestration/contract.j
 import type { z } from "zod";
 
 import { MapPackageSchema } from "../schema/map-plugin-package.schema.js";
-import { MapCompatibilitySchema } from "../schema/map-compatibility.schema.js";
 import { MapDependenciesSchema } from "../schema/map-dependencies.schema.js";
 import { MapPluginManifestSchema } from "../schema/map-plugin-manifest.schema.js";
+import { MapPackageRequirementsSchema } from "../schema/map-package-requirements.schema.js";
 import { MapPolicySchema } from "../schema/map-policy.schema.js";
 import { OperationalMapPackageSchema } from "../schema/operational-map-package.schema.js";
 import { PromptBindingsSchema } from "../schema/prompt-bindings.schema.js";
@@ -16,7 +16,7 @@ export type MapPluginManifest = z.output<typeof MapPluginManifestSchema>;
 export type TaskTemplatePackage = z.output<typeof TaskTemplatePackageSchema>;
 export type OperationalMapPackage = z.output<typeof OperationalMapPackageSchema>;
 export type MapDependencies = z.output<typeof MapDependenciesSchema>;
-export type MapCompatibility = z.output<typeof MapCompatibilitySchema>;
+export type MapCompatibility = z.output<typeof MapPackageRequirementsSchema>;
 export type MapPolicy = z.output<typeof MapPolicySchema>;
 export type PromptBindings = z.output<typeof PromptBindingsSchema>;
 export type MapPackage = z.output<typeof MapPackageSchema>;

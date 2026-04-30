@@ -61,3 +61,39 @@ FORBIDDEN:
 This law file does not govern:
 - Whether a product signal is promising.
 - How audit ownership is assigned across domains.
+
+## Law GRASSEYE-SECURITY-PRIVACY-002-V1
+
+status: active
+tier: P0
+capabilityDomain: security-privacy
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Prompt contracts and AI-generated maps must never request sensitive secrets or hidden bypass channels.
+
+### 主题
+
+提示词与生成地图的隐私红线
+
+### 法条
+
+Prompt contracts and AI-generated maps must not request credentials, cookies, hidden tokens, security bypass, unauthorized personal-data extraction, or hidden API use without explicit connector governance.
+
+## Law GRASSEYE-SECURITY-PRIVACY-003-V1
+
+status: active
+tier: P0
+capabilityDomain: security-privacy
+enforcementMode: manual-first
+evidenceMode: law
+
+summary: Sensitive tasks require review gates before mutating user data or high-risk platform state.
+
+### 主题
+
+敏感任务必须人工闸门
+
+### 法条
+
+Sensitive tasks must require review gates before sending, deleting, purchasing, submitting, or modifying user data.

@@ -1,69 +1,91 @@
-import { getPromptContract, listPromptContracts } from "../../../lib/local-ai/prompt-registry.js";
+import {
+  getPromptContractCatalogEntry,
+  listPromptContractCatalogEntries,
+} from "../prompt-contracts/index.js";
 import type { AiPromptContract, AiTaskType } from "../contract.js";
 import type { AiPromptRegistryPort } from "../ports/ai-prompt-registry-port.js";
-import type { LocalAiTaskType } from "../../../types/local-ai.js";
-
-const LEGACY_TASK_BY_AI: Record<Exclude<AiTaskType, "evidence_packet_analysis" | "schema_validation_only">, LocalAiTaskType> = {
-  product_presence_judgment: "vision.productPresence",
-  visual_observation: "vision.productPresence",
-  visual_target_candidate_analysis: "vision.productPresence",
-  ocr_cleanup: "comments.ocr_cleanup",
-  comment_signal_summary: "comments.intent_analysis",
-  product_signal_summary: "product.signal_summary",
-};
-
-const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, Exclude<AiTaskType, "evidence_packet_analysis" | "schema_validation_only">> = {
-  "vision.productPresence": "product_presence_judgment",
-  "comments.ocr_cleanup": "ocr_cleanup",
-  "comments.intent_analysis": "comment_signal_summary",
-  "product.signal_summary": "product_signal_summary",
-};
-
-function toAiPromptContract(taskType: AiTaskType): AiPromptContract {
+function toAiPromptContract(taskType: AiTaskType, promptContractId: string | null = null): AiPromptContract {
   if (taskType === "evidence_packet_analysis") {
     return {
+      promptContractId: promptContractId ?? "ai.evidence_packet_analysis.disabled",
       taskType,
       modelRole: "future",
-      promptId: "ai.evidence_packet_analysis.disabled",
+      promptId: promptContractId ?? "ai.evidence_packet_analysis.disabled",
       promptVersion: "evidence_packet_analysis.v1",
       schemaVersion: "ai.evidence_packet_analysis.v1",
+      outputSchemaRef: "ai.evidence_packet_analysis.v1",
+      requiredInputRefs: ["aiResultRef"],
+      allowedBranchFields: [],
       purpose: "Reserved paid evidence analysis path.",
       forbiddenOutputs: ["platform_action", "paid_fallback_to_local"],
+      prohibitedActions: ["click", "scroll", "type", "open_page", "dispatch_action"],
+      restrictedDataAccess: ["cookies", "credentials", "hidden_token"],
+      confidencePolicy: "disabled-by-policy",
+      reviewPolicy: "review-required",
+      failurePolicy: "disabled-by-policy",
+      debugPolicy: "developer-inspect only",
+      promptHash: "sha256:evidence-packet-analysis-disabled",
     };
   }
 
   if (taskType === "schema_validation_only") {
     return {
+      promptContractId: promptContractId ?? "ai.schema_validation_only.internal",
       taskType,
       modelRole: "schemaValidator",
-      promptId: "ai.schema_validation_only.internal",
+      promptId: promptContractId ?? "ai.schema_validation_only.internal",
       promptVersion: "schema_validation_only.v1",
       schemaVersion: "ai.schema_validation_only.v1",
+      outputSchemaRef: "ai.schema_validation_only.v1",
+      requiredInputRefs: ["aiResultRef"],
+      allowedBranchFields: [],
       purpose: "Validate an AI candidate against the declared output schema.",
       forbiddenOutputs: ["platform_action", "schema_bypass"],
+      prohibitedActions: ["click", "scroll", "type", "open_page", "dispatch_action"],
+      restrictedDataAccess: ["cookies", "credentials", "hidden_token"],
+      confidencePolicy: "strict-schema-only",
+      reviewPolicy: "review-required",
+      failurePolicy: "schema-block",
+      debugPolicy: "developer-inspect only",
+      promptHash: "sha256:schema-validation-only",
     };
   }
 
-  const contract = getPromptContract(LEGACY_TASK_BY_AI[taskType]);
+  const contract = getPromptContractCatalogEntry(promptContractId ?? "");
+  if (contract.taskType !== taskType) {
+    throw new Error(`Prompt contract ${contract.promptContractId} does not match AI taskType ${taskType}.`);
+  }
+
   return {
+    promptContractId: contract.promptContractId,
     taskType,
     modelRole: contract.modelRole,
     promptId: contract.promptId,
     promptVersion: contract.promptVersion,
-    schemaVersion: contract.schemaVersion,
+    schemaVersion: contract.outputSchemaRef,
+    outputSchemaRef: contract.outputSchemaRef,
+    requiredInputRefs: [...contract.requiredInputRefs],
+    allowedBranchFields: [...contract.allowedBranchFields],
     purpose: contract.purpose,
     forbiddenOutputs: [...contract.forbiddenOutputs, "platform_action"],
+    prohibitedActions: [...contract.prohibitedActions],
+    restrictedDataAccess: [...contract.restrictedDataAccess],
+    confidencePolicy: contract.confidencePolicy,
+    reviewPolicy: contract.reviewPolicy,
+    failurePolicy: contract.failurePolicy,
+    debugPolicy: contract.debugPolicy,
+    promptHash: contract.promptHash,
   };
 }
 
 export function createAiPromptRegistry(): AiPromptRegistryPort {
   return {
-    resolvePromptContract(taskType) {
-      return toAiPromptContract(taskType);
+    resolvePromptContract(input) {
+      return toAiPromptContract(input.taskType, input.promptContractId);
     },
     listPromptContracts() {
       return [
-        ...listPromptContracts().map((contract) => toAiPromptContract(AI_TASK_BY_LEGACY[contract.taskType])),
+        ...listPromptContractCatalogEntries().map((contract) => toAiPromptContract(contract.taskType, contract.promptContractId)),
         toAiPromptContract("evidence_packet_analysis"),
         toAiPromptContract("schema_validation_only"),
       ];

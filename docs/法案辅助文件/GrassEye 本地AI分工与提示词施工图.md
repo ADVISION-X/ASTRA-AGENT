@@ -62,6 +62,56 @@
 - 多帧证据优先于单帧 opening 图
 - 本地模型失败进入 retry、skip 或 review，不转云端
 
+## Prompt Contract Registry
+
+- Prompt Contract Registry 归 AI Capability owner。
+- 运行时必须通过 promptContractId 解析 Prompt Contract。
+- 外部模块不得直连 src/lib/local-ai/prompt-registry.ts 作为公开主权入口。
+
+## Prompt Contract Data Package
+
+Prompt Contract 至少声明：
+
+- promptContractId
+- taskType
+- modelRole
+- inputContract
+- requiredInputRefs
+- outputSchemaRef
+- forbiddenOutputs
+- confidencePolicy
+- reviewPolicy
+- failurePolicy
+- debugPolicy
+- promptHash
+
+## Prompt Hash
+
+- promptHash 是取证与漂移审计字段。
+- 运行时 proof 和结构化日志必须能关联 promptHash，而不是只留下 promptContractId。
+
+## Prompt Output Schema
+
+- 每个 Prompt Contract 必须绑定一个 outputSchemaRef。
+- AI output 只能按 outputSchemaRef 解析。
+- Orchestration 分支只能消费 outputSchemaRef 中声明字段。
+
+## Prompt Contract Versioning
+
+- promptContractId 是地图引用的稳定入口。
+- promptVersion 与 schemaVersion 必须可审计。
+- Prompt Contract 可以引用 TS 内置模板，但地图不得直接写 raw prompt。
+
+## Map Step Prompt Binding
+
+- 每个 AI step 必须显式绑定 promptContractId。
+- binding 必须与 requiredInputRefs、outputSchemaRef 和 failureBranch 一起受治理。
+
+## AI must not execute actions
+
+- Prompt Contract 只能让模型判断、提取、总结、分类。
+- Prompt Contract 不得要求模型点击、输入、滚动、打开页面、读取 cookies、读取凭据或做最终 mission 决策。
+
 ## 禁止边界
 
 - 不保留 local-ai-runtime 独立主权叙事

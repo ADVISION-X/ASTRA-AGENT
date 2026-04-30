@@ -19,6 +19,7 @@ import type {
   AiAbilityInput,
   AiRuntimeExecutionOutput,
   AiRuntimeHealth,
+  ParsedAiAbilityInput,
   AiTaskType,
 } from "../contract.js";
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
@@ -449,7 +450,7 @@ export function createLocalAiRuntimePort(options: LocalAiRuntimePortOptions = {}
         rawResponsePreview: debugState.rawResponsePreview,
         rawResponseText: debugState.rawResponseText,
         rawResponseHash: debugState.rawResponseText ? hashValue(debugState.rawResponseText) : null,
-        rawResponseRef,
+        rawResponseRef: rawOutputRef,
         parsedJson: debugState.parsedJson,
         parsedDecision: debugState.parsedDecision,
         parserErrors: [...debugState.parserErrors],

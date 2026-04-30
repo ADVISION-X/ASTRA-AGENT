@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { MapCompatibilitySchema } from "./map-compatibility.schema.js";
 import { MapDependenciesSchema } from "./map-dependencies.schema.js";
+import { MapPackageRequirementsSchema } from "./map-package-requirements.schema.js";
 import { MapPluginManifestSchema } from "./map-plugin-manifest.schema.js";
 import { MapPolicySchema } from "./map-policy.schema.js";
 import { OperationalMapPackageSchema } from "./operational-map-package.schema.js";
@@ -13,7 +13,7 @@ export const MapPackageSchema = z.object({
   taskTemplate: TaskTemplatePackageSchema,
   operationalMap: OperationalMapPackageSchema,
   dependencies: MapDependenciesSchema,
-  compatibility: MapCompatibilitySchema,
+  compatibility: MapPackageRequirementsSchema,
   policy: MapPolicySchema,
   promptBindings: PromptBindingsSchema,
   changelog: z.string().default(""),

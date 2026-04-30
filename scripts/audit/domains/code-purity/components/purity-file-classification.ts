@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { type ImportDeclaration, type SourceFile } from "ts-morph";
 
+import { FILE_LIMITS } from "./purity-constants.js";
 import { toRelativeSourcePath } from "../../../core/ts-morph.js";
 
 const GENERIC_BUCKET_BASENAMES = new Set([
@@ -20,39 +21,17 @@ const GENERIC_BUCKET_BASENAMES = new Set([
   "common.ts",
   "common.js",
   "common.mjs",
+  "workbench.ts",
 ]);
 
-const FAKE_PATH_NAMES = new Set([
-  "mock",
-  "mocks",
-  "fake",
-  "fixture",
-  "fixtures",
-  "demo",
-  "placeholder",
-]);
-
-const OWNER_PREFIXES: Array<{ prefix: string; owner: string }> = [
-  { prefix: "src/app/", owner: "route" },
-  { prefix: "src/features/comments/", owner: "comments" },
-  { prefix: "src/features/local-data/", owner: "local-data" },
-  { prefix: "src/features/platform-action/", owner: "platform-action" },
-  { prefix: "src/features/product-signal/", owner: "product-signal" },
-  { prefix: "src/features/vision/", owner: "vision" },
-  { prefix: "src/lib/browser/", owner: "browser" },
-  { prefix: "src/lib/local-ai/", owner: "local-ai" },
-  { prefix: "src/lib/local-app-shell/", owner: "local-app-shell" },
-  { prefix: "src/lib/local-runtime/", owner: "local-runtime" },
-  { prefix: "src/lib/storage/", owner: "storage" },
-  { prefix: "src/lib/localization/", owner: "localization" },
-  { prefix: "src/types/", owner: "types" },
-  { prefix: "scripts/startup/", owner: "startup" },
-  { prefix: "scripts/audit/", owner: "audit" },
-  { prefix: "scripts/acceptance/", owner: "acceptance" },
-  { prefix: "scripts/verify/", owner: "verify" },
-];
-
+const FAKE_PATH_NAMES = new Set(["mock", "mocks", "fake", "fixture", "fixtures", "demo", "placeholder"]);
 const STRUCTURAL_CANDIDATE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+
+export interface PurityFileCategory {
+  kind: keyof typeof FILE_LIMITS;
+  label: string;
+  hardLimit: number;
+}
 
 const splitRelativePath = (relativePath: string): string[] =>
   relativePath.split("/").filter((segment) => segment.length > 0);
@@ -60,19 +39,76 @@ const splitRelativePath = (relativePath: string): string[] =>
 const baseNameWithoutExtension = (relativePath: string): string =>
   path.parse(path.basename(relativePath)).name;
 
+const getModuleOwner = (parts: string[]): string | undefined => {
+  if (parts[0] === "src" && parts[1] === "capabilities" && parts[2]) {
+    return parts[2];
+  }
+  if (parts[0] === "src" && parts[1] === "map-plugins") {
+    return "map-plugin-package";
+  }
+  if (parts[0] === "scripts" && parts[1] === "audit" && parts[2] === "domains" && parts[3]) {
+    return parts[3];
+  }
+  if (parts[0] === "src" && parts[1] === "features" && parts[2]) {
+    return parts[2];
+  }
+  if (parts[0] === "src" && parts[1] === "app") {
+    return "commander-console";
+  }
+  if (parts[0] === "scripts" && parts[1] === "startup") {
+    return "startup-entrypoint";
+  }
+  if (parts[0] === "src" && parts[1] === "lib" && parts[2]) {
+    const libOwners: Record<string, string> = {
+      browser: "open",
+      "local-ai": "ai",
+      "local-runtime": "commander-console",
+      storage: "forensics-persistence",
+    };
+    return libOwners[parts[2]] ?? parts[2];
+  }
+  if (parts[0] === "src" && parts[1] === "types") {
+    return "types";
+  }
+  return undefined;
+};
+
 const hasFakePathToken = (segment: string): boolean => {
   const normalized = path.parse(segment).name.toLowerCase();
   return FAKE_PATH_NAMES.has(normalized);
 };
 
 export const classifyOwnerBoundary = (relativePath: string): string => {
-  for (const candidate of OWNER_PREFIXES) {
-    if (relativePath.startsWith(candidate.prefix)) {
-      return candidate.owner;
-    }
+  const parts = splitRelativePath(relativePath);
+  return getModuleOwner(parts) ?? "unknown";
+};
+
+export const classifyPurityFileCategory = (relativePath: string): PurityFileCategory => {
+  if (relativePath.startsWith("src/types/") || relativePath.endsWith("schema.ts") || relativePath.endsWith("schema.tsx")) {
+    return { kind: "schemaType", label: "schema/type", hardLimit: FILE_LIMITS.schemaType };
   }
 
-  return "unknown";
+  if (relativePath.startsWith("src/app/")) {
+    return { kind: "appHandler", label: "app/api handler", hardLimit: FILE_LIMITS.appHandler };
+  }
+
+  if (relativePath.startsWith("scripts/audit/domains/") && path.basename(relativePath) === "inspector.ts") {
+    return { kind: "auditInspector", label: "audit inspector", hardLimit: FILE_LIMITS.auditInspector };
+  }
+
+  if (relativePath.startsWith("scripts/audit/")) {
+    return { kind: "auditPhase", label: "audit phase", hardLimit: FILE_LIMITS.auditPhase };
+  }
+
+  if (relativePath.includes("orchestration") && (relativePath.includes("executor") || relativePath.includes("runtime"))) {
+    return { kind: "orchestrationCoordinator", label: "orchestration coordinator", hardLimit: FILE_LIMITS.orchestrationCoordinator };
+  }
+
+  if (relativePath.includes("/runtime/") || relativePath.includes("executor") || relativePath.includes("adapter") || relativePath.includes("controller")) {
+    return { kind: "runtime", label: "runtime/implementation", hardLimit: FILE_LIMITS.runtime };
+  }
+
+  return { kind: "ordinary", label: "ordinary implementation", hardLimit: FILE_LIMITS.ordinary };
 };
 
 export const isRouteLikeSourceFile = (relativePath: string): boolean =>
@@ -142,6 +178,9 @@ export const getImportedSourcePaths = (sourceFile: SourceFile): string[] => {
   return [...paths].sort((left, right) => left.localeCompare(right));
 };
 
+export const getImportModuleSpecifiers = (sourceFile: SourceFile): string[] =>
+  sourceFile.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue());
+
 export const getImportedOwnerBoundaries = (sourceFile: SourceFile, relativePath: string): string[] => {
   const localOwner = classifyOwnerBoundary(relativePath);
   const owners = new Set<string>();
@@ -157,7 +196,8 @@ export const getImportedOwnerBoundaries = (sourceFile: SourceFile, relativePath:
 };
 
 export const hasProductionFakeImport = (sourceFile: SourceFile): boolean =>
-  getImportedSourcePaths(sourceFile).some((importedPath) => isProductionFakePath(importedPath));
+  getImportedSourcePaths(sourceFile).some((importedPath) => isProductionFakePath(importedPath))
+  || getImportModuleSpecifiers(sourceFile).some((specifier) => splitRelativePath(specifier).some((segment) => hasFakePathToken(segment)));
 
 export const getStructuralBaseName = (relativePath: string): string =>
   baseNameWithoutExtension(relativePath);

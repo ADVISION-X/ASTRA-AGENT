@@ -12,7 +12,11 @@
     "GRASSEYE-MAP-PLUGIN-004-V1",
     "GRASSEYE-MAP-PLUGIN-005-V1",
     "GRASSEYE-MAP-PLUGIN-006-V1",
-    "GRASSEYE-MAP-PLUGIN-007-V1"
+    "GRASSEYE-MAP-PLUGIN-007-V1",
+    "GRASSEYE-MAP-PLUGIN-008-V1",
+    "GRASSEYE-MAP-PLUGIN-009-V1",
+    "GRASSEYE-MAP-PLUGIN-010-V1",
+    "GRASSEYE-MAP-PLUGIN-011-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",

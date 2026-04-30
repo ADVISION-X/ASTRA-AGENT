@@ -86,13 +86,24 @@ export const AiSafetyPolicySchema = z.object({
 }).strict();
 
 export const AiPromptContractSchema = z.object({
+  promptContractId: z.string().min(1),
   taskType: AiTaskTypeSchema,
   modelRole: AiModelRoleSchema,
   promptId: z.string().min(1),
   promptVersion: z.string().min(1),
   schemaVersion: z.string().min(1),
+  outputSchemaRef: z.string().min(1),
+  requiredInputRefs: z.array(z.string().min(1)).default([]),
+  allowedBranchFields: z.array(z.string().min(1)).default([]),
   purpose: z.string().min(1),
   forbiddenOutputs: z.array(z.string().min(1)).default([]),
+  prohibitedActions: z.array(z.string().min(1)).default([]),
+  restrictedDataAccess: z.array(z.string().min(1)).default([]),
+  confidencePolicy: z.string().min(1),
+  reviewPolicy: z.string().min(1),
+  failurePolicy: z.string().min(1),
+  debugPolicy: z.string().min(1),
+  promptHash: z.string().min(1),
 }).strict();
 
 export const AiVisionRequestInputSchema = VisionProductPresenceRequestInputSchema.extend({

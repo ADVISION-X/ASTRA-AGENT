@@ -173,3 +173,60 @@ Orchestration may send cleaned payloads to Forensics for persistence, but it rem
 FORBIDDEN:
 - Importing src/capabilities/forensics-persistence/runtime/**.
 - Treating Forensics as the owner of AgentRound mutation, RuntimeDeliveryState mutation, product candidate construction, or round-outcome judgment.
+
+## Law GRASSEYE-ORCHESTRATION-CAPABILITY-006-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: manual-first
+evidenceMode: law
+alias: APEX-ORCH-006-V1
+
+summary: Orchestration must consume promptContractId from the active approved map and must not hardcode prompt selection.
+
+### 主题
+
+Prompt 选择服从地图
+
+### 法条
+
+Orchestration must consume promptContractId from the active approved map step and must not hardcode prompt selection.
+
+## Law GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: manual-first
+evidenceMode: law
+alias: APEX-ORCH-007-V1
+
+summary: AI branch decisions must rely only on declared output schema fields.
+
+### 主题
+
+AI 分支只能看声明字段
+
+### 法条
+
+AI step branch decisions must be based only on declared outputSchemaRef fields.
+
+## Law GRASSEYE-ORCHESTRATION-CAPABILITY-008-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: manual-first
+evidenceMode: law
+alias: APEX-ORCH-008-V1
+
+summary: Orchestration must not build raw prompts.
+
+### 主题
+
+总调度不得拼 prompt
+
+### 法条
+
+Orchestration must not build raw prompts.
