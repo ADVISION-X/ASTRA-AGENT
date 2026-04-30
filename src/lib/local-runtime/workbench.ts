@@ -119,6 +119,19 @@ type GrassEyeWorkbenchOptions = {
 
 type CommanderBrowserSessionSnapshot = ReturnType<BrowserController["getSessionState"]>;
 
+type WorkbenchAbilityExecutionResult = {
+  abilityGroupId: string;
+  childCapabilityId?: string | null;
+  status: "success" | "failed" | "review_required";
+  failureReason?: string | { code?: string; message?: string; detail?: string | null } | null;
+  reviewRequiredReason?: string | null;
+};
+
+type AbilityDispatchHandler = (input: {
+  envelope: AbilityCommandEnvelope;
+  inputPayload: NerveBusPayloadDocument;
+}) => Promise<WorkbenchAbilityExecutionResult>;
+
 type MissionStartPreflightComponent = {
   name: "requestedPlatform" | "selectedMap" | "browserController" | "localAi" | "dataStore";
   ok: boolean;
@@ -1156,7 +1169,7 @@ export class GrassEyeWorkbench {
     return result.output as CommanderMissionDashboardView;
   }
 
-  private buildTransportEnvelopeBase<TChannelId extends "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ai" | "ai-to-orchestration">(input: {
+  private buildTransportEnvelopeBase<TChannelId extends "commander-to-orchestration" | "orchestration-to-commander" | "orchestration-to-ability" | "ability-to-orchestration" | "orchestration-to-ai" | "ai-to-orchestration">(input: {
     channelId: TChannelId;
     envelopeId: string;
     missionId: string;
@@ -1231,7 +1244,8 @@ export class GrassEyeWorkbench {
   private async dispatchAbilityCommandEnvelope(envelope: AbilityCommandEnvelope, inputPayload: NerveBusPayloadDocument): Promise<NerveBusHandledResult<AbilityResultEnvelope>> {
     const abilityDispatchers: Record<AbilityCommandEnvelope["to"], AbilityDispatchHandler> = {
       open: async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.openAbilityGroup.execute(this.buildOpenAbilityInput(commandEnvelope, commandPayload)),
-      screenshot: async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.screenshotAbilityGroup.execute({
+      screenshot: async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "screenshot",
         childCapabilityId: commandEnvelope.commandName === "prepare-ai-input" ? "prepare-ai-input" : "capture-browser-viewport",
         sessionId: commandEnvelope.missionId,
@@ -1244,8 +1258,11 @@ export class GrassEyeWorkbench {
         sourceAbilityGroupId: "orchestration",
         sourceChildCapabilityId: commandEnvelope.commandName,
         idempotencyKey: commandEnvelope.idempotencyKey,
-      }),
-      "visual-target": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.visualTargetAbilityGroup.execute({
+        }));
+        return this.screenshotAbilityGroup.execute(command);
+      },
+      "visual-target": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "visual-target",
         childCapabilityId: commandEnvelope.commandName === "detect-comments-button" ? "detect-comments-button" : "detect-next-video-region",
         sessionId: commandEnvelope.missionId,
@@ -1263,8 +1280,11 @@ export class GrassEyeWorkbench {
           pageState: { decision: "review_required", pageStateRef: this.payloadValueToString(this.payloadDocumentToObject(commandPayload).pageStateRef), pageStateProofRef: null, pageStateType: null, reason: "Page state is referenced by transport payload when available." },
         },
         candidates: [],
-      }),
-      "geometry-guard": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.geometryGuardAbilityGroup.execute({
+        }));
+        return this.visualTargetAbilityGroup.execute(command);
+      },
+      "geometry-guard": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "geometry-guard",
         childCapabilityId: commandEnvelope.commandName === "normalize-coordinate-geometry" ? "validate-click-point" : "validate-coordinate-space",
         sessionId: commandEnvelope.missionId,
@@ -1283,8 +1303,11 @@ export class GrassEyeWorkbench {
         bbox: { x: 0, y: 0, width: 1, height: 1 },
         clickPoint: { x: 0, y: 0 },
         viewportSize: { width: 1, height: 1 },
-      }),
-      "mouse-click": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.mouseClickAbilityGroup.execute({
+        }));
+        return this.geometryGuardAbilityGroup.execute(command);
+      },
+      "mouse-click": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "mouse-click",
         childCapabilityId: "click-browser-coordinate",
         sessionId: commandEnvelope.missionId,
@@ -1297,8 +1320,11 @@ export class GrassEyeWorkbench {
         sourceTargetRef: this.payloadValueToString(this.payloadDocumentToObject(commandPayload).visualTargetRef) ?? commandEnvelope.inputRef,
         geometryGuardProof: { proofRef: this.payloadValueToString(this.payloadDocumentToObject(commandPayload).geometryProofRef) ?? commandEnvelope.inputRef, normalizedCoordinateSpace: "browserViewport", clickPoint: { x: 0, y: 0 }, safetyMarginPx: 4 },
         bounds: { width: 1, height: 1 },
-      }),
-      "text-input": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.textInputAbilityGroup.execute({
+        }));
+        return this.mouseClickAbilityGroup.execute(command);
+      },
+      "text-input": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "text-input",
         childCapabilityId: "type-text",
         sessionId: commandEnvelope.missionId,
@@ -1330,8 +1356,11 @@ export class GrassEyeWorkbench {
         approvedTextRef: `${commandEnvelope.inputRef}:approved-text`,
         approvedTextHash: "sha256:governed-text-input",
         approvedCommitRef: null,
-      }),
-      "mouse-scroll": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.mouseScrollAbilityGroup.execute({
+        }));
+        return this.textInputAbilityGroup.execute(command);
+      },
+      "mouse-scroll": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => {
+        const command = JSON.parse(JSON.stringify({
         abilityGroupId: "mouse-scroll",
         childCapabilityId: "scroll-browser-viewport",
         sessionId: commandEnvelope.missionId,
@@ -1349,7 +1378,9 @@ export class GrassEyeWorkbench {
         bounds: { width: 1, height: 1 },
         direction: "down",
         magnitude: "medium",
-      }),
+        }));
+        return this.mouseScrollAbilityGroup.execute(command);
+      },
       "post-action-verification": async ({ envelope: commandEnvelope, inputPayload: commandPayload }) => this.postActionVerificationAbilityGroup.execute(this.buildPostActionVerificationInput(commandEnvelope, commandPayload)),
       "forensics-persistence": async ({ envelope: commandEnvelope }) => this.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(this.buildForensicsRuntimeEventInput(commandEnvelope)),
       "page-state": async ({ envelope: commandEnvelope }) => this.pageStateAbilityGroup.execute(this.buildPageStateDispatchInput(commandEnvelope)),
@@ -1370,6 +1401,205 @@ export class GrassEyeWorkbench {
         },
       });
     }
+  }
+
+  private buildOpenAbilityInput(envelope: AbilityCommandEnvelope, inputPayload: NerveBusPayloadDocument): OpenRequest {
+    const payload = this.payloadDocumentToObject(inputPayload);
+    return {
+      abilityGroupId: "open",
+      childCapabilityId: "open-tiktok",
+      platformId: "tiktok-web",
+      targetKind: "platform-feed",
+      requestedBy: "orchestration",
+      sourceAbilityGroupId: "orchestration",
+      sourceChildCapabilityId: envelope.commandName,
+      missionId: envelope.missionId,
+      runId: envelope.mapId,
+      sessionId: envelope.missionId,
+      roundId: envelope.stepId,
+      videoVisitId: null,
+      reason: inputPayload.summary,
+      targetUrl: this.payloadValueToString(payload.targetUrl),
+      targetTitle: this.payloadValueToString(payload.targetTitle),
+      targetProfileRef: null,
+      sourceRef: this.payloadValueToString(payload.sourceEvidenceRef),
+    };
+  }
+
+  private buildAbilityCommandResultEnvelope(input: {
+    envelope: AbilityCommandEnvelope;
+    result: WorkbenchAbilityExecutionResult;
+  }): NerveBusHandledResult<AbilityResultEnvelope> {
+    const failureReason = this.describeAbilityFailure(input.result.failureReason);
+    const status = input.result.status;
+    const summary = status === "success"
+      ? `${input.envelope.to} executed ${input.envelope.commandName}.`
+      : failureReason ?? input.result.reviewRequiredReason ?? `${input.envelope.to} failed ${input.envelope.commandName}.`;
+    const outputPayload = this.buildPayloadDocument({
+      documentType: "ability.result",
+      documentRef: `${input.envelope.commandId}:result:payload`,
+      summary,
+      content: {
+        abilityGroupId: input.result.abilityGroupId,
+        childCapabilityId: input.result.childCapabilityId ?? input.envelope.commandName,
+        status,
+        failureReason,
+        reviewRequiredReason: input.result.reviewRequiredReason ?? null,
+      },
+    });
+    return {
+      envelope: {
+        ...this.buildTransportEnvelopeBase({
+          channelId: "ability-to-orchestration",
+          envelopeId: `${input.envelope.envelopeId}:result`,
+          missionId: input.envelope.missionId,
+          mapId: input.envelope.mapId,
+          stepId: input.envelope.stepId,
+          inputRef: input.envelope.inputRef,
+          payloadRefs: { output: outputPayload.documentRef },
+          summary,
+          tags: [input.envelope.to, input.envelope.commandName, status],
+        }),
+        envelopeKind: "ability_result",
+        resultId: `${input.envelope.commandId}:result`,
+        from: input.envelope.to,
+        to: "orchestration",
+        status,
+        outputRef: status === "success" ? outputPayload.documentRef : null,
+        diagnosticPayloadRef: status === "success" ? null : outputPayload.documentRef,
+        failureReason: status === "failed" ? failureReason ?? "Ability dispatch failed." : null,
+        reviewRequiredReason: status === "review_required" ? input.result.reviewRequiredReason ?? failureReason ?? "Ability dispatch requires review." : null,
+      },
+      outputPayload,
+    };
+  }
+
+  private describeAbilityFailure(failure: WorkbenchAbilityExecutionResult["failureReason"]): string | null {
+    if (!failure) {
+      return null;
+    }
+    return typeof failure === "string" ? failure : failure.message ?? failure.code ?? "Ability dispatch failed.";
+  }
+
+  private buildPostActionVerificationInput(envelope: AbilityCommandEnvelope, inputPayload: NerveBusPayloadDocument) {
+    const now = new Date().toISOString();
+    return JSON.parse(JSON.stringify({
+      abilityGroupId: "post-action-verification",
+      childCapabilityId: envelope.commandName === "verify-comments-open" ? "verify-comments-panel-opened" : "verify-action-result",
+      requestedBy: "orchestration",
+      sessionId: envelope.missionId,
+      roundId: envelope.stepId,
+      videoVisitId: null,
+      expectedOutcome: { outcomeKind: "state_change", summary: inputPayload.summary },
+      actionProof: {
+        actionProofRef: envelope.inputRef,
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: "click-browser-coordinate",
+        sourceRuntimeProofRef: envelope.inputRef,
+        sourceActionResultRef: envelope.inputRef,
+        sourceActionOutputRef: envelope.inputRef,
+        actionLogRef: envelope.inputRef,
+        actionRecordRef: envelope.inputRef,
+      },
+      beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
+      observationSet: {
+        observations: [{
+          ref: `${envelope.inputRef}:observation`,
+          kind: "runtime_signal",
+          observedAt: now,
+          confidence: 0.5,
+          source: { sourceAbilityGroupId: "post-action-verification", sourceChildCapabilityId: envelope.commandName, sourceProofRef: envelope.inputRef },
+          payload: { signalType: "action_completed", value: true, detail: inputPayload.summary },
+        }],
+      },
+      verificationPolicy: { requireBeforeAfterEvidence: false, requireObservationSupport: false, allowReviewRequired: true },
+      confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
+      inputRef: envelope.inputRef,
+    }));
+  }
+
+  private buildForensicsRuntimeEventInput(envelope: AbilityCommandEnvelope) {
+    return JSON.parse(JSON.stringify({
+      abilityGroupId: "forensics-persistence",
+      childCapabilityId: "write-structured-runtime-event",
+      recordType: "structured_runtime_event",
+      requestedBy: "orchestration",
+      sourceAbilityGroupId: "orchestration",
+      sourceChildCapabilityId: envelope.commandName,
+      sessionId: envelope.missionId,
+      roundId: envelope.stepId,
+      videoVisitId: null,
+      sourceRecordRefs: [],
+      parentRefs: [],
+      artifactRefs: [],
+      persistencePolicy: { mode: "append", allowPartialRefs: true },
+      dataQualityFlags: [],
+      payload: {
+        structuredRuntimeEvent: StructuredRuntimeEventSchema.parse({
+          eventId: createId("event"),
+          eventType: "ABILITY_DISPATCH",
+          level: "INFO",
+          phase: "ability-dispatch",
+          component: "nerve-bus",
+          owner: "Nerve Bus",
+          abilityGroupId: "nerve-bus",
+          childCapabilityId: "orchestration-to-ability",
+          sessionId: envelope.missionId,
+          missionId: envelope.missionId,
+          roundId: envelope.stepId,
+          videoVisitId: null,
+          mapId: envelope.mapId,
+          traceId: envelope.traceId,
+          spanId: envelope.spanId,
+          attemptId: envelope.attemptId,
+          step: envelope.stepId,
+          status: "success",
+          reason: `Dispatched ${envelope.commandName}.`,
+          createdAt: new Date().toISOString(),
+          refs: [],
+          inputRefs: [envelope.inputRef],
+          outputRefs: [],
+          evidenceRefs: [],
+          proofRefs: [],
+          artifactRefs: [],
+          actionLogRefs: [],
+          dataQualityFlags: [],
+        }),
+      },
+    }));
+  }
+
+  private buildPageStateDispatchInput(envelope: AbilityCommandEnvelope) {
+    const now = new Date().toISOString();
+    const currentUrl = this.browserController.getSessionState().currentUrl || "https://www.tiktok.com/foryou";
+    return JSON.parse(JSON.stringify({
+      childCapabilityId: envelope.commandName === "detect-feed-ready" ? "detect-feed-ready" : "detect-platform-page-kind",
+      runId: envelope.mapId,
+      missionId: envelope.missionId,
+      sessionId: envelope.missionId,
+      roundId: envelope.stepId,
+      videoVisitId: "page-state-dispatch",
+      requestedBy: "orchestration",
+      snapshot: {
+        snapshotId: `${envelope.inputRef}:snapshot`,
+        currentUrl,
+        currentTitle: this.browserController.getSessionState().currentTitle ?? "",
+        browserLoginState: this.browserController.getSessionState().loginState,
+        viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
+        scrollOffset: { x: 0, y: 0 },
+        capturedAt: now,
+        sourceAbilityGroupId: "runtime-signal",
+        sourceChildCapabilityId: "nerve-bus-dispatch",
+        sourceProofRef: envelope.inputRef,
+      },
+      observations: [],
+      sourceEvidenceRefs: [envelope.inputRef],
+      freshnessPolicy: { maxSnapshotAgeMs: 300000, maxObservationAgeMs: 300000, maxObservationSkewMs: 300000 },
+      confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
+      statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: true, allowModalOverlay: false, allowUnknownState: true },
+      openHandoff: { openProofRef: envelope.inputRef, browserSessionRef: envelope.missionId, platformProfileId: "tiktok-web" },
+      previousPageStateFingerprint: null,
+    }));
   }
 
   private buildHumanCommandDispatchInput(command: CommanderHumanCommandEnvelope) {
@@ -1472,7 +1702,10 @@ export class GrassEyeWorkbench {
   private async handleHumanCommandEnvelope(envelope: HumanCommandEnvelope, inputPayload: NerveBusPayloadDocument): Promise<NerveBusHandledResult<HumanCommandResultEnvelope>> {
     try {
       const payload = this.payloadDocumentToObject(inputPayload);
-      if (envelope.commandType === "start-mission") {
+      const operatorNote = this.payloadValueToString(payload.operatorNote);
+
+      switch (envelope.commandType) {
+        case "start-mission": {
           const requestedPlatformId = this.payloadValueToString(payload.requestedPlatformId) as RequestedPlatformId | null;
           const humanGoal = this.payloadValueToString(payload.humanGoal);
           const taskTemplateId = this.payloadValueToString(payload.taskTemplateId);
@@ -1522,56 +1755,64 @@ export class GrassEyeWorkbench {
           });
         }
 
-        const currentMission = await this.orchestrationAbilityGroup.getMissionState();
-        const missionId = envelope.missionId !== "human-command" ? envelope.missionId : currentMission.missionId;
-        if (!missionId) {
-          return this.buildHumanCommandResultEnvelope({
-            envelope,
-            status: "failed",
-            summary: "No active mission is available.",
-            failureReason: "No active mission is available.",
-          });
-        }
-
-        const operatorNote = this.payloadValueToString(payload.operatorNote);
-        if (envelope.commandType === "pause-mission") {
+        case "pause-mission": {
+          const missionId = await this.resolveHumanCommandMissionId(envelope);
           const missionState = await this.orchestrationAbilityGroup.pauseMission(missionId);
           return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
-        if (envelope.commandType === "resume-mission") {
+
+        case "resume-mission": {
+          const missionId = await this.resolveHumanCommandMissionId(envelope);
           const missionState = await this.orchestrationAbilityGroup.resumeMission(missionId);
           return this.buildHumanCommandResultEnvelope({ envelope, status: missionState.status === "review_required" ? "review_required" : "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
-        if (envelope.commandType === "stop-mission") {
+
+        case "stop-mission": {
+          const missionId = await this.resolveHumanCommandMissionId(envelope);
           const missionState = await this.orchestrationAbilityGroup.stopMission({ missionId, reason: operatorNote ?? "stop requested by commander console" });
           return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
         }
 
-        const missionState = await this.orchestrationAbilityGroup.emergencyStop({ missionId, reason: operatorNote ?? "emergency stop requested by commander console" });
-        return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
+        case "emergency-stop": {
+          const missionId = await this.resolveHumanCommandMissionId(envelope);
+          const missionState = await this.orchestrationAbilityGroup.emergencyStop({ missionId, reason: operatorNote ?? "emergency stop requested by commander console" });
+          return this.buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Mission ${missionId} is now ${missionState.status}.` });
+        }
 
-      const candidateId = this.payloadValueToString(payload.targetRecordId);
-      if (candidateId === null) {
-        return this.buildHumanCommandResultEnvelope({
-          envelope,
-          status: "failed",
-          summary: "Candidate review commands require a target candidate id.",
-          failureReason: "Candidate review commands require a target candidate id.",
-        });
+        case "approve-candidate":
+        case "reject-candidate":
+        case "mark-review-required":
+        case "hold-candidate": {
+          const candidateId = this.payloadValueToString(payload.targetRecordId);
+          if (candidateId === null) {
+            return this.buildHumanCommandResultEnvelope({
+              envelope,
+              status: "failed",
+              summary: "Candidate review commands require a target candidate id.",
+              failureReason: "Candidate review commands require a target candidate id.",
+            });
+          }
+          const disposition = envelope.commandType === "approve-candidate"
+            ? "approve"
+            : envelope.commandType === "reject-candidate"
+              ? "reject"
+              : "hold";
+          const candidate = await this.evidenceStore.setCandidateDisposition(candidateId, disposition, operatorNote ?? undefined);
+          return this.buildHumanCommandResultEnvelope({
+            envelope,
+            status: "success",
+            summary: `Candidate ${candidate.id} is now ${candidate.reviewStatus}.`,
+          });
+        }
+
+        default:
+          return this.buildHumanCommandResultEnvelope({
+            envelope,
+            status: "failed",
+            summary: `Unsupported human command: ${envelope.commandType}.`,
+            failureReason: `Unsupported human command: ${envelope.commandType}.`,
+          });
       }
-      const governedCandidateId = candidateId!;
-      const disposition = envelope.commandType === "approve-candidate"
-        ? "approve"
-        : envelope.commandType === "reject-candidate"
-          ? "reject"
-          : "hold";
-      const candidateOperatorNote = this.payloadValueToString(payload.operatorNote) ?? undefined;
-      const candidate = await this.evidenceStore.setCandidateDisposition(governedCandidateId, disposition, candidateOperatorNote);
-      return this.buildHumanCommandResultEnvelope({
-        envelope,
-        status: "success",
-        summary: `Candidate ${candidate.id} is now ${candidate.reviewStatus}.`,
-      });
     } catch (error) {
       return this.buildHumanCommandResultEnvelope({
         envelope,
@@ -1580,6 +1821,15 @@ export class GrassEyeWorkbench {
         failureReason: error instanceof Error ? error.message : "Unknown human command transport failure",
       });
     }
+  }
+
+  private async resolveHumanCommandMissionId(envelope: HumanCommandEnvelope): Promise<string> {
+    const currentMission = await this.orchestrationAbilityGroup.getMissionState();
+    const missionId = envelope.missionId !== "human-command" ? envelope.missionId : currentMission.missionId;
+    if (!missionId) {
+      throw new Error("No active mission is available.");
+    }
+    return missionId;
   }
 
   async deleteCandidate(candidateId: string): Promise<void> {

@@ -15,6 +15,8 @@
     "internal:app-server:dev": "GRASSEYE_PLATFORM_TARGET=tiktok-web tsx src/app/server.ts",
     "audit:build": "tsx scripts/audit/build-audit-artifacts.ts",
     "audit": "tsx scripts/audit/runner.ts",
+    "audit:nerve-bus": "tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
+    "audit:capability-runtime-wiring": "tsx scripts/audit/domains/capability-runtime-wiring/run-inspector.ts",
     "audit:text-input-capability": "tsx scripts/audit/domains/text-input-capability/run-inspector.ts",
     "audit:map-plugin-package": "tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
     "audit:commander-console-user-love": "tsx scripts/audit/domains/commander-console-user-love/run-inspector.ts",
