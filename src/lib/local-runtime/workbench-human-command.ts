@@ -1,15 +1,15 @@
 import {
   OperationalMapIdSchema,
   type RequestedPlatformId,
-} from "../../capabilities/orchestration/index.js";
-import type { CommanderHumanCommandEnvelope } from "../../capabilities/commander-console/index.js";
+} from "../../capabilities/orchestration/schema.js";
+import type { CommanderHumanCommandEnvelope } from "../../capabilities/commander-console/contract.js";
 import type {
-  HumanCommandDispatchInput,
   HumanCommandEnvelope,
   HumanCommandResultEnvelope,
-  NerveBusHandledResult,
-  NerveBusPayloadDocument,
-} from "../../capabilities/nerve-bus/index.js";
+} from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import type { HumanCommandDispatchInput } from "../../capabilities/nerve-bus/contract.js";
+import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
+import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/ports/nerve-bus-transport-port.js";
 import { createId } from "./ids.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject, payloadValueToInteger, payloadValueToString } from "./workbench-payload.js";

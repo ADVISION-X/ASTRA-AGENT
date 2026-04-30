@@ -405,7 +405,7 @@ const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>
   };
 };
 
-export default createPendingDomainInspector({
+export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
   inspector: "GrassEye Capability Group Governance Owner Inspector",
   inspectorId: "capability-group-governance-owner",
   capabilityDomain: "capability-group-governance",

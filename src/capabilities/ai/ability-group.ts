@@ -1,8 +1,8 @@
-import type { AiAbilityGroup } from "./contract.js";
-import type { AiExecutionContext } from "./contract.js";
+import type { AiAbilityGroup, AiChildCapabilityId, AiExecutionContext, AiProviderKind, AiTaskType } from "./contract.js";
 import { AiHealthReportSchema, AiResultSchema, parseAiInput } from "./schema.js";
 import { createAiCapabilityRegistry, listAiChildren } from "./registry.js";
 import { dispatchAiFailure } from "./runtime/ai-dispatch-failure.js";
+import { executeAiChild } from "./runtime/ai-executor.js";
 import { createAiExecutionContext } from "./runtime/ai-execution-context.js";
 import { routeAiTaskToChild } from "./task-router.js";
 
@@ -30,8 +30,8 @@ const dispatchAiRouteFailure = (context: AiExecutionContext, inputValue: Paramet
 
 const dispatchAiRegistryFailure = (
   context: AiExecutionContext,
-  childCapabilityId: string,
-  taskType: Parameters<typeof routeAiTaskToChild>[0],
+  childCapabilityId: AiChildCapabilityId,
+  taskType: AiTaskType,
 ) =>
   dispatchAiFailure({
     rawInput: { taskType },
@@ -45,9 +45,9 @@ const dispatchAiRegistryFailure = (
 
 const dispatchAiExecutableFailure = (
   context: AiExecutionContext,
-  rawInput: { taskType: Parameters<typeof routeAiTaskToChild>[0] },
-  childCapabilityId: string,
-  providerKind: string | null,
+  rawInput: { taskType: AiTaskType },
+  childCapabilityId: AiChildCapabilityId,
+  providerKind: AiProviderKind | null,
 ) =>
   dispatchAiFailure({
     rawInput,
@@ -62,9 +62,9 @@ const dispatchAiExecutableFailure = (
 const dispatchAiExecutionFailure = (
   input: {
     context: AiExecutionContext;
-    rawInput: { taskType: Parameters<typeof routeAiTaskToChild>[0] };
-    childCapabilityId: string;
-    providerKind: string | null;
+    rawInput: { taskType: AiTaskType };
+    childCapabilityId: AiChildCapabilityId;
+    providerKind: AiProviderKind | null;
     error: unknown;
   },
 ) =>
@@ -86,7 +86,7 @@ const parseAiExecutionInput = (context: AiExecutionContext, inputValue: unknown)
 const resolveAiRegistryEntry = (
   context: AiExecutionContext,
   registry: ReturnType<typeof createAiCapabilityRegistry>,
-  parsedData: { taskType: Parameters<typeof routeAiTaskToChild>[0] },
+  parsedData: { taskType: AiTaskType },
 ) => {
   const childCapabilityId = routeAiTaskToChild(parsedData.taskType);
   if (childCapabilityId === null) {
@@ -100,6 +100,12 @@ const resolveAiRegistryEntry = (
 
   return { childCapabilityId, entry };
 };
+
+const canExecuteDisabledPolicyRoute = (
+  entry: ReturnType<typeof createAiCapabilityRegistry> extends ReadonlyMap<AiChildCapabilityId, infer RegistryEntry>
+    ? RegistryEntry
+    : never,
+) => entry.disabledPolicy === "disabled_by_policy";
 
 const executeAiRequest = async (
   context: AiExecutionContext,
@@ -116,11 +122,23 @@ const executeAiRequest = async (
     return resolvedEntry;
   }
 
-  if (!resolvedEntry.entry.executable || !resolvedEntry.entry.implementation.execute) {
+  if (!resolvedEntry.entry.executable && !canExecuteDisabledPolicyRoute(resolvedEntry.entry)) {
+    return dispatchAiExecutableFailure(context, parsedData, resolvedEntry.childCapabilityId, resolvedEntry.entry.contract.providerKind);
+  }
+
+  if (resolvedEntry.entry.executable && !resolvedEntry.entry.implementation.execute) {
     return dispatchAiExecutableFailure(context, parsedData, resolvedEntry.childCapabilityId, resolvedEntry.entry.contract.providerKind);
   }
 
   try {
+    if (canExecuteDisabledPolicyRoute(resolvedEntry.entry)) {
+      return AiResultSchema.parse(await executeAiChild({
+        request: parsedData,
+        childContract: resolvedEntry.entry.contract,
+        context,
+      }));
+    }
+
     return AiResultSchema.parse(await resolvedEntry.entry.implementation.execute(parsedData, context));
   } catch (error) {
     return dispatchAiExecutionFailure({

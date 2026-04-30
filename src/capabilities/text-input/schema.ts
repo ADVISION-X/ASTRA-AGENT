@@ -2,17 +2,7 @@ import { z } from "zod";
 
 import { TEXT_INPUT_FAILURE_REASONS } from "./shared/text-input-failure.js";
 import { DEFAULT_TEXT_INPUT_POLICY } from "./shared/text-input-policy.js";
-import {
-  TEXT_INPUT_CLIPBOARD_DECISIONS,
-  TEXT_INPUT_CLOCK_KIND,
-  TEXT_INPUT_KEY_POLICY_DECISIONS,
-  TEXT_INPUT_OUTPUT_BOUNDARY_DECISIONS,
-  TEXT_INPUT_POLICY_DECISIONS,
-  TEXT_INPUT_PRIMITIVE_DECISIONS,
-  TEXT_INPUT_REDACTION_DECISIONS,
-  TEXT_INPUT_SENSITIVE_TEXT_DECISIONS,
-  TEXT_INPUT_VERIFICATION_REF_POLICY,
-} from "./shared/text-input-proof.js";
+import { TEXT_INPUT_PROOF } from "./shared/text-input-proof.js";
 import { TEXT_INPUT_STATUSES } from "./shared/text-input-result.js";
 import { TEXT_INPUT_SOURCE_OWNERS } from "./shared/text-input-source.js";
 import { TEXT_INPUT_FOCUS_PROOF_OWNERS, TEXT_INPUT_TARGET_PROOF_OWNERS } from "./shared/text-input-target.js";
@@ -28,6 +18,17 @@ const nullableString = z.string().min(1).nullable().optional().default(null);
 const nonNegativeInt = z.number().int().nonnegative();
 const positiveInt = z.number().int().positive();
 const hashString = z.string().regex(/^sha256:[a-f0-9]{64}$/i);
+const {
+  CLIPBOARD_DECISIONS: TEXT_INPUT_CLIPBOARD_DECISIONS,
+  CLOCK_KIND: TEXT_INPUT_CLOCK_KIND,
+  KEY_POLICY_DECISIONS: TEXT_INPUT_KEY_POLICY_DECISIONS,
+  OUTPUT_BOUNDARY_DECISIONS: TEXT_INPUT_OUTPUT_BOUNDARY_DECISIONS,
+  POLICY_DECISIONS: TEXT_INPUT_POLICY_DECISIONS,
+  PRIMITIVE_DECISIONS: TEXT_INPUT_PRIMITIVE_DECISIONS,
+  REDACTION_DECISIONS: TEXT_INPUT_REDACTION_DECISIONS,
+  SENSITIVE_TEXT_DECISIONS: TEXT_INPUT_SENSITIVE_TEXT_DECISIONS,
+  VERIFICATION_REF_POLICY: TEXT_INPUT_VERIFICATION_REF_POLICY,
+} = TEXT_INPUT_PROOF;
 
 function buildDefaultTextInputPolicy() {
   return {

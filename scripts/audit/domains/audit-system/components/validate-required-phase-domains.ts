@@ -1,6 +1,8 @@
 import { createFinding, createPhase } from "../../../core/result.js";
 import { loadFrozenBaselineDomains } from "../../../core/frozen-baseline.js";
-import { defaultPhaseGatePath, generatedArtifactPaths, toRepoRelativePath } from "../../../core/paths.js";
+import { generatedArtifactPaths } from "../../../core/generated-artifact-paths.js";
+import { defaultPhaseGatePath } from "../../../core/path-roots.js";
+import { toRepoRelativePath } from "../../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
 const collectRequiredDomainFindings = (

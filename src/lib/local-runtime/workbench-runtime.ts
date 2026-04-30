@@ -1,8 +1,9 @@
 import type { WorkbenchRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
 import { createWorkbenchBaseRuntime } from "./workbench-base-runtime.js";
 import { createWorkbenchCommanderConsole, getCommanderConsoleSnapshot } from "./workbench-commander-console.js";
-import { getLocalAiRoleControls, recordCommanderDebugEvent, setLocalAiRoleStartupState } from "./workbench-debug.js";
+import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { createWorkbenchNerveBus, createWorkbenchOrchestration } from "./workbench-nerve-bus.js";
+import { getLocalAiRoleControls, setLocalAiRoleStartupState } from "./workbench-runtime-admin.js";
 import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
 
 export const createWorkbenchRuntime = (

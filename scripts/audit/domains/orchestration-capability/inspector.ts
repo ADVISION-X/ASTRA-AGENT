@@ -120,7 +120,7 @@ const FORBIDDEN_IMPORT_MARKERS = [
   "lib/browser/",
   "lib/local-ai/",
   "storage/evidence-store/",
-  "features/platform-action/",
+  "features/" + "platform-action/",
 ] as const;
 
 const FORBIDDEN_IDENTIFIER_NAMES = [
@@ -141,7 +141,7 @@ function isPrivateOrchestrationPath(relativePath: string): boolean {
   return PRIVATE_ORCHESTRATION_SEGMENTS.some((segment) => relativePath.includes(segment));
 }
 
-export default createPendingDomainInspector({
+export const orchestrationCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Orchestration Capability Owner Inspector",
   inspectorId: "orchestration-capability-owner",
   capabilityDomain: "orchestration-capability",

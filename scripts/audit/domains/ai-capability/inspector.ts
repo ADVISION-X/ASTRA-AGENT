@@ -24,6 +24,8 @@ const REQUIRED_FILES = [
   `${AI_ROOT}/ability-group.ts`,
   `${AI_ROOT}/contract.ts`,
   `${AI_ROOT}/schema.ts`,
+  `${AI_ROOT}/schema-core.schema.ts`,
+  `${AI_ROOT}/schema-runtime.schema.ts`,
   `${AI_ROOT}/registry.ts`,
   `${AI_ROOT}/index.ts`,
   `${AI_ROOT}/task-router.ts`,
@@ -288,7 +290,7 @@ function getReferencesCount(sourceFile: SourceFile, name: string): number {
   return 0;
 }
 
-export default createPendingDomainInspector({
+export const aiCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye AI Capability Owner Inspector",
   inspectorId: "ai-capability-owner",
   capabilityDomain: "ai-capability",
@@ -300,7 +302,7 @@ export default createPendingDomainInspector({
     const project = createAuditProject();
     const findings: Finding[] = [];
 
-    const schemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema.ts`);
+    const runtimeSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime.schema.ts`);
     const typesSource = getSourceOrThrow(project, `${AI_ROOT}/shared/ai-types.ts`);
     const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
     const registrySource = getSourceOrThrow(project, `${AI_ROOT}/registry.ts`);
@@ -308,6 +310,9 @@ export default createPendingDomainInspector({
     const modelRosterSource = getSourceOrThrow(project, `${AI_ROOT}/model-roster.ts`);
     const indexSource = getSourceOrThrow(project, `${AI_ROOT}/index.ts`);
     const executorSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-executor.ts`);
+    const preRuntimeSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-pre-runtime.ts`);
+    const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
+    const terminalResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-terminal-result.ts`);
     const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
     const resultBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-result-builder.ts`);
     const adapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
@@ -360,36 +365,36 @@ export default createPendingDomainInspector({
     if (registryChildIds.sort().join(",") !== normalizedExpected) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/registry.ts`, line: 1, severity: "fatal", message: "listAiChildren must match the governed child package set." }));
     }
-    if ([...new Set(routedChildIds)].sort().join(",") !== ["internal-schema-validator", "local-ocr-ai", "local-text-ai", "local-vision-ai"].sort().join(",")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/task-router.ts`, line: 1, severity: "fatal", message: "AI task router must only route to governed enabled children." }));
+    if ([...new Set(routedChildIds)].sort().join(",") !== ["internal-schema-validator", "local-ocr-ai", "local-text-ai", "local-vision-ai", "paid-analysis-ai"].sort().join(",")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/task-router.ts`, line: 1, severity: "fatal", message: "AI task router must only route to governed children, including reserved disabled-provider routes." }));
     }
     if ([...new Set(rosterChildIds)].sort().join(",") !== normalizedExpected) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-004-V1", file: `${AI_ROOT}/model-roster.ts`, line: 1, severity: "fatal", message: "AI model roster must enumerate the same governed child package set." }));
     }
 
     const requiredExecutorCalls = [
-      "parseAiExecutorInput",
-      "evaluateAiProviderPolicy",
-      "evaluateAiDataPolicy",
-      "evaluateAiCostPolicy",
-      "evaluateAiPayloadBudgetGate",
-      "evaluateAiRuntimeHealthGate",
-      "runAiRuntimeCall",
-      "evaluateAiSafetyPolicy",
-      "resolveAiSchemaContract",
-      "validateAiInternalCandidate",
-      "buildAiDisabledProviderOutput",
-      "evaluateAiOutputBoundary",
-      "evaluateAiQualityGate",
-      "buildAiResult",
-    ];
-    for (const callName of requiredExecutorCalls) {
-      if (!hasCallExpression(executorSource, callName)) {
-        findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: `AI executor must route through ${callName}.` }));
+      { callName: "parseAiExecutorInput", source: preRuntimeSource },
+      { callName: "evaluateAiProviderPolicy", source: preRuntimeSource },
+      { callName: "evaluateAiDataPolicy", source: preRuntimeSource },
+      { callName: "evaluateAiCostPolicy", source: preRuntimeSource },
+      { callName: "evaluateAiPayloadBudgetGate", source: preRuntimeSource },
+      { callName: "evaluateAiRuntimeHealthGate", source: preRuntimeSource },
+      { callName: "runAiRuntimeCall", source: executorSource },
+      { callName: "evaluateAiSafetyPolicy", source: runtimeResultSource },
+      { callName: "resolveAiSchemaContract", source: preRuntimeSource },
+      { callName: "validateAiInternalCandidate", source: preRuntimeSource },
+      { callName: "buildAiDisabledProviderOutput", source: preRuntimeSource },
+      { callName: "evaluateAiOutputBoundary", source: runtimeResultSource },
+      { callName: "evaluateAiQualityGate", source: runtimeResultSource },
+      { callName: "buildAiResult", source: terminalResultSource },
+    ] as const;
+    for (const { callName, source } of requiredExecutorCalls) {
+      if (!hasCallExpression(source, callName)) {
+        findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: toRepoRelativePath(source.getFilePath()), line: 1, severity: "fatal", message: `AI executor must route through ${callName}.` }));
       }
     }
-    if (!hasGovernedFailureStatusBranch(executorSource)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI executor must keep schema/policy/quality rejection paths governed as review_required or failed, never clean success." }));
+    if (!hasGovernedFailureStatusBranch(runtimeResultSource)) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-runtime-result.ts`, line: 1, severity: "fatal", message: "AI executor must keep schema/policy/quality rejection paths governed as review_required or failed, never clean success." }));
     }
     if (executorSource.getText().includes("context.runtime.execute(")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI executor must call runtime only through ai-runtime-call-runner." }));
@@ -426,8 +431,8 @@ export default createPendingDomainInspector({
     if (!hasCallExpression(outputBoundarySource, "collectForbiddenFields") || !outputBoundarySource.getVariableDeclaration("FORBIDDEN_OUTPUT_KEYS")) {
       findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/runtime/ai-output-boundary-gate.ts`, line: 1, severity: "fatal", message: "AI output boundary must recursively reject forbidden action output fields and aliases." }));
     }
-    if (hasCallExpression(schemaSource, "passthrough")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema.ts`, line: 1, severity: "fatal", message: "AI forbidden action output schema must not use passthrough." }));
+    if (hasCallExpression(runtimeSchemaSource, "passthrough")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema-runtime.schema.ts`, line: 1, severity: "fatal", message: "AI forbidden action output schema must not use passthrough." }));
     }
 
     if (!hasCallExpression(abilityGroupSource, "parseAiInput") || !hasCallExpression(abilityGroupSource, "createAiCapabilityRegistry") || !hasCallExpression(abilityGroupSource, "routeAiTaskToChild")) {
@@ -523,8 +528,8 @@ export default createPendingDomainInspector({
         findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-001-V1", file: repoPath, line: 1, severity: "fatal", message: "LocalAiGateway must not be imported outside the AI local runtime adapter." }));
       }
     }
-    if (!schemaSource.getText().includes("failed and review_required result output must be null") || !schemaSource.getText().includes("success result requires confidence")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema.ts`, line: 1, severity: "fatal", message: "AI result schema must reject failed/review output and success without confidence." }));
+    if (!runtimeSchemaSource.getText().includes("failed and review_required result output must be null") || !runtimeSchemaSource.getText().includes("success result requires confidence")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006-V1", file: `${AI_ROOT}/schema-runtime.schema.ts`, line: 1, severity: "fatal", message: "AI result schema must reject failed/review output and success without confidence." }));
     }
 
     const projectSources = project.getSourceFiles();

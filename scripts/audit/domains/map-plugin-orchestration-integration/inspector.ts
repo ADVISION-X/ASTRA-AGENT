@@ -1,6 +1,6 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
-import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
+import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createIntegrationAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
@@ -10,12 +10,7 @@ import { runRequiredShape } from "./required-shape.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGATIVE_PROOF";
 
-const inspector: DomainInspector = async (context) => {
-  const base = await runDomainOwnerInspection(context, {
-    capabilityDomain: "map-plugin-orchestration-integration",
-    inspectorId: "map-plugin-orchestration-integration",
-    inspectorEntry: "scripts/audit/domains/map-plugin-orchestration-integration/inspector.ts",
-  });
+const getFoundationState = (base: Awaited<ReturnType<typeof runDomainOwnerInspection>>) => {
   const ignoredFoundationMessages = new Set([
     "Generated enforcement matrix does not contain this owner.",
     "Generated audit plan does not contain this owner.",
@@ -35,12 +30,15 @@ const inspector: DomainInspector = async (context) => {
         );
       })
     : base.phases;
-  const project = createIntegrationAuditProject();
-  const required = await runRequiredShape(project);
-  const forbidden = await runForbiddenShape(project);
-  const boundary = runBoundaryAttack(project);
-  const antiEscape = await runAntiEscape(project, context);
-  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+
+  return {
+    foundationFindings,
+    foundationPhases,
+  };
+};
+
+const getNegativeProofResult = async () => (
+  process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
     ? {
         findings: [],
         phase: createPhase(
@@ -50,7 +48,22 @@ const inspector: DomainInspector = async (context) => {
           "Integration negative-proof harness was skipped for nested inspector execution.",
         ),
       }
-    : await runNegativeProofHarness();
+    : runNegativeProofHarness()
+);
+
+const inspector: DomainInspector = async (context) => {
+  const base = await runDomainOwnerInspection(context, {
+    capabilityDomain: "map-plugin-orchestration-integration",
+    inspectorId: "map-plugin-orchestration-integration",
+    inspectorEntry: "scripts/audit/domains/map-plugin-orchestration-integration/inspector.ts",
+  });
+  const { foundationFindings, foundationPhases } = getFoundationState(base);
+  const project = createIntegrationAuditProject();
+  const required = await runRequiredShape(project);
+  const forbidden = await runForbiddenShape(project);
+  const boundary = runBoundaryAttack(project);
+  const antiEscape = await runAntiEscape(project, context);
+  const negativeProof = await getNegativeProofResult();
 
   const findings = [
     ...foundationFindings,
@@ -80,4 +93,4 @@ const inspector: DomainInspector = async (context) => {
   });
 };
 
-export default inspector;
+export { inspector as mapPluginOrchestrationIntegrationInspector };

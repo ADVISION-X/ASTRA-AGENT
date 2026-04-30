@@ -8,7 +8,7 @@ import { runRequiredShapeAttack } from "./required-shape.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
 
-export default createPendingDomainInspector({
+export const textInputCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Text Input Capability Owner Inspector",
   inspectorId: "text-input-capability-owner",
   capabilityDomain: "text-input-capability",

@@ -1,24 +1,16 @@
-import type {
-  CommanderConsoleAbilityGroup,
-  CommanderMissionDashboardView,
-} from "../../capabilities/commander-console/index.js";
-import type { AiAbilityGroup } from "../../capabilities/ai/index.js";
-import type { ForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
-import type { GeometryGuardAbilityGroup } from "../../capabilities/geometry-guard/index.js";
-import type { MouseClickAbilityGroup } from "../../capabilities/mouse-click/index.js";
-import type { MouseScrollAbilityGroup } from "../../capabilities/mouse-scroll/index.js";
-import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
-import type { OpenAbilityGroup } from "../../capabilities/open/contract.js";
-import type { OrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
-import type { PageStateAbilityGroup } from "../../capabilities/page-state/index.js";
-import type { PostActionVerificationAbilityGroup } from "../../capabilities/post-action-verification/index.js";
-import type { ScreenshotAbilityGroup } from "../../capabilities/screenshot/index.js";
-import type { VisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
-import type { RuntimeHealthReport, MissionReadinessReport } from "../../types/runtime.js";
 import type { BrowserController } from "../browser/browser-controller.js";
 import type { LocalModelRole } from "../local-ai/model-config.js";
 import type { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
+import type {
+  CommanderConsoleAbilityGroup,
+  CommanderMissionDashboardView,
+} from "../../capabilities/commander-console/contract.js";
+import type {
+  MissionReadinessReport,
+  RuntimeHealthReport,
+} from "../../types/runtime.js";
 import type { StructuredLogBus } from "./structured-log-bus.js";
+import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/ability-group.js";
 
 export type GrassEyePlatformTarget = "tiktok-web";
 
@@ -39,6 +31,79 @@ export type WorkbenchAbilityExecutionResult = {
   reviewRequiredReason?: string | null;
 };
 
+type WorkbenchAiExecutionResult = WorkbenchAbilityExecutionResult & {
+  taskType?: string | null;
+  confidence?: number | null;
+};
+
+type WorkbenchAiHealth = {
+  ok: boolean;
+  detail: string;
+};
+
+type WorkbenchAiRuntimeHealth = {
+  lastTaskType: string | null;
+  lastInvocationStatus: string | null;
+  lastFailureReason: string | null;
+};
+
+type WorkbenchExecuteAbilityGroup = {
+  execute(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+};
+
+type WorkbenchAiAbilityGroup = {
+  execute(input: unknown): Promise<WorkbenchAiExecutionResult>;
+  getHealth(): Promise<WorkbenchAiHealth>;
+  getRuntimeHealth(): Promise<WorkbenchAiRuntimeHealth>;
+};
+
+type WorkbenchForensicsAbilityGroup = {
+  writeStructuredRuntimeEvent(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+};
+
+type WorkbenchMissionStatus = "idle" | "pending" | "running" | "paused" | "review_required" | "failed" | "completed" | "stopped";
+
+type WorkbenchLastHumanCommand =
+  | "start-mission"
+  | "pause-mission"
+  | "resume-mission"
+  | "stop-mission"
+  | "emergency-stop"
+  | "approve-candidate"
+  | "reject-candidate"
+  | "mark-review-required"
+  | "submit-review-decision"
+  | null;
+
+type WorkbenchMissionState = {
+  missionId: string | null;
+  status: WorkbenchMissionStatus;
+  humanGoal: string | null;
+  activeTaskRunId: string | null;
+  currentRoundIndex: number;
+  requestedPlatform: RequestedPlatformId | null;
+  mapId: string | null;
+  lastHumanCommand: WorkbenchLastHumanCommand;
+  reviewRequiredReason: string | null;
+  failureReason: string | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  endedAt: string | null;
+  currentStepId: string | null;
+};
+
+type WorkbenchOrchestrationAbilityGroup = {
+  getMissionState(): Promise<WorkbenchMissionState>;
+  startMission(input: unknown): Promise<WorkbenchMissionState>;
+  pauseMission(missionId: string): Promise<WorkbenchMissionState>;
+  resumeMission(missionId: string): Promise<WorkbenchMissionState>;
+  stopMission(input: { missionId: string; reason: string }): Promise<WorkbenchMissionState>;
+  emergencyStop(input: { missionId: string; reason: string }): Promise<WorkbenchMissionState>;
+  listMapIds(): string[];
+};
+
+export type RequestedPlatformId = "tiktok-web" | "facebook-web";
+
 export type MissionStartPreflightComponent = {
   name: "requestedPlatform" | "selectedMap" | "browserController" | "localAi" | "dataStore";
   ok: boolean;
@@ -53,28 +118,28 @@ export type WorkbenchBaseRuntime = {
   evidenceStore: EvidenceStoreService;
   browserController: BrowserController;
   browserSessionConfig: { profileRef: string };
-  aiAbilityGroup: AiAbilityGroup;
-  forensicsPersistenceAbilityGroup: ForensicsPersistenceAbilityGroup;
-  openAbilityGroup: OpenAbilityGroup;
-  mouseClickAbilityGroup: MouseClickAbilityGroup;
-  textInputAbilityGroup: import("../../capabilities/text-input/index.js").TextInputAbilityGroup;
-  mouseScrollAbilityGroup: MouseScrollAbilityGroup;
-  pageStateAbilityGroup: PageStateAbilityGroup;
-  postActionVerificationAbilityGroup: PostActionVerificationAbilityGroup;
-  screenshotAbilityGroup: ScreenshotAbilityGroup;
-  visualTargetAbilityGroup: VisualTargetAbilityGroup;
-  geometryGuardAbilityGroup: GeometryGuardAbilityGroup;
+  aiAbilityGroup: WorkbenchAiAbilityGroup;
+  forensicsPersistenceAbilityGroup: WorkbenchForensicsAbilityGroup;
+  openAbilityGroup: WorkbenchExecuteAbilityGroup;
+  mouseClickAbilityGroup: WorkbenchExecuteAbilityGroup;
+  textInputAbilityGroup: WorkbenchExecuteAbilityGroup;
+  mouseScrollAbilityGroup: WorkbenchExecuteAbilityGroup;
+  pageStateAbilityGroup: WorkbenchExecuteAbilityGroup;
+  postActionVerificationAbilityGroup: WorkbenchExecuteAbilityGroup;
+  screenshotAbilityGroup: WorkbenchExecuteAbilityGroup;
+  visualTargetAbilityGroup: WorkbenchExecuteAbilityGroup;
+  geometryGuardAbilityGroup: WorkbenchExecuteAbilityGroup;
 };
 
 export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   nerveBusAbilityGroup: NerveBusAbilityGroup;
-  orchestrationAbilityGroup: OrchestrationAbilityGroup;
+  orchestrationAbilityGroup: WorkbenchOrchestrationAbilityGroup;
   commanderConsole: CommanderConsoleAbilityGroup;
   init(): Promise<void>;
   getHealthReport(): Promise<RuntimeHealthReport>;
   getMissionReadinessReport(): Promise<MissionReadinessReport>;
   getMissionStartPreflight(input: {
-    requestedPlatformId: import("../../capabilities/orchestration/index.js").RequestedPlatformId;
+    requestedPlatformId: RequestedPlatformId;
     selectedMapId: string;
   }): Promise<{
     status: "passed" | "blocked";

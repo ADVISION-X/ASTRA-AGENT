@@ -22,25 +22,25 @@ const AS_UNKNOWN_AS_MUTATION = `const escapedInput = input as ${"unknown"} as { 
 const MUTATIONS: Mutation[] = [
   {
     name: "input gate mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "parseAiExecutorInput(input.request, input.childContract.childCapabilityId)",
-    replace: '({ ok: true, request: input.request })',
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
+    search: "parseAiExecutorInput(request, childCapabilityId)",
+    replace: '({ ok: true, request })',
   },
   {
     name: "provider gate mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "evaluateAiProviderPolicy(inputGate.request, input.childContract)",
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
+    search: "evaluateAiProviderPolicy(input.request, input.childContract)",
     replace: '({ decision: "allow", reason: null })',
   },
   {
     name: "schema gate mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "resolveAiSchemaContract(inputGate.request, promptContract)",
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
+    search: "resolveAiSchemaContract(input.request, input.promptContract)",
     replace: '({ decision: "resolved", reason: null, schemaId: "mutated", outputSchema: null })',
   },
   {
     name: "quality gate mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
     search: "evaluateAiQualityGate({",
     replace: "evaluateAiQualityGateRemoved({",
   },
@@ -52,13 +52,13 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "payload budget mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "evaluateAiPayloadBudgetGate(inputGate.request)",
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
+    search: "evaluateAiPayloadBudgetGate(input.request)",
     replace: '({ decision: "allow", reason: null, flags: [] })',
   },
   {
     name: "runtime health gate mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
     search: "evaluateAiRuntimeHealthGate({",
     replace: "evaluateAiRuntimeHealthGateRemoved({",
   },
@@ -70,14 +70,14 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "output boundary mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
+    file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
     search: "const boundaryDecision = evaluateAiOutputBoundary(runtimeResult.output);",
     replace: 'const boundaryDecision = { decision: "allow", reason: null, flags: [] };',
   },
   {
     name: "invalid-success mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: 'status: qualityDecision.decision === "review_required" ? "review_required" : "failed"',
+    file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
+    search: 'status: input.qualityDecision.decision === "review_required" ? "review_required" : "failed"',
     replace: 'status: "success"',
   },
   {
@@ -130,9 +130,9 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "forbidden import mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: 'import { resolveAiSchemaContract, validateAiInternalCandidate, validateAiRuntimeOutput } from "./ai-schema-gate.js";',
-    replace: 'import { resolveAiSchemaContract, validateAiInternalCandidate, validateAiRuntimeOutput } from "./ai-schema-gate.js";\nimport type { MouseClickAbilityGroup } from "../../mouse-click/contract.js";',
+    file: "src/capabilities/ai/runtime/ai-pre-runtime.ts",
+    search: 'import { resolveAiSchemaContract, validateAiInternalCandidate } from "./ai-schema-gate.js";',
+    replace: 'import { resolveAiSchemaContract, validateAiInternalCandidate } from "./ai-schema-gate.js";\nimport type { MouseClickAbilityGroup } from "../../mouse-click/contract.js";',
   },
   {
     name: "as-any mutation",

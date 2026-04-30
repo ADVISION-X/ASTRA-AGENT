@@ -1,5 +1,7 @@
 import { createFinding, createPhase } from "../../../core/result.js";
-import { defaultPhaseGatePath, generatedArtifactPaths, pathFromRepoRoot, toRepoRelativePath } from "../../../core/paths.js";
+import { generatedArtifactPaths } from "../../../core/generated-artifact-paths.js";
+import { defaultPhaseGatePath } from "../../../core/path-roots.js";
+import { pathFromRepoRoot, toRepoRelativePath } from "../../../core/paths.js";
 
 type AuditSystemFindingInput = Omit<Parameters<typeof createFinding>[0], "lawId"> & {
   lawId?: string;

@@ -65,26 +65,29 @@ function resolveLevel(status) {
 function parseStructuredChildLine(prefix, line) {
   const payloadText = normalizeText(line.slice(prefix.length));
   if (!payloadText) {
-    return null;
+    return { payload: null, parseFailure: null };
   }
 
   try {
-    return JSON.parse(payloadText);
-  } catch {
-    return null;
+    return { payload: JSON.parse(payloadText), parseFailure: null };
+  } catch (error) {
+    return {
+      payload: null,
+      parseFailure: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
-export function createTerminalStructuredLogger() {
-  const emit = (event) => {
+function createEmitter() {
+  return (event) => {
     const line = renderEvent(event);
     const stream = event.level === "FAIL" ? process.stderr : process.stdout;
     stream.write(`${line}\n`);
   };
+}
 
-  const writeWithLevel = (level, event) => emit({ ...event, level });
-
-  const relayRuntimePayload = (phase, payload) => {
+function createRuntimePayloadRelay(emit) {
+  return (phase, payload) => {
     const refs = [payload.sessionId, payload.roundId, payload.videoVisitId, payload.step].filter(Boolean);
     emit({
       timestamp: payload.createdAt ?? new Date().toISOString(),
@@ -99,27 +102,44 @@ export function createTerminalStructuredLogger() {
       durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
     });
   };
+}
 
-  const relayServiceStdoutLine = (line, scriptName = "service") => {
+function relayStructuredStdoutLine({ normalizedLine, phase, prefix, scriptName, relayRuntimePayload, emit }) {
+  const { payload, parseFailure } = parseStructuredChildLine(prefix, normalizedLine);
+  if (payload) {
+    relayRuntimePayload(phase, payload);
+    return true;
+  }
+
+  if (parseFailure) {
+    emit({
+      level: "FAIL",
+      phase: "SERVICE",
+      component: scriptName,
+      eventType: "structured_stdout_parse_failed",
+      status: "failed",
+      message: normalizedLine,
+      failureReason: parseFailure,
+    });
+    return true;
+  }
+
+  return false;
+}
+
+function createStdoutRelay(emit, relayRuntimePayload) {
+  return (line, scriptName = "service") => {
     const normalizedLine = normalizeText(line);
     if (!normalizedLine) {
       return;
     }
 
-    if (normalizedLine.startsWith("[grasseye:event]")) {
-      const payload = parseStructuredChildLine("[grasseye:event]", normalizedLine);
-      if (payload) {
-        relayRuntimePayload("RUNTIME", payload);
-        return;
-      }
+    if (normalizedLine.startsWith("[grasseye:event]") && relayStructuredStdoutLine({ normalizedLine, phase: "RUNTIME", prefix: "[grasseye:event]", scriptName, relayRuntimePayload, emit })) {
+      return;
     }
 
-    if (normalizedLine.startsWith("[grasseye:action]")) {
-      const payload = parseStructuredChildLine("[grasseye:action]", normalizedLine);
-      if (payload) {
-        relayRuntimePayload("ACTION", payload);
-        return;
-      }
+    if (normalizedLine.startsWith("[grasseye:action]") && relayStructuredStdoutLine({ normalizedLine, phase: "ACTION", prefix: "[grasseye:action]", scriptName, relayRuntimePayload, emit })) {
+      return;
     }
 
     emit({
@@ -131,8 +151,10 @@ export function createTerminalStructuredLogger() {
       message: normalizedLine,
     });
   };
+}
 
-  const relayServiceStderrLine = (line, scriptName = "service") => {
+function createStderrRelay(emit) {
+  return (line, scriptName = "service") => {
     const normalizedLine = normalizeText(line);
     if (!normalizedLine) {
       return;
@@ -148,6 +170,15 @@ export function createTerminalStructuredLogger() {
       failureReason: normalizedLine,
     });
   };
+}
+
+export function createTerminalStructuredLogger() {
+  const emit = createEmitter();
+  const relayRuntimePayload = createRuntimePayloadRelay(emit);
+  const relayServiceStdoutLine = createStdoutRelay(emit, relayRuntimePayload);
+  const relayServiceStderrLine = createStderrRelay(emit);
+
+  const writeWithLevel = (level, event) => emit({ ...event, level });
 
   return {
     emit,

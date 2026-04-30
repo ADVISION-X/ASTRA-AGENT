@@ -52,6 +52,64 @@ const pushMappedValue = (target: string[], rawValue: string, mapping: Record<str
   }
 };
 
+const resolveFrozenBaselineSection = (line: string): FrozenBaselineSection | undefined => {
+  if (line === "## 13 个 active ability groups" || line === "## 14 个 active ability groups") {
+    return "active-ability-groups";
+  }
+  if (line === "## 4 个 active support laws") {
+    return "active-support-laws";
+  }
+  if (line === "## 已删除 active owner") {
+    return "deleted-active-owners";
+  }
+  if (line.startsWith("## ")) {
+    return null;
+  }
+
+  return undefined;
+};
+
+const collectFrozenBaselineDomain = (input: {
+  line: string;
+  section: FrozenBaselineSection;
+  activeCapabilityDomains: string[];
+  deletedOwnerDomains: string[];
+}): void => {
+  const numbered = /^(\d+)\.\s+(.+)$/.exec(input.line);
+  if (numbered && input.section === "active-ability-groups") {
+    pushMappedValue(input.activeCapabilityDomains, numbered[2]!.trim(), ABILITY_GROUP_DOMAIN_MAP);
+    return;
+  }
+  if (numbered && input.section === "active-support-laws") {
+    pushMappedValue(input.activeCapabilityDomains, numbered[2]!.trim(), SUPPORT_LAW_DOMAIN_MAP);
+    return;
+  }
+
+  const bulleted = /^-\s+(.+)$/.exec(input.line);
+  if (bulleted && input.section === "deleted-active-owners") {
+    pushMappedValue(input.deletedOwnerDomains, bulleted[1]!.trim(), DELETED_OWNER_DOMAIN_MAP);
+  }
+};
+
+const collectFrozenBaselineDomains = (content: string): Pick<Awaited<ReturnType<typeof loadFrozenBaselineDomains>>, "activeCapabilityDomains" | "deletedOwnerDomains"> => {
+  const activeCapabilityDomains: string[] = [];
+  const deletedOwnerDomains: string[] = [];
+  let section: FrozenBaselineSection = null;
+
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.trim();
+    const resolvedSection = resolveFrozenBaselineSection(line);
+    if (resolvedSection !== undefined) {
+      section = resolvedSection;
+      continue;
+    }
+
+    collectFrozenBaselineDomain({ line, section, activeCapabilityDomains, deletedOwnerDomains });
+  }
+
+  return { activeCapabilityDomains, deletedOwnerDomains };
+};
+
 export const loadFrozenBaselineDomains = async (): Promise<{
   activeCapabilityDomains: string[];
   deletedOwnerDomains: string[];
@@ -59,45 +117,7 @@ export const loadFrozenBaselineDomains = async (): Promise<{
 }> => {
   const baselineFile = FROZEN_BASELINE_PATH;
   const content = await readTextFile(pathFromRepoRoot(baselineFile));
-  const lines = content.split("\n");
-  const activeCapabilityDomains: string[] = [];
-  const deletedOwnerDomains: string[] = [];
-  let section: FrozenBaselineSection = null;
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (line === "## 13 个 active ability groups" || line === "## 14 个 active ability groups") {
-      section = "active-ability-groups";
-      continue;
-    }
-    if (line === "## 4 个 active support laws") {
-      section = "active-support-laws";
-      continue;
-    }
-    if (line === "## 已删除 active owner") {
-      section = "deleted-active-owners";
-      continue;
-    }
-    if (line.startsWith("## ")) {
-      section = null;
-      continue;
-    }
-
-    const numbered = /^(\d+)\.\s+(.+)$/.exec(line);
-    if (numbered && section === "active-ability-groups") {
-      pushMappedValue(activeCapabilityDomains, numbered[2]!.trim(), ABILITY_GROUP_DOMAIN_MAP);
-      continue;
-    }
-    if (numbered && section === "active-support-laws") {
-      pushMappedValue(activeCapabilityDomains, numbered[2]!.trim(), SUPPORT_LAW_DOMAIN_MAP);
-      continue;
-    }
-
-    const bulleted = /^-\s+(.+)$/.exec(line);
-    if (bulleted && section === "deleted-active-owners") {
-      pushMappedValue(deletedOwnerDomains, bulleted[1]!.trim(), DELETED_OWNER_DOMAIN_MAP);
-    }
-  }
+  const { activeCapabilityDomains, deletedOwnerDomains } = collectFrozenBaselineDomains(content);
 
   return {
     activeCapabilityDomains,

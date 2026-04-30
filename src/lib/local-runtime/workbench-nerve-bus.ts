@@ -1,5 +1,5 @@
-import { createNerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
-import { createOrchestrationAbilityGroup } from "../../capabilities/orchestration/index.js";
+import { createNerveBusAbilityGroup } from "../../capabilities/nerve-bus/ability-group.js";
+import { createOrchestrationAbilityGroup } from "../../capabilities/orchestration/ability-group.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { dispatchAbilityCommandEnvelope } from "./workbench-ability-dispatch.js";
 import { handleHumanCommandEnvelope } from "./workbench-human-command.js";

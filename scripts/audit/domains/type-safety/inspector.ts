@@ -4,7 +4,7 @@ import { createFinding, createPhase, finalizeInspectorResult } from "../../core/
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding, InspectorContext } from "../../core/schema.js";
-import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
+import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 
 const scanExplicitAny = (sourceFile: ts.SourceFile): Finding[] => {
   const findings: Finding[] = [];
@@ -35,7 +35,7 @@ const scanExplicitAny = (sourceFile: ts.SourceFile): Finding[] => {
   return findings;
 };
 
-export default async function inspectTypeSafety(context: InspectorContext) {
+export async function inspectTypeSafety(context: InspectorContext) {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "type-safety",
     inspectorId: "type-safety-owner",

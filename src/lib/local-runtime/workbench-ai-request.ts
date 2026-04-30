@@ -1,9 +1,7 @@
 import {
   AI_ABILITY_GROUP_ID,
-} from "../../capabilities/ai/index.js";
-import type {
-  NerveBusPayloadDocument,
-} from "../../capabilities/nerve-bus/index.js";
+} from "../../capabilities/ai/shared/ai-types.js";
+import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/ports/nerve-bus-transport-port.js";
 import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
 import type {
   AiRequestEnvelope,
@@ -12,6 +10,15 @@ import type {
 import { VisionProductPresenceRequestInputSchema } from "../../types/vision-product-presence.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject } from "./workbench-payload.js";
+
+const describeFailureReason = (
+  failureReason: string | { code?: string; message?: string; detail?: string | null } | null | undefined,
+): string | null => {
+  if (!failureReason) {
+    return null;
+  }
+  return typeof failureReason === "string" ? failureReason : failureReason.message ?? failureReason.code ?? failureReason.detail ?? "AI request failed.";
+};
 
 const buildAiOutputPayload = (
   envelope: AiRequestEnvelope,
@@ -56,7 +63,7 @@ export const handleNerveBusAiRequest = async (
   const status = aiResult.status;
   const aiTaskType = aiResult.taskType ?? "dispatch_failure";
   const confidence = "confidence" in aiResult ? aiResult.confidence : null;
-  const failureReason = aiResult.failureReason ?? null;
+  const failureReason = describeFailureReason(aiResult.failureReason);
   const outputPayload = buildAiOutputPayload(envelope, status, aiTaskType, confidence, failureReason);
   return {
     envelope: {

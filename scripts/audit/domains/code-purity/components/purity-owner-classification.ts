@@ -1,0 +1,83 @@
+import type { SourceFile } from "ts-morph";
+
+import { getImportedSourcePaths } from "./purity-import-analysis.js";
+
+const splitRelativePath = (relativePath: string): string[] =>
+  relativePath.split("/").filter((segment) => segment.length > 0);
+
+const getLibOwner = (libSegment: string): string => {
+  const libOwners: Record<string, string> = {
+    browser: "open",
+    "local-ai": "ai",
+    "local-runtime": "commander-console",
+    storage: "forensics-persistence",
+  };
+  return libOwners[libSegment] ?? libSegment;
+};
+
+const getDirectSrcOwner = (parts: string[]): string | undefined => {
+  if (parts[0] !== "src") {
+    return undefined;
+  }
+  if (parts[1] === "map-plugins") {
+    return "map-plugin-package";
+  }
+  if (parts[1] === "app") {
+    return "commander-console";
+  }
+  if (parts[1] === "types") {
+    return "types";
+  }
+  return undefined;
+};
+
+const getNestedSrcOwner = (parts: string[]): string | undefined => {
+  if (parts[0] !== "src") {
+    return undefined;
+  }
+  if (parts[1] === "capabilities" && parts[2]) {
+    return parts[2];
+  }
+  if (parts[1] === "features" && parts[2]) {
+    return parts[2];
+  }
+  if (parts[1] === "lib" && parts[2]) {
+    return getLibOwner(parts[2]);
+  }
+  return undefined;
+};
+
+const getSrcOwner = (parts: string[]): string | undefined =>
+  getDirectSrcOwner(parts) ?? getNestedSrcOwner(parts);
+
+const getScriptOwner = (parts: string[]): string | undefined => {
+  if (parts[0] === "scripts" && parts[1] === "audit" && parts[2] === "domains" && parts[3]) {
+    return parts[3];
+  }
+  if (parts[0] === "scripts" && parts[1] === "startup") {
+    return "startup-entrypoint";
+  }
+  return undefined;
+};
+
+const getModuleOwner = (parts: string[]): string | undefined =>
+  getSrcOwner(parts) ?? getScriptOwner(parts);
+
+export const classifyOwnerBoundary = (relativePath: string): string => {
+  const parts = splitRelativePath(relativePath);
+  return getModuleOwner(parts) ?? "unknown";
+};
+
+export const getImportedOwnerBoundaries = (sourceFile: SourceFile, relativePath: string): string[] => {
+  const localOwner = classifyOwnerBoundary(relativePath);
+  const owners = new Set<string>();
+  for (const importedPath of getImportedSourcePaths(sourceFile)) {
+    const owner = classifyOwnerBoundary(importedPath);
+    if (owner === "unknown" || owner === "types" || owner === localOwner) {
+      continue;
+    }
+    owners.add(owner);
+  }
+
+  return [...owners].sort((left, right) => left.localeCompare(right));
+};

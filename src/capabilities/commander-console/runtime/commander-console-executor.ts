@@ -25,6 +25,23 @@ export type CommanderConsoleChildDefinition<TInput, TOutput> = CommanderChildCon
   ): Promise<CommanderExecutionOutcome<TOutput>>;
 };
 
+const resolveRuntimeProofChild = (input: {
+  child: CommanderConsoleChildDefinition<unknown, unknown> | null;
+  executionInput: CommanderConsoleInput;
+}) => input.child
+  ? {
+    childCapabilityId: input.child.childCapabilityId,
+    childKind: input.child.childKind,
+    boundaryDecision: input.child.boundaryDecision,
+    readModelSource: input.child.readModelSource,
+  }
+  : {
+    childCapabilityId: input.executionInput.childCapabilityId,
+    childKind: "read" as const,
+    boundaryDecision: "blocked" as const,
+    readModelSource: null,
+  };
+
 function createInputSchemaFailureOutcome<TOutput>(
   child: CommanderConsoleChildDefinition<unknown, TOutput>,
   message: string,
@@ -72,6 +89,73 @@ function createOutputSchemaFailureOutcome<TOutput>(
   };
 }
 
+async function executeChildOutcome<TInput, TOutput>(input: {
+  child: CommanderConsoleChildDefinition<TInput, TOutput>;
+  executionInput: CommanderConsoleInput;
+  context: CommanderConsoleChildContext;
+}): Promise<CommanderExecutionOutcome<TOutput>> {
+  const parsedChildInput = input.child.inputSchema.safeParse(input.executionInput.input);
+  if (!parsedChildInput.success) {
+    return createInputSchemaFailureOutcome(
+      input.child,
+      parsedChildInput.error.issues[0]?.message ?? `${input.child.childCapabilityId} input failed schema validation.`,
+    );
+  }
+
+  try {
+    const outcome = await input.child.execute(
+      {
+        operatorRef: input.executionInput.operatorRef,
+        input: parsedChildInput.data,
+      },
+      input.context,
+    );
+    if (outcome.output === null) {
+      return outcome;
+    }
+    const parsedOutput = input.child.outputSchema.safeParse(outcome.output);
+    if (!parsedOutput.success) {
+      return createOutputSchemaFailureOutcome(
+        input.child,
+        outcome,
+        parsedOutput.error.issues[0]?.message ?? `${input.child.childCapabilityId} output failed schema validation.`,
+      );
+    }
+    return {
+      ...outcome,
+      output: parsedOutput.data,
+      outputRef: outcome.outputRef ?? `commander_output:${input.child.childCapabilityId}`,
+    };
+  } catch (error) {
+    const failureReason = describeCommanderUnhandledError(error);
+    return {
+      status: "failed",
+      output: null,
+      failureReason,
+      reviewRequiredReason: null,
+      inputRef: `${input.child.childCapabilityId}:execution-error`,
+      outputRef: null,
+      commandId: null,
+      readRequestId: null,
+      runId: null,
+      missionId: null,
+      traceId: null,
+      commandEnvelopeRef: null,
+      resultEnvelopeRef: null,
+      readModelSource: input.child.readModelSource,
+      targetRecordRef: null,
+      evidenceRefs: [],
+      dataQualityFlags: [commanderFlag("execution_error", "fatal", failureReason)],
+      boundaryDecision: input.child.boundaryDecision,
+      commandDecision: input.child.childKind === "command" ? "blocked-by-command-gate" : null,
+      readDecision: input.child.childKind === "read" ? "blocked-by-read-gate" : null,
+      transportDecision: input.child.childKind === "command" ? "not-dispatched" : null,
+      hardStopDecision: input.child.hardStopPriority === "emergency" ? "hard-stop-dispatch-failed" : null,
+      policyDecision: "blocked",
+    };
+  }
+}
+
 export async function executeCommanderConsoleChild<TInput, TOutput>(input: {
   child: CommanderConsoleChildDefinition<TInput, TOutput> | null;
   executionInput: CommanderConsoleInput;
@@ -85,84 +169,13 @@ export async function executeCommanderConsoleChild<TInput, TOutput>(input: {
   if (!input.child) {
     outcome = createMissingChildOutcome(input.executionInput.childCapabilityId, input.executionInput.operatorRef) as CommanderExecutionOutcome<TOutput>;
   } else {
-    const parsedChildInput = input.child.inputSchema.safeParse(input.executionInput.input);
-    if (!parsedChildInput.success) {
-      outcome = createInputSchemaFailureOutcome(
-        input.child,
-        parsedChildInput.error.issues[0]?.message ?? `${input.child.childCapabilityId} input failed schema validation.`,
-      );
-    } else {
-      try {
-        outcome = await input.child.execute(
-          {
-            operatorRef: input.executionInput.operatorRef,
-            input: parsedChildInput.data,
-          },
-          input.context,
-        );
-        if (outcome.output !== null) {
-          const parsedOutput = input.child.outputSchema.safeParse(outcome.output);
-          if (!parsedOutput.success) {
-            outcome = createOutputSchemaFailureOutcome(
-              input.child,
-              outcome,
-              parsedOutput.error.issues[0]?.message ?? `${input.child.childCapabilityId} output failed schema validation.`,
-            );
-          } else {
-            outcome = {
-              ...outcome,
-              output: parsedOutput.data,
-              outputRef: outcome.outputRef ?? `commander_output:${input.child.childCapabilityId}`,
-            };
-          }
-        }
-      } catch (error) {
-        const failureReason = describeCommanderUnhandledError(error);
-        outcome = {
-          status: "failed",
-          output: null,
-          failureReason,
-          reviewRequiredReason: null,
-          inputRef: `${input.child.childCapabilityId}:execution-error`,
-          outputRef: null,
-          commandId: null,
-          readRequestId: null,
-          runId: null,
-          missionId: null,
-          traceId: null,
-          commandEnvelopeRef: null,
-          resultEnvelopeRef: null,
-          readModelSource: input.child.readModelSource,
-          targetRecordRef: null,
-          evidenceRefs: [],
-          dataQualityFlags: [commanderFlag("execution_error", "fatal", failureReason)],
-          boundaryDecision: input.child.boundaryDecision,
-          commandDecision: input.child.childKind === "command" ? "blocked-by-command-gate" : null,
-          readDecision: input.child.childKind === "read" ? "blocked-by-read-gate" : null,
-          transportDecision: input.child.childKind === "command" ? "not-dispatched" : null,
-          hardStopDecision: input.child.hardStopPriority === "emergency" ? "hard-stop-dispatch-failed" : null,
-          policyDecision: "blocked",
-        };
-      }
-    }
+    outcome = await executeChildOutcome({ child: input.child, executionInput: input.executionInput, context: input.context });
   }
 
   const endedAt = input.context.clock.nowIso();
   const endedMs = input.context.clock.monotonicNowMs();
   const runtimeProof = buildCommanderRuntimeProof({
-    child: input.child
-      ? {
-        childCapabilityId: input.child.childCapabilityId,
-        childKind: input.child.childKind,
-        boundaryDecision: input.child.boundaryDecision,
-        readModelSource: input.child.readModelSource,
-      }
-      : {
-        childCapabilityId: input.executionInput.childCapabilityId,
-        childKind: "read",
-        boundaryDecision: "blocked",
-        readModelSource: null,
-      },
+    child: resolveRuntimeProofChild({ child: input.child, executionInput: input.executionInput }),
     operatorRef: input.executionInput.operatorRef,
     startedAt,
     endedAt,

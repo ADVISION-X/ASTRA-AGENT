@@ -1,6 +1,6 @@
 import { createFinding, createPhase } from "../../../core/result.js";
 import { fileExists, readTextFile } from "../../../core/filesystem.js";
-import { generatedArtifactPaths } from "../../../core/paths.js";
+import { generatedArtifactPaths } from "../../../core/generated-artifact-paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
 const getMissingGeneratedArtifactFindings = async (): Promise<Finding[]> => {

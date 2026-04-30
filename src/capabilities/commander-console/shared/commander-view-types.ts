@@ -15,15 +15,30 @@ import type {
   CommanderRuntimeSummaryViewSchema,
 } from "./commander-schema-base.js";
 
-export type CommanderMissionView = z.infer<typeof CommanderMissionViewSchema>;
-export type CommanderRuntimeSummaryView = z.infer<typeof CommanderRuntimeSummaryViewSchema>;
-export type CommanderBrowserSummaryView = z.infer<typeof CommanderBrowserSummaryViewSchema>;
-export type CommanderCapabilityHealthEntry = z.infer<typeof CommanderCapabilityHealthEntrySchema>;
-export type CommanderCapabilityRosterEntry = z.infer<typeof CommanderCapabilityRosterEntrySchema>;
-export type CommanderCandidateView = z.infer<typeof CommanderCandidateViewSchema>;
-export type CommanderRecordSummaryView = z.infer<typeof CommanderRecordSummaryViewSchema>;
-export type CommanderRuntimeProofTimelineEntry = z.infer<typeof CommanderRuntimeProofTimelineEntrySchema>;
-export type CommanderAuditSummary = z.infer<typeof CommanderAuditSummarySchema>;
-export type CommanderRecordDetailView = z.infer<typeof CommanderRecordDetailViewSchema>;
-export type CommanderMissionDashboardView = z.infer<typeof CommanderMissionDashboardViewSchema>;
-export type CommanderCommandReceiptView = z.infer<typeof CommanderCommandReceiptSchema>;
+type CommanderMissionView = z.infer<typeof CommanderMissionViewSchema>;
+type CommanderRuntimeSummaryView = z.infer<typeof CommanderRuntimeSummaryViewSchema>;
+type CommanderBrowserSummaryView = z.infer<typeof CommanderBrowserSummaryViewSchema>;
+type CommanderCapabilityHealthEntry = z.infer<typeof CommanderCapabilityHealthEntrySchema>;
+type CommanderCapabilityRosterEntry = z.infer<typeof CommanderCapabilityRosterEntrySchema>;
+type CommanderCandidateView = z.infer<typeof CommanderCandidateViewSchema>;
+type CommanderRecordSummaryView = z.infer<typeof CommanderRecordSummaryViewSchema>;
+type CommanderRuntimeProofTimelineEntry = z.infer<typeof CommanderRuntimeProofTimelineEntrySchema>;
+type CommanderAuditSummary = z.infer<typeof CommanderAuditSummarySchema>;
+type CommanderRecordDetailView = z.infer<typeof CommanderRecordDetailViewSchema>;
+type CommanderMissionDashboardView = z.infer<typeof CommanderMissionDashboardViewSchema>;
+type CommanderCommandReceiptView = z.infer<typeof CommanderCommandReceiptSchema>;
+
+export type {
+  CommanderAuditSummary,
+  CommanderBrowserSummaryView,
+  CommanderCandidateView,
+  CommanderCapabilityHealthEntry,
+  CommanderCapabilityRosterEntry,
+  CommanderCommandReceiptView,
+  CommanderMissionDashboardView,
+  CommanderMissionView,
+  CommanderRecordDetailView,
+  CommanderRecordSummaryView,
+  CommanderRuntimeProofTimelineEntry,
+  CommanderRuntimeSummaryView,
+};

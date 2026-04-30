@@ -6,7 +6,7 @@ import { runForbiddenShapeAttack } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
 
-export default createPendingDomainInspector({
+export const mouseScrollCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Mouse Scroll Capability Owner Inspector",
   inspectorId: "mouse-scroll-capability-owner",
   capabilityDomain: "mouse-scroll-capability",

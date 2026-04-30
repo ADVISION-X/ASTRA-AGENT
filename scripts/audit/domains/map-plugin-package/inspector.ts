@@ -1,6 +1,6 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
-import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
+import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createMapPluginAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
@@ -94,4 +94,4 @@ const inspector: DomainInspector = async (context) => {
   });
 };
 
-export default inspector;
+export { inspector as mapPluginPackageInspector };

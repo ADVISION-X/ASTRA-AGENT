@@ -1,7 +1,7 @@
 import type { Project } from "ts-morph";
 
 import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
-import { MapPluginRegistry } from "../../../../src/map-plugins/registry/map-plugin-registry.js";
+import { createMapPluginRegistry } from "../../../../src/map-plugins/registry/map-plugin-registry.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
@@ -132,7 +132,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
   }
 
   try {
-    const registry = new MapPluginRegistry();
+    const registry = createMapPluginRegistry();
     for (const builtinPackage of loadBuiltinMapPackages()) {
       registry.importPackage(builtinPackage, "audit-required-shape");
       if (builtinPackage.manifest.approvalStatus === "approved" && builtinPackage.taskTemplate.availabilityPolicy === "active") {

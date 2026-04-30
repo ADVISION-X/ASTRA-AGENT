@@ -1,44 +1,8 @@
-import { DISASTER_LINE_THRESHOLD, IMPORT_EXPORT_LIMITS } from "./purity-constants.js";
+import { DISASTER_LINE_THRESHOLD } from "./purity-runtime-constants.js";
+import { IMPORT_EXPORT_LIMITS } from "./purity-thresholds.js";
+import type { PurityInventoryItem, PurityItemInput, PurityReportDraft } from "./purity-report-types.js";
 
-export interface PurityInventoryItem {
-  file: string;
-  lines: number;
-  fileType: string;
-  overLimitBy: number;
-  functionsOverLimit: string[];
-  classMembers: number;
-  importCount: number;
-  crossOwnerImports: number;
-  ownerBoundaries: number;
-  roleMixingSignals: string[];
-  severity: "BLOCKING" | "DISASTER" | "REMEDIATION";
-  recommendedSplit: string;
-}
-
-export interface PurityReportDraft {
-  godFileInventory: PurityInventoryItem[];
-  disasterFileInventory: PurityInventoryItem[];
-  ownerMixingInventory: PurityInventoryItem[];
-  oversizedTouchedFileInventory: PurityInventoryItem[];
-  functionOverLimitInventory: PurityInventoryItem[];
-  classObjectOverLimitInventory: PurityInventoryItem[];
-  importExportOverLimitInventory: PurityInventoryItem[];
-  remediationQueue: PurityInventoryItem[];
-  firstPhysicalSplitPlan: PurityInventoryItem[];
-}
-
-type PurityItemInput = {
-  relativePath: string;
-  lineCount: number;
-  fileType: string;
-  overLimitBy: number;
-  functionsOverLimit: string[];
-  classMembers: number;
-  importCount: number;
-  crossOwnerImports: number;
-  ownerBoundaries: number;
-  roleMixingSignals: string[];
-};
+export type { PurityInventoryItem, PurityItemInput, PurityReportDraft } from "./purity-report-types.js";
 
 export const createPurityInventoryItem = ({ relativePath, lineCount, fileType, overLimitBy, functionsOverLimit, classMembers, importCount, crossOwnerImports, ownerBoundaries, roleMixingSignals }: PurityItemInput): PurityInventoryItem => ({
   file: relativePath,

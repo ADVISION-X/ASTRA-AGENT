@@ -1,6 +1,6 @@
 import type { MouseClickButton, MouseClickChildCapabilityId, MouseClickCoordinateSpace, MouseClickCount } from "../contract.js";
 import { MouseClickRuntimeProofSchema } from "../schema.js";
-import { MOUSE_CLICK_VERIFICATION_REF_POLICY } from "../shared/mouse-click-proof.js";
+import { MOUSE_CLICK_PROOF } from "../shared/mouse-click-proof.js";
 import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 
 export function buildMouseClickRuntimeProof(input: {
@@ -126,7 +126,7 @@ export function buildMouseClickRuntimeProof(input: {
     primitiveEndedAt: input.primitiveEndedAt,
     postActionVerificationRequired: input.postActionVerificationRequired,
     postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
-    verificationRefPolicy: MOUSE_CLICK_VERIFICATION_REF_POLICY,
+    verificationRefPolicy: MOUSE_CLICK_PROOF.VERIFICATION_REF_POLICY,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,

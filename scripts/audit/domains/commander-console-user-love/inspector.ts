@@ -157,4 +157,4 @@ const inspector: DomainInspector = async (context) => {
   });
 };
 
-export default inspector;
+export { inspector as commanderConsoleUserLoveInspector };

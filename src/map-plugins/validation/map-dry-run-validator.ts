@@ -55,132 +55,137 @@ function hasReachableStep(
   return false;
 }
 
-export function validateMapDryRun(mapPackage: MapPackage): MapPackageValidationIssue[] {
-  const issues: MapPackageValidationIssue[] = [];
-  const steps = mapPackage.operationalMap.steps;
-  const stepIndex = buildStepIndexMap(steps);
-  const adjacency = buildAdjacency(mapPackage);
+function createIssue(message: string, path: string): MapPackageValidationIssue {
+  return {
+    code: "missing_dependency",
+    message,
+    path,
+    severity: "error"
+  };
+}
 
+function validateAiPreparation(steps: MapPackage["operationalMap"]["steps"]): MapPackageValidationIssue[] {
   const aiStepIndex = steps.findIndex((step) => step.stepKind === "ai");
-  if (aiStepIndex >= 0) {
-    const hasPrepareAiInput = steps.some((step, index) => index < aiStepIndex && step.childCapabilityId.includes("prepare-ai-input"));
-    if (!hasPrepareAiInput) {
-      issues.push({
-        code: "missing_dependency",
-        message: "AI vision step requires a preceding prepare-ai-input step.",
-        path: "operationalMap.steps",
-        severity: "error"
-      });
-    }
+  if (aiStepIndex < 0) {
+    return [];
   }
 
+  const hasPrepareAiInput = steps.some((step, index) => index < aiStepIndex && step.childCapabilityId.includes("prepare-ai-input"));
+  return hasPrepareAiInput ? [] : [createIssue("AI vision step requires a preceding prepare-ai-input step.", "operationalMap.steps")];
+}
+
+function hasReachableVerification(
+  stepId: string,
+  steps: MapPackage["operationalMap"]["steps"],
+  adjacency: Map<string, string[]>,
+  stepIndex: Map<string, number>,
+): boolean {
+  return hasReachableStep(stepId, adjacency, stepIndex, (candidateStepId) => {
+    const nextIndex = stepIndex.get(candidateStepId);
+    return nextIndex !== undefined && isTargetAbilityGroup(steps[nextIndex]!.targetAbilityGroupId, "post-action-verification");
+  });
+}
+
+function validateMouseClickDryRun(
+  steps: MapPackage["operationalMap"]["steps"],
+  adjacency: Map<string, string[]>,
+  stepIndex: Map<string, number>,
+): MapPackageValidationIssue[] {
   const clickStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "mouse-click"));
-  if (clickStepIndex >= 0) {
-    const hasVisualTarget = hasPrecedingStep(steps, clickStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target"));
-    const hasGeometryGuard = hasPrecedingStep(steps, clickStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
-    if (!hasVisualTarget || !hasGeometryGuard) {
-      issues.push({
-        code: "missing_dependency",
-        message: "mouse-click step requires preceding visual-target and geometry-guard steps.",
-        path: "operationalMap.steps",
-        severity: "error"
-      });
-    }
-    const hasVerification = hasReachableStep(steps[clickStepIndex]!.stepId, adjacency, stepIndex, (stepId) => {
-      const nextIndex = stepIndex.get(stepId);
-      return nextIndex !== undefined && isTargetAbilityGroup(steps[nextIndex]!.targetAbilityGroupId, "post-action-verification");
-    });
-    if (!hasVerification) {
-      issues.push({
-        code: "missing_dependency",
-        message: "Action step requires a following post-action-verification step.",
-        path: "operationalMap.steps",
-        severity: "error"
-      });
-    }
+  if (clickStepIndex < 0) {
+    return [];
   }
 
+  const issues: MapPackageValidationIssue[] = [];
+  const hasVisualTarget = hasPrecedingStep(steps, clickStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target"));
+  const hasGeometryGuard = hasPrecedingStep(steps, clickStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
+  if (!hasVisualTarget || !hasGeometryGuard) {
+    issues.push(createIssue("mouse-click step requires preceding visual-target and geometry-guard steps.", "operationalMap.steps"));
+  }
+  if (!hasReachableVerification(steps[clickStepIndex]!.stepId, steps, adjacency, stepIndex)) {
+    issues.push(createIssue("Action step requires a following post-action-verification step.", "operationalMap.steps"));
+  }
+  return issues;
+}
+
+function validateMouseScrollDryRun(
+  steps: MapPackage["operationalMap"]["steps"],
+  adjacency: Map<string, string[]>,
+  stepIndex: Map<string, number>,
+): MapPackageValidationIssue[] {
   const scrollStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "mouse-scroll"));
-  if (scrollStepIndex >= 0) {
-    const hasScrollContext = hasPrecedingStep(steps, scrollStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "page-state") || isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target"));
-    if (!hasScrollContext) {
-      issues.push({
-        code: "missing_dependency",
-        message: "mouse-scroll step requires preceding page-state or visual-target context.",
-        path: "operationalMap.steps",
-        severity: "error"
-      });
-    }
-    const hasVerification = hasReachableStep(steps[scrollStepIndex]!.stepId, adjacency, stepIndex, (stepId) => {
-      const nextIndex = stepIndex.get(stepId);
-      return nextIndex !== undefined && isTargetAbilityGroup(steps[nextIndex]!.targetAbilityGroupId, "post-action-verification");
-    });
-    if (!hasVerification) {
-      issues.push({
-        code: "missing_dependency",
-        message: "mouse-scroll step requires reachable post-action-verification.",
-        path: "operationalMap.steps",
-        severity: "error"
-      });
-    }
+  if (scrollStepIndex < 0) {
+    return [];
   }
 
+  const hasScrollContext = hasPrecedingStep(steps, scrollStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "page-state") || isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target"));
+  const issues = hasScrollContext
+    ? []
+    : [createIssue("mouse-scroll step requires preceding page-state or visual-target context.", "operationalMap.steps")];
+  if (!hasReachableVerification(steps[scrollStepIndex]!.stepId, steps, adjacency, stepIndex)) {
+    issues.push(createIssue("mouse-scroll step requires reachable post-action-verification.", "operationalMap.steps"));
+  }
+  return issues;
+}
+
+function validateTextInputDryRun(
+  steps: MapPackage["operationalMap"]["steps"],
+  adjacency: Map<string, string[]>,
+  stepIndex: Map<string, number>,
+): MapPackageValidationIssue[] {
   const textInputStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "text-input"));
-  if (textInputStepIndex >= 0) {
-    const textInputStep = steps[textInputStepIndex]!;
-    const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
-    const hasInputTarget = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"));
-    const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
-    if (!hasTextSource) {
-      issues.push({
-        code: "missing_dependency",
-        message: "text-input step requires commandInputRef or promptInputRef as approved text source.",
-        path: `operationalMap.steps.${textInputStep.stepId}`,
-        severity: "error"
-      });
-    }
-    if (!hasInputTarget || !hasGeometryGuard) {
-      issues.push({
-        code: "missing_dependency",
-        message: "text-input step requires preceding input-target context and geometry-guard normalization.",
-        path: `operationalMap.steps.${textInputStep.stepId}`,
-        severity: "error"
-      });
-    }
-    const hasVerification = hasReachableStep(textInputStep.stepId, adjacency, stepIndex, (stepId) => {
-      const nextIndex = stepIndex.get(stepId);
-      return nextIndex !== undefined && isTargetAbilityGroup(steps[nextIndex]!.targetAbilityGroupId, "post-action-verification");
-    });
-    if (!hasVerification) {
-      issues.push({
-        code: "missing_dependency",
-        message: "text-input step requires reachable post-action-verification.",
-        path: `operationalMap.steps.${textInputStep.stepId}`,
-        severity: "error"
-      });
-    }
+  if (textInputStepIndex < 0) {
+    return [];
   }
 
+  const textInputStep = steps[textInputStepIndex]!;
+  const issues: MapPackageValidationIssue[] = [];
+  const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
+  const hasInputTarget = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"));
+  const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
+  if (!hasTextSource) {
+    issues.push(createIssue("text-input step requires commandInputRef or promptInputRef as approved text source.", `operationalMap.steps.${textInputStep.stepId}`));
+  }
+  if (!hasInputTarget || !hasGeometryGuard) {
+    issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
+  }
+  if (!hasReachableVerification(textInputStep.stepId, steps, adjacency, stepIndex)) {
+    issues.push(createIssue("text-input step requires reachable post-action-verification.", `operationalMap.steps.${textInputStep.stepId}`));
+  }
+  return issues;
+}
+
+function validateForensicsPresence(steps: MapPackage["operationalMap"]["steps"]): MapPackageValidationIssue[] {
   const hasForensics = steps.some((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "forensics-persistence"));
-  if (!hasForensics) {
-    issues.push({
-      code: "missing_dependency",
-      message: "Operational map must route evidence output into forensics-persistence.",
-      path: "operationalMap.steps",
-      severity: "error"
-    });
-  }
+  return hasForensics ? [] : [createIssue("Operational map must route evidence output into forensics-persistence.", "operationalMap.steps")];
+}
 
-  for (const binding of mapPackage.promptBindings.bindings) {
-    if (!stepIndex.has(binding.stepId)) {
-      issues.push({
+function validatePromptBindingSteps(
+  stepIndex: Map<string, number>,
+  bindings: MapPackage["promptBindings"]["bindings"],
+): MapPackageValidationIssue[] {
+  return bindings.flatMap((binding) =>
+    stepIndex.has(binding.stepId)
+      ? []
+      : [{
         code: "missing_prompt_contract",
         message: `Prompt binding step ${binding.stepId} does not exist in operationalMap.steps.`,
         path: "promptBindings.bindings",
         severity: "error"
-      });
-    }
-  }
+      }],
+  );
+}
 
-  return issues;
+export function validateMapDryRun(mapPackage: MapPackage): MapPackageValidationIssue[] {
+  const steps = mapPackage.operationalMap.steps;
+  const stepIndex = buildStepIndexMap(steps);
+  const adjacency = buildAdjacency(mapPackage);
+  return [
+    ...validateAiPreparation(steps),
+    ...validateMouseClickDryRun(steps, adjacency, stepIndex),
+    ...validateMouseScrollDryRun(steps, adjacency, stepIndex),
+    ...validateTextInputDryRun(steps, adjacency, stepIndex),
+    ...validateForensicsPresence(steps),
+    ...validatePromptBindingSteps(stepIndex, mapPackage.promptBindings.bindings),
+  ];
 }

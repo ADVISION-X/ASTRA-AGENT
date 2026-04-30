@@ -4,8 +4,9 @@ import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
 import { getNodeLine } from "../../../core/ts-morph.js";
 import { collectCommentTokens, hasTodoHygiene, isCommentedOutCode, isTodoComment } from "./purity-comment-analysis.js";
-import { CLASS_LIMITS, FUNCTION_LIMITS, IMPORT_EXPORT_LIMITS } from "./purity-constants.js";
-import { hasProductionFakeImport, isGenericBucketSourceFile, isProductionFakePath } from "./purity-file-classification.js";
+import { CLASS_LIMITS, FUNCTION_LIMITS, IMPORT_EXPORT_LIMITS } from "./purity-thresholds.js";
+import { hasProductionFakeImport } from "./purity-import-analysis.js";
+import { isGenericBucketSourceFile, isProductionFakePath } from "./purity-path-rules.js";
 import { getBooleanLikeParameterCount, getFunctionMetrics, getFunctionName, getFunctionNodes, getLogicalLineCount, isSilentCatchClause } from "./purity-function-analysis.js";
 
 const RETIRED_OWNER_PATH_TOKENS = ["features/" + "local-data/", "features/" + "platform-action/"] as const;
@@ -50,21 +51,17 @@ const hasJsxCrossOwnerRuntimeSignal = (sourceFile: SourceFile, importedOwners: s
   (sourceFile.getDescendantsOfKind(SyntaxKind.JsxElement).length > 0 || sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement).length > 0)
   && importedOwners.length > 2;
 
+const buildRoleMixingChecks = (sourceFile: SourceFile, relativePath: string, importedOwners: string[]) => [
+  ["generic-bucket", isGenericBucketSourceFile(relativePath) && importedOwners.length > 1],
+  ["schema-and-runtime", sourceFile.getInterfaces().length > 0 && getFunctionNodes(sourceFile).length > 0 && !relativePath.endsWith("schema.ts")],
+  ["class-and-free-functions", sourceFile.getClasses().length > 0 && getFunctionNodes(sourceFile).length > 4],
+  ["jsx-plus-cross-owner-runtime", hasJsxCrossOwnerRuntimeSignal(sourceFile, importedOwners)],
+] as const;
+
 export const collectRoleMixingSignals = (sourceFile: SourceFile, relativePath: string, importedOwners: string[]): string[] => {
-  const signals: string[] = [];
-  if (isGenericBucketSourceFile(relativePath) && importedOwners.length > 1) {
-    signals.push("generic-bucket");
-  }
-  if (sourceFile.getInterfaces().length > 0 && getFunctionNodes(sourceFile).length > 0 && !relativePath.endsWith("schema.ts")) {
-    signals.push("schema-and-runtime");
-  }
-  if (sourceFile.getClasses().length > 0 && getFunctionNodes(sourceFile).length > 4) {
-    signals.push("class-and-free-functions");
-  }
-  if (hasJsxCrossOwnerRuntimeSignal(sourceFile, importedOwners)) {
-    signals.push("jsx-plus-cross-owner-runtime");
-  }
-  return signals;
+  return buildRoleMixingChecks(sourceFile, relativePath, importedOwners)
+    .filter(([, enabled]) => enabled)
+    .map(([signal]) => signal);
 };
 
 const inspectCallExpressionEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
@@ -82,7 +79,7 @@ const inspectCallExpressionEscapes = (sourceFile: SourceFile, relativePath: stri
   }
 };
 
-const inspectCommentAndTypeEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
+const inspectCommentEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
   for (const comment of collectCommentTokens(sourceFile)) {
     const lower = comment.text.toLowerCase();
     if (isTodoComment(comment.text) && !hasTodoHygiene(comment.text)) {
@@ -95,7 +92,9 @@ const inspectCommentAndTypeEscapes = (sourceFile: SourceFile, relativePath: stri
       findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-012-V1", relativePath, line: comment.line, message: "TypeScript or ESLint suppression directives are forbidden in active source truth.", detail: comment.text }));
     }
   }
+};
 
+const inspectTypeEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
   for (const anyKeyword of sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword)) {
     findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-012-V1", relativePath, line: getNodeLine(anyKeyword), message: "any is forbidden in active source truth." }));
   }
@@ -106,32 +105,70 @@ const inspectCommentAndTypeEscapes = (sourceFile: SourceFile, relativePath: stri
   }
 };
 
+const inspectCommentAndTypeEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
+  inspectCommentEscapes(sourceFile, relativePath, findings);
+  inspectTypeEscapes(sourceFile, relativePath, findings);
+};
+
 export const inspectCleanupAndEscapes = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
   inspectCallExpressionEscapes(sourceFile, relativePath, findings);
   inspectCommentAndTypeEscapes(sourceFile, relativePath, findings);
 };
 
+const inspectFunctionShapeLimits = (
+  functionNode: ReturnType<typeof getFunctionNodes>[number],
+  name: string,
+  relativePath: string,
+  findings: Finding[],
+): boolean => {
+  const metrics = getFunctionMetrics(functionNode);
+  const body = functionNode.getBody();
+  const statements = body ? (Node.isBlock(body) ? body.getStatements().length : 1) : 0;
+  const returns = functionNode.getDescendantsOfKind(SyntaxKind.ReturnStatement).length;
+  const switchCases = functionNode.getDescendantsOfKind(SyntaxKind.CaseClause).length;
+  const ifChain = Math.max(0, ...functionNode.getDescendantsOfKind(SyntaxKind.IfStatement).map((statement) => countIfChain(statement)));
+  const booleanParameters = getBooleanLikeParameterCount(functionNode);
+  const logicalLines = getLogicalLineCount(functionNode);
+  const exceedsLimit = [
+    logicalLines > FUNCTION_LIMITS.lines,
+    statements > FUNCTION_LIMITS.statements,
+    functionNode.getParameters().length > FUNCTION_LIMITS.parameters,
+    returns > FUNCTION_LIMITS.returns,
+    metrics.maxDepth > FUNCTION_LIMITS.depth,
+    metrics.complexity > FUNCTION_LIMITS.complexity,
+    switchCases > FUNCTION_LIMITS.switchCases,
+    ifChain > FUNCTION_LIMITS.ifChain,
+    booleanParameters > 1,
+  ].some(Boolean);
+
+  if (exceedsLimit) {
+    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-003-V1", relativePath, line: functionNode.getStartLineNumber(), message: `Function ${name} exceeds code-purity function limits.` }));
+  }
+
+  return exceedsLimit;
+};
+
+const inspectFunctionSilentCatchClauses = (
+  functionNode: ReturnType<typeof getFunctionNodes>[number],
+  name: string,
+  relativePath: string,
+  findings: Finding[],
+): void => {
+  for (const catchClause of functionNode.getDescendantsOfKind(SyntaxKind.CatchClause)) {
+    if (isSilentCatchClause(catchClause)) {
+      findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-003-V1", relativePath, line: getNodeLine(catchClause), message: `Function ${name} contains a silent catch clause.` }));
+    }
+  }
+};
+
 export const inspectFunctionLimits = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): string[] => {
   const functionOverLimit: string[] = [];
   for (const functionNode of getFunctionNodes(sourceFile)) {
-    const metrics = getFunctionMetrics(functionNode);
     const name = getFunctionName(functionNode, relativePath);
-    const body = functionNode.getBody();
-    const statements = body ? (Node.isBlock(body) ? body.getStatements().length : 1) : 0;
-    const returns = functionNode.getDescendantsOfKind(SyntaxKind.ReturnStatement).length;
-    const switchCases = functionNode.getDescendantsOfKind(SyntaxKind.CaseClause).length;
-    const ifChain = Math.max(0, ...functionNode.getDescendantsOfKind(SyntaxKind.IfStatement).map((statement) => countIfChain(statement)));
-    const booleanParameters = getBooleanLikeParameterCount(functionNode);
-    const logicalLines = getLogicalLineCount(functionNode);
-    if (logicalLines > FUNCTION_LIMITS.lines || statements > FUNCTION_LIMITS.statements || functionNode.getParameters().length > FUNCTION_LIMITS.parameters || returns > FUNCTION_LIMITS.returns || metrics.maxDepth > FUNCTION_LIMITS.depth || metrics.complexity > FUNCTION_LIMITS.complexity || switchCases > FUNCTION_LIMITS.switchCases || ifChain > FUNCTION_LIMITS.ifChain || booleanParameters > 1) {
+    if (inspectFunctionShapeLimits(functionNode, name, relativePath, findings)) {
       functionOverLimit.push(name);
-      findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-003-V1", relativePath, line: functionNode.getStartLineNumber(), message: `Function ${name} exceeds code-purity function limits.` }));
     }
-    for (const catchClause of functionNode.getDescendantsOfKind(SyntaxKind.CatchClause)) {
-      if (isSilentCatchClause(catchClause)) {
-        findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-003-V1", relativePath, line: getNodeLine(catchClause), message: `Function ${name} contains a silent catch clause.` }));
-      }
-    }
+    inspectFunctionSilentCatchClauses(functionNode, name, relativePath, findings);
   }
 
   return functionOverLimit;
@@ -155,6 +192,46 @@ export const inspectClassLimits = (sourceFile: SourceFile, relativePath: string,
   return { classOverLimit, maxClassMembers };
 };
 
+const inspectOwnerBoundaryLimits = (
+  relativePath: string,
+  findings: Finding[],
+  importedOwners: string[],
+  crossOwnerImports: number,
+): void => {
+  if (importedOwners.length > IMPORT_EXPORT_LIMITS.ownerBoundaries || crossOwnerImports > IMPORT_EXPORT_LIMITS.crossOwnerImports) {
+    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-005-V1", relativePath, line: 1, message: "File crosses too many real owner boundaries or cross-owner imports." }));
+  }
+};
+
+const inspectImportExportLimits = (input: {
+  sourceFile: SourceFile;
+  relativePath: string;
+  findings: Finding[];
+  importDeclarations: number;
+  importSources: number;
+  exportCount: number;
+}): void => {
+  if (input.importDeclarations > IMPORT_EXPORT_LIMITS.importDeclarations || input.importSources > IMPORT_EXPORT_LIMITS.importSources || input.exportCount > IMPORT_EXPORT_LIMITS.exports) {
+    input.findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath: input.relativePath, line: 1, message: "Import or export structure exceeds code-purity limits." }));
+  }
+  inspectExportDeclarationLimits(input.sourceFile, input.relativePath, input.findings);
+  inspectDefaultExportLimits(input.sourceFile, input.relativePath, input.findings);
+};
+
+const inspectExportDeclarationLimits = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
+  for (const exportDeclaration of sourceFile.getExportDeclarations()) {
+    if (exportDeclaration.isNamespaceExport() || exportDeclaration.getNamedExports().length === 0) {
+      findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath, line: getNodeLine(exportDeclaration), message: "export * is forbidden in active source truth." }));
+    }
+  }
+};
+
+const inspectDefaultExportLimits = (sourceFile: SourceFile, relativePath: string, findings: Finding[]): void => {
+  if (sourceFile.getExportAssignments().length > 0 || sourceFile.getFunctions().some((fn) => fn.isDefaultExport()) || sourceFile.getClasses().some((klass) => klass.isDefaultExport())) {
+    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath, line: 1, message: "Default export is forbidden unless explicitly governed by a domain law." }));
+  }
+};
+
 export const inspectBoundaryAndExportLimits = (input: {
   sourceFile: SourceFile;
   relativePath: string;
@@ -168,20 +245,8 @@ export const inspectBoundaryAndExportLimits = (input: {
 }): void => {
   const { sourceFile, relativePath, findings, importedOwners, crossOwnerImports, importDeclarations, importSources, exportCount, roleMixingSignals } = input;
 
-  if (importedOwners.length > IMPORT_EXPORT_LIMITS.ownerBoundaries || crossOwnerImports > IMPORT_EXPORT_LIMITS.crossOwnerImports) {
-    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-005-V1", relativePath, line: 1, message: "File crosses too many real owner boundaries or cross-owner imports." }));
-  }
-  if (importDeclarations > IMPORT_EXPORT_LIMITS.importDeclarations || importSources > IMPORT_EXPORT_LIMITS.importSources || exportCount > IMPORT_EXPORT_LIMITS.exports) {
-    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath, line: 1, message: "Import or export structure exceeds code-purity limits." }));
-  }
-  for (const exportDeclaration of sourceFile.getExportDeclarations()) {
-    if (exportDeclaration.isNamespaceExport() || exportDeclaration.getNamedExports().length === 0) {
-      findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath, line: getNodeLine(exportDeclaration), message: "export * is forbidden in active source truth." }));
-    }
-  }
-  if (sourceFile.getExportAssignments().length > 0 || sourceFile.getFunctions().some((fn) => fn.isDefaultExport()) || sourceFile.getClasses().some((klass) => klass.isDefaultExport())) {
-    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-006-V1", relativePath, line: 1, message: "Default export is forbidden unless explicitly governed by a domain law." }));
-  }
+  inspectOwnerBoundaryLimits(relativePath, findings, importedOwners, crossOwnerImports);
+  inspectImportExportLimits({ sourceFile, relativePath, findings, importDeclarations, importSources, exportCount });
 
   if (roleMixingSignals.length > 0) {
     findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-007-V1", relativePath, line: 1, message: "File mixes multiple roles behind neutral or broad structure.", detail: roleMixingSignals.join(", ") }));

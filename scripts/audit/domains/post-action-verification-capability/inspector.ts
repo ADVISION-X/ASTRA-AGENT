@@ -1,13 +1,13 @@
 import type { InspectorContext, InspectorResult } from "../../core/schema.js";
 import { finalizeInspectorResult } from "../../core/result.js";
-import { runDomainOwnerInspection } from "../_shared/run-domain-owner-inspection.js";
+import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createPostActionAuditProject } from "./ast-utils.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runRequiredShape } from "./required-shape.js";
 
-export default async function inspectPostActionVerificationCapability(context: InspectorContext): Promise<InspectorResult> {
+export async function inspectPostActionVerificationCapability(context: InspectorContext): Promise<InspectorResult> {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "post-action-verification-capability",
     inspectorId: "post-action-verification-capability-owner",

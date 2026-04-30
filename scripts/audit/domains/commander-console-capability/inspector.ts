@@ -312,7 +312,7 @@ async function requiredFilesExist(): Promise<boolean> {
   return results.every(Boolean);
 }
 
-export default createPendingDomainInspector({
+export const commanderConsoleCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Commander Console Capability Owner Inspector",
   inspectorId: "commander-console-capability-owner",
   capabilityDomain: "commander-console-capability",

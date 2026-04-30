@@ -3,15 +3,17 @@ import type { MapActivationRecord } from "../shared/map-package-proof.js";
 import type {
   ActiveOperationalMapRecord,
   DeveloperTaskTemplateFeedItem,
-  MapPackage,
   OrdinaryTaskTemplateFeedItem,
   TaskTemplateDeveloperBinding,
-} from "../shared/map-package-types.js";
+} from "../shared/map-package-registry-types.js";
+import type { MapPackage } from "../shared/map-package-types.js";
 
-type ActiveRegistration = {
+export type ActiveRegistration = {
   mapPackage: MapPackage;
   activationRecord: MapActivationRecord;
 };
+
+type RegistrationMap = Map<string, ActiveRegistration>;
 
 function toOperationalMap(mapPackage: MapPackage): OperationalMap {
   const { mapVersion: _mapVersion, proofPolicy: _proofPolicy, ...operationalMap } = mapPackage.operationalMap;
@@ -39,108 +41,133 @@ function toActiveOperationalMapRecord(registration: ActiveRegistration): ActiveO
   };
 }
 
-export class ActiveMapRegistry {
-  private readonly activeByMapId = new Map<string, ActiveRegistration>();
+const toOrdinaryTaskTemplateFeedItem = (registration: ActiveRegistration): OrdinaryTaskTemplateFeedItem => ({
+  taskTemplateId: registration.mapPackage.taskTemplate.taskTemplateId,
+  displayName: registration.mapPackage.taskTemplate.displayName,
+  description: registration.mapPackage.taskTemplate.description,
+  recommended: registration.mapPackage.taskTemplate.recommended,
+  taskCategory: registration.mapPackage.taskTemplate.taskCategory,
+  version: registration.mapPackage.taskTemplate.version,
+  defaultRunLimit: registration.mapPackage.taskTemplate.defaultRunLimit,
+  maxAllowedRunLimit: registration.mapPackage.taskTemplate.maxAllowedRunLimit,
+  safetyLevel: registration.mapPackage.taskTemplate.safetyLevel,
+  userVisibleCapabilities: registration.mapPackage.taskTemplate.userVisibleCapabilities,
+  availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",
+  defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,
+});
 
-  private findRegistrationByTaskTemplateId(taskTemplateId: string): ActiveRegistration | null {
-    for (const registration of this.activeByMapId.values()) {
-      if (registration.mapPackage.taskTemplate.taskTemplateId === taskTemplateId) {
-        return registration;
-      }
+const toDeveloperTaskTemplateFeedItem = (registration: ActiveRegistration): DeveloperTaskTemplateFeedItem => ({
+  ...toDeveloperBinding(registration),
+  packageId: registration.mapPackage.manifest.packageId,
+  packageVersion: registration.mapPackage.manifest.packageVersion,
+  activationId: registration.activationRecord.activationId,
+  mapId: registration.mapPackage.manifest.mapId,
+  taskTemplateId: registration.mapPackage.taskTemplate.taskTemplateId,
+  displayName: registration.mapPackage.taskTemplate.displayName,
+  description: registration.mapPackage.taskTemplate.description,
+  recommended: registration.mapPackage.taskTemplate.recommended,
+  taskCategory: registration.mapPackage.taskTemplate.taskCategory,
+  version: registration.mapPackage.taskTemplate.version,
+  defaultRunLimit: registration.mapPackage.taskTemplate.defaultRunLimit,
+  maxAllowedRunLimit: registration.mapPackage.taskTemplate.maxAllowedRunLimit,
+  safetyLevel: registration.mapPackage.taskTemplate.safetyLevel,
+  userVisibleCapabilities: registration.mapPackage.taskTemplate.userVisibleCapabilities,
+  availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",
+  defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,
+});
+
+const findRegistration = (registrations: Iterable<ActiveRegistration>, predicate: (registration: ActiveRegistration) => boolean): ActiveRegistration | null => {
+  for (const registration of registrations) {
+    if (predicate(registration)) {
+      return registration;
     }
-    return null;
   }
+  return null;
+};
 
-  private findRegistrationByActivationId(activationId: string): ActiveRegistration | null {
-    for (const registration of this.activeByMapId.values()) {
-      if (registration.activationRecord.activationId === activationId) {
-        return registration;
-      }
-    }
-    return null;
-  }
+const listRegistrations = (activeByMapId: RegistrationMap): ActiveRegistration[] => [...activeByMapId.values()];
 
-  activate(mapPackage: MapPackage, activationRecord: MapActivationRecord): void {
-    this.activeByMapId.set(mapPackage.manifest.mapId, { mapPackage, activationRecord });
-  }
+const createActiveWriteApi = (activeByMapId: RegistrationMap): Pick<ActiveMapRegistry, "activate" | "deactivate" | "getRegistration" | "listActivePackages"> => ({
+  activate(mapPackage, activationRecord) {
+    activeByMapId.set(mapPackage.manifest.mapId, { mapPackage, activationRecord });
+  },
+  deactivate(mapId) {
+    activeByMapId.delete(mapId);
+  },
+  getRegistration(mapId) {
+    return activeByMapId.get(mapId) ?? null;
+  },
+  listActivePackages() {
+    return listRegistrations(activeByMapId).map((registration) => registration.mapPackage);
+  },
+});
 
-  deactivate(mapId: string): void {
-    this.activeByMapId.delete(mapId);
-  }
-
-  getOperationalMap(mapId: string): OperationalMap | null {
-    const registration = this.activeByMapId.get(mapId);
+const createActiveLookupApi = (
+  activeByMapId: RegistrationMap,
+): Pick<
+  ActiveMapRegistry,
+  | "getOperationalMap"
+  | "getActiveOperationalMapRecord"
+  | "getActiveOperationalMapRecordByTaskTemplateId"
+  | "getActiveOperationalMapRecordByActivationId"
+  | "getTaskTemplateDeveloperBinding"
+> => ({
+  getOperationalMap(mapId) {
+    const registration = activeByMapId.get(mapId);
     return registration ? toOperationalMap(registration.mapPackage) : null;
-  }
-
-  getActiveOperationalMapRecord(mapId: string): ActiveOperationalMapRecord | null {
-    const registration = this.activeByMapId.get(mapId);
+  },
+  getActiveOperationalMapRecord(mapId) {
+    const registration = activeByMapId.get(mapId);
     return registration ? toActiveOperationalMapRecord(registration) : null;
-  }
-
-  getActiveOperationalMapRecordByTaskTemplateId(taskTemplateId: string): ActiveOperationalMapRecord | null {
-    const registration = this.findRegistrationByTaskTemplateId(taskTemplateId);
+  },
+  getActiveOperationalMapRecordByTaskTemplateId(taskTemplateId) {
+    const registration = findRegistration(listRegistrations(activeByMapId), (entry) => entry.mapPackage.taskTemplate.taskTemplateId === taskTemplateId);
     return registration ? toActiveOperationalMapRecord(registration) : null;
-  }
-
-  getActiveOperationalMapRecordByActivationId(activationId: string): ActiveOperationalMapRecord | null {
-    const registration = this.findRegistrationByActivationId(activationId);
+  },
+  getActiveOperationalMapRecordByActivationId(activationId) {
+    const registration = findRegistration(listRegistrations(activeByMapId), (entry) => entry.activationRecord.activationId === activationId);
     return registration ? toActiveOperationalMapRecord(registration) : null;
-  }
-
-  getRegistration(mapId: string): ActiveRegistration | null {
-    return this.activeByMapId.get(mapId) ?? null;
-  }
-
-  listActivePackages(): MapPackage[] {
-    return [...this.activeByMapId.values()].map((registration) => registration.mapPackage);
-  }
-
-  listActiveOperationalMapRecords(): ActiveOperationalMapRecord[] {
-    return [...this.activeByMapId.values()].map((registration) => toActiveOperationalMapRecord(registration));
-  }
-
-  getTaskTemplateDeveloperBinding(taskTemplateId: string): TaskTemplateDeveloperBinding | null {
-    const registration = this.findRegistrationByTaskTemplateId(taskTemplateId);
+  },
+  getTaskTemplateDeveloperBinding(taskTemplateId) {
+    const registration = findRegistration(listRegistrations(activeByMapId), (entry) => entry.mapPackage.taskTemplate.taskTemplateId === taskTemplateId);
     return registration ? toDeveloperBinding(registration) : null;
-  }
+  },
+});
 
-  listOrdinaryTaskTemplates(): OrdinaryTaskTemplateFeedItem[] {
-    return [...this.activeByMapId.values()].map((registration) => ({
-      taskTemplateId: registration.mapPackage.taskTemplate.taskTemplateId,
-      displayName: registration.mapPackage.taskTemplate.displayName,
-      description: registration.mapPackage.taskTemplate.description,
-      recommended: registration.mapPackage.taskTemplate.recommended,
-      taskCategory: registration.mapPackage.taskTemplate.taskCategory,
-      version: registration.mapPackage.taskTemplate.version,
-      defaultRunLimit: registration.mapPackage.taskTemplate.defaultRunLimit,
-      maxAllowedRunLimit: registration.mapPackage.taskTemplate.maxAllowedRunLimit,
-      safetyLevel: registration.mapPackage.taskTemplate.safetyLevel,
-      userVisibleCapabilities: registration.mapPackage.taskTemplate.userVisibleCapabilities,
-      availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",
-      defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,
-    }));
-  }
+const createActiveFeedApi = (
+  activeByMapId: RegistrationMap,
+): Pick<ActiveMapRegistry, "listActiveOperationalMapRecords" | "listOrdinaryTaskTemplates" | "listApprovedTaskTemplates"> => ({
+  listActiveOperationalMapRecords() {
+    return listRegistrations(activeByMapId).map(toActiveOperationalMapRecord);
+  },
+  listOrdinaryTaskTemplates() {
+    return listRegistrations(activeByMapId).map(toOrdinaryTaskTemplateFeedItem);
+  },
+  listApprovedTaskTemplates() {
+    return listRegistrations(activeByMapId).map(toDeveloperTaskTemplateFeedItem);
+  },
+});
 
-  listApprovedTaskTemplates(): DeveloperTaskTemplateFeedItem[] {
-    return [...this.activeByMapId.values()].map((registration) => ({
-      ...toDeveloperBinding(registration),
-      packageId: registration.mapPackage.manifest.packageId,
-      packageVersion: registration.mapPackage.manifest.packageVersion,
-      activationId: registration.activationRecord.activationId,
-      mapId: registration.mapPackage.manifest.mapId,
-      taskTemplateId: registration.mapPackage.taskTemplate.taskTemplateId,
-      displayName: registration.mapPackage.taskTemplate.displayName,
-      description: registration.mapPackage.taskTemplate.description,
-      recommended: registration.mapPackage.taskTemplate.recommended,
-      taskCategory: registration.mapPackage.taskTemplate.taskCategory,
-      version: registration.mapPackage.taskTemplate.version,
-      defaultRunLimit: registration.mapPackage.taskTemplate.defaultRunLimit,
-      maxAllowedRunLimit: registration.mapPackage.taskTemplate.maxAllowedRunLimit,
-      safetyLevel: registration.mapPackage.taskTemplate.safetyLevel,
-      userVisibleCapabilities: registration.mapPackage.taskTemplate.userVisibleCapabilities,
-      availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",
-      defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,
-    }));
-  }
-}
+export type ActiveMapRegistry = {
+  activate(mapPackage: MapPackage, activationRecord: MapActivationRecord): void;
+  deactivate(mapId: string): void;
+  getOperationalMap(mapId: string): OperationalMap | null;
+  getActiveOperationalMapRecord(mapId: string): ActiveOperationalMapRecord | null;
+  getActiveOperationalMapRecordByTaskTemplateId(taskTemplateId: string): ActiveOperationalMapRecord | null;
+  getActiveOperationalMapRecordByActivationId(activationId: string): ActiveOperationalMapRecord | null;
+  getRegistration(mapId: string): ActiveRegistration | null;
+  listActivePackages(): MapPackage[];
+  listActiveOperationalMapRecords(): ActiveOperationalMapRecord[];
+  getTaskTemplateDeveloperBinding(taskTemplateId: string): TaskTemplateDeveloperBinding | null;
+  listOrdinaryTaskTemplates(): OrdinaryTaskTemplateFeedItem[];
+  listApprovedTaskTemplates(): DeveloperTaskTemplateFeedItem[];
+};
+
+export const createActiveMapRegistry = (): ActiveMapRegistry => {
+  const activeByMapId = new Map<string, ActiveRegistration>();
+  return {
+    ...createActiveWriteApi(activeByMapId),
+    ...createActiveLookupApi(activeByMapId),
+    ...createActiveFeedApi(activeByMapId),
+  };
+};

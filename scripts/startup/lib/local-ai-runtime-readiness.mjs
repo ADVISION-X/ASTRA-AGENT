@@ -89,24 +89,11 @@ async function startOllamaServe(logger) {
   await trySpawnDetached("ollama", ["serve"]);
 }
 
-export async function ensureLocalAiRuntimeReady({
-  logger = () => {},
-  baseUrl = DEFAULT_OLLAMA_BASE_URL,
-  appWarmupMs = 8_000,
-  readyTimeoutMs = 20_000,
-  pollIntervalMs = 500,
-} = {}) {
-  const initialProbe = await probeOllamaRuntime(baseUrl);
-  if (initialProbe.ok) {
-    logger(`Local AI runtime already reachable with ${initialProbe.availableModels.length} models.`);
-    return {
-      started: false,
-      availableModels: initialProbe.availableModels,
-    };
-  }
+const toFailureReason = (error) => (error instanceof Error ? error.message : String(error));
 
-  const failures = [initialProbe.error].filter(Boolean);
+const toReadyResult = (started, availableModels) => ({ started, availableModels });
 
+async function tryRecoverViaApp({ logger, baseUrl, appWarmupMs, readyTimeoutMs, pollIntervalMs, failures }) {
   try {
     await openOllamaApp(logger);
     await sleep(appWarmupMs);
@@ -117,16 +104,17 @@ export async function ensureLocalAiRuntimeReady({
     });
     if (appProbe.ok) {
       logger(`Local AI runtime recovered via Ollama app with ${appProbe.availableModels.length} models.`);
-      return {
-        started: true,
-        availableModels: appProbe.availableModels,
-      };
+      return toReadyResult(true, appProbe.availableModels);
     }
     failures.push(appProbe.error);
   } catch (error) {
-    failures.push(error instanceof Error ? error.message : String(error));
+    failures.push(toFailureReason(error));
   }
 
+  return null;
+}
+
+async function tryRecoverViaServe({ logger, baseUrl, readyTimeoutMs, pollIntervalMs, failures }) {
   try {
     await startOllamaServe(logger);
     const serveProbe = await waitForOllamaRuntime({
@@ -136,14 +124,39 @@ export async function ensureLocalAiRuntimeReady({
     });
     if (serveProbe.ok) {
       logger(`Local AI runtime recovered via detached ollama serve with ${serveProbe.availableModels.length} models.`);
-      return {
-        started: true,
-        availableModels: serveProbe.availableModels,
-      };
+      return toReadyResult(true, serveProbe.availableModels);
     }
     failures.push(serveProbe.error);
   } catch (error) {
-    failures.push(error instanceof Error ? error.message : String(error));
+    failures.push(toFailureReason(error));
+  }
+
+  return null;
+}
+
+export async function ensureLocalAiRuntimeReady({
+  logger = () => {},
+  baseUrl = DEFAULT_OLLAMA_BASE_URL,
+  appWarmupMs = 8_000,
+  readyTimeoutMs = 20_000,
+  pollIntervalMs = 500,
+} = {}) {
+  const initialProbe = await probeOllamaRuntime(baseUrl);
+  if (initialProbe.ok) {
+    logger(`Local AI runtime already reachable with ${initialProbe.availableModels.length} models.`);
+    return toReadyResult(false, initialProbe.availableModels);
+  }
+
+  const failures = [initialProbe.error].filter(Boolean);
+
+  const appResult = await tryRecoverViaApp({ logger, baseUrl, appWarmupMs, readyTimeoutMs, pollIntervalMs, failures });
+  if (appResult) {
+    return appResult;
+  }
+
+  const serveResult = await tryRecoverViaServe({ logger, baseUrl, readyTimeoutMs, pollIntervalMs, failures });
+  if (serveResult) {
+    return serveResult;
   }
 
   throw new Error(`Local AI runtime is not ready at ${baseUrl}: ${failures.filter(Boolean).join(" | ")}`);

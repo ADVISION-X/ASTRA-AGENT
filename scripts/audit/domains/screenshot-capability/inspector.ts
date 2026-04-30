@@ -8,7 +8,7 @@ import { runRequiredShape } from "./required-shape.js";
 const INSPECTOR_PATH = "scripts/audit/domains/screenshot-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF";
 
-export default createPendingDomainInspector({
+export const screenshotCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Screenshot Capability Owner Inspector",
   inspectorId: "screenshot-capability-owner",
   capabilityDomain: "screenshot-capability",

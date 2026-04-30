@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 
-interface CiStep {
+type CiStep = {
   label: string;
   args: string[];
-}
+};
 
 const CI_STEP_TIMEOUT_MS = 120_000;
 

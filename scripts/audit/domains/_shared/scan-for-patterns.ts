@@ -1,15 +1,12 @@
 import { readTextFile } from "../../core/filesystem.js";
-import { createFinding } from "../../core/result.js";
-import { toRepoRelativePath } from "../../core/paths.js";
-import type { Finding, FindingSeverity } from "../../core/schema.js";
+import type { Finding } from "../../core/schema.js";
+import { createPatternFinding } from "./pattern-scan-finding.js";
+import type { PatternRule } from "./pattern-scan-rule.js";
 
-interface PatternRule {
-  lawId: string;
-  severity: FindingSeverity;
-  pattern: RegExp;
-  message: string;
-  detail?: string;
-}
+const scanSingleFileForPatterns = (filePath: string, content: string, rules: PatternRule[]): Finding[] =>
+  rules
+    .map((rule) => createPatternFinding(filePath, content, rule))
+    .filter((finding): finding is Finding => Boolean(finding));
 
 export const scanFilesForPatterns = async (
   filePaths: string[],
@@ -19,25 +16,7 @@ export const scanFilesForPatterns = async (
 
   for (const filePath of filePaths) {
     const content = await readTextFile(filePath);
-    for (const rule of rules) {
-      const match = rule.pattern.exec(content);
-      if (!match || typeof match.index !== "number") {
-        continue;
-      }
-
-      const line = content.slice(0, match.index).split("\n").length;
-      const detail = rule.detail;
-      findings.push(
-        createFinding({
-          lawId: rule.lawId,
-          file: toRepoRelativePath(filePath),
-          line,
-          severity: rule.severity,
-          message: rule.message,
-          ...(detail ? { detail } : {}),
-        }),
-      );
-    }
+    findings.push(...scanSingleFileForPatterns(filePath, content, rules));
   }
 
   return findings;

@@ -1,5 +1,5 @@
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID, type ForensicsPersistenceChildCapability } from "../../contract.js";
-import { executeForensicsChild } from "../../runtime/forensics-executor.js";
+import { executeForensicsChild } from "../../shared/forensics-executor.js";
 import { FINALIZE_EVIDENCE_PACKET_CHILD } from "./contract.js";
 import { FinalizeEvidencePacketInputSchema, FinalizeEvidencePacketOutputSchema } from "./schema.js";
 

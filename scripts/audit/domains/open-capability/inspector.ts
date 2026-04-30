@@ -339,7 +339,7 @@ function hasForbiddenResolvedImport(sourceFile: SourceFile): boolean {
   });
 }
 
-export default createPendingDomainInspector({
+export const openCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Open Capability Owner Inspector",
   inspectorId: "open-capability-owner",
   capabilityDomain: "open-capability",

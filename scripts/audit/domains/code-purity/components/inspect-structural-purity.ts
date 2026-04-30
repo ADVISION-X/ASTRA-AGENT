@@ -1,10 +1,11 @@
-import { Node, SyntaxKind, type AsExpression, type SourceFile, type TypeNode } from "ts-morph";
+import { Node, SyntaxKind, type AsExpression, type CallExpression, type SourceFile, type TypeNode } from "ts-morph";
 
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
 import { getNodeLine } from "../../../core/ts-morph.js";
 import { collectCommentTokens } from "./purity-comment-analysis.js";
-import { hasProductionFakeImport, isProductionFakePath } from "./purity-file-classification.js";
+import { hasProductionFakeImport } from "./purity-import-analysis.js";
+import { isProductionFakePath } from "./purity-path-rules.js";
 
 const LAW_ID = "GRASSEYE-CODE-PURITY-012-V1";
 const FORBIDDEN_DYNAMIC_IMPORT_TOKENS = ["mock", "fake", "fixture", "demo", "bridge", "compat", "legacy"] as const;
@@ -120,34 +121,47 @@ const inspectDirectiveEscapes = (sourceFile: SourceFile, findings: Finding[], re
   }
 };
 
+const isRequireCall = (importCall: CallExpression): boolean => {
+  const expression = importCall.getExpression();
+  return Node.isIdentifier(expression) && expression.getText() === "require";
+};
+
+const getDynamicImportLiteralText = (importCall: CallExpression): string | undefined => {
+  const importTarget = importCall.getArguments()[0];
+  if (!importTarget) {
+    return undefined;
+  }
+  return Node.isStringLiteral(importTarget) || Node.isNoSubstitutionTemplateLiteral(importTarget)
+    ? importTarget.getLiteralText().toLowerCase()
+    : undefined;
+};
+
+const inspectDynamicImportEscape = (importCall: CallExpression, findings: Finding[], relativePath: string): void => {
+  const expression = importCall.getExpression();
+  if (expression.getKind() !== SyntaxKind.ImportKeyword) {
+    return;
+  }
+
+  const literalText = getDynamicImportLiteralText(importCall);
+  if (literalText && FORBIDDEN_DYNAMIC_IMPORT_TOKENS.some((token) => literalText.includes(token))) {
+    findings.push(
+      createPurityFinding(
+        relativePath,
+        getNodeLine(importCall),
+        "dynamic import() must not load fake, demo, legacy, bridge, or compatibility paths.",
+        literalText,
+      ),
+    );
+  }
+};
+
 const inspectRuntimeEscapes = (sourceFile: SourceFile, findings: Finding[], relativePath: string): void => {
   for (const importCall of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-    const expression = importCall.getExpression();
-    if (Node.isIdentifier(expression) && expression.getText() === "require") {
+    if (isRequireCall(importCall)) {
       findings.push(createPurityFinding(relativePath, getNodeLine(importCall), "require() is forbidden in active TypeScript or TSX source truth."));
       continue;
     }
-
-    if (expression.getKind() !== SyntaxKind.ImportKeyword) {
-      continue;
-    }
-
-    const importTarget = importCall.getArguments()[0];
-    const literalText =
-      importTarget && (Node.isStringLiteral(importTarget) || Node.isNoSubstitutionTemplateLiteral(importTarget))
-        ? importTarget.getLiteralText().toLowerCase()
-        : undefined;
-
-    if (literalText && FORBIDDEN_DYNAMIC_IMPORT_TOKENS.some((token) => literalText.includes(token))) {
-      findings.push(
-        createPurityFinding(
-          relativePath,
-          getNodeLine(importCall),
-          "dynamic import() must not load fake, demo, legacy, bridge, or compatibility paths.",
-          literalText,
-        ),
-      );
-    }
+    inspectDynamicImportEscape(importCall, findings, relativePath);
   }
 };
 

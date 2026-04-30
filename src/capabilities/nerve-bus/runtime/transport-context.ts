@@ -1,5 +1,5 @@
-import { createSystemNerveBusClockPort } from "../ports/nerve-bus-clock-port.js";
 import type { NerveBusClockPort } from "../ports/nerve-bus-clock-port.js";
+import { createSystemNerveBusClockPort } from "./transport-clock.js";
 import { createInMemoryNerveBusIdempotencyPort } from "../ports/nerve-bus-idempotency-port.js";
 import type { NerveBusIdempotencyPort } from "../ports/nerve-bus-idempotency-port.js";
 import type { NerveBusHandlerPort } from "../ports/nerve-bus-handler-port.js";

@@ -6,6 +6,8 @@ const MACOS_CHROME_APP_CANDIDATES = [
   "/Applications/Google Chrome Beta.app",
 ];
 
+const toFailureReason = (error) => (error instanceof Error ? error.message : String(error));
+
 function escapeAppleScriptString(value) {
   return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 }
@@ -84,6 +86,14 @@ async function handoffToCurrentChromeTab(url) {
   };
 }
 
+async function tryMacOsChromeHandoff(url) {
+  try {
+    return { openResult: await handoffToCurrentChromeTab(url), fallbackReason: null };
+  } catch (error) {
+    return { openResult: null, fallbackReason: toFailureReason(error) };
+  }
+}
+
 export function resolveMacOsChromeAppPath() {
   const configuredAppPath = process.env.GRASSEYE_BROWSER_APP?.trim();
   if (configuredAppPath && existsSync(configuredAppPath)) {
@@ -119,11 +129,18 @@ export function getOpenCommand(url, platform = process.platform) {
 
 export async function openMainPage(url, platform = process.platform) {
   if (platform === "darwin") {
-    try {
-      return await handoffToCurrentChromeTab(url);
-    } catch {
-      // Fall back to the governed open -a handoff when AppleScript tab reuse is unavailable.
+    const { openResult, fallbackReason } = await tryMacOsChromeHandoff(url);
+    if (openResult) {
+      return openResult;
     }
+
+    const fallbackOpenCommand = getOpenCommand(url, platform);
+    await runSpawn(fallbackOpenCommand.command, fallbackOpenCommand.args, { stdio: "ignore" });
+    return {
+      ...fallbackOpenCommand,
+      handoffMode: "fallback_open_app",
+      fallbackReason,
+    };
   }
 
   const { command, args, browserName, browserPath } = getOpenCommand(url, platform);

@@ -166,7 +166,7 @@ function hasCandidateReviewAfterEmergencyReturn(sourceFile: NonNullable<ReturnTy
   return false;
 }
 
-export default async function inspectCapabilityRuntimeWiring() {
+export async function inspectCapabilityRuntimeWiring() {
   const project = new Project({ tsConfigFilePath: pathFromRepoRoot("tsconfig.json"), skipAddingFilesFromTsConfig: false });
   const findings: Finding[] = [];
   const workbench = source(project, WORKBENCH);

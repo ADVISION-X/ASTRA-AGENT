@@ -2,7 +2,8 @@ import path from "node:path";
 
 import { Node, ts, type SourceFile } from "ts-morph";
 
-import { COMMENT_CODE_KINDS, type CommentToken } from "./purity-constants.js";
+import { COMMENT_CODE_KINDS } from "./purity-ast-kinds.js";
+import type { CommentToken } from "./purity-types.js";
 
 const normalizeCommentText = (value: string): string =>
   value

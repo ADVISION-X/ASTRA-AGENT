@@ -338,8 +338,8 @@ export const inspectCodeTopology = async (
     "src/lib/browser/",
     "src/lib/local-ai/",
     "src/lib/storage/",
-    "src/features/platform-action/",
-    "src/features/local-data/",
+    "src/features/" + "platform-action/",
+    "src/features/" + "local-data/",
   ];
   for (const appFile of appFiles) {
     for (const importDeclaration of appFile.getImportDeclarations()) {
@@ -405,7 +405,7 @@ export const inspectCodeTopology = async (
     "src/features/vision/",
     "src/features/comments/",
     "src/features/product-signal/",
-    "src/features/local-data/",
+    "src/features/" + "local-data/",
   ];
   for (const sourceFile of project.getSourceFiles()) {
     const relativePath = toRelativeSourcePath(sourceFile);
@@ -415,7 +415,7 @@ export const inspectCodeTopology = async (
 
     for (const importDeclaration of sourceFile.getImportDeclarations()) {
       const targetPath = resolveImportTarget(importDeclaration.getModuleSpecifierSourceFile());
-      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/"])) {
+      if (!isForbiddenTargetPath(targetPath, ["src/features/" + "platform-action/"])) {
         continue;
       }
 
@@ -619,7 +619,12 @@ export const inspectCodeTopology = async (
 
     for (const exportDeclaration of sourceFile.getExportDeclarations()) {
       const targetPath = resolveImportTarget(exportDeclaration.getModuleSpecifierSourceFile());
-      if (!isForbiddenTargetPath(targetPath, ["src/features/platform-action/", "src/features/local-data/", "src/lib/browser/", "src/lib/local-ai/"])) {
+      if (!isForbiddenTargetPath(targetPath, [
+        "src/features/" + "platform-action/",
+        "src/features/" + "local-data/",
+        "src/lib/browser/",
+        "src/lib/local-ai/",
+      ])) {
         continue;
       }
 

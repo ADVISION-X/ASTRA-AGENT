@@ -16,5 +16,6 @@ export function buildAiDisabledProviderOutput(request: ParsedAiAbilityInput, chi
       reason: `Provider ${childContract.childCapabilityId} is disabled.`,
     },
     rawOutputRef: null,
+    timeoutMs: null,
   });
 }

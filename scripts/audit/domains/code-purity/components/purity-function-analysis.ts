@@ -1,6 +1,7 @@
 import { Node, SyntaxKind, type CatchClause, type Node as MorphNode, type ParameterDeclaration, type SourceFile, type Type } from "ts-morph";
 
-import { FUNCTION_DECISION_KINDS, type PurityFunctionNode } from "./purity-constants.js";
+import { FUNCTION_DECISION_KINDS } from "./purity-ast-kinds.js";
+import type { PurityFunctionNode } from "./purity-types.js";
 
 const isSameOwningFunction = (candidate: MorphNode, functionNode: PurityFunctionNode): boolean => {
   const owner = candidate.getFirstAncestor((ancestor) =>

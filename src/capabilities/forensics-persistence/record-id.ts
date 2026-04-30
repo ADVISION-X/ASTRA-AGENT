@@ -1,1 +1,1 @@
-export { buildForensicsRecordId as createForensicsRecordId } from "./runtime/forensics-idempotency.js";
+export { buildForensicsRecordId as createForensicsRecordId } from "./shared/forensics-idempotency.js";

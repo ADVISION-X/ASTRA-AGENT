@@ -372,7 +372,7 @@ function abilityGroupHasThrow(sourceFile: SourceFile): boolean {
   return executeFunction?.getDescendantsOfKind(SyntaxKind.ThrowStatement).length ? true : false;
 }
 
-export default createPendingDomainInspector({
+export const forensicsPersistenceCapabilityInspector = createPendingDomainInspector({
   inspector: "forensics-persistence-owner",
   inspectorId: "forensics-persistence-owner",
   capabilityDomain: "forensics-persistence-capability",

@@ -5,16 +5,20 @@ import {
   MapPluginAllowedAbilityGroupIdSchema,
   MapPluginOperationalMapSchema,
   MapPluginOperationalMapStepSchema,
-  MapPluginOrchestrationSequencePolicySchema,
   MapPluginPayloadRefKeySchema,
-  MapPluginProofPolicySchema,
+  MapPluginTransitionSchema,
+} from "../../map-plugins/schema/operational-map-core.schema.js";
+import {
   MapPluginStepKindSchema,
-  MapPluginTimeoutPolicySchema,
   MapPluginTransitionConditionSchema,
   MapPluginTransitionConditionSourceSchema,
-  MapPluginTransitionSchema,
   MapPluginTransitionStatusSchema,
-} from "../../map-plugins/schema/operational-map-core.schema.js";
+} from "../../map-plugins/schema/operational-map-payload.schema.js";
+import {
+  MapPluginOrchestrationSequencePolicySchema,
+  MapPluginProofPolicySchema,
+  MapPluginTimeoutPolicySchema,
+} from "../../map-plugins/schema/operational-map-policy.schema.js";
 import { RequestedPlatformIdSchema } from "../../map-plugins/schema/platform-id.schema.js";
 
 export const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";

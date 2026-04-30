@@ -1,5 +1,5 @@
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID, type ForensicsPersistenceChildCapability } from "../../contract.js";
-import { executeForensicsChild } from "../../runtime/forensics-executor.js";
+import { executeForensicsChild } from "../../shared/forensics-executor.js";
 import { WRITE_AI_RESULT_RECORD_CHILD } from "./contract.js";
 import { WriteAiResultRecordInputSchema, WriteAiResultRecordOutputSchema } from "./schema.js";
 

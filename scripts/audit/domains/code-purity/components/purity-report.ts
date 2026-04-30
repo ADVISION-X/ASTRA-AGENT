@@ -1,9 +1,9 @@
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { writeJsonFile } from "../../../core/filesystem.js";
-import { REPORT_PATH } from "./purity-constants.js";
+import { REPORT_PATH } from "./purity-runtime-constants.js";
 import type { PurityInventoryItem, PurityReportDraft } from "./purity-metric-inspection.js";
 
-export interface PurityReport {
+export type PurityReport = {
   generatedAt: string;
   godFileInventory: PurityInventoryItem[];
   disasterFileInventory: PurityInventoryItem[];
@@ -14,7 +14,7 @@ export interface PurityReport {
   importExportOverLimitInventory: PurityInventoryItem[];
   remediationQueue: PurityInventoryItem[];
   firstPhysicalSplitPlan: PurityInventoryItem[];
-}
+};
 
 const compareSeverity = (left: PurityInventoryItem, right: PurityInventoryItem): number => {
   const order = { DISASTER: 0, BLOCKING: 1, REMEDIATION: 2 } as const;

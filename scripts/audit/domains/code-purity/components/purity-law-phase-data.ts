@@ -1,0 +1,105 @@
+import type { PurityPhaseSummary } from "./purity-types.js";
+
+export const CODE_PURITY_LAW_IDS = [
+  "GRASSEYE-CODE-PURITY-001-V1",
+  "GRASSEYE-CODE-PURITY-002-V1",
+  "GRASSEYE-CODE-PURITY-003-V1",
+  "GRASSEYE-CODE-PURITY-004-V1",
+  "GRASSEYE-CODE-PURITY-005-V1",
+  "GRASSEYE-CODE-PURITY-006-V1",
+  "GRASSEYE-CODE-PURITY-007-V1",
+  "GRASSEYE-CODE-PURITY-008-V1",
+  "GRASSEYE-CODE-PURITY-009-V1",
+  "GRASSEYE-CODE-PURITY-010-V1",
+  "GRASSEYE-CODE-PURITY-011-V1",
+  "GRASSEYE-CODE-PURITY-012-V1",
+  "GRASSEYE-CODE-PURITY-013-V1",
+  "GRASSEYE-CODE-PURITY-014-V1",
+] as const;
+
+export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
+  {
+    lawId: "GRASSEYE-CODE-PURITY-001-V1",
+    name: "file-size-limits",
+    okSummary: "Active source files stay within category hard limits.",
+    failedSummary: "Active source files still exceed code-purity file-size hard limits.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-002-V1",
+    name: "touched-file-rule",
+    okSummary: "Touched active files stay within hard limits.",
+    failedSummary: "Touched active files still exceed their hard limits.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-003-V1",
+    name: "function-shape-limits",
+    okSummary: "Functions stay small, shallow, and single-purpose.",
+    failedSummary: "One or more functions exceed line, parameter, nesting, or complexity limits.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-004-V1",
+    name: "class-object-limits",
+    okSummary: "Classes and objects stay under god-object limits.",
+    failedSummary: "One or more classes or objects exceed member or constructor limits.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-005-V1",
+    name: "owner-boundary-limits",
+    okSummary: "Owner-boundary counting stays at real capability granularity.",
+    failedSummary: "Cross-owner imports or owner boundaries still exceed code-purity limits.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-006-V1",
+    name: "import-export-purity",
+    okSummary: "Import/export structures stay narrow and barrel-free.",
+    failedSummary: "Import/export structures still exceed limits or hide coupling through barrels.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-007-V1",
+    name: "single-role-files",
+    okSummary: "Files stay role-local without schema/runtime bucket mixing.",
+    failedSummary: "One or more files still mix broad roles behind neutral structure.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-008-V1",
+    name: "dead-code-cleanup",
+    okSummary: "Active source truth is free of fake paths, debug scatter, and dead-code leftovers.",
+    failedSummary: "Fake paths, debug scatter, placeholder success, or dead code still exist in active source truth.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-009-V1",
+    name: "refactor-direction",
+    okSummary: "Refactor direction avoids compatibility bridges and duplicate active paths.",
+    failedSummary: "Compatibility bridges or legacy duplicate routes still exist in active source truth.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-010-V1",
+    name: "disaster-file-queue",
+    okSummary: "Disaster files are identified and queued for physical split.",
+    failedSummary: "Disaster files still exist without blocking inventory or remediation queue evidence.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-011-V1",
+    name: "real-enforcement-coverage",
+    okSummary: "All active code-purity laws have inspector coverage, runner execution, and negative proof.",
+    failedSummary: "One or more active code-purity laws lack real coverage or negative proof.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-012-V1",
+    name: "anti-escape",
+    okSummary: "Type escapes, directives, dynamic imports, and wrapper laundering are blocked.",
+    failedSummary: "Type escapes, directives, dynamic imports, or laundering patterns still exist.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-013-V1",
+    name: "inventory-output",
+    okSummary: "Code-purity writes actionable inventories and split plans.",
+    failedSummary: "Code-purity did not produce the required inventories, remediation queue, or split plan.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-014-V1",
+    name: "physical-split-direction",
+    okSummary: "Remediation direction prefers physical deletion and physical splitting.",
+    failedSummary: "Active source still relies on bridges, wrappers, or cosmetic refactor direction.",
+  },
+];

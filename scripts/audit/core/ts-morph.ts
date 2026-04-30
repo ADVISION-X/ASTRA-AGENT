@@ -1,4 +1,4 @@
-import { Node, Project, SyntaxKind, type CallExpression, type Expression, type Identifier, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import { Node, Project, SyntaxKind, type CallExpression, type Expression, type Identifier, type ObjectLiteralExpression, type SourceFile, type VariableDeclaration } from "ts-morph";
 
 import { pathFromRepoRoot, toRepoRelativePath } from "./paths.js";
 
@@ -49,9 +49,33 @@ export const getExpressionPath = (expression: Expression | undefined): string[] 
   return [];
 };
 
-export const isCallPath = (callExpression: CallExpression, expectedPath: string[]): boolean => {
+const isCallPath = (callExpression: CallExpression, expectedPath: string[]): boolean => {
   const actualPath = getExpressionPath(callExpression.getExpression());
   return actualPath.length === expectedPath.length && actualPath.every((segment, index) => segment === expectedPath[index]);
+};
+
+const getStringLiteralValue = (value: Expression | undefined): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  return Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value)
+    ? value.getLiteralText()
+    : undefined;
+};
+
+const getIdentifierDeclarationValue = (declaration: VariableDeclaration | undefined): string | undefined =>
+  getStringLiteralValue(declaration?.getInitializer());
+
+const getIdentifierLiteralValue = (initializer: Expression): string | undefined => {
+  if (!Node.isIdentifier(initializer)) {
+    return undefined;
+  }
+
+  const declaration = initializer.getDefinitions()[0]?.getDeclarationNode();
+  return declaration && Node.isVariableDeclaration(declaration)
+    ? getIdentifierDeclarationValue(declaration)
+    : undefined;
 };
 
 export const getObjectLiteralString = (
@@ -64,25 +88,7 @@ export const getObjectLiteralString = (
   }
 
   const initializer = property.getInitializer();
-  if (!initializer) {
-    return undefined;
-  }
-
-  if (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) {
-    return initializer.getLiteralText();
-  }
-
-  if (Node.isIdentifier(initializer)) {
-    const declaration = initializer.getDefinitions()[0]?.getDeclarationNode();
-    if (declaration && Node.isVariableDeclaration(declaration)) {
-      const value = declaration.getInitializer();
-      if (value && (Node.isStringLiteral(value) || Node.isNoSubstitutionTemplateLiteral(value))) {
-        return value.getLiteralText();
-      }
-    }
-  }
-
-  return undefined;
+  return getStringLiteralValue(initializer) ?? (initializer ? getIdentifierLiteralValue(initializer) : undefined);
 };
 
 export const getReferencePaths = (identifier: Identifier): string[] => {

@@ -1,24 +1,7 @@
 import { z } from "zod";
 
-import { ApproveCandidateInputSchema } from "./children/approve-candidate/schema.js";
-import { EmergencyStopInputSchema } from "./children/emergency-stop/schema.js";
-import { InspectRecordDetailInputSchema } from "./children/inspect-record-detail/schema.js";
-import { IssueHumanCommandInputSchema } from "./children/issue-human-command/schema.js";
-import { MarkReviewRequiredInputSchema } from "./children/mark-review-required/schema.js";
-import { PauseMissionInputSchema } from "./children/pause-mission/schema.js";
-import { RejectCandidateInputSchema } from "./children/reject-candidate/schema.js";
-import { ResumeMissionInputSchema } from "./children/resume-mission/schema.js";
-import { ShowAuditSummaryInputSchema } from "./children/show-audit-summary/schema.js";
-import { ShowBrowseLedgerInputSchema } from "./children/show-browse-ledger/schema.js";
-import { ShowCapabilityHealthInputSchema } from "./children/show-capability-health/schema.js";
-import { ShowCapabilityRosterInputSchema } from "./children/show-capability-roster/schema.js";
-import { ShowEvidencePacketsInputSchema } from "./children/show-evidence-packets/schema.js";
-import { ShowFailedRecordsInputSchema } from "./children/show-failed-records/schema.js";
-import { ShowMissionDashboardInputSchema } from "./children/show-mission-dashboard/schema.js";
-import { ShowOperationalMapProgressInputSchema } from "./children/show-operational-map-progress/schema.js";
-import { ShowReviewQueueInputSchema } from "./children/show-review-queue/schema.js";
-import { ShowRuntimeProofTimelineInputSchema } from "./children/show-runtime-proof-timeline/schema.js";
-import { StopMissionInputSchema } from "./children/stop-mission/schema.js";
+import { COMMANDER_COMMAND_CHILD_INPUT_SCHEMAS } from "./children/command-child-input-schemas.js";
+import { COMMANDER_READ_CHILD_INPUT_SCHEMAS } from "./children/read-child-input-schemas.js";
 import {
   COMMANDER_COMMAND_CHILD_IDS,
   COMMANDER_CONSOLE_CHILD_ABILITY_IDS,
@@ -190,23 +173,6 @@ export const CommanderConsoleResultSchema = z.object({
 }).strict();
 
 export const CommanderChildInputSchemaMap = {
-  "issue-human-command": IssueHumanCommandInputSchema,
-  "show-mission-dashboard": ShowMissionDashboardInputSchema,
-  "show-capability-roster": ShowCapabilityRosterInputSchema,
-  "show-capability-health": ShowCapabilityHealthInputSchema,
-  "show-operational-map-progress": ShowOperationalMapProgressInputSchema,
-  "show-runtime-proof-timeline": ShowRuntimeProofTimelineInputSchema,
-  "show-evidence-packets": ShowEvidencePacketsInputSchema,
-  "show-browse-ledger": ShowBrowseLedgerInputSchema,
-  "show-failed-records": ShowFailedRecordsInputSchema,
-  "show-review-queue": ShowReviewQueueInputSchema,
-  "show-audit-summary": ShowAuditSummaryInputSchema,
-  "pause-mission": PauseMissionInputSchema,
-  "resume-mission": ResumeMissionInputSchema,
-  "stop-mission": StopMissionInputSchema,
-  "emergency-stop": EmergencyStopInputSchema,
-  "approve-candidate": ApproveCandidateInputSchema,
-  "reject-candidate": RejectCandidateInputSchema,
-  "mark-review-required": MarkReviewRequiredInputSchema,
-  "inspect-record-detail": InspectRecordDetailInputSchema,
+  ...COMMANDER_READ_CHILD_INPUT_SCHEMAS,
+  ...COMMANDER_COMMAND_CHILD_INPUT_SCHEMAS,
 } as const;

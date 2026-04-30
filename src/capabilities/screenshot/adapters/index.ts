@@ -18,7 +18,7 @@ export type {
 } from "../ports/screenshot-image-processing-port.js";
 export {
   createSystemScreenshotClockPort,
-} from "../ports/screenshot-clock-port.js";
+} from "../runtime/system-screenshot-clock-port.js";
 export type {
   ScreenshotClockPort,
 } from "../ports/screenshot-clock-port.js";

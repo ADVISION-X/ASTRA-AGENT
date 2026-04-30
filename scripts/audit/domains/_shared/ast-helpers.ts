@@ -166,7 +166,7 @@ export function hasCallExpression(node: Node, calleeName: string): boolean {
   });
 }
 
-export function countCallExpressions(node: Node, calleeName: string): number {
+function countCallExpressions(node: Node, calleeName: string): number {
   return node.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isIdentifier(expression)
@@ -236,31 +236,40 @@ export function hasInterfaceMethod(sourceFile: SourceFile, interfaceName: string
   return Boolean(sourceFile.getInterface(interfaceName)?.getMethod(methodName));
 }
 
+const flattenPropertyAccessMember = (node: Node): string[] | null =>
+  Node.isPropertyAccessExpression(node)
+    ? [...flattenPropertyAccess(node.getExpression()), node.getName()]
+    : null;
+
+const flattenPropertyAccessIdentifier = (node: Node): string[] | null =>
+  Node.isIdentifier(node) ? [node.getText()] : null;
+
+const flattenPropertyAccessThis = (node: Node): string[] | null =>
+  node.getKind() === SyntaxKind.ThisKeyword ? ["this"] : null;
+
+const flattenPropertyAccessElement = (node: Node): string[] | null => {
+  if (!Node.isElementAccessExpression(node)) {
+    return null;
+  }
+
+  const argument = node.getArgumentExpression();
+  if (!argument || (!Node.isStringLiteral(argument) && !Node.isNoSubstitutionTemplateLiteral(argument))) {
+    return null;
+  }
+
+  return [...flattenPropertyAccess(node.getExpression()), argument.getLiteralText()];
+};
+
 export function flattenPropertyAccess(node: Node | undefined): string[] {
   if (!node) {
     return [];
   }
 
-  if (Node.isPropertyAccessExpression(node)) {
-    return [...flattenPropertyAccess(node.getExpression()), node.getName()];
-  }
-
-  if (Node.isIdentifier(node)) {
-    return [node.getText()];
-  }
-
-  if (node.getKind() === SyntaxKind.ThisKeyword) {
-    return ["this"];
-  }
-
-  if (Node.isElementAccessExpression(node)) {
-    const argument = node.getArgumentExpression();
-    if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
-      return [...flattenPropertyAccess(node.getExpression()), argument.getLiteralText()];
-    }
-  }
-
-  return [];
+  return flattenPropertyAccessMember(node)
+    ?? flattenPropertyAccessIdentifier(node)
+    ?? flattenPropertyAccessThis(node)
+    ?? flattenPropertyAccessElement(node)
+    ?? [];
 }
 
 export function hasConsoleLog(sourceFile: SourceFile): boolean {

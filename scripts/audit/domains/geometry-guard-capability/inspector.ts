@@ -313,7 +313,7 @@ function childImplementationPath(childId: typeof REQUIRED_CHILDREN[number]): str
   return `${ROOT}/children/${childId}/implementation.ts`;
 }
 
-export default createPendingDomainInspector({
+export const geometryGuardCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Geometry Guard Capability Owner Inspector",
   inspectorId: "geometry-guard-capability-owner",
   capabilityDomain: "geometry-guard-capability",

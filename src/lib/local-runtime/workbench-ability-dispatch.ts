@@ -1,23 +1,23 @@
 import type {
   AbilityCommandEnvelope,
   AbilityResultEnvelope,
-  NerveBusHandledResult,
-  NerveBusPayloadDocument,
-} from "../../capabilities/nerve-bus/index.js";
+} from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
+import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/ports/nerve-bus-transport-port.js";
 import type { WorkbenchAbilityExecutionResult, WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
 import {
-  buildForensicsRuntimeEventInput,
   buildGeometryGuardCommand,
   buildMouseClickCommand,
   buildMouseScrollCommand,
-  buildOpenAbilityInput,
-  buildPageStateDispatchInput,
-  buildPostActionVerificationInput,
   buildScreenshotCommand,
   buildTextInputCommand,
   buildVisualTargetCommand,
-} from "./workbench-ability-inputs.js";
+} from "./workbench-action-dispatch-inputs.js";
+import { buildForensicsRuntimeEventInput } from "./workbench-forensics-dispatch-input.js";
+import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
+import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
+import { buildPostActionVerificationInput } from "./workbench-post-action-dispatch-input.js";
 
 const describeAbilityFailure = (
   failure: WorkbenchAbilityExecutionResult["failureReason"],

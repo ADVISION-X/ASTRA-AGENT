@@ -7,7 +7,7 @@ const AI_TASK_ROUTING: Record<AiTaskType, AiChildCapabilityId | null> = {
   ocr_cleanup: "local-ocr-ai",
   comment_signal_summary: "local-text-ai",
   product_signal_summary: "local-text-ai",
-  evidence_packet_analysis: null,
+  evidence_packet_analysis: "paid-analysis-ai",
   schema_validation_only: "internal-schema-validator",
 };
 

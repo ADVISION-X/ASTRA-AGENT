@@ -1,0 +1,172 @@
+import type { LocalAiDebugEvent } from "../../../lib/local-ai/runtime-adapters/local-ai-runtime-adapter.js";
+import type { ParsedAiAbilityInput } from "../contract.js";
+import type {
+  AiRuntimeStructuredDebugEvent,
+  CollectedDebugState,
+  LocalAiDebugSession,
+  LocalAiRuntimePortOptions,
+} from "./local-ai-runtime-debug-contract.js";
+import {
+  buildBaseDebugEvent,
+  createCollectedDebugState,
+  updateDebugState,
+} from "./local-ai-runtime-debug-state.js";
+
+function resolveAiErrorHandling(kind: string | null, failureReason: string): { ownerResponsible: string; actionableMessage: string } {
+  if (kind === "missing_evidence") {
+    return {
+      ownerResponsible: "Screenshot / Orchestration",
+      actionableMessage: "Run prepare-ai-input through Screenshot before retrying the AI task.",
+    };
+  }
+  if (kind === "engine_missing" || kind === "model_missing" || kind === "service_unreachable") {
+    return {
+      ownerResponsible: "AI Capability / Local AI Runtime",
+      actionableMessage: "Restore the configured local AI runtime or install the governed local model before retrying.",
+    };
+  }
+  if (kind === "invalid_output") {
+    return {
+      ownerResponsible: "AI Capability / Local AI Runtime",
+      actionableMessage: "Inspect the raw model response and parser errors before retrying the governed AI task.",
+    };
+  }
+  if (kind === "runtime_timeout") {
+    return {
+      ownerResponsible: "AI Capability / Local AI Runtime",
+      actionableMessage: "Increase timeout only through governed policy or repair the local model latency before retrying.",
+    };
+  }
+  return {
+    ownerResponsible: "AI Capability / Local AI Runtime",
+    actionableMessage: failureReason,
+  };
+}
+
+async function emitDebugEvent(
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"],
+  event: AiRuntimeStructuredDebugEvent,
+) {
+  await emit?.(event);
+}
+
+async function emitRequestDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  await emitDebugEvent(args.emit, {
+    eventType: "AI_REQUEST_DEBUG",
+    level: "DEBUG",
+    status: "started",
+    ...args.baseEvent(),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: null,
+    durationMs: null,
+  });
+}
+
+async function emitResponseDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+  durationMs: number | null;
+}) {
+  await emitDebugEvent(args.emit, {
+    eventType: "AI_RESPONSE_DEBUG",
+    level: "DEBUG",
+    status: "success",
+    ...args.baseEvent(),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: null,
+    durationMs: args.durationMs,
+  });
+}
+
+async function emitErrorDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+  failureReason: string;
+  errorKind: string | null;
+  durationMs: number | null;
+}) {
+  const handling = resolveAiErrorHandling(args.errorKind, args.failureReason);
+  await emitDebugEvent(args.emit, {
+    eventType: "AI_ERROR_DEBUG",
+    level: "ERROR",
+    status: "failed",
+    ...args.baseEvent(),
+    failureReason: args.failureReason,
+    errorKind: args.errorKind,
+    actionableMessage: handling.actionableMessage,
+    ownerResponsible: handling.ownerResponsible,
+    durationMs: args.durationMs,
+  });
+}
+
+async function handleDebugHookEvent(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  event: LocalAiDebugEvent;
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+  emitRuntimeSuccess: (parsedJson: unknown, durationMs: number | null) => Promise<void>;
+}) {
+  updateDebugState(args.state, args.event);
+  if (args.event.eventType === "local_ai_runtime_request_started" && !args.state.requestEmitted) {
+    args.state.requestEmitted = true;
+    await emitRequestDebug({ emit: args.emit, baseEvent: args.baseEvent });
+    return;
+  }
+  if (args.event.eventType === "local_ai_output_parsed") {
+    args.state.parsedJson = args.event.parsedJson ?? null;
+    args.state.parsedDecision = args.event.parsedDecision?.trim() || null;
+    await args.emitRuntimeSuccess(args.state.parsedJson, typeof args.event.durationMs === "number" ? args.event.durationMs : null);
+  }
+}
+
+function createLocalAiDebugSession(args: {
+  request: ParsedAiAbilityInput;
+  rawOutputRef: string;
+  promptDebugRef: string;
+  traceId: string;
+  runtimeCallId: string | null;
+  emitDebugEvent?: LocalAiRuntimePortOptions["emitDebugEvent"];
+}): LocalAiDebugSession {
+  const state = createCollectedDebugState(args.request, args.promptDebugRef);
+  const baseEvent = () => buildBaseDebugEvent({ ...args, state });
+  const emitRuntimeSuccess = async (parsedJson: unknown, durationMs: number | null) => {
+    state.parsedJson = parsedJson;
+    if (state.responseEmitted) {
+      return;
+    }
+    state.responseEmitted = true;
+    await emitResponseDebug({ emit: args.emitDebugEvent, baseEvent, durationMs });
+  };
+
+  return {
+    state,
+    emitAiErrorDebug: (failureReason, errorKind, durationMs) => emitErrorDebug({
+      emit: args.emitDebugEvent,
+      baseEvent,
+      failureReason,
+      errorKind,
+      durationMs,
+    }),
+    emitRuntimeSuccess,
+    debugHook: (event) => handleDebugHookEvent({
+      emit: args.emitDebugEvent,
+      event,
+      state,
+      baseEvent,
+      emitRuntimeSuccess,
+    }),
+  };
+}
+
+export { createLocalAiDebugSession };
+export type {
+  AiRuntimeStructuredDebugEvent,
+  LocalAiRuntimePortOptions,
+};

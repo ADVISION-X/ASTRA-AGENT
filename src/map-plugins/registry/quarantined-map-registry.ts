@@ -8,26 +8,30 @@ export type QuarantinedMapRecord = {
   validationIssues: MapPackageValidationIssue[];
 };
 
-export class QuarantinedMapRegistry {
-  private readonly records = new Map<string, QuarantinedMapRecord>();
+const buildKey = (packageId: string, packageVersion: string): string => `${packageId}@${packageVersion}`;
 
-  private buildKey(packageId: string, packageVersion: string): string {
-    return `${packageId}@${packageVersion}`;
-  }
+export type QuarantinedMapRegistry = {
+  set(record: QuarantinedMapRecord): void;
+  get(packageId: string, packageVersion: string): QuarantinedMapRecord | null;
+  delete(packageId: string, packageVersion: string): void;
+  list(): QuarantinedMapRecord[];
+};
 
-  set(record: QuarantinedMapRecord): void {
-    this.records.set(this.buildKey(record.mapPackage.manifest.packageId, record.mapPackage.manifest.packageVersion), record);
-  }
+export const createQuarantinedMapRegistry = (): QuarantinedMapRegistry => {
+  const records = new Map<string, QuarantinedMapRecord>();
 
-  get(packageId: string, packageVersion: string): QuarantinedMapRecord | null {
-    return this.records.get(this.buildKey(packageId, packageVersion)) ?? null;
-  }
-
-  delete(packageId: string, packageVersion: string): void {
-    this.records.delete(this.buildKey(packageId, packageVersion));
-  }
-
-  list(): QuarantinedMapRecord[] {
-    return [...this.records.values()];
-  }
-}
+  return {
+    set(record) {
+      records.set(buildKey(record.mapPackage.manifest.packageId, record.mapPackage.manifest.packageVersion), record);
+    },
+    get(packageId, packageVersion) {
+      return records.get(buildKey(packageId, packageVersion)) ?? null;
+    },
+    delete(packageId, packageVersion) {
+      records.delete(buildKey(packageId, packageVersion));
+    },
+    list() {
+      return [...records.values()];
+    },
+  };
+};

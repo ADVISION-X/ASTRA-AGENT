@@ -13,34 +13,32 @@ import type {
   WriteStructuredRuntimeEventInput,
 } from "./schema.js";
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
-import type { ForensicsExecutionContext } from "./runtime/forensics-executor.js";
+import type { ForensicsExecutionContext } from "./shared/forensics-executor.js";
 
-export { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID };
+type ForensicsPersistenceAbilityGroupId = typeof FORENSICS_PERSISTENCE_ABILITY_GROUP_ID;
+type ForensicsPersistenceAbilityInput = ForensicsAbilityInputRequest;
+type ForensicsPersistenceRequest = ForensicsAbilityInputRequest;
+type ForensicsPersistenceAbilityResult = ForensicsResult;
+type ForensicsPersistenceChildCapabilityId = ForensicsChildCapabilityId;
 
-export type ForensicsPersistenceAbilityGroupId = typeof FORENSICS_PERSISTENCE_ABILITY_GROUP_ID;
-export type ForensicsPersistenceAbilityInput = ForensicsAbilityInputRequest;
-export type ForensicsPersistenceRequest = ForensicsAbilityInputRequest;
-export type ForensicsPersistenceAbilityResult = ForensicsResult;
-export type ForensicsPersistenceChildCapabilityId = ForensicsChildCapabilityId;
+type ForensicsStructuredRuntimeEventInput = WriteStructuredRuntimeEventInput;
+type ForensicsStructuredActionLogInput = WriteStructuredActionLogInput;
+type ForensicsImageEvidenceInput = WriteEvidenceRecordInput;
+type ForensicsOcrEvidenceInput = WriteEvidenceRecordInput;
+type ForensicsAiResultRecordInput = WriteAiResultRecordInput;
+type ForensicsBrowseLedgerInput = FinalizeBrowseLedgerInput;
+type ForensicsEvidencePacketInput = FinalizeEvidencePacketInput;
+type ForensicsFailedRecordInput = FinalizeFailedRecordInput;
+type ForensicsRuntimeSnapshotInput = UpdateRuntimeSnapshotInput;
 
-export type ForensicsStructuredRuntimeEventInput = WriteStructuredRuntimeEventInput;
-export type ForensicsStructuredActionLogInput = WriteStructuredActionLogInput;
-export type ForensicsImageEvidenceInput = WriteEvidenceRecordInput;
-export type ForensicsOcrEvidenceInput = WriteEvidenceRecordInput;
-export type ForensicsAiResultRecordInput = WriteAiResultRecordInput;
-export type ForensicsBrowseLedgerInput = FinalizeBrowseLedgerInput;
-export type ForensicsEvidencePacketInput = FinalizeEvidencePacketInput;
-export type ForensicsFailedRecordInput = FinalizeFailedRecordInput;
-export type ForensicsRuntimeSnapshotInput = UpdateRuntimeSnapshotInput;
-
-export interface ForensicsPersistenceChildCapability {
+interface ForensicsPersistenceChildCapability {
   readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;
   readonly childCapabilityId: ForensicsPersistenceChildCapabilityId;
   readonly recordType: ForensicsRecordType;
   execute(input: unknown, context: ForensicsExecutionContext): Promise<ForensicsPersistenceAbilityResult>;
 }
 
-export interface ForensicsPersistenceAbilityGroup {
+interface ForensicsPersistenceAbilityGroup {
   listChildCapabilityIds(): ForensicsPersistenceChildCapabilityId[];
   execute(input: ForensicsPersistenceAbilityInput): Promise<ForensicsPersistenceAbilityResult>;
   writeStructuredRuntimeEvent(input: ForensicsStructuredRuntimeEventInput): Promise<ForensicsPersistenceAbilityResult>;
@@ -53,3 +51,24 @@ export interface ForensicsPersistenceAbilityGroup {
   finalizeFailedRecord(input: ForensicsFailedRecordInput): Promise<ForensicsPersistenceAbilityResult>;
   updateRuntimeSnapshot(input: ForensicsRuntimeSnapshotInput): Promise<ForensicsPersistenceAbilityResult>;
 }
+
+export { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID };
+
+export type {
+  ForensicsPersistenceAbilityGroupId,
+  ForensicsPersistenceAbilityInput,
+  ForensicsPersistenceRequest,
+  ForensicsPersistenceAbilityResult,
+  ForensicsPersistenceChildCapabilityId,
+  ForensicsStructuredRuntimeEventInput,
+  ForensicsStructuredActionLogInput,
+  ForensicsImageEvidenceInput,
+  ForensicsOcrEvidenceInput,
+  ForensicsAiResultRecordInput,
+  ForensicsBrowseLedgerInput,
+  ForensicsEvidencePacketInput,
+  ForensicsFailedRecordInput,
+  ForensicsRuntimeSnapshotInput,
+  ForensicsPersistenceChildCapability,
+  ForensicsPersistenceAbilityGroup,
+};

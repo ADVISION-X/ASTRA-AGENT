@@ -1,15 +1,6 @@
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-
-const repoRoot = process.cwd();
-
-async function importDist(relativePath) {
-  const absolutePath = path.join(repoRoot, "dist", relativePath);
-  return import(pathToFileURL(absolutePath).href);
-}
+import { LocalAiGateway } from "../../dist/src/lib/local-ai/local-ai-gateway.js";
 
 const main = async () => {
-  const { LocalAiGateway } = await importDist("src/lib/local-ai/local-ai-gateway.js");
   const gateway = new LocalAiGateway();
   const report = await gateway.getHealth();
 

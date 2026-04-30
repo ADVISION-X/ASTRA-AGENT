@@ -2,18 +2,7 @@ import { z } from "zod";
 
 import { MOUSE_CLICK_FAILURE_REASONS } from "./shared/mouse-click-failure.js";
 import { DEFAULT_MOUSE_CLICK_SAFETY_POLICY } from "./shared/mouse-click-policy.js";
-import {
-  MOUSE_CLICK_ABORT_DECISIONS,
-  MOUSE_CLICK_CIRCUIT_BREAKER_STATES,
-  MOUSE_CLICK_CLOCK_KIND,
-  MOUSE_CLICK_GEOMETRY_DECISIONS,
-  MOUSE_CLICK_IDEMPOTENCY_DECISIONS,
-  MOUSE_CLICK_POLICY_DECISIONS,
-  MOUSE_CLICK_PRIMITIVE_DECISIONS,
-  MOUSE_CLICK_SAFETY_DECISIONS,
-  MOUSE_CLICK_TIMEOUT_DECISIONS,
-  MOUSE_CLICK_VERIFICATION_REF_POLICY,
-} from "./shared/mouse-click-proof.js";
+import { MOUSE_CLICK_PROOF } from "./shared/mouse-click-proof.js";
 import { MOUSE_CLICK_PRE_ACTION_DECISIONS, MOUSE_CLICK_STATUSES } from "./shared/mouse-click-result.js";
 import {
   MOUSE_CLICK_ABILITY_GROUP_ID,
@@ -29,6 +18,18 @@ const positiveInt = z.number().int().positive();
 const nonNegativeInt = z.number().int().nonnegative();
 const nullableString = z.string().min(1).nullable().optional().default(null);
 const nullableSessionId = z.string().min(1).nullable().optional().default(null);
+const {
+  ABORT_DECISIONS: MOUSE_CLICK_ABORT_DECISIONS,
+  CIRCUIT_BREAKER_STATES: MOUSE_CLICK_CIRCUIT_BREAKER_STATES,
+  CLOCK_KIND: MOUSE_CLICK_CLOCK_KIND,
+  GEOMETRY_DECISIONS: MOUSE_CLICK_GEOMETRY_DECISIONS,
+  IDEMPOTENCY_DECISIONS: MOUSE_CLICK_IDEMPOTENCY_DECISIONS,
+  POLICY_DECISIONS: MOUSE_CLICK_POLICY_DECISIONS,
+  PRIMITIVE_DECISIONS: MOUSE_CLICK_PRIMITIVE_DECISIONS,
+  SAFETY_DECISIONS: MOUSE_CLICK_SAFETY_DECISIONS,
+  TIMEOUT_DECISIONS: MOUSE_CLICK_TIMEOUT_DECISIONS,
+  VERIFICATION_REF_POLICY: MOUSE_CLICK_VERIFICATION_REF_POLICY,
+} = MOUSE_CLICK_PROOF;
 
 export const MouseClickChildCapabilityIdSchema = z.enum(MOUSE_CLICK_CHILD_CAPABILITY_IDS);
 export const MouseClickCoordinateSpaceSchema = z.enum(MOUSE_CLICK_COORDINATE_SPACES);

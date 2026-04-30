@@ -1,0 +1,20 @@
+import { listForensicsPersistenceChildren } from "../../../../capabilities/forensics-persistence/registry.js";
+import { listPageStateChildren } from "../../../../capabilities/page-state/registry.js";
+
+import type { CapabilityCatalogEntry } from "../schema.js";
+import { buildEntry, humanize } from "../policies.js";
+
+const buildForensicsEntries = (): CapabilityCatalogEntry[] =>
+  listForensicsPersistenceChildren().map((childCapabilityId) =>
+    buildEntry("forensics-persistence", childCapabilityId, `Persist governed forensic record for ${humanize(childCapabilityId)}.`),
+  );
+
+const buildPageStateEntries = (): CapabilityCatalogEntry[] =>
+  listPageStateChildren().map((childCapabilityId) =>
+    buildEntry("page-state", childCapabilityId, `Classify governed page state for ${humanize(childCapabilityId)}.`),
+  );
+
+export const buildForensicsPageStateEntries = (): CapabilityCatalogEntry[] => [
+  ...buildForensicsEntries(),
+  ...buildPageStateEntries(),
+];

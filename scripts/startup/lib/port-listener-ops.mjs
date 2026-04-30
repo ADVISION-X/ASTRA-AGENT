@@ -12,10 +12,22 @@ function parsePidList(stdout) {
     .filter((value) => Number.isInteger(value) && value > 0);
 }
 
+function toErrorDetails(error) {
+  return error && typeof error === "object" ? error : undefined;
+}
+
+function getErrorCode(details) {
+  return details && "code" in details ? details.code : undefined;
+}
+
+function getErrorStdout(details) {
+  return details && "stdout" in details && typeof details.stdout === "string" ? details.stdout : "";
+}
+
 function isEmptyListenerCommandError(error) {
-  const details = error && typeof error === "object" ? error : undefined;
-  const code = details && "code" in details ? details.code : undefined;
-  const stdout = details && "stdout" in details && typeof details.stdout === "string" ? details.stdout : "";
+  const details = toErrorDetails(error);
+  const code = getErrorCode(details);
+  const stdout = getErrorStdout(details);
   return (code === 1 || code === "ENOENT") && stdout.trim().length === 0;
 }
 

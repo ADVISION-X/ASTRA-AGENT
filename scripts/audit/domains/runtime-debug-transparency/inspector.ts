@@ -8,24 +8,21 @@ import { createRuntimeDebugTransparencyProject, getSource } from "./ast-utils.js
 const LAW_ID = "GRASSEYE-STRUCTURED-LOGGING-002-V2";
 const WHY_PATH = "docs/why/runtime-debug-transparency.WHY.md";
 
-const inspector: DomainInspector = async () => {
-  const findings = [];
-  const project = createRuntimeDebugTransparencyProject();
-  const aiProofBuilder = getSource(project, "src/capabilities/ai/runtime/ai-proof-builder.ts");
-  const aiExecutor = getSource(project, "src/capabilities/ai/runtime/ai-executor.ts");
-  const structuredLogPayload = getSource(project, "src/lib/local-runtime/structured-log-payload.ts");
-  const localAiRuntimeExecution = getSource(project, "src/lib/local-ai/local-ai-runtime-execution.ts");
+const hasRequiredWhySections = (whyText: string): boolean => [
+  "Why this exists",
+  "Why not console.log patch",
+  "Why Screenshot prepare-ai-input must be upstream",
+  "Why AI runtime must log input/output",
+  "Why terminal + forensics double track",
+  "Why enforcement is mandatory",
+].every((section) => whyText.includes(section));
 
-  const whyText = await readTextFile(pathFromRepoRoot(WHY_PATH));
-  const whySectionsPresent = [
-    "Why this exists",
-    "Why not console.log patch",
-    "Why Screenshot prepare-ai-input must be upstream",
-    "Why AI runtime must log input/output",
-    "Why terminal + forensics double track",
-    "Why enforcement is mandatory",
-  ].every((section) => whyText.includes(section));
-
+const hasRequiredTraceFields = (
+  aiProofBuilder: ReturnType<typeof getSource>,
+  aiExecutor: ReturnType<typeof getSource>,
+  structuredLogPayload: ReturnType<typeof getSource>,
+  localAiRuntimeExecution: ReturnType<typeof getSource>,
+): boolean => {
   const proofBuilderShape = hasIdentifier(aiProofBuilder, "promptContractId")
     && hasIdentifier(aiProofBuilder, "promptContractHash");
   const executorCarriesPromptContract = hasIdentifier(aiExecutor, "promptContractId");
@@ -36,7 +33,19 @@ const inspector: DomainInspector = async () => {
     (fragment) => hasIdentifier(localAiRuntimeExecution, fragment),
   );
 
-  if (!whySectionsPresent || !proofBuilderShape || !executorCarriesPromptContract || !structuredLogShape || !localAiTraceShape) {
+  return proofBuilderShape && executorCarriesPromptContract && structuredLogShape && localAiTraceShape;
+};
+
+const inspector: DomainInspector = async () => {
+  const findings = [];
+  const project = createRuntimeDebugTransparencyProject();
+  const aiProofBuilder = getSource(project, "src/capabilities/ai/runtime/ai-proof-builder.ts");
+  const aiExecutor = getSource(project, "src/capabilities/ai/runtime/ai-executor.ts");
+  const structuredLogPayload = getSource(project, "src/lib/local-runtime/structured-log-payload.ts");
+  const localAiRuntimeExecution = getSource(project, "src/lib/local-ai/local-ai-runtime-execution.ts");
+
+  const whyText = await readTextFile(pathFromRepoRoot(WHY_PATH));
+  if (!hasRequiredWhySections(whyText) || !hasRequiredTraceFields(aiProofBuilder, aiExecutor, structuredLogPayload, localAiRuntimeExecution)) {
     findings.push(createFinding({
       lawId: LAW_ID,
       file: WHY_PATH,
@@ -65,4 +74,4 @@ const inspector: DomainInspector = async () => {
   });
 };
 
-export default inspector;
+export { inspector as runtimeDebugTransparencyInspector };

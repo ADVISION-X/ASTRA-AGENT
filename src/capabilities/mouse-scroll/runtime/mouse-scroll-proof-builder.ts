@@ -9,7 +9,7 @@ import type {
   MouseScrollRegion,
 } from "../contract.js";
 import { MouseScrollRuntimeProofSchema } from "../schema.js";
-import { MOUSE_SCROLL_VERIFICATION_REF_POLICY } from "../shared/mouse-scroll-proof.js";
+import { MOUSE_SCROLL_PROOF } from "../shared/mouse-scroll-proof.js";
 import { buildStableMouseScrollRef } from "../shared/mouse-scroll-types.js";
 
 export function buildMouseScrollRuntimeProof(input: {
@@ -140,7 +140,7 @@ export function buildMouseScrollRuntimeProof(input: {
     primitiveEndedAt: input.primitiveEndedAt,
     postActionVerificationRequired: input.postActionVerificationRequired,
     postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
-    verificationRefPolicy: MOUSE_SCROLL_VERIFICATION_REF_POLICY,
+    verificationRefPolicy: MOUSE_SCROLL_PROOF.VERIFICATION_REF_POLICY,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,

@@ -1,7 +1,7 @@
-import { pathToFileURL } from "node:url";
-
 import { readJsonFile, writeJsonFile } from "./filesystem.js";
-import { defaultPhaseGatePath, generatedArtifactPaths, pathFromRepoRoot, repoRoot } from "./paths.js";
+import { getRegisteredInspector } from "./inspector-registry.js";
+import { generatedArtifactPaths } from "./generated-artifact-paths.js";
+import { defaultPhaseGatePath, repoRoot } from "./path-roots.js";
 import type {
   AuditConflictsSnapshot,
   AuditPlan,
@@ -48,11 +48,9 @@ export const createInspectorContext = async (artifacts: GeneratedArtifacts): Pro
 };
 
 export const loadInspector = async (entry: string): Promise<DomainInspector> => {
-  const moduleUrl = pathToFileURL(pathFromRepoRoot(entry)).href;
-  const loadedModule = (await import(moduleUrl)) as { default?: DomainInspector; inspect?: DomainInspector };
-  const inspector = loadedModule.default ?? loadedModule.inspect;
-  if (typeof inspector !== "function") {
-    throw new Error(`Inspector entry ${entry} does not export a default inspector function.`);
+  const inspector = getRegisteredInspector(entry);
+  if (inspector === null) {
+    throw new Error(`Inspector entry ${entry} is not registered in the static audit inspector registry.`);
   }
 
   return inspector;

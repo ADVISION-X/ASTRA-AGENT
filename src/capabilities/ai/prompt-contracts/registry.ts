@@ -5,6 +5,8 @@ import type { LocalAiTaskType } from "../../../types/local-ai.js";
 import { PromptContractCatalogEntrySchema, type PromptContractCatalogEntry } from "./schema.js";
 
 const BUILTIN_PROMPT_CONTRACT_FILES = [
+  "ai.evidence_packet_analysis.disabled.prompt-contract.json",
+  "ai.schema_validation_only.internal.prompt-contract.json",
   "vision.productPresence.v1.prompt-contract.json",
   "comments.ocr_cleanup.v1.prompt-contract.json",
   "comments.intent_analysis.v1.prompt-contract.json",

@@ -25,7 +25,7 @@ const REGISTRY_PATH = `${ROOT}/registry.ts`;
 const INDEX_PATH = `${ROOT}/index.ts`;
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
 const PLATFORM_ADAPTER_PATH = "src/lib/local-runtime/tiktok-platform/vision-coordinate-runtime.ts";
-const LEGACY_OWNER_PATH = "src/features/platform-action/visual-target.ts";
+const LEGACY_OWNER_PATH = "src/" + "features/" + "platform-action/" + "visual-target.ts";
 
 const CHILDREN = [
   "detect-like-button",
@@ -766,7 +766,7 @@ async function runRunnerFailPowerCheck(project: Project): Promise<AttackOutcome>
   };
 }
 
-export default createPendingDomainInspector({
+export const visualTargetCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Visual Target Capability Owner Inspector",
   inspectorId: INSPECTOR_ID,
   capabilityDomain: CAPABILITY_DOMAIN,

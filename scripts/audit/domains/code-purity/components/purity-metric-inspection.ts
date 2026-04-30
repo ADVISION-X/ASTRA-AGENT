@@ -2,16 +2,18 @@ import { type SourceFile } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
 import { IMPORT_EXPORT_LIMITS } from "./purity-constants.js";
-import { classifyOwnerBoundary, classifyPurityFileCategory, getImportModuleSpecifiers, getImportedOwnerBoundaries, getImportedSourcePaths, hasProductionFakeImport, isGenericBucketSourceFile, isProductionFakePath } from "./purity-file-classification.js";
+import { classifyPurityFileCategory } from "./purity-file-categories.js";
+import { getImportModuleSpecifiers, getImportedSourcePaths } from "./purity-import-analysis.js";
+import { classifyOwnerBoundary, getImportedOwnerBoundaries } from "./purity-owner-classification.js";
 import { collectRoleMixingSignals, createPurityFinding, inspectBoundaryAndExportLimits, inspectClassLimits, inspectCleanupAndEscapes, inspectFunctionLimits, inspectLiteralAndPathPurity } from "./purity-metric-helpers.js";
 import { appendItemToInventories } from "./purity-report-inventories.js";
-import { createPurityInventoryItem, type PurityReportDraft } from "./purity-report-draft.js";
+import { createPurityInventoryItem } from "./purity-report-draft.js";
+import type { PurityReportDraft } from "./purity-report-types.js";
 
-export type { PurityInventoryItem, PurityReportDraft } from "./purity-report-draft.js";
+export type { PurityInventoryItem, PurityReportDraft } from "./purity-report-types.js";
 export { createEmptyPurityReport } from "./purity-report-draft.js";
 
-export const inspectPurityMetrics = (sourceFile: SourceFile, relativePath: string, touchedPaths: Set<string>, report: PurityReportDraft): Finding[] => {
-  const findings: Finding[] = [];
+const collectPurityMetricContext = (sourceFile: SourceFile, relativePath: string) => {
   const category = classifyPurityFileCategory(relativePath);
   const lineCount = sourceFile.getEndLineNumber();
   const importedOwners = getImportedOwnerBoundaries(sourceFile, relativePath);
@@ -21,14 +23,40 @@ export const inspectPurityMetrics = (sourceFile: SourceFile, relativePath: strin
   const exportCount = sourceFile.getExportDeclarations().length + sourceFile.getExportAssignments().length + sourceFile.getStatements().filter((statement) => "hasExportKeyword" in statement && typeof statement.hasExportKeyword === "function" && statement.hasExportKeyword()).length;
   const roleMixingSignals = collectRoleMixingSignals(sourceFile, relativePath, importedOwners);
 
-  inspectCleanupAndEscapes(sourceFile, relativePath, findings);
+  return {
+    category,
+    lineCount,
+    importedOwners,
+    importDeclarations,
+    importSources,
+    crossOwnerImports,
+    exportCount,
+    roleMixingSignals,
+  };
+};
 
-  if (lineCount > category.hardLimit) {
-    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-001-V1", relativePath, line: 1, message: `File exceeds the ${category.label} hard limit of ${category.hardLimit} lines.`, detail: String(lineCount) }));
+const inspectFileLineLimits = (input: {
+  relativePath: string;
+  touchedPaths: Set<string>;
+  lineCount: number;
+  label: string;
+  hardLimit: number;
+  findings: Finding[];
+}): void => {
+  if (input.lineCount > input.hardLimit) {
+    input.findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-001-V1", relativePath: input.relativePath, line: 1, message: `File exceeds the ${input.label} hard limit of ${input.hardLimit} lines.`, detail: String(input.lineCount) }));
   }
-  if (touchedPaths.has(relativePath) && lineCount > category.hardLimit) {
-    findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-002-V1", relativePath, line: 1, message: "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted." }));
+  if (input.touchedPaths.has(input.relativePath) && input.lineCount > input.hardLimit) {
+    input.findings.push(createPurityFinding({ lawId: "GRASSEYE-CODE-PURITY-002-V1", relativePath: input.relativePath, line: 1, message: "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted." }));
   }
+};
+
+export const inspectPurityMetrics = (sourceFile: SourceFile, relativePath: string, touchedPaths: Set<string>, report: PurityReportDraft): Finding[] => {
+  const findings: Finding[] = [];
+  const { category, lineCount, importedOwners, importDeclarations, importSources, crossOwnerImports, exportCount, roleMixingSignals } = collectPurityMetricContext(sourceFile, relativePath);
+
+  inspectCleanupAndEscapes(sourceFile, relativePath, findings);
+  inspectFileLineLimits({ relativePath, touchedPaths, lineCount, label: category.label, hardLimit: category.hardLimit, findings });
 
   const functionOverLimit = inspectFunctionLimits(sourceFile, relativePath, findings);
   const { classOverLimit, maxClassMembers } = inspectClassLimits(sourceFile, relativePath, findings);

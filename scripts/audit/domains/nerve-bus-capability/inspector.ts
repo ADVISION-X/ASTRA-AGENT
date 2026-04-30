@@ -8,7 +8,7 @@ import { runRequiredShapeAttack } from "./required-shape.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_NERVE_BUS_NEGATIVE_PROOF";
 
-export default createPendingDomainInspector({
+export const nerveBusCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Nerve Bus Capability Owner Inspector",
   inspectorId: "nerve-bus-capability-owner",
   capabilityDomain: "nerve-bus-capability",

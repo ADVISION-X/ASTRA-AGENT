@@ -4,7 +4,7 @@ import { createFinding, createPhase } from "../../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 import { getAuditProject, getNodeLine, getObjectLiteralString, getSourceFileOrThrow, toRelativeSourcePath } from "../../../core/ts-morph.js";
 
-const RUN_DOMAIN_OWNER_IMPORT = "../_shared/run-domain-owner-inspection.js";
+const RUN_DOMAIN_OWNER_IMPORT = "../_shared/owner-foundation-inspection.js";
 const PENDING_DOMAIN_OWNER_IMPORT = "../_shared/create-pending-domain-inspector.js";
 
 const getImportedLocalName = (

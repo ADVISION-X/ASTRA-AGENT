@@ -7,7 +7,7 @@ import { createPendingDomainInspector } from "../_shared/create-pending-domain-i
 const LEGACY_FORENSICS_STORE_PATH = "src/capabilities/forensics-persistence/shared/store/evidence-store-service.ts";
 const STORAGE_ADAPTER_PATH = "src/lib/storage/evidence-store/evidence-store-service.ts";
 
-export default createPendingDomainInspector({
+export const securityPrivacyInspector = createPendingDomainInspector({
   inspector: "GrassEye Security Privacy Owner Inspector",
   inspectorId: "security-privacy-owner",
   capabilityDomain: "security-privacy",

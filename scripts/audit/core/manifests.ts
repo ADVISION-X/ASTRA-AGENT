@@ -1,7 +1,8 @@
 import path from "node:path";
 
 import { fileExists, listImmediateDirectories, readJsonFile } from "./filesystem.js";
-import { domainsHome, toRepoRelativePath } from "./paths.js";
+import { domainsHome } from "./path-roots.js";
+import { toRepoRelativePath } from "./paths.js";
 import type { ResolvedDomainManifest } from "./schema.js";
 
 export const loadDomainManifests = async (): Promise<ResolvedDomainManifest[]> => {

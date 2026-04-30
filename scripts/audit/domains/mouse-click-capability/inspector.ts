@@ -8,7 +8,7 @@ import { runRequiredShapeAttack } from "./required-shape.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF";
 
-export default createPendingDomainInspector({
+export const mouseClickCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Mouse Click Capability Owner Inspector",
   inspectorId: "mouse-click-capability-owner",
   capabilityDomain: "mouse-click-capability",

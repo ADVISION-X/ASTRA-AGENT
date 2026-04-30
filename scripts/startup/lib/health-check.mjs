@@ -1,3 +1,27 @@
+const ACCEPTED_SHELL_MARKER_SETS = [
+  {
+    name: "commander_console_full_page_shell",
+    markers: [
+      'class="cc-topbar"',
+      'data-page="command-center"',
+      'data-page="mission-cockpit"',
+      'data-drawer-root',
+      'window.__grasseyeCommanderConsoleViewModel',
+    ],
+  },
+  {
+    name: "commander_console_app_router_shell",
+    markers: [
+      'class="cc-mac-shell"',
+      'data-app-shell',
+      'data-app-router',
+      'data-app-page-host',
+      'window.__grasseyeCommanderConsoleViewModel',
+      'window.__grasseyeCommanderAppViewModel',
+    ],
+  },
+];
+
 export async function probeHealth({
   url = "http://127.0.0.1:4173/api/runtime/health",
 }) {
@@ -12,13 +36,7 @@ export async function probeHealth({
   return await response.json();
 }
 
-export async function probeCommanderConsolePage({
-  url = "http://127.0.0.1:4173/",
-}) {
-  const response = await fetch(url, {
-    headers: { accept: "text/html" },
-  });
-
+function assertCommanderConsoleResponse(response) {
   if (!response.ok) {
     throw new Error(`Commander Console returned HTTP ${response.status}`);
   }
@@ -28,44 +46,37 @@ export async function probeCommanderConsolePage({
     throw new Error(`Commander Console returned unexpected content-type: ${contentType || "unknown"}`);
   }
 
-  const html = await response.text();
-  const acceptedShellMarkerSets = [
-    {
-      name: "commander_console_full_page_shell",
-      markers: [
-        'class="cc-topbar"',
-        'data-page="command-center"',
-        'data-page="mission-cockpit"',
-        'data-drawer-root',
-        'window.__grasseyeCommanderConsoleViewModel',
-      ],
-    },
-    {
-      name: "commander_console_app_router_shell",
-      markers: [
-        'class="cc-mac-shell"',
-        'data-app-shell',
-        'data-app-router',
-        'data-app-page-host',
-        'window.__grasseyeCommanderConsoleViewModel',
-        'window.__grasseyeCommanderAppViewModel',
-      ],
-    },
-  ];
+  return contentType;
+}
 
-  const matchingShell = acceptedShellMarkerSets.find((candidate) =>
-    candidate.markers.every((marker) => html.includes(marker)),
-  );
+function findMatchingShellTopology(html) {
+  return ACCEPTED_SHELL_MARKER_SETS.find((candidate) => candidate.markers.every((marker) => html.includes(marker))) ?? null;
+}
+
+function buildUnsupportedShellMessage(html) {
+  const markerSummary = ACCEPTED_SHELL_MARKER_SETS
+    .map((candidate) => {
+      const missing = candidate.markers.filter((marker) => !html.includes(marker));
+      return `${candidate.name} missing: ${missing.join(", ")}`;
+    })
+    .join(" | ");
+
+  return `Commander Console is serving an unsupported shell topology. ${markerSummary}`;
+}
+
+export async function probeCommanderConsolePage({
+  url = "http://127.0.0.1:4173/",
+}) {
+  const response = await fetch(url, {
+    headers: { accept: "text/html" },
+  });
+
+  const contentType = assertCommanderConsoleResponse(response);
+  const html = await response.text();
+  const matchingShell = findMatchingShellTopology(html);
 
   if (!matchingShell) {
-    const markerSummary = acceptedShellMarkerSets
-      .map((candidate) => {
-        const missing = candidate.markers.filter((marker) => !html.includes(marker));
-        return `${candidate.name} missing: ${missing.join(", ")}`;
-      })
-      .join(" | ");
-
-    throw new Error(`Commander Console is serving an unsupported shell topology. ${markerSummary}`);
+    throw new Error(buildUnsupportedShellMessage(html));
   }
 
   return {

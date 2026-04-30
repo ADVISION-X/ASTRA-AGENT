@@ -11,7 +11,7 @@ import type { ForensicsReadModelPort } from "../../capabilities/commander-consol
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { describeHumanCommandTransportMessage, buildHumanCommandDispatchInput } from "./workbench-human-command.js";
 import { getHealthReport, getMissionReadinessReport, getModeInfo, listCapabilityRoster } from "./workbench-status.js";
-import { readAuditSummary } from "./workbench-debug.js";
+import { readAuditSummary } from "./workbench-runtime-admin.js";
 
 const createCommandTransport = (
   runtime: WorkbenchRuntime,
@@ -49,20 +49,21 @@ const toCommanderReviewStatus = (
 const createMissionReadModel = (runtime: WorkbenchRuntime) => ({
   readMission: async () => {
     const mission = await runtime.orchestrationAbilityGroup.getMissionState();
+    const status = mission.status === "pending" ? "idle" : mission.status;
     return {
       missionId: mission.missionId,
       humanGoal: mission.humanGoal ?? "",
-      status: mission.status === "pending" ? "idle" : mission.status,
+      status,
       missionRunRef: mission.activeTaskRunId,
       currentRoundIndex: mission.currentRoundIndex,
       requestedPlatform: mission.requestedPlatform,
       selectedMapId: mission.mapId,
       lastHumanCommand: mission.lastHumanCommand === "submit-review-decision" ? null : mission.lastHumanCommand,
-      reviewRequiredReason: mission.reviewRequiredReason,
-      failureReason: mission.failureReason,
-      startedAt: mission.startedAt,
-      updatedAt: mission.updatedAt,
-      endedAt: mission.endedAt,
+      reviewRequiredReason: mission.reviewRequiredReason ?? null,
+      failureReason: mission.failureReason ?? null,
+      startedAt: mission.startedAt ?? null,
+      updatedAt: mission.updatedAt ?? null,
+      endedAt: mission.endedAt ?? null,
     };
   },
 });
@@ -94,7 +95,8 @@ const createCapabilityHealthReadModel = (
 ): CapabilityHealthReadModelPort => ({
   readRuntimeSummary: async () => {
     const [mission, state] = await Promise.all([runtime.orchestrationAbilityGroup.getMissionState(), runtime.evidenceStore.getOperatorSnapshot()]);
-    return { runtimeStatus: mission.status === "pending" ? "idle" : mission.status, currentStep: mission.currentStepId, reviewReason: mission.reviewRequiredReason, totalSeenCount: state.roundStructuralLogs.length, evidencePacketCount: state.evidencePackets.length, browseLedgerCount: state.browseLedgerEntries.length, candidateCount: state.candidates.length, lastAiFailureReason: mission.failureReason };
+    const runtimeStatus: "idle" | "running" | "paused" | "review_required" | "failed" | "completed" | "stopped" = mission.status === "pending" ? "idle" : mission.status;
+    return { runtimeStatus, currentStep: mission.currentStepId ?? null, reviewReason: mission.reviewRequiredReason ?? null, totalSeenCount: state.roundStructuralLogs.length, evidencePacketCount: state.evidencePackets.length, browseLedgerCount: state.browseLedgerEntries.length, candidateCount: state.candidates.length, lastAiFailureReason: mission.failureReason ?? null };
   },
   readBrowserSummary: async () => getModeInfo(runtime),
   listHealthSummaries: async () => {
