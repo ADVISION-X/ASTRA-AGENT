@@ -51,6 +51,201 @@ const returnsPromiseLike = (callExpression: CallExpression): boolean => {
   return symbol?.getName() === "Promise";
 };
 
+const getRequiredLawId = (importName: string) =>
+  importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1";
+
+const createMissingInspectorImportFinding = (
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+): Finding =>
+  createFinding({
+    lawId: getRequiredLawId(requiredCall.importName),
+    file: relativePath,
+    line: 1,
+    severity: "error",
+    message: `Audit-system inspector must import ${requiredCall.importName} from ${requiredCall.importPath}.`,
+  });
+
+const collectImportValidationFindings = (
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+  importSpecifier: ImportSpecifier | undefined,
+): Finding[] => {
+  if (!importSpecifier) {
+    return [createMissingInspectorImportFinding(relativePath, requiredCall)];
+  }
+
+  if (resolvesToExpectedImport(importSpecifier, requiredCall.importName)) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: getRequiredLawId(requiredCall.importName),
+      file: relativePath,
+      line: getNodeLine(importSpecifier),
+      severity: "error",
+      message: `Audit-system inspector import for ${requiredCall.importName} must resolve to its canonical symbol.`,
+    }),
+  ];
+};
+
+const getMatchingPromiseAllCalls = (
+  promiseAllItems: import("ts-morph").Node[],
+  importedLocalName: string,
+): CallExpression[] =>
+  promiseAllItems.filter((element): element is import("ts-morph").CallExpression => {
+    if (!Node.isCallExpression(element)) {
+      return false;
+    }
+
+    const expression = element.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === importedLocalName;
+  });
+
+const collectPromiseAllExecutionFindings = (
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+  promiseAllCall: CallExpression | undefined,
+  matchingCalls: CallExpression[],
+): Finding[] => {
+  if (matchingCalls.length > 0) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: getRequiredLawId(requiredCall.importName),
+      file: relativePath,
+      line: getNodeLine(promiseAllCall ?? 1),
+      severity: "error",
+      message: `Audit-system inspector must execute ${requiredCall.importName} inside its Promise.all owner chain.`,
+    }),
+  ];
+};
+
+const collectReferenceFindings = (
+  sourceFile: SourceFile,
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+  importSpecifier: ImportSpecifier,
+): Finding[] => {
+  const aliasNode = importSpecifier.getAliasNode();
+  const nameNode = importSpecifier.getNameNode();
+  const referenceAnchor = Node.isIdentifier(aliasNode)
+    ? aliasNode
+    : Node.isIdentifier(nameNode)
+      ? nameNode
+      : null;
+  const referenceNodes = referenceAnchor?.findReferencesAsNodes() ?? [];
+  const externalReferences = referenceNodes.filter((referenceNode: Node) => {
+    return referenceNode.getSourceFile() === sourceFile && referenceNode !== importSpecifier.getNameNode() && referenceNode !== importSpecifier.getAliasNode();
+  });
+  if (externalReferences.length > 0) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: getRequiredLawId(requiredCall.importName),
+      file: relativePath,
+      line: getNodeLine(importSpecifier),
+      severity: "error",
+      message: `Audit-system inspector import for ${requiredCall.importName} is not referenced by the owner chain.`,
+    }),
+  ];
+};
+
+const collectPromiseReturnFindings = (
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+  matchingCalls: CallExpression[],
+  promiseAllCall: CallExpression | undefined,
+): Finding[] => {
+  if (matchingCalls.every((callExpression) => returnsPromiseLike(callExpression))) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: getRequiredLawId(requiredCall.importName),
+      file: relativePath,
+      line: getNodeLine(matchingCalls[0] ?? promiseAllCall ?? 1),
+      severity: "error",
+      message: `Audit-system inspector must await promise-returning enforcement checks for ${requiredCall.importName}.`,
+    }),
+  ];
+};
+
+const resolveRequiredCallImport = (
+  sourceFile: SourceFile,
+  relativePath: string,
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
+): { importSpecifier: ImportSpecifier; importedLocalName: string } | { findings: Finding[] } => {
+  const importSpecifier = getImportedSpecifier(sourceFile, requiredCall.importPath, requiredCall.importName);
+  const importFindings = collectImportValidationFindings(relativePath, requiredCall, importSpecifier);
+  if (importFindings.length > 0 || !importSpecifier) {
+    return { findings: importFindings };
+  }
+
+  return {
+    importSpecifier,
+    importedLocalName: getImportedLocalName(importSpecifier),
+  };
+};
+
+const collectResolvedCallFindings = (input: {
+  sourceFile: SourceFile;
+  relativePath: string;
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number];
+  promiseAllCall: CallExpression | undefined;
+  promiseAllItems: import("ts-morph").Node[];
+  resolvedImport: { importSpecifier: ImportSpecifier; importedLocalName: string };
+}) => {
+  const matchingCalls = getMatchingPromiseAllCalls(input.promiseAllItems, input.resolvedImport.importedLocalName);
+  const promiseAllFindings = collectPromiseAllExecutionFindings(input.relativePath, input.requiredCall, input.promiseAllCall, matchingCalls);
+  if (promiseAllFindings.length > 0) {
+    return promiseAllFindings;
+  }
+
+  return [
+    ...collectReferenceFindings(input.sourceFile, input.relativePath, input.requiredCall, input.resolvedImport.importSpecifier),
+    ...collectPromiseReturnFindings(input.relativePath, input.requiredCall, matchingCalls, input.promiseAllCall),
+  ];
+};
+
+const collectRequiredCallFindings = (input: {
+  sourceFile: SourceFile;
+  relativePath: string;
+  requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number];
+  promiseAllCall: CallExpression | undefined;
+  promiseAllItems: import("ts-morph").Node[];
+}) => {
+  const resolvedImport = resolveRequiredCallImport(input.sourceFile, input.relativePath, input.requiredCall);
+  if ("findings" in resolvedImport) {
+    return resolvedImport.findings;
+  }
+
+  return collectResolvedCallFindings({
+    sourceFile: input.sourceFile,
+    relativePath: input.relativePath,
+    requiredCall: input.requiredCall,
+    promiseAllCall: input.promiseAllCall,
+    promiseAllItems: input.promiseAllItems,
+    resolvedImport,
+  });
+};
+
+const createOwnedLawExecutionPhase = (findings: Finding[]): InspectorPhase =>
+  createPhase(
+    "owned-law-execution",
+    findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
+    findings.length === 0,
+    findings.length === 0
+      ? "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
+      : "Audit-system inspector is missing one or more required owned-law execution checks.",
+  );
+
 export const validateOwnedLawExecution = async (
   _context: InspectorContext,
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
@@ -71,106 +266,11 @@ export const validateOwnedLawExecution = async (
     : [];
 
   for (const requiredCall of REQUIRED_INSPECTOR_CALLS) {
-    const importSpecifier = getImportedSpecifier(sourceFile, requiredCall.importPath, requiredCall.importName);
-    if (!importSpecifier) {
-      findings.push(
-        createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: 1,
-          severity: "error",
-          message: `Audit-system inspector must import ${requiredCall.importName} from ${requiredCall.importPath}.`,
-        }),
-      );
-      continue;
-    }
-
-    if (!resolvesToExpectedImport(importSpecifier, requiredCall.importName)) {
-      findings.push(
-        createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(importSpecifier),
-          severity: "error",
-          message: `Audit-system inspector import for ${requiredCall.importName} must resolve to its canonical symbol.`,
-        }),
-      );
-      continue;
-    }
-
-    const importedLocalName = getImportedLocalName(importSpecifier);
-    const matchingCalls = promiseAllItems.filter((element): element is import("ts-morph").CallExpression => {
-      if (!Node.isCallExpression(element)) {
-        return false;
-      }
-
-      const expression = element.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === importedLocalName;
-    });
-
-    if (matchingCalls.length === 0) {
-      findings.push(
-        createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(promiseAllCall ?? sourceFile),
-          severity: "error",
-          message: `Audit-system inspector must execute ${requiredCall.importName} inside its Promise.all owner chain.`,
-        }),
-      );
-      continue;
-    }
-
-    const aliasNode = importSpecifier.getAliasNode();
-    const nameNode = importSpecifier.getNameNode();
-    const referenceAnchor = Node.isIdentifier(aliasNode)
-      ? aliasNode
-      : Node.isIdentifier(nameNode)
-        ? nameNode
-        : null;
-    const referenceNodes = referenceAnchor?.findReferencesAsNodes() ?? [];
-    const externalReferences = referenceNodes.filter((referenceNode: Node) => {
-      return referenceNode.getSourceFile() === sourceFile && referenceNode !== importSpecifier.getNameNode() && referenceNode !== importSpecifier.getAliasNode();
-    });
-    if (externalReferences.length === 0) {
-      findings.push(
-        createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(importSpecifier),
-          severity: "error",
-          message: `Audit-system inspector import for ${requiredCall.importName} is not referenced by the owner chain.`,
-        }),
-      );
-    }
-
-    const hasPromiseReturn = matchingCalls.every((callExpression) => {
-      return returnsPromiseLike(callExpression);
-    });
-    if (!hasPromiseReturn) {
-      findings.push(
-        createFinding({
-          lawId: requiredCall.importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(matchingCalls[0] ?? promiseAllCall ?? sourceFile),
-          severity: "error",
-          message: `Audit-system inspector must await promise-returning enforcement checks for ${requiredCall.importName}.`,
-        }),
-      );
-    }
+    findings.push(...collectRequiredCallFindings({ sourceFile, relativePath, requiredCall, promiseAllCall, promiseAllItems }));
   }
 
   return {
     findings,
-    phases: [
-      createPhase(
-        "owned-law-execution",
-        findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
-        findings.length === 0,
-        findings.length === 0
-          ? "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
-          : "Audit-system inspector is missing one or more required owned-law execution checks.",
-      ),
-    ],
+    phases: [createOwnedLawExecutionPhase(findings)],
   };
 };

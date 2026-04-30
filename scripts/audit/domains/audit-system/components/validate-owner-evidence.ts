@@ -36,136 +36,191 @@ const getCallObjectLiteral = (
   return argument && Node.isObjectLiteralExpression(argument) ? argument : undefined;
 };
 
+const getSharedOwnerOptions = (sourceFile: ReturnType<typeof getSourceFileOrThrow>) => {
+  const runDomainOwnerLocalName = getImportedLocalName(sourceFile, RUN_DOMAIN_OWNER_IMPORT, "runDomainOwnerInspection");
+  const pendingOwnerLocalName = getImportedLocalName(sourceFile, PENDING_DOMAIN_OWNER_IMPORT, "createPendingDomainInspector");
+
+  return {
+    runDomainOwnerOptions: getCallObjectLiteral(sourceFile, runDomainOwnerLocalName, 1),
+    pendingOwnerOptions: getCallObjectLiteral(sourceFile, pendingOwnerLocalName, 0),
+  };
+};
+
+const createMissingSharedOwnerInspectionFinding = (relativePath: string): Finding =>
+  createFinding({
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+    file: relativePath,
+    line: 1,
+    severity: "error",
+    message: "Owner inspector must call shared owner inspection.",
+  });
+
+const collectSharedOwnerLiteralFindings = (
+  owner: InspectorContext["enforcementMatrix"]["owners"][number],
+  relativePath: string,
+  sharedOwnerOptions: NonNullable<ReturnType<typeof getCallObjectLiteral>>,
+  runDomainOwnerOptions: ReturnType<typeof getCallObjectLiteral>,
+): Finding[] => {
+  const findings: Finding[] = [];
+  const capabilityDomain = getObjectLiteralString(sharedOwnerOptions, "capabilityDomain");
+  const inspectorId = getObjectLiteralString(sharedOwnerOptions, "inspectorId");
+  const inspectorEntry = getObjectLiteralString(sharedOwnerOptions, "inspectorEntry");
+
+  if (capabilityDomain !== owner.capabilityDomain) {
+    findings.push(
+      createFinding({
+        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        file: relativePath,
+        line: getNodeLine(sharedOwnerOptions),
+        severity: "error",
+        message: "Owner inspector capabilityDomain literal does not match its manifest.",
+      }),
+    );
+  }
+
+  if (inspectorId !== owner.inspectorId) {
+    findings.push(
+      createFinding({
+        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        file: relativePath,
+        line: getNodeLine(sharedOwnerOptions),
+        severity: "error",
+        message: "Owner inspectorId literal does not match its manifest.",
+      }),
+    );
+  }
+
+  if (runDomainOwnerOptions && inspectorEntry !== owner.entry) {
+    findings.push(
+      createFinding({
+        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        file: relativePath,
+        line: getNodeLine(sharedOwnerOptions),
+        severity: "error",
+        message: "Owner inspectorEntry literal does not match its manifest.",
+      }),
+    );
+  }
+
+  return findings;
+};
+
+const collectSharedOwnerOptionFindings = (
+  owner: InspectorContext["enforcementMatrix"]["owners"][number],
+  relativePath: string,
+  sharedOwnerOptions: ReturnType<typeof getCallObjectLiteral>,
+  runDomainOwnerOptions: ReturnType<typeof getCallObjectLiteral>,
+): Finding[] => {
+  if (!sharedOwnerOptions) {
+    return [createMissingSharedOwnerInspectionFinding(relativePath)];
+  }
+
+  return collectSharedOwnerLiteralFindings(owner, relativePath, sharedOwnerOptions, runDomainOwnerOptions);
+};
+
+const collectFinalizeResultFindings = (
+  sourceFile: ReturnType<typeof getSourceFileOrThrow>,
+  owner: InspectorContext["enforcementMatrix"]["owners"][number],
+  relativePath: string,
+): Finding[] => {
+  const finalizeResultLocalName = getImportedLocalName(sourceFile, "../../core/result.js", "finalizeInspectorResult");
+  if (!finalizeResultLocalName) {
+    return [];
+  }
+
+  const finalizeOptions = getCallObjectLiteral(sourceFile, finalizeResultLocalName, 0);
+  const finalizedCapabilityDomain = finalizeOptions
+    ? getObjectLiteralString(finalizeOptions, "capabilityDomain")
+    : undefined;
+  if (!finalizeOptions || finalizedCapabilityDomain === owner.capabilityDomain) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+      file: relativePath,
+      line: getNodeLine(finalizeOptions),
+      severity: "error",
+      message: "Finalized inspector result capabilityDomain does not match its manifest.",
+    }),
+  ];
+};
+
+const collectDefaultExportFindings = (
+  sourceFile: ReturnType<typeof getSourceFileOrThrow>,
+  typeChecker: ReturnType<ReturnType<typeof getAuditProject>["getTypeChecker"]>,
+  relativePath: string,
+): Finding[] => {
+  const defaultExportSymbol = sourceFile.getDefaultExportSymbol();
+  if (!defaultExportSymbol) {
+    return [
+      createFinding({
+        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        file: relativePath,
+        line: 1,
+        severity: "error",
+        message: "Owner inspector must export one default inspection entrypoint.",
+      }),
+    ];
+  }
+
+  const defaultExportDeclaration = defaultExportSymbol.getDeclarations()[0];
+  const defaultExportType = defaultExportDeclaration
+    ? typeChecker.getTypeOfSymbolAtLocation(defaultExportSymbol, defaultExportDeclaration)
+    : undefined;
+  if (defaultExportType && defaultExportType.getCallSignatures().length > 0) {
+    return [];
+  }
+
+  return [
+    createFinding({
+      lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+      file: relativePath,
+      line: getNodeLine(defaultExportDeclaration ?? sourceFile),
+      severity: "error",
+      message: "Owner inspector default export must resolve to a callable inspector type.",
+    }),
+  ];
+};
+
+const collectOwnerEvidenceFindings = (
+  project: ReturnType<typeof getAuditProject>,
+  typeChecker: ReturnType<ReturnType<typeof getAuditProject>["getTypeChecker"]>,
+  owner: InspectorContext["enforcementMatrix"]["owners"][number],
+): Finding[] => {
+  const sourceFile = getSourceFileOrThrow(project, owner.entry);
+  const relativePath = toRelativeSourcePath(sourceFile);
+  const { runDomainOwnerOptions, pendingOwnerOptions } = getSharedOwnerOptions(sourceFile);
+  const sharedOwnerOptions = runDomainOwnerOptions ?? pendingOwnerOptions;
+
+  return [
+    ...collectSharedOwnerOptionFindings(owner, relativePath, sharedOwnerOptions, runDomainOwnerOptions),
+    ...collectFinalizeResultFindings(sourceFile, owner, relativePath),
+    ...collectDefaultExportFindings(sourceFile, typeChecker, relativePath),
+  ];
+};
+
+const createOwnerEvidencePhase = (findings: Finding[]): InspectorPhase =>
+  createPhase(
+    "owner-evidence",
+    findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
+    findings.length === 0,
+    findings.length === 0
+      ? "Every owner inspector exposes shared owner evidence and domain alignment."
+      : "Some owner inspectors do not provide authentic owner evidence.",
+  );
+
 export const validateOwnerEvidence = async (
   context: InspectorContext,
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
-  const phases: InspectorPhase[] = [];
   const project = getAuditProject();
   const typeChecker = project.getTypeChecker();
 
   for (const owner of context.enforcementMatrix.owners) {
-    const sourceFile = getSourceFileOrThrow(project, owner.entry);
-    const relativePath = toRelativeSourcePath(sourceFile);
-    const runDomainOwnerLocalName = getImportedLocalName(sourceFile, RUN_DOMAIN_OWNER_IMPORT, "runDomainOwnerInspection");
-    const pendingOwnerLocalName = getImportedLocalName(sourceFile, PENDING_DOMAIN_OWNER_IMPORT, "createPendingDomainInspector");
-
-    const runDomainOwnerOptions = getCallObjectLiteral(sourceFile, runDomainOwnerLocalName, 1);
-    const pendingOwnerOptions = getCallObjectLiteral(sourceFile, pendingOwnerLocalName, 0);
-    const sharedOwnerOptions = runDomainOwnerOptions ?? pendingOwnerOptions;
-
-    if (!sharedOwnerOptions) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: 1,
-          severity: "error",
-          message: "Owner inspector must call shared owner inspection.",
-        }),
-      );
-      continue;
-    }
-
-    const capabilityDomain = getObjectLiteralString(sharedOwnerOptions, "capabilityDomain");
-    if (capabilityDomain !== owner.capabilityDomain) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(sharedOwnerOptions),
-          severity: "error",
-          message: "Owner inspector capabilityDomain literal does not match its manifest.",
-        }),
-      );
-    }
-
-    const inspectorId = getObjectLiteralString(sharedOwnerOptions, "inspectorId");
-    if (inspectorId !== owner.inspectorId) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(sharedOwnerOptions),
-          severity: "error",
-          message: "Owner inspectorId literal does not match its manifest.",
-        }),
-      );
-    }
-
-    const inspectorEntry = getObjectLiteralString(sharedOwnerOptions, "inspectorEntry");
-    if (runDomainOwnerOptions && inspectorEntry !== owner.entry) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(sharedOwnerOptions),
-          severity: "error",
-          message: "Owner inspectorEntry literal does not match its manifest.",
-        }),
-      );
-    }
-
-    const finalizeResultLocalName = getImportedLocalName(sourceFile, "../../core/result.js", "finalizeInspectorResult");
-    if (finalizeResultLocalName) {
-      const finalizeOptions = getCallObjectLiteral(sourceFile, finalizeResultLocalName, 0);
-      const finalizedCapabilityDomain = finalizeOptions
-        ? getObjectLiteralString(finalizeOptions, "capabilityDomain")
-        : undefined;
-      if (finalizeOptions && finalizedCapabilityDomain !== owner.capabilityDomain) {
-        findings.push(
-          createFinding({
-            lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-            file: relativePath,
-            line: getNodeLine(finalizeOptions),
-            severity: "error",
-            message: "Finalized inspector result capabilityDomain does not match its manifest.",
-          }),
-        );
-      }
-    }
-
-    const defaultExportSymbol = sourceFile.getDefaultExportSymbol();
-    if (!defaultExportSymbol) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: 1,
-          severity: "error",
-          message: "Owner inspector must export one default inspection entrypoint.",
-        }),
-      );
-      continue;
-    }
-
-    const defaultExportDeclaration = defaultExportSymbol.getDeclarations()[0];
-    const defaultExportType = defaultExportDeclaration
-      ? typeChecker.getTypeOfSymbolAtLocation(defaultExportSymbol, defaultExportDeclaration)
-      : undefined;
-    if (!defaultExportType || defaultExportType.getCallSignatures().length === 0) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: relativePath,
-          line: getNodeLine(defaultExportDeclaration ?? sourceFile),
-          severity: "error",
-          message: "Owner inspector default export must resolve to a callable inspector type.",
-        }),
-      );
-    }
+    findings.push(...collectOwnerEvidenceFindings(project, typeChecker, owner));
   }
 
-  phases.push(
-    createPhase(
-      "owner-evidence",
-      findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
-      findings.length === 0,
-      findings.length === 0
-        ? "Every owner inspector exposes shared owner evidence and domain alignment."
-        : "Some owner inspectors do not provide authentic owner evidence.",
-    ),
-  );
-
-  return { findings, phases };
+  return { findings, phases: [createOwnerEvidencePhase(findings)] };
 };

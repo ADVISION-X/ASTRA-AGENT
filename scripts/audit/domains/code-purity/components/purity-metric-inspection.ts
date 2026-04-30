@@ -4,7 +4,8 @@ import type { Finding } from "../../../core/schema.js";
 import { IMPORT_EXPORT_LIMITS } from "./purity-constants.js";
 import { classifyOwnerBoundary, classifyPurityFileCategory, getImportModuleSpecifiers, getImportedOwnerBoundaries, getImportedSourcePaths, hasProductionFakeImport, isGenericBucketSourceFile, isProductionFakePath } from "./purity-file-classification.js";
 import { collectRoleMixingSignals, createPurityFinding, inspectBoundaryAndExportLimits, inspectClassLimits, inspectCleanupAndEscapes, inspectFunctionLimits, inspectLiteralAndPathPurity } from "./purity-metric-helpers.js";
-import { appendItemToInventories, createPurityInventoryItem, type PurityReportDraft } from "./purity-report-draft.js";
+import { appendItemToInventories } from "./purity-report-inventories.js";
+import { createPurityInventoryItem, type PurityReportDraft } from "./purity-report-draft.js";
 
 export type { PurityInventoryItem, PurityReportDraft } from "./purity-report-draft.js";
 export { createEmptyPurityReport } from "./purity-report-draft.js";

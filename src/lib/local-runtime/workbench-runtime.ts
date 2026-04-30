@@ -1,0 +1,30 @@
+import type { WorkbenchRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
+import { createWorkbenchBaseRuntime } from "./workbench-base-runtime.js";
+import { createWorkbenchCommanderConsole, getCommanderConsoleSnapshot } from "./workbench-commander-console.js";
+import { getLocalAiRoleControls, recordCommanderDebugEvent, setLocalAiRoleStartupState } from "./workbench-debug.js";
+import { createWorkbenchNerveBus, createWorkbenchOrchestration } from "./workbench-nerve-bus.js";
+import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
+
+export const createWorkbenchRuntime = (
+  options: GrassEyeWorkbenchOptions,
+): WorkbenchRuntime => {
+  const baseRuntime = createWorkbenchBaseRuntime(options);
+  const runtime = baseRuntime as WorkbenchRuntime;
+  runtime.nerveBusAbilityGroup = createWorkbenchNerveBus(runtime);
+  runtime.orchestrationAbilityGroup = createWorkbenchOrchestration(runtime);
+  runtime.commanderConsole = createWorkbenchCommanderConsole(runtime);
+  runtime.init = () => runtime.evidenceStore.init();
+  runtime.getHealthReport = () => getHealthReport(runtime);
+  runtime.getMissionReadinessReport = () => getMissionReadinessReport(runtime);
+  runtime.getMissionStartPreflight = (input) => getMissionStartPreflight(runtime, input);
+  runtime.recordCommanderDebugEvent = (input) => recordCommanderDebugEvent(runtime, input);
+  runtime.getCommanderConsoleSnapshot = () => getCommanderConsoleSnapshot(runtime);
+  runtime.listRuntimeDebugEvents = (tail = 200) => runtime.evidenceStore.listStructuredRuntimeEvents(tail);
+  runtime.listRuntimeDebugActions = (tail = 200) => runtime.evidenceStore.listStructuredActionLogs(tail);
+  runtime.getLocalAiRoleControls = () => getLocalAiRoleControls();
+  runtime.setLocalAiRoleStartupState = (input) => setLocalAiRoleStartupState(input);
+  runtime.deleteCandidate = (candidateId) => runtime.evidenceStore.deleteCandidate(candidateId);
+  runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
+  runtime.getModeInfo = () => getModeInfo(runtime);
+  return runtime;
+};

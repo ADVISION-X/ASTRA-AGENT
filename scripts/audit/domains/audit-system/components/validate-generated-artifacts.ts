@@ -3,12 +3,8 @@ import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { generatedArtifactPaths } from "../../../core/paths.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
-export const validateGeneratedArtifacts = async (
-  context: InspectorContext,
-): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+const getMissingGeneratedArtifactFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
-  const phases: InspectorPhase[] = [];
-
   const requiredFiles = [
     generatedArtifactPaths.lawRegistry,
     generatedArtifactPaths.enforcementMatrixJson,
@@ -18,54 +14,72 @@ export const validateGeneratedArtifacts = async (
   ];
 
   for (const requiredFile of requiredFiles) {
-    if (!(await fileExists(requiredFile))) {
-      findings.push(
-        createFinding({
-          lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-          file: requiredFile,
-          line: 1,
-          severity: "fatal",
-          message: "Required generated artifact is missing.",
-        }),
-      );
+    if (await fileExists(requiredFile)) {
+      continue;
     }
-  }
 
-  const yamlText = await readTextFile(generatedArtifactPaths.enforcementMatrixYaml);
-  if (!yamlText.includes("generatedAt:") || !yamlText.includes("owners:")) {
     findings.push(
       createFinding({
+        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        file: requiredFile,
+        line: 1,
+        severity: "fatal",
+        message: "Required generated artifact is missing.",
+      }),
+    );
+  }
+
+  return findings;
+};
+
+const getGeneratedYamlFinding = async (): Promise<Finding | null> => {
+  const yamlText = await readTextFile(generatedArtifactPaths.enforcementMatrixYaml);
+  return !yamlText.includes("generatedAt:") || !yamlText.includes("owners:")
+    ? createFinding({
         lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
         file: generatedArtifactPaths.enforcementMatrixYaml,
         line: 1,
         severity: "error",
         message: "Generated YAML artifact is unreadable or incomplete.",
-      }),
-    );
-  }
+      })
+    : null;
+};
 
-  if (context.auditPlan.owners.length === 0) {
-    findings.push(
-      createFinding({
+const getEmptyAuditPlanFinding = (context: InspectorContext): Finding | null =>
+  context.auditPlan.owners.length === 0
+    ? createFinding({
         lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
         file: generatedArtifactPaths.auditPlan,
         line: 1,
         severity: "fatal",
         message: "Generated audit plan must not be empty.",
-      }),
-    );
-  }
+      })
+    : null;
 
-  phases.push(
-    createPhase(
-      "generated-artifacts",
-      findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-      findings.length === 0,
-      findings.length === 0
-        ? "Generated registry, matrix, plan, and conflicts are present and readable."
-        : "Generated artifacts are missing or malformed.",
-    ),
+const createGeneratedArtifactsPhase = (findings: Finding[]): InspectorPhase =>
+  createPhase(
+    "generated-artifacts",
+    findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
+    findings.length === 0,
+    findings.length === 0
+      ? "Generated registry, matrix, plan, and conflicts are present and readable."
+      : "Generated artifacts are missing or malformed.",
   );
 
-  return { findings, phases };
+export const validateGeneratedArtifacts = async (
+  context: InspectorContext,
+): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+  const findings = await getMissingGeneratedArtifactFindings();
+  const yamlFinding = await getGeneratedYamlFinding();
+  const auditPlanFinding = getEmptyAuditPlanFinding(context);
+
+  if (yamlFinding) {
+    findings.push(yamlFinding);
+  }
+
+  if (auditPlanFinding) {
+    findings.push(auditPlanFinding);
+  }
+
+  return { findings, phases: [createGeneratedArtifactsPhase(findings)] };
 };
