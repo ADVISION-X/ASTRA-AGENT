@@ -7,18 +7,16 @@ import type { Finding } from "../../core/schema.js";
 import {
   createAuditProject,
   getSourceFileOrThrow,
-  hasAnyKeyword,
   hasCallExpression,
   hasImportModuleSpecifier,
 } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { hasForbiddenEscape } from "./forbidden-escape.js";
+import { hasGovernedFailureStatusBranch } from "./runtime-result-shape.js";
 
 const AI_ROOT = "src/capabilities/ai";
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
 const NEGATIVE_PROOF_HARNESS = "scripts/audit/domains/ai-capability/negative-proof-harness.ts";
-const TS_IGNORE_MARK = `@ts-${"ignore"}`;
-const TS_EXPECT_ERROR_MARK = `@ts-${"expect-error"}`;
-const ESLINT_DISABLE_MARK = `eslint-${"disable"}`;
 
 const REQUIRED_FILES = [
   `${AI_ROOT}/ability-group.ts`,
@@ -182,39 +180,6 @@ function hasNewDateOutsideClock(sourceFile: SourceFile): boolean {
   return sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => expression.getExpression().getText() === "Date");
 }
 
-function hasForbiddenEscape(sourceFile: SourceFile): boolean {
-  if (hasAnyKeyword(sourceFile)) {
-    return true;
-  }
-
-  for (const expression of sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression)) {
-    const text = expression.getTypeNode()?.getText() ?? "";
-    const inner = expression.getExpression();
-    if (text === "any") {
-      return true;
-    }
-    if (Node.isAsExpression(inner) && inner.getTypeNode()?.getText() === "unknown") {
-      return true;
-    }
-    if (Node.isCallExpression(inner)) {
-      const callPath = inner.getExpression().getText();
-      if (callPath === "JSON.parse") {
-        return true;
-      }
-    }
-  }
-
-  return sourceFile.getDescendants().some((node) => {
-    const commentText = [
-      ...node.getLeadingCommentRanges(),
-      ...node.getTrailingCommentRanges(),
-    ].map((comment) => comment.getText()).join("\n");
-    return commentText.includes(TS_IGNORE_MARK)
-      || commentText.includes(TS_EXPECT_ERROR_MARK)
-      || commentText.includes(ESLINT_DISABLE_MARK);
-  });
-}
-
 function hasDynamicImportOrRequire(sourceFile: SourceFile): boolean {
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
@@ -254,30 +219,6 @@ function hasChildContractShape(sourceFile: SourceFile, childNamePrefix: string):
     && exportedNames.has(`${childNamePrefix}ChildContract`)
     && exportedNames.has(`${childNamePrefix}ChildExecutionPolicy`)
     && sourceFile.getExportDeclarations().length === 0;
-}
-
-function hasGovernedFailureStatusBranch(sourceFile: SourceFile): boolean {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((objectLiteral) => {
-    const implementationStatusProperty = objectLiteral.getProperty("implementationStatus");
-    if (!implementationStatusProperty || !Node.isPropertyAssignment(implementationStatusProperty)) {
-      return false;
-    }
-    const implementationStatus = implementationStatusProperty.getInitializerIfKind(SyntaxKind.StringLiteral);
-    if (!implementationStatus || implementationStatus.getLiteralText() !== "governed_output_rejected") {
-      return false;
-    }
-    const statusProperty = objectLiteral.getProperty("status");
-    if (!statusProperty || !Node.isPropertyAssignment(statusProperty)) {
-      return false;
-    }
-    const initializer = statusProperty.getInitializer();
-    return Boolean(
-      initializer
-      && Node.isConditionalExpression(initializer)
-      && initializer.getWhenTrue().getText().includes('"review_required"')
-      && initializer.getWhenFalse().getText().includes('"failed"'),
-    );
-  });
 }
 
 function getReferencesCount(sourceFile: SourceFile, name: string): number {

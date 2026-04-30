@@ -3,8 +3,8 @@ import { createSystemNerveBusClockPort } from "./transport-clock.js";
 import { createInMemoryNerveBusIdempotencyPort } from "../ports/nerve-bus-idempotency-port.js";
 import type { NerveBusIdempotencyPort } from "../ports/nerve-bus-idempotency-port.js";
 import type { NerveBusHandlerPort } from "../ports/nerve-bus-handler-port.js";
-import { createInMemoryNerveBusQueuePort } from "../ports/nerve-bus-queue-port.js";
 import type { NerveBusQueuePort } from "../ports/nerve-bus-queue-port.js";
+import { createInMemoryNerveBusQueuePort } from "./transport-queue.js";
 import { createInMemoryNerveBusTransportPort } from "../ports/nerve-bus-transport-port.js";
 import type { NerveBusTransportPort } from "../ports/nerve-bus-transport-port.js";
 

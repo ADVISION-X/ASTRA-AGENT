@@ -76,7 +76,7 @@ function collectStringTerms(matches: Set<string>, value: string) {
   }
 }
 
-function collectObjectTerms(matches: Set<string>, value: Record<string, unknown>) {
+function collectObjectTerms(matches: Set<string>, value: object) {
   for (const [key, nested] of Object.entries(value)) {
     collectStringTerms(matches, key);
     visitForbiddenActionTerms(matches, nested);
@@ -97,7 +97,7 @@ function visitForbiddenActionTerms(matches: Set<string>, current: unknown) {
   }
 
   if (current && typeof current === "object") {
-    collectObjectTerms(matches, current as Record<string, unknown>);
+    collectObjectTerms(matches, current);
   }
 }
 

@@ -68,74 +68,74 @@ import {
 
 export { AI_ABILITY_GROUP_ID, AI_CHILD_CAPABILITY_IDS };
 
-export type AiAbilityGroupId = typeof AI_ABILITY_GROUP_ID;
-export type AiChildCapabilityId = (typeof AI_CHILD_CAPABILITY_IDS)[number];
-export type AiAbilityInput = z.input<typeof AiInputSchema>;
-export type ParsedAiAbilityInput = z.output<typeof AiInputSchema>;
-export type AiAbilityResult = z.output<typeof AiResultSchema>;
-export type AiDispatchFailureEnvelope = z.output<typeof AiDispatchFailureEnvelopeSchema>;
-export type AiAbilityOutcome = z.output<typeof AiAbilityOutcomeSchema>;
-export type AiRuntimeProof = z.output<typeof AiRuntimeProofSchema>;
-export type AiPromptContract = z.output<typeof AiPromptContractSchema>;
-export type AiProviderPolicy = z.output<typeof AiProviderPolicySchema>;
-export type AiDataPolicy = z.output<typeof AiDataPolicySchema>;
-export type AiCostPolicy = z.output<typeof AiCostPolicySchema>;
-export type AiQualityPolicy = z.output<typeof AiQualityPolicySchema>;
-export type AiSafetyPolicy = z.output<typeof AiSafetyPolicySchema>;
-export type AiRuntimeHealth = z.output<typeof AiRuntimeHealthSchema>;
-export type AiHealthReport = z.output<typeof AiHealthReportSchema>;
-export type AiModelRoster = z.output<typeof AiModelRosterSchema>;
-export type AiModelRosterEntry = z.output<typeof AiModelRosterEntrySchema>;
-export type AiRuntimeExecutionOutput = z.output<typeof AiRuntimeExecutionOutputSchema>;
-export type AiChildReadiness = z.output<typeof AiChildReadinessSchema>;
+type AiAbilityGroupId = typeof AI_ABILITY_GROUP_ID;
+type AiChildCapabilityId = (typeof AI_CHILD_CAPABILITY_IDS)[number];
+type AiAbilityInput = z.input<typeof AiInputSchema>;
+type ParsedAiAbilityInput = z.output<typeof AiInputSchema>;
+type AiAbilityResult = z.output<typeof AiResultSchema>;
+type AiDispatchFailureEnvelope = z.output<typeof AiDispatchFailureEnvelopeSchema>;
+type AiAbilityOutcome = z.output<typeof AiAbilityOutcomeSchema>;
+type AiRuntimeProof = z.output<typeof AiRuntimeProofSchema>;
+type AiPromptContract = z.output<typeof AiPromptContractSchema>;
+type AiProviderPolicy = z.output<typeof AiProviderPolicySchema>;
+type AiDataPolicy = z.output<typeof AiDataPolicySchema>;
+type AiCostPolicy = z.output<typeof AiCostPolicySchema>;
+type AiQualityPolicy = z.output<typeof AiQualityPolicySchema>;
+type AiSafetyPolicy = z.output<typeof AiSafetyPolicySchema>;
+type AiRuntimeHealth = z.output<typeof AiRuntimeHealthSchema>;
+type AiHealthReport = z.output<typeof AiHealthReportSchema>;
+type AiModelRoster = z.output<typeof AiModelRosterSchema>;
+type AiModelRosterEntry = z.output<typeof AiModelRosterEntrySchema>;
+type AiRuntimeExecutionOutput = z.output<typeof AiRuntimeExecutionOutputSchema>;
+type AiChildReadiness = z.output<typeof AiChildReadinessSchema>;
 
-export type ProductPresenceJudgmentInput = z.output<typeof ProductPresenceJudgmentInputSchema>;
-export type VisualObservationInput = z.output<typeof VisualObservationInputSchema>;
-export type VisualTargetCandidateAnalysisInput = z.output<typeof VisualTargetCandidateAnalysisInputSchema>;
-export type OcrCleanupInput = z.output<typeof OcrCleanupInputSchema>;
-export type CommentSignalSummaryInput = z.output<typeof CommentSignalSummaryInputSchema>;
-export type ProductSignalSummaryInput = z.output<typeof ProductSignalSummaryInputSchema>;
-export type EvidencePacketAnalysisInput = z.output<typeof EvidencePacketAnalysisInputSchema>;
-export type SchemaValidationOnlyInput = z.output<typeof SchemaValidationOnlyInputSchema>;
+type ProductPresenceJudgmentInput = z.output<typeof ProductPresenceJudgmentInputSchema>;
+type VisualObservationInput = z.output<typeof VisualObservationInputSchema>;
+type VisualTargetCandidateAnalysisInput = z.output<typeof VisualTargetCandidateAnalysisInputSchema>;
+type OcrCleanupInput = z.output<typeof OcrCleanupInputSchema>;
+type CommentSignalSummaryInput = z.output<typeof CommentSignalSummaryInputSchema>;
+type ProductSignalSummaryInput = z.output<typeof ProductSignalSummaryInputSchema>;
+type EvidencePacketAnalysisInput = z.output<typeof EvidencePacketAnalysisInputSchema>;
+type SchemaValidationOnlyInput = z.output<typeof SchemaValidationOnlyInputSchema>;
 
-export type AiVisualOutput = z.output<typeof AiVisualOutputSchema>;
-export type AiOcrCleanupInput = z.output<typeof AiOcrCleanupInputSchema>;
-export type AiOcrCleanupOutput = z.output<typeof OcrCleanupResultSchema>["output"];
-export type AiCommentSignalSummaryInput = z.output<typeof AiCommentSignalSummaryInputSchema>;
-export type AiCommentSignalSummaryOutput = z.output<typeof AiCommentSignalSummaryOutputSchema>;
-export type AiProductSignalSummaryInput = z.output<typeof AiProductSignalSummaryInputSchema>;
-export type AiProductSignalSummaryOutput = z.output<typeof AiProductSignalSummaryOutputSchema>;
-export type AiEvidencePacketAnalysisInput = z.output<typeof AiEvidencePacketAnalysisInputSchema>;
-export type AiEvidencePacketAnalysisOutput = z.output<typeof AiEvidencePacketAnalysisOutputSchema>;
-export type AiSchemaValidationOnlyInput = z.output<typeof AiSchemaValidationOnlyInputSchema>;
-export type AiSchemaValidationOnlyOutput = z.output<typeof AiSchemaValidationOnlyOutputSchema>;
+type AiVisualOutput = z.output<typeof AiVisualOutputSchema>;
+type AiOcrCleanupInput = z.output<typeof AiOcrCleanupInputSchema>;
+type AiOcrCleanupOutput = z.output<typeof OcrCleanupResultSchema>["output"];
+type AiCommentSignalSummaryInput = z.output<typeof AiCommentSignalSummaryInputSchema>;
+type AiCommentSignalSummaryOutput = z.output<typeof AiCommentSignalSummaryOutputSchema>;
+type AiProductSignalSummaryInput = z.output<typeof AiProductSignalSummaryInputSchema>;
+type AiProductSignalSummaryOutput = z.output<typeof AiProductSignalSummaryOutputSchema>;
+type AiEvidencePacketAnalysisInput = z.output<typeof AiEvidencePacketAnalysisInputSchema>;
+type AiEvidencePacketAnalysisOutput = z.output<typeof AiEvidencePacketAnalysisOutputSchema>;
+type AiSchemaValidationOnlyInput = z.output<typeof AiSchemaValidationOnlyInputSchema>;
+type AiSchemaValidationOnlyOutput = z.output<typeof AiSchemaValidationOnlyOutputSchema>;
 
-export type LocalVisionAiInput = z.output<typeof LocalVisionAiInputSchema>;
-export type LocalVisionAiResult = z.output<typeof LocalVisionAiResultSchema>;
-export type LocalTextAiInput = z.output<typeof LocalTextAiInputSchema>;
-export type LocalTextAiResult = z.output<typeof LocalTextAiResultSchema>;
-export type LocalOcrAiInput = z.output<typeof LocalOcrAiInputSchema>;
-export type LocalOcrAiResult = z.output<typeof LocalOcrAiResultSchema>;
-export type InternalSchemaValidatorInput = z.output<typeof InternalSchemaValidatorInputSchema>;
-export type InternalSchemaValidatorResult = z.output<typeof InternalSchemaValidatorResultSchema>;
-export type PaidVisionAiInput = z.output<typeof PaidVisionAiInputSchema>;
-export type PaidVisionAiResult = z.output<typeof PaidVisionAiResultSchema>;
-export type PaidAnalysisAiInput = z.output<typeof PaidAnalysisAiInputSchema>;
-export type PaidAnalysisAiResult = z.output<typeof PaidAnalysisAiResultSchema>;
+type LocalVisionAiInput = z.output<typeof LocalVisionAiInputSchema>;
+type LocalVisionAiResult = z.output<typeof LocalVisionAiResultSchema>;
+type LocalTextAiInput = z.output<typeof LocalTextAiInputSchema>;
+type LocalTextAiResult = z.output<typeof LocalTextAiResultSchema>;
+type LocalOcrAiInput = z.output<typeof LocalOcrAiInputSchema>;
+type LocalOcrAiResult = z.output<typeof LocalOcrAiResultSchema>;
+type InternalSchemaValidatorInput = z.output<typeof InternalSchemaValidatorInputSchema>;
+type InternalSchemaValidatorResult = z.output<typeof InternalSchemaValidatorResultSchema>;
+type PaidVisionAiInput = z.output<typeof PaidVisionAiInputSchema>;
+type PaidVisionAiResult = z.output<typeof PaidVisionAiResultSchema>;
+type PaidAnalysisAiInput = z.output<typeof PaidAnalysisAiInputSchema>;
+type PaidAnalysisAiResult = z.output<typeof PaidAnalysisAiResultSchema>;
 
-export type AiTaskType = ParsedAiAbilityInput["taskType"];
-export type AiProviderKind = AiAbilityResult["modelProvider"];
-export type AiExecutionStatus = AiAbilityResult["status"];
-export type AiModelRole = AiAbilityResult["modelRole"];
+type AiTaskType = ParsedAiAbilityInput["taskType"];
+type AiProviderKind = AiAbilityResult["modelProvider"];
+type AiExecutionStatus = AiAbilityResult["status"];
+type AiModelRole = AiAbilityResult["modelRole"];
 
-export type AiExecutionContext = {
+type AiExecutionContext = {
   runtime: AiRuntimePort;
   clock: AiClockPort;
   modelRoster: AiModelRosterPort;
   promptRegistry: AiPromptRegistryPort;
 };
 
-export type AiChildContract = {
+type AiChildContract = {
   abilityGroupId: AiAbilityGroupId;
   childCapabilityId: AiChildCapabilityId;
   providerKind: AiProviderKind;
@@ -163,17 +163,17 @@ export type AiChildContract = {
   };
 };
 
-export interface AiChildImplementation {
+interface AiChildImplementation {
   execute?(input: ParsedAiAbilityInput, context: AiExecutionContext): Promise<AiAbilityResult>;
   checkReadiness(context: AiExecutionContext): Promise<AiChildReadiness>;
 }
 
-export type AiChildCapability = {
+type AiChildCapability = {
   contract: AiChildContract;
   implementation: AiChildImplementation;
 };
 
-export type AiChildCapabilityRegistryEntry = {
+type AiChildCapabilityRegistryEntry = {
   childCapabilityId: AiChildCapabilityId;
   providerKind: AiProviderKind;
   allowedTaskTypes: readonly AiTaskType[];
@@ -187,11 +187,75 @@ export type AiChildCapabilityRegistryEntry = {
   implementation: AiChildImplementation;
 };
 
-export interface AiAbilityGroup {
+interface AiAbilityGroup {
   listChildCapabilityIds(): AiChildCapabilityId[];
   execute(input: AiAbilityInput): Promise<AiAbilityOutcome>;
   getHealth(): Promise<AiHealthReport>;
   getRuntimeHealth(): Promise<AiRuntimeHealth>;
 }
+
+export type {
+  AiAbilityGroupId,
+  AiChildCapabilityId,
+  AiAbilityInput,
+  ParsedAiAbilityInput,
+  AiAbilityResult,
+  AiDispatchFailureEnvelope,
+  AiAbilityOutcome,
+  AiRuntimeProof,
+  AiPromptContract,
+  AiProviderPolicy,
+  AiDataPolicy,
+  AiCostPolicy,
+  AiQualityPolicy,
+  AiSafetyPolicy,
+  AiRuntimeHealth,
+  AiHealthReport,
+  AiModelRoster,
+  AiModelRosterEntry,
+  AiRuntimeExecutionOutput,
+  AiChildReadiness,
+  ProductPresenceJudgmentInput,
+  VisualObservationInput,
+  VisualTargetCandidateAnalysisInput,
+  OcrCleanupInput,
+  CommentSignalSummaryInput,
+  ProductSignalSummaryInput,
+  EvidencePacketAnalysisInput,
+  SchemaValidationOnlyInput,
+  AiVisualOutput,
+  AiOcrCleanupInput,
+  AiOcrCleanupOutput,
+  AiCommentSignalSummaryInput,
+  AiCommentSignalSummaryOutput,
+  AiProductSignalSummaryInput,
+  AiProductSignalSummaryOutput,
+  AiEvidencePacketAnalysisInput,
+  AiEvidencePacketAnalysisOutput,
+  AiSchemaValidationOnlyInput,
+  AiSchemaValidationOnlyOutput,
+  LocalVisionAiInput,
+  LocalVisionAiResult,
+  LocalTextAiInput,
+  LocalTextAiResult,
+  LocalOcrAiInput,
+  LocalOcrAiResult,
+  InternalSchemaValidatorInput,
+  InternalSchemaValidatorResult,
+  PaidVisionAiInput,
+  PaidVisionAiResult,
+  PaidAnalysisAiInput,
+  PaidAnalysisAiResult,
+  AiTaskType,
+  AiProviderKind,
+  AiExecutionStatus,
+  AiModelRole,
+  AiExecutionContext,
+  AiChildContract,
+  AiChildImplementation,
+  AiChildCapability,
+  AiChildCapabilityRegistryEntry,
+  AiAbilityGroup,
+};
 
 export type { AiRuntimePort } from "./ports/ai-runtime-port.js";

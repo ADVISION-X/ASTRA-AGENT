@@ -5,6 +5,58 @@ import { AiResultSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
 import { buildAiRuntimeProof } from "./ai-proof-builder.js";
 
+function resolveAiOutputRef(input: {
+  request: ParsedAiAbilityInput;
+  childContract: AiChildContract;
+  status: AiAbilityResult["status"];
+  output: AiAbilityResult["output"];
+}): string | null {
+  if (input.status !== "success" || input.output === null) {
+    return null;
+  }
+  return buildStableAiRef("ai-output", [input.request.missionId, input.request.sessionId, input.childContract.childCapabilityId, input.request.taskType, input.request.roundId, input.request.videoVisitId]);
+}
+
+function buildAiResultProof(input: Parameters<typeof buildAiResult>[0], outputRef: string | null) {
+  return buildAiRuntimeProof({
+    request: input.request,
+    childContract: input.childContract,
+    promptContract: input.promptContract,
+    result: {
+      status: input.status,
+      failureReason: input.failureReason,
+      reviewRequiredReason: input.reviewRequiredReason,
+      modelProvider: input.modelProvider,
+      modelName: input.modelName,
+      modelRole: input.modelRole,
+      runtime: input.runtime,
+    },
+    outputRef,
+    started: input.started,
+    ended: input.ended,
+    providerDecision: input.providerDecision,
+    dataPolicyDecision: input.dataPolicyDecision,
+    costPolicyDecision: input.costPolicyDecision,
+    safetyPolicyDecision: input.safetyPolicyDecision,
+    schemaDecision: input.schemaDecision,
+    qualityDecision: input.qualityDecision,
+    outputBoundaryDecision: input.outputBoundaryDecision,
+    disabledProviderDecision: input.disabledProviderDecision,
+    rawOutputRef: input.rawOutputRef,
+    rawOutputHash: input.rawOutputHash,
+    runtimeCallId: input.runtimeCallId,
+    timeoutMs: input.timeoutMs,
+    attemptIndex: input.attemptIndex,
+    retryCount: input.retryCount,
+    circuitBreakerState: input.circuitBreakerState,
+    gatewayDurationMs: input.gatewayDurationMs,
+    schemaIssueCount: input.schemaIssueCount,
+    boundaryViolationCount: input.boundaryViolationCount,
+    qualityDecisionReason: input.qualityDecisionReason,
+    dataQualityFlags: input.dataQualityFlags,
+  });
+}
+
 export function buildAiResult(input: {
   request: ParsedAiAbilityInput;
   childContract: AiChildContract;
@@ -46,9 +98,7 @@ export function buildAiResult(input: {
   qualityDecisionReason: string | null;
   dataQualityFlags: string[];
 }) {
-  const outputRef = input.status === "success" && input.output !== null
-    ? buildStableAiRef("ai-output", [input.request.missionId, input.request.sessionId, input.childContract.childCapabilityId, input.request.taskType, input.request.roundId, input.request.videoVisitId])
-    : null;
+  const outputRef = resolveAiOutputRef(input);
 
   return AiResultSchema.parse({
     status: input.status,
@@ -71,43 +121,7 @@ export function buildAiResult(input: {
     costEstimate: input.costEstimate,
     evidenceRefs: input.request.inputRefs,
     debugLogRef: null,
-    runtimeProof: buildAiRuntimeProof({
-      request: input.request,
-      childContract: input.childContract,
-      promptContract: input.promptContract,
-      result: {
-        status: input.status,
-        failureReason: input.failureReason,
-        reviewRequiredReason: input.reviewRequiredReason,
-        modelProvider: input.modelProvider,
-        modelName: input.modelName,
-        modelRole: input.modelRole,
-        runtime: input.runtime,
-      },
-      outputRef,
-      started: input.started,
-      ended: input.ended,
-      providerDecision: input.providerDecision,
-      dataPolicyDecision: input.dataPolicyDecision,
-      costPolicyDecision: input.costPolicyDecision,
-      safetyPolicyDecision: input.safetyPolicyDecision,
-      schemaDecision: input.schemaDecision,
-      qualityDecision: input.qualityDecision,
-      outputBoundaryDecision: input.outputBoundaryDecision,
-      disabledProviderDecision: input.disabledProviderDecision,
-      rawOutputRef: input.rawOutputRef,
-      rawOutputHash: input.rawOutputHash,
-      runtimeCallId: input.runtimeCallId,
-      timeoutMs: input.timeoutMs,
-      attemptIndex: input.attemptIndex,
-      retryCount: input.retryCount,
-      circuitBreakerState: input.circuitBreakerState,
-      gatewayDurationMs: input.gatewayDurationMs,
-      schemaIssueCount: input.schemaIssueCount,
-      boundaryViolationCount: input.boundaryViolationCount,
-      qualityDecisionReason: input.qualityDecisionReason,
-      dataQualityFlags: input.dataQualityFlags,
-    }),
+    runtimeProof: buildAiResultProof(input, outputRef),
     promptVersion: input.promptContract.promptVersion,
     schemaVersion: input.promptContract.schemaVersion,
     createdAt: input.createdAt,

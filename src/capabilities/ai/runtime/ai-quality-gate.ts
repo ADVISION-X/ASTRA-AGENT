@@ -1,46 +1,91 @@
 import type { ParsedAiAbilityInput } from "../contract.js";
 
+function buildReviewOrBlockedDecision(input: {
+  request: ParsedAiAbilityInput;
+  reviewFlag: boolean;
+  reason: string;
+  flags: string[];
+  schemaValidationStatus: "valid" | "invalid";
+}) {
+  return {
+    decision: input.reviewFlag ? "review_required" : "blocked",
+    reason: input.reason,
+    schemaValidationStatus: input.schemaValidationStatus,
+    flags: input.flags,
+  } as const;
+}
+
+function resolveSchemaIssueDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
+  if (input.schemaIssues.length === 0) {
+    return null;
+  }
+  return buildReviewOrBlockedDecision({
+    request: input.request,
+    reviewFlag: input.request.safetyPolicy.reviewOnSchemaFailure,
+    reason: "schema_validation_failed",
+    flags: input.schemaIssues,
+    schemaValidationStatus: "invalid",
+  });
+}
+
+function resolvePolicyReasonDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
+  if (!input.policyReason) {
+    return null;
+  }
+  return buildReviewOrBlockedDecision({
+    request: input.request,
+    reviewFlag: input.request.safetyPolicy.reviewOnPolicyViolation,
+    reason: input.policyReason,
+    flags: [],
+    schemaValidationStatus: "valid",
+  });
+}
+
+function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
+  const minimumConfidence = input.request.qualityPolicy.minimumConfidence;
+  if (minimumConfidence === null) {
+    return null;
+  }
+  if (input.confidence === null) {
+    return buildReviewOrBlockedDecision({
+      request: input.request,
+      reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
+      reason: "confidence_missing",
+      flags: ["confidence:null"],
+      schemaValidationStatus: "valid",
+    });
+  }
+  if (input.confidence < minimumConfidence) {
+    return buildReviewOrBlockedDecision({
+      request: input.request,
+      reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
+      reason: "quality_gate_blocked",
+      flags: [`confidence:${input.confidence}`],
+      schemaValidationStatus: "valid",
+    });
+  }
+  return null;
+}
+
 export function evaluateAiQualityGate(input: {
   request: ParsedAiAbilityInput;
   confidence: number | null;
   schemaIssues: string[];
   policyReason: string | null;
 }): { decision: "pass" | "review_required" | "blocked"; reason: string | null; schemaValidationStatus: "valid" | "invalid" | "not_applicable"; flags: string[] } {
-  if (input.schemaIssues.length > 0) {
-    return {
-      decision: input.request.safetyPolicy.reviewOnSchemaFailure ? "review_required" : "blocked",
-      reason: "schema_validation_failed",
-      schemaValidationStatus: "invalid",
-      flags: input.schemaIssues,
-    };
+  const schemaDecision = resolveSchemaIssueDecision(input);
+  if (schemaDecision) {
+    return schemaDecision;
   }
 
-  if (input.policyReason) {
-    return {
-      decision: input.request.safetyPolicy.reviewOnPolicyViolation ? "review_required" : "blocked",
-      reason: input.policyReason,
-      schemaValidationStatus: "valid",
-      flags: [],
-    };
+  const policyDecision = resolvePolicyReasonDecision(input);
+  if (policyDecision) {
+    return policyDecision;
   }
 
-  const minimumConfidence = input.request.qualityPolicy.minimumConfidence;
-  if (minimumConfidence !== null && input.confidence === null) {
-    return {
-      decision: input.request.safetyPolicy.reviewOnLowConfidence ? "review_required" : "blocked",
-      reason: "confidence_missing",
-      schemaValidationStatus: "valid",
-      flags: ["confidence:null"],
-    };
-  }
-
-  if (minimumConfidence !== null && input.confidence !== null && input.confidence < minimumConfidence) {
-    return {
-      decision: input.request.safetyPolicy.reviewOnLowConfidence ? "review_required" : "blocked",
-      reason: "quality_gate_blocked",
-      schemaValidationStatus: "valid",
-      flags: [`confidence:${input.confidence}`],
-    };
+  const confidenceDecision = resolveConfidenceDecision(input);
+  if (confidenceDecision) {
+    return confidenceDecision;
   }
 
   return {

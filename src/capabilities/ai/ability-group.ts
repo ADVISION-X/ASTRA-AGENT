@@ -107,21 +107,13 @@ const canExecuteDisabledPolicyRoute = (
     : never,
 ) => entry.disabledPolicy === "disabled_by_policy";
 
-const executeAiRequest = async (
+const resolveExecutableAiEntry = (
   context: AiExecutionContext,
-  registry: ReturnType<typeof createAiCapabilityRegistry>,
-  inputValue: unknown,
+  parsedData: { taskType: AiTaskType },
+  resolvedEntry: ReturnType<typeof resolveAiRegistryEntry> extends { childCapabilityId: infer ChildId; entry: infer Entry }
+    ? { childCapabilityId: ChildId; entry: Entry }
+    : never,
 ) => {
-  const parsedData = parseAiExecutionInput(context, inputValue);
-  if ("status" in parsedData) {
-    return parsedData;
-  }
-
-  const resolvedEntry = resolveAiRegistryEntry(context, registry, parsedData);
-  if ("status" in resolvedEntry) {
-    return resolvedEntry;
-  }
-
   if (!resolvedEntry.entry.executable && !canExecuteDisabledPolicyRoute(resolvedEntry.entry)) {
     return dispatchAiExecutableFailure(context, parsedData, resolvedEntry.childCapabilityId, resolvedEntry.entry.contract.providerKind);
   }
@@ -130,6 +122,16 @@ const executeAiRequest = async (
     return dispatchAiExecutableFailure(context, parsedData, resolvedEntry.childCapabilityId, resolvedEntry.entry.contract.providerKind);
   }
 
+  return resolvedEntry;
+};
+
+const executeResolvedAiEntry = async (
+  context: AiExecutionContext,
+  parsedData: { taskType: AiTaskType },
+  resolvedEntry: ReturnType<typeof resolveExecutableAiEntry> extends { childCapabilityId: infer ChildId; entry: infer Entry }
+    ? { childCapabilityId: ChildId; entry: Entry }
+    : never,
+) => {
   try {
     if (canExecuteDisabledPolicyRoute(resolvedEntry.entry)) {
       return AiResultSchema.parse(await executeAiChild({
@@ -149,6 +151,29 @@ const executeAiRequest = async (
       error,
     });
   }
+};
+
+const executeAiRequest = async (
+  context: AiExecutionContext,
+  registry: ReturnType<typeof createAiCapabilityRegistry>,
+  inputValue: unknown,
+) => {
+  const parsedData = parseAiExecutionInput(context, inputValue);
+  if ("status" in parsedData) {
+    return parsedData;
+  }
+
+  const resolvedEntry = resolveAiRegistryEntry(context, registry, parsedData);
+  if ("status" in resolvedEntry) {
+    return resolvedEntry;
+  }
+
+  const executableEntry = resolveExecutableAiEntry(context, parsedData, resolvedEntry);
+  if ("status" in executableEntry) {
+    return executableEntry;
+  }
+
+  return executeResolvedAiEntry(context, parsedData, executableEntry);
 };
 
 const buildAiHealthReport = async (

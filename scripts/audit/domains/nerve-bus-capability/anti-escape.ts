@@ -16,83 +16,100 @@ function hasVariableDeclaration(sourceTextOwner: ReturnType<typeof getSourceFile
   return sourceTextOwner?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).some((declaration) => declaration.getName() === variableName) ?? false;
 }
 
-function parseObjectPreservesProofTelemetry(sourceTextOwner: ReturnType<typeof getSourceFile>): boolean {
+function findParsedProofObject(sourceTextOwner: ReturnType<typeof getSourceFile>) {
   if (!sourceTextOwner) {
-    return false;
+    return null;
   }
 
-  return sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+  const parseCall = sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
     const expression = callExpression.getExpression();
-    if (!Node.isPropertyAccessExpression(expression) || expression.getText() !== "NerveBusTransportProofSchema.parse") {
-      return false;
-    }
-
-    const [argument] = callExpression.getArguments();
-    if (!argument || !Node.isObjectLiteralExpression(argument)) {
-      return false;
-    }
-
-    const propertyNames = new Set(
-      argument.getProperties().flatMap((property) => {
-        if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
-          return [property.getName()];
-        }
-        return [];
-      }),
-    );
-
-    return ["handlerCallId", "sequenceDecision", "queueDecision"].every((propertyName) => propertyNames.has(propertyName));
+    return Node.isPropertyAccessExpression(expression) && expression.getText() === "NerveBusTransportProofSchema.parse";
   });
+  const [argument] = parseCall?.getArguments() ?? [];
+  return argument && Node.isObjectLiteralExpression(argument) ? argument : null;
+}
+
+function getParsedProofPropertyNames(sourceTextOwner: ReturnType<typeof getSourceFile>): Set<string> | null {
+  const proofObject = findParsedProofObject(sourceTextOwner);
+  if (!proofObject) {
+    return null;
+  }
+
+  return new Set(
+    proofObject.getProperties().flatMap((property) => {
+      if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
+        return [property.getName()];
+      }
+      return [];
+    }),
+  );
+}
+
+function parseObjectPreservesProofTelemetry(sourceTextOwner: ReturnType<typeof getSourceFile>): boolean {
+  const propertyNames = getParsedProofPropertyNames(sourceTextOwner);
+  return propertyNames !== null && ["handlerCallId", "sequenceDecision", "queueDecision"].every((propertyName) => propertyNames.has(propertyName));
+}
+
+function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile>): Finding[] {
+  if (!executorSource) {
+    return [createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Nerve Bus executor is missing for anti-escape checks." })];
+  }
+
+  const findings: Finding[] = [];
+  for (const variableName of ["inputGate", "policyGate", "integrityGate", "idempotencyGate", "timeoutGate", "sequenceGate", "lease", "proof"]) {
+    if (!hasVariableDeclaration(executorSource, variableName)) {
+      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: `Nerve Bus executor must preserve ${variableName} as a governed checkpoint.` }));
+    }
+  }
+
+  const hasGuardedFailurePath = executorSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "finalizeFailure");
+  return hasGuardedFailurePath
+    ? findings
+    : [...findings, createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Nerve Bus executor must finalize failures through finalizeFailure." })];
+}
+
+function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
+  return !resultBuilderSource || !hasVariableDeclaration(resultBuilderSource, "common")
+    ? [createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Nerve Bus result builder must centralize governed failure envelope construction." })]
+    : [];
+}
+
+function collectProofBuilderFindings(proofBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
+  return !parseObjectPreservesProofTelemetry(proofBuilderSource)
+    ? [createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: PROOF_BUILDER_PATH, line: 1, severity: "fatal", message: "Nerve Bus proof builder must preserve queue, sequence, and handler telemetry." })]
+    : [];
+}
+
+function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): Finding[] {
+  if (!runnerSource) {
+    return [createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner is missing for anti-escape checks." })];
+  }
+
+  const findings: Finding[] = [];
+  const fullText = runnerSource.getFullText();
+  if (!fullText.includes("AbortController")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must allocate AbortController." }));
+  }
+  if (!fullText.includes('handlerDecision: "timed_out"')) {
+    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must preserve an explicit timed_out handler decision." }));
+  }
+  if (fullText.includes("null as never")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must not rely on null as never result envelopes." }));
+  }
+  if (sourceUsesComputedHandlerAccess(runnerSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must not hide handler dispatch behind computed property access." }));
+  }
+  return findings;
 }
 
 export function runAntiEscapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const findings: Finding[] = [];
   const project = makeProject();
-  const executorSource = getSourceFile(project, EXECUTOR_PATH);
-  const resultBuilderSource = getSourceFile(project, RESULT_BUILDER_PATH);
-  const proofBuilderSource = getSourceFile(project, PROOF_BUILDER_PATH);
-  const runnerSource = getSourceFile(project, RUNNER_PATH);
-
-  if (!executorSource) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Nerve Bus executor is missing for anti-escape checks." }));
-  } else {
-    for (const variableName of ["inputGate", "policyGate", "integrityGate", "idempotencyGate", "timeoutGate", "sequenceGate", "lease", "proof"]) {
-      if (!hasVariableDeclaration(executorSource, variableName)) {
-        findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: `Nerve Bus executor must preserve ${variableName} as a governed checkpoint.` }));
-      }
-    }
-
-    const hasGuardedFailurePath = executorSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "finalizeFailure");
-    if (!hasGuardedFailurePath) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Nerve Bus executor must finalize failures through finalizeFailure." }));
-    }
-  }
-
-  if (!resultBuilderSource || !hasVariableDeclaration(resultBuilderSource, "common")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Nerve Bus result builder must centralize governed failure envelope construction." }));
-  }
-
-  if (!parseObjectPreservesProofTelemetry(proofBuilderSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: PROOF_BUILDER_PATH, line: 1, severity: "fatal", message: "Nerve Bus proof builder must preserve queue, sequence, and handler telemetry." }));
-  }
-
-  if (!runnerSource) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner is missing for anti-escape checks." }));
-  } else {
-    const fullText = runnerSource.getFullText();
-    if (!fullText.includes("AbortController")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must allocate AbortController." }));
-    }
-    if (!fullText.includes('handlerDecision: "timed_out"')) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must preserve an explicit timed_out handler decision." }));
-    }
-    if (fullText.includes("null as never")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must not rely on null as never result envelopes." }));
-    }
-    if (sourceUsesComputedHandlerAccess(runnerSource)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Nerve Bus runner must not hide handler dispatch behind computed property access." }));
-    }
-  }
+  const findings = [
+    ...collectExecutorFindings(getSourceFile(project, EXECUTOR_PATH)),
+    ...collectResultBuilderFindings(getSourceFile(project, RESULT_BUILDER_PATH)),
+    ...collectProofBuilderFindings(getSourceFile(project, PROOF_BUILDER_PATH)),
+    ...collectRunnerFindings(getSourceFile(project, RUNNER_PATH)),
+  ];
 
   const phasePassed = findings.length === 0;
   return {

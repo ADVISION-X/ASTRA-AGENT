@@ -6,7 +6,7 @@ import { AiModelRosterSchema } from "./schema.js";
 
 type LocalAiModelConfig = Awaited<ReturnType<typeof loadLocalAiModelConfig>>;
 
-function buildEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
+function buildConfiguredEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
   return [
     {
       childCapabilityId: "local-vision-ai",
@@ -48,21 +48,26 @@ function buildEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
       enabledByPolicy: true,
       status: "configured",
     },
+  ];
+}
+
+function buildDisabledEntries(): AiModelRosterEntry[] {
+  return [
     {
-      childCapabilityId: "paid-vision-ai",
+      childCapabilityId: "paid-analysis-ai",
       providerKind: "paid",
-      taskTypes: ["visual_observation", "visual_target_candidate_analysis"],
-      modelRole: "vision",
+      taskTypes: ["evidence_packet_analysis"],
+      modelRole: "future",
       runtime: "policy-disabled",
       modelOrTool: null,
       enabledByPolicy: false,
       status: "disabled_by_policy",
     },
     {
-      childCapabilityId: "paid-analysis-ai",
+      childCapabilityId: "paid-vision-ai",
       providerKind: "paid",
-      taskTypes: ["evidence_packet_analysis"],
-      modelRole: "future",
+      taskTypes: ["visual_observation", "visual_target_candidate_analysis"],
+      modelRole: "vision",
       runtime: "policy-disabled",
       modelOrTool: null,
       enabledByPolicy: false,
@@ -79,6 +84,10 @@ function buildEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
       status: "disabled_by_policy",
     },
   ];
+}
+
+function buildEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
+  return [...buildConfiguredEntries(config), ...buildDisabledEntries()];
 }
 
 export function createAiModelRosterPort(): AiModelRosterPort {

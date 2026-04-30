@@ -19,15 +19,15 @@ function toFailureReason(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function logEvent(phase, component, eventType, status, message, extra = {}) {
+function logEvent(...[phase, component, eventType, status, message, extra = {}]) {
   terminalLogger.event({ phase, component, eventType, status, message, ...extra });
 }
 
-function logPass(phase, component, eventType, status, message, extra = {}) {
+function logPass(...[phase, component, eventType, status, message, extra = {}]) {
   terminalLogger.pass({ phase, component, eventType, status, message, ...extra });
 }
 
-function logFail(phase, component, eventType, status, message, extra = {}) {
+function logFail(...[phase, component, eventType, status, message, extra = {}]) {
   terminalLogger.fail({ phase, component, eventType, status, message, ...extra });
 }
 
@@ -96,9 +96,7 @@ async function ensureDependencies(root, flags) {
   });
 }
 
-async function performLaunch(flags, root) {
-  await ensureDependencies(root, flags);
-
+async function preparePort() {
   const portStart = Date.now();
   logEvent("STARTUP", "bootstrap", "port_clear", "started", `clearing ${host}:${port}`);
   await clearPortListeners({
@@ -109,7 +107,9 @@ async function performLaunch(flags, root) {
   logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
     durationMs: Date.now() - portStart,
   });
+}
 
+async function startService(root) {
   const serviceStart = Date.now();
   logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
   const serviceHandle = await startLocalService({
@@ -125,7 +125,10 @@ async function performLaunch(flags, root) {
   logPass("SERVICE", "app_server", "app_server", "ready", `local app shell process started for ${baseUrl}`, {
     durationMs: Date.now() - serviceStart,
   });
+  return serviceHandle;
+}
 
+async function verifyAppHealth(serviceHandle) {
   const healthStart = Date.now();
   logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `waiting for health at ${healthUrl}`);
   const healthReport = await waitForHealth({ url: healthUrl, serviceProcess: serviceHandle.child });
@@ -134,9 +137,9 @@ async function performLaunch(flags, root) {
     refs: [`components=${Array.isArray(healthReport.components) ? healthReport.components.length : 0}`, `contentType=${pageReport.contentType}`],
     durationMs: Date.now() - healthStart,
   });
+}
 
-  await openReadyPage(flags);
-
+async function checkMissionReadiness() {
   const readinessStart = Date.now();
   logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", `checking mission readiness at ${missionReadinessUrl}`);
   try {
@@ -146,23 +149,37 @@ async function performLaunch(flags, root) {
       logPass("MISSION", "mission_readiness", "MISSION_READINESS_PASSED", "passed", "mission readiness passed", {
         durationMs: Date.now() - readinessStart,
       });
-    } else {
-      logEvent("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "degraded", missionReadiness?.actionableMessage ?? "mission readiness degraded", {
-        refs: failingComponents,
-        durationMs: Date.now() - readinessStart,
-      });
+      return;
     }
+
+    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "degraded", missionReadiness?.actionableMessage ?? "mission readiness degraded", {
+      refs: failingComponents,
+      durationMs: Date.now() - readinessStart,
+    });
   } catch (error) {
     logEvent("MISSION", "mission_readiness", "MISSION_READINESS_FAILED", "failed", "mission readiness check failed after App Shell passed; keeping Commander Console alive", {
       failureReason: toFailureReason(error),
       durationMs: Date.now() - readinessStart,
     });
   }
+}
 
+function logStartupReady() {
   logPass("RUNTIME", "startup_entrypoint", "terminal_structured_log_relay", "ready", "terminal structured log relay active", {
     refs: ["/api/runtime/logs", "/api/runtime/actions", "/api/runtime/mission-readiness"],
   });
   logEvent("RUNTIME", "startup_entrypoint", "waiting_for_human_command", "ready", `waiting for human command at ${baseUrl}`);
+}
+
+async function performLaunch(flags, root) {
+  await ensureDependencies(root, flags);
+
+  await preparePort();
+  const serviceHandle = await startService(root);
+  await verifyAppHealth(serviceHandle);
+  await openReadyPage(flags);
+  await checkMissionReadiness();
+  logStartupReady();
   return serviceHandle;
 }
 

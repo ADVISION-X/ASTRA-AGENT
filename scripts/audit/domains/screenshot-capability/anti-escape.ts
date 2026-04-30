@@ -2,23 +2,25 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpression, hasLiteralTextFragment } from "../_shared/ast-helpers.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
+import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { getRepoPath, getScreenshotSources, getSource, hasDateOutsideClock, hasForbiddenEscape, ROOT } from "./ast-utils.js";
 
-export function runAntiEscape(project: Project): { findings: Finding[]; phase: InspectorPhase } {
-  const findings: Finding[] = [];
-
+function collectRootEscapeFindings(project: Project): Finding[] {
   const escapeFile = getScreenshotSources(project).find((sourceFile) => hasForbiddenEscape(sourceFile) || hasDateOutsideClock(sourceFile));
-  if (escapeFile) {
-    findings.push(createFinding({
-      lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-      file: getRepoPath(escapeFile),
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot root must stay closed to any-casts, suppression comments, dynamic import, require, and scattered time sources.",
-    }));
-  }
+  return escapeFile
+    ? [createFinding({
+        lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
+        file: getRepoPath(escapeFile),
+        line: 1,
+        severity: "fatal",
+        message: "Screenshot root must stay closed to any-casts, suppression comments, dynamic import, require, and scattered time sources.",
+      })]
+    : [];
+}
 
+function collectExecutorFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
   const executorSource = getSource(project, `${ROOT}/runtime/screenshot-executor.ts`);
   for (const calleeName of [
     "runScreenshotPayloadBudgetGate",
@@ -36,43 +38,42 @@ export function runAntiEscape(project: Project): { findings: Finding[]; phase: I
       }));
     }
   }
+  return findings;
+}
 
+function collectCaptureRunnerFindings(project: Project): Finding[] {
   const captureRunnerSource = getSource(project, `${ROOT}/runtime/capture-runner.ts`);
   const captureRunnerText = captureRunnerSource.getFullText();
-  if (!captureRunnerText.includes("AbortController") || !captureRunnerText.includes("abortSignal")) {
-    findings.push(createFinding({
-      lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1",
-      file: `${ROOT}/runtime/capture-runner.ts`,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot capture runner must preserve real abort-signal wiring for timeouts.",
-    }));
-  }
+  return !captureRunnerText.includes("AbortController") || !captureRunnerText.includes("abortSignal")
+    ? [createFinding({ lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1", file: `${ROOT}/runtime/capture-runner.ts`, line: 1, severity: "fatal", message: "Screenshot capture runner must preserve real abort-signal wiring for timeouts." })]
+    : [];
+}
 
+function collectSchemaFindings(project: Project): Finding[] {
   const schemaSource = getSource(project, `${ROOT}/schema.ts`);
-  if (!hasLiteralTextFragment(schemaSource, "success proof requires outputRef")
+  return !hasLiteralTextFragment(schemaSource, "success proof requires outputRef")
     || !hasLiteralTextFragment(schemaSource, "non-success proof must not expose outputRef")
-    || !hasLiteralTextFragment(schemaSource, "non-success result must not expose output")) {
-    findings.push(createFinding({
-      lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1",
-      file: `${ROOT}/schema.ts`,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot schema anti-escape rules for output and outputRef are missing.",
-    }));
-  }
+    || !hasLiteralTextFragment(schemaSource, "non-success result must not expose output")
+    ? [createFinding({ lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Screenshot schema anti-escape rules for output and outputRef are missing." })]
+    : [];
+}
 
+function collectOutputBoundaryFindings(project: Project): Finding[] {
   const outputBoundarySource = getSource(project, `${ROOT}/runtime/screenshot-output-boundary-gate.ts`);
-  if (!hasLiteralTextFragment(outputBoundarySource, "ai_input_mapping_required")
-    || !hasLiteralTextFragment(outputBoundarySource, "transformed_output_source_evidence_required")) {
-    findings.push(createFinding({
-      lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1",
-      file: `${ROOT}/runtime/screenshot-output-boundary-gate.ts`,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot output-boundary gate must retain scaleMapping and sourceScreenshotEvidenceId authority checks.",
-    }));
-  }
+  return !hasLiteralTextFragment(outputBoundarySource, "ai_input_mapping_required")
+    || !hasLiteralTextFragment(outputBoundarySource, "transformed_output_source_evidence_required")
+    ? [createFinding({ lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1", file: `${ROOT}/runtime/screenshot-output-boundary-gate.ts`, line: 1, severity: "fatal", message: "Screenshot output-boundary gate must retain scaleMapping and sourceScreenshotEvidenceId authority checks." })]
+    : [];
+}
+
+export function runAntiEscape(project: Project): { findings: Finding[]; phase: InspectorPhase } {
+  const findings = [
+    ...collectRootEscapeFindings(project),
+    ...collectExecutorFindings(project),
+    ...collectCaptureRunnerFindings(project),
+    ...collectSchemaFindings(project),
+    ...collectOutputBoundaryFindings(project),
+  ];
 
   const passed = findings.length === 0;
   return {

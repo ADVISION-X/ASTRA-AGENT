@@ -2,7 +2,8 @@ import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createAuditProject, getFunctionLike, getSourceFileOrThrow, getZodEnumValues, getZodObjectPropertyNames, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
+import { getFunctionLike, getZodEnumValues, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
+import { createAuditProject, getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 
 const LAW_ID = "GRASSEYE-MULTI-FRAME-EVIDENCE-001-V1";
 const MULTI_FRAME_TYPES_PATH = "src/types/multi-frame-evidence.ts";

@@ -7,21 +7,25 @@ import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers
 import { ROOT, getSource } from "./ast-utils.js";
 import type { Project } from "ts-morph";
 
-export async function runAntiEscape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-
   const executorSource = getSource(project, `${ROOT}/runtime/page-state-executor.ts`);
   for (const callee of ["gatePageStatePayloadBudget", "gateObservationProofBinding", "buildPageStateRuntimeProof", "buildPageStateResult"]) {
     if (!hasCallExpression(executorSource, callee)) {
       findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-004-V1", file: `${ROOT}/runtime/page-state-executor.ts`, line: 1, severity: "fatal", message: `Page State executor must not bypass ${callee}.` }));
     }
   }
+  return findings;
+}
 
+function collectProfileGateFindings(project: Project): Finding[] {
   const profileGateSource = getSource(project, `${ROOT}/runtime/platform-profile-gate.ts`);
-  if (hasLiteralTextFragment(profileGateSource, "profileId === expectedProfileId") && !hasLiteralTextFragment(profileGateSource, "matchedHost")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/runtime/platform-profile-gate.ts`, line: 1, severity: "fatal", message: "Platform profile resolution must not allow profileId match without host match." }));
-  }
+  return hasLiteralTextFragment(profileGateSource, "profileId === expectedProfileId") && !hasLiteralTextFragment(profileGateSource, "matchedHost")
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/runtime/platform-profile-gate.ts`, line: 1, severity: "fatal", message: "Platform profile resolution must not allow profileId match without host match." })]
+    : [];
+}
 
+function collectPlatformKindFindings(project: Project): Finding[] {
   const platformKindSource = getSource(project, `${ROOT}/children/detect-platform-page-kind/implementation.ts`);
   const hasLocalhostIncludesBypass = platformKindSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
@@ -33,25 +37,42 @@ export async function runAntiEscape(project: Project): Promise<{ findings: Findi
       && (argument.getLiteralText() === "localhost" || argument.getLiteralText() === "127.0.0.1"));
   });
 
-  if (hasLocalhostIncludesBypass) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/children/detect-platform-page-kind/implementation.ts`, line: 1, severity: "fatal", message: "Platform page-kind child must not use URL includes for localhost detection." }));
-  }
+  return hasLocalhostIncludesBypass
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/children/detect-platform-page-kind/implementation.ts`, line: 1, severity: "fatal", message: "Platform page-kind child must not use URL includes for localhost detection." })]
+    : [];
+}
 
+function collectFeedReadyFindings(project: Project): Finding[] {
   const feedReadySource = getSource(project, `${ROOT}/children/detect-feed-ready/implementation.ts`);
-  if (hasLiteralTextFragment(feedReadySource, "path === \"/foryou\"") || hasLiteralTextFragment(feedReadySource, "path.startsWith(\"/@\")")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/children/detect-feed-ready/implementation.ts`, line: 1, severity: "fatal", message: "Feed-ready child must not hardcode TikTok-only paths." }));
-  }
+  return hasLiteralTextFragment(feedReadySource, "path === \"/foryou\"") || hasLiteralTextFragment(feedReadySource, "path.startsWith(\"/@\")")
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/children/detect-feed-ready/implementation.ts`, line: 1, severity: "fatal", message: "Feed-ready child must not hardcode TikTok-only paths." })]
+    : [];
+}
 
+function collectDispatchFailureFindings(project: Project): Finding[] {
   const dispatchFailureSource = getSource(project, `${ROOT}/runtime/page-state-dispatch-failure.ts`);
-  if (hasLiteralTextFragment(dispatchFailureSource, "invalid-mission") || hasLiteralTextFragment(dispatchFailureSource, "https://invalid.local/")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/runtime/page-state-dispatch-failure.ts`, line: 1, severity: "fatal", message: "Invalid input handling must not forge fake mission or URL context." }));
-  }
+  return hasLiteralTextFragment(dispatchFailureSource, "invalid-mission") || hasLiteralTextFragment(dispatchFailureSource, "https://invalid.local/")
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/runtime/page-state-dispatch-failure.ts`, line: 1, severity: "fatal", message: "Invalid input handling must not forge fake mission or URL context." })]
+    : [];
+}
 
+function collectSchemaFindings(project: Project): Finding[] {
   const schemaSource = getSource(project, `${ROOT}/schema.ts`);
-  if (!hasLiteralTextFragment(schemaSource, "failed or review_required result must null output")
-    || !hasLiteralTextFragment(schemaSource, "failed or review_required proof must null outputRef")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Schema anti-escape rules for output/outputRef are missing." }));
-  }
+  return !hasLiteralTextFragment(schemaSource, "failed or review_required result must null output")
+    || !hasLiteralTextFragment(schemaSource, "failed or review_required proof must null outputRef")
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Schema anti-escape rules for output/outputRef are missing." })]
+    : [];
+}
+
+export async function runAntiEscape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const findings = [
+    ...collectExecutorFindings(project),
+    ...collectProfileGateFindings(project),
+    ...collectPlatformKindFindings(project),
+    ...collectFeedReadyFindings(project),
+    ...collectDispatchFailureFindings(project),
+    ...collectSchemaFindings(project),
+  ];
 
   const phasePassed = findings.length === 0;
   return {

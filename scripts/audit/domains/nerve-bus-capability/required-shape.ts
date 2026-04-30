@@ -2,7 +2,8 @@ import { SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpression, hasCallExpressionPath, hasInterfaceMethod } from "../_shared/ast-helpers.js";
+import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
+import { hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
 import {
   ABILITY_GROUP_PATH,
   CHANNEL_IDS,
