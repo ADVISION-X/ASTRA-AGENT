@@ -1,4 +1,8 @@
-import { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, type PostActionObservation } from "../../contract.js";
+import {
+  POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
+  type ParsedPostActionVerificationAbilityInput,
+  type PostActionObservation,
+} from "../../contract.js";
 import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext } from "../../runtime/post-action-verification-runtime-context.js";
 import { VerifyCommentsPanelOpenedOutputSchema } from "./schema.js";
 
@@ -103,8 +107,12 @@ function resolveCommentsPanelOpenedResult(input: {
   return buildCommentsPanelOpenedResult(pageStateSignal, alignedObservationRefs, alignedSourceProofRefs, input.afterEvidenceRef);
 }
 
-async function executeVerifyCommentsPanelOpened(input: PostActionVerificationRuntimeContext["evidenceReadPort"] extends infer T ? T : never, context: PostActionVerificationRuntimeContext, afterEvidenceRef: string | null) {
-  return resolveCommentsPanelOpenedResult({ observations: context.evidenceReadPort.listObservations(input as never), afterEvidenceRef });
+async function executeVerifyCommentsPanelOpened(
+  input: ParsedPostActionVerificationAbilityInput,
+  context: PostActionVerificationRuntimeContext,
+  afterEvidenceRef: string | null,
+) {
+  return resolveCommentsPanelOpenedResult({ observations: context.evidenceReadPort.listObservations(input), afterEvidenceRef });
 }
 
 export function createVerifyCommentsPanelOpenedCapability(): PostActionVerificationChildCapability {
@@ -112,7 +120,7 @@ export function createVerifyCommentsPanelOpenedCapability(): PostActionVerificat
     abilityGroupId: POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
     childCapabilityId: "verify-comments-panel-opened" as const,
     async execute(input, context: PostActionVerificationRuntimeContext) {
-      return executeVerifyCommentsPanelOpened(input as never, context, input.beforeAfterEvidence.afterEvidence ? [input.beforeAfterEvidence.afterEvidence.evidenceRef].join("") : null);
+      return executeVerifyCommentsPanelOpened(input, context, input.beforeAfterEvidence.afterEvidence?.evidenceRef ?? null);
     },
   };
 }

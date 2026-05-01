@@ -6,9 +6,8 @@ export function createResumeMissionCapability(): OrchestrationChildCapability<Re
   return {
     abilityGroupId: "orchestration",
     childCapabilityId: "resume-mission",
-    async execute(input, context) {
-      const result = await resumeMissionCommand({ command: input, caller: "commander-console", context });
-      return result.stateSnapshot;
+    execute(input, context) {
+      return resumeMissionCommand({ command: input, caller: "commander-console", context });
     },
   };
 }

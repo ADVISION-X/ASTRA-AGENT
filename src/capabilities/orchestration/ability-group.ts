@@ -1,15 +1,7 @@
-import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup } from "./contract.js";
+import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
 import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
-import {
-  executeMissionCommand,
-  pauseMissionCommand,
-  resumeMissionCommand,
-  stopMissionCommand,
-  emergencyStopMissionCommand,
-  submitMissionReviewDecision,
-} from "./runtime/orchestration-executor.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
 import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
 import { getDefaultMapPluginRegistry, listActivePackages } from "./runtime/orchestration-map-id-list.js";
@@ -19,81 +11,89 @@ export type CreateOrchestrationAbilityGroupInput = {
   nerveBus: NerveBusAbilityGroup;
 };
 
-function createMissionEntryMethods(context: ReturnType<typeof createOrchestrationRuntimeContext>) {
-  return {
-    executeMission(command: MissionCommand) {
-      return executeMissionCommand({ command, caller: "commander-console", context });
-    },
+type OrchestrationRuntime = ReturnType<typeof createOrchestrationRuntimeContext>;
+type ExecuteEnvelope = (inputValue: OrchestrationExecuteInput) => Promise<OrchestrationExecuteResult>;
 
-    async startMission(command: MissionCommand) {
-      const result = await executeMissionCommand({ command, caller: "commander-console", context });
-      return result.stateSnapshot;
-    },
-  };
+function readStateSnapshot(executeEnvelope: ExecuteEnvelope, inputValue: OrchestrationExecuteInput) {
+  return executeEnvelope(inputValue).then((result) => result.stateSnapshot);
 }
 
-function createMissionTransitionMethods(context: ReturnType<typeof createOrchestrationRuntimeContext>) {
-  return {
-    pauseMission(missionId: string) {
-      return pauseMissionCommand({ command: { missionId, reason: null, note: null }, context });
-    },
-
-    async resumeMission(missionId: string) {
-      const result = await resumeMissionCommand({ command: { missionId }, caller: "commander-console", context });
-      return result.stateSnapshot;
-    },
-
-    stopMission(inputValue: { missionId: string; reason?: string }) {
-      return stopMissionCommand({ command: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null }, context });
-    },
-
-    emergencyStop(inputValue: { missionId: string; reason?: string }) {
-      return emergencyStopMissionCommand({ command: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null }, context });
-    },
-  };
+function buildReviewDecisionInput(inputValue: MissionReviewDecisionInput): OrchestrationExecuteInput {
+  if (inputValue.decision === "resume") {
+    return { childCapabilityId: "resume-mission", payload: { missionId: inputValue.missionId, reason: null, note: inputValue.note ?? null } };
+  }
+  if (inputValue.decision === "stop") {
+    return { childCapabilityId: "stop-mission", payload: { missionId: inputValue.missionId, reason: inputValue.note ?? "review stop requested", note: inputValue.note ?? null } };
+  }
+  return { childCapabilityId: "request-human-review", payload: { missionId: inputValue.missionId, reason: inputValue.note ?? "review hold requested" } };
 }
 
-function createMissionStateMethods(context: ReturnType<typeof createOrchestrationRuntimeContext>) {
-  return {
-    getMissionState(missionId?: string | null) {
-      return readCurrentMissionState(context, missionId);
-    },
-
-    async submitReviewDecision(inputValue: MissionReviewDecisionInput) {
-      const result = await submitMissionReviewDecision({ command: inputValue, caller: "commander-console", context });
-      if ("stateSnapshot" in result) {
-        return result.stateSnapshot;
-      }
-      return result;
-    },
-  };
-}
-
-export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
-  const context = createOrchestrationRuntimeContext({
-    mapStore: createDefaultOrchestrationMapStore(),
-    nerveBus: input.nerveBus,
-  });
-  const children = createOrchestrationChildren();
-  const missionEntry = createMissionEntryMethods(context);
-  const missionTransitions = createMissionTransitionMethods(context);
-  const missionState = createMissionStateMethods(context);
-
+function createCatalogMethods(context: OrchestrationRuntime): Pick<OrchestrationAbilityGroup, "listChildCapabilityIds" | "listMapIds" | "getMissionState"> {
   return {
     listChildCapabilityIds() {
       return listOrchestrationChildren();
     },
-
     listMapIds() {
       const registry = getDefaultMapPluginRegistry();
       return listActivePackages(registry.active).map((mapPackage) => mapPackage.manifest.mapId);
     },
-
-    async execute(inputValue) {
-      return executeOrchestrationChild(inputValue, context, children);
+    getMissionState(missionId?: string | null) {
+      return readCurrentMissionState(context, missionId);
     },
-    ...missionEntry,
-    ...missionTransitions,
-    ...missionState,
   };
+}
+
+function createExecutionMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "execute" | "executeMission" | "startMission"> {
+  return {
+    execute(inputValue) {
+      return executeEnvelope(inputValue);
+    },
+    executeMission(command: MissionCommand) {
+      return executeEnvelope({ childCapabilityId: "start-mission", payload: command });
+    },
+    startMission(command: MissionCommand) {
+      return readStateSnapshot(executeEnvelope, { childCapabilityId: "start-mission", payload: command });
+    },
+  };
+}
+
+function createControlMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "pauseMission" | "resumeMission" | "stopMission" | "emergencyStop"> {
+  return {
+    pauseMission(missionId: string) {
+      return readStateSnapshot(executeEnvelope, { childCapabilityId: "pause-mission", payload: { missionId, reason: null, note: null } });
+    },
+    resumeMission(missionId: string) {
+      return readStateSnapshot(executeEnvelope, { childCapabilityId: "resume-mission", payload: { missionId, reason: null, note: null } });
+    },
+    stopMission(inputValue: { missionId: string; reason?: string }) {
+      return readStateSnapshot(executeEnvelope, { childCapabilityId: "stop-mission", payload: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null } });
+    },
+    emergencyStop(inputValue: { missionId: string; reason?: string }) {
+      return readStateSnapshot(executeEnvelope, { childCapabilityId: "emergency-stop", payload: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null } });
+    },
+  };
+}
+
+function createReviewMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "submitReviewDecision"> {
+  return {
+    submitReviewDecision(inputValue: MissionReviewDecisionInput) {
+      return readStateSnapshot(executeEnvelope, buildReviewDecisionInput(inputValue));
+    },
+  };
+}
+
+function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, executeEnvelope: ExecuteEnvelope): OrchestrationAbilityGroup {
+  return {
+    ...createCatalogMethods(context),
+    ...createExecutionMethods(executeEnvelope),
+    ...createControlMethods(executeEnvelope),
+    ...createReviewMethods(executeEnvelope),
+  };
+}
+
+export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
+  const context = createOrchestrationRuntimeContext({ mapStore: createDefaultOrchestrationMapStore(), nerveBus: input.nerveBus });
+  const children = createOrchestrationChildren();
+  const executeEnvelope: ExecuteEnvelope = (inputValue) => executeOrchestrationChild(inputValue, context, children);
+  return assembleOrchestrationAbilityGroup(context, executeEnvelope);
 }

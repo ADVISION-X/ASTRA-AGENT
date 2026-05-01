@@ -21,6 +21,10 @@ export type BuildProofInput = {
   mapPackageId?: string | null;
   mapPackageVersion?: string | null;
   mapVersion?: string | null;
+  selectedMapVersion?: string | null;
+  activationSnapshotRef?: string | null;
+  promptContractVersion?: string | null;
+  capabilityCatalogVersion?: string | null;
   selectedMapSource?: z.output<typeof SelectedMapSourceSchema> | null;
   stepId: string;
   targetAbilityGroupId?: z.output<typeof AllowedAbilityGroupIdSchema> | null;
@@ -57,7 +61,7 @@ export type BuildProofInput = {
   startedAt: string;
   endedAt: string;
   durationMs: number;
-  status: "completed" | "failed" | "review_required" | "stopped";
+  status: "completed" | "failed" | "review_required" | "stopped" | "running" | "paused";
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
   mapDecision: "selected" | "rejected";
@@ -77,6 +81,10 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "mapPackageId"
   | "mapPackageVersion"
   | "mapVersion"
+  | "selectedMapVersion"
+  | "activationSnapshotRef"
+  | "promptContractVersion"
+  | "capabilityCatalogVersion"
   | "selectedMapSource"
   | "stepId"
   | "targetAbilityGroupId"
@@ -87,7 +95,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "caller"
   | "idempotencyKey"
   | "sequenceNo"> {
-  return { proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+  return { proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
 }
 
 function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
@@ -134,6 +142,10 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
   | "mapPackageId"
   | "mapPackageVersion"
   | "mapVersion"
+  | "selectedMapVersion"
+  | "activationSnapshotRef"
+  | "promptContractVersion"
+  | "capabilityCatalogVersion"
   | "selectedMapSource"
   | "stepId"
   | "targetAbilityGroupId"

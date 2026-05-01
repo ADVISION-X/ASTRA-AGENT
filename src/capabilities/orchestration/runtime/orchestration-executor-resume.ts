@@ -3,6 +3,7 @@ import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-stor
 import { buildDispatchFailure } from "./orchestration-dispatch-failure.js";
 import { runMissionLoop } from "./orchestration-executor-loop.js";
 import { IDEMPOTENCY_TTL_MS, createFailedMissionState } from "./orchestration-executor-command-support.js";
+import { buildCancellationTokenRef, buildRunLockId, resolveFrozenActivationMapRecord } from "./orchestration-frozen-activation.js";
 import { parseMissionControlCommand } from "./mission-command-gate.js";
 import { checkCanResume } from "./mission-state-policy-gate.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
@@ -165,18 +166,37 @@ async function runResumeMissionPlanWithState(
 ): Promise<MissionExecutionResult> {
   if (!state.mapId) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Mission ${command.missionId} has no mapId.`, stepId: "map-lookup", childCapabilityId: "map-lookup", idempotencySuffix: "no-map" });
 
-  const mapRecord = await input.context.mapStore.getActiveMapRecord(state.mapId);
-  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Map "${state.mapId}" is not active for resume of mission ${command.missionId}.`, stepId: "map-lookup", childCapabilityId: "map-lookup", idempotencySuffix: "map-missing" });
+  const mapRecord = await resolveFrozenActivationMapRecord(input.context.mapStore, state);
+  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Frozen activation snapshot is missing for resume of mission ${command.missionId}.`, stepId: "map-lookup", childCapabilityId: "map-lookup", idempotencySuffix: "map-missing" });
 
   const mapValidation = validateOperationalMapGate(mapRecord.operationalMap);
   if (!mapValidation.valid) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: mapValidation.failureReason, stepId: "map-validation", childCapabilityId: "map-validation", idempotencySuffix: "map-invalid", mapRecord });
 
   const resumedAt = input.context.clock.now().isoTimestamp;
-  const resumedState = toMissionControlState(state, resumedAt, { status: "running", pausedAt: null, lastHumanCommand: "resume-mission" });
+  const runLockId = buildRunLockId(command.missionId, resumedAt);
+  const resumedState = toMissionControlState(state, resumedAt, {
+    status: "running",
+    pausedAt: null,
+    resumeCheckpointRef: null,
+    runLockId,
+    cancellationTokenRef: buildCancellationTokenRef(command.missionId, runLockId),
+    lastHumanCommand: "resume-mission",
+  });
   await input.context.statePort.putMissionState(resumedState);
   const idempotencyKey = `resume:${state.missionId}:${state.sequenceNo}`;
   await input.context.idempotency.reserve(idempotencyKey, IDEMPOTENCY_TTL_MS);
-  return runMissionLoop({ state: resumedState, map: mapValidation.map, mapRecord, context: input.context, commandKind: "resume-mission", caller: input.caller, idempotencyKey, selectedMapSource: "preferred_map_id" });
+  return runMissionLoop({
+    state: resumedState,
+    map: mapValidation.map,
+    mapRecord,
+    context: input.context,
+    commandKind: "resume-mission",
+    caller: input.caller,
+    idempotencyKey,
+    selectedMapSource: resumedState.selectedMapSource && resumedState.selectedMapSource !== "rejected_missing"
+      ? resumedState.selectedMapSource
+      : "activation_id",
+  });
 }
 
 async function runResumeMissionPlan(input: ResumeMissionCommandInput, startedSnapshot: { isoTimestamp: string; monotonicMs: number }): Promise<MissionExecutionResult> {

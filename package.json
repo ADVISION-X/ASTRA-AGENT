@@ -16,6 +16,7 @@
     "audit:build": "node --import tsx scripts/audit/build-audit-artifacts-cli.ts",
     "audit": "node --import tsx scripts/audit/runner.ts",
     "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
+    "audit:orchestration": "node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts",
     "audit:nerve-bus": "tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
     "audit:capability-runtime-wiring": "tsx scripts/audit/domains/capability-runtime-wiring/run-inspector.ts",
     "audit:text-input-capability": "tsx scripts/audit/domains/text-input-capability/run-inspector.ts",

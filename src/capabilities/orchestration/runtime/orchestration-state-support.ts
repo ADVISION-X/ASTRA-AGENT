@@ -72,5 +72,9 @@ export function toMapProofMetadata(record: ActiveOperationalMapRecord | null | u
     mapPackageId: record?.packageId ?? null,
     mapPackageVersion: record?.packageVersion ?? null,
     mapVersion: record?.mapVersion ?? null,
+    selectedMapVersion: record?.mapVersion ?? null,
+    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+    promptContractVersion: record?.promptContractVersion ?? null,
+    capabilityCatalogVersion: record?.capabilityCatalogVersion ?? null,
   };
 }

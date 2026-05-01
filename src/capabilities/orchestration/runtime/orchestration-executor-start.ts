@@ -268,7 +268,7 @@ async function runStartMissionPlan(
     });
   }
 
-  const initialState = createInitialMissionState(command, map, startedSnapshot.isoTimestamp);
+  const initialState = createInitialMissionState(command, mapSelection.record, mapSelection.selectedMapSource, startedSnapshot.isoTimestamp);
   await input.context.statePort.putMissionState(initialState);
   return runMissionLoop({
     state: initialState,

@@ -3,6 +3,7 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { getAuditProject, getNodeLine, getSourceFileOrThrow } from "../../core/ts-morph.js";
+import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 
 import { localBrowserSessionInspectionConstants as config } from "./inspection-constants.js";
 import { localBrowserSessionInspectionUtils as utils } from "./inspection-utils.js";
@@ -10,6 +11,7 @@ import { Node, SyntaxKind } from "ts-morph";
 
 const {
   CONTROLLER_PATH,
+  CONTROLLER_PRIMITIVES_PATH,
   HELPER_PATH,
   LAW_ID,
   REQUIRED_MODE_FIELDS,
@@ -17,6 +19,7 @@ const {
   STARTUP_ENTRY_PATH,
   STARTUP_OPEN_HELPER_PATH,
   WORKBENCH_PATH,
+  WORKBENCH_STATUS_PATH,
 } = config;
 const {
   createLooseSourceFile,
@@ -107,7 +110,7 @@ const pushStartupHelperChromeAppFindings = (findings: Finding[], startupOpenHelp
   if (!resolvesChromeApp) {
     findings.push(createFinding({ lawId: LAW_ID, file: STARTUP_OPEN_HELPER_PATH, line: 1, severity: "error", message: "Startup open helper must resolve the standard macOS Google Chrome.app path." }));
   }
-  if (!openMainPageFunction || !hasCallByIdentifier(openMainPageFunction, "handoffToCurrentChromeTab")) {
+  if (!openMainPageFunction || (!hasCallByIdentifier(openMainPageFunction, "tryMacOsChromeHandoff") && !hasCallByIdentifier(openMainPageFunction, "handoffToCurrentChromeTab"))) {
     findings.push(createFinding({ lawId: LAW_ID, file: STARTUP_OPEN_HELPER_PATH, line: 1, severity: "error", message: "Startup open helper must try current-Chrome tab handoff before fallback open command execution." }));
   }
 };
@@ -139,7 +142,7 @@ const pushWorkbenchImportFindings = (findings: Finding[], workbenchSource: impor
 const pushWorkbenchRuntimeWiringFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile): void => {
   const sessionConfigCall = findCallByIdentifier(workbenchSource, "createLocalBrowserSessionConfig");
   const sessionConfigObject = getObjectLiteralArgument(sessionConfigCall, 0);
-  if (!sessionConfigCall || !sessionConfigObject || !objectLiteralReferencesIdentifier(sessionConfigObject, "profileDirectory")) {
+  if (!sessionConfigCall || !sessionConfigObject || !objectLiteralReferencesIdentifier(sessionConfigObject, "browserProfileDirectory")) {
     findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must call createLocalBrowserSessionConfig with the governed browser profile directory input." }));
   }
 
@@ -148,32 +151,34 @@ const pushWorkbenchRuntimeWiringFindings = (findings: Finding[], workbenchSource
     return Node.isIdentifier(constructorTarget) && constructorTarget.getText() === "CurrentChromeBrowserController";
   }) ?? null;
   const controllerOptions = getObjectLiteralArgument(controllerConstruction, 0);
-  if (!controllerConstruction || !controllerOptions || getPropertyInitializerText(controllerOptions, "sessionConfig") !== "this.browserSessionConfig") {
+  if (!controllerConstruction || !controllerOptions || getPropertyInitializerText(controllerOptions, "sessionConfig") !== "browserSessionConfig") {
     findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must construct CurrentChromeBrowserController with this.browserSessionConfig." }));
   }
 };
 
-const pushWorkbenchModeInfoFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile): void => {
-  const modeInfoObject = getReturnedObjectLiteral(workbenchSource.getClass("GrassEyeWorkbench")?.getMethod("getModeInfo") ?? null);
+const pushWorkbenchModeInfoFindings = (findings: Finding[], workbenchStatusSource: import("ts-morph").SourceFile): void => {
+  const modeInfoObject = getReturnedObjectLiteral(getFunctionLike(workbenchStatusSource, "getModeInfo"));
   const modeInfoFields = getObjectLiteralPropertyNames(modeInfoObject);
   for (const requiredField of REQUIRED_MODE_FIELDS) {
     if (!modeInfoFields.has(requiredField)) {
-      findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_PATH, line: 1, severity: "error", message: `Workbench mode info must expose ${requiredField}.` }));
+      findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_STATUS_PATH, line: 1, severity: "error", message: `Workbench mode info must expose ${requiredField}.` }));
     }
   }
 };
 
-const pushWorkbenchFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile): void => {
+const pushWorkbenchFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile, workbenchStatusSource: import("ts-morph").SourceFile): void => {
   pushWorkbenchImportFindings(findings, workbenchSource);
   pushWorkbenchRuntimeWiringFindings(findings, workbenchSource);
-  pushWorkbenchModeInfoFindings(findings, workbenchSource);
+  pushWorkbenchModeInfoFindings(findings, workbenchStatusSource);
 };
 
 const pushServerFindings = (findings: Finding[], serverSource: import("ts-morph").SourceFile): void => {
-  const workbenchConstruction = serverSource.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) => {
-    const constructorTarget = expression.getExpression();
-    return Node.isIdentifier(constructorTarget) && constructorTarget.getText() === "GrassEyeWorkbench";
-  }) ?? null;
+  const workbenchConstruction = findCallByIdentifier(serverSource, "createGrassEyeWorkbenchHandle")
+    ?? serverSource.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) => {
+      const constructorTarget = expression.getExpression();
+      return Node.isIdentifier(constructorTarget) && constructorTarget.getText() === "GrassEyeWorkbench";
+    })
+    ?? null;
   const workbenchOptions = getObjectLiteralArgument(workbenchConstruction, 0);
   if (!hasProcessEnvReference(serverSource, "GRASSEYE_BROWSER_PROFILE_DIRECTORY")) {
     findings.push(createFinding({ lawId: LAW_ID, file: SERVER_PATH, line: 1, severity: "fatal", message: "Server startup must still read GRASSEYE_BROWSER_PROFILE_DIRECTORY before constructing the workbench." }));
@@ -191,8 +196,8 @@ const pushServerFindings = (findings: Finding[], serverSource: import("ts-morph"
   }
 };
 
-const pushWorkbenchAndServerFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile, serverSource: import("ts-morph").SourceFile): void => {
-  pushWorkbenchFindings(findings, workbenchSource);
+const pushWorkbenchAndServerFindings = (findings: Finding[], workbenchSource: import("ts-morph").SourceFile, workbenchStatusSource: import("ts-morph").SourceFile, serverSource: import("ts-morph").SourceFile): void => {
+  pushWorkbenchFindings(findings, workbenchSource, workbenchStatusSource);
   pushServerFindings(findings, serverSource);
 };
 
@@ -242,18 +247,18 @@ const pushControllerMethodFindings = (findings: Finding[], controllerClass: impo
   }
 };
 
-const pushControllerNativeActionFindings = (findings: Finding[], controllerSource: import("ts-morph").SourceFile, controllerPath: string): void => {
-  const clickAtFunction = getFunctionLike(controllerSource, "clickAt");
-  if (!clickAtFunction || !hasCallByIdentifier(clickAtFunction, "runJxa") || !hasTemplateLiteralMarker(clickAtFunction, "kCGEventLeftMouseDown")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: 1, severity: "error", message: "CurrentChromeBrowserController click path must use macOS CGEvent mouse events instead of browser automation." }));
+const pushControllerNativeActionFindings = (findings: Finding[], primitivesSource: import("ts-morph").SourceFile): void => {
+  const clickAtFunction = getFunctionLike(primitivesSource, "clickAt");
+  if (!clickAtFunction || !hasCallByIdentifier(clickAtFunction, "runJxa") || !hasLiteralTextFragment(primitivesSource, "kCGEventLeftMouseDown")) {
+    findings.push(createFinding({ lawId: LAW_ID, file: CONTROLLER_PRIMITIVES_PATH, line: 1, severity: "error", message: "CurrentChromeBrowserController click path must use macOS CGEvent mouse events instead of browser automation." }));
   }
-  const activateChromeFunction = getFunctionLike(controllerSource, "activateChrome");
+  const activateChromeFunction = getFunctionLike(primitivesSource, "activateChrome");
   if (!activateChromeFunction || !hasCallByIdentifier(activateChromeFunction, "runAppleScript")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: 1, severity: "error", message: "CurrentChromeBrowserController must activate the current Google Chrome session before actions." }));
+    findings.push(createFinding({ lawId: LAW_ID, file: CONTROLLER_PRIMITIVES_PATH, line: 1, severity: "error", message: "CurrentChromeBrowserController must activate the current Google Chrome session before actions." }));
   }
 };
 
-const pushControllerFindings = (findings: Finding[], controllerSource: import("ts-morph").SourceFile): void => {
+const pushControllerFindings = (findings: Finding[], controllerSource: import("ts-morph").SourceFile, primitivesSource: import("ts-morph").SourceFile): void => {
   const controllerClass = controllerSource.getClass("CurrentChromeBrowserController");
   const controllerConstructor = controllerClass?.getConstructors()[0] ?? null;
   const controllerPath = resolveControllerPath(controllerSource);
@@ -263,7 +268,7 @@ const pushControllerFindings = (findings: Finding[], controllerSource: import("t
   }
   pushControllerContractFindings(findings, controllerClass, controllerConstructor, controllerPath);
   pushControllerMethodFindings(findings, controllerClass, controllerPath);
-  pushControllerNativeActionFindings(findings, controllerSource, controllerPath);
+  pushControllerNativeActionFindings(findings, primitivesSource);
 };
 
 export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
@@ -275,7 +280,9 @@ export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings:
   const project = getAuditProject();
   const helperSource = getSourceFileOrThrow(project, HELPER_PATH);
   const controllerSource = getSourceFileOrThrow(project, CONTROLLER_PATH);
+  const primitivesSource = getSourceFileOrThrow(project, CONTROLLER_PRIMITIVES_PATH);
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
+  const workbenchStatusSource = getSourceFileOrThrow(project, WORKBENCH_STATUS_PATH);
   const serverSource = getSourceFileOrThrow(project, SERVER_PATH);
   const startupEntrySource = createLooseSourceFile(STARTUP_ENTRY_PATH, startupEntryText);
   const startupOpenHelperSource = createLooseSourceFile(STARTUP_OPEN_HELPER_PATH, startupOpenHelperText);
@@ -283,11 +290,11 @@ export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings:
   debug("loaded runtime surfaces for local-browser-session checks");
   pushHelperFindings(findings, helperSource);
   pushStartupFindings(findings, startupEntrySource, startupOpenHelperSource);
-  pushWorkbenchAndServerFindings(findings, workbenchSource, serverSource);
-  pushControllerFindings(findings, controllerSource);
+  pushWorkbenchAndServerFindings(findings, workbenchSource, workbenchStatusSource, serverSource);
+  pushControllerFindings(findings, controllerSource, primitivesSource);
   debug("validated local-browser-session helper, startup, workbench, server, and controller boundaries");
 
-  const governedRuntimeFiles: string[] = [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH];
+  const governedRuntimeFiles: string[] = [HELPER_PATH, CONTROLLER_PATH, CONTROLLER_PRIMITIVES_PATH, WORKBENCH_PATH, WORKBENCH_STATUS_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH];
   const runtimeBoundaryPassed = !findings.some((finding) => governedRuntimeFiles.includes(finding.file));
   return {
     findings,

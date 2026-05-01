@@ -9,10 +9,10 @@ import { getSource } from "./project-access.js";
 
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-  const executorSource = getSource(project, PATHS.EXECUTOR);
+  const successResultSource = getSource(project, PATHS.SUCCESS_RESULT);
   for (const callee of ["validatePostActionOutputBoundary", "finalizeVerificationDecision", "buildPostActionRuntimeProof", "buildPostActionVerificationResult"]) {
-    if (!hasCallExpression(executorSource, callee)) {
-      findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Anti-escape chain requires ${callee} to be called and retained.` }));
+    if (!hasCallExpression(successResultSource, callee)) {
+      findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.SUCCESS_RESULT, line: 1, severity: "fatal", message: `Anti-escape chain requires ${callee} to be called and retained.` }));
     }
   }
   return findings;

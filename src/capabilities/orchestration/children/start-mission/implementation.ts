@@ -6,9 +6,8 @@ export function createStartMissionCapability(): OrchestrationChildCapability<Sta
   return {
     abilityGroupId: "orchestration",
     childCapabilityId: "start-mission",
-    async execute(input, context) {
-      const result = await executeMissionCommand({ command: input, caller: "commander-console", context });
-      return result.stateSnapshot;
+    execute(input, context) {
+      return executeMissionCommand({ command: input, caller: "commander-console", context });
     },
   };
 }

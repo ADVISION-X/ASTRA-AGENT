@@ -44,25 +44,43 @@ const inspectSchemaShape = (project: Project): Finding[] => {
   return findings;
 };
 
-const inspectExecutorShape = (project: Project): Finding[] => {
+const EXECUTION_ROUTE_SOURCES = {
+  gatePageStateInput: `${ROOT}/runtime/page-state-preflight.ts`,
+  gatePageStatePayloadBudget: `${ROOT}/runtime/page-state-preflight.ts`,
+  gateObservationSources: `${ROOT}/runtime/page-state-preflight.ts`,
+  gateObservationProofBinding: `${ROOT}/runtime/page-state-preflight.ts`,
+  gateSnapshotFreshness: `${ROOT}/runtime/page-state-preflight.ts`,
+  gatePlatformProfile: `${ROOT}/runtime/page-state-preflight.ts`,
+  classifyPageState: `${ROOT}/runtime/page-state-success-result.ts`,
+  decideProceed: `${ROOT}/runtime/page-state-success-result.ts`,
+  createPageStateFingerprint: `${ROOT}/runtime/page-state-success-result.ts`,
+  buildPageStateRuntimeProof: `${ROOT}/runtime/page-state-success-result.ts`,
+  buildPageStateResult: `${ROOT}/runtime/page-state-success-result.ts`,
+} as const;
+
+function inspectExecutorEntry(project: Project): Finding[] {
   const executorSource = getSource(project, `${ROOT}/runtime/page-state-executor.ts`);
-  return [
-    "gatePageStateInput",
-    "gatePageStatePayloadBudget",
-    "gateObservationSources",
-    "gateObservationProofBinding",
-    "gateSnapshotFreshness",
-    "gatePlatformProfile",
-    "classifyPageState",
-    "decideProceed",
-    "createPageStateFingerprint",
-    "buildPageStateRuntimeProof",
-    "buildPageStateResult",
-  ].flatMap((callee) =>
-    hasCallExpression(executorSource, callee)
+  const executorRoutes = [
+    { callee: "runPageStatePreflight", message: "Page State executor must route through runPageStatePreflight." },
+    { callee: "buildPageStateSuccessResult", message: "Page State executor must route through buildPageStateSuccessResult." },
+  ] as const;
+
+  return executorRoutes.flatMap((route) =>
+    hasCallExpression(executorSource, route.callee)
       ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1", file: `${ROOT}/runtime/page-state-executor.ts`, line: 1, severity: "fatal", message: `Page State executor must route through ${callee}.` })],
+      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1", file: `${ROOT}/runtime/page-state-executor.ts`, line: 1, severity: "fatal", message: route.message })],
   );
+}
+
+const inspectExecutorShape = (project: Project): Finding[] => {
+  const routeFindings = Object.entries(EXECUTION_ROUTE_SOURCES).flatMap(([callee, file]) => {
+    const source = getSource(project, file);
+    return hasCallExpression(source, callee)
+      ? []
+      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1", file, line: 1, severity: "fatal", message: `Page State execution chain must route through ${callee}.` })];
+  });
+
+  return [...inspectExecutorEntry(project), ...routeFindings];
 };
 
 const inspectBuilderSchemaParsing = (project: Project): Finding[] => {

@@ -1,8 +1,8 @@
-import { createOpenRegistry, listOpenChildren } from "../../../../capabilities/open/index.js";
+import { createOpenRegistry } from "../../../../capabilities/open/index.js";
 
 export const listMapPluginOpenCatalogEntries = () => {
   const registry = createOpenRegistry();
-  return listOpenChildren().map((childCapabilityId) => ({
+  return [...registry.keys()].map((childCapabilityId) => ({
     childCapabilityId,
     child: registry.get(childCapabilityId),
   }));

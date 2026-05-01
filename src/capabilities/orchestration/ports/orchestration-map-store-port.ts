@@ -7,6 +7,9 @@ export type ActiveOperationalMapRecord = {
   packageVersion: string;
   mapVersion: string;
   activationId: string;
+  activationSnapshotRef: string;
+  capabilityCatalogVersion: string | null;
+  promptContractVersion: string | null;
   requestedPlatformId: string | null;
   platformProfileRef: string | null;
   targetProfileRef: string | null;

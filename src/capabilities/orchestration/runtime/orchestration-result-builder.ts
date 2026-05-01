@@ -1,4 +1,4 @@
-import { MissionExecutionResultSchema, MissionStateSchema, MissionStepResultSchema, RuntimeProofSchema } from "../schema.js";
+import { MissionExecutionResultSchema, MissionStateSchema, MissionStepResultSchema, OrchestrationExecuteResultSchema, RuntimeProofSchema } from "../schema.js";
 import type { z } from "zod";
 
 export function buildMissionStateUpdate(state: z.input<typeof MissionStateSchema>): z.output<typeof MissionStateSchema> {
@@ -25,6 +25,29 @@ export function buildMissionExecutionResult(input: {
   return MissionExecutionResultSchema.parse({
     status,
     output,
+    stateSnapshot: input.missionState,
+    failureReason: input.failureReason ?? input.missionState.failureReason ?? null,
+    reviewRequiredReason: input.reviewRequiredReason ?? input.missionState.reviewRequiredReason ?? null,
+    runtimeProof: input.runtimeProof,
+    policyDecision: "allowed",
+    dataQualityFlags: input.dataQualityFlags ?? [],
+  });
+}
+
+export function buildOrchestrationExecuteResult(input: {
+  missionState: z.input<typeof MissionStateSchema>;
+  currentStepResult: z.input<typeof MissionStepResultSchema> | null;
+  runtimeProof: z.input<typeof RuntimeProofSchema>;
+  failureReason?: string | null;
+  reviewRequiredReason?: string | null;
+  dataQualityFlags?: string[];
+}): z.output<typeof OrchestrationExecuteResultSchema> {
+  return OrchestrationExecuteResultSchema.parse({
+    status: input.missionState.status,
+    output: {
+      missionState: input.missionState,
+      currentStepResult: input.currentStepResult,
+    },
     stateSnapshot: input.missionState,
     failureReason: input.failureReason ?? input.missionState.failureReason ?? null,
     reviewRequiredReason: input.reviewRequiredReason ?? input.missionState.reviewRequiredReason ?? null,

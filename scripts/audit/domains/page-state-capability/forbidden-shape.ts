@@ -3,7 +3,7 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { getPageStateSources, getSource } from "./audit-project.js";
 import { ROOT } from "./constants.js";
 import { hasDateOutsideClock, hasForbiddenCapabilityImport, hasForbiddenEscape } from "./source-boundaries.js";
-import type { Project } from "ts-morph";
+import { Node, SyntaxKind, type Project } from "ts-morph";
 
 const toRepoPath = (absolutePath: string): string =>
   absolutePath.split("/Users/nexgen/Documents/GrassEye -AI-AGENT/").pop() ?? absolutePath;
@@ -34,11 +34,36 @@ const inspectIndexSource = (project: Project): Finding[] => {
     : [];
 };
 
-const inspectSchemaSource = (project: Project): Finding[] => {
+function schemaUsesValidationGuard(project: Project, schemaName: string, guardName: string): boolean {
   const schemaSource = getSource(project, `${ROOT}/schema.ts`);
-  const schemaText = schemaSource.getFullText();
-  const hasGovernedNullOutput = schemaText.includes("failed or review_required result must null output");
-  const hasGovernedNullOutputRef = schemaText.includes("failed or review_required proof must null outputRef");
+  const initializer = schemaSource.getVariableDeclaration(schemaName)?.getInitializer();
+  if (!initializer) {
+    return false;
+  }
+
+  const callExpressions = [
+    ...(Node.isCallExpression(initializer) ? [initializer] : []),
+    ...initializer.getDescendantsOfKind(SyntaxKind.CallExpression),
+  ];
+
+  return callExpressions.some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && expression.getName() === "superRefine"
+      && callExpression.getArguments().some((argument) => Node.isIdentifier(argument) && argument.getText() === guardName);
+  });
+}
+
+function validationSourceContainsGuard(project: Project, message: string): boolean {
+  const validationSource = getSource(project, `${ROOT}/page-state-schema-validation.ts`);
+  return validationSource.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === message);
+}
+
+const inspectSchemaSource = (project: Project): Finding[] => {
+  const hasGovernedNullOutput = schemaUsesValidationGuard(project, "PageStateAbilityResultSchema", "validatePageStateAbilityResult")
+    && validationSourceContainsGuard(project, "failed or review_required result must null output");
+  const hasGovernedNullOutputRef = schemaUsesValidationGuard(project, "PageStateRuntimeProofSchema", "validatePageStateRuntimeProof")
+    && validationSourceContainsGuard(project, "failed or review_required proof must null outputRef");
 
   return hasGovernedNullOutput && hasGovernedNullOutputRef
     ? []

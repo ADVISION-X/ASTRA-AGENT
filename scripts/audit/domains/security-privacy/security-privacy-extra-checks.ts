@@ -1,15 +1,16 @@
 import { createPhase } from "../../core/result.js";
-import { listFilesRecursive, readTextFile } from "../../core/filesystem.js";
+import { listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
+import { createAuditProject, getSourceFileOrThrow } from "../_shared/ast-helpers.js";
 import { scanFilesForPatterns } from "../_shared/scan-for-patterns.js";
-import { readEvidenceStoreSource } from "./evidence-store-source.js";
+import { resolveEvidenceStorePath } from "./evidence-store-source.js";
 import { hasLocalSecurityBoundary } from "./local-security-boundary-gate.js";
 import { SENSITIVE_PATTERNS } from "./sensitive-pattern-rules.js";
 
 const createLocalBoundaryPhase = (passed: boolean) =>
   createPhase(
     "local-security-boundary",
-    passed ? "PASS" : "LAW-SCRIPT DRIFT",
+    passed ? "PASS" : "CODE VIOLATION",
     passed,
     passed
       ? "Local host binding and local evidence storage stay inside the authorized local environment."
@@ -27,9 +28,11 @@ const createSensitiveSurfacePhase = (findingCount: number) =>
   );
 
 export const runSecurityPrivacyExtraChecks = async () => {
+  const project = createAuditProject();
   const sourceFiles = await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts"] });
-  const serverSource = await readTextFile(pathFromRepoRoot("src/app/server.ts"));
-  const evidenceStoreSource = await readEvidenceStoreSource();
+  const evidenceStorePath = await resolveEvidenceStorePath();
+  const serverSource = getSourceFileOrThrow(project, "src/app/server.ts");
+  const evidenceStoreSource = getSourceFileOrThrow(project, evidenceStorePath);
   const findings = await scanFilesForPatterns(sourceFiles, SENSITIVE_PATTERNS);
   const localBoundaryPassed = hasLocalSecurityBoundary(serverSource, evidenceStoreSource);
 

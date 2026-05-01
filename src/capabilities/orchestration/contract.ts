@@ -16,6 +16,8 @@ import {
   MissionReviewDecisionInputSchema,
   MissionStateSchema,
   MissionStepResultSchema,
+  OrchestrationExecuteInputSchema,
+  OrchestrationExecuteResultSchema,
   OperationalMapIdSchema,
   OperationalMapSchema,
   ORCHESTRATION_ABILITY_GROUP_ID,
@@ -50,6 +52,8 @@ type MissionState = z.output<typeof MissionStateSchema>;
 type MissionControlState = MissionState;
 type MissionExecutionResult = z.output<typeof MissionExecutionResultSchema>;
 type MissionStepResult = z.output<typeof MissionStepResultSchema>;
+type OrchestrationExecuteInput = z.output<typeof OrchestrationExecuteInputSchema>;
+type OrchestrationExecuteResult = z.output<typeof OrchestrationExecuteResultSchema>;
 type RuntimeProof = z.output<typeof RuntimeProofSchema>;
 type OperationalMap = z.output<typeof OperationalMapSchema>;
 
@@ -76,14 +80,14 @@ type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSche
 interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];
   listMapIds(): OperationalMapId[];
-  execute(input: { childCapabilityId: OrchestrationChildCapabilityId; payload: unknown }): Promise<unknown>;
+  execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult>;
   startMission(command: MissionCommand): Promise<MissionControlState>;
   pauseMission(missionId: string): Promise<MissionControlState>;
   resumeMission(missionId: string): Promise<MissionControlState>;
   stopMission(input: { missionId: string; reason?: string }): Promise<MissionControlState>;
   emergencyStop(input: { missionId: string; reason?: string }): Promise<MissionControlState>;
   getMissionState(missionId?: string | null): Promise<MissionControlState>;
-  executeMission(command: MissionCommand): Promise<MissionExecutionResult>;
+  executeMission(command: MissionCommand): Promise<OrchestrationExecuteResult>;
   submitReviewDecision(input: MissionReviewDecisionInput): Promise<MissionControlState>;
 }
 
@@ -103,6 +107,8 @@ export type {
   MissionReviewDecisionInput,
   MissionState,
   MissionStepResult,
+  OrchestrationExecuteInput,
+  OrchestrationExecuteResult,
   OperationalMap,
   OperationalMapId,
   OrchestrationAbilityGroup,

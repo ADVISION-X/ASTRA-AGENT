@@ -226,7 +226,7 @@ const RuntimeProofSchema = z.object({
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative(),
-  status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]),
+  status: MissionStatusSchema.exclude(["idle", "pending"]),
   failureReason: z.string().min(1).nullable().optional().default(null),
   reviewRequiredReason: z.string().min(1).nullable().optional().default(null),
   mapDecision: MapDecisionSchema,
@@ -244,6 +244,15 @@ const RuntimeProofSchema = z.object({
 const MissionStateSchema = z.object({
   missionId: z.string().min(1).nullable().optional().default(null),
   mapId: OperationalMapIdSchema.nullable().optional().default(null),
+  taskTemplateId: z.string().min(1).nullable().optional().default(null),
+  activationId: z.string().min(1).nullable().optional().default(null),
+  mapPackageId: z.string().min(1).nullable().optional().default(null),
+  mapPackageVersion: z.string().min(1).nullable().optional().default(null),
+  selectedMapVersion: z.string().min(1).nullable().optional().default(null),
+  activationSnapshotRef: z.string().min(1).nullable().optional().default(null),
+  promptContractVersion: z.string().min(1).nullable().optional().default(null),
+  capabilityCatalogVersion: z.string().min(1).nullable().optional().default(null),
+  selectedMapSource: SelectedMapSourceSchema.nullable().optional().default(null),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
   humanGoal: z.string().min(1).nullable().optional().default(null),
   configuredMaxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
@@ -265,6 +274,9 @@ const MissionStateSchema = z.object({
   lastRuntimeProofRef: z.string().min(1).nullable().optional().default(null),
   runtimeProofRefs: z.array(z.string().min(1)).default([]),
   payloadRefs: PayloadRefBundleSchema,
+  runLockId: z.string().min(1).nullable().optional().default(null),
+  cancellationTokenRef: z.string().min(1).nullable().optional().default(null),
+  resumeCheckpointRef: z.string().min(1).nullable().optional().default(null),
   emergencyStopLatched: z.boolean().default(false),
   startedAt: z.string().datetime().nullable().optional().default(null),
   updatedAt: z.string().datetime().nullable().optional().default(null),
@@ -286,6 +298,25 @@ const MissionExecutionResultSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 }).strict();
 
+const OrchestrationExecuteInputSchema = z.object({
+  childCapabilityId: OrchestrationChildCapabilityIdSchema,
+  payload: z.unknown(),
+}).strict();
+
+const OrchestrationExecuteResultSchema = z.object({
+  status: MissionStatusSchema.exclude(["idle", "pending"]),
+  output: z.object({
+    missionState: MissionStateSchema,
+    currentStepResult: MissionStepResultSchema.nullable().default(null),
+  }).nullable().default(null),
+  stateSnapshot: MissionStateSchema,
+  failureReason: z.string().min(1).nullable().default(null),
+  reviewRequiredReason: z.string().min(1).nullable().default(null),
+  runtimeProof: RuntimeProofSchema,
+  policyDecision: z.literal("allowed").default("allowed"),
+  dataQualityFlags: z.array(z.string().min(1)).default([]),
+}).strict();
+
 const StartMissionChildInputSchema = MissionCommandSchema;
 const PauseMissionChildInputSchema = MissionControlCommandSchema;
 const ResumeMissionChildInputSchema = MissionControlCommandSchema;
@@ -296,15 +327,15 @@ const EvaluateStepTransitionChildInputSchema = z.object({ missionId: z.string().
 const RequestHumanReviewChildInputSchema = z.object({ missionId: z.string().min(1), reason: z.string().min(1) }).strict();
 const FinalizeMissionChildInputSchema = z.object({ missionId: z.string().min(1), status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]) }).strict();
 
-const StartMissionChildOutputSchema = MissionStateSchema;
-const PauseMissionChildOutputSchema = MissionStateSchema;
-const ResumeMissionChildOutputSchema = MissionStateSchema;
-const StopMissionChildOutputSchema = MissionStateSchema;
-const EmergencyStopChildOutputSchema = MissionStateSchema;
-const ExecuteMapStepChildOutputSchema = MissionExecutionResultSchema;
-const EvaluateStepTransitionChildOutputSchema = MissionStepResultSchema;
-const RequestHumanReviewChildOutputSchema = MissionStateSchema;
-const FinalizeMissionChildOutputSchema = MissionStateSchema;
+const StartMissionChildOutputSchema = OrchestrationExecuteResultSchema;
+const PauseMissionChildOutputSchema = OrchestrationExecuteResultSchema;
+const ResumeMissionChildOutputSchema = OrchestrationExecuteResultSchema;
+const StopMissionChildOutputSchema = OrchestrationExecuteResultSchema;
+const EmergencyStopChildOutputSchema = OrchestrationExecuteResultSchema;
+const ExecuteMapStepChildOutputSchema = OrchestrationExecuteResultSchema;
+const EvaluateStepTransitionChildOutputSchema = OrchestrationExecuteResultSchema;
+const RequestHumanReviewChildOutputSchema = OrchestrationExecuteResultSchema;
+const FinalizeMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 
 export {
   ORCHESTRATION_ABILITY_GROUP_ID,
@@ -349,6 +380,8 @@ export {
   RuntimeProofSchema,
   MissionStateSchema,
   MissionExecutionResultSchema,
+  OrchestrationExecuteInputSchema,
+  OrchestrationExecuteResultSchema,
   StartMissionChildInputSchema,
   PauseMissionChildInputSchema,
   ResumeMissionChildInputSchema,

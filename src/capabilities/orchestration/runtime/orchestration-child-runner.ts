@@ -5,13 +5,14 @@ import { createFinalizeMissionCapability } from "../children/finalize-mission/im
 import { createPauseMissionCapability } from "../children/pause-mission/implementation.js";
 import { createRequestHumanReviewCapability } from "../children/request-human-review/implementation.js";
 import { createResumeMissionCapability } from "../children/resume-mission/implementation.js";
-import { MissionStateSchema } from "../schema.js";
+import type { OrchestrationExecuteInput, OrchestrationExecuteResult } from "../contract.js";
+import { buildFailureExecuteResult } from "./orchestration-execute-result.js";
 import { createStartMissionCapability } from "../children/start-mission/implementation.js";
 import { createStopMissionCapability } from "../children/stop-mission/implementation.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 
 type OrchestrationAbilityChildExecutor = {
-  execute(input: unknown, context: OrchestrationRuntimeContext): Promise<unknown>;
+  execute(input: unknown, context: OrchestrationRuntimeContext): Promise<OrchestrationExecuteResult>;
 };
 
 export function createOrchestrationChildren(): Record<string, OrchestrationAbilityChildExecutor> {
@@ -28,19 +29,22 @@ export function createOrchestrationChildren(): Record<string, OrchestrationAbili
   };
 }
 
-export async function executeOrchestrationChild(inputValue: { childCapabilityId: string; payload: unknown }, context: OrchestrationRuntimeContext, children: Record<string, OrchestrationAbilityChildExecutor>): Promise<unknown> {
+export async function executeOrchestrationChild(inputValue: OrchestrationExecuteInput, context: OrchestrationRuntimeContext, children: Record<string, OrchestrationAbilityChildExecutor>): Promise<OrchestrationExecuteResult> {
   const child = children[inputValue.childCapabilityId];
   if (!child) {
-    return {
-      status: "failed",
-      output: null,
-      stateSnapshot: MissionStateSchema.parse({ status: "failed", payloadRefs: {} }),
+    const now = context.clock.now().isoTimestamp;
+    return buildFailureExecuteResult({
+      missionId: null,
+      mapId: null,
+      requestedPlatform: null,
+      humanGoal: null,
+      childCapabilityId: inputValue.childCapabilityId,
+      caller: "orchestration",
+      startedAt: now,
+      endedAt: now,
       failureReason: `Unknown orchestration child capability: "${inputValue.childCapabilityId}".`,
-      reviewRequiredReason: null,
-      runtimeProof: null,
-      policyDecision: "allowed",
       dataQualityFlags: ["unknown_child_capability"],
-    };
+    });
   }
 
   return child.execute(inputValue.payload, context);

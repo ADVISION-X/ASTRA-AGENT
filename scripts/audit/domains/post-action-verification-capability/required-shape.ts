@@ -36,9 +36,29 @@ function collectSchemaFindings(project: Project): Finding[] {
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const executorSource = getSource(project, PATHS.EXECUTOR);
-  for (const callee of ["validatePostActionVerificationInput", "validatePostActionPayloadBudget", "validateActionProof", "validateEvidenceSources", "validateObservationProofBinding", "validateBeforeAfterConsistency", "validateVerificationPolicy", "validatePostActionOutputBoundary", "finalizeVerificationDecision", "buildPostActionRuntimeProof", "buildPostActionVerificationResult"]) {
+  for (const callee of ["runPostActionVerificationGateSequence", "completePostActionVerification"] as const) {
     if (!hasCallExpression(executorSource, callee)) {
       findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Post Action Verification executor must route through ${callee}.` }));
+    }
+  }
+
+  const routeSources = {
+    validatePostActionVerificationInput: PATHS.GATE_STEPS,
+    validatePostActionPayloadBudget: PATHS.GATE_STEPS,
+    validateActionProof: PATHS.GATE_STEPS,
+    validateEvidenceSources: PATHS.GATE_STEPS,
+    validateObservationProofBinding: PATHS.GATE_STEPS,
+    validateBeforeAfterConsistency: PATHS.GATE_STEPS,
+    validateVerificationPolicy: PATHS.GATE_STEPS,
+    validatePostActionOutputBoundary: PATHS.SUCCESS_RESULT,
+    finalizeVerificationDecision: PATHS.SUCCESS_RESULT,
+    buildPostActionRuntimeProof: PATHS.SUCCESS_RESULT,
+    buildPostActionVerificationResult: PATHS.SUCCESS_RESULT,
+  } as const;
+
+  for (const [callee, file] of Object.entries(routeSources)) {
+    if (!hasCallExpression(getSource(project, file), callee)) {
+      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file, line: 1, severity: "fatal", message: `Post Action Verification execution chain must route through ${callee}.` }));
     }
   }
   return findings;

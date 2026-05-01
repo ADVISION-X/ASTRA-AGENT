@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
+import { ensurePostActionVerificationDispatchGate } from "./orchestration-post-action-verification.js";
 import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
@@ -15,6 +16,18 @@ type AbilityStep = OperationalStep & { stepKind: "ability" };
 type StepDispatchResult =
   | { dispatched: true; stepResult: z.output<typeof MissionStepResultSchema> }
   | { dispatched: false; failureReason: string };
+
+type AbilityDispatchInput = {
+  state: MissionState;
+  map: OperationalMap;
+  step: AbilityStep;
+  sequenceNo: number;
+  idempotencyKey: string;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+  missionId: string;
+};
+
+type AbilityDispatchTarget = Exclude<AbilityStep["targetAbilityGroupId"], null | "ai">;
 
 async function dispatchReviewStep(input: {
   state: MissionState;
@@ -135,21 +148,16 @@ async function dispatchAiStep(input: {
   };
 }
 
-async function dispatchAbilityStep(input: {
-  state: MissionState;
-  map: OperationalMap;
-  step: AbilityStep;
-  sequenceNo: number;
-  idempotencyKey: string;
-  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
-  missionId: string;
-}): Promise<StepDispatchResult> {
-  const targetAbilityGroupId = input.step.targetAbilityGroupId;
-  if (!targetAbilityGroupId || targetAbilityGroupId === "ai") {
-    return { dispatched: false, failureReason: `Ability step "${input.step.stepId}" is missing required targetAbilityGroupId.` };
+function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
+  if (!input.step.targetAbilityGroupId || input.step.targetAbilityGroupId === "ai") {
+    return `Ability step "${input.step.stepId}" is missing required targetAbilityGroupId.`;
   }
+  const postActionVerificationReason = ensurePostActionVerificationDispatchGate(input.map, input.step.stepId);
+  return postActionVerificationReason;
+}
 
-  const timeoutResult = await dispatchWithTimeout(
+async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGroupId: AbilityDispatchTarget) {
+  return dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendCommandToAbility({
       missionId: input.missionId,
       mapId: input.map.mapId,
@@ -163,12 +171,9 @@ async function dispatchAbilityStep(input: {
     }),
     DEFAULT_STEP_TIMEOUT_MS,
   );
+}
 
-  if (timeoutResult.timedOut) {
-    return { dispatched: false, failureReason: `Ability dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
-  }
-
-  const dispatchResult = timeoutResult.result;
+function buildAbilityDispatchResult(input: AbilityDispatchInput, dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendCommandToAbility"]>>): StepDispatchResult {
   return {
     dispatched: true,
     stepResult: MissionStepResultSchema.parse({
@@ -187,6 +192,21 @@ async function dispatchAbilityStep(input: {
       payloadRefs: { ...input.state.payloadRefs, ...dispatchResult.payloadRefs },
     }),
   };
+}
+
+async function dispatchAbilityStep(input: AbilityDispatchInput): Promise<StepDispatchResult> {
+  const failureReason = validateAbilityDispatch(input);
+  if (failureReason) {
+    return { dispatched: false, failureReason };
+  }
+
+  const timeoutResult = await sendAbilityDispatch(input, input.step.targetAbilityGroupId as AbilityDispatchTarget);
+
+  if (timeoutResult.timedOut) {
+    return { dispatched: false, failureReason: `Ability dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
+  }
+
+  return buildAbilityDispatchResult(input, timeoutResult.result);
 }
 
 async function dispatchOperationalStepCore(input: {
