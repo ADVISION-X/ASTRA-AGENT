@@ -1,3 +1,7 @@
-import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
+import type {
+	NerveBusAbilityGroup as ExternalNerveBusAbilityGroup,
+	NerveBusHandledResult as ExternalNerveBusHandledResult,
+} from "../../capabilities/nerve-bus/contract.js";
 
-export type { NerveBusAbilityGroup };
+export type WorkbenchNerveBusAbilityGroup = ExternalNerveBusAbilityGroup;
+export type WorkbenchNerveBusHandledResult<TEnvelope = unknown> = ExternalNerveBusHandledResult<TEnvelope>;

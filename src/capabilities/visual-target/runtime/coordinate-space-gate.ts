@@ -50,7 +50,7 @@ type CoordinateCandidateInspection = {
 };
 
 type ExecutableCandidateShape = {
-  executableCoordinateSpace: VisualTargetCandidate["coordinateSpace"];
+  executableCoordinateSpace: VisualTargetResolvedCandidate["executableCoordinateSpace"];
   executableBoundingBox: VisualTargetCandidate["boundingBox"];
   executableClickPoint: VisualTargetCandidate["clickPoint"];
   coordinateTrace: string | null;
@@ -58,6 +58,35 @@ type ExecutableCandidateShape = {
 
 function rejectCoordinateCandidate(candidateRef: string, dataQualityFlag: VisualTargetDataQualityFlag): CoordinateCandidateInspection {
   return { acceptedCandidate: null, rejectedCandidateRef: candidateRef, dataQualityFlag, coordinateTrace: null };
+}
+
+function createAcceptedCoordinateCandidate(input: {
+  candidate: VisualTargetCandidate;
+  executableShape: ExecutableCandidateShape;
+}): VisualTargetResolvedCandidate {
+  return {
+    ...input.candidate,
+    originalCoordinateSpace: input.candidate.coordinateSpace,
+    executableCoordinateSpace: input.executableShape.executableCoordinateSpace,
+    executableBoundingBox: input.executableShape.executableBoundingBox,
+    executableClickPoint: input.executableShape.executableClickPoint,
+    geometryScaleMapping: input.candidate.scaleMapping,
+  };
+}
+
+function hasAcceptedCandidateBoundsViolation(input: {
+  candidate: VisualTargetCandidate;
+  acceptedCandidate: VisualTargetResolvedCandidate;
+  screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
+}): boolean {
+  return !isBoundingBoxInsideImage(
+    { ...input.candidate, boundingBox: input.acceptedCandidate.executableBoundingBox },
+    input.screenshot.imageWidth,
+    input.screenshot.imageHeight,
+  ) || Boolean(
+    input.acceptedCandidate.executableClickPoint
+    && !isPointInsideBoundingBox(input.acceptedCandidate.executableClickPoint, input.acceptedCandidate.executableBoundingBox),
+  );
 }
 
 function hasVerifiedScaleMapping(input: {
@@ -134,9 +163,7 @@ function resolveExecutableCandidateShape(input: {
   if ("acceptedCandidate" in executableShape) {
     return executableShape;
   }
-  return executableShape.executableCoordinateSpace === "ai_input"
-    ? rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_non_executable")
-    : executableShape;
+  return executableShape;
 }
 
 function inspectCoordinateCandidate(input: {
@@ -151,23 +178,17 @@ function inspectCoordinateCandidate(input: {
   if ("acceptedCandidate" in executableShape) {
     return executableShape;
   }
-  if (executableShape.executableCoordinateSpace === "contact_sheet" || executableShape.executableCoordinateSpace === "ai_input") {
-    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_coordinate_non_executable");
-  }
 
-  const acceptedCandidate: VisualTargetResolvedCandidate = {
-    ...input.candidate,
-    originalCoordinateSpace: input.candidate.coordinateSpace,
-    executableCoordinateSpace: executableShape.executableCoordinateSpace,
-    executableBoundingBox: executableShape.executableBoundingBox,
-    executableClickPoint: executableShape.executableClickPoint,
-    geometryScaleMapping: input.candidate.scaleMapping,
-  };
+  const acceptedCandidate = createAcceptedCoordinateCandidate({
+    candidate: input.candidate,
+    executableShape,
+  });
 
-  if (!isBoundingBoxInsideImage({ ...input.candidate, boundingBox: acceptedCandidate.executableBoundingBox }, input.screenshot.imageWidth, input.screenshot.imageHeight)) {
-    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_bbox_out_of_bounds");
-  }
-  if (acceptedCandidate.executableClickPoint && !isPointInsideBoundingBox(acceptedCandidate.executableClickPoint, acceptedCandidate.executableBoundingBox)) {
+  if (hasAcceptedCandidateBoundsViolation({
+    candidate: input.candidate,
+    acceptedCandidate,
+    screenshot: input.screenshot,
+  })) {
     return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_bbox_out_of_bounds");
   }
 

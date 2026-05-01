@@ -4,7 +4,7 @@ import { pathToFileURL, URL } from "node:url";
 
 import { createWorkbenchServer as createWorkbenchHttpServer } from "./create-workbench-server.js";
 import { getDefaultLocalDataDir } from "../lib/local-runtime/default-data-dir.js";
-import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
+import { createGrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle-factory.js";
 
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
@@ -18,7 +18,7 @@ const platformTarget = configuredPlatformTarget;
 const realPlatformDataDir = path.join(getDefaultLocalDataDir(), "phase-04-full-enforcement");
 const defaultDataDir = realPlatformDataDir;
 
-const workbench = new GrassEyeWorkbench({
+const workbench = createGrassEyeWorkbenchHandle({
   baseUrl,
   platformTarget,
   browserHeadless: process.env.GRASSEYE_BROWSER_HEADLESS === "true",
@@ -28,7 +28,7 @@ const workbench = new GrassEyeWorkbench({
 });
 
 export function createWorkbenchServer(input?: {
-  workbench?: GrassEyeWorkbench;
+  workbench?: ReturnType<typeof createGrassEyeWorkbenchHandle>;
   baseUrl?: string;
 }) {
   const activeWorkbench = input?.workbench ?? workbench;

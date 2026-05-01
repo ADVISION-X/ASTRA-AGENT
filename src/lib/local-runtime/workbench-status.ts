@@ -1,7 +1,6 @@
 import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
-import type { RequestedPlatformId } from "../../capabilities/orchestration/contract.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
-import type { WorkbenchRuntime, MissionStartPreflightComponent } from "./workbench-contract.js";
+import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 
 const PLATFORM_MODE_INFO = {
   "tiktok-web": {

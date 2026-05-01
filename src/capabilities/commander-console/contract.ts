@@ -10,6 +10,7 @@ import type {
   OrchestrationMissionReadModel,
   RuntimeProofReadModelPort,
 } from "./ports/commander-port-types.js";
+import type { CommanderHumanCommand } from "./ports/command-transport-port.js";
 import type {
   CommanderAuditSummary,
   CommanderBoundaryPolicy,
@@ -131,6 +132,8 @@ export type {
   CommanderCommandChildAbilityId,
   CommanderCommandPriority,
   CommanderCommandType,
+  CapabilityHealthReadModelPort,
+  CommandTransportPort,
   CommanderConsoleAbilityGroup,
   CommanderConsoleAbilityGroupId,
   CommanderConsoleChildAbilityId,
@@ -140,9 +143,11 @@ export type {
   CommanderConsoleResult,
   CommanderConsoleRuntimeProof,
   CommanderConsoleViewSeed,
+  CommanderHumanCommand,
   CommanderDispatchChildId,
   CommanderHumanCommandEnvelope,
   CommanderHumanCommandInput,
+  ForensicsReadModelPort,
   CommanderReadChildAbilityId,
   CommanderReadChildContract,
   CommanderTargetRecordRef,

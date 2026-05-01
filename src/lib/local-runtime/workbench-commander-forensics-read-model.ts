@@ -1,4 +1,3 @@
-import type { ForensicsReadModelPort } from "../../capabilities/commander-console/ports/forensics-read-model-port.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 
 const toCommanderReviewStatus = (
@@ -15,7 +14,7 @@ const toCommanderReviewStatus = (
 
 export const createForensicsReadModel = (
   runtime: WorkbenchRuntime,
-): ForensicsReadModelPort => ({
+ ) => ({
   listCandidates: async () => (await runtime.evidenceStore.getOperatorSnapshot()).candidates.map((candidate) => ({ id: candidate.id, category: candidate.category, useCase: candidate.useCase, score: candidate.score, purchaseIntent: candidate.purchaseIntent, reviewStatus: toCommanderReviewStatus(candidate.reviewStatus), evidenceCount: candidate.evidenceRefs.length, notes: candidate.notes, createdAt: candidate.createdAt, updatedAt: candidate.updatedAt })),
   listReviewQueue: async () => (await runtime.evidenceStore.getOperatorSnapshot()).candidates.filter((candidate) => candidate.reviewStatus === "pending" || candidate.reviewStatus === "hold").map((candidate) => ({ id: candidate.id, primary: candidate.category, secondary: candidate.useCase, detail: candidate.reviewStatus })),
   listEvidencePackets: async (limit = 50) => (await runtime.evidenceStore.getOperatorSnapshot()).evidencePackets.slice(-limit).reverse().map((packet) => ({ id: packet.packetId, primary: packet.roundId, secondary: packet.roundOutcome, detail: packet.candidate.candidateId ?? "no_candidate" })),

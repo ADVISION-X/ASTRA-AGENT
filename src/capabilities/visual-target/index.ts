@@ -1,6 +1,7 @@
 export { createVisualTargetAbilityGroup } from "./ability-group.js";
 export { createSystemVisualTargetClock } from "./runtime/visual-target-clock.js";
 export { createVisualTargetRuntimeContext } from "./runtime/visual-target-runtime-context.js";
+export { createVisualTargetAbilityGroupWithSystemClock } from "./runtime/visual-target-ability-group-factory.js";
 export {
 	VISUAL_TARGET_ABILITY_GROUP_ID,
 	VisualTargetSchema,

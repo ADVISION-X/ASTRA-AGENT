@@ -6,6 +6,7 @@ import { dispatchOperationalStep } from "./step-dispatcher.js";
 import { evaluateStepTransition } from "./transition-evaluator.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { checkCanDispatchStep } from "./mission-state-policy-gate.js";
+import { buildTransitionSuccessProof } from "./orchestration-transition-success-proof.js";
 import {
   buildDispatchGateFailureProof,
   buildLoopGuardFailureProof,
@@ -13,12 +14,11 @@ import {
   buildTransitionFailureProof,
   type OrchestrationLoopProofContext,
 } from "./orchestration-loop-proof-builders.js";
-import { buildOrchestrationRuntimeProof, type BuildProofInput } from "./orchestration-proof-builder.js";
-import { toMapProofMetadata, toMissionControlState, toRuntimeProofStatus } from "./orchestration-state-support.js";
+import { toMissionControlState } from "./orchestration-state-support.js";
 
 type StepDispatchResult = Awaited<ReturnType<typeof dispatchOperationalStep>>;
 type OrchestrationStepResultRecord = Extract<StepDispatchResult, { dispatched: true }>["stepResult"];
-type RuntimeProofRecord = ReturnType<typeof buildOrchestrationRuntimeProof>;
+type RuntimeProofRecord = ReturnType<typeof buildDispatchGateFailureProof>;
 
 type MissionLoopIterationOutcome = {
   state: MissionState;
@@ -43,14 +43,6 @@ type RunMissionLoopIterationInput = {
 
 function getRuntimeProofId(value: RuntimeProofRecord): string {
   return value.proofId;
-}
-
-function toBuildProofInput(value: RuntimeProofRecord): BuildProofInput {
-  return value as BuildProofInput;
-}
-
-function toStepResultRecord(value: OrchestrationStepResultRecord): OrchestrationStepResultRecord {
-  return value;
 }
 
 type MatchedTransitionRecord = {
@@ -127,160 +119,6 @@ function buildTransitionSuccessState(input: RunMissionLoopIterationInput, detail
   return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: input.state.currentRoundIndex + 1, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
 }
 
-function buildTransitionSuccessIdentityFields(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepIdempotencyKey: string; stateRevisionBefore: number; stateHashBefore: string | null; lastResult: OrchestrationStepResultRecord; }): {
-  missionId: string;
-  mapId: string;
-  selectedMapSource: RunMissionLoopIterationInput["selectedMapSource"];
-  stepId: string;
-  childCapabilityId: string;
-  commandKind: RunMissionLoopIterationInput["commandKind"];
-  caller: RunMissionLoopIterationInput["caller"];
-  idempotencyKey: string;
-  sequenceNo: number;
-  stateRevisionBefore: number;
-  stateHashBefore: string | null;
-} {
-  return {
-    missionId: input.state.missionId ?? "unknown-mission",
-    mapId: input.map.mapId,
-    selectedMapSource: input.selectedMapSource,
-    stepId: details.currentStepId,
-    childCapabilityId: details.lastResult.childCapabilityId,
-    commandKind: input.commandKind,
-    caller: input.caller,
-    idempotencyKey: details.stepIdempotencyKey,
-    sequenceNo: input.state.sequenceNo + 1,
-    stateRevisionBefore: details.stateRevisionBefore,
-    stateHashBefore: details.stateHashBefore,
-  };
-}
-
-function buildTransitionSuccessTimingFields(details: { startedAt: string; endedAt: string; startedMonotonicMs: number; endedMonotonicMs: number; }): {
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-} {
-  return { startedAt: details.startedAt, endedAt: details.endedAt, durationMs: Math.max(0, Math.round(details.endedMonotonicMs - details.startedMonotonicMs)) };
-}
-
-function buildTransitionSuccessEnvelopeFields(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; lastResult: OrchestrationStepResultRecord; transition: { finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed"; toStepId: string | null; }; }): {
-  nerveBusEnvelopeId: string | null;
-  outputRef: string | null;
-  abilityResultRef: string | null;
-  stepDispatchCallId: string;
-  previousStepId: string | null;
-  nextStepId: string | null;
-} {
-  const nextStatus = details.transition.finalStatus ?? "running";
-  const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
-  return { nerveBusEnvelopeId: details.lastResult.envelopeId ?? null, outputRef: details.lastResult.outputRef ?? null, abilityResultRef: details.lastResult.resultRef ?? null, stepDispatchCallId: details.stepDispatchCallId, previousStepId: input.state.previousStepId ?? null, nextStepId };
-}
-
-function buildTransitionSuccessDecisionRoutingFields(details: { lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; }): {
-  transitionId: string;
-  transitionEvaluationDecision: "matched";
-  transitionConditionSource: "status" | "decision";
-  transitionConditionExpected: string | boolean | null;
-  transitionConditionActual: string | boolean | null;
-} {
-  return { transitionId: details.transition.transitionId, transitionEvaluationDecision: details.transitionEvaluationDecision, transitionConditionSource: details.transition.condition.source, transitionConditionExpected: details.transition.condition.equals, transitionConditionActual: details.transition.condition.source === "status" ? details.lastResult.status : (details.lastResult.decision ?? null) };
-}
-
-function buildTransitionSuccessDecisionStatusFields(details: { lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; }): {
-  status: ReturnType<typeof toRuntimeProofStatus>;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-} {
-  const nextStatus = details.transition.finalStatus;
-  return { status: toRuntimeProofStatus(nextStatus), failureReason: nextStatus === "failed" ? (details.lastResult.failureReason ?? "transition_invalid") : null, reviewRequiredReason: nextStatus === "review_required" ? (details.lastResult.reviewRequiredReason ?? "review required") : null };
-}
-
-function buildTransitionSuccessDecisionFlowFields(details: { lastResult: OrchestrationStepResultRecord; transition: { finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed"; }; }): {
-  mapDecision: "selected";
-  transitionDecision: "continue" | "finalize" | "review_required" | "failed";
-  loopDecision: "continue";
-  stateDecision: "finalized" | "updated";
-} {
-  const nextStatus = details.transition.finalStatus ?? "running";
-  return {
-    mapDecision: "selected",
-    transitionDecision: nextStatus === "running" ? "continue" : nextStatus === "completed" || nextStatus === "stopped" ? "finalize" : nextStatus === "review_required" ? "review_required" : "failed",
-    loopDecision: "continue",
-    stateDecision: nextStatus === "completed" || nextStatus === "failed" || nextStatus === "review_required" ? "finalized" : "updated",
-  };
-}
-
-function buildTransitionSuccessDecisionSafetyFields(input: RunMissionLoopIterationInput): {
-  emergencyDecision: "latched" | "none";
-  dataQualityFlags: never[];
-} {
-  return {
-    emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none",
-    dataQualityFlags: [],
-  };
-}
-function buildTransitionSuccessDecisionFields(input: RunMissionLoopIterationInput, details: { lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; }): {
-  transitionId: string;
-  transitionEvaluationDecision: "matched";
-  transitionConditionSource: "status" | "decision";
-  transitionConditionExpected: string | boolean | null;
-  transitionConditionActual: string | boolean | null;
-  status: ReturnType<typeof toRuntimeProofStatus>;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-  mapDecision: "selected";
-  transitionDecision: "continue" | "finalize" | "review_required" | "failed";
-  loopDecision: "continue";
-  stateDecision: "finalized" | "updated";
-  emergencyDecision: "latched" | "none";
-  dataQualityFlags: never[];
-} {
-  return { ...buildTransitionSuccessDecisionRoutingFields(details), ...buildTransitionSuccessDecisionStatusFields(details), ...buildTransitionSuccessDecisionFlowFields(details), ...buildTransitionSuccessDecisionSafetyFields(input) };
-}
-
-function buildTransitionSuccessTransitionFields(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; }): {
-  nerveBusEnvelopeId: string | null;
-  outputRef: string | null;
-  abilityResultRef: string | null;
-  stepDispatchCallId: string;
-  previousStepId: string | null;
-  nextStepId: string | null;
-  transitionId: string;
-  transitionEvaluationDecision: "matched";
-  transitionConditionSource: "status" | "decision";
-  transitionConditionExpected: string | boolean | null;
-  transitionConditionActual: string | boolean | null;
-  status: ReturnType<typeof toRuntimeProofStatus>;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-  mapDecision: "selected";
-  transitionDecision: "continue" | "finalize" | "review_required" | "failed";
-  loopDecision: "continue";
-  stateDecision: "finalized" | "updated";
-  emergencyDecision: "latched" | "none";
-  dataQualityFlags: never[];
-} {
-  return { ...buildTransitionSuccessEnvelopeFields(input, details), ...buildTransitionSuccessDecisionFields(input, details) };
-}
-
-function buildTransitionSuccessBaseProof(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): RuntimeProofRecord {
-  return buildOrchestrationRuntimeProof({
-    ...buildTransitionSuccessIdentityFields(input, details),
-    ...toMapProofMetadata(input.mapRecord),
-    ...buildTransitionSuccessTimingFields(details),
-    ...buildTransitionSuccessTransitionFields(input, details),
-    previousStepId: input.state.previousStepId ?? null,
-  });
-}
-
-function finalizeTransitionSuccessProof(proof: RuntimeProofRecord, state: MissionState): RuntimeProofRecord {
-  return buildOrchestrationRuntimeProof({ ...toBuildProofInput(proof), stateRevisionAfter: state.stateRevision, stateHashAfter: state.stateHash ?? null });
-}
-
-function buildTransitionSuccessProof(input: RunMissionLoopIterationInput, state: MissionState, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): RuntimeProofRecord {
-  return finalizeTransitionSuccessProof(buildTransitionSuccessBaseProof(input, details), state);
-}
-
 async function buildTransitionSuccessOutcome(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): Promise<MissionLoopIterationOutcome> {
   const state = buildTransitionSuccessState(input, details);
   const proof = buildTransitionSuccessProof(input, state, details);
@@ -309,7 +147,7 @@ export async function runMissionLoopIteration(input: RunMissionLoopIterationInpu
   if (!stepDispatch.dispatched) {
     return buildStepDispatchFailureOutcome(input, { currentStepId, stepDispatchCallId, stateRevisionBefore, stateHashBefore, proofContext: currentProofContext, startedAt: startedSnapshot.isoTimestamp, endedAt: endedSnapshot.isoTimestamp, failureReason: stepDispatch.failureReason });
   }
-  const lastResult = toStepResultRecord(stepDispatch.stepResult);
+  const lastResult = stepDispatch.stepResult;
   const transitionResult = evaluateStepTransition({ map: input.map, currentStepId, result: lastResult });
   if (transitionResult.decision !== "matched") {
     return buildTransitionFailureOutcome(input, { currentStepId, stepDispatchCallId, nerveBusEnvelopeId: lastResult.envelopeId ?? null, transitionEvaluationDecision: transitionResult.decision, stateRevisionBefore, stateHashBefore, proofContext: currentProofContext, startedAt: startedSnapshot.isoTimestamp, endedAt: endedSnapshot.isoTimestamp, failureReason: transitionResult.failureReason });

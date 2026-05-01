@@ -43,6 +43,7 @@ export {
   TypeTextAbilityInputSchema,
 } from "./schema.js";
 export { listTextInputChildren } from "./registry.js";
+export { createTextInputAbilityGroupWithPorts } from "./runtime/text-input-ability-group-factory.js";
 export type { ClipboardPort } from "./ports/clipboard-port.js";
 export type { TextInputClockPort } from "./ports/text-input-clock-port.js";
 export type { TextInputExecutionPort, TextInputExecutionRequest, TextInputExecutionResult } from "./ports/text-input-execution-port.js";

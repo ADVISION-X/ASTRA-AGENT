@@ -188,6 +188,34 @@ const resolveRaceFailure = <TResult extends SupportedResultEnvelope>(input: {
   return null;
 };
 
+const buildResolvedRaceOutcome = <TResult extends SupportedResultEnvelope>(input: {
+  raceResult: TimedRaceResult<NerveBusHandledResult<TResult> | null>;
+  envelope: SupportedEnvelope;
+  resultSchema: TransportResultSchema<TResult>;
+  handlerCallId: string;
+  started: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+}): NerveBusRunnerOutcome<TResult> => {
+  if (input.raceResult.kind !== "resolved" || input.raceResult.value === null) {
+    return buildHandlerFailureOutcome({
+      decision: "missing_handler",
+      failureReason: `No handler is registered for ${input.envelope.channelId}.`,
+      timeoutDecision: "within_timeout",
+      handlerCallId: input.handlerCallId,
+      started: input.started,
+      ended: input.ended,
+    });
+  }
+
+  return buildHandledOutcome({
+    handled: input.raceResult.value,
+    resultSchema: input.resultSchema,
+    handlerCallId: input.handlerCallId,
+    started: input.started,
+    ended: input.ended,
+  });
+};
+
 export async function runTransportHandler<TResult extends SupportedResultEnvelope>(input: {
   envelope: SupportedEnvelope;
   inputPayload: NerveBusPayloadDocument;
@@ -219,31 +247,9 @@ export async function runTransportHandler<TResult extends SupportedResultEnvelop
   if (raceFailure) {
     return raceFailure;
   }
-
-  if (raceResult.kind !== "resolved") {
-    return buildHandlerFailureOutcome({
-      decision: "threw",
-      failureReason: "Transport runner reached an unexpected non-resolved state.",
-      timeoutDecision: "within_timeout",
-      handlerCallId,
-      started,
-      ended,
-    });
-  }
-
-  if (raceResult.value === null) {
-    return buildHandlerFailureOutcome({
-      decision: "missing_handler",
-      failureReason: `No handler is registered for ${input.envelope.channelId}.`,
-      timeoutDecision: "within_timeout",
-      handlerCallId,
-      started,
-      ended,
-    });
-  }
-
-  return buildHandledOutcome({
-    handled: raceResult.value,
+  return buildResolvedRaceOutcome({
+    raceResult,
+    envelope: input.envelope,
     resultSchema: input.resultSchema,
     handlerCallId,
     started,

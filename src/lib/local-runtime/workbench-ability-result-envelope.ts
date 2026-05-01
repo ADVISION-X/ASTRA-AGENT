@@ -2,7 +2,7 @@ import type {
   AbilityCommandEnvelope,
   AbilityResultEnvelope,
 } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
+import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
 

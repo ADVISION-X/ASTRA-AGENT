@@ -13,6 +13,7 @@ export {
   type CreateCommanderConsoleAbilityGroupInput,
 } from "./contract.js";
 export { createCommanderConsoleAbilityGroup } from "./ability-group.js";
+export { readAuditSummary } from "./runtime/audit-summary-read-model.js";
 export {
   CommanderAuditSummarySchema,
   CommanderCommandReceiptSchema,

@@ -1,5 +1,5 @@
-import type { AiTaskType } from "../../capabilities/ai/contract.js";
-import { tryGetPromptContractCatalogEntry } from "../../capabilities/ai/prompt-contracts/registry.js";
+import type { MapPluginAiTaskType as AiTaskType, MapPluginPromptContractCatalogEntry as PromptContractCatalogEntry } from "./ai-prompt-contract-catalog-source.js";
+import { findMapPluginPromptContractCatalogEntry } from "./ai-prompt-contract-catalog-source.js";
 
 const AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID: Record<string, AiTaskType> = {
   "product-presence-judgment": "product_presence_judgment",
@@ -8,10 +8,12 @@ const AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID: Record<string, AiTaskType> = {
   "product-signal-summary": "product_signal_summary",
 };
 
-export type PromptContractCatalogEntry = NonNullable<ReturnType<typeof tryGetPromptContractCatalogEntry>>;
-
 export const getExpectedPromptTaskType = (childCapabilityId: string): AiTaskType | null =>
   AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID[childCapabilityId] ?? null;
 
 export const getPromptContractCatalogEntry = (promptContractId: string): PromptContractCatalogEntry | null =>
-  tryGetPromptContractCatalogEntry(promptContractId);
+  findMapPluginPromptContractCatalogEntry(promptContractId);
+
+export type {
+  PromptContractCatalogEntry,
+};

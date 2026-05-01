@@ -1,10 +1,25 @@
-import type { CommandTransportPort, CommanderHumanCommand } from "../../capabilities/commander-console/ports/command-transport-port.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildHumanCommandDispatchInput, describeHumanCommandTransportMessage } from "./workbench-human-command-dispatch.js";
 
+type CommanderHumanCommand = {
+  commandId: string;
+  commandType: string;
+  priority: string;
+  operatorRef: string;
+  targetMissionId: string | null;
+  selectedMapId: string | null;
+  targetRecordRef: { recordId: string } | null;
+  requestedPlatformId: "facebook-web" | "tiktok-web" | null;
+  humanGoal: string | null;
+  maxRounds: number | null;
+  maxMinutes: number | null;
+  operatorNote: string | null;
+  payload: unknown;
+};
+
 export const createCommandTransport = (
   runtime: WorkbenchRuntime,
-): CommandTransportPort => ({
+ ) => ({
   emitHumanCommand: async (command: CommanderHumanCommand) => {
     const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(buildHumanCommandDispatchInput(command));
     const status: "accepted" | "failed" | "review_required" = transport.resultEnvelope.status === "success"

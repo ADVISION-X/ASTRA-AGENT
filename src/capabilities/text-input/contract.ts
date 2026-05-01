@@ -61,3 +61,5 @@ interface TextInputAbilityGroup {
 }
 
 export type { TextInputChildCapabilityId, TextInputTargetKind, TextInputKey, TextInputCommitKey, TextInputSourceOwner, TextInputFailureReason, TextInputStatus, TextInputPolicy, TextInputRuntimeProof, TextInputAbilityInput, ParsedTextInputAbilityInput, TextInputSuccessOutput, TypeTextAbilityInput, PasteTextAbilityInput, ClearInputAbilityInput, ReplaceInputAbilityInput, PressKeyAbilityInput, CommitInputAbilityInput, TextInputAbilityResult, TextInputAbilityGroup };
+export type { ClipboardPort, ClipboardReadResult, ClipboardWriteResult } from "./ports/clipboard-port.js";
+export type { TextInputExecutionPort, TextInputExecutionRequest, TextInputExecutionResult } from "./ports/text-input-execution-port.js";

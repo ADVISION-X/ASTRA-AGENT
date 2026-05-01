@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
-import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { parseJsonBody } from "./workbench-api-helpers.js";
 
 const getCandidateIdFromPath = (url: URL): string | undefined => url.pathname.split("/")[3];
@@ -42,7 +42,7 @@ function mapReviewDecisionToChildId(disposition: "approve" | "reject" | "pending
 export async function handleCandidateReview(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   candidateId: string | undefined,
 ): Promise<void> {
   const body = await parseJsonBody(request) as { reviewStatus?: "approved" | "rejected" | "archived" | "pending"; note?: string };
@@ -67,7 +67,7 @@ export async function handleCandidateReview(
 export async function handleCandidateDisposition(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   candidateId: string | undefined,
 ): Promise<void> {
   const body = await parseJsonBody(request) as { disposition?: "approve" | "reject" | "hold" | "pending"; note?: string };
@@ -92,7 +92,7 @@ export async function handleCandidateDisposition(
 async function handleCandidateMutationRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   const candidateId = getCandidateIdFromPath(url);
@@ -112,7 +112,7 @@ async function handleCandidateMutationRequest(
 async function handleCandidateDeleteRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  _activeWorkbench: GrassEyeWorkbench,
+  _activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "DELETE" || !url.pathname.startsWith("/api/candidates/")) {
@@ -127,7 +127,7 @@ async function handleCandidateDeleteRequest(
 async function handleCandidateExportRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  _activeWorkbench: GrassEyeWorkbench,
+  _activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "GET" || url.pathname !== "/api/candidates/export") {
@@ -142,7 +142,7 @@ async function handleCandidateExportRequest(
 async function handleCandidateReviewDecisionRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "POST" || url.pathname !== "/api/candidates/review-decision") {
@@ -177,7 +177,7 @@ async function handleCandidateReviewDecisionRequest(
 async function handleCandidateExportRequestCommand(
   request: IncomingMessage,
   response: ServerResponse,
-  _activeWorkbench: GrassEyeWorkbench,
+  _activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (request.method !== "POST" || url.pathname !== "/api/candidates/request-export") {
@@ -192,7 +192,7 @@ async function handleCandidateExportRequestCommand(
 export async function handleCandidateRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (await handleCandidateReviewDecisionRequest(request, response, activeWorkbench, url)) {

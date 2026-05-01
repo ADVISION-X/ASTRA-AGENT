@@ -1,5 +1,5 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/ports/nerve-bus-transport-port.js";
+import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 export const buildScreenshotCommand = (

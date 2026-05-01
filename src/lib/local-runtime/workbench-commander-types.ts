@@ -1,9 +1,5 @@
-import type {
-  CommanderConsoleAbilityGroup,
-  CommanderMissionDashboardView,
-} from "../../capabilities/commander-console/index.js";
+import type { CommanderConsoleAbilityGroup as ExternalCommanderConsoleAbilityGroup } from "../../capabilities/commander-console/contract.js";
+import type { CommanderMissionDashboardView as ExternalCommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
 
-export type {
-  CommanderConsoleAbilityGroup,
-  CommanderMissionDashboardView,
-};
+export type WorkbenchCommanderConsoleAbilityGroup = ExternalCommanderConsoleAbilityGroup;
+export type WorkbenchCommanderMissionDashboardView = ExternalCommanderMissionDashboardView;

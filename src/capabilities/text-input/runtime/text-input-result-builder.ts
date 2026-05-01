@@ -14,6 +14,46 @@ import {
   buildTextInputRuntimeProofTargetInput,
 } from "./text-input-result-builder-support.js";
 
+function buildOutputBoundaryDecision(status: "success" | "failed" | "review_required") {
+  return status === "success"
+    ? "valid"
+    : status === "review_required"
+      ? "review_required_clipboard_restore_failed"
+      : "invalid_failure_payload";
+}
+
+function buildRuntimeProofForResult(input: Parameters<typeof buildTextInputResult>[0], params: {
+  outputRef: string | null;
+  diagnosticPayloadRef: string;
+  debugBundle: { debugLogRef: string; structuredRuntimeEventRef: string };
+  outputBoundary: {
+    status: "success" | "failed" | "review_required";
+    failureReason: string | null;
+    reviewRequiredReason: string | null;
+    dataQualityFlags: string[];
+  };
+  postActionVerificationHandoffRef: string | null;
+}) {
+  return buildTextInputRuntimeProof({
+    ...buildTextInputRuntimeProofIdentityInput(input, params.outputRef, params.diagnosticPayloadRef, params.debugBundle),
+    ...buildTextInputRuntimeProofArtifactInput(input),
+    ...buildTextInputRuntimeProofTargetInput(input),
+    ...buildTextInputRuntimeProofPolicyInput({
+      ...input,
+      outputBoundaryDecision: buildOutputBoundaryDecision(params.outputBoundary.status),
+    }),
+    ...buildTextInputRuntimeProofLifecycleInput({
+      ...input,
+      postActionVerificationHandoffRef: params.postActionVerificationHandoffRef,
+      outputBoundaryStatus: params.outputBoundary.status,
+      dataQualityFlags: params.outputBoundary.dataQualityFlags,
+      failureReason: params.outputBoundary.failureReason,
+      reviewRequiredReason: params.outputBoundary.reviewRequiredReason,
+    }),
+    clock: input.clock,
+  });
+}
+
 export function buildTextInputResult(input: {
   seed: TextInputResultSeed;
   actionExecutionRef: string | null;
@@ -67,28 +107,12 @@ export function buildTextInputResult(input: {
   });
   const diagnosticPayloadRef = debugBundle.diagnosticPayloadRef;
   const outputRef = buildTextInputOutputRef(input.seed.attemptRef, outputBoundary.status);
-
-  const runtimeProof = buildTextInputRuntimeProof({
-    ...buildTextInputRuntimeProofIdentityInput(input, outputRef, diagnosticPayloadRef, debugBundle),
-    ...buildTextInputRuntimeProofArtifactInput(input),
-    ...buildTextInputRuntimeProofTargetInput(input),
-    ...buildTextInputRuntimeProofPolicyInput({
-      ...input,
-      outputBoundaryDecision: outputBoundary.status === "success"
-        ? "valid"
-        : outputBoundary.status === "review_required"
-          ? "review_required_clipboard_restore_failed"
-          : "invalid_failure_payload",
-    }),
-    ...buildTextInputRuntimeProofLifecycleInput({
-      ...input,
-      postActionVerificationHandoffRef,
-      outputBoundaryStatus: outputBoundary.status,
-      dataQualityFlags: outputBoundary.dataQualityFlags,
-      failureReason: outputBoundary.failureReason,
-      reviewRequiredReason: outputBoundary.reviewRequiredReason,
-    }),
-    clock: input.clock,
+  const runtimeProof = buildRuntimeProofForResult(input, {
+    outputRef,
+    diagnosticPayloadRef,
+    debugBundle,
+    outputBoundary,
+    postActionVerificationHandoffRef,
   });
 
   return TextInputAbilityResultSchema.parse(buildTextInputAbilityResultPayload(input, outputBoundary, { debugBundle, diagnosticPayloadRef }, runtimeProof));

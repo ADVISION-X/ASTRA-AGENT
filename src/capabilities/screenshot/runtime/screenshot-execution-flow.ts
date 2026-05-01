@@ -1,24 +1,12 @@
 import type { ScreenshotAbilityInput, ScreenshotAbilityResult } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
-import { captureBrowserViewportChildCapability } from "../children/capture-browser-viewport/implementation.js";
-import { captureDesktopScreenChildCapability } from "../children/capture-desktop-screen/implementation.js";
-import { captureRegionChildCapability } from "../children/capture-region/implementation.js";
-import { optimizeLosslessChildCapability } from "../children/optimize-lossless/implementation.js";
-import { prepareAiInputChildCapability } from "../children/prepare-ai-input/implementation.js";
 import type { ScreenshotChildCapability, ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import type { ScreenshotClockStart } from "./screenshot-clock.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import { buildScreenshotPlanValidationFailure } from "./screenshot-execution-failure-builders.js";
 import { executeScreenshotExecutionPhases, type ScreenshotExecutionGates } from "./screenshot-execution-phases.js";
+import { resolveScreenshotChildCapability } from "./screenshot-child-registry.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
-
-const SCREENSHOT_CHILD_CAPABILITIES = new Map<ScreenshotAbilityInput["childCapabilityId"], ScreenshotChildCapability>([
-  [captureBrowserViewportChildCapability.childCapabilityId, captureBrowserViewportChildCapability],
-  [captureDesktopScreenChildCapability.childCapabilityId, captureDesktopScreenChildCapability],
-  [captureRegionChildCapability.childCapabilityId, captureRegionChildCapability],
-  [optimizeLosslessChildCapability.childCapabilityId, optimizeLosslessChildCapability],
-  [prepareAiInputChildCapability.childCapabilityId, prepareAiInputChildCapability],
-]);
 
 type ScreenshotExecutorGates = {
   inputGate: { decision: { status: "passed" | "failed"; reason: string | null }; failure: { message: string } | null };
@@ -69,10 +57,96 @@ const normalizeExecutionGates = (input: ScreenshotPlanFlowInput["gates"]): Scree
   },
 });
 
-const resolveEarlyFailure = (input: ScreenshotPlanFlowInput): {
-  failEarly: ReturnType<typeof createScreenshotFailure> | null;
+function buildExecutionPlanValidationFailure(input: {
+  flow: ScreenshotPlanFlowInput;
+  normalizedGates: ScreenshotExecutionGates;
+  failEarly: ReturnType<typeof createScreenshotFailure>;
   earlyStatus: "failed" | "review_required";
-} | null => {
+}) {
+  return buildScreenshotPlanValidationFailure({
+    request: input.flow.request,
+    context: input.flow.context,
+    scope: input.flow.scope,
+    clockStart: input.flow.clockStart,
+    sourceGate: input.normalizedGates.sourceGate,
+    browserSessionGate: input.normalizedGates.browserSessionGate,
+    pageStateGate: input.normalizedGates.pageStateGate,
+    privacyGate: input.normalizedGates.privacyGate,
+    failEarly: input.failEarly,
+    earlyStatus: input.earlyStatus,
+  });
+}
+
+function resolveBrowserSessionFailure(input: ScreenshotPlanFlowInput) {
+  if (input.gates.browserSessionGate.decision.status !== "failed" && input.gates.browserSessionGate.decision.status !== "review_required") {
+    return null;
+  }
+
+  return {
+    failEarly:
+      input.gates.browserSessionGate.failure ??
+      createScreenshotFailure({
+        code: "browser_session_invalid",
+        message: input.gates.browserSessionGate.decision.reason ?? "Screenshot browser session gate blocked execution.",
+      }),
+    earlyStatus: input.gates.browserSessionGate.decision.status,
+  } as const;
+}
+
+function resolvePageStateFailure(input: ScreenshotPlanFlowInput) {
+  if (input.gates.pageStateGate.decision.status !== "failed" && input.gates.pageStateGate.decision.status !== "review_required") {
+    return null;
+  }
+
+  return {
+    failEarly:
+      input.gates.pageStateGate.failure ??
+      createScreenshotFailure({
+        code: "page_state_invalid",
+        message: input.gates.pageStateGate.decision.reason ?? "Screenshot page state handoff gate blocked execution.",
+      }),
+    earlyStatus: input.gates.pageStateGate.decision.status,
+  } as const;
+}
+
+function resolvePrivacyFailure(input: ScreenshotPlanFlowInput) {
+  if (input.gates.privacyGate.decision.status !== "blocked" && input.gates.privacyGate.decision.status !== "review_required") {
+    return null;
+  }
+
+  return {
+    failEarly:
+      input.gates.privacyGate.failure ??
+      createScreenshotFailure({
+        code: "privacy_policy_blocked",
+        message: input.gates.privacyGate.decision.reason ?? "Screenshot privacy policy gate blocked execution.",
+      }),
+    earlyStatus: input.gates.privacyGate.decision.status === "blocked" ? "failed" : "review_required",
+  } as const;
+}
+
+async function executeResolvedScreenshotPlan(input: {
+  flow: ScreenshotPlanFlowInput;
+  normalizedGates: ScreenshotExecutionGates;
+  childCapability: ScreenshotChildCapability;
+}): Promise<ScreenshotAbilityResult> {
+  const plan = await input.childCapability.execute({
+    request: input.flow.request,
+    context: input.flow.context,
+  });
+
+  return executeScreenshotExecutionPhases({
+    plan,
+    request: input.flow.request,
+    context: input.flow.context,
+    registryEntry: input.flow.registryEntry,
+    clockStart: input.flow.clockStart,
+    scope: input.flow.scope,
+    gates: input.normalizedGates,
+  });
+}
+
+function resolveImmediateGateFailure(input: ScreenshotPlanFlowInput) {
   if (input.gates.inputGate.decision.status === "failed") {
     return { failEarly: input.gates.inputGate.failure, earlyStatus: "failed" as const };
   }
@@ -85,77 +159,56 @@ const resolveEarlyFailure = (input: ScreenshotPlanFlowInput): {
     return { failEarly: input.gates.sourceGate.failure, earlyStatus: "failed" as const };
   }
 
-  if (input.gates.browserSessionGate.decision.status === "failed" || input.gates.browserSessionGate.decision.status === "review_required") {
-    return {
-      failEarly:
-        input.gates.browserSessionGate.failure ??
-        createScreenshotFailure({
-          code: "browser_session_invalid",
-          message: input.gates.browserSessionGate.decision.reason ?? "Screenshot browser session gate blocked execution.",
-        }),
-      earlyStatus: input.gates.browserSessionGate.decision.status,
-    };
+  return null;
+}
+
+const resolveEarlyFailure = (input: ScreenshotPlanFlowInput): {
+  failEarly: ReturnType<typeof createScreenshotFailure> | null;
+  earlyStatus: "failed" | "review_required";
+} | null => {
+  const immediateGateFailure = resolveImmediateGateFailure(input);
+  if (immediateGateFailure) {
+    return immediateGateFailure;
   }
 
-  if (input.gates.pageStateGate.decision.status === "failed" || input.gates.pageStateGate.decision.status === "review_required") {
-    return {
-      failEarly:
-        input.gates.pageStateGate.failure ??
-        createScreenshotFailure({
-          code: "page_state_invalid",
-          message: input.gates.pageStateGate.decision.reason ?? "Screenshot page state handoff gate blocked execution.",
-        }),
-      earlyStatus: input.gates.pageStateGate.decision.status,
-    };
+  const browserSessionFailure = resolveBrowserSessionFailure(input);
+  if (browserSessionFailure) {
+    return browserSessionFailure;
   }
 
-  if (input.gates.privacyGate.decision.status === "blocked" || input.gates.privacyGate.decision.status === "review_required") {
-    return {
-      failEarly:
-        input.gates.privacyGate.failure ??
-        createScreenshotFailure({
-          code: "privacy_policy_blocked",
-          message: input.gates.privacyGate.decision.reason ?? "Screenshot privacy policy gate blocked execution.",
-        }),
-      earlyStatus: input.gates.privacyGate.decision.status === "blocked" ? "failed" : "review_required",
-    };
+  const pageStateFailure = resolvePageStateFailure(input);
+  if (pageStateFailure) {
+    return pageStateFailure;
+  }
+
+  const privacyFailure = resolvePrivacyFailure(input);
+  if (privacyFailure) {
+    return privacyFailure;
   }
 
   return null;
-};
-
-const resolveScreenshotChildCapability = (childCapabilityId: ScreenshotAbilityInput["childCapabilityId"]): ScreenshotChildCapability | null => {
-  return SCREENSHOT_CHILD_CAPABILITIES.get(childCapabilityId) ?? null;
 };
 
 export async function executeScreenshotExecutionFlow(input: ScreenshotPlanFlowInput): Promise<ScreenshotAbilityResult> {
   const normalizedGates = normalizeExecutionGates(input.gates);
   const earlyFailure = resolveEarlyFailure(input);
   if (earlyFailure) {
-    return buildScreenshotPlanValidationFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: normalizedGates.sourceGate,
-      browserSessionGate: normalizedGates.browserSessionGate,
-      pageStateGate: normalizedGates.pageStateGate,
-      privacyGate: normalizedGates.privacyGate,
-      ...earlyFailure,
+    return buildExecutionPlanValidationFailure({
+      flow: input,
+      normalizedGates,
+      failEarly: earlyFailure.failEarly ?? createScreenshotFailure({
+        code: "dispatch_failure",
+        message: "Screenshot execution failed before child plan execution.",
+      }),
+      earlyStatus: earlyFailure.earlyStatus,
     });
   }
 
   const childCapability = resolveScreenshotChildCapability(input.request.childCapabilityId);
   if (!childCapability) {
-    return buildScreenshotPlanValidationFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: normalizedGates.sourceGate,
-      browserSessionGate: normalizedGates.browserSessionGate,
-      pageStateGate: normalizedGates.pageStateGate,
-      privacyGate: normalizedGates.privacyGate,
+    return buildExecutionPlanValidationFailure({
+      flow: input,
+      normalizedGates,
       failEarly: createScreenshotFailure({
         code: "dispatch_failure",
         message: `Screenshot child capability is not implemented for ${input.request.childCapabilityId}.`,
@@ -165,30 +218,15 @@ export async function executeScreenshotExecutionFlow(input: ScreenshotPlanFlowIn
   }
 
   try {
-    const plan = await childCapability.execute({
-      request: input.request,
-      context: input.context,
-    });
-
-    return executeScreenshotExecutionPhases({
-      plan,
-      request: input.request,
-      context: input.context,
-      registryEntry: input.registryEntry,
-      clockStart: input.clockStart,
-      scope: input.scope,
-      gates: normalizedGates,
+    return executeResolvedScreenshotPlan({
+      flow: input,
+      normalizedGates,
+      childCapability,
     });
   } catch (error) {
-    return buildScreenshotPlanValidationFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: normalizedGates.sourceGate,
-      browserSessionGate: normalizedGates.browserSessionGate,
-      pageStateGate: normalizedGates.pageStateGate,
-      privacyGate: normalizedGates.privacyGate,
+    return buildExecutionPlanValidationFailure({
+      flow: input,
+      normalizedGates,
       failEarly: createScreenshotFailure({
         code: "dispatch_failure",
         message: error instanceof Error ? error.message : "Screenshot execution plan build failed.",

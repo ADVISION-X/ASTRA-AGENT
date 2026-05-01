@@ -2,9 +2,9 @@ import type { WorkbenchRuntime, GrassEyeWorkbenchOptions } from "./workbench-con
 import { createWorkbenchBaseRuntime } from "./workbench-base-runtime.js";
 import { createWorkbenchCommanderConsole, getCommanderConsoleSnapshot } from "./workbench-commander-console.js";
 import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
-import { createWorkbenchNerveBus } from "../../capabilities/nerve-bus/runtime/workbench-nerve-bus-factory.js";
+import { createWorkbenchNerveBus } from "./workbench-nerve-bus.js";
 import { createWorkbenchOrchestration } from "./workbench-orchestration.js";
-import { getLocalAiRoleControls, setLocalAiRoleStartupState } from "../../capabilities/ai/runtime/role-controls.js";
+import { getWorkbenchLocalAiRoleControls, setWorkbenchLocalAiRoleStartupState } from "./workbench-ai-role-controls.js";
 import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
 
 export const createWorkbenchRuntime = (
@@ -23,8 +23,8 @@ export const createWorkbenchRuntime = (
   runtime.getCommanderConsoleSnapshot = () => getCommanderConsoleSnapshot(runtime);
   runtime.listRuntimeDebugEvents = (tail = 200) => runtime.evidenceStore.listStructuredRuntimeEvents(tail);
   runtime.listRuntimeDebugActions = (tail = 200) => runtime.evidenceStore.listStructuredActionLogs(tail);
-  runtime.getLocalAiRoleControls = () => getLocalAiRoleControls();
-  runtime.setLocalAiRoleStartupState = (input) => setLocalAiRoleStartupState(input);
+  runtime.getLocalAiRoleControls = () => getWorkbenchLocalAiRoleControls();
+  runtime.setLocalAiRoleStartupState = (input) => setWorkbenchLocalAiRoleStartupState(input);
   runtime.deleteCandidate = (candidateId) => runtime.evidenceStore.deleteCandidate(candidateId);
   runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
   runtime.getModeInfo = () => getModeInfo(runtime);

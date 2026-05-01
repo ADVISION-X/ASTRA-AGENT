@@ -19,8 +19,7 @@ import type {
 import type { EnforcementMatrix, EnforcementMatrixOwner } from "./core/schema-manifests.js";
 import { readJsonFile } from "./core/filesystem.js";
 import { loadFrozenBaselineDomains } from "./core/frozen-baseline.js";
-import { writeCoreGeneratedArtifacts } from "./core/artifact-writers.js";
-import { writeTouchedFilesArtifact } from "./core/touched-files-writer.js";
+import { writeGeneratedArtifacts, type GeneratedArtifactsWriteInput } from "./core/artifact-writers.js";
 
 type ManifestCollectionContext = {
   lawsByDomain: Map<string, LawRecord[]>;
@@ -255,6 +254,46 @@ const appendFrozenPlanConflicts = (
   }
 };
 
+type BuiltAuditArtifacts = Omit<GeneratedArtifactsWriteInput, "touchedFilesArtifact">;
+
+const prepareGeneratedArtifacts = async (): Promise<GeneratedArtifactsWriteInput> => {
+  const generatedAt = new Date().toISOString();
+  const { laws, conflicts: lawConflicts } = await parseModuleLaws();
+  const manifests = await loadDomainManifests();
+  const phaseGate = await readJsonFile<PhaseGate>(defaultPhaseGatePath);
+  const frozenBaseline = await loadFrozenBaselineDomains();
+  const touchedFilesArtifact = await collectTouchedFilesArtifact({ allowStatusFallback: true });
+  const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
+  const lawsByDomain = groupLawsByDomain(laws);
+  const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain);
+  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeCapabilityDomains);
+  const auditConflicts: AuditConflictsSnapshot = {
+    generatedAt,
+    conflicts: [...lawConflicts, ...manifestConflicts],
+  };
+
+  appendFrozenPlanConflicts(auditConflicts, auditPlanOwners, frozenBaseline);
+  return {
+    touchedFilesArtifact,
+    lawRegistry: { generatedAt, laws },
+    enforcementMatrix: { generatedAt, owners },
+    auditPlan: {
+      generatedAt,
+      phase: phaseGate.phase,
+      phaseGateFile: toRepoRelativePath(defaultPhaseGatePath),
+      owners: auditPlanOwners,
+    },
+    auditConflicts,
+  };
+};
+
+const toBuiltAuditArtifacts = (input: GeneratedArtifactsWriteInput): BuiltAuditArtifacts => ({
+  lawRegistry: input.lawRegistry,
+  enforcementMatrix: input.enforcementMatrix,
+  auditPlan: input.auditPlan,
+  auditConflicts: input.auditConflicts,
+});
+
 export const buildAuditArtifacts = async (): Promise<{
   generatedAt: string;
   lawRegistry: GeneratedLawRegistry;
@@ -262,51 +301,11 @@ export const buildAuditArtifacts = async (): Promise<{
   auditPlan: AuditPlan;
   auditConflicts: AuditConflictsSnapshot;
 }> => {
-  const generatedAt = new Date().toISOString();
-  const { laws, conflicts: lawConflicts } = await parseModuleLaws();
-  const manifests = await loadDomainManifests();
-  const phaseGate = await readJsonFile<PhaseGate>(defaultPhaseGatePath);
-  const frozenBaseline = await loadFrozenBaselineDomains();
-  const touchedFilesArtifact = await collectTouchedFilesArtifact({ allowStatusFallback: true });
-
-  const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
-  const lawsByDomain = groupLawsByDomain(laws);
-  const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain);
-  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeCapabilityDomains);
-
-  const lawRegistry: GeneratedLawRegistry = {
-    generatedAt,
-    laws,
-  };
-
-  const enforcementMatrix: EnforcementMatrix = {
-    generatedAt,
-    owners,
-  };
-
-  const auditPlan: AuditPlan = {
-    generatedAt,
-    phase: phaseGate.phase,
-    phaseGateFile: toRepoRelativePath(defaultPhaseGatePath),
-    owners: auditPlanOwners,
-  };
-
-  const auditConflicts: AuditConflictsSnapshot = {
-    generatedAt,
-    conflicts: [...lawConflicts, ...manifestConflicts],
-  };
-
-  appendFrozenPlanConflicts(auditConflicts, auditPlanOwners, frozenBaseline);
-  await Promise.all([
-    writeCoreGeneratedArtifacts(lawRegistry, enforcementMatrix, auditPlan, auditConflicts),
-    writeTouchedFilesArtifact(touchedFilesArtifact),
-  ]);
+  const generatedArtifacts = await prepareGeneratedArtifacts();
+  await writeGeneratedArtifacts(generatedArtifacts);
 
   return {
-    generatedAt,
-    lawRegistry,
-    enforcementMatrix,
-    auditPlan,
-    auditConflicts,
+    generatedAt: generatedArtifacts.lawRegistry.generatedAt,
+    ...toBuiltAuditArtifacts(generatedArtifacts),
   };
 };

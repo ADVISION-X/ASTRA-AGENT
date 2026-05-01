@@ -1,7 +1,31 @@
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 
-import type { ClipboardPort, ClipboardReadResult, ClipboardWriteResult } from "../../capabilities/text-input/ports/clipboard-port.js";
+type ClipboardReadResult = {
+  ok: boolean;
+  text: string | null;
+  snapshotRef: string | null;
+  textHash: string | null;
+  textLength: number | null;
+  capturedAt: string | null;
+  message: string;
+  portKind: string;
+};
+
+type ClipboardWriteResult = {
+  ok: boolean;
+  snapshotRef: string | null;
+  textHash: string | null;
+  textLength: number | null;
+  writtenAt: string | null;
+  message: string;
+  portKind: string;
+};
+
+type ClipboardPort = {
+  readText(): Promise<ClipboardReadResult>;
+  writeText(text: string): Promise<ClipboardWriteResult>;
+};
 
 function hashClipboardText(text: string): string {
   return createHash("sha256").update(text).digest("hex");

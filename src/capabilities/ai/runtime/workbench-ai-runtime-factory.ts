@@ -1,8 +1,21 @@
 import { createConfiguredAiAbilityGroup } from "../index.js";
-import { recordAiDebugEvent } from "../../forensics-persistence/runtime/ai-debug-event-recorder.js";
-import type { WorkbenchBaseRuntime } from "../../../lib/local-runtime/workbench-contract.js";
+import { recordAiDebugEvent } from "../../forensics-persistence/index.js";
 
-export const createAiRuntime = (runtime: Pick<WorkbenchBaseRuntime, "browserController" | "browserSessionConfig" | "forensicsPersistenceAbilityGroup">) =>
+type AiWorkbenchRuntimeInput = {
+  browserSessionConfig: {
+    profileRef: string | null;
+  };
+  browserController: {
+    getSessionState(): {
+      loginState: string | null;
+    };
+  };
+  forensicsPersistenceAbilityGroup: {
+    writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
+  };
+};
+
+export const createAiRuntime = (runtime: AiWorkbenchRuntimeInput) =>
   createConfiguredAiAbilityGroup({
     emitDebugEvent: (event) => recordAiDebugEvent(runtime, event),
   });

@@ -87,7 +87,7 @@ const buildAllowedSessionResult = (rawSnapshot: BrowserSessionSnapshot): RealChr
     }),
   });
 
-const evaluateRealChromeSessionSnapshot = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult => {
+const resolveBrowserAndProfileSessionBlock = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult | null => {
   if (rawSnapshot.browserMode !== "real_chrome_persistent") {
     return buildBlockedSessionResult({
       rawSnapshot,
@@ -120,6 +120,10 @@ const evaluateRealChromeSessionSnapshot = (rawSnapshot: BrowserSessionSnapshot):
     });
   }
 
+  return null;
+};
+
+const resolveLoginStateSessionBlock = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult | null => {
   if (rawSnapshot.loginState === "review_required") {
     return buildBlockedSessionResult({
       rawSnapshot,
@@ -134,6 +138,15 @@ const evaluateRealChromeSessionSnapshot = (rawSnapshot: BrowserSessionSnapshot):
       reason: rawSnapshot.loginRequiredReason ?? "browser session requires login before governed open",
       status: "review_required",
     });
+  }
+
+  return null;
+};
+
+const evaluateRealChromeSessionSnapshot = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult => {
+  const sessionBlock = resolveBrowserAndProfileSessionBlock(rawSnapshot) ?? resolveLoginStateSessionBlock(rawSnapshot);
+  if (sessionBlock) {
+    return sessionBlock;
   }
 
   return buildAllowedSessionResult(rawSnapshot);

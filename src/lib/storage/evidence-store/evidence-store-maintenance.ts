@@ -2,13 +2,19 @@ import { rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { JsonStateStore } from "../../../lib/storage/json-state-store.js";
-import type { EvidenceRef } from "../../../types/evidence.js";
-import type { ProductDiscoveryEvidencePacket } from "../../../types/evidence-packet.js";
-import type { ActionLog } from "../../../types/platform-action.js";
-import { ProductOpportunityCandidateSchema, type ProductOpportunityCandidate } from "../../../types/product-opportunity.js";
-import type { StoredAiResult } from "../../../types/stored-ai-result.js";
-import type { AgentRound, ReviewDisposition, TaskRun } from "../../../types/task-run.js";
-import type { StructuredActionLog, StructuredRuntimeEvent } from "../../../types/structured-log.js";
+import {
+  ProductOpportunityCandidateSchema,
+  type ActionLog,
+  type AgentRound,
+  type EvidenceRef,
+  type ProductDiscoveryEvidencePacket,
+  type ProductOpportunityCandidate,
+  type ReviewDisposition,
+  type StoredAiResult,
+  type StructuredActionLog,
+  type StructuredRuntimeEvent,
+  type TaskRun,
+} from "./evidence-store-models.js";
 import type { PersistedState } from "./evidence-store-state.js";
 
 type EvidenceStoreMaintenanceContext = {

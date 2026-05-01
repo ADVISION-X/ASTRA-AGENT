@@ -10,17 +10,30 @@ import type { EnforcementMatrix } from "./schema-manifests.js";
 import { type TouchedFilesArtifact } from "./touched-files.js";
 import { writeTouchedFilesArtifact } from "./touched-files-writer.js";
 
-export const writeCoreGeneratedArtifacts = async (
-  lawRegistry: GeneratedLawRegistry,
-  enforcementMatrix: EnforcementMatrix,
-  auditPlan: AuditPlan,
-  auditConflicts: AuditConflictsSnapshot,
-): Promise<void> => {
+type CoreGeneratedArtifacts = {
+  lawRegistry: GeneratedLawRegistry;
+  enforcementMatrix: EnforcementMatrix;
+  auditPlan: AuditPlan;
+  auditConflicts: AuditConflictsSnapshot;
+};
+
+export type GeneratedArtifactsWriteInput = CoreGeneratedArtifacts & {
+  touchedFilesArtifact: TouchedFilesArtifact;
+};
+
+const writeCoreGeneratedArtifacts = async (input: CoreGeneratedArtifacts): Promise<void> => {
   await Promise.all([
-    writeJsonFile(generatedArtifactPaths.lawRegistry, lawRegistry),
-    writeJsonFile(generatedArtifactPaths.enforcementMatrixJson, enforcementMatrix),
-    writeTextFile(generatedArtifactPaths.enforcementMatrixYaml, `${stringifyYaml(enforcementMatrix)}\n`),
-    writeJsonFile(generatedArtifactPaths.auditPlan, auditPlan),
-    writeJsonFile(generatedArtifactPaths.auditConflicts, auditConflicts),
+    writeJsonFile(generatedArtifactPaths.lawRegistry, input.lawRegistry),
+    writeJsonFile(generatedArtifactPaths.enforcementMatrixJson, input.enforcementMatrix),
+    writeTextFile(generatedArtifactPaths.enforcementMatrixYaml, `${stringifyYaml(input.enforcementMatrix)}\n`),
+    writeJsonFile(generatedArtifactPaths.auditPlan, input.auditPlan),
+    writeJsonFile(generatedArtifactPaths.auditConflicts, input.auditConflicts),
+  ]);
+};
+
+export const writeGeneratedArtifacts = async (input: GeneratedArtifactsWriteInput): Promise<void> => {
+  await Promise.all([
+    writeCoreGeneratedArtifacts(input),
+    writeTouchedFilesArtifact(input.touchedFilesArtifact),
   ]);
 };

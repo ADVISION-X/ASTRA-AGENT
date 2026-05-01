@@ -1,5 +1,7 @@
 import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/index.js";
 
+export type WorkbenchPayloadDocument = NerveBusPayloadDocument;
+
 export const buildTransportEnvelopeBase = <TChannelId extends
   | "commander-to-orchestration"
   | "orchestration-to-commander"

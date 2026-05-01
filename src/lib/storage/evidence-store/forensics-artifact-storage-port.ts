@@ -1,7 +1,6 @@
 import { access } from "node:fs/promises";
 
-import { ForensicsArtifactRefSchema } from "../../../capabilities/forensics-persistence/schema.js";
-import type { ForensicsArtifactStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-artifact-storage-port.js";
+import { ForensicsArtifactRefSchema, type ForensicsArtifactStoragePort } from "./forensics-storage-types.js";
 
 const verifyArtifactRef = async (storageRef: string): Promise<boolean> => {
   try {

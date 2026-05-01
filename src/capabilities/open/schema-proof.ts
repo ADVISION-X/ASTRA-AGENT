@@ -11,22 +11,24 @@ import {
   OpenFailureInputParseDecisionSchema,
   OpenFailureSchema,
   OpenIdempotencyDecisionSchema,
-  OpenNavigationDecisionSchema,
-  OpenOutputSchema,
-  OpenPlatformIdSchema,
-  OpenSessionDecisionSchema,
-  OpenStatusSchema,
-  OpenTargetKindSchema,
-  OpenTargetPolicyDecisionSchema,
-  OpenTargetUrlSourceSchema,
-  OpenTimeoutDecisionSchema,
-  OpenTraceFieldSourceSchema,
-  OpenUrlSafetyDecisionSchema,
-  PostOpenStateDecisionSchema,
   nullableString,
   nullableUrl,
   nonNegativeInt,
-} from "./schema-core.js";
+  OpenPlatformIdSchema,
+  OpenStatusSchema,
+  OpenTargetKindSchema,
+  OpenTargetUrlSourceSchema,
+  OpenTimeoutDecisionSchema,
+  OpenTraceFieldSourceSchema,
+} from "./schema-base.js";
+import {
+  OpenNavigationDecisionSchema,
+  OpenOutputSchema,
+  OpenSessionDecisionSchema,
+  OpenTargetPolicyDecisionSchema,
+  OpenUrlSafetyDecisionSchema,
+  PostOpenStateDecisionSchema,
+} from "./schema-runtime.js";
 import { OPEN_ABILITY_GROUP_ID, OPEN_POST_OPEN_CLASSIFICATIONS } from "./shared/open-target-profile.js";
 import { OPEN_CLOCK_KIND } from "./shared/open-proof.js";
 

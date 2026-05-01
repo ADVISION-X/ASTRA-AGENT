@@ -148,6 +148,34 @@ function resolveVideoChangedAfterScrollObservationPair(input: {
   };
 }
 
+function isVideoIdentityOutsideScrollWindow(input: {
+  beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
+  afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
+  actionStartedAtMs: number;
+  actionEndedAtMs: number;
+}) {
+  return parsePostActionTimestampMs(input.beforeObservation.capturedAt) >= input.actionStartedAtMs
+    || parsePostActionTimestampMs(input.afterObservation.capturedAt) <= input.actionEndedAtMs;
+}
+
+function resolveVideoChangedDecision(input: {
+  beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
+  afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
+}) {
+  const beforeVideoId = input.beforeObservation.payload.videoId;
+  const afterVideoId = input.afterObservation.payload.videoId;
+  const beforeSignature = input.beforeObservation.payload.visualSignature;
+  const afterSignature = input.afterObservation.payload.visualSignature;
+
+  if (beforeVideoId !== null && afterVideoId !== null) {
+    return beforeVideoId !== afterVideoId;
+  }
+  if (beforeSignature !== null && afterSignature !== null) {
+    return beforeSignature !== afterSignature;
+  }
+  return null;
+}
+
 function resolveVideoChangedAfterScrollOutcome(input: {
   beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
   afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
@@ -156,10 +184,7 @@ function resolveVideoChangedAfterScrollOutcome(input: {
   beforeEvidenceRef: string | null;
   afterEvidenceRef: string | null;
 }) {
-  if (
-    parsePostActionTimestampMs(input.beforeObservation.capturedAt) >= input.actionStartedAtMs ||
-    parsePostActionTimestampMs(input.afterObservation.capturedAt) <= input.actionEndedAtMs
-  ) {
+  if (isVideoIdentityOutsideScrollWindow(input)) {
     return buildVideoChangedAfterScrollWindowConflictResult({
       beforeRef: input.beforeObservation.ref,
       afterRef: input.afterObservation.ref,
@@ -168,16 +193,7 @@ function resolveVideoChangedAfterScrollOutcome(input: {
     });
   }
 
-  const beforeVideoId = input.beforeObservation.payload.videoId;
-  const afterVideoId = input.afterObservation.payload.videoId;
-  const beforeSignature = input.beforeObservation.payload.visualSignature;
-  const afterSignature = input.afterObservation.payload.visualSignature;
-  const changed =
-    beforeVideoId !== null && afterVideoId !== null
-      ? beforeVideoId !== afterVideoId
-      : beforeSignature !== null && afterSignature !== null
-        ? beforeSignature !== afterSignature
-        : null;
+  const changed = resolveVideoChangedDecision(input);
 
   if (changed === null) {
     return buildVideoChangedAfterScrollUnknownResult({

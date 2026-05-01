@@ -258,4 +258,6 @@ export type {
   AiAbilityGroup,
 };
 
+export { AiVisionRequestInputSchema } from "./schema-core.schema.js";
 export type { AiRuntimePort } from "./ports/ai-runtime-port.js";
+export type { AiRuntimeStructuredDebugEvent } from "./runtime-adapters/local-ai-runtime-debug-contract.js";

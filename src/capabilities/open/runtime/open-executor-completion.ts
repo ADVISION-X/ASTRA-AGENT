@@ -8,15 +8,8 @@ import { evaluatePostOpenState } from "./post-open-state-gate.js";
 import { runOpenNavigation } from "./navigation-runner.js";
 import { resolveOpenTimeoutMs } from "./open-timeout-policy.js";
 
-export async function completeOpenChildExecution(input: {
-  request: ParsedOpenRequest;
-  profile: OpenTargetProfile;
-  context: OpenChildExecutionContext;
-  state: OpenChildPreflightState;
-}): Promise<OpenResult> {
-  const pageStateHandoffRef = `page-state:${input.request.runId}:${input.request.childCapabilityId}`;
-  const beforeSession = input.state.sessionGate.sessionSnapshot!;
-  const navigation = await runOpenNavigation({
+async function resolveCompletedNavigation(input: Parameters<typeof completeOpenChildExecution>[0], beforeSession: NonNullable<OpenChildPreflightState["sessionGate"]["sessionSnapshot"]>) {
+  return runOpenNavigation({
     browser: input.context.browser,
     request: input.request,
     profile: input.profile,
@@ -29,6 +22,28 @@ export async function completeOpenChildExecution(input: {
     targetProfileRef: input.state.targetPolicy.decision.targetProfileRef,
     beforeSession,
   });
+}
+
+function reconcileIdempotencyReservation(input: Parameters<typeof completeOpenChildExecution>[0], postOpenState: ReturnType<typeof evaluatePostOpenState>) {
+  if (postOpenState.status === "success") {
+    input.context.idempotency.commitSuccess({ idempotencyKey: input.state.idempotency.idempotencyKey });
+    return;
+  }
+
+  if (input.state.idempotency.decision === "reserved") {
+    input.context.idempotency.releaseOnFailure({ idempotencyKey: input.state.idempotency.idempotencyKey });
+  }
+}
+
+export async function completeOpenChildExecution(input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+  context: OpenChildExecutionContext;
+  state: OpenChildPreflightState;
+}): Promise<OpenResult> {
+  const pageStateHandoffRef = `page-state:${input.request.runId}:${input.request.childCapabilityId}`;
+  const beforeSession = input.state.sessionGate.sessionSnapshot!;
+  const navigation = await resolveCompletedNavigation(input, beforeSession);
 
   const postOpenState = evaluatePostOpenState({
     profile: input.profile,
@@ -39,11 +54,7 @@ export async function completeOpenChildExecution(input: {
   });
 
   const ended = input.context.clock.now();
-  if (postOpenState.status === "success") {
-    input.context.idempotency.commitSuccess({ idempotencyKey: input.state.idempotency.idempotencyKey });
-  } else if (input.state.idempotency.decision === "reserved") {
-    input.context.idempotency.releaseOnFailure({ idempotencyKey: input.state.idempotency.idempotencyKey });
-  }
+  reconcileIdempotencyReservation(input, postOpenState);
 
   return OpenResultSchema.parse(buildOpenChildResult({
     request: input.request,

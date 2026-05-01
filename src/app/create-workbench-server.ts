@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
-import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
@@ -10,7 +10,7 @@ import { handleTaskRequest } from "./task-api-handlers.js";
 async function handleArtifactOrRootRequest(
   request: import("node:http").IncomingMessage,
   response: import("node:http").ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   if (request.method === "GET" && url.pathname.startsWith("/artifacts/")) {
@@ -31,7 +31,7 @@ async function handleArtifactOrRootRequest(
 async function handleRequest(
   request: import("node:http").IncomingMessage,
   response: import("node:http").ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   activeBaseUrl: string,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", activeBaseUrl);
@@ -57,7 +57,7 @@ async function handleRequest(
 }
 
 export function createWorkbenchServer(input: {
-  workbench: GrassEyeWorkbench;
+  workbench: GrassEyeWorkbenchHandle;
   baseUrl: string;
 }): ReturnType<typeof createServer> {
   return createServer(async (request, response) => {

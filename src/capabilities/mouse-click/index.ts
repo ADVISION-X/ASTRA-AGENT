@@ -29,4 +29,5 @@ export {
 	MouseClickPointSchema,
 } from "./schema.js";
 export { listMouseClickChildren } from "./registry.js";
+export { createMouseClickAbilityGroupWithPrimitivePort } from "./runtime/mouse-click-ability-group-factory.js";
 export type { MouseClickPrimitiveInput, MouseClickPrimitivePort, MouseClickPrimitiveResult } from "./ports/mouse-click-primitive-port.js";

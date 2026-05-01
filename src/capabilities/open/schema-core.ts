@@ -1,60 +1,23 @@
 import { z } from "zod";
 
 import {
+  OpenAllowedCallerSchema,
+  OpenChildCapabilityIdSchema,
+  OpenFailureSchema,
+  OpenPlatformIdSchema,
+  OpenStatusSchema,
+  OpenTargetKindSchema,
+  nullableString,
+} from "./schema-base.js";
+import {
   BrowserLoginStateSchema,
   BrowserModeSchema,
   BrowserProfileStatusSchema,
   BrowserProfileVerificationStatusSchema,
-} from "../../types/local-browser-session.js";
-import { OPEN_FAILURE_CODES } from "./shared/open-failure.js";
-import { DEFAULT_LOCALHOST_HOSTNAMES } from "./shared/open-policy.js";
-import {
-  OPEN_CLOCK_KIND,
-  OPEN_NAVIGATION_DECISION_STATUSES,
-  OPEN_SESSION_DECISION_STATUSES,
-  OPEN_TARGET_POLICY_DECISION_STATUSES,
-  OPEN_URL_SAFETY_DECISION_STATUSES,
-} from "./shared/open-proof.js";
-import { OPEN_RESULT_STATUSES } from "./shared/open-result.js";
+} from "./schema-base.js";
 import {
   OPEN_ABILITY_GROUP_ID,
-  OPEN_ALLOWED_CALLERS,
-  OPEN_CHILD_CAPABILITY_IDS,
-  OPEN_PLATFORM_IDS,
-  OPEN_POST_OPEN_CLASSIFICATIONS,
-  OPEN_TARGET_KINDS,
 } from "./shared/open-target-profile.js";
-
-export const nullableString = z.string().min(1).nullable().default(null);
-export const nullableUrl = z.string().url().nullable().default(null);
-export const nonNegativeInt = z.number().int().nonnegative();
-
-export const OpenChildCapabilityIdSchema = z.enum(OPEN_CHILD_CAPABILITY_IDS);
-export const OpenTargetKindSchema = z.enum(OPEN_TARGET_KINDS);
-export const OpenPlatformIdSchema = z.enum(OPEN_PLATFORM_IDS);
-export const OpenStatusSchema = z.enum(OPEN_RESULT_STATUSES);
-export const OpenFailureCodeSchema = z.enum(OPEN_FAILURE_CODES);
-export const OpenAllowedCallerSchema = z.enum(OPEN_ALLOWED_CALLERS);
-export const OpenTargetUrlSourceSchema = z.enum(["provided", "registered_profile", "rejected_missing"]);
-export const OpenTraceFieldSourceSchema = z.enum(["provided", "unavailable"]);
-export const OpenFailureInputParseDecisionSchema = z.enum(["parsed", "fallback_trace_only"]);
-export const OpenTimeoutDecisionSchema = z.enum(["within_limit", "timed_out"]);
-export const OpenAbortDecisionSchema = z.enum(["not_requested", "timeout_abort_requested", "operator_abort_requested"]);
-export const OpenCircuitBreakerStateSchema = z.enum(["closed", "open"]);
-export const OpenIdempotencyDecisionSchema = z.enum([
-  "reserved",
-  "duplicate_review_required",
-  "already_on_target",
-  "scope_capacity_exceeded",
-  "not_started",
-]);
-export const OpenAlreadyOnTargetFreshnessDecisionSchema = z.enum(["not_applicable", "freshness_required", "freshness_verified"]);
-
-export const OpenDataQualityFlagSchema = z.object({
-  code: z.string().min(1),
-  severity: z.enum(["info", "warn", "error"]),
-  reason: z.string().min(1),
-}).strict();
 
 const OpenTimeoutPolicySchema = z.object({
   maxOpenDurationMs: z.number().int().positive(),
@@ -95,12 +58,6 @@ const OpenFailurePolicySchema = z.object({
   dispatchFailureUsesEnvelopeOnly: z.literal(true),
   fakeTargetProfileForbidden: z.literal(true),
   fakeAllowDecisionForbidden: z.literal(true),
-}).strict();
-
-export const OpenFailureSchema = z.object({
-  code: OpenFailureCodeSchema,
-  message: z.string().min(1),
-  detail: nullableString,
 }).strict();
 
 const OpenTargetProfileSchema = z.object({
@@ -155,143 +112,7 @@ const OpenRequestSchema = z.object({
   sourceRef: nullableString,
 }).strict();
 
-const BrowserSessionSnapshotSchema = z.object({
-  open: z.boolean(),
-  currentUrl: z.union([z.string().url(), z.literal("about:blank")]),
-  currentTitle: nullableString,
-  browserExecutable: nullableString,
-  browserMode: BrowserModeSchema,
-  browserProfileRef: z.string().min(1),
-  browserExecutablePath: nullableString,
-  profileStatus: BrowserProfileStatusSchema,
-  profileDirectory: z.string().min(1),
-  profileProvisioning: z.enum(["operator_supplied", "managed_default"]),
-  profileVerificationStatus: BrowserProfileVerificationStatusSchema,
-  profileVerificationReason: nullableString,
-  loginState: BrowserLoginStateSchema,
-  lastLoginCheckAt: nullableString,
-  loginRequiredReason: nullableString,
-  reviewRequiredReason: nullableString,
-}).strict();
-
-const NavigationResultSchema = z.object({
-  browserActionId: nullableString,
-  ok: z.boolean(),
-  message: z.string().min(1),
-  createdAt: z.string().datetime(),
-  openedUrl: nullableUrl,
-  pageTitleAfter: nullableString,
-  redirectChain: z.array(z.string().url()).default([]),
-  portKind: z.string().min(1),
-}).strict();
-
-const OpenTargetPolicyDecisionSchema = z.object({
-  status: z.enum(OPEN_TARGET_POLICY_DECISION_STATUSES),
-  reason: nullableString,
-  targetProfileRef: nullableString,
-  resolvedTargetUrl: nullableUrl,
-  resolvedTargetTitle: nullableString,
-  targetUrlSource: OpenTargetUrlSourceSchema,
-}).strict().superRefine((value, context) => {
-  if (value.status === "allow" && (!value.targetProfileRef || !value.resolvedTargetUrl || !value.resolvedTargetTitle)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "allow target policy decision requires target profile and resolved target fields",
-      path: ["resolvedTargetUrl"],
-    });
-  }
-  if (value.status === "allow" && value.targetUrlSource === "rejected_missing") {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "allow target policy decision cannot use rejected_missing targetUrlSource",
-      path: ["targetUrlSource"],
-    });
-  }
-});
-
-const OpenUrlSafetyDecisionSchema = z.object({
-  status: z.enum(OPEN_URL_SAFETY_DECISION_STATUSES),
-  reason: nullableString,
-  normalizedUrl: nullableUrl,
-  hostname: nullableString,
-  scheme: z.enum(["http", "https"]).nullable().default(null),
-}).strict().superRefine((value, context) => {
-  if (value.status === "allow" && (!value.normalizedUrl || !value.hostname || !value.scheme)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "allow url safety decision requires normalized url, hostname, and scheme",
-      path: ["normalizedUrl"],
-    });
-  }
-});
-
-const OpenSessionDecisionSchema = z.object({
-  status: z.enum(OPEN_SESSION_DECISION_STATUSES),
-  reason: nullableString,
-  browserMode: BrowserModeSchema,
-  profileStatus: BrowserProfileStatusSchema,
-  profileVerificationStatus: BrowserProfileVerificationStatusSchema,
-}).strict();
-
-const OpenNavigationDecisionSchema = z.object({
-  status: z.enum(OPEN_NAVIGATION_DECISION_STATUSES),
-  reason: nullableString,
-  browserActionId: nullableString,
-  openedUrl: nullableUrl,
-  pageTitleAfter: nullableString,
-  navigationAttemptRef: z.string().min(1),
-  navigationCallId: z.string().min(1),
-  redirectChain: z.array(z.string().url()).default([]),
-  timeoutDecision: OpenTimeoutDecisionSchema,
-  abortDecision: OpenAbortDecisionSchema,
-  circuitBreakerState: OpenCircuitBreakerStateSchema,
-  browserOpenStillRunningGuard: z.boolean(),
-  alreadyOnTargetFreshnessDecision: OpenAlreadyOnTargetFreshnessDecisionSchema,
-}).strict();
-
-const PostOpenStateDecisionSchema = z.object({
-  status: OpenStatusSchema,
-  classification: z.enum(OPEN_POST_OPEN_CLASSIFICATIONS),
-  reason: nullableString,
-  openedUrl: nullableUrl,
-  pageTitleAfter: nullableString,
-  pageStateHandoffRequired: z.boolean(),
-  pageStateHandoffRef: nullableString,
-  authoritative: z.literal(false),
-  documentReadyState: z.enum(["loading", "interactive", "complete"]).nullable().default(null),
-}).strict().superRefine((value, context) => {
-  if (value.status === "success" && (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null)) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "success post-open decision requires page-state handoff",
-      path: ["pageStateHandoffRef"],
-    });
-  }
-});
-
-const OpenOutputSchema = z.object({
-  targetProfileRef: z.string().min(1),
-  targetUrl: z.string().url(),
-  openedUrl: z.string().url(),
-  redirectChain: z.array(z.string().url()).default([]),
-  pageTitleAfter: nullableString,
-  browserSessionRef: z.string().min(1),
-  browserProfileRef: z.string().min(1),
-  browserMode: BrowserModeSchema,
-  profileVerificationStatus: BrowserProfileVerificationStatusSchema,
-  loginStateBefore: BrowserLoginStateSchema,
-  loginStateAfter: BrowserLoginStateSchema,
-  sourceRef: z.string().min(1),
-  openAttemptRef: z.string().min(1),
-  pageStateHandoffRef: z.string().min(1),
-  pageStateHandoffRequired: z.literal(true),
-}).strict();
-
 export {
-  BrowserLoginStateSchema,
-  BrowserModeSchema,
-  BrowserProfileStatusSchema,
-  BrowserProfileVerificationStatusSchema,
   OpenTimeoutPolicySchema,
   OpenIdempotencyPolicySchema,
   OpenBoundaryPolicySchema,
@@ -300,13 +121,5 @@ export {
   OpenFailurePolicySchema,
   OpenTargetProfileSchema,
   OpenRequestSchema,
-  BrowserSessionSnapshotSchema,
-  NavigationResultSchema,
-  OpenTargetPolicyDecisionSchema,
-  OpenUrlSafetyDecisionSchema,
-  OpenSessionDecisionSchema,
-  OpenNavigationDecisionSchema,
-  PostOpenStateDecisionSchema,
-  OpenOutputSchema,
 };
 

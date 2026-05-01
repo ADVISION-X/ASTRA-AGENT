@@ -1,6 +1,6 @@
 import { getDefaultLocalDataDir } from "./default-data-dir.js";
 import { createBrowserRuntime } from "./workbench-browser-runtime.js";
-import { createAiRuntime } from "../../capabilities/ai/runtime/workbench-ai-runtime-factory.js";
+import { createWorkbenchAiAbilityGroup } from "./workbench-ai-ability-group.js";
 import type { WorkbenchBaseRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
 import { createMouseClickRuntime } from "./workbench-mouse-click-runtime.js";
 import { createMouseScrollRuntime } from "./workbench-mouse-scroll-runtime.js";
@@ -33,7 +33,7 @@ export const createWorkbenchBaseRuntime = (
     ...createMouseScrollRuntime(partialRuntime),
   };
   const observations = createObservationRuntimes(partialRuntime);
-  const aiAbilityGroup = createAiRuntime({ ...partialRuntime, ...observations });
+  const aiAbilityGroup = createWorkbenchAiAbilityGroup(partialRuntime);
   const runtime = { ...partialRuntime, ...actions, ...observations, aiAbilityGroup } as Omit<WorkbenchBaseRuntime, "openAbilityGroup">;
   return { ...runtime, openAbilityGroup: createOpenRuntime(runtime as WorkbenchBaseRuntime) };
 };

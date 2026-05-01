@@ -1,7 +1,10 @@
-import type { EvidenceRef, ImageEvidence } from "../../../types/evidence.js";
-import type { ProductDiscoveryEvidencePacket } from "../../../types/evidence-packet.js";
-import type { ActionLog } from "../../../types/platform-action.js";
-import type { ProductOpportunityCandidate } from "../../../types/product-opportunity.js";
+import type {
+  ActionLog,
+  EvidenceRef,
+  ImageEvidence,
+  ProductDiscoveryEvidencePacket,
+  ProductOpportunityCandidate,
+} from "./evidence-store-models.js";
 
 type AiEvidenceSource = {
   taskType: string;

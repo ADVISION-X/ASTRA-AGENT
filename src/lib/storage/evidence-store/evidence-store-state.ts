@@ -1,18 +1,21 @@
 import { z } from "zod";
 
-import { ImageEvidenceSchema, OcrTextResultSchema } from "../../../types/evidence.js";
 import {
+  ActionLogSchema,
   AdvancedAIExportSetSchema,
+  AgentRoundSchema,
   BrowseLedgerEntrySchema,
+  ImageEvidenceSchema,
+  OcrTextResultSchema,
   ProductDiscoveryEvidencePacketSchema,
+  ProductOpportunityCandidateSchema,
   RoundLifecycleEventSchema,
   RoundStructuralLogSchema,
-} from "../../../types/evidence-packet.js";
-import { ActionLogSchema } from "../../../types/platform-action.js";
-import { ProductOpportunityCandidateSchema } from "../../../types/product-opportunity.js";
-import { StoredAiResultSchema } from "../../../types/stored-ai-result.js";
-import { AgentRoundSchema, TaskRunSchema } from "../../../types/task-run.js";
-import { StructuredActionLogSchema, StructuredRuntimeEventSchema } from "../../../types/structured-log.js";
+  StoredAiResultSchema,
+  StructuredActionLogSchema,
+  StructuredRuntimeEventSchema,
+  TaskRunSchema,
+} from "./evidence-store-models.js";
 
 export const PersistedStateSchema = z.object({
   taskRuns: z.array(TaskRunSchema),

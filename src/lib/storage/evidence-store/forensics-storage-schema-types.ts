@@ -1,0 +1,37 @@
+import * as externalForensicsSchema from "../../../capabilities/forensics-persistence/schema.js";
+
+const ForensicsAiResultRecordPayloadSchema = externalForensicsSchema.ForensicsAiResultRecordPayloadSchema;
+const ForensicsArtifactRefSchema = externalForensicsSchema.ForensicsArtifactRefSchema;
+const ForensicsBrowseLedgerPayloadSchema = externalForensicsSchema.ForensicsBrowseLedgerPayloadSchema;
+const ForensicsEvidencePacketPayloadSchema = externalForensicsSchema.ForensicsEvidencePacketPayloadSchema;
+const ForensicsEvidenceRecordPayloadSchema = externalForensicsSchema.ForensicsEvidenceRecordPayloadSchema;
+const ForensicsFailedRecordPayloadSchema = externalForensicsSchema.ForensicsFailedRecordPayloadSchema;
+const ForensicsRuntimeSnapshotPayloadSchema = externalForensicsSchema.ForensicsRuntimeSnapshotPayloadSchema;
+const ForensicsStructuredActionLogPayloadSchema = externalForensicsSchema.ForensicsStructuredActionLogPayloadSchema;
+const ForensicsStructuredRuntimeEventPayloadSchema = externalForensicsSchema.ForensicsStructuredRuntimeEventPayloadSchema;
+
+type ForensicsArtifactRef = externalForensicsSchema.ForensicsArtifactRef;
+type ForensicsRecordEnvelope = externalForensicsSchema.ForensicsRecordEnvelope;
+type ForensicsRecordQuery = externalForensicsSchema.ForensicsRecordQuery;
+type ForensicsRecordRef = externalForensicsSchema.ForensicsRecordRef;
+type StoredForensicsRecord = externalForensicsSchema.StoredForensicsRecord;
+
+export {
+  ForensicsAiResultRecordPayloadSchema,
+  ForensicsArtifactRefSchema,
+  ForensicsBrowseLedgerPayloadSchema,
+  ForensicsEvidencePacketPayloadSchema,
+  ForensicsEvidenceRecordPayloadSchema,
+  ForensicsFailedRecordPayloadSchema,
+  ForensicsRuntimeSnapshotPayloadSchema,
+  ForensicsStructuredActionLogPayloadSchema,
+  ForensicsStructuredRuntimeEventPayloadSchema,
+};
+
+export type {
+  ForensicsArtifactRef,
+  ForensicsRecordEnvelope,
+  ForensicsRecordQuery,
+  ForensicsRecordRef,
+  StoredForensicsRecord,
+};

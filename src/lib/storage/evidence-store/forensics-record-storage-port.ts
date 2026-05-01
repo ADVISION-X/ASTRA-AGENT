@@ -1,4 +1,4 @@
-import { EvidenceStoreService } from "./evidence-store-service.js";
+import type { EvidenceStoreService } from "./evidence-store-service.js";
 import {
   ForensicsAiResultRecordPayloadSchema,
   ForensicsArtifactRefSchema,
@@ -9,15 +9,13 @@ import {
   ForensicsRuntimeSnapshotPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema,
   ForensicsStructuredRuntimeEventPayloadSchema,
-} from "../../../capabilities/forensics-persistence/schema.js";
-import type {
-  ForensicsArtifactRef,
-  ForensicsRecordEnvelope,
-  ForensicsRecordQuery,
-  ForensicsRecordRef,
-  StoredForensicsRecord,
-} from "../../../capabilities/forensics-persistence/schema.js";
-import type { ForensicsStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-storage-port.js";
+  type ForensicsArtifactRef,
+  type ForensicsRecordEnvelope,
+  type ForensicsRecordQuery,
+  type ForensicsRecordRef,
+  type ForensicsStoragePort,
+  type StoredForensicsRecord,
+} from "./forensics-storage-types.js";
 
 function buildRecordRef(envelope: ForensicsRecordEnvelope, storageRef: string | null): ForensicsRecordRef {
   return {

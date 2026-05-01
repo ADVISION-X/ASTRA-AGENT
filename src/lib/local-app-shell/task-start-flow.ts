@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { createId } from "../local-runtime/ids.js";
-import type { GrassEyeWorkbench } from "../local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { parseTaskJsonBody } from "./task-http-helpers.js";
 import {
   normalizePositiveInteger,
@@ -60,7 +60,7 @@ const buildStartMissionInput = (approval: StartApproval) => {
   };
 };
 
-export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbench): Promise<true> {
+export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<true> {
   const draft = await buildStartDraft(request);
   const binding = resolveMissionStartBinding({
     taskTemplateId: draft.taskTemplateId,

@@ -94,49 +94,76 @@ const buildScreenshotSuccessRuntimeProofDecisionFields = (input: ScreenshotSucce
   dataQualityFlags: input.dataQualityFlags,
 });
 
-const buildScreenshotSuccessRuntimeProof = (input: ScreenshotSuccessRuntimeProofInput): ScreenshotRuntimeProof =>
-  buildScreenshotRuntimeProof({
-    request: input.pathInput.request,
-    proofId: buildScreenshotSuccessRuntimeProofIdentityFields(input).proofId,
-    runId: buildScreenshotSuccessRuntimeProofIdentityFields(input).runId,
-    missionId: buildScreenshotSuccessRuntimeProofIdentityFields(input).missionId,
-    inputRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).inputRef,
-    outputRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputRef,
-    idempotencyKey: buildScreenshotSuccessRuntimeProofDecisionFields(input).idempotencyKey,
-    startedAt: buildScreenshotSuccessRuntimeProofDecisionFields(input).startedAt,
-    endedAt: buildScreenshotSuccessRuntimeProofDecisionFields(input).endedAt,
-    durationMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).durationMs,
-    startedMonotonicMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).clock.startedMonotonicMs,
-    endedMonotonicMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).clock.endedMonotonicMs,
-    status: buildScreenshotSuccessRuntimeProofDecisionFields(input).status,
-    failureReason: buildScreenshotSuccessRuntimeProofDecisionFields(input).failureReason,
-    reviewRequiredReason: buildScreenshotSuccessRuntimeProofDecisionFields(input).reviewRequiredReason,
-    sourceProof: input.pathInput.gates.sourceGate.sourceProof,
-    artifactRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).artifactRef,
-    sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
-    sourceHash: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceHash,
-    outputHash: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputHash,
-    sourceWidth: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceWidth,
-    sourceHeight: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceHeight,
-    outputWidth: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputWidth,
-    outputHeight: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputHeight,
-    coordinateSpace: buildScreenshotSuccessRuntimeProofIdentityFields(input).coordinateSpace,
-    scaleMapping: buildScreenshotSuccessRuntimeProofIdentityFields(input).scaleMapping,
-    browserSessionRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).browserSessionRef,
-    pageStateProofRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).pageStateProofRef,
-    screenshotEvidenceId: buildScreenshotSuccessRuntimeProofIdentityFields(input).screenshotEvidenceId,
+function resolveScreenshotSuccessRuntimeProofFields(input: ScreenshotSuccessRuntimeProofInput) {
+  const identity = buildScreenshotSuccessRuntimeProofIdentityFields(input);
+  const decisions = buildScreenshotSuccessRuntimeProofDecisionFields(input);
+  return { identity, decisions };
+}
+
+function buildScreenshotSuccessRuntimeProofScalarPayload(fields: ReturnType<typeof resolveScreenshotSuccessRuntimeProofFields>) {
+  return {
+    proofId: fields.identity.proofId,
+    runId: fields.identity.runId,
+    missionId: fields.identity.missionId,
+    inputRef: fields.identity.inputRef,
+    outputRef: fields.identity.outputRef,
+    artifactRef: fields.identity.artifactRef,
+    sourceHash: fields.identity.sourceHash,
+    outputHash: fields.identity.outputHash,
+    sourceWidth: fields.identity.sourceWidth,
+    sourceHeight: fields.identity.sourceHeight,
+    outputWidth: fields.identity.outputWidth,
+    outputHeight: fields.identity.outputHeight,
+    coordinateSpace: fields.identity.coordinateSpace,
+    scaleMapping: fields.identity.scaleMapping,
+    browserSessionRef: fields.identity.browserSessionRef,
+    pageStateProofRef: fields.identity.pageStateProofRef,
+    screenshotEvidenceId: fields.identity.screenshotEvidenceId,
+  };
+}
+
+function buildScreenshotSuccessRuntimeProofDecisionPayload(fields: ReturnType<typeof resolveScreenshotSuccessRuntimeProofFields>) {
+  return {
+    idempotencyKey: fields.decisions.idempotencyKey,
+    startedAt: fields.decisions.startedAt,
+    endedAt: fields.decisions.endedAt,
+    durationMs: fields.decisions.durationMs,
+    startedMonotonicMs: fields.decisions.clock.startedMonotonicMs,
+    endedMonotonicMs: fields.decisions.clock.endedMonotonicMs,
+    status: fields.decisions.status,
+    failureReason: fields.decisions.failureReason,
+    reviewRequiredReason: fields.decisions.reviewRequiredReason,
     decisions: {
-      privacyDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).privacyDecision,
-      sourceDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).sourceDecision,
-      browserSessionDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).browserSessionDecision,
-      pageStateDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).pageStateDecision,
-      captureDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).captureDecision,
-      imageProcessingDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).imageProcessingDecision,
-      artifactDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).artifactDecision,
-      outputBoundaryDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).outputBoundaryDecision,
+      privacyDecision: fields.decisions.privacyDecision,
+      sourceDecision: fields.decisions.sourceDecision,
+      browserSessionDecision: fields.decisions.browserSessionDecision,
+      pageStateDecision: fields.decisions.pageStateDecision,
+      captureDecision: fields.decisions.captureDecision,
+      imageProcessingDecision: fields.decisions.imageProcessingDecision,
+      artifactDecision: fields.decisions.artifactDecision,
+      outputBoundaryDecision: fields.decisions.outputBoundaryDecision,
     },
-    dataQualityFlags: buildScreenshotSuccessRuntimeProofDecisionFields(input).dataQualityFlags,
-  });
+    dataQualityFlags: fields.decisions.dataQualityFlags,
+  };
+}
+
+function buildScreenshotSuccessRuntimeProofPayload(
+  input: ScreenshotSuccessRuntimeProofInput,
+  fields: ReturnType<typeof resolveScreenshotSuccessRuntimeProofFields>,
+) {
+  return {
+    request: input.pathInput.request,
+    sourceProof: input.pathInput.gates.sourceGate.sourceProof,
+    sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
+    ...buildScreenshotSuccessRuntimeProofScalarPayload(fields),
+    ...buildScreenshotSuccessRuntimeProofDecisionPayload(fields),
+  };
+}
+
+const buildScreenshotSuccessRuntimeProof = (input: ScreenshotSuccessRuntimeProofInput): ScreenshotRuntimeProof => {
+  const fields = resolveScreenshotSuccessRuntimeProofFields(input);
+  return buildScreenshotRuntimeProof(buildScreenshotSuccessRuntimeProofPayload(input, fields));
+};
 
 export const buildScreenshotSuccessResult = async (input: {
   pathInput: ScreenshotSuccessPathInput;

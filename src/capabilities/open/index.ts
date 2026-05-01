@@ -11,4 +11,5 @@ export {
 	type OpenTargetKind,
 } from "./contract.js";
 export { OpenRequestSchema, OpenResultSchema } from "./schema.js";
+export { createOpenRegistry, listOpenChildren } from "./registry.js";
 export type { OpenBrowserPort } from "./ports/open-browser-port.js";

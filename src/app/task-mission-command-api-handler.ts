@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
-import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { sendJson } from "./task-api-response.js";
 import { parseJsonBody } from "./workbench-api-helpers.js";
 
@@ -28,7 +28,7 @@ const getMissionCommandRoute = (request: IncomingMessage, url: URL): MissionComm
   return MISSION_COMMAND_ROUTES.find((route) => route.pathname === url.pathname) ?? null;
 };
 
-export async function handleMissionCommandRequest(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL): Promise<boolean> {
+export async function handleMissionCommandRequest(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL): Promise<boolean> {
   const route = getMissionCommandRoute(request, url);
   if (!route) {
     return false;

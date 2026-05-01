@@ -1,13 +1,13 @@
 import type { ServerResponse } from "node:http";
 
-import type { GrassEyeWorkbench } from "../local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { writeTaskJsonResponse } from "./task-http-helpers.js";
 import type { MissionStartBinding } from "./task-start-binding.js";
 import type { StartApproval, StartCommandResult, StartDraft } from "./task-start-types.js";
 
 const toNullableString = (value: string | undefined): string | null => value ?? null;
 
-export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbench, draft: StartDraft, taskTemplateId: string | null) {
+export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbenchHandle, draft: StartDraft, taskTemplateId: string | null) {
   await activeWorkbench.recordCommanderDebugEvent({
     eventType: "HUMAN_COMMAND_DRAFTED",
     status: "started",
@@ -51,7 +51,7 @@ const buildBindingFailurePayload = (
 };
 
 const recordBindingFailureEvent = async (
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   draft: StartDraft,
   taskTemplateId: string | null,
   binding: Extract<MissionStartBinding, { ok: false }>,
@@ -80,7 +80,7 @@ const writeBindingFailureResponse = (
 
 export async function sendTaskStartBindingFailure(input: {
   response: ServerResponse;
-  activeWorkbench: GrassEyeWorkbench;
+  activeWorkbench: GrassEyeWorkbenchHandle;
   draft: StartDraft;
   taskTemplateId: string | null;
   binding: Extract<MissionStartBinding, { ok: false }>;
@@ -89,7 +89,7 @@ export async function sendTaskStartBindingFailure(input: {
   writeBindingFailureResponse(input.response, input.draft, input.binding);
 }
 
-export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWorkbench, approval: StartApproval) {
+export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
   await activeWorkbench.recordCommanderDebugEvent({
     eventType: "HUMAN_COMMAND_VALIDATED",
     status: "success",
@@ -117,7 +117,7 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
 }
 
 export async function recordTaskStartLocalAiReadiness(
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
   component: { ok?: boolean; detail?: string; actionableMessage?: string; ownerResponsible?: string } | undefined,
 ) {
@@ -165,9 +165,9 @@ export async function recordTaskStartLocalAiReadiness(
 
 export async function sendBlockedTaskStartPreflight(
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
-  preflight: Awaited<ReturnType<GrassEyeWorkbench["getMissionStartPreflight"]>>,
+  preflight: Awaited<ReturnType<GrassEyeWorkbenchHandle["getMissionStartPreflight"]>>,
 ) {
   await activeWorkbench.recordCommanderDebugEvent({
     eventType: "MISSION_PREFLIGHT_FAILED",
@@ -223,7 +223,7 @@ const resolveTargetMissionId = (output: unknown): string | null => {
 
 export async function writeTaskStartDispatchResult(
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
   result: StartCommandResult,
 ) {

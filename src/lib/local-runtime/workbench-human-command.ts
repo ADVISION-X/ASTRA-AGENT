@@ -1,6 +1,6 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject, payloadValueToInteger, payloadValueToString } from "./workbench-payload.js";
-import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
+import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { HumanCommandEnvelope, HumanCommandResultEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 
 type HumanCommandStatus = "success" | "failed" | "review_required";

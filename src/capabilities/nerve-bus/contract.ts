@@ -43,3 +43,4 @@ export type {
   NerveBusQueuePort,
   NerveBusTransportPort,
 };
+export { handleNerveBusAiRequest } from "./runtime/ai-request-handler.js";

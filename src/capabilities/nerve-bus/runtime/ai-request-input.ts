@@ -1,6 +1,10 @@
 import type { AiRequestEnvelope, NerveBusPayloadDocument } from "../index.js";
-import { AiVisionRequestInputSchema } from "../../ai/schema-core.schema.js";
-import { payloadDocumentToObject } from "../../../lib/local-runtime/workbench-payload.js";
+import { AiVisionRequestInputSchema } from "../../ai/contract.js";
+
+const payloadDocumentToObject = (
+  payload: NerveBusPayloadDocument,
+): Record<string, string | number | boolean | null> =>
+  Object.fromEntries(payload.contentBlocks.map((block) => [block.key, block.value]));
 
 export const buildAiAbilityRequest = (
   envelope: AiRequestEnvelope,

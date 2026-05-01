@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
-import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
+import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { LocalAiModelRoleSchema } from "../types/local-ai.js";
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
@@ -20,7 +20,7 @@ function writeJson(response: ServerResponse, statusCode: number, payload: unknow
   response.end(JSON.stringify(payload, null, 2));
 }
 
-async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL): Promise<boolean> {
+async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL): Promise<boolean> {
   if (url.pathname === "/api/runtime/health") {
     writeJson(response, 200, await activeWorkbench.getHealthReport());
     return true;
@@ -36,7 +36,7 @@ async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbe
   return false;
 }
 
-async function handleRuntimeTimelineRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL, tail: number): Promise<boolean> {
+async function handleRuntimeTimelineRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL, tail: number): Promise<boolean> {
   if (url.pathname === "/api/runtime/logs") {
     writeJson(response, 200, await activeWorkbench.listRuntimeDebugEvents(tail));
     return true;
@@ -50,14 +50,14 @@ async function handleRuntimeTimelineRequest(response: ServerResponse, activeWork
     : false;
 }
 
-async function handleRuntimeGetRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL, tail: number): Promise<boolean> {
+async function handleRuntimeGetRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL, tail: number): Promise<boolean> {
   if (await handleRuntimeReportRequest(response, activeWorkbench, url)) {
     return true;
   }
   return handleRuntimeTimelineRequest(response, activeWorkbench, url, tail);
 }
 
-async function handleRuntimeLocalAiControlUpdate(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbench): Promise<boolean> {
+async function handleRuntimeLocalAiControlUpdate(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<boolean> {
   if (request.method !== "POST") {
     return false;
   }
@@ -84,7 +84,7 @@ async function handleRuntimeLocalAiControlUpdate(request: IncomingMessage, respo
 export async function handleRuntimeReadRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbench,
+  activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
   const requestedTail = Number.parseInt(url.searchParams.get("tail") ?? "200", 10);

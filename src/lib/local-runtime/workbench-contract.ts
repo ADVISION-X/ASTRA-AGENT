@@ -1,16 +1,16 @@
-import type { BrowserController } from "../browser/browser-controller.js";
-import type { LocalModelRole } from "../local-ai/model-config.js";
-import type { EvidenceStoreService } from "../storage/evidence-store/evidence-store-service.js";
+import type { WorkbenchBrowserController as BrowserController } from "./workbench-browser-types.js";
 import type {
-  CommanderConsoleAbilityGroup,
-  CommanderMissionDashboardView,
-} from "../../capabilities/commander-console/index.js";
+  WorkbenchCommanderConsoleAbilityGroup as CommanderConsoleAbilityGroup,
+  WorkbenchCommanderMissionDashboardView as CommanderMissionDashboardView,
+} from "./workbench-commander-types.js";
+import type { WorkbenchEvidenceStoreService as EvidenceStoreService } from "./workbench-evidence-store-types.js";
+import type { WorkbenchLocalModelRole as LocalModelRole } from "./workbench-local-ai-role-types.js";
 import type {
-  MissionReadinessReport,
-  RuntimeHealthReport,
-} from "../../types/runtime.js";
+  WorkbenchMissionReadinessReport as MissionReadinessReport,
+  WorkbenchRuntimeHealthReport as RuntimeHealthReport,
+} from "./workbench-runtime-report-types.js";
 import type { StructuredLogBus } from "./structured-log-bus.js";
-import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/contract.js";
+import type { WorkbenchNerveBusAbilityGroup as NerveBusAbilityGroup } from "./workbench-nerve-bus-types.js";
 
 export type GrassEyePlatformTarget = "tiktok-web";
 

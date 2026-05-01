@@ -1,5 +1,5 @@
 import type { ForensicsPersistenceAbilityGroup } from "../index.js";
-import type { AiRuntimeStructuredDebugEvent } from "../../ai/runtime-adapters/local-ai-runtime-debug-contract.js";
+import type { AiRuntimeStructuredDebugEvent } from "../../ai/contract.js";
 import type { AiRuntimeStructuredDebugEventInput } from "./ai-debug-event-contract.js";
 import { buildAiDebugArtifactRefs, buildAiDebugDataQualityFlags, buildAiStructuredRuntimeEvent } from "./ai-debug-event-payload.js";
 

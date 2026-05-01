@@ -1,7 +1,7 @@
-import { createGeometryGuardAbilityGroup } from "../../capabilities/geometry-guard/ability-group.js";
-import { createVisualTargetAbilityGroupWithSystemClock } from "../../capabilities/visual-target/runtime/visual-target-ability-group-factory.js";
+import { createWorkbenchGeometryGuardAbilityGroup } from "./workbench-geometry-ability-group.js";
+import { createWorkbenchVisualTargetAbilityGroup } from "./workbench-visual-target-ability-group.js";
 
 export const createVisualRuntime = () => ({
-  visualTargetAbilityGroup: createVisualTargetAbilityGroupWithSystemClock(),
-  geometryGuardAbilityGroup: createGeometryGuardAbilityGroup(),
+  visualTargetAbilityGroup: createWorkbenchVisualTargetAbilityGroup(),
+  geometryGuardAbilityGroup: createWorkbenchGeometryGuardAbilityGroup(),
 });

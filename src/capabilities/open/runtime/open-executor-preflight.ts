@@ -34,58 +34,93 @@ export type OpenChildPreflightState = OpenChildSessionGateState & {
   idempotency: IdempotencyReservationResult;
 };
 
-const resolveOpenChildTargetAndUrlState = async (input: {
+function resolveOpenProfileOverride(input: {
   request: ParsedOpenRequest;
-  profile: OpenTargetProfile;
   context: OpenChildExecutionContext;
-}): Promise<OpenChildTargetAndUrlState | { failureResult: OpenResult }> => {
-  const started = input.context.clock.now();
-  const profileOverride = input.context.profilePort?.resolveProfileOverride({
+}) {
+  return input.context.profilePort?.resolveProfileOverride({
     childCapabilityId: input.request.childCapabilityId,
     platformId: input.request.platformId,
   }) ?? null;
+}
 
+function resolveTargetPolicyFailureOrState(input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+  context: OpenChildExecutionContext;
+  started: ClockSnapshot;
+}) {
   const targetPolicy = evaluateOpenTargetPolicy({
     request: input.request,
     profile: input.profile,
-    profileOverride,
+    profileOverride: resolveOpenProfileOverride(input),
   });
-  const targetPolicyFailure = resolveTargetPolicyFailureResult({
+  const failureResult = resolveTargetPolicyFailureResult({
     request: input.request,
     profile: input.profile,
-    started,
+    started: input.started,
     clock: input.context.clock,
     targetPolicy,
   });
-  if (targetPolicyFailure) {
-    return { failureResult: targetPolicyFailure };
-  }
+  return { targetPolicy, failureResult };
+}
 
-  const resolvedTargetUrl = targetPolicy.resolvedTargetUrl;
+function resolveUrlSafetyFailureOrState(input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+  context: OpenChildExecutionContext;
+  started: ClockSnapshot;
+  targetPolicy: TargetPolicyResult;
+}):
+  | { urlSafety: UrlSafetyResult; failureResult: null }
+  | { urlSafety?: never; failureResult: OpenResult } {
+  const resolvedTargetUrl = input.targetPolicy.resolvedTargetUrl;
   if (resolvedTargetUrl === null) {
-    return { failureResult: resolveTargetPolicyFailureResult({ request: input.request, profile: input.profile, started, clock: input.context.clock, targetPolicy })! };
+    return { failureResult: resolveTargetPolicyFailureResult({ request: input.request, profile: input.profile, started: input.started, clock: input.context.clock, targetPolicy: input.targetPolicy })! };
   }
 
   const urlSafety = evaluateUrlSafety({
     profile: input.profile,
     targetUrl: resolvedTargetUrl,
   });
-  const urlSafetyFailure = resolveUrlSafetyFailureResult({
+  const failureResult = resolveUrlSafetyFailureResult({
     request: input.request,
     profile: input.profile,
-    started,
+    started: input.started,
     clock: input.context.clock,
-    targetPolicy,
+    targetPolicy: input.targetPolicy,
     urlSafety,
   });
-  if (urlSafetyFailure) {
-    return { failureResult: urlSafetyFailure };
+  if (failureResult) {
+    return { failureResult };
+  }
+  return { urlSafety, failureResult: null };
+}
+
+const resolveOpenChildTargetAndUrlState = async (input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+  context: OpenChildExecutionContext;
+}): Promise<OpenChildTargetAndUrlState | { failureResult: OpenResult }> => {
+  const started = input.context.clock.now();
+  const targetPolicyState = resolveTargetPolicyFailureOrState({ ...input, started });
+  if (targetPolicyState.failureResult) {
+    return { failureResult: targetPolicyState.failureResult };
+  }
+
+  const urlSafetyState = resolveUrlSafetyFailureOrState({
+    ...input,
+    started,
+    targetPolicy: targetPolicyState.targetPolicy,
+  });
+  if (urlSafetyState.failureResult) {
+    return { failureResult: urlSafetyState.failureResult };
   }
 
   return {
     started,
-    targetPolicy,
-    urlSafety,
+    targetPolicy: targetPolicyState.targetPolicy,
+    urlSafety: urlSafetyState.urlSafety,
   };
 };
 

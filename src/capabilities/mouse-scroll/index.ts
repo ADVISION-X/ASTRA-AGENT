@@ -36,4 +36,5 @@ export {
 	MouseScrollSafetyPolicySchema,
 } from "./schema.js";
 export { listMouseScrollChildren } from "./registry.js";
+export { createMouseScrollAbilityGroupWithPrimitivePort } from "./runtime/mouse-scroll-ability-group-factory.js";
 export type { MouseScrollPrimitiveInput, MouseScrollPrimitivePort, MouseScrollPrimitiveResult } from "./ports/mouse-scroll-primitive-port.js";
