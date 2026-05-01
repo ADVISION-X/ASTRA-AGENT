@@ -356,13 +356,24 @@ const PostActionVerificationAbilityResultSchema = z.object({
   policyDecision: requiredString,
   runtimeProof: PostActionRuntimeProofSchema,
   dataQualityFlags: dataQualityFlagsSchema,
-}).strict().superRefine((value, context) => {
+}).strict().superRefine(postActionVerificationAbilityResultSuperRefine);
+
+const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
+  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  context: z.RefinementCtx,
+): void => {
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
   if (value.runtimeProof.verificationDecision !== value.verificationDecision) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.verificationDecision must equal result.verificationDecision", path: ["runtimeProof", "verificationDecision"] });
   }
+};
+
+const validatePostActionVerificationAbilityResultShape = (
+  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  context: z.RefinementCtx,
+): void => {
   if (value.status === "success") {
     if (value.output === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
@@ -373,14 +384,21 @@ const PostActionVerificationAbilityResultSchema = z.object({
     if (value.diagnosticPayloadRef !== null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must not expose diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
     }
-  } else {
-    if (value.output !== null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must not expose output", path: ["output"] });
-    }
-    if (value.diagnosticPayloadRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result requires diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-    }
+    return;
   }
+
+  if (value.output !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must not expose output", path: ["output"] });
+  }
+  if (value.diagnosticPayloadRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result requires diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
+  }
+};
+
+const validatePostActionVerificationAbilityResultGovernedFields = (
+  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  context: z.RefinementCtx,
+): void => {
   if (value.failureReason === "input_schema_invalid") {
     return;
   }
@@ -393,7 +411,16 @@ const PostActionVerificationAbilityResultSchema = z.object({
   if (value.actionProofRef === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "actionProofRef is required for governed results", path: ["actionProofRef"] });
   }
-});
+};
+
+const postActionVerificationAbilityResultSuperRefine = (
+  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  context: z.RefinementCtx,
+): void => {
+  validatePostActionVerificationAbilityResultRuntimeProofConsistency(value, context);
+  validatePostActionVerificationAbilityResultShape(value, context);
+  validatePostActionVerificationAbilityResultGovernedFields(value, context);
+};
 
 
 export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionVerificationDecisionSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionConfidencePolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildAssessmentSchema, PostActionVerificationAbilityResultSchema };

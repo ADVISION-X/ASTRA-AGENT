@@ -10,11 +10,17 @@ import {
   buildScreenshotOutputMetadataFailure,
   buildScreenshotRegionValidationFailure,
 } from "./screenshot-execution-failure-builders.js";
+import {
+  resolveScreenshotCaptureAndImagePhaseFailure,
+  resolveScreenshotCaptureRun,
+  resolveScreenshotImageRun,
+  resolveScreenshotOutputMetadata,
+} from "./screenshot-execution-phase-helpers.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotClockStart } from "./screenshot-clock.js";
-import type { ScreenshotRuntimeProof } from "../contract.js";
+import type { ScreenshotAbilityResult, ScreenshotRuntimeProof } from "../contract.js";
 
 export type ScreenshotExecutionGateState = {
   failure: { message: string } | null;
@@ -77,42 +83,33 @@ async function executeScreenshotCaptureAndImagePhase(input: {
   clockStart: ScreenshotClockStart;
   registryEntry: { maxDurationMs: number };
 }): Promise<{ captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null; } | ScreenshotAbilityResult> {
-  const captureRun = input.plan.kind === "capture"
-    ? await runCaptureRunner({
-        plan: input.plan,
-        context: input.context,
-        timeoutMs: input.registryEntry.maxDurationMs,
-        evidenceId: input.scope.evidenceId,
-        createdAt: input.context.clockPort.nowIso(),
-      })
-    : null;
-  const imageRun = input.plan.kind === "image-processing"
-    ? await runImageProcessingRunner({
-        plan: input.plan,
-        context: input.context,
-        timeoutMs: input.registryEntry.maxDurationMs,
-      })
-    : null;
-
-  const executionFailure = captureRun?.failure ?? imageRun?.failure;
-  if (executionFailure || (captureRun && captureRun.decision.status !== "passed") || (imageRun && imageRun.decision.status !== "passed") || (!captureRun && !imageRun)) {
-    const status = captureRun?.decision.status === "review_required" || imageRun?.decision.status === "review_required"
-      ? "review_required"
-      : "failed";
-    return buildScreenshotCaptureExecutionFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: input.gates.sourceGate,
-      browserSessionGate: input.gates.browserSessionGate,
-      pageStateGate: input.gates.pageStateGate,
-      privacyGate: input.gates.privacyGate,
-      captureRun,
-      imageRun,
-      executionFailure,
-      status,
-    });
+  const captureRun = await resolveScreenshotCaptureRun({
+    plan: input.plan,
+    context: input.context,
+    scope: input.scope,
+    clockStart: input.clockStart,
+    registryEntry: input.registryEntry,
+  });
+  const imageRun = await resolveScreenshotImageRun({
+    plan: input.plan,
+    context: input.context,
+    registryEntry: input.registryEntry,
+  });
+  const failure = resolveScreenshotCaptureAndImagePhaseFailure({
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    clockStart: input.clockStart,
+    sourceGate: input.gates.sourceGate,
+    browserSessionGate: input.gates.browserSessionGate,
+    pageStateGate: input.gates.pageStateGate,
+    privacyGate: input.gates.privacyGate,
+    captureRun,
+    imageRun,
+    executionFailure: captureRun?.failure ?? imageRun?.failure ?? null,
+  });
+  if (failure) {
+    return failure;
   }
 
   return { captureRun, imageRun };
@@ -128,38 +125,22 @@ function validateAndExtractScreenshotMetadata(input: {
   clockStart: ScreenshotClockStart;
   gates: ScreenshotExecutionGates;
 }) {
-  const outputFilePath = input.captureRun
-    ? input.captureRun.captureResult?.capture.sourceFilePath ?? null
-    : input.imageRun?.output?.outputFilePath ?? null;
-  const outputWidth = input.captureRun
-    ? input.captureRun.captureResult?.capture.width ?? null
-    : input.imageRun?.output?.width ?? null;
-  const outputHeight = input.captureRun
-    ? input.captureRun.captureResult?.capture.height ?? null
-    : input.imageRun?.output?.height ?? null;
-  const mimeType = input.captureRun
-    ? "image/png"
-    : input.imageRun?.output?.mimeType ?? null;
-  const createdAt = input.captureRun
-    ? input.captureRun.captureResult?.capture.createdAt ?? input.clockStart.startedAt
-    : input.clockStart.startedAt;
+  const metadataResolution = resolveScreenshotOutputMetadata({
+    plan: input.plan,
+    captureRun: input.captureRun,
+    imageRun: input.imageRun,
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    clockStart: input.clockStart,
+    gates: input.gates,
+  });
 
-  if (!outputFilePath || !outputWidth || !outputHeight || !mimeType) {
-    return buildScreenshotOutputMetadataFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: input.gates.sourceGate,
-      browserSessionGate: input.gates.browserSessionGate,
-      pageStateGate: input.gates.pageStateGate,
-      privacyGate: input.gates.privacyGate,
-      captureRun: input.captureRun,
-      imageRun: input.imageRun,
-    });
+  if (!metadataResolution.ok) {
+    return metadataResolution.failure;
   }
 
-  return { outputFilePath, outputWidth, outputHeight, mimeType, createdAt };
+  return metadataResolution.metadata;
 }
 
 async function executeScreenshotArtifactStoragePhase(input: {
