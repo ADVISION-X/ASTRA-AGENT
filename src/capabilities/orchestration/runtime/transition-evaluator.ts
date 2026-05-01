@@ -1,4 +1,7 @@
-import type { MissionStepResult, OperationalMap } from "../contract.js";
+import type { z } from "zod";
+
+import type { OperationalMap } from "../contract.js";
+import { MissionStepResultSchema } from "../schema.js";
 
 export type TransitionEvaluationDecision =
   | "matched"
@@ -10,14 +13,16 @@ export type TransitionEvaluationResult =
   | { decision: "matched"; transition: OperationalMap["transitions"][number] }
   | { decision: Exclude<TransitionEvaluationDecision, "matched">; failureReason: string };
 
-function resolveConditionValue(result: MissionStepResult, source: "status" | "decision"): string | boolean | null {
+type MissionStepResultRecord = z.output<typeof MissionStepResultSchema>;
+
+function resolveConditionValue(result: MissionStepResultRecord, source: "status" | "decision"): string | boolean | null {
   return source === "status" ? result.status : result.decision ?? null;
 }
 
 export function evaluateStepTransition(input: {
   map: OperationalMap;
   currentStepId: string;
-  result: MissionStepResult;
+  result: MissionStepResultRecord;
 }): TransitionEvaluationResult {
   const candidates = input.map.transitions.filter((candidate) => {
     if (candidate.fromStepId !== input.currentStepId) {

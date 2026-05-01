@@ -4,7 +4,8 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
-import { ROOT, getSource } from "./ast-utils.js";
+import { getSource } from "./audit-project.js";
+import { ROOT } from "./constants.js";
 import type { Project } from "ts-morph";
 
 function collectExecutorFindings(project: Project): Finding[] {

@@ -1,7 +1,7 @@
 import type { OrchestrationMapStorePort } from "../ports/orchestration-map-store-port.js";
-import { getDefaultMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
+import type { MapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
 
-function createRegistryLookupMethods(registry: ReturnType<typeof getDefaultMapPluginRegistry>): Omit<OrchestrationMapStorePort, "listMaps"> {
+function createRegistryLookupMethods(registry: MapPluginRegistry): Omit<OrchestrationMapStorePort, "listMaps"> {
   return {
     async getMap(mapId) {
       return registry.active.getOperationalMap(mapId);
@@ -18,7 +18,7 @@ function createRegistryLookupMethods(registry: ReturnType<typeof getDefaultMapPl
   };
 }
 
-function createRegistryListMethods(registry: ReturnType<typeof getDefaultMapPluginRegistry>): Pick<OrchestrationMapStorePort, "listMaps"> {
+function createRegistryListMethods(registry: MapPluginRegistry): Pick<OrchestrationMapStorePort, "listMaps"> {
   return {
     async listMaps() {
       return registry.active.listActivePackages().map((mapPackage) => {
@@ -29,8 +29,7 @@ function createRegistryListMethods(registry: ReturnType<typeof getDefaultMapPlug
   };
 }
 
-export function createRegistryBackedMapStore(): OrchestrationMapStorePort {
-  const registry = getDefaultMapPluginRegistry();
+export function createRegistryBackedMapStore(registry: MapPluginRegistry): OrchestrationMapStorePort {
   return {
     ...createRegistryLookupMethods(registry),
     ...createRegistryListMethods(registry),

@@ -1,4 +1,11 @@
 import {
+  AiCommentSignalSummaryInputSchema,
+  AiOcrCleanupInputSchema,
+  AiProductSignalSummaryInputSchema,
+  AiRuntimeHealthSchema,
+  AiVisionRequestInputSchema,
+} from "../schema.js";
+import {
   CommentSignalTaskRequestSchema,
   OcrTaskRequestSchema,
   ProductSignalTaskRequestSchema,
@@ -8,8 +15,7 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
-import type { AiAbilityInput, AiRuntimeHealth, AiTaskType } from "../contract.js";
-import { AiRuntimeHealthSchema } from "../schema.js";
+import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 
 const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
@@ -19,7 +25,16 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "product.signal_summary": "product_signal_summary",
 };
 
-function buildVisionTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
+type VisionBridgeInput = Extract<
+  ParsedAiAbilityInput,
+  { taskType: "product_presence_judgment" | "visual_observation" | "visual_target_candidate_analysis" }
+>;
+
+type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
+type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
+type ProductSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_signal_summary" }>;
+
+function buildVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequest {
   return VisionTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "vision.productPresence",
@@ -27,11 +42,11 @@ function buildVisionTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
     promptVersion: "v1",
     schemaVersion: "vision.productPresence.schema.v1",
     evidenceRefs: input.inputRefs,
-    input: VisionProductPresenceRequestInputSchema.parse(input.input),
+    input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
   });
 }
 
-function buildOcrTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
+function buildOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequest {
   return OcrTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.ocr_cleanup",
@@ -39,11 +54,11 @@ function buildOcrTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
     promptVersion: "comments.ocr_cleanup.v1",
     schemaVersion: "ocr-text.v1",
     evidenceRefs: input.inputRefs,
-    input: input.input,
+    input: AiOcrCleanupInputSchema.parse(input.input),
   });
 }
 
-function buildCommentSignalTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
+function buildCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAiTaskRequest {
   return CommentSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.intent_analysis",
@@ -51,12 +66,12 @@ function buildCommentSignalTaskRequest(input: AiAbilityInput): LocalAiTaskReques
     promptVersion: "comments.intent_analysis.v1",
     schemaVersion: "comment-signal.v1",
     evidenceRefs: input.inputRefs,
-    input: input.input,
+    input: AiCommentSignalSummaryInputSchema.parse(input.input),
   });
 }
 
-function buildProductSignalTaskRequest(input: AiAbilityInput): LocalAiTaskRequest {
-  const typedInput = input.input;
+function buildProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTaskRequest {
+  const typedInput = AiProductSignalSummaryInputSchema.parse(input.input);
   return ProductSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "product.signal_summary",
@@ -116,19 +131,18 @@ function coerceRuntimeOutput(value: unknown): unknown {
   return parsed.ok ? parsed.value : value;
 }
 
-function toLocalAiTaskRequest(input: AiAbilityInput): { ok: true; request: LocalAiTaskRequest } | { ok: false; message: string } {
-  const requestBuilders = {
-    product_presence_judgment: buildVisionTaskRequest,
-    visual_observation: buildVisionTaskRequest,
-    visual_target_candidate_analysis: buildVisionTaskRequest,
-    ocr_cleanup: buildOcrTaskRequest,
-    comment_signal_summary: buildCommentSignalTaskRequest,
-    product_signal_summary: buildProductSignalTaskRequest,
-  } as const;
-
-  const builder = requestBuilders[input.taskType as keyof typeof requestBuilders];
-  if (builder) {
-    return { ok: true, request: builder(input) };
+function toLocalAiTaskRequest(input: ParsedAiAbilityInput): { ok: true; request: LocalAiTaskRequest } | { ok: false; message: string } {
+  switch (input.taskType) {
+    case "product_presence_judgment":
+    case "visual_observation":
+    case "visual_target_candidate_analysis":
+      return { ok: true, request: buildVisionTaskRequest(input) };
+    case "ocr_cleanup":
+      return { ok: true, request: buildOcrTaskRequest(input) };
+    case "comment_signal_summary":
+      return { ok: true, request: buildCommentSignalTaskRequest(input) };
+    case "product_signal_summary":
+      return { ok: true, request: buildProductSignalTaskRequest(input) };
   }
 
   return {

@@ -117,7 +117,7 @@ const collectPromiseAllExecutionFindings = (
     createFinding({
       lawId: getRequiredLawId(requiredCall.importName),
       file: relativePath,
-      line: getNodeLine(promiseAllCall ?? 1),
+      line: promiseAllCall ? getNodeLine(promiseAllCall) : 1,
       severity: "error",
       message: `Audit-system inspector must execute ${requiredCall.importName} inside its Promise.all owner chain.`,
     }),
@@ -170,7 +170,7 @@ const collectPromiseReturnFindings = (
     createFinding({
       lawId: getRequiredLawId(requiredCall.importName),
       file: relativePath,
-      line: getNodeLine(matchingCalls[0] ?? promiseAllCall ?? 1),
+      line: matchingCalls[0] ? getNodeLine(matchingCalls[0]) : promiseAllCall ? getNodeLine(promiseAllCall) : 1,
       severity: "error",
       message: `Audit-system inspector must await promise-returning enforcement checks for ${requiredCall.importName}.`,
     }),

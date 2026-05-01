@@ -6,20 +6,14 @@ import { createMapPromptContractAuditProject, findMissingFiles, getSource, loadB
 
 const LAW_ID = "GRASSEYE-MAP-PLUGIN-008-V1";
 
-export async function runRequiredShape(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const findings: Finding[] = [];
+const inspectMissingRequiredFiles = async (): Promise<Finding[]> => {
   const missingFiles = await findMissingFiles();
-  for (const missingFile of missingFiles) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: missingFile,
-      line: 1,
-      severity: "fatal",
-      message: "Required map prompt contract governance file is missing.",
-    }));
-  }
+  return missingFiles.map((missingFile) =>
+    createFinding({ lawId: LAW_ID, file: missingFile, line: 1, severity: "fatal", message: "Required map prompt contract governance file is missing." }),
+  );
+};
 
-  const project = createMapPromptContractAuditProject();
+const inspectGovernanceShape = (project: ReturnType<typeof createMapPromptContractAuditProject>): Finding[] => {
   const promptBindingSchema = getSource(project, "src/map-plugins/schema/prompt-bindings.schema.ts");
   const manifestSchema = getSource(project, "src/map-plugins/schema/map-plugin-manifest.schema.ts");
   const validator = getSource(project, "src/map-plugins/validation/map-prompt-contract-validator.ts");
@@ -40,21 +34,29 @@ export async function runRequiredShape(): Promise<{ findings: Finding[]; phase: 
   const authoringTemplateHasCatalogImports = hasImportModuleSpecifier(authoringTemplate, "prompt-contracts")
     && hasImportModuleSpecifier(authoringTemplate, "capability-catalog");
 
+  return schemaHasRequiredFields && manifestHasGovernanceFields && validatorHasCatalogHooks && authoringTemplateHasCatalogImports
+    ? []
+    : [createFinding({ lawId: LAW_ID, file: "src/map-plugins/validation/map-prompt-contract-validator.ts", line: 1, severity: "error", message: "Map prompt contract governance shape is incomplete across schema, validator, authoring, or built-in package validation." })];
+};
+
+const inspectBuiltinValidation = async (): Promise<Finding[]> => {
   const builtins = await Promise.all([
     loadBuiltinPackage("src/map-plugins/builtins/tiktok-product-discovery.map-package.json"),
     loadBuiltinPackage("src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json"),
   ]);
-  const builtinsPass = builtins.every((record) => record.mapPackage !== null && record.issues.length === 0);
 
-  if (!schemaHasRequiredFields || !manifestHasGovernanceFields || !validatorHasCatalogHooks || !authoringTemplateHasCatalogImports || !builtinsPass) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "src/map-plugins/validation/map-prompt-contract-validator.ts",
-      line: 1,
-      severity: "error",
-      message: "Map prompt contract governance shape is incomplete across schema, validator, authoring, or built-in package validation.",
-    }));
-  }
+  return builtins.every((record) => record.mapPackage !== null && record.issues.length === 0)
+    ? []
+    : [createFinding({ lawId: LAW_ID, file: "src/map-plugins/validation/map-prompt-contract-validator.ts", line: 1, severity: "error", message: "Map prompt contract governance shape is incomplete across schema, validator, authoring, or built-in package validation." })];
+};
+
+export async function runRequiredShape(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const project = createMapPromptContractAuditProject();
+  const findings = [
+    ...(await inspectMissingRequiredFiles()),
+    ...inspectGovernanceShape(project),
+    ...(await inspectBuiltinValidation()),
+  ];
 
   return {
     findings,

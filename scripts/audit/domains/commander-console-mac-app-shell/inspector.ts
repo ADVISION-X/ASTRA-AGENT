@@ -1,7 +1,6 @@
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector, Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
 
-import { AUDIT_LAW_ID } from "./ast-utils.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runAtomicQualityGate } from "./atomic-quality-gate.js";
 import { runBoundaryAttack } from "./boundary-attack.js";

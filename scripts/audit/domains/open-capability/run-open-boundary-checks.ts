@@ -1,0 +1,94 @@
+import { toRepoRelativePath } from "../../core/paths.js";
+import { createFinding } from "../../core/result.js";
+import type { Finding } from "../../core/schema.js";
+import { hasAnyKeyword, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
+
+import { openInspectionConstants } from "./inspection-constants.js";
+import { openInspectionUtils } from "./inspection-utils.js";
+
+const {
+  FORBIDDEN_EXTERNAL_IMPORTS,
+  FORBIDDEN_IMPORT_MARKERS,
+  INDEX_PATH,
+  LAW_BOUNDARY,
+  LAW_PACKAGE_SHAPE,
+  LAW_PRIVATE_LEAK,
+  LAW_RUNTIME_GOVERNANCE,
+  OPEN_ROOT,
+  WORKBENCH_PATH,
+} = openInspectionConstants;
+const {
+  getOpenSourceOrThrow,
+  getOpenSources,
+  hasCommentDirective,
+  hasDynamicImport,
+  hasForbiddenResolvedImport,
+  hasRequireCall,
+  hasUnknownAsChain,
+  resolveModuleSourcePath,
+} = openInspectionUtils;
+
+export type OpenBoundaryCheckResult = {
+  boundaryFindings: Finding[];
+  antiEscapeFindings: Finding[];
+};
+
+const collectBoundaryFindings = (project: import("ts-morph").Project): Finding[] => {
+  const openSources = getOpenSources(project);
+  const findings: Finding[] = [];
+  const forbiddenImportFile = openSources.find((sourceFile) => {
+    return FORBIDDEN_IMPORT_MARKERS.some((marker) => hasImportModuleSpecifier(sourceFile, marker)) || hasForbiddenResolvedImport(sourceFile);
+  });
+  const privateLeakFile = project.getSourceFiles().find((sourceFile) => {
+    const repoPath = toRepoRelativePath(sourceFile.getFilePath());
+    if (repoPath.startsWith(`${OPEN_ROOT}/`) || repoPath.startsWith("scripts/audit/")) {
+      return false;
+    }
+
+    return sourceFile.getImportDeclarations().some((declaration) => {
+      const target = resolveModuleSourcePath(declaration);
+      return target !== null && FORBIDDEN_EXTERNAL_IMPORTS.some((marker) => target.includes(marker));
+    });
+  });
+  const workbenchSource = getOpenSourceOrThrow(project, WORKBENCH_PATH);
+  const indexSource = getOpenSourceOrThrow(project, INDEX_PATH);
+
+  if (forbiddenImportFile) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: toRepoRelativePath(forbiddenImportFile.getFilePath()), line: 1, severity: "fatal", message: "Open root must not import AI, Screenshot, Mouse, Scroll, Geometry, or Forensics implementations." }));
+  }
+  if (privateLeakFile) {
+    findings.push(createFinding({ lawId: LAW_PRIVATE_LEAK, file: toRepoRelativePath(privateLeakFile.getFilePath()), line: 1, severity: "fatal", message: "External modules must not import Open children, runtime internals, or mutable registry paths." }));
+  }
+  if (!workbenchSource.getImportDeclarations().some((declaration) => resolveModuleSourcePath(declaration) === `${OPEN_ROOT}/index.ts`)) {
+    findings.push(createFinding({ lawId: LAW_BOUNDARY, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must compose Open through the public index only." }));
+  }
+  if (indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport())) {
+    findings.push(createFinding({ lawId: LAW_PACKAGE_SHAPE, file: INDEX_PATH, line: 1, severity: "fatal", message: "Open public index must not use export-star barrels." }));
+  }
+  if (indexSource.getExportDeclarations().some((declaration) => declaration.getNamedExports().some((specifier) => specifier.getName() === "listOpenChildren"))) {
+    findings.push(createFinding({ lawId: LAW_BOUNDARY, file: INDEX_PATH, line: 1, severity: "fatal", message: "Open public index must not leak child-registry listing helpers." }));
+  }
+
+  return findings;
+};
+
+const collectAntiEscapeFindings = (project: import("ts-morph").Project): Finding[] => {
+  const antiEscapeFile = getOpenSources(project).find((sourceFile) => {
+    return hasAnyKeyword(sourceFile)
+      || hasUnknownAsChain(sourceFile)
+      || hasCommentDirective(sourceFile)
+      || hasDynamicImport(sourceFile)
+      || hasRequireCall(sourceFile);
+  });
+
+  return antiEscapeFile
+    ? [createFinding({ lawId: LAW_PACKAGE_SHAPE, file: toRepoRelativePath(antiEscapeFile.getFilePath()), line: 1, severity: "fatal", message: "Open root must not use any, unknown-as chains, comment directives, dynamic import, or require." })]
+    : [];
+};
+
+export function runOpenBoundaryChecks(project: import("ts-morph").Project): OpenBoundaryCheckResult {
+  return {
+    boundaryFindings: collectBoundaryFindings(project),
+    antiEscapeFindings: collectAntiEscapeFindings(project),
+  };
+}

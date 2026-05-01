@@ -296,7 +296,7 @@ const SchemaValidationOnlyResultSchema = z.union([
 ]);
 
 const validateAiResultState = (
-  value: z.infer<typeof AiBaseResultSchema> & { output: unknown },
+  value: z.infer<typeof AiBaseResultSchema> & { output?: unknown },
   context: z.RefinementCtx,
 ) => {
   if (value.reviewRequiredReason !== null && value.status !== "review_required") {
@@ -311,13 +311,14 @@ const validateAiResultState = (
 };
 
 const validateAiResultOutput = (
-  value: z.infer<typeof AiBaseResultSchema> & { output: unknown },
+  value: z.infer<typeof AiBaseResultSchema> & { output?: unknown },
   context: z.RefinementCtx,
 ) => {
+  const output = value.output ?? null;
   if (value.status === "success" && value.outputAuthority !== "authoritative") {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must be authoritative", path: ["outputAuthority"] });
   }
-  if (value.status !== "success" && value.output !== null) {
+  if (value.status !== "success" && output !== null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required result output must be null", path: ["output"] });
   }
   if (value.status === "success" && value.confidence === null) {

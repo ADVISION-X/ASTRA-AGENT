@@ -10,6 +10,16 @@ import { evaluateGeometryInputPolicy } from "./geometry-input-gate.js";
 import { evaluateScaleMapping } from "./scale-mapping-gate.js";
 import { buildGeometryStageFailureResult } from "./geometry-stage-failure.js";
 
+const stageSuccess = <TState>(state: TState): GeometryStageResult<TState> => ({
+  ok: true,
+  state,
+});
+
+const stageFailure = (result: ReturnType<typeof buildGeometryStageFailureResult>): GeometryStageResult<never> => ({
+  ok: false,
+  result,
+});
+
 const runPolicyStage = (input: GeometryExecutionInput) => {
   const policyFailure = evaluateGeometryInputPolicy(input.request);
   return policyFailure
@@ -31,12 +41,12 @@ const runPolicyStage = (input: GeometryExecutionInput) => {
     : null;
 };
 
-const runCoordinateStage = (input: GeometryExecutionInput) => {
+const runCoordinateStage = (
+  input: GeometryExecutionInput,
+): GeometryStageResult<ReturnType<typeof evaluateCoordinateSpace>> => {
   const coordinateGate = evaluateCoordinateSpace(input.request);
   return coordinateGate.failure
-    ? {
-        ok: false,
-        result: buildGeometryStageFailureResult(input, {
+    ? stageFailure(buildGeometryStageFailureResult(input, {
           status: coordinateGate.failure.status,
           guardDecision: coordinateGate.failure.guardDecision,
           failureReason: coordinateGate.failure.failureReason,
@@ -50,15 +60,14 @@ const runCoordinateStage = (input: GeometryExecutionInput) => {
           targetBounds: null,
           appliedScaleMapping: null,
           dataQualityFlags: [...input.request.dataQualityFlags, ...coordinateGate.failure.dataQualityFlags],
-        }),
-      }
-    : { ok: true, state: coordinateGate };
+        }))
+    : stageSuccess(coordinateGate);
 };
 
 const runBoundsStage = (
   input: GeometryExecutionInput,
   coordinateGate: ReturnType<typeof evaluateCoordinateSpace>,
-) => {
+): GeometryStageResult<ReturnType<typeof evaluateBounds>> => {
   const boundsGate = evaluateBounds(input.request, {
     requireBBox: input.request.childCapabilityId !== "validate-scale-mapping" && input.request.childCapabilityId !== "validate-coordinate-space",
     requireClickPoint: coordinateGate.childRoute.executableOutput || input.request.childCapabilityId === "validate-click-point",
@@ -66,9 +75,7 @@ const runBoundsStage = (
     requireTargetBounds: coordinateGate.childRoute.executableOutput || input.request.childCapabilityId === "validate-scale-mapping",
   });
   return boundsGate.failure
-    ? {
-        ok: false,
-        result: buildGeometryStageFailureResult(input, {
+    ? stageFailure(buildGeometryStageFailureResult(input, {
           status: boundsGate.failure.status,
           guardDecision: boundsGate.failure.guardDecision,
           failureReason: boundsGate.failure.failureReason,
@@ -82,24 +89,21 @@ const runBoundsStage = (
           targetBounds: boundsGate.targetBounds,
           appliedScaleMapping: null,
           dataQualityFlags: [...input.request.dataQualityFlags, ...boundsGate.failure.dataQualityFlags],
-        }),
-      }
-    : { ok: true, state: boundsGate };
+        }))
+    : stageSuccess(boundsGate);
 };
 
 const runScaleStage = (
   input: GeometryExecutionInput,
   coordinateGate: ReturnType<typeof evaluateCoordinateSpace>,
   boundsGate: ReturnType<typeof evaluateBounds>,
-) => {
+): GeometryStageResult<ReturnType<typeof evaluateScaleMapping>> => {
   const scaleGate = evaluateScaleMapping(
     input.request,
     coordinateGate.childRoute.requiresScaleMapping || input.request.childCapabilityId === "validate-scale-mapping",
   );
   return scaleGate.failure
-    ? {
-        ok: false,
-        result: buildGeometryStageFailureResult(input, {
+    ? stageFailure(buildGeometryStageFailureResult(input, {
           status: scaleGate.failure.status,
           guardDecision: scaleGate.failure.guardDecision,
           failureReason: scaleGate.failure.failureReason,
@@ -113,9 +117,8 @@ const runScaleStage = (
           targetBounds: boundsGate.targetBounds,
           appliedScaleMapping: null,
           dataQualityFlags: [...input.request.dataQualityFlags, ...scaleGate.failure.dataQualityFlags],
-        }),
-      }
-    : { ok: true, state: scaleGate };
+        }))
+    : stageSuccess(scaleGate);
 };
 
 const runClickSafetyStage = (
@@ -123,7 +126,7 @@ const runClickSafetyStage = (
   coordinateGate: ReturnType<typeof evaluateCoordinateSpace>,
   boundsGate: ReturnType<typeof evaluateBounds>,
   scaleGate: ReturnType<typeof evaluateScaleMapping>,
-) => {
+): GeometryStageResult<ReturnType<typeof evaluateClickSafety>> => {
   const clickSafety = evaluateClickSafety(
     input.request,
     boundsGate.bbox,
@@ -131,9 +134,7 @@ const runClickSafetyStage = (
     coordinateGate.childRoute.executableOutput,
   );
   return clickSafety.failure
-    ? {
-        ok: false,
-        result: buildGeometryStageFailureResult(input, {
+    ? stageFailure(buildGeometryStageFailureResult(input, {
           status: clickSafety.failure.status,
           guardDecision: clickSafety.failure.guardDecision,
           failureReason: clickSafety.failure.failureReason,
@@ -147,9 +148,8 @@ const runClickSafetyStage = (
           targetBounds: boundsGate.targetBounds,
           appliedScaleMapping: scaleGate.scaleMapping,
           dataQualityFlags: [...input.request.dataQualityFlags, ...clickSafety.failure.dataQualityFlags],
-        }),
-      }
-    : { ok: true, state: clickSafety };
+        }))
+    : stageSuccess(clickSafety);
 };
 
 export const runGeometryInputStages = (

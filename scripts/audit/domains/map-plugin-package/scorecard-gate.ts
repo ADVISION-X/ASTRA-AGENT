@@ -2,7 +2,7 @@ import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { SCORECARD_PATH } from "./ast-utils.js";
+import { SCORECARD_PATH } from "./constants.js";
 
 export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];

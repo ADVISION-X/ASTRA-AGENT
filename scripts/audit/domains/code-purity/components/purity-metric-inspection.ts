@@ -1,7 +1,7 @@
 import { type SourceFile } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
-import { IMPORT_EXPORT_LIMITS } from "./purity-constants.js";
+import { IMPORT_EXPORT_LIMITS } from "./purity-thresholds.js";
 import { classifyPurityFileCategory } from "./purity-file-categories.js";
 import { getImportModuleSpecifiers, getImportedSourcePaths } from "./purity-import-analysis.js";
 import { classifyOwnerBoundary, getImportedOwnerBoundaries } from "./purity-owner-classification.js";

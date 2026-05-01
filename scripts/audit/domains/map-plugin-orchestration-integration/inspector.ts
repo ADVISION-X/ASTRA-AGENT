@@ -1,7 +1,7 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
-import { createIntegrationAuditProject } from "./ast-utils.js";
+import { createIntegrationAuditProject } from "./audit-project.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";

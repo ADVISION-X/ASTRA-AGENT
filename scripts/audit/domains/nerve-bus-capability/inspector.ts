@@ -1,5 +1,5 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
-import { ROOT } from "./ast-utils.js";
+import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
@@ -13,7 +13,7 @@ export const nerveBusCapabilityInspector = createPendingDomainInspector({
   inspectorId: "nerve-bus-capability-owner",
   capabilityDomain: "nerve-bus-capability",
   inspectorEntry: "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-  ownedPaths: [ROOT],
+  ownedPaths: [PATHS.ROOT],
   pendingSummary: "nerve-bus-capability law exists but the governed transport spine is not fully locked down yet",
   implementedSummary: "nerve-bus-capability is implemented as a schema-first governed transport spine with AST-backed enforcement",
   extraChecks: async () => {

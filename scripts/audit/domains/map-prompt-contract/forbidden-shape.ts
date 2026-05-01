@@ -6,51 +6,42 @@ import { createMapPromptContractAuditProject, getSource, loadBuiltinPackage } fr
 const LAW_ID = "GRASSEYE-MAP-PLUGIN-010-V1";
 const FORBIDDEN_FRAGMENTS = ["expectedOutputSchema", "rawPrompt", "systemPrompt", "userPrompt", "executablePromptLogic"];
 
-export async function runForbiddenShape(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const findings: Finding[] = [];
-  const project = createMapPromptContractAuditProject();
+const inspectPromptBindingSchema = (project: ReturnType<typeof createMapPromptContractAuditProject>): Finding[] => {
   const promptBindingSchema = getSource(project, "src/map-plugins/schema/prompt-bindings.schema.ts");
+  return hasLiteralTextFragment(promptBindingSchema, "expectedOutputSchema")
+    ? [createFinding({ lawId: LAW_ID, file: "src/map-plugins/schema/prompt-bindings.schema.ts", line: 1, severity: "error", message: "Legacy expectedOutputSchema field is still present in prompt binding schema." })]
+    : [];
+};
+
+const inspectPromptInlineGuards = (project: ReturnType<typeof createMapPromptContractAuditProject>): Finding[] => {
   const mapSecurityValidator = getSource(project, "src/map-plugins/validation/map-security-validator.ts");
   const authoringTemplate = getSource(project, "src/map-plugins/authoring/map-authoring-template.ts");
-
-  if (hasLiteralTextFragment(promptBindingSchema, "expectedOutputSchema")) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "src/map-plugins/schema/prompt-bindings.schema.ts",
-      line: 1,
-      severity: "error",
-      message: "Legacy expectedOutputSchema field is still present in prompt binding schema.",
-    }));
-  }
-
   const validatorGuardsForbiddenKeys = FORBIDDEN_FRAGMENTS.slice(1).every((fragment) => hasLiteralTextFragment(mapSecurityValidator, fragment));
   const authoringTemplateForbidsPromptInlining = FORBIDDEN_FRAGMENTS.slice(1).every((fragment) => hasLiteralTextFragment(authoringTemplate, fragment));
-  if (!validatorGuardsForbiddenKeys || !authoringTemplateForbidsPromptInlining || !hasIdentifier(mapSecurityValidator, "FORBIDDEN_KEYS")) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "src/map-plugins/validation/map-security-validator.ts",
-      line: 1,
-      severity: "error",
-      message: "Map security or authoring policy no longer blocks raw prompt fields and executable prompt logic.",
-    }));
-  }
 
+  return !validatorGuardsForbiddenKeys || !authoringTemplateForbidsPromptInlining || !hasIdentifier(mapSecurityValidator, "FORBIDDEN_KEYS")
+    ? [createFinding({ lawId: LAW_ID, file: "src/map-plugins/validation/map-security-validator.ts", line: 1, severity: "error", message: "Map security or authoring policy no longer blocks raw prompt fields and executable prompt logic." })]
+    : [];
+};
+
+const inspectBuiltinPackages = async (): Promise<Finding[]> => {
   const builtins = await Promise.all([
     loadBuiltinPackage("src/map-plugins/builtins/tiktok-product-discovery.map-package.json"),
     loadBuiltinPackage("src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json"),
   ]);
-  for (const builtin of builtins) {
-    if (FORBIDDEN_FRAGMENTS.some((fragment) => builtin.text.includes(fragment))) {
-      findings.push(createFinding({
-        lawId: LAW_ID,
-        file: "src/map-plugins/builtins",
-        line: 1,
-        severity: "fatal",
-        message: "Built-in map packages still contain forbidden prompt-inline or legacy prompt schema fields.",
-      }));
-      break;
-    }
-  }
+
+  return builtins.some((builtin) => FORBIDDEN_FRAGMENTS.some((fragment) => builtin.text.includes(fragment)))
+    ? [createFinding({ lawId: LAW_ID, file: "src/map-plugins/builtins", line: 1, severity: "fatal", message: "Built-in map packages still contain forbidden prompt-inline or legacy prompt schema fields." })]
+    : [];
+};
+
+export async function runForbiddenShape(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const project = createMapPromptContractAuditProject();
+  const findings = [
+    ...inspectPromptBindingSchema(project),
+    ...inspectPromptInlineGuards(project),
+    ...(await inspectBuiltinPackages()),
+  ];
 
   return {
     findings,

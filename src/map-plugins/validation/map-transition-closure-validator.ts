@@ -19,7 +19,7 @@ function collectReachableSteps(mapPackage: MapPackage): Set<string> {
 
   while (queue.length > 0) {
     const current = queue.shift();
-    if (shouldSkipStep(current, reachable)) {
+    if (!current || shouldSkipStep(current, reachable)) {
       continue;
     }
     reachable.add(current);

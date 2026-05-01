@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
@@ -6,7 +7,7 @@ import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
 
 type StepDispatchResult =
-  | { dispatched: true; stepResult: import("../contract.js").MissionStepResult }
+  | { dispatched: true; stepResult: z.output<typeof MissionStepResultSchema> }
   | { dispatched: false; failureReason: string };
 
 export async function dispatchOperationalStep(input: {

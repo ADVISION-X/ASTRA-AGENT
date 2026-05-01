@@ -3,30 +3,42 @@ import type { Project } from "ts-morph";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
-import { getOwnedSources, getSource, hasDateOutsideClock, hasForbiddenEscape, ROOT } from "./ast-utils.js";
+import { LAW_IDS, PATHS } from "./config.js";
+import { hasDateOutsideClock, hasForbiddenEscape } from "./escape-rules.js";
+import { getOwnedSources, getRepoPath, getSource } from "./project-access.js";
 
-export async function runForbiddenShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const findings: Finding[] = [];
-  const indexSource = getSource(project, `${ROOT}/index.ts`);
-  if (indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport())) {
-    findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: `${ROOT}/index.ts`, line: 1, severity: "fatal", message: "Post Action Verification index.ts must not use export *." }));
-  }
+function collectIndexFindings(project: Project): Finding[] {
+  const indexSource = getSource(project, `${PATHS.ROOT}/index.ts`);
+  return indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport())
+    ? [createFinding({ lawId: LAW_IDS.SHAPE, file: `${PATHS.ROOT}/index.ts`, line: 1, severity: "fatal", message: "Post Action Verification index.ts must not use export *." })]
+    : [];
+}
 
-  const schemaSource = getSource(project, `${ROOT}/schema.ts`);
-  if (!hasLiteralTextFragment(schemaSource, "failed/review_required result must not expose output") || !hasLiteralTextFragment(schemaSource, "failed/review_required proof requires diagnosticPayloadRef")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Schema must forbid non-null output/outputRef on non-success results." }));
-  }
+function collectSchemaFindings(project: Project): Finding[] {
+  const schemaSource = getSource(project, PATHS.SCHEMA);
+  return !hasLiteralTextFragment(schemaSource, "failed/review_required result must not expose output") || !hasLiteralTextFragment(schemaSource, "failed/review_required proof requires diagnosticPayloadRef")
+    ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Schema must forbid non-null output/outputRef on non-success results." })]
+    : [];
+}
 
+function collectOwnedSourceFindings(project: Project): Finding[] {
   for (const sourceFile of getOwnedSources(project)) {
     if (hasForbiddenEscape(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: sourceFile.getFilePath(), line: 1, severity: "fatal", message: "Forbidden escape tokens or dynamic import/require patterns are not allowed in post-action-verification." }));
-      break;
+      return [createFinding({ lawId: LAW_IDS.SHAPE, file: getRepoPath(sourceFile), line: 1, severity: "fatal", message: "Forbidden escape tokens or dynamic import/require patterns are not allowed in post-action-verification." })];
     }
     if (hasDateOutsideClock(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1", file: sourceFile.getFilePath(), line: 1, severity: "fatal", message: "Date usage must stay behind verification-clock.ts." }));
-      break;
+      return [createFinding({ lawId: LAW_IDS.SHAPE, file: getRepoPath(sourceFile), line: 1, severity: "fatal", message: "Date usage must stay behind verification-clock.ts." })];
     }
   }
+  return [];
+}
+
+export async function runForbiddenShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const findings = [
+    ...collectIndexFindings(project),
+    ...collectSchemaFindings(project),
+    ...collectOwnedSourceFindings(project),
+  ];
 
   const phasePassed = findings.length === 0;
   return {

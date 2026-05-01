@@ -42,10 +42,7 @@ function getArrayLiteral(initializer: Node | undefined): ArrayLiteralExpression 
 }
 
 function getImportSpecifierText(importDeclaration: ImportDeclaration): string {
-  const moduleSpecifier = importDeclaration.getModuleSpecifier();
-  return Node.isStringLiteral(moduleSpecifier) || Node.isNoSubstitutionTemplateLiteral(moduleSpecifier)
-    ? moduleSpecifier.getLiteralText()
-    : moduleSpecifier.getText().slice(1, -1);
+  return importDeclaration.getModuleSpecifierValue();
 }
 
 function getReturnArrayLiterals(sourceFile: SourceFile, functionName: string): string[] {

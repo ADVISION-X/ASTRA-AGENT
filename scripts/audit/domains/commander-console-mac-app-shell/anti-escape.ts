@@ -1,59 +1,50 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 
-import {
-  APP_ROUTER_PATH,
-  APP_VIEW_MODEL_PATH,
-  RIGHT_INSPECTOR_PATH,
-  ROOT,
-  SHELL_CLIENT_PATH,
-  createCommanderConsoleMacShellProject,
-  getMacShellSourceFile,
-  getUiFeatureSourceFiles,
-  hasUnsafeEscape,
-} from "./ast-utils.js";
-import { LAW_ID } from "./ast-utils.js";
+import { LAW_IDS, PATHS } from "./config.js";
+import { createCommanderConsoleMacShellProject, getMacShellSourceFile, getUiFeatureSourceFiles } from "./project-access.js";
+import { hasUnsafeEscape } from "./source-rules.js";
 
 function collectUiFeatureFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const findings: Finding[] = [];
   for (const sourceFile of getUiFeatureSourceFiles(project)) {
     if (hasUnsafeEscape(sourceFile)) {
-      findings.push(createFinding({ lawId: LAW_ID, file: sourceFile.getFilePath().slice(sourceFile.getFilePath().indexOf(ROOT)), line: 1, severity: "fatal", message: "Commander Console Mac shell contains a forbidden escape hatch." }));
+      findings.push(createFinding({ lawId: LAW_IDS.DOMAIN, file: sourceFile.getFilePath().slice(sourceFile.getFilePath().indexOf(PATHS.ROOT)), line: 1, severity: "fatal", message: "Commander Console Mac shell contains a forbidden escape hatch." }));
     }
   }
   return findings;
 }
 
 function collectInspectorVisibilityFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
-  const inspectorSource = getMacShellSourceFile(project, RIGHT_INSPECTOR_PATH);
+  const inspectorSource = getMacShellSourceFile(project, PATHS.RIGHT_INSPECTOR);
   return !inspectorSource.getFullText().includes('hidden="hidden"') || !inspectorSource.getFullText().includes('aria-hidden="true"')
-    ? [createFinding({ lawId: LAW_ID, file: RIGHT_INSPECTOR_PATH, line: 1, severity: "fatal", message: "Right inspector must default to hidden instead of opening on boot." })]
+    ? [createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.RIGHT_INSPECTOR, line: 1, severity: "fatal", message: "Right inspector must default to hidden instead of opening on boot." })]
     : [];
 }
 
 function collectShellClientFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const findings: Finding[] = [];
-  const shellClientSource = getMacShellSourceFile(project, SHELL_CLIENT_PATH);
+  const shellClientSource = getMacShellSourceFile(project, PATHS.SHELL_CLIENT);
   if (shellClientSource.getFullText().includes("developerModeOpen: true") || shellClientSource.getFullText().includes("setDeveloperMode(true)")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: SHELL_CLIENT_PATH, line: 1, severity: "fatal", message: "Developer mode must not auto-open on shell boot." }));
+    findings.push(createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.SHELL_CLIENT, line: 1, severity: "fatal", message: "Developer mode must not auto-open on shell boot." }));
   }
   if (shellClientSource.getFullText().includes("Object.values(pageHtml).join")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: SHELL_CLIENT_PATH, line: 1, severity: "fatal", message: "Mac shell must not render every page at once and hide them with client-side tricks." }));
+    findings.push(createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.SHELL_CLIENT, line: 1, severity: "fatal", message: "Mac shell must not render every page at once and hide them with client-side tricks." }));
   }
   return findings;
 }
 
 function collectRouterFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
-  const routerSource = getMacShellSourceFile(project, APP_ROUTER_PATH);
+  const routerSource = getMacShellSourceFile(project, PATHS.APP_ROUTER);
   return routerSource.getFullText().includes("Object.values(") || routerSource.getFullText().includes("pageHtmlMap.home + pageHtmlMap.mission")
-    ? [createFinding({ lawId: LAW_ID, file: APP_ROUTER_PATH, line: 1, severity: "fatal", message: "App router must mount one active page host, not concatenate all pages into one long scroll." })]
+    ? [createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.APP_ROUTER, line: 1, severity: "fatal", message: "App router must mount one active page host, not concatenate all pages into one long scroll." })]
     : [];
 }
 
 function collectViewModelFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
-  const appViewModelSource = getMacShellSourceFile(project, APP_VIEW_MODEL_PATH);
+  const appViewModelSource = getMacShellSourceFile(project, PATHS.APP_VIEW_MODEL);
   return appViewModelSource.getFullText().includes('initialPageId: "developer"')
-    ? [createFinding({ lawId: LAW_ID, file: APP_VIEW_MODEL_PATH, line: 1, severity: "fatal", message: "Mac shell must boot into Home, not Developer." })]
+    ? [createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.APP_VIEW_MODEL, line: 1, severity: "fatal", message: "Mac shell must boot into Home, not Developer." })]
     : [];
 }
 

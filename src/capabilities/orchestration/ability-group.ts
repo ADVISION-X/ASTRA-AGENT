@@ -1,7 +1,8 @@
 import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup } from "./contract.js";
 import { listOrchestrationChildren } from "./registry.js";
-import { listActiveOperationalMapIds, readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
+import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
 import {
   executeMissionCommand,
   pauseMissionCommand,
@@ -66,6 +67,7 @@ function createMissionStateMethods(context: ReturnType<typeof createOrchestratio
 export function createOrchestrationAbilityGroup(input: {
   nerveBus: NerveBusAbilityGroup;
 }): OrchestrationAbilityGroup {
+  const registry = getDefaultMapPluginRegistry();
   const context = createOrchestrationRuntimeContext(input.nerveBus);
   const children = createOrchestrationChildren();
   const missionEntry = createMissionEntryMethods(context);
@@ -78,7 +80,7 @@ export function createOrchestrationAbilityGroup(input: {
     },
 
     listMapIds() {
-      return listActiveOperationalMapIds();
+      return registry.active.listActivePackages().map((mapPackage) => mapPackage.manifest.mapId);
     },
 
     async execute(inputValue) {

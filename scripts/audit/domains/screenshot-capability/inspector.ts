@@ -1,6 +1,7 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { runAntiEscape } from "./anti-escape.js";
-import { ROOT, createScreenshotAuditProject } from "./ast-utils.js";
+import { PATHS } from "./config.js";
+import { createScreenshotAuditProject } from "./project-access.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
@@ -13,7 +14,7 @@ export const screenshotCapabilityInspector = createPendingDomainInspector({
   inspectorId: "screenshot-capability-owner",
   capabilityDomain: "screenshot-capability",
   inspectorEntry: INSPECTOR_PATH,
-  ownedPaths: [ROOT],
+  ownedPaths: [PATHS.ROOT],
   pendingSummary: "screenshot-capability root is missing its governed runtime package",
   implementedSummary: "screenshot-capability is implemented as a governed runtime package with layered AST-backed enforcement",
   extraChecks: async () => {

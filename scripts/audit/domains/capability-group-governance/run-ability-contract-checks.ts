@@ -1,3 +1,5 @@
+import { Node } from "ts-morph";
+
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import { fileExists } from "../../core/filesystem.js";
@@ -34,7 +36,14 @@ const findStableContractViolations = (abilityGroupId: string, contractPath: stri
   }
 
   const abilityGroupNameNode = abilityGroupConstant.getNameNode();
-  const externalReferences = abilityGroupNameNode.findReferencesAsNodes().map((referenceNode) => referenceNode.getSourceFile().getFilePath()).filter((referencePath) => !referencePath.endsWith(contractPath));
+  if (!Node.isIdentifier(abilityGroupNameNode)) {
+    return [createFinding({ lawId: LAW_ID_002, file: contractPath, line: getNodeLine(abilityGroupConstant), severity: "error", message: "Public contract must expose a direct identifier-based abilityGroupId constant." })];
+  }
+
+  const externalReferences = abilityGroupNameNode
+    .findReferencesAsNodes()
+    .map((referenceNode) => referenceNode.getSourceFile().getFilePath())
+    .filter((referencePath) => !referencePath.endsWith(contractPath));
   return externalReferences.length === 0
     ? [createFinding({ lawId: LAW_ID_002, file: contractPath, line: getNodeLine(abilityGroupConstant), severity: "error", message: "Ability-group public contract is not referenced outside its contract file." })]
     : [];

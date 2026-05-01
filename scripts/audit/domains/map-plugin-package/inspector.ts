@@ -1,28 +1,19 @@
 import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
-import { createMapPluginAuditProject } from "./ast-utils.js";
+import { createMapPluginAuditProject } from "./audit-project.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runScorecardGate } from "./scorecard-gate.js";
-import { createIntegrationAuditProject } from "../map-plugin-orchestration-integration/ast-utils.js";
-import { runBoundaryAttack as runIntegrationBoundaryAttack } from "../map-plugin-orchestration-integration/boundary-attack.js";
-import { runForbiddenShape as runIntegrationForbiddenShape } from "../map-plugin-orchestration-integration/forbidden-shape.js";
-import { runRequiredShape as runIntegrationRequiredShape } from "../map-plugin-orchestration-integration/required-shape.js";
+import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
-const inspector: DomainInspector = async (context) => {
-  const base = await runDomainOwnerInspection(context, {
-    capabilityDomain: "map-plugin-package",
-    inspectorId: "map-plugin-package-governance",
-    inspectorEntry: "scripts/audit/domains/map-plugin-package/inspector.ts",
-  });
-  const foundationFindings = base.findings.filter((finding) => finding.message !== "Generated audit plan does not contain this owner.");
-  const foundationPhase = foundationFindings.length === 0
+const buildFoundationPhase = (foundationFindings: Awaited<ReturnType<typeof runDomainOwnerInspection>>["findings"]) =>
+  foundationFindings.length === 0
     ? createPhase(
         "owner-foundation",
         "PASS",
@@ -36,17 +27,23 @@ const inspector: DomainInspector = async (context) => {
         "Map package manifest or generated owner artifacts drifted away from the governed inspector chain.",
       );
 
-  const project = createMapPluginAuditProject();
+const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPluginAuditProject>) => {
   const required = await runRequiredShape(project);
   const forbidden = await runForbiddenShape(project);
   const boundary = runBoundaryAttack(project);
+  return { required, forbidden, boundary };
+};
+
+const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginAuditProject>, context: Parameters<DomainInspector>[0]) => {
   const antiEscape = await runAntiEscape(project, context);
   const scorecard = await runScorecardGate();
-  const integrationProject = createIntegrationAuditProject();
-  const integrationRequired = await runIntegrationRequiredShape(integrationProject);
-  const integrationForbidden = await runIntegrationForbiddenShape(integrationProject);
-  const integrationBoundary = runIntegrationBoundaryAttack(integrationProject);
-  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+  const integrationPhases = await runIntegrationPhaseBundle();
+
+  return { antiEscape, scorecard, integrationPhases };
+};
+
+const runNegativeProofPhase = async () => {
+  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
     ? {
         findings: [],
         phase: createPhase(
@@ -56,33 +53,76 @@ const inspector: DomainInspector = async (context) => {
           "Map package negative-proof harness was skipped for nested inspector execution.",
         ),
       }
-    : await runNegativeProofHarness();
+    : runNegativeProofHarness();
+};
 
-  const findings = [
-    ...foundationFindings,
-    ...required.findings,
-    ...forbidden.findings,
-    ...boundary.findings,
-    ...antiEscape.findings,
-    ...scorecard.findings,
-    ...integrationRequired.findings,
-    ...integrationForbidden.findings,
-    ...integrationBoundary.findings,
-    ...negativeProof.findings,
-  ];
+const inspectFoundation = async (context: Parameters<DomainInspector>[0]) => {
+  const base = await runDomainOwnerInspection(context, {
+    capabilityDomain: "map-plugin-package",
+    inspectorId: "map-plugin-package-governance",
+    inspectorEntry: "scripts/audit/domains/map-plugin-package/inspector.ts",
+  });
+  const findings = base.findings.filter((finding) => finding.message !== "Generated audit plan does not contain this owner.");
+  return {
+    findings,
+    phase: buildFoundationPhase(findings),
+  };
+};
 
-  const phases = [
-    foundationPhase,
-    required.phase,
-    forbidden.phase,
-    boundary.phase,
-    antiEscape.phase,
-    scorecard.phase,
-    integrationRequired.phase,
-    integrationForbidden.phase,
-    integrationBoundary.phase,
-    negativeProof.phase,
-  ];
+const collectFindings = (input: {
+  foundationFindings: Awaited<ReturnType<typeof inspectFoundation>>["findings"];
+  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
+  negativeProof: Awaited<ReturnType<typeof runNegativeProofPhase>>;
+}) => [
+  ...input.foundationFindings,
+  ...input.directPhases.required.findings,
+  ...input.directPhases.forbidden.findings,
+  ...input.directPhases.boundary.findings,
+  ...input.supplementalPhases.antiEscape.findings,
+  ...input.supplementalPhases.scorecard.findings,
+  ...input.supplementalPhases.integrationPhases.required.findings,
+  ...input.supplementalPhases.integrationPhases.forbidden.findings,
+  ...input.supplementalPhases.integrationPhases.boundary.findings,
+  ...input.negativeProof.findings,
+];
+
+const collectPhases = (input: {
+  foundationPhase: Awaited<ReturnType<typeof inspectFoundation>>["phase"];
+  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
+  negativeProof: Awaited<ReturnType<typeof runNegativeProofPhase>>;
+}) => [
+  input.foundationPhase,
+  input.directPhases.required.phase,
+  input.directPhases.forbidden.phase,
+  input.directPhases.boundary.phase,
+  input.supplementalPhases.antiEscape.phase,
+  input.supplementalPhases.scorecard.phase,
+  input.supplementalPhases.integrationPhases.required.phase,
+  input.supplementalPhases.integrationPhases.forbidden.phase,
+  input.supplementalPhases.integrationPhases.boundary.phase,
+  input.negativeProof.phase,
+];
+
+const inspector: DomainInspector = async (context) => {
+  const foundation = await inspectFoundation(context);
+  const project = createMapPluginAuditProject();
+  const directPhases = await runDirectGovernancePhases(project);
+  const supplementalPhases = await runSupplementalPhases(project, context);
+  const negativeProof = await runNegativeProofPhase();
+  const findings = collectFindings({
+    foundationFindings: foundation.findings,
+    directPhases,
+    supplementalPhases,
+    negativeProof,
+  });
+  const phases = collectPhases({
+    foundationPhase: foundation.phase,
+    directPhases,
+    supplementalPhases,
+    negativeProof,
+  });
 
   return finalizeInspectorResult({
     inspector: "GrassEye Map Plugin Package Governance Inspector",

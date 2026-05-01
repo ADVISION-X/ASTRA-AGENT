@@ -1,40 +1,45 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import {
-  CHANNELS_ROOT,
-  ORCHESTRATION_PATH,
-  ROOT,
-  WORKBENCH_PATH,
-  getExternalImportsWithPrefix,
-  getSourceFile,
-  makeProject,
-} from "./ast-utils.js";
+import { LAW_IDS, PATHS } from "./config.js";
+import { getExternalImportsWithPrefix, getSourceFile, makeProject } from "./project-access.js";
 
-export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhase } {
+function collectInternalLeakFindings(): Finding[] {
   const findings: Finding[] = [];
   const project = makeProject();
-
-  for (const targetPrefix of [`${ROOT}/runtime/`, `${ROOT}/children/`, `${ROOT}/ports/`]) {
-    const leaks = getExternalImportsWithPrefix(project, targetPrefix);
-    for (const importerPath of leaks) {
-      findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1", file: importerPath, line: 1, severity: "fatal", message: `External code must not import ${targetPrefix} internals.` }));
+  for (const targetPrefix of [`${PATHS.ROOT}/runtime/`, `${PATHS.ROOT}/children/`, `${PATHS.ROOT}/ports/`]) {
+    for (const importerPath of getExternalImportsWithPrefix(project, targetPrefix)) {
+      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: importerPath, line: 1, severity: "fatal", message: `External code must not import ${targetPrefix} internals.` }));
     }
   }
+  return findings;
+}
 
-  const workbenchSource = getSourceFile(project, WORKBENCH_PATH);
+function collectConsumerFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const findings: Finding[] = [];
+  const workbenchSource = getSourceFile(project, PATHS.WORKBENCH);
   if (!workbenchSource || !workbenchSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("capabilities/nerve-bus/index"))) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench must consume Nerve Bus through the public index." }));
+    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.WORKBENCH, line: 1, severity: "fatal", message: "Workbench must consume Nerve Bus through the public index." }));
   }
+  const orchestrationSource = getSourceFile(project, PATHS.ORCHESTRATION);
+  return !orchestrationSource || !orchestrationSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("../nerve-bus/index"))
+    ? findings.concat(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION, line: 1, severity: "fatal", message: "Orchestration must consume Nerve Bus through the public index." }))
+    : findings;
+}
 
-  const orchestrationSource = getSourceFile(project, ORCHESTRATION_PATH);
-  if (!orchestrationSource || !orchestrationSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("../nerve-bus/index"))) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1", file: ORCHESTRATION_PATH, line: 1, severity: "fatal", message: "Orchestration must consume Nerve Bus through the public index." }));
-  }
-
+function collectChannelRootFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const channelImplementations = project.getSourceFiles().filter((sourceFile) => sourceFile.getFilePath().includes("/src/capabilities/nerve-bus/channels/"));
-  if (channelImplementations.length > 0) {
-    findings.push(createFinding({ lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1", file: CHANNELS_ROOT, line: 1, severity: "fatal", message: "Nerve Bus channels/ must not become a second implementation root." }));
-  }
+  return channelImplementations.length > 0
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.CHANNELS_ROOT, line: 1, severity: "fatal", message: "Nerve Bus channels/ must not become a second implementation root." })]
+    : [];
+}
+
+export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhase } {
+  const project = makeProject();
+  const findings = [
+    ...collectInternalLeakFindings(),
+    ...collectConsumerFindings(project),
+    ...collectChannelRootFindings(project),
+  ];
 
   const phasePassed = findings.length === 0;
   return {

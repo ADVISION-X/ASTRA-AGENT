@@ -126,19 +126,25 @@ const buildAiRejectedRuntimeResult = (
   input: ReturnType<typeof evaluateAiRuntimeDecisions>,
 ) => {
   const reason = input.qualityDecision.reason ?? input.boundaryDecision.reason ?? input.safetyDecision.reason ?? "schema_validation_failed";
-  return buildAiRuntimeTerminalResult(plan, runtimeResult, input.boundaryDecision, input.safetyDecision, {
-    status: input.qualityDecision.decision === "review_required" ? "review_required" : "failed",
-    failureReason: input.qualityDecision.decision === "blocked" ? reason : null,
-    reviewRequiredReason: input.qualityDecision.decision === "review_required" ? reason : null,
-    implementationStatus: "governed_output_rejected",
-    schemaValidationStatus: input.qualityDecision.schemaValidationStatus,
-    qualityDecision: input.qualityDecision.decision,
-    dataQualityFlags: [...input.qualityDecision.flags, ...input.boundaryDecision.flags, ...input.safetyDecision.flags],
-    output: null,
-    qualityDecisionReason: reason,
-    schemaDecision: input.schemaIssues.valid ? plan.resolvedSchema.decision : "review_required",
-    boundaryViolationCount: input.boundaryDecision.flags.length,
-    schemaIssueCount: input.schemaIssues.valid ? 0 : input.schemaIssues.issues.length,
+  return buildAiRuntimeTerminalResult({
+    plan,
+    runtimeResult,
+    boundaryDecision: input.boundaryDecision,
+    safetyDecision: input.safetyDecision,
+    terminal: {
+      status: input.qualityDecision.decision === "review_required" ? "review_required" : "failed",
+      failureReason: input.qualityDecision.decision === "blocked" ? reason : null,
+      reviewRequiredReason: input.qualityDecision.decision === "review_required" ? reason : null,
+      implementationStatus: "governed_output_rejected",
+      schemaValidationStatus: input.qualityDecision.schemaValidationStatus,
+      qualityDecision: input.qualityDecision.decision,
+      dataQualityFlags: [...input.qualityDecision.flags, ...input.boundaryDecision.flags, ...input.safetyDecision.flags],
+      output: null,
+      qualityDecisionReason: reason,
+      schemaDecision: input.schemaIssues.valid ? plan.resolvedSchema.decision : "review_required",
+      boundaryViolationCount: input.boundaryDecision.flags.length,
+      schemaIssueCount: input.schemaIssues.valid ? 0 : input.schemaIssues.issues.length,
+    },
   });
 };
 
@@ -172,8 +178,12 @@ const buildAiSuccessfulRuntimeResult = (
   plan: AiExecutionPlan,
   runtimeResult: AiRuntimeExecutionOutput,
   evaluation: ReturnType<typeof evaluateAiRuntimeDecisions>,
-) =>
-  buildAiRuntimeTerminalResult({
+) => {
+  if (!evaluation.schemaIssues.valid) {
+    return buildAiRejectedRuntimeResult(plan, runtimeResult, evaluation);
+  }
+
+  return buildAiRuntimeTerminalResult({
     plan,
     runtimeResult,
     boundaryDecision: evaluation.boundaryDecision,
@@ -193,6 +203,7 @@ const buildAiSuccessfulRuntimeResult = (
       schemaIssueCount: 0,
     },
   });
+};
 
 export function resolveAiRuntimeResult(
   plan: AiExecutionPlan,

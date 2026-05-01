@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import type {
   MissionCommand,
   MissionExecutionResult,
@@ -5,9 +6,9 @@ import type {
   OperationalMap,
 } from "../contract.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
-import { PayloadRefBundleSchema } from "../schema.js";
+import { MissionStepResultSchema, PayloadRefBundleSchema, RuntimeProofSchema } from "../schema.js";
 import { buildDispatchFailure } from "./orchestration-dispatch-failure.js";
-import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
+import { buildOrchestrationRuntimeProof, type BuildProofInput } from "./orchestration-proof-builder.js";
 import { buildMissionExecutionResult, buildMissionStateUpdate } from "./orchestration-result-builder.js";
 import { evaluateLoopGuard } from "./loop-guard.js";
 import { parseMissionCommand, parseMissionControlCommand, parseMissionReviewDecision } from "./mission-command-gate.js";
@@ -26,6 +27,17 @@ import {
 import { randomUUID } from "node:crypto";
 
 const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+type OrchestrationStepResultRecord = z.output<typeof MissionStepResultSchema>;
+
+const toStepResultRecord = (value: unknown): OrchestrationStepResultRecord =>
+  MissionStepResultSchema.parse(value);
+
+const getRuntimeProofId = (value: unknown): string =>
+  (RuntimeProofSchema.parse(value) as { proofId: string }).proofId;
+
+const toBuildProofInput = (value: unknown): BuildProofInput =>
+  RuntimeProofSchema.parse(value) as BuildProofInput;
 
 function createInitialMissionState(command: MissionCommand, map: OperationalMap, startedAt: string): MissionState {
   return buildMissionStateUpdate({
@@ -111,8 +123,8 @@ async function runMissionLoop(input: {
   selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
 }): Promise<MissionExecutionResult> {
   let state = input.state;
-  let lastResult: import("../contract.js").MissionStepResult | null = null;
-  let lastProof: import("../contract.js").RuntimeProof | null = null;
+  let lastResult: OrchestrationStepResultRecord | null = null;
+  let lastProof: z.output<typeof RuntimeProofSchema> | null = null;
 
   while (state.currentStepId && state.status === "running") {
     const currentStepId = state.currentStepId;
@@ -155,8 +167,8 @@ async function runMissionLoop(input: {
         dataQualityFlags: ["state_machine_violation"],
       });
       state = toMissionControlState(state, endedAt, {
-        lastRuntimeProofRef: lastProof.proofId,
-        runtimeProofRefs: [...state.runtimeProofRefs, lastProof.proofId],
+        lastRuntimeProofRef: getRuntimeProofId(lastProof),
+        runtimeProofRefs: [...state.runtimeProofRefs, getRuntimeProofId(lastProof)],
       });
       await input.context.statePort.putMissionState(state);
       return buildMissionExecutionResult({ missionState: state, currentStepResult: lastResult, runtimeProof: lastProof, failureReason: dispatchGate.reason });
@@ -206,8 +218,8 @@ async function runMissionLoop(input: {
         dataQualityFlags: loopGuard.loopDecision === "stop_completed" ? [] : ["loop_guard_triggered"],
       });
       state = toMissionControlState(state, endedAt, {
-        lastRuntimeProofRef: lastProof.proofId,
-        runtimeProofRefs: [...state.runtimeProofRefs, lastProof.proofId],
+        lastRuntimeProofRef: getRuntimeProofId(lastProof),
+        runtimeProofRefs: [...state.runtimeProofRefs, getRuntimeProofId(lastProof)],
       });
       await input.context.statePort.putMissionState(state);
       return buildMissionExecutionResult({ missionState: state, currentStepResult: lastResult, runtimeProof: lastProof });
@@ -263,14 +275,14 @@ async function runMissionLoop(input: {
         dataQualityFlags: ["step_dispatch_failure"],
       });
       state = toMissionControlState(state, endedSnapshot.isoTimestamp, {
-        lastRuntimeProofRef: lastProof.proofId,
-        runtimeProofRefs: [...state.runtimeProofRefs, lastProof.proofId],
+        lastRuntimeProofRef: getRuntimeProofId(lastProof),
+        runtimeProofRefs: [...state.runtimeProofRefs, getRuntimeProofId(lastProof)],
       });
       await input.context.statePort.putMissionState(state);
       return buildMissionExecutionResult({ missionState: state, currentStepResult: null, runtimeProof: lastProof, failureReason: stepDispatch.failureReason });
     }
 
-    lastResult = stepDispatch.stepResult;
+    lastResult = toStepResultRecord(stepDispatch.stepResult);
 
     const transitionResult = evaluateStepTransition({ map: input.map, currentStepId, result: lastResult });
 
@@ -312,8 +324,8 @@ async function runMissionLoop(input: {
         dataQualityFlags: ["transition_evaluation_failure"],
       });
       state = toMissionControlState(state, endedSnapshot.isoTimestamp, {
-        lastRuntimeProofRef: lastProof.proofId,
-        runtimeProofRefs: [...state.runtimeProofRefs, lastProof.proofId],
+        lastRuntimeProofRef: getRuntimeProofId(lastProof),
+        runtimeProofRefs: [...state.runtimeProofRefs, getRuntimeProofId(lastProof)],
       });
       await input.context.statePort.putMissionState(state);
       return buildMissionExecutionResult({ missionState: state, currentStepResult: lastResult, runtimeProof: lastProof, failureReason });
@@ -373,8 +385,8 @@ async function runMissionLoop(input: {
       failureReason: nextStatus === "failed" ? lastResult.failureReason : null,
       lastEnvelopeId: lastResult.envelopeId ?? null,
       lastResultRef: lastResult.resultRef ?? null,
-      lastRuntimeProofRef: lastProof.proofId,
-      runtimeProofRefs: [...state.runtimeProofRefs, lastProof.proofId],
+      lastRuntimeProofRef: getRuntimeProofId(lastProof),
+      runtimeProofRefs: [...state.runtimeProofRefs, getRuntimeProofId(lastProof)],
       payloadRefs: lastResult.payloadRefs,
       endedAt: nextStatus === "running" ? null : endedSnapshot.isoTimestamp,
     });
@@ -382,7 +394,7 @@ async function runMissionLoop(input: {
     // Fix stateRevision from the double-increment above
     // toMissionControlState increments by 1 so we just use what it produced
     lastProof = buildOrchestrationRuntimeProof({
-      ...lastProof,
+      ...toBuildProofInput(lastProof),
       stateRevisionAfter: state.stateRevision,
       stateHashAfter: state.stateHash ?? null,
     });

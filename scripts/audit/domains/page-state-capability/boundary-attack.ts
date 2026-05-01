@@ -1,6 +1,8 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createPageStateAuditProject, getPageStateSources, getSource, leaksPrivatePageStatePath, ROOT } from "./ast-utils.js";
+import { createPageStateAuditProject, getPageStateSources, getSource } from "./audit-project.js";
+import { ROOT } from "./constants.js";
+import { leaksPrivatePageStatePath } from "./source-boundaries.js";
 import type { Project } from "ts-morph";
 
 export async function runBoundaryAttack(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

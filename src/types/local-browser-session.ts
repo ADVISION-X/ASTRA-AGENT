@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-export const BrowserModeSchema = z.enum(["real_chrome_persistent", "fixture", "unsupported"]);
+const BrowserModeSchema = z.enum(["real_chrome_persistent", "fixture", "unsupported"]);
 
-export const BrowserProfileProvisioningSchema = z.enum(["operator_supplied", "managed_default"]);
+const BrowserProfileProvisioningSchema = z.enum(["operator_supplied", "managed_default"]);
 
-export const BrowserProfileVerificationStatusSchema = z.enum(["operator_verified", "default_unverified"]);
+const BrowserProfileVerificationStatusSchema = z.enum(["operator_verified", "default_unverified"]);
 
-export const BrowserProfileStatusSchema = z.enum([
+const BrowserProfileStatusSchema = z.enum([
   "profile_ready",
   "profile_missing",
   "profile_locked",
@@ -16,9 +16,9 @@ export const BrowserProfileStatusSchema = z.enum([
   "unknown",
 ]);
 
-export const BrowserLoginStateSchema = z.enum(["unknown", "login_required", "logged_in", "review_required"]);
+const BrowserLoginStateSchema = z.enum(["unknown", "login_required", "logged_in", "review_required"]);
 
-export const LocalBrowserSessionConfigSchema = z.object({
+const LocalBrowserSessionConfigSchema = z.object({
   browserMode: BrowserModeSchema,
   platform: z.string().min(1),
   chromeExecutablePath: z.string().min(1).nullable().default(null),
@@ -33,7 +33,7 @@ export const LocalBrowserSessionConfigSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const LocalBrowserSessionStateSchema = z.object({
+const LocalBrowserSessionStateSchema = z.object({
   browserMode: BrowserModeSchema,
   browserProfileRef: z.string().min(1),
   browserExecutablePath: z.string().min(1).nullable().default(null),
@@ -49,10 +49,30 @@ export const LocalBrowserSessionStateSchema = z.object({
   reviewRequiredReason: z.string().min(1).nullable().default(null),
 });
 
-export type BrowserMode = z.infer<typeof BrowserModeSchema>;
-export type BrowserProfileProvisioning = z.infer<typeof BrowserProfileProvisioningSchema>;
-export type BrowserProfileVerificationStatus = z.infer<typeof BrowserProfileVerificationStatusSchema>;
-export type BrowserProfileStatus = z.infer<typeof BrowserProfileStatusSchema>;
-export type BrowserLoginState = z.infer<typeof BrowserLoginStateSchema>;
-export type LocalBrowserSessionConfig = z.infer<typeof LocalBrowserSessionConfigSchema>;
-export type LocalBrowserSessionState = z.infer<typeof LocalBrowserSessionStateSchema>;
+type BrowserMode = z.infer<typeof BrowserModeSchema>;
+type BrowserProfileProvisioning = z.infer<typeof BrowserProfileProvisioningSchema>;
+type BrowserProfileVerificationStatus = z.infer<typeof BrowserProfileVerificationStatusSchema>;
+type BrowserProfileStatus = z.infer<typeof BrowserProfileStatusSchema>;
+type BrowserLoginState = z.infer<typeof BrowserLoginStateSchema>;
+type LocalBrowserSessionConfig = z.infer<typeof LocalBrowserSessionConfigSchema>;
+type LocalBrowserSessionState = z.infer<typeof LocalBrowserSessionStateSchema>;
+
+export {
+  BrowserLoginStateSchema,
+  BrowserModeSchema,
+  BrowserProfileProvisioningSchema,
+  BrowserProfileStatusSchema,
+  BrowserProfileVerificationStatusSchema,
+  LocalBrowserSessionConfigSchema,
+  LocalBrowserSessionStateSchema,
+};
+
+export type {
+  BrowserLoginState,
+  BrowserMode,
+  BrowserProfileProvisioning,
+  BrowserProfileStatus,
+  BrowserProfileVerificationStatus,
+  LocalBrowserSessionConfig,
+  LocalBrowserSessionState,
+};

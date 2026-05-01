@@ -64,7 +64,7 @@ const buildUnavailableTerminalResult = (
     disabledProviderDecision: input.disabledProviderDecision,
     dataQualityFlags: input.dataQualityFlags,
     output: null,
-    qualityDecisionReason: input.qualityDecisionReason,
+    ...(input.qualityDecisionReason === undefined ? {} : { qualityDecisionReason: input.qualityDecisionReason }),
   });
 
 export const buildAiInputGateFailureResult = (input: {

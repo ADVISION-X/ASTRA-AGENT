@@ -6,7 +6,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 
-import { LAW_ID } from "./ast-utils.js";
+import { LAW_IDS } from "./config.js";
 
 type Mutation = {
   name: string;
@@ -99,7 +99,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
   } catch (error) {
     return {
       findings: [
-        createFinding({ lawId: LAW_ID, file: INSPECTOR_ENTRY, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Commander Console Mac shell negative proof failed." }),
+        createFinding({ lawId: LAW_IDS.DOMAIN, file: INSPECTOR_ENTRY, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Commander Console Mac shell negative proof failed." }),
       ],
       phase: createPhase(
         "negative-proof-harness",

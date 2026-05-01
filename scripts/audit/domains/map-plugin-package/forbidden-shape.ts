@@ -3,13 +3,9 @@ import type { Project } from "ts-morph";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
-import {
-  BUILTINS_ROOT,
-  ROOT,
-  getSource,
-  listMapPluginFiles,
-  loadBuiltinPackageRecords,
-} from "./ast-utils.js";
+import { getSource, listMapPluginFiles } from "./audit-project.js";
+import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
+import { BUILTINS_ROOT, ROOT } from "./constants.js";
 
 const FORBIDDEN_TEXT_FRAGMENTS = ["import(", "child_process", "npm run", "eval(", "function ", "=>", "node:"] as const;
 const FORBIDDEN_IMPORT_MARKERS = [
@@ -21,70 +17,56 @@ const FORBIDDEN_IMPORT_MARKERS = [
   "node:child_process",
 ] as const;
 
-export async function runForbiddenShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const findings: Finding[] = [];
+const inspectBuiltinFileSet = async (): Promise<Finding[]> => {
   const mapPluginFiles = await listMapPluginFiles();
+  return mapPluginFiles
+    .filter((filePath) => filePath.startsWith(`${BUILTINS_ROOT}/`) && filePath !== `${BUILTINS_ROOT}/index.ts` && !filePath.endsWith(".json"))
+    .map((file) => createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file, line: 1, severity: "fatal", message: "Builtin map packages must stay JSON data packages and must not ship executable source files." }));
+};
 
-  for (const file of mapPluginFiles.filter((filePath) => filePath.startsWith(`${BUILTINS_ROOT}/`) && filePath !== `${BUILTINS_ROOT}/index.ts`)) {
-    if (!file.endsWith(".json")) {
-      findings.push(createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-004-V1",
-        file,
-        line: 1,
-        severity: "fatal",
-        message: "Builtin map packages must stay JSON data packages and must not ship executable source files.",
-      }));
-    }
-  }
+const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
+  const findings: Finding[] = [];
 
   for (const record of await loadBuiltinPackageRecords()) {
     const securityIssue = record.validationIssues.find((issue) => issue.code === "security_violation");
     if (securityIssue) {
-      findings.push(createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-004-V1",
-        file: record.file,
-        line: 1,
-        severity: "fatal",
-        message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}`,
-      }));
+      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}` }));
     }
 
     const forbiddenFragment = FORBIDDEN_TEXT_FRAGMENTS.find((fragment) => record.text.includes(fragment));
     if (forbiddenFragment) {
-      findings.push(createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-004-V1",
-        file: record.file,
-        line: 1,
-        severity: "fatal",
-        message: `Builtin map package must not contain executable-like fragment ${forbiddenFragment}.`,
-      }));
+      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package must not contain executable-like fragment ${forbiddenFragment}.` }));
     }
   }
 
-  const sourceFiles = mapPluginFiles.filter((filePath) => filePath.endsWith(".ts"));
+  return findings;
+};
+
+const inspectSourceFileImports = async (project: Project): Promise<Finding[]> => {
+  const findings: Finding[] = [];
+  const sourceFiles = (await listMapPluginFiles()).filter((filePath) => filePath.endsWith(".ts"));
+
   for (const filePath of sourceFiles) {
     const source = getSource(project, filePath);
     const forbiddenImport = FORBIDDEN_IMPORT_MARKERS.find((marker) => hasImportModuleSpecifier(source, marker));
     if (forbiddenImport) {
-      findings.push(createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-004-V1",
-        file: filePath,
-        line: 1,
-        severity: "fatal",
-        message: `Map package source must not depend on executable runtime internals through ${forbiddenImport}.`,
-      }));
+      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: filePath, line: 1, severity: "fatal", message: `Map package source must not depend on executable runtime internals through ${forbiddenImport}.` }));
     }
 
     if (hasCallExpression(source, "eval") || hasCallExpression(source, "Function") || hasCallExpression(source, "exec") || hasCallExpression(source, "spawn")) {
-      findings.push(createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-004-V1",
-        file: filePath,
-        line: 1,
-        severity: "fatal",
-        message: "Map package source must not introduce executable payload helpers or shell escapes.",
-      }));
+      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: filePath, line: 1, severity: "fatal", message: "Map package source must not introduce executable payload helpers or shell escapes." }));
     }
   }
+
+  return findings;
+};
+
+export async function runForbiddenShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const findings = [
+    ...(await inspectBuiltinFileSet()),
+    ...(await inspectBuiltinRecordSafety()),
+    ...(await inspectSourceFileImports(project)),
+  ];
 
   const passed = findings.length === 0;
   return {

@@ -2,13 +2,8 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import {
-  EXECUTOR_PATH,
-  RESULT_BUILDER_PATH,
-  RUNNER_PATH,
-  getSourceFile,
-  makeProject,
-} from "./ast-utils.js";
+import { getSourceFile, makeProject } from "./audit-project.js";
+import { PATHS } from "./config.js";
 
 function hasComputedClickEscape(sourceText: string): boolean {
   return sourceText.includes("[\"click\"]") || sourceText.includes("['click']");
@@ -20,14 +15,14 @@ function hasVariableDeclaration(sourceTextSource: ReturnType<typeof getSourceFil
 
 function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!executorSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Mouse Click executor is missing for anti-escape checks." })];
+    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Click executor is missing for anti-escape checks." })];
   }
 
   const findings: Finding[] = [];
   const gateVariables = ["geometryGate", "policyGate", "boundaryGate", "safetyGate", "reservation", "primitiveResult"];
   for (const variableName of gateVariables) {
     if (!hasVariableDeclaration(executorSource, variableName)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: `Mouse Click executor must keep ${variableName} as a governed checkpoint.` }));
+      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Mouse Click executor must keep ${variableName} as a governed checkpoint.` }));
     }
   }
 
@@ -37,37 +32,37 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
   });
   return returnsResultBuilder
     ? findings
-    : [...findings, createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Mouse Click executor must return buildMouseClickResult directly." })];
+    : [...findings, createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Click executor must return buildMouseClickResult directly." })];
 }
 
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!resultBuilderSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Mouse Click result builder is missing for anti-escape checks." })];
+    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder is missing for anti-escape checks." })];
   }
 
   return hasVariableDeclaration(resultBuilderSource, "runtimeProof")
     ? []
-    : [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the proof builder output." })];
+    : [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the proof builder output." })];
 }
 
 function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!runnerSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Click primitive runner is missing for anti-escape checks." })];
+    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Click primitive runner is missing for anti-escape checks." })];
   }
 
   const findings: Finding[] = [];
   const fullText = runnerSource.getFullText();
   if (!fullText.includes("Promise.race")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Click primitive runner must use Promise.race for hard timeout enforcement." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Click primitive runner must use Promise.race for hard timeout enforcement." }));
   }
   if (!fullText.includes("AbortController")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Click primitive runner must allocate AbortController." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Click primitive runner must allocate AbortController." }));
   }
   if (!fullText.includes("MAX_CONCURRENT_CLICKS")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Click primitive runner must enforce max concurrent clicks." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Click primitive runner must enforce max concurrent clicks." }));
   }
   if (hasComputedClickEscape(fullText)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Click primitive runner must not hide click execution behind computed property access." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1", file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Click primitive runner must not hide click execution behind computed property access." }));
   }
   return findings;
 }
@@ -75,9 +70,9 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
 export function runAntiEscapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
   const project = makeProject();
   const findings = [
-    ...collectExecutorFindings(getSourceFile(project, EXECUTOR_PATH)),
-    ...collectResultBuilderFindings(getSourceFile(project, RESULT_BUILDER_PATH)),
-    ...collectRunnerFindings(getSourceFile(project, RUNNER_PATH)),
+    ...collectExecutorFindings(getSourceFile(project, PATHS.EXECUTOR)),
+    ...collectResultBuilderFindings(getSourceFile(project, PATHS.RESULT_BUILDER)),
+    ...collectRunnerFindings(getSourceFile(project, PATHS.RUNNER)),
   ];
 
   const phasePassed = findings.length === 0;

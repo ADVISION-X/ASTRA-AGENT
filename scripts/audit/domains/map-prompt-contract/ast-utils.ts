@@ -1,6 +1,5 @@
 import type { Project, SourceFile } from "ts-morph";
 
-import type { MapPackage } from "../../../../src/map-plugins/shared/map-package-types.js";
 import { validateMapPackage } from "../../../../src/map-plugins/validation/map-package-validator.js";
 import { createAuditProject, getSourceFileOrThrow } from "../_shared/ast-helpers.js";
 import { fileExists, readTextFile } from "../../core/filesystem.js";
@@ -45,9 +44,9 @@ export async function findMissingFiles(): Promise<string[]> {
   return states.filter((state) => !state.exists).map((state) => state.repoRelativePath);
 }
 
-export async function loadBuiltinPackage(repoRelativePath: string): Promise<{ raw: unknown; text: string; issues: ReturnType<typeof validateMapPackage>["issues"]; mapPackage: MapPackage | null }> {
+export async function loadBuiltinPackage(repoRelativePath: string): Promise<{ raw: unknown; text: string; issues: ReturnType<typeof validateMapPackage>["issues"]; mapPackage: ReturnType<typeof validateMapPackage>["mapPackage"] }> {
   const text = await readTextFile(pathFromRepoRoot(repoRelativePath));
-  const raw = JSON.parse(text) as unknown;
+  const raw: unknown = JSON.parse(text);
   const result = validateMapPackage(raw);
   return {
     raw,

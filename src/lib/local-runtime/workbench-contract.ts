@@ -4,13 +4,13 @@ import type { EvidenceStoreService } from "../storage/evidence-store/evidence-st
 import type {
   CommanderConsoleAbilityGroup,
   CommanderMissionDashboardView,
-} from "../../capabilities/commander-console/contract.js";
+} from "../../capabilities/commander-console/index.js";
 import type {
   MissionReadinessReport,
   RuntimeHealthReport,
 } from "../../types/runtime.js";
 import type { StructuredLogBus } from "./structured-log-bus.js";
-import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/ability-group.js";
+import type { NerveBusAbilityGroup } from "../../capabilities/nerve-bus/contract.js";
 
 export type GrassEyePlatformTarget = "tiktok-web";
 

@@ -1,5 +1,6 @@
 import { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";
 import { isLocalAiRuntimeError } from "../../../lib/local-ai/local-ai-runtime-error.js";
+import type { LocalAiTaskRequest, LocalAiTaskResult } from "../../../types/local-ai.js";
 import type { AiRuntimeExecutionOutput } from "../contract.js";
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
@@ -17,7 +18,7 @@ import {
   type LocalAiRuntimePortOptions,
 } from "./local-ai-runtime-debug.js";
 import { hashValue } from "./local-ai-runtime-debug-state.js";
-import { executeWithTimeout } from "./local-ai-runtime-gateway.js";
+import { executeWithTimeout, type ProtectedGatewayResult } from "./local-ai-runtime-gateway.js";
 import {
   buildLocalAiFailureOutput,
   buildLocalAiSuccessOutput,
@@ -140,11 +141,11 @@ async function rejectExecution(
 async function runConvertedRequest(
   gateway: LocalAiGateway,
   context: LocalAiExecutionContext,
-  localRequest: ReturnType<typeof toLocalAiTaskRequest> extends { ok: true; request: infer T } ? T : never,
+  localRequest: LocalAiTaskRequest,
 ): Promise<AiRuntimeExecutionOutput> {
   try {
-    const protectedResult = await executeWithTimeout({
-      execute: () => gateway.execute(localRequest),
+    const protectedResult = await executeWithTimeout<LocalAiTaskResult>({
+      execute: async () => gateway.execute(localRequest),
       timeoutMs: context.timeoutMs,
     });
     if (protectedResult.ok === false) {
@@ -166,7 +167,7 @@ async function runConvertedRequest(
 async function handleProtectedFailure(
   gateway: LocalAiGateway,
   context: LocalAiExecutionContext,
-  protectedResult: Awaited<ReturnType<typeof executeWithTimeout>> & { ok: false },
+  protectedResult: ProtectedGatewayResult<LocalAiTaskResult> & { ok: false },
 ): Promise<AiRuntimeExecutionOutput> {
   recordCircuitFailure(performance.now());
   if (protectedResult.errorKind === "invalid_output" && protectedResult.errorDetail) {
@@ -186,7 +187,7 @@ async function handleProtectedFailure(
 async function handleProtectedSuccess(
   gateway: LocalAiGateway,
   context: LocalAiExecutionContext,
-  protectedResult: Awaited<ReturnType<typeof executeWithTimeout>> & { ok: true },
+  protectedResult: ProtectedGatewayResult<LocalAiTaskResult> & { ok: true },
 ): Promise<AiRuntimeExecutionOutput> {
   recordCircuitSuccess();
   const runtimeOutput = coerceRuntimeOutput(protectedResult.result.result);

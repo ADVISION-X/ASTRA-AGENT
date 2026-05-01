@@ -1,7 +1,7 @@
 import {
   OperationalMapIdSchema,
-  type RequestedPlatformId,
 } from "../../capabilities/orchestration/schema.js";
+import type { RequestedPlatformId } from "../../capabilities/orchestration/contract.js";
 import type { CommanderHumanCommandEnvelope } from "../../capabilities/commander-console/contract.js";
 import type {
   HumanCommandEnvelope,

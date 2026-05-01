@@ -56,7 +56,47 @@ function buildGeometryResultRefs(input: BuildGeometryGuardResultInput) {
   };
 }
 
-function buildGeometryResultPayload(input: BuildGeometryGuardResultInput, refs: ReturnType<typeof buildGeometryResultRefs>) {
+function buildGeometryProofPayload(input: BuildGeometryGuardResultInput, refs: ReturnType<typeof buildGeometryResultRefs>) {
+  return {
+    request: input.request,
+    geometryGuardRef: refs.geometryGuardRef,
+    outputRef: refs.outputRef,
+    output: input.output,
+    normalizedCoordinateSpace: input.normalizedCoordinateSpace,
+    normalizedBbox: input.normalizedBbox,
+    normalizedClickPoint: input.normalizedClickPoint,
+    sourceBounds: input.sourceBounds,
+    targetBounds: input.targetBounds,
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason,
+    status: input.status,
+    guardDecision: input.guardDecision,
+    policyDecision: input.policyDecision,
+    boundsDecision: input.boundsDecision,
+    scaleDecision: input.scaleDecision,
+    transformDecision: input.transformDecision,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+    dataQualityFlags: input.dataQualityFlags,
+  };
+}
+
+function buildGeometryAuditPayload(input: BuildGeometryGuardResultInput) {
+  return {
+    policyDecision: input.policyDecision,
+    boundsDecision: input.boundsDecision,
+    scaleDecision: input.scaleDecision,
+    transformDecision: input.transformDecision,
+    dataQualityFlags: input.dataQualityFlags,
+    statusMessage: input.statusMessage,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+  };
+}
+
+function buildGeometryCorePayload(input: BuildGeometryGuardResultInput, refs: ReturnType<typeof buildGeometryResultRefs>) {
   return {
     status: input.status,
     abilityGroupId: "geometry-guard",
@@ -77,38 +117,14 @@ function buildGeometryResultPayload(input: BuildGeometryGuardResultInput, refs: 
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     debugLogRef: refs.outputRef,
-    runtimeProof: buildGeometryRuntimeProof({
-      request: input.request,
-      geometryGuardRef: refs.geometryGuardRef,
-      outputRef: refs.outputRef,
-      output: input.output,
-      normalizedCoordinateSpace: input.normalizedCoordinateSpace,
-      normalizedBbox: input.normalizedBbox,
-      normalizedClickPoint: input.normalizedClickPoint,
-      sourceBounds: input.sourceBounds,
-      targetBounds: input.targetBounds,
-      failureReason: input.failureReason,
-      reviewRequiredReason: input.reviewRequiredReason,
-      status: input.status,
-      guardDecision: input.guardDecision,
-      policyDecision: input.policyDecision,
-      boundsDecision: input.boundsDecision,
-      scaleDecision: input.scaleDecision,
-      transformDecision: input.transformDecision,
-      startedAt: input.startedAt,
-      endedAt: input.endedAt,
-      durationMs: input.durationMs,
-      dataQualityFlags: input.dataQualityFlags,
-    }),
-    policyDecision: input.policyDecision,
-    boundsDecision: input.boundsDecision,
-    scaleDecision: input.scaleDecision,
-    transformDecision: input.transformDecision,
-    dataQualityFlags: input.dataQualityFlags,
-    statusMessage: input.statusMessage,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs: input.durationMs,
+  };
+}
+
+function buildGeometryResultPayload(input: BuildGeometryGuardResultInput, refs: ReturnType<typeof buildGeometryResultRefs>) {
+  return {
+    ...buildGeometryCorePayload(input, refs),
+    runtimeProof: buildGeometryRuntimeProof(buildGeometryProofPayload(input, refs)),
+    ...buildGeometryAuditPayload(input),
   };
 }
 

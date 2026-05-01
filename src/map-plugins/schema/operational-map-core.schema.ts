@@ -7,6 +7,14 @@ import { MapPluginOrchestrationSequencePolicySchema } from "./operational-map-po
 import { MapPluginTransitionSchema } from "./operational-map-transition.schema.js";
 import { validateMapPluginOperationalMap } from "./operational-map-document-validation.js";
 
+export {
+  MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS,
+  MapPluginAllowedAbilityGroupIdSchema,
+  MapPluginOperationalMapStepSchema,
+  MapPluginPayloadRefKeySchema,
+  MapPluginTransitionSchema,
+};
+
 export const MapPluginOperationalMapSchema = z.object({
   mapId: z.string().min(1),
   displayName: z.string().min(1),

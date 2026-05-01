@@ -1,0 +1,46 @@
+export const ROOT = "src/capabilities/page-state";
+export const AUDIT_ROOT = "scripts/audit/domains/page-state-capability";
+
+export const CHILDREN = [
+  "detect-login-state",
+  "detect-safety-page",
+  "detect-feed-ready",
+  "detect-video-stable",
+  "detect-comment-panel-state",
+  "detect-modal-overlay-state",
+  "detect-page-abnormality",
+  "detect-platform-page-kind",
+] as const;
+
+export const CANONICAL_FILES = [
+  `${ROOT}/ability-group.ts`,
+  `${ROOT}/contract.ts`,
+  `${ROOT}/schema.ts`,
+  `${ROOT}/registry.ts`,
+  `${ROOT}/index.ts`,
+  `${ROOT}/runtime/page-state-executor.ts`,
+  `${ROOT}/runtime/page-state-runtime-context.ts`,
+  `${ROOT}/runtime/page-state-input-gate.ts`,
+  `${ROOT}/runtime/page-state-payload-budget-gate.ts`,
+  `${ROOT}/runtime/observation-source-gate.ts`,
+  `${ROOT}/runtime/observation-proof-binding-gate.ts`,
+  `${ROOT}/runtime/snapshot-freshness-gate.ts`,
+  `${ROOT}/runtime/platform-profile-gate.ts`,
+  `${ROOT}/runtime/state-classification-gate.ts`,
+  `${ROOT}/runtime/page-state-output-boundary-gate.ts`,
+  `${ROOT}/runtime/proceed-decision-gate.ts`,
+  `${ROOT}/runtime/page-state-fingerprint.ts`,
+  `${ROOT}/runtime/page-state-result-builder.ts`,
+  `${ROOT}/runtime/page-state-proof-builder.ts`,
+  `${ROOT}/runtime/page-state-dispatch-failure.ts`,
+  `${ROOT}/runtime/page-state-clock.ts`,
+  `${ROOT}/ports/page-state-clock-port.ts`,
+  `${ROOT}/ports/page-state-profile-port.ts`,
+  `${ROOT}/shared/page-state-types.ts`,
+  `${ROOT}/shared/page-state-policy.ts`,
+  `${ROOT}/shared/page-state-result.ts`,
+  `${ROOT}/shared/page-state-proof.ts`,
+  `${ROOT}/shared/page-state-failure.ts`,
+  `${ROOT}/shared/page-state-observation.ts`,
+  `${ROOT}/shared/page-state-profile.ts`,
+] as const;

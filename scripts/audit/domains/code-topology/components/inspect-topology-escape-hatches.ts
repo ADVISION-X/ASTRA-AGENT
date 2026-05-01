@@ -151,7 +151,8 @@ function collectDynamicEscapeFindings(relativePath: string, sourceFile: SourceFi
   }
   const invalidAsExpression = sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).find((asExpression) => {
     const targetTypeText = asExpression.getTypeNode()?.getText();
-    return targetTypeText === "any" || (Node.isAsExpression(asExpression.getExpression()) && asExpression.getExpression().getTypeNode()?.getText() === "unknown");
+    const nestedExpression = asExpression.getExpression();
+    return targetTypeText === "any" || (Node.isAsExpression(nestedExpression) && nestedExpression.getTypeNode()?.getText() === "unknown");
   });
   if (invalidAsExpression) {
     findings.push(createFinding({ lawId: LAW_ID_001, file: relativePath, line: getNodeLine(invalidAsExpression), severity: "error", message: "Topology enforcement forbids any or unknown-cast laundering across canonical boundaries." }));

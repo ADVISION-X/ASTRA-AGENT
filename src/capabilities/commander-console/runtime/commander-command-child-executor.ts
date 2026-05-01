@@ -119,7 +119,7 @@ const buildTransportOutcomeReceipt = (input: {
 });
 
 const resolveTransportOutcomeState = (transport: ReturnType<typeof parseCommandTransportResult>) => {
-  const status = transport.status === "accepted" ? "success" : transport.status;
+  const status: "success" | "failed" | "review_required" = transport.status === "accepted" ? "success" : transport.status;
   return {
     status,
     failureReason: status === "failed" ? (transport.failureReason ?? transport.message) : null,

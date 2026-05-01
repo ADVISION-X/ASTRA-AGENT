@@ -41,14 +41,14 @@ export const writeTextFile = async (filePath: string, value: string): Promise<vo
 };
 
 export const listImmediateFiles = async (dirPath: string): Promise<string[]> => {
-  const entries = await readdir(dirPath, { withFileTypes: true });
+  const entries = await readdir(dirPath, { withFileTypes: true, encoding: "utf8" });
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => path.join(dirPath, entry.name));
 };
 
 export const listImmediateDirectories = async (dirPath: string): Promise<string[]> => {
-  const entries = await readdir(dirPath, { withFileTypes: true });
+  const entries = await readdir(dirPath, { withFileTypes: true, encoding: "utf8" });
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(dirPath, entry.name));
@@ -90,7 +90,7 @@ const collectRecursiveFile = (
 
 const collectRecursiveEntry = async (
   currentPath: string,
-  entry: Awaited<ReturnType<typeof readdir>>[number],
+  entry: import("node:fs").Dirent<string>,
   state: RecursiveCollectionState,
 ): Promise<void> => {
   const entryPath = path.join(currentPath, entry.name);
@@ -106,7 +106,7 @@ const collectRecursiveFiles = async (
   currentPath: string,
   state: RecursiveCollectionState,
 ): Promise<void> => {
-  const entries = await readdir(currentPath, { withFileTypes: true });
+  const entries = await readdir(currentPath, { withFileTypes: true, encoding: "utf8" });
   for (const entry of entries) {
     await collectRecursiveEntry(currentPath, entry, state);
   }

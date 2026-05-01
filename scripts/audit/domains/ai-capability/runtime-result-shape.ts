@@ -1,6 +1,6 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
-const hasGovernedFailureStatus = (objectLiteral: Node): boolean => {
+const hasGovernedFailureStatus = (objectLiteral: ObjectLiteralExpression): boolean => {
   const implementationStatusProperty = objectLiteral.getProperty("implementationStatus");
   if (!implementationStatusProperty || !Node.isPropertyAssignment(implementationStatusProperty)) {
     return false;
@@ -10,7 +10,7 @@ const hasGovernedFailureStatus = (objectLiteral: Node): boolean => {
   return implementationStatus?.getLiteralText() === "governed_output_rejected";
 };
 
-const hasGovernedReviewBranches = (objectLiteral: Node): boolean => {
+const hasGovernedReviewBranches = (objectLiteral: ObjectLiteralExpression): boolean => {
   const statusProperty = objectLiteral.getProperty("status");
   if (!statusProperty || !Node.isPropertyAssignment(statusProperty)) {
     return false;

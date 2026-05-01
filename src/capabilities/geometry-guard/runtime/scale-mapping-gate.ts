@@ -15,6 +15,16 @@ type ScaleMappingDimensions = {
   targetHeight: number;
 };
 
+type ScaleMappingSourceDimensions = {
+  sourceWidth: number;
+  sourceHeight: number;
+};
+
+type ScaleMappingTargetDimensions = {
+  targetWidth: number;
+  targetHeight: number;
+};
+
 function createScaleMappingFailure(input: {
   scaleDecision: GeometryGuardCheckDecision;
   failureStatus: GeometryFailure["status"];
@@ -62,8 +72,10 @@ function validateMappingSpaces(input: {
   request: ParsedGeometryGuardAbilityInput;
   scaleMapping: GeometryGuardScaleMapping;
 }): ScaleMappingGateResult | null {
-  return input.scaleMapping.sourceCoordinateSpace === input.request.sourceCoordinateSpace
-    && input.scaleMapping.targetCoordinateSpace === input.request.requestedExecutionSpace
+  const spacesMatch = input.scaleMapping.sourceCoordinateSpace === input.request.sourceCoordinateSpace
+    && input.scaleMapping.targetCoordinateSpace === input.request.requestedExecutionSpace;
+
+  return spacesMatch
     ? null
     : createScaleMappingFailure({
         scaleDecision: "failed",
@@ -93,13 +105,32 @@ function resolveTargetDimensions(input: {
   };
 }
 
+function hasValidSourceDimensions(
+  input: { sourceWidth: number | null; sourceHeight: number | null },
+): input is ScaleMappingSourceDimensions {
+  return isFiniteNumber(input.sourceWidth)
+    && isFiniteNumber(input.sourceHeight)
+    && input.sourceWidth > 0
+    && input.sourceHeight > 0;
+}
+
+function hasValidTargetDimensions(
+  input: { targetWidth: number | null; targetHeight: number | null },
+): input is ScaleMappingTargetDimensions {
+  return isFiniteNumber(input.targetWidth)
+    && isFiniteNumber(input.targetHeight)
+    && input.targetWidth > 0
+    && input.targetHeight > 0;
+}
+
 function validateResolvedDimensions(input: {
   sourceWidth: number | null;
   sourceHeight: number | null;
   targetWidth: number | null;
   targetHeight: number | null;
 }): ScaleMappingGateResult | null {
-  return !isFiniteNumber(input.sourceWidth) || !isFiniteNumber(input.sourceHeight) || input.sourceWidth <= 0 || input.sourceHeight <= 0 || !isFiniteNumber(input.targetWidth) || !isFiniteNumber(input.targetHeight) || input.targetWidth <= 0 || input.targetHeight <= 0
+  return !hasValidSourceDimensions({ sourceWidth: input.sourceWidth, sourceHeight: input.sourceHeight })
+    || !hasValidTargetDimensions({ targetWidth: input.targetWidth, targetHeight: input.targetHeight })
     ? createScaleMappingFailure({
         scaleDecision: "failed",
         failureStatus: "failed",
@@ -113,22 +144,25 @@ function resolveMappingDimensions(input: {
   request: ParsedGeometryGuardAbilityInput;
   scaleMapping: GeometryGuardScaleMapping;
 }): ScaleMappingGateResult | ScaleMappingDimensions {
-  const sourceDimensions = resolveSourceDimensions(input);
-  const targetDimensions = resolveTargetDimensions(input);
-  const dimensionFailure = validateResolvedDimensions({
-    sourceWidth: sourceDimensions.sourceWidth,
-    sourceHeight: sourceDimensions.sourceHeight,
-    targetWidth: targetDimensions.targetWidth,
-    targetHeight: targetDimensions.targetHeight,
-  });
-  return dimensionFailure
-    ? dimensionFailure
-    : {
-        sourceWidth: sourceDimensions.sourceWidth,
-        sourceHeight: sourceDimensions.sourceHeight,
-        targetWidth: targetDimensions.targetWidth,
-        targetHeight: targetDimensions.targetHeight,
-      };
+  const resolvedDimensions = {
+    ...resolveSourceDimensions(input),
+    ...resolveTargetDimensions(input),
+  };
+  if (!hasValidSourceDimensions(resolvedDimensions) || !hasValidTargetDimensions(resolvedDimensions)) {
+    return createScaleMappingFailure({
+      scaleDecision: "failed",
+      failureStatus: "failed",
+      failureReason: "invalid_scale_mapping",
+      message: "Geometry Guard scaleMapping requires finite source and target bounds.",
+    });
+  }
+
+  return {
+    sourceWidth: resolvedDimensions.sourceWidth,
+    sourceHeight: resolvedDimensions.sourceHeight,
+    targetWidth: resolvedDimensions.targetWidth,
+    targetHeight: resolvedDimensions.targetHeight,
+  };
 }
 
 function validateCropOffsets(scaleMapping: GeometryGuardScaleMapping): ScaleMappingGateResult | null {

@@ -1,5 +1,11 @@
 import type { ParsedAiAbilityInput } from "../contract.js";
-import { AiVisionRequestInputSchema } from "../schema.js";
+import {
+  AiCommentSignalSummaryInputSchema,
+  AiEvidencePacketAnalysisInputSchema,
+  AiOcrCleanupInputSchema,
+  AiProductSignalSummaryInputSchema,
+  AiVisionRequestInputSchema,
+} from "../schema.js";
 
 const MAX_INPUT_REFS = 50;
 const MAX_FRAME_REFS = 10;
@@ -49,31 +55,39 @@ function evaluateCommentPayloadBudget(comments: string[]): PayloadBudgetDecision
 }
 
 function evaluateEvidencePacketBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision {
-  if (request.input.packetSummary.length > MAX_PACKET_SUMMARY_LENGTH || request.input.evidenceIds.length > MAX_INPUT_REFS) {
+  const packetInput = AiEvidencePacketAnalysisInputSchema.parse(request.input);
+  if (packetInput.packetSummary.length > MAX_PACKET_SUMMARY_LENGTH || packetInput.evidenceIds.length > MAX_INPUT_REFS) {
     return blocked("payload_budget_packet_exceeded");
   }
-  if (request.input.notes.length > MAX_NOTES || hasOversizedText(request.input.notes, MAX_NOTE_LENGTH)) {
+  if (packetInput.notes.length > MAX_NOTES || hasOversizedText(packetInput.notes, MAX_NOTE_LENGTH)) {
     return blocked("payload_budget_notes_exceeded");
   }
   return allow();
 }
-
-const PAYLOAD_BUDGET_HANDLERS = {
-  product_presence_judgment: evaluateVisionPayloadBudget,
-  visual_observation: evaluateVisionPayloadBudget,
-  visual_target_candidate_analysis: evaluateVisionPayloadBudget,
-  ocr_cleanup: (request: ParsedAiAbilityInput) => evaluateCommentPayloadBudget(request.input.rawCommentBlocks),
-  comment_signal_summary: (request: ParsedAiAbilityInput) => evaluateCommentPayloadBudget(request.input.cleanedComments),
-  product_signal_summary: (request: ParsedAiAbilityInput) =>
-    request.input.videoSummary.length > MAX_PACKET_SUMMARY_LENGTH ? blocked("payload_budget_summary_exceeded") : allow(),
-  evidence_packet_analysis: evaluateEvidencePacketBudget,
-  schema_validation_only: () => allow(),
-} as const;
 
 export function evaluateAiPayloadBudgetGate(request: ParsedAiAbilityInput): PayloadBudgetDecision {
   if (request.inputRefs.length > MAX_INPUT_REFS) {
     return blocked("payload_budget_input_refs_exceeded");
   }
 
-  return PAYLOAD_BUDGET_HANDLERS[request.taskType](request);
+  switch (request.taskType) {
+    case "product_presence_judgment":
+    case "visual_observation":
+    case "visual_target_candidate_analysis":
+      return evaluateVisionPayloadBudget(request);
+    case "ocr_cleanup":
+      return evaluateCommentPayloadBudget(AiOcrCleanupInputSchema.parse(request.input).rawCommentBlocks);
+    case "comment_signal_summary":
+      return evaluateCommentPayloadBudget(AiCommentSignalSummaryInputSchema.parse(request.input).cleanedComments);
+    case "product_signal_summary": {
+      const productSignalInput = AiProductSignalSummaryInputSchema.parse(request.input);
+      return productSignalInput.videoSummary.length > MAX_PACKET_SUMMARY_LENGTH
+        ? blocked("payload_budget_summary_exceeded")
+        : allow();
+    }
+    case "evidence_packet_analysis":
+      return evaluateEvidencePacketBudget(request);
+    case "schema_validation_only":
+      return allow();
+  }
 }

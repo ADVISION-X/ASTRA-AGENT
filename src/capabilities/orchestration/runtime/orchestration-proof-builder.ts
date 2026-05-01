@@ -10,6 +10,7 @@ import {
   type TransitionEvaluationDecisionSchema,
   type TransitionConditionSourceSchema,
 } from "../schema.js";
+
 import type { OperationalMapId } from "../contract.js";
 
 export type BuildProofInput = {
@@ -67,7 +68,7 @@ export type BuildProofInput = {
   dataQualityFlags?: string[];
 };
 
-export function buildOrchestrationRuntimeProof(input: BuildProofInput) {
+export function buildOrchestrationRuntimeProof(input: BuildProofInput): z.output<typeof RuntimeProofSchema> {
   return RuntimeProofSchema.parse({
     proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`,
     missionId: input.missionId,

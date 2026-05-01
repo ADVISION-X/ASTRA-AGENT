@@ -1,0 +1,61 @@
+export const LAW_IDS = {
+  PUBLIC: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1",
+  BOUNDARY: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V1",
+  SCHEMA: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1",
+  SHAPE: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1",
+} as const;
+
+export const PATHS = {
+  ROOT: "src/capabilities/post-action-verification",
+  ABILITY_GROUP: "src/capabilities/post-action-verification/ability-group.ts",
+  CONTRACT: "src/capabilities/post-action-verification/contract.ts",
+  SCHEMA: "src/capabilities/post-action-verification/schema.ts",
+  REGISTRY: "src/capabilities/post-action-verification/registry.ts",
+  EXECUTOR: "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
+  RESULT_BUILDER: "src/capabilities/post-action-verification/runtime/verification-result-builder.ts",
+  PROOF_BUILDER: "src/capabilities/post-action-verification/runtime/verification-proof-builder.ts",
+  DISPATCH_FAILURE: "src/capabilities/post-action-verification/runtime/verification-dispatch-failure.ts",
+  CLOCK: "src/capabilities/post-action-verification/runtime/verification-clock.ts",
+} as const;
+
+export const CHILDREN = [
+  "verify-page-opened",
+  "verify-comments-panel-opened",
+  "verify-comments-panel-closed",
+  "verify-video-changed-after-scroll",
+  "verify-not-interested-result",
+  "verify-target-state-changed",
+] as const;
+
+export const CANONICAL_FILES = [
+  `${PATHS.ROOT}/ability-group.ts`,
+  `${PATHS.ROOT}/contract.ts`,
+  `${PATHS.ROOT}/schema.ts`,
+  `${PATHS.ROOT}/registry.ts`,
+  `${PATHS.ROOT}/index.ts`,
+  `${PATHS.ROOT}/runtime/post-action-verification-executor.ts`,
+  `${PATHS.ROOT}/runtime/post-action-verification-runtime-context.ts`,
+  `${PATHS.ROOT}/runtime/verification-input-gate.ts`,
+  `${PATHS.ROOT}/runtime/post-action-payload-budget-gate.ts`,
+  `${PATHS.ROOT}/runtime/action-proof-gate.ts`,
+  `${PATHS.ROOT}/runtime/evidence-source-gate.ts`,
+  `${PATHS.ROOT}/runtime/observation-proof-binding-gate.ts`,
+  `${PATHS.ROOT}/runtime/before-after-consistency-gate.ts`,
+  `${PATHS.ROOT}/runtime/verification-policy-gate.ts`,
+  `${PATHS.ROOT}/runtime/verification-decision-gate.ts`,
+  `${PATHS.ROOT}/runtime/post-action-output-boundary-gate.ts`,
+  `${PATHS.ROOT}/runtime/verification-result-builder.ts`,
+  `${PATHS.ROOT}/runtime/verification-proof-builder.ts`,
+  `${PATHS.ROOT}/runtime/verification-dispatch-failure.ts`,
+  `${PATHS.ROOT}/runtime/verification-clock.ts`,
+  `${PATHS.ROOT}/ports/post-action-evidence-read-port.ts`,
+  `${PATHS.ROOT}/ports/post-action-verification-clock-port.ts`,
+  `${PATHS.ROOT}/shared/post-action-types.ts`,
+  `${PATHS.ROOT}/shared/post-action-policy.ts`,
+  `${PATHS.ROOT}/shared/post-action-result.ts`,
+  `${PATHS.ROOT}/shared/post-action-proof.ts`,
+  `${PATHS.ROOT}/shared/post-action-failure.ts`,
+  `${PATHS.ROOT}/shared/post-action-evidence.ts`,
+  `${PATHS.ROOT}/shared/post-action-observation.ts`,
+  `${PATHS.ROOT}/shared/post-action-url.ts`,
+] as const;

@@ -1,5 +1,5 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
-import { ROOT } from "./ast-utils.js";
+import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
@@ -13,7 +13,7 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
   inspectorId: "mouse-click-capability-owner",
   capabilityDomain: "mouse-click-capability",
   inspectorEntry: "scripts/audit/domains/mouse-click-capability/inspector.ts",
-  ownedPaths: [ROOT],
+  ownedPaths: [PATHS.ROOT],
   pendingSummary: "mouse-click-capability law exists but production-grade click execution boundaries are not fully enforced yet",
   implementedSummary: "mouse-click-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement",
   extraChecks: async () => {

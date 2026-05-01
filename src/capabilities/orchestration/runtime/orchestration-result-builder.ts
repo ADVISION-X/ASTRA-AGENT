@@ -1,19 +1,18 @@
-import type { MissionExecutionResult, MissionState, MissionStepResult, RuntimeProof } from "../contract.js";
-import { MissionExecutionResultSchema, MissionStateSchema } from "../schema.js";
+import { MissionExecutionResultSchema, MissionStateSchema, MissionStepResultSchema, RuntimeProofSchema } from "../schema.js";
 import type { z } from "zod";
 
-export function buildMissionStateUpdate(state: z.input<typeof MissionStateSchema>): MissionState {
+export function buildMissionStateUpdate(state: z.input<typeof MissionStateSchema>): z.output<typeof MissionStateSchema> {
   return MissionStateSchema.parse(state);
 }
 
 export function buildMissionExecutionResult(input: {
-  missionState: MissionState;
-  currentStepResult: MissionStepResult | null;
-  runtimeProof: RuntimeProof;
+  missionState: z.input<typeof MissionStateSchema>;
+  currentStepResult: z.input<typeof MissionStepResultSchema> | null;
+  runtimeProof: z.input<typeof RuntimeProofSchema>;
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
   dataQualityFlags?: string[];
-}): MissionExecutionResult {
+}): z.output<typeof MissionExecutionResultSchema> {
   const status = input.missionState.status;
   const isTerminalOrReview = status === "completed" || status === "failed" || status === "stopped" || status === "review_required";
   const output = isTerminalOrReview && status !== "failed" && status !== "stopped"

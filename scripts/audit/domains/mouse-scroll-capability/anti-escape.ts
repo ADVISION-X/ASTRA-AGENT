@@ -2,13 +2,8 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import {
-  EXECUTOR_PATH,
-  RESULT_BUILDER_PATH,
-  RUNNER_PATH,
-  getSourceFile,
-  makeProject,
-} from "./ast-utils.js";
+import { LAW_IDS, PATHS } from "./config.js";
+import { getSourceFile, makeProject } from "./project-access.js";
 
 function hasComputedScrollEscape(sourceText: string): boolean {
   return sourceText.includes("[\"scroll\"]") || sourceText.includes("['scroll']");
@@ -16,13 +11,13 @@ function hasComputedScrollEscape(sourceText: string): boolean {
 
 function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!executorSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Mouse Scroll executor is missing for anti-escape checks." })];
+    return [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Scroll executor is missing for anti-escape checks." })];
   }
 
   const findings: Finding[] = [];
   for (const variableName of ["geometryGate", "policyGate", "safetyGate", "deltaResolution", "reservation", "primitiveResult"]) {
     if (!executorSource.getVariableDeclaration(variableName)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: `Mouse Scroll executor must keep ${variableName} as a governed checkpoint.` }));
+      findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Mouse Scroll executor must keep ${variableName} as a governed checkpoint.` }));
     }
   }
 
@@ -32,33 +27,33 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
   });
   return returnsResultBuilder
     ? findings
-    : [...findings, createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Mouse Scroll executor must return buildMouseScrollResult directly." })];
+    : [...findings, createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Scroll executor must return buildMouseScrollResult directly." })];
 }
 
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
   return !resultBuilderSource || resultBuilderSource.getVariableDeclaration("runtimeProof") === undefined
-    ? [createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll result builder must preserve the proof builder output." })]
+    ? [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must preserve the proof builder output." })]
     : [];
 }
 
 function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!runnerSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner is missing for anti-escape checks." })];
+    return [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner is missing for anti-escape checks." })];
   }
 
   const findings: Finding[] = [];
   const fullText = runnerSource.getFullText();
   if (!fullText.includes("Promise.race")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must use Promise.race for hard timeout enforcement." }));
+    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must use Promise.race for hard timeout enforcement." }));
   }
   if (!fullText.includes("AbortController")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must allocate AbortController." }));
+    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must allocate AbortController." }));
   }
   if (!fullText.includes("MAX_CONCURRENT_SCROLLS")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must enforce max concurrent scrolls." }));
+    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must enforce max concurrent scrolls." }));
   }
   if (hasComputedScrollEscape(fullText)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1", file: RUNNER_PATH, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must not hide scroll execution behind computed property access." }));
+    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must not hide scroll execution behind computed property access." }));
   }
   return findings;
 }
@@ -66,9 +61,9 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
 export function runAntiEscapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
   const project = makeProject();
   const findings = [
-    ...collectExecutorFindings(getSourceFile(project, EXECUTOR_PATH)),
-    ...collectResultBuilderFindings(getSourceFile(project, RESULT_BUILDER_PATH)),
-    ...collectRunnerFindings(getSourceFile(project, RUNNER_PATH)),
+    ...collectExecutorFindings(getSourceFile(project, PATHS.EXECUTOR)),
+    ...collectResultBuilderFindings(getSourceFile(project, PATHS.RESULT_BUILDER)),
+    ...collectRunnerFindings(getSourceFile(project, PATHS.RUNNER)),
   ];
 
   const passed = findings.length === 0;
