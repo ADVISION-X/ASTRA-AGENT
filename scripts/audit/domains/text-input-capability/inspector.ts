@@ -1,5 +1,5 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
-import { ROOT } from "./ast-utils.js";
+import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
@@ -13,7 +13,7 @@ export const textInputCapabilityInspector = createPendingDomainInspector({
   inspectorId: "text-input-capability-owner",
   capabilityDomain: "text-input-capability",
   inspectorEntry: "scripts/audit/domains/text-input-capability/inspector.ts",
-  ownedPaths: [ROOT],
+  ownedPaths: [PATHS.ROOT],
   pendingSummary: "text-input-capability law exists but production-grade writing execution boundaries are not fully enforced yet",
   implementedSummary: "text-input-capability is implemented as a governed schema-first writing execution owner with AST-backed enforcement",
   extraChecks: async () => {

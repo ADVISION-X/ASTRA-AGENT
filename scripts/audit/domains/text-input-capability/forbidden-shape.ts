@@ -1,55 +1,49 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import {
-  CLOCK_PATH,
-  FORBIDDEN_TEXT_TOKENS,
-  RUNNER_PATH,
-  getTextInputSourceFiles,
-  makeProject,
-  sourceHasDynamicImport,
-  sourceHasExportStar,
-  sourceHasForbiddenImport,
-  sourceHasNewDateOutsideClock,
-  sourceHasPrimitiveExecuteCall,
-  sourceHasRequire,
-} from "./ast-utils.js";
+import { FORBIDDEN_TEXT_TOKENS, LAW_IDS, PATHS } from "./config.js";
+import { getTextInputSourceFiles, makeProject, toRepoPath } from "./project-access.js";
+import { sourceHasDynamicImport, sourceHasExportStar, sourceHasForbiddenImport, sourceHasNewDateOutsideClock, sourceHasPrimitiveExecuteCall, sourceHasRequire } from "./source-rules.js";
+
+function collectStructuralFindings(relativePath: string, sourceText: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
+  const findings: Finding[] = [];
+  if (sourceHasExportStar(sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use export *." }));
+  }
+  if (sourceHasDynamicImport(sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use dynamic import escape paths." }));
+  }
+  if (sourceHasRequire(sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use require escape paths." }));
+  }
+  for (const token of FORBIDDEN_TEXT_TOKENS) {
+    if (sourceText.includes(token)) {
+      findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: relativePath, line: 1, severity: "fatal", message: `Text Input contains forbidden token ${token}.` }));
+    }
+  }
+  return findings;
+}
+
+function collectExecutionFindings(relativePath: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
+  const findings: Finding[] = [];
+  if (relativePath !== PATHS.CLOCK && sourceHasNewDateOutsideClock(sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: relativePath, line: 1, severity: "fatal", message: "Text Input must source time from the clock port only." }));
+  }
+  if (relativePath !== PATHS.RUNNER && sourceHasPrimitiveExecuteCall(sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: relativePath, line: 1, severity: "fatal", message: "executionPort.execute must not appear outside primitive-text-input-runner." }));
+  }
+  return sourceHasForbiddenImport(sourceFile)
+    ? findings.concat(createFinding({ lawId: LAW_IDS.PUBLIC, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not import forbidden ability or browser internals." }))
+    : findings;
+}
 
 export function runForbiddenShapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
   const project = makeProject();
   const findings: Finding[] = [];
-  const textInputFiles = getTextInputSourceFiles(project);
-
-  for (const sourceFile of textInputFiles) {
-    const filePath = sourceFile.getFilePath();
-    const relativePath = filePath.includes("src/") || filePath.includes("scripts/")
-      ? filePath.slice(filePath.indexOf(filePath.includes("src/") ? "src/" : "scripts/"))
-      : sourceFile.getBaseName();
-
-    if (sourceHasExportStar(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1", file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use export *." }));
-    }
-    if (sourceHasDynamicImport(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1", file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use dynamic import escape paths." }));
-    }
-    if (sourceHasRequire(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1", file: relativePath, line: 1, severity: "fatal", message: "Text Input must not use require escape paths." }));
-    }
-    if (relativePath !== CLOCK_PATH && sourceHasNewDateOutsideClock(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1", file: relativePath, line: 1, severity: "fatal", message: "Text Input must source time from the clock port only." }));
-    }
-    if (relativePath !== RUNNER_PATH && sourceHasPrimitiveExecuteCall(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1", file: relativePath, line: 1, severity: "fatal", message: "executionPort.execute must not appear outside primitive-text-input-runner." }));
-    }
-    if (sourceHasForbiddenImport(sourceFile)) {
-      findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1", file: relativePath, line: 1, severity: "fatal", message: "Text Input must not import forbidden ability or browser internals." }));
-    }
-
+  for (const sourceFile of getTextInputSourceFiles(project)) {
+    const relativePath = toRepoPath(sourceFile);
     const fullText = sourceFile.getFullText();
-    for (const token of FORBIDDEN_TEXT_TOKENS) {
-      if (fullText.includes(token)) {
-        findings.push(createFinding({ lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1", file: relativePath, line: 1, severity: "fatal", message: `Text Input contains forbidden token ${token}.` }));
-      }
-    }
+    findings.push(...collectStructuralFindings(relativePath, fullText, sourceFile));
+    findings.push(...collectExecutionFindings(relativePath, sourceFile));
   }
 
   const phasePassed = findings.length === 0;

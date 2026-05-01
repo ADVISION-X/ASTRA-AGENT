@@ -3,7 +3,8 @@ import type { Project } from "ts-morph";
 import { fileExists, pathFromRepoRoot } from "./inspection-core.js";
 import { getSourceFileOrThrow } from "./inspection-ast-helpers.js";
 import { visualTargetInspectionConstants as config } from "./inspection-constants.js";
-import { createAttackPhase, createViolation, getZodShapePropertyNames, type AttackOutcome, toLine } from "./inspection-helpers.js";
+import { createAttackPhase, createViolation, type AttackOutcome, toLine } from "./inspection-helpers.js";
+import { getZodShapePropertyNames, hasCoordinateSpaceExclusion } from "./inspection-source-helpers.js";
 
 const collectMissingRequiredFiles = async (): Promise<string[]> => {
   const missingFiles: string[] = [];
@@ -59,34 +60,74 @@ const collectContractAndRegistryFindings = (input: {
   const abilityGroupInterface = input.contractSource.getInterface("VisualTargetAbilityGroup");
   const abilityGroupMethods = new Set(abilityGroupInterface?.getMethods().map((method) => method.getName()) ?? []);
 
-  for (const exportName of config.REQUIRED_CONTRACT_EXPORTS) {
-    if (!contractExports.has(exportName)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.CONTRACT_PATH, message: `Visual Target contract must export ${exportName}.` }));
-    }
-  }
-  if (!abilityGroupInterface || abilityGroupMethods.size !== 2 || !abilityGroupMethods.has("listChildCapabilityIds") || !abilityGroupMethods.has("execute")) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.CONTRACT_PATH, line: toLine(abilityGroupInterface ?? input.contractSource), message: "VisualTargetAbilityGroup must stay execute-only with listChildCapabilityIds() and execute()." }));
+  findings.push(...collectContractSurfaceFindings({ contractExports, abilityGroupInterface, abilityGroupMethods, abilityGroupSource: input.abilityGroupSource, registrySource: input.registrySource, indexExports }));
+  findings.push(...collectChildRegistryFindings(input.project, input.registrySource));
+  return findings;
+};
+
+const collectContractSurfaceFindings = (input: {
+  contractExports: Set<string>;
+  abilityGroupInterface: import("ts-morph").InterfaceDeclaration | undefined;
+  abilityGroupMethods: Set<string>;
+  abilityGroupSource: import("ts-morph").SourceFile;
+  registrySource: import("ts-morph").SourceFile;
+  indexExports: Set<string>;
+}) => {
+  const findings = [];
+
+  findings.push(...collectMissingExports(config.CONTRACT_PATH, config.REQUIRED_CONTRACT_EXPORTS, input.contractExports, "Visual Target contract must export"));
+  findings.push(...collectAbilityGroupSurfaceFindings(input));
+  findings.push(...collectRegistrySurfaceFindings(input.registrySource));
+  findings.push(...collectMissingExports(config.INDEX_PATH, config.REQUIRED_INDEX_EXPORTS, input.indexExports, "Visual Target index must export"));
+
+  return findings;
+};
+
+const collectMissingExports = (file: string, requiredExports: readonly string[], actualExports: Set<string>, messagePrefix: string) => {
+  return requiredExports.flatMap((exportName) => {
+    return actualExports.has(exportName)
+      ? []
+      : [createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file, message: `${messagePrefix} ${exportName}.` })];
+  });
+};
+
+const collectAbilityGroupSurfaceFindings = (input: {
+  abilityGroupInterface: import("ts-morph").InterfaceDeclaration | undefined;
+  abilityGroupMethods: Set<string>;
+  abilityGroupSource: import("ts-morph").SourceFile;
+}) => {
+  const findings = [];
+  const hasValidAbilityGroupShape = input.abilityGroupInterface
+    && input.abilityGroupMethods.size === 2
+    && input.abilityGroupMethods.has("listChildCapabilityIds")
+    && input.abilityGroupMethods.has("execute");
+  if (!hasValidAbilityGroupShape) {
+    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.CONTRACT_PATH, line: toLine(input.abilityGroupInterface ?? input.abilityGroupSource), message: "VisualTargetAbilityGroup must stay execute-only with listChildCapabilityIds() and execute()." }));
   }
   if (!input.abilityGroupSource.getFunction("createVisualTargetAbilityGroup")) {
     findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.ABILITY_GROUP_PATH, message: "Visual Target must expose createVisualTargetAbilityGroup()." }));
   }
-  if (!input.registrySource.getFunction("createVisualTargetCapabilityRegistry") || !input.registrySource.getFunction("listVisualTargetChildren")) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.REGISTRY_PATH, message: "Visual Target registry must expose createVisualTargetCapabilityRegistry() and listVisualTargetChildren()." }));
-  }
-  for (const exportName of config.REQUIRED_INDEX_EXPORTS) {
-    if (!indexExports.has(exportName)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.INDEX_PATH, message: `Visual Target index must export ${exportName}.` }));
-    }
-  }
+  return findings;
+};
 
+const collectRegistrySurfaceFindings = (registrySource: import("ts-morph").SourceFile) => {
+  const hasFactory = registrySource.getFunction("createVisualTargetCapabilityRegistry");
+  const hasChildList = registrySource.getFunction("listVisualTargetChildren");
+  return hasFactory && hasChildList
+    ? []
+    : [createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.REGISTRY_PATH, message: "Visual Target registry must expose createVisualTargetCapabilityRegistry() and listVisualTargetChildren()." })];
+};
+
+const collectChildRegistryFindings = (project: Project, registrySource: import("ts-morph").SourceFile) => {
+  const findings = [];
   for (const childCapabilityId of config.CHILDREN) {
-    const registryImportsChild = input.registrySource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes(`/children/${childCapabilityId}/implementation.js`));
+    const registryImportsChild = registrySource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes(`/children/${childCapabilityId}/implementation.js`));
     if (!registryImportsChild) {
       findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.REGISTRY_PATH, message: `Visual Target registry is missing ${childCapabilityId}.` }));
     }
 
     const implementationPath = `${config.ROOT}/children/${childCapabilityId}/implementation.ts`;
-    const implementationSource = getSourceFileOrThrow(input.project, implementationPath);
+    const implementationSource = getSourceFileOrThrow(project, implementationPath);
     const usesExecutor = implementationSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").endsWith("/runtime/visual-target-executor.js"));
     if (!usesExecutor) {
       findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: implementationPath, message: `Child ${childCapabilityId} must route through the governed runtime executor.` }));
@@ -99,11 +140,11 @@ const collectContractAndRegistryFindings = (input: {
 const collectCoordinateExclusionFindings = (schemaSource: import("ts-morph").SourceFile) => {
   const findings = [];
   for (const schemaName of ["VisualTargetActionSuccessResultSchema", "VisualTargetRegionSuccessResultSchema", "VisualTargetMetricSuccessResultSchema"] as const) {
-    if (!require("./inspection-helpers.js").hasCoordinateSpaceExclusion(schemaSource, schemaName, ["contact_sheet"])) {
+    if (!hasCoordinateSpaceExclusion(schemaSource, schemaName, ["contact_sheet"])) {
       findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `${schemaName} must exclude contact_sheet from success coordinateSpace.` }));
     }
   }
-  if (!require("./inspection-helpers.js").hasCoordinateSpaceExclusion(schemaSource, "VisualTargetActionSuccessResultSchema", ["ai_input"])) {
+  if (!hasCoordinateSpaceExclusion(schemaSource, "VisualTargetActionSuccessResultSchema", ["ai_input"])) {
     findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: "VisualTargetActionSuccessResultSchema must exclude ai_input from actionable success coordinateSpace." }));
   }
   return findings;

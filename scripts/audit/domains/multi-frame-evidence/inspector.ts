@@ -12,18 +12,11 @@ const RESULT_HELPER_PATH = "src/lib/local-ai/vision-task-result.ts";
 const EVIDENCE_PACKET_TYPES_PATH = "src/types/evidence-packet.ts";
 const AGENT_SERVICE_PATH = "src/lib/local-runtime/runtime-executor.ts";
 
-export async function inspectMultiFrameScreenshotBoundary(repoRoot = pathFromRepoRoot(".")): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const repoFiles = await listFilesRecursive(repoRoot, { ignoreDirs: [".grasseye-data"] });
-  const forbiddenTests = repoFiles.filter((file) => /(^|\/)(tests|__tests__)\/|\.test\.(ts|tsx|js|jsx|mjs|cjs)$/i.test(file));
-  const project = createAuditProject();
-  const multiFrameTypes = getSourceFileOrThrow(project, MULTI_FRAME_TYPES_PATH);
-  const illegalAgentRuntimeExists = await fileExists(pathFromRepoRoot(AGENT_SERVICE_PATH));
-  const findings: Finding[] = [];
-
+function hasMultiFramePackagingSchema(multiFrameTypes: ReturnType<typeof getSourceFileOrThrow>): boolean {
   const samplingStrategies = getZodEnumValues(multiFrameTypes, "MultiFrameSamplingStrategySchema");
   const inputModes = getZodEnumValues(multiFrameTypes, "ProductPresenceInputModeSchema");
   const evidenceSetFields = getZodObjectPropertyNames(multiFrameTypes, "MultiFrameVideoEvidenceSetSchema");
-  const schemaPassed = [
+  return [
     samplingStrategies.includes("fixed_3_6_10"),
     samplingStrategies.includes("adaptive_short_video"),
     samplingStrategies.includes("single_frame_fallback"),
@@ -37,18 +30,70 @@ export async function inspectMultiFrameScreenshotBoundary(repoRoot = pathFromRep
     evidenceSetFields.has("validFrameCount"),
     evidenceSetFields.has("contactSheetEvidenceId"),
   ].every(Boolean);
-  if (!schemaPassed) {
+}
+
+function collectScreenshotBoundaryFindings(multiFrameTypes: ReturnType<typeof getSourceFileOrThrow>, illegalAgentRuntimeExists: boolean, forbiddenTests: string[]): Finding[] {
+  const findings: Finding[] = [];
+  if (!hasMultiFramePackagingSchema(multiFrameTypes)) {
     findings.push(createFinding({ lawId: LAW_ID, file: MULTI_FRAME_TYPES_PATH, line: 1, severity: "error", message: "Multi-frame screenshot packaging must define governed sampling strategies, evidence-set ids, and frame refs." }));
   }
-
-  const runtimeHonestyPassed = !illegalAgentRuntimeExists;
-  if (!runtimeHonestyPassed) {
+  if (illegalAgentRuntimeExists) {
     findings.push(createFinding({ lawId: LAW_ID, file: AGENT_SERVICE_PATH, line: 1, severity: "error", message: "Illegal local-runtime executor must be physically removed before governed multi-frame runtime honesty can be trusted." }));
   }
-
   if (forbiddenTests.length > 0) {
     findings.push(createFinding({ lawId: LAW_ID, file: forbiddenTests[0] ?? "tests", line: 1, severity: "fatal", message: "Multi-frame screenshot governance forbids repository test artifacts as quality truth." }));
   }
+  return findings;
+}
+
+function hasAiContractFields(visionTypes: ReturnType<typeof getSourceFileOrThrow>): boolean {
+  const requestFields = getZodObjectPropertyNames(visionTypes, "VisionProductPresenceRequestInputSchema");
+  const payloadFields = getZodObjectPropertyNames(visionTypes, "VisionProductPresencePayloadSchema");
+  return [
+    requestFields.has("inputMode"),
+    requestFields.has("multiFrameEvidenceSetId"),
+    requestFields.has("contactSheetEvidenceId"),
+    requestFields.has("sampledFrameCount"),
+    requestFields.has("validFrameCount"),
+    payloadFields.has("frameLevelObservations"),
+    payloadFields.has("aggregateReason"),
+  ].every(Boolean);
+}
+
+function hasGovernedResultBuilder(resultHelper: ReturnType<typeof getSourceFileOrThrow>): boolean {
+  const resultBuilder = getFunctionLike(resultHelper, "createVisionResultPayload");
+  return Boolean(
+    resultBuilder
+    && hasPropertyAccessPath(resultBuilder, ["request", "input", "inputMode"])
+    && hasPropertyAccessPath(resultBuilder, ["request", "input", "multiFrameEvidenceSetId"])
+    && hasPropertyAccessPath(resultBuilder, ["request", "input", "contactSheetEvidenceId"])
+    && hasPropertyAccessPath(resultBuilder, ["request", "input", "sampledFrameCount"])
+    && hasPropertyAccessPath(resultBuilder, ["request", "input", "validFrameCount"])
+    && hasPropertyAccessPath(resultBuilder, ["input", "aggregateReason"])
+    && hasPropertyAccessPath(resultBuilder, ["input", "frameLevelObservations"]),
+  );
+}
+
+function collectAiBoundaryFindings(visionTypes: ReturnType<typeof getSourceFileOrThrow>, resultHelper: ReturnType<typeof getSourceFileOrThrow>): Finding[] {
+  const findings: Finding[] = [];
+  if (!hasAiContractFields(visionTypes)) {
+    findings.push(createFinding({ lawId: LAW_ID, file: VISION_TYPES_PATH, line: 1, severity: "error", message: "AI multi-frame request and payload schemas must preserve governed frame-level and aggregate fields." }));
+  }
+  if (!hasGovernedResultBuilder(resultHelper)) {
+    findings.push(createFinding({ lawId: LAW_ID, file: RESULT_HELPER_PATH, line: 1, severity: "error", message: "Vision result builder must emit the governed multi-frame request and aggregate result fields." }));
+  }
+  return findings;
+}
+
+export async function inspectMultiFrameScreenshotBoundary(repoRoot = pathFromRepoRoot(".")): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const repoFiles = await listFilesRecursive(repoRoot, { ignoreDirs: [".grasseye-data"] });
+  const forbiddenTests = repoFiles.filter((file) => /(^|\/)(tests|__tests__)\/|\.test\.(ts|tsx|js|jsx|mjs|cjs)$/i.test(file));
+  const project = createAuditProject();
+  const multiFrameTypes = getSourceFileOrThrow(project, MULTI_FRAME_TYPES_PATH);
+  const illegalAgentRuntimeExists = await fileExists(pathFromRepoRoot(AGENT_SERVICE_PATH));
+  const schemaPassed = hasMultiFramePackagingSchema(multiFrameTypes);
+  const runtimeHonestyPassed = !illegalAgentRuntimeExists;
+  const findings = collectScreenshotBoundaryFindings(multiFrameTypes, illegalAgentRuntimeExists, forbiddenTests);
 
   return {
     findings,
@@ -64,37 +109,9 @@ export async function inspectMultiFrameAiBoundary(): Promise<{ findings: Finding
   const project = createAuditProject();
   const visionTypes = getSourceFileOrThrow(project, VISION_TYPES_PATH);
   const resultHelper = getSourceFileOrThrow(project, RESULT_HELPER_PATH);
-  const findings: Finding[] = [];
-
-  const requestFields = getZodObjectPropertyNames(visionTypes, "VisionProductPresenceRequestInputSchema");
-  const payloadFields = getZodObjectPropertyNames(visionTypes, "VisionProductPresencePayloadSchema");
-  const aiContractPassed = [
-    requestFields.has("inputMode"),
-    requestFields.has("multiFrameEvidenceSetId"),
-    requestFields.has("contactSheetEvidenceId"),
-    requestFields.has("sampledFrameCount"),
-    requestFields.has("validFrameCount"),
-    payloadFields.has("frameLevelObservations"),
-    payloadFields.has("aggregateReason"),
-  ].every(Boolean);
-  if (!aiContractPassed) {
-    findings.push(createFinding({ lawId: LAW_ID, file: VISION_TYPES_PATH, line: 1, severity: "error", message: "AI multi-frame request and payload schemas must preserve governed frame-level and aggregate fields." }));
-  }
-
-  const resultBuilder = getFunctionLike(resultHelper, "createVisionResultPayload");
-  const resultHelperPassed = Boolean(
-    resultBuilder
-    && hasPropertyAccessPath(resultBuilder, ["request", "input", "inputMode"])
-    && hasPropertyAccessPath(resultBuilder, ["request", "input", "multiFrameEvidenceSetId"])
-    && hasPropertyAccessPath(resultBuilder, ["request", "input", "contactSheetEvidenceId"])
-    && hasPropertyAccessPath(resultBuilder, ["request", "input", "sampledFrameCount"])
-    && hasPropertyAccessPath(resultBuilder, ["request", "input", "validFrameCount"])
-    && hasPropertyAccessPath(resultBuilder, ["input", "aggregateReason"])
-    && hasPropertyAccessPath(resultBuilder, ["input", "frameLevelObservations"])
-  );
-  if (!resultHelperPassed) {
-    findings.push(createFinding({ lawId: LAW_ID, file: RESULT_HELPER_PATH, line: 1, severity: "error", message: "Vision result builder must emit the governed multi-frame request and aggregate result fields." }));
-  }
+  const aiContractPassed = hasAiContractFields(visionTypes);
+  const resultHelperPassed = hasGovernedResultBuilder(resultHelper);
+  const findings = collectAiBoundaryFindings(visionTypes, resultHelper);
 
   return {
     findings,

@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { IncomingMessage } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
 export function getArtifactContentType(filePath: string): string {
@@ -28,6 +28,11 @@ export async function parseJsonBody(request: IncomingMessage): Promise<unknown> 
   }
 
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+export function writeJsonResponse(response: ServerResponse, statusCode: number, payload: unknown): void {
+  response.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(payload, null, 2));
 }
 
 export function parseTailParam(url: URL): number {
