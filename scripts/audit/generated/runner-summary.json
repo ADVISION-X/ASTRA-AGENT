@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T11:07:49.578Z",
+  "generatedAt": "2026-05-01T11:14:55.433Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 1,
@@ -13,6 +13,14 @@
       "inspectorId": "map-plugin-package-governance",
       "capabilityDomain": "map-plugin-package",
       "findings": [
+        {
+          "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
+          "file": "src/map-plugins/schema/operational-map-payload.schema.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Map transition condition schema must use governed branch DSL fields.",
+          "detail": "conditionType, leftRef, operator, rightValue, onTrue, onFalse"
+        },
         {
           "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
           "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
@@ -44,9 +52,9 @@
         },
         {
           "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete."
         },
         {
           "name": "forbidden-shape",
@@ -97,10 +105,10 @@
           "summary": "Map package negative-proof harness cannot start because the baseline inspector is not passing."
         }
       ],
-      "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.",
+      "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 3
+      "violationCount": 4
     }
   ]
 }

@@ -99,6 +99,24 @@ ForensicsPersistenceAbilityResult 最低字段：
 - runtimeProof
 - dataQualityFlags
 
+## 运行链引用
+
+runtimeProof 与 record envelope 需要回连：
+- activationSnapshotRef
+- capabilityCallId
+- capabilityGroupId
+- childCapabilityId
+- inputRefs
+- outputRefs
+- actionRef
+- postActionVerificationRef
+- decisionRef
+
+禁止：
+- 只写 recordRef 而丢掉执行链
+- runtimeProof 与 record envelope 分裂成两套 truth
+- action 写入后无法回连到 postActionVerificationRef
+
 禁止：
 - record: unknown
 - status 只有 persisted

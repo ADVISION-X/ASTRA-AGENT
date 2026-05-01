@@ -9,6 +9,7 @@ const {
   LAW_STRUCTURED_LOGGING_AI_ERROR,
   LAW_STRUCTURED_LOGGING_AI_REQUEST,
   LAW_STRUCTURED_LOGGING_AI_RESPONSE,
+  LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
   LAW_STRUCTURED_LOGGING_DEBUG,
   LAW_STRUCTURED_LOGGING_EXIT,
   LAW_STRUCTURED_LOGGING_REFS,
@@ -28,6 +29,12 @@ const STRUCTURED_LOG_SCHEMA_RULES = [
     file: STRUCTURED_LOG_PATH,
     message: "StructuredRuntimeEvent schema is missing trace-back refs required for Forensics linkage.",
     requiredFields: ["proofRefs", "artifactRefs", "rawResponseRef", "promptDebugRef"],
+  },
+  {
+    lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
+    file: STRUCTURED_LOG_PATH,
+    message: "StructuredRuntimeEvent schema is missing command-flow refs required for cross-owner traceability.",
+    requiredFields: ["activationSnapshotRef", "capabilityCallId", "capabilityGroupId", "childCapabilityId", "inputRefs", "outputRefs", "actionRef", "postActionVerificationRef", "decisionRef"],
   },
   {
     lawId: LAW_STRUCTURED_LOGGING_AI_REQUEST,

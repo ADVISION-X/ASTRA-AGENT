@@ -100,3 +100,17 @@ Orchestration 继续保持唯一作战地图选择、mission state、step state�
 - runtime proof 必须记录 mapVersion
 - runtime proof 必须记录 activationId
 - selection proof 必须记录 selectedMapSource 与 compatibility decision
+
+### 冻结激活快照
+
+- activationSnapshotRef
+- selectedMapVersion
+- promptContractVersion
+- capabilityCatalogVersion
+
+要求：
+
+- activation 后必须冻结 mapPackageVersion、selectedMapId、selectedMapVersion、promptContractVersion、capabilityCatalogVersion
+- runtime proof 不得只记录 selectedMapId 而缺少 activationSnapshotRef
+- 运行中不得通过 latest active map lookup 重新选择地图
+- 任何跨步回填必须能回连到 activationSnapshotRef

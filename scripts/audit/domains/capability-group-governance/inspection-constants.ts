@@ -40,7 +40,7 @@ const FORBIDDEN_OWNER_LITERALS = new Set([
 ]);
 
 const OWNER_LITERAL_PROPERTIES = new Set(["abilityGroupId", "requestedBy", "sourceAbilityGroupId", "from", "to"]);
-const REQUIRED_RUNTIME_PROOF_FIELDS = ["runId", "missionId", "abilityGroupId", "childCapabilityId", "status", "startedAt", "endedAt", "durationMs"] as const;
+const REQUIRED_RUNTIME_PROOF_FIELDS = ["runId", "missionId", "abilityGroupId", "childCapabilityId", "status", "startedAt", "endedAt", "durationMs", "runLockId", "cancellationTokenRef", "resumeCheckpointRef", "timeoutMs", "retryCount", "maxRetry"] as const;
 const RUNTIME_PROOF_TARGETS = [
   { file: "src/capabilities/ai/schema.ts", schemaName: "AiBaseRuntimeProofSchema" },
   { file: "src/capabilities/geometry-guard/schema.ts", schemaName: "GeometryGuardRuntimeProofSchema" },

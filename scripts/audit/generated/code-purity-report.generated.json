@@ -1,6 +1,21 @@
 {
-  "generatedAt": "2026-05-01T11:12:29.343Z",
-  "godFileInventory": [],
+  "generatedAt": "2026-05-01T11:14:53.426Z",
+  "godFileInventory": [
+    {
+      "file": "src/capabilities/post-action-verification/runtime/verification-gate-sequence.ts",
+      "lines": 329,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 29,
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 10,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
   "disasterFileInventory": [
     {
       "file": "src/lib/browser/current-chrome-browser-controller.ts",
@@ -683,23 +698,38 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     }
   ],
-  "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
+  "oversizedTouchedFileInventory": [
     {
-      "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 165,
+      "file": "src/capabilities/post-action-verification/runtime/verification-gate-sequence.ts",
+      "lines": 329,
       "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "executePostActionVerification"
-      ],
+      "overLimitBy": 29,
+      "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 14,
+      "importCount": 10,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "BLOCKING",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
+  "functionOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/orchestration-capability/run-orchestration-capability-checks.ts",
+      "lines": 267,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspectSchemaRegistryTruth"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/post-action-verification/schema.ts",
@@ -1647,22 +1677,6 @@
   ],
   "importExportOverLimitInventory": [
     {
-      "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 165,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "executePostActionVerification"
-      ],
-      "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
       "lines": 105,
       "fileType": "runtime/implementation",
@@ -2067,6 +2081,20 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/post-action-verification/runtime/verification-gate-sequence.ts",
+      "lines": 329,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 29,
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 10,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/screenshot/schema.ts",
       "lines": 414,
       "fileType": "schema/type",
@@ -2164,6 +2192,22 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/orchestration-capability/run-orchestration-capability-checks.ts",
+      "lines": 267,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "inspectSchemaRegistryTruth"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/visual-target/runtime/visual-target-executor.ts",
@@ -2372,22 +2416,6 @@
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 165,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "executePostActionVerification"
-      ],
-      "classMembers": 0,
-      "importCount": 14,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],

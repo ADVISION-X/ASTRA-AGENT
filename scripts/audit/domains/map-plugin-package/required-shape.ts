@@ -5,6 +5,7 @@ import { createMapPluginRegistry } from "../../../../src/map-plugins/registry/ma
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
+import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
@@ -75,12 +76,23 @@ const inspectRollbackSource = (project: Project): Finding[] => {
     : [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/import/map-package-rollback.ts`, line: 1, severity: "fatal", message: "Map package rollback must deactivate the active map and persist a rollback record." })];
 };
 
+const inspectTransitionConditionDslSource = (project: Project): Finding[] => {
+  const schemaSource = getSource(project, `${ROOT}/schema/operational-map-payload.schema.ts`);
+  const propertyNames = getZodObjectPropertyNames(schemaSource, "MapPluginTransitionConditionSchema");
+  const requiredFields = ["conditionType", "leftRef", "operator", "rightValue", "onTrue", "onFalse"] as const;
+  const missingFields = requiredFields.filter((fieldName) => !propertyNames.has(fieldName));
+  return missingFields.length === 0
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-001-V1", file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Map transition condition schema must use governed branch DSL fields.", detail: missingFields.join(", ") })];
+};
+
 const inspectLifecycleSources = (project: Project): Finding[] => {
   return [
     ...inspectBuiltinIndexSource(project),
     ...inspectImporterSource(project),
     ...inspectActivationSource(project),
     ...inspectRollbackSource(project),
+    ...inspectTransitionConditionDslSource(project),
   ];
 };
 
@@ -145,7 +157,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
       passed,
       passed
         ? "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
-        : "Map package schema, builtin payload, or lifecycle enforcement shape is incomplete.",
+        : "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.",
     ),
   };
 }

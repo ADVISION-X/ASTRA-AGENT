@@ -626,6 +626,7 @@ failed / review_required 不得返回可执行输出。
 
 ```txt
 proofId
+runLockId
 runId
 missionId
 sessionId
@@ -640,6 +641,11 @@ outputRef
 startedAt
 endedAt
 durationMs
+timeoutMs
+cancellationTokenRef
+resumeCheckpointRef
+retryCount
+maxRetry
 status
 failureReason
 reviewRequiredReason
@@ -714,6 +720,15 @@ outputRefs
 - startedAt <= endedAt
 - durationMs >= 0
 - failed/review_required 也必须有 proof
+
+### 8.2 run-lock / cancel / recover
+
+- runLockId 是一次执行锁的主键
+- cancellationTokenRef 必须指向可取消的执行上下文
+- resumeCheckpointRef 必须指向可恢复的检查点
+- timeoutMs 只能来源于受治理 timeout policy
+- retryCount 不得超过 maxRetry
+- cancel / resume 不能只在终端文本里出现
 
 ---
 

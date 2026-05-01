@@ -8,6 +8,7 @@ import {
   hasInterfaceMethod,
   hasImportModuleSpecifier,
 } from "./inspection-ast-helpers.js";
+import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 
 import { ORCHESTRATION_REQUIRED_PATHS, orchestrationInspectionConstants as config } from "./inspection-constants.js";
 import { arraysEqual, isPrivateOrchestrationPath } from "./inspection-utils.js";
@@ -110,21 +111,25 @@ const hasAbilityGroupMapRegistryTruth = (abilityGroupText: string): boolean => {
 
 const inspectSchemaRegistryTruth = async (sources: OrchestrationSources): Promise<PhaseCheck> => {
   const childIds = getZodEnumValues(sources.schemaSource, "OrchestrationChildCapabilityIdSchema");
+  const runtimeProofFields = getZodObjectPropertyNames(sources.schemaSource, "RuntimeProofSchema");
   const schemaText = await readTextFile(pathFromRepoRoot(config.SCHEMA_PATH));
   const registrySourceText = await readTextFile(pathFromRepoRoot(config.REGISTRY_PATH));
   const mapSelectionText = await readTextFile(pathFromRepoRoot(config.MAP_SELECTION_GATE_PATH));
   const runtimeContextText = await readTextFile(pathFromRepoRoot(config.RUNTIME_CONTEXT_PATH));
   const abilityGroupText = await readTextFile(pathFromRepoRoot(config.ABILITY_GROUP_PATH));
+  const frozenActivationSnapshotRequiredFields = ["mapPackageVersion", "selectedMapVersion", "activationSnapshotRef", "promptContractVersion", "capabilityCatalogVersion"] as const;
   const operationalMapIdPass = schemaText.includes("export const OperationalMapIdSchema = z.string().min(1);");
   const registryPass = registrySourceText.includes("createOrchestrationCapabilityRegistry") && registrySourceText.includes("getOrchestrationRegistryEntry");
   const dynamicMapTruthPass = hasDynamicMapTruth({ abilityGroupText, mapSelectionText, runtimeContextText, mapSelectionSource: sources.mapSelectionSource, runtimeContextSource: sources.runtimeContextSource });
+  const frozenActivationSnapshotMissing = frozenActivationSnapshotRequiredFields.filter((fieldName) => !runtimeProofFields.has(fieldName));
   const findings = [
     ...(arraysEqual(childIds, config.REQUIRED_CHILD_IDS) ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration child capability ids drifted away from the canonical child set." })]),
     ...(operationalMapIdPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Operational map id schema must stay dynamic and registry-backed under controlled map packages." })]),
     ...(registryPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.REGISTRY_PATH, line: 1, severity: "error", message: "Orchestration registry must expose canonical registry accessors." })]),
+    ...(frozenActivationSnapshotMissing.length === 0 ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration runtime proof is missing frozen activation snapshot fields.", detail: frozenActivationSnapshotMissing.join(", ") })]),
   ];
 
-  return { findings, passed: arraysEqual(childIds, config.REQUIRED_CHILD_IDS) && registryPass && dynamicMapTruthPass && operationalMapIdPass };
+  return { findings, passed: arraysEqual(childIds, config.REQUIRED_CHILD_IDS) && registryPass && dynamicMapTruthPass && operationalMapIdPass && frozenActivationSnapshotMissing.length === 0 };
 };
 
 const inspectRootBoundary = async (project: ReturnType<typeof createAuditProject>): Promise<PhaseCheck> => {

@@ -237,6 +237,22 @@ draft -> quarantine -> schema validation -> capability validation -> prompt cont
 - sensitive task 必须有 review gate
 - map package 不得携带 raw prompt 或 executable logic
 
+### Branch Condition DSL
+
+- conditionType
+- leftRef
+- operator
+- rightValue
+- onTrue
+- onFalse
+
+约束：
+
+- branch 只能引用 output schema 已声明字段
+- 不得使用 raw expression string
+- 不得使用 function body
+- 不得使用 eval / Function constructor
+
 ## Review Gates
 
 以下场景必须 review_required：

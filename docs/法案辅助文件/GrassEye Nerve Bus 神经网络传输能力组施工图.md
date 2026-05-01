@@ -62,6 +62,22 @@ Page State 结果属于 Ability Group -> Orchestration 受治理结果的一种�
 - status
 - failureReason
 
+### ResultEnvelope status
+
+- status: success | failed | review_required
+- failureReason
+- reviewRequiredReason
+- outputRef
+- diagnosticPayloadRef
+- proofRef
+
+禁止：
+
+- boolean result
+- null success
+- undefined success
+- raw provider result 直接透传
+
 ## 7. 当前 canonical root
 
 - src/capabilities/nerve-bus/

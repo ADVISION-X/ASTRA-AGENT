@@ -62,16 +62,43 @@ runtimeProof 至少应包含：
 - emittedAt
 - sourceAbilityGroupId
 - sourceChildCapabilityId
+- activationSnapshotRef
+- capabilityCallId
+- capabilityGroupId
+- childCapabilityId
 - actionExecutionRef
 - primitiveExecutionRef
 - primitiveExecutionRefs
 - inputRecordRefs
+- inputRefs
 - outputRecordRefs
+- outputRefs
+- actionRef
+- postActionVerificationRef
+- decisionRef
 - artifactRefs
 - promptDebugRef
 - rawResponseRef
 - integrityStatus
 - debugLogRef
+
+## 运行锁 / 取消 / 恢复
+
+- runLockId
+- cancellationTokenRef
+- resumeCheckpointRef
+- timeoutMs
+- retryCount
+- maxRetry
+
+要求：
+
+- runLockId 必须稳定标识一次执行锁
+- cancellationTokenRef 必须回连到可取消的执行上下文
+- resumeCheckpointRef 必须回连到恢复点
+- timeoutMs 只能来源于受治理 timeout policy
+- retryCount 不得超过 maxRetry
+- cancel / resume 不能只在终端文本里出现
 
 ## 持久化关系
 
