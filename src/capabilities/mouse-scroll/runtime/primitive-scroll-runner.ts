@@ -1,6 +1,18 @@
 import type { MouseScrollAnchor, MouseScrollCoordinateSpace, MouseScrollDelta } from "../contract.js";
 import { buildStableMouseScrollRef } from "../shared/mouse-scroll-types.js";
 import type { MouseScrollExecutionContext } from "./mouse-scroll-runtime-context.js";
+import {
+  buildPrimitiveIterationProof,
+  buildPrimitiveScrollFailureResult,
+  buildPrimitiveScrollSuccessResult,
+  type PrimitiveAbortDecision,
+  type PrimitiveCircuitBreakerState,
+  type PrimitiveIterationProof,
+  type PrimitiveIterationStatus,
+  type PrimitiveScrollFailureReason,
+  type PrimitiveScrollResult,
+  type PrimitiveTimeoutDecision,
+} from "./primitive-scroll-runner-result.js";
 
 const MAX_CONCURRENT_SCROLLS = 1;
 const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 3;
@@ -12,32 +24,7 @@ type PrimitiveRunnerState = {
   circuitOpenUntilMs: number;
 };
 
-const primitiveRunnerState: PrimitiveRunnerState = {
-  activeScrolls: 0,
-  consecutiveFailures: 0,
-  circuitOpenUntilMs: 0,
-};
-
-function closeCircuitIfExpired(nowMs: number) {
-  if (primitiveRunnerState.circuitOpenUntilMs !== 0 && nowMs >= primitiveRunnerState.circuitOpenUntilMs) {
-    primitiveRunnerState.circuitOpenUntilMs = 0;
-    primitiveRunnerState.consecutiveFailures = 0;
-  }
-}
-
-function recordFailure(nowMs: number) {
-  primitiveRunnerState.consecutiveFailures += 1;
-  if (primitiveRunnerState.consecutiveFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD) {
-    primitiveRunnerState.circuitOpenUntilMs = nowMs + CIRCUIT_BREAKER_COOLDOWN_MS;
-  }
-}
-
-function recordSuccess() {
-  primitiveRunnerState.consecutiveFailures = 0;
-  primitiveRunnerState.circuitOpenUntilMs = 0;
-}
-
-export async function runPrimitiveScroll(input: {
+type RunPrimitiveScrollInput = {
   context: MouseScrollExecutionContext;
   attemptRef: string;
   scrollExecutionRef: string;
@@ -56,392 +43,379 @@ export async function runPrimitiveScroll(input: {
   repeat: number;
   timeoutMs: number;
   maxDurationMs: number;
-}): Promise<
-  | {
-      ok: true;
-      primitiveExecutionRefs: string[];
-      primitiveDecision: "succeeded";
-      statusMessage: string;
-      startedAt: string;
-      endedAt: string;
-      durationMs: number;
-      clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-      dataQualityFlags: string[];
-      primitiveCallId: string;
-      primitiveStartedAt: string;
-      primitiveEndedAt: string;
-      timeoutDecision: "within_limit";
-      abortDecision: "not_requested";
-      circuitBreakerState: "closed";
-      portHangDetected: false;
-      primitivePortKind: string;
-      perIterationPrimitiveProofs: Array<{
-        repeatIndex: number;
-        primitiveCallId: string;
-        primitiveExecutionRef: string | null;
-        status: "succeeded";
-        startedAt: string;
-        endedAt: string;
-        durationMs: number;
-        timeoutDecision: "within_limit";
-        abortDecision: "not_requested";
-        portHangDetected: false;
-        primitivePortKind: string;
-      }>;
-    }
-  | {
-      ok: false;
-      primitiveExecutionRefs: string[];
-      primitiveExecutionRef: string | null;
-      primitiveDecision: "failed" | "threw" | "aborted";
-      failureReason: "primitive_failed" | "primitive_threw" | "primitive_timeout" | "primitive_execution_ref_missing" | "primitive_circuit_open" | "primitive_concurrency_guard" | "primitive_aborted";
-      statusMessage: string;
-      startedAt: string;
-      endedAt: string;
-      durationMs: number;
-      clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-      dataQualityFlags: string[];
-      primitiveCallId: string;
-      primitiveStartedAt: string;
-      primitiveEndedAt: string;
-      timeoutDecision: "within_limit" | "timed_out";
-      abortDecision: "not_requested" | "timeout_abort_requested";
-      circuitBreakerState: "closed" | "open";
-      portHangDetected: boolean;
-      primitivePortKind: string;
-      perIterationPrimitiveProofs: Array<{
-        repeatIndex: number;
-        primitiveCallId: string;
-        primitiveExecutionRef: string | null;
-        status: "failed" | "threw" | "aborted" | "succeeded";
-        startedAt: string;
-        endedAt: string;
-        durationMs: number;
-        timeoutDecision: "within_limit" | "timed_out";
-        abortDecision: "not_requested" | "timeout_abort_requested";
-        portHangDetected: boolean;
-        primitivePortKind: string;
-      }>;
-    }
-> {
-  const startedSnapshot = input.context.clock.now();
-  const primitiveCallId = buildStableMouseScrollRef("mouse-scroll-primitive-call", [
-    input.scrollExecutionRef,
-    startedSnapshot.isoTimestamp,
-    startedSnapshot.monotonicMs,
-  ]);
-  const primitiveStartedAt = startedSnapshot.isoTimestamp;
-  const primitiveExecutionRefs: string[] = [];
-  const perIterationPrimitiveProofs: Array<{
-    repeatIndex: number;
-    primitiveCallId: string;
-    primitiveExecutionRef: string | null;
-    status: "failed" | "threw" | "aborted" | "succeeded";
-    startedAt: string;
-    endedAt: string;
-    durationMs: number;
-    timeoutDecision: "within_limit" | "timed_out";
-    abortDecision: "not_requested" | "timeout_abort_requested";
-    portHangDetected: boolean;
-    primitivePortKind: string;
-  }> = [];
+};
 
-  closeCircuitIfExpired(startedSnapshot.monotonicMs);
-  if (primitiveRunnerState.circuitOpenUntilMs > startedSnapshot.monotonicMs) {
-    const endedSnapshot = input.context.clock.now();
-    return {
-      ok: false,
-      primitiveExecutionRefs,
+type PrimitiveClockSnapshot = ReturnType<MouseScrollExecutionContext["clock"]["now"]>;
+type PrimitiveCallFrame = {
+  startedSnapshot: PrimitiveClockSnapshot;
+  primitiveCallId: string;
+  primitiveStartedAt: string;
+};
+type PrimitiveExecutionStore = {
+  primitiveExecutionRefs: string[];
+  perIterationPrimitiveProofs: PrimitiveIterationProof[];
+};
+type PrimitivePortResult = Awaited<ReturnType<MouseScrollExecutionContext["primitivePort"]["scroll"]>>;
+
+const primitiveRunnerState: PrimitiveRunnerState = {
+  activeScrolls: 0,
+  consecutiveFailures: 0,
+  circuitOpenUntilMs: 0,
+};
+
+const closeCircuitIfExpired = (nowMs: number) => {
+  if (primitiveRunnerState.circuitOpenUntilMs !== 0 && nowMs >= primitiveRunnerState.circuitOpenUntilMs) {
+    primitiveRunnerState.circuitOpenUntilMs = 0;
+    primitiveRunnerState.consecutiveFailures = 0;
+  }
+};
+
+const recordFailure = (nowMs: number) => {
+  primitiveRunnerState.consecutiveFailures += 1;
+  if (primitiveRunnerState.consecutiveFailures >= CIRCUIT_BREAKER_FAILURE_THRESHOLD) {
+    primitiveRunnerState.circuitOpenUntilMs = nowMs + CIRCUIT_BREAKER_COOLDOWN_MS;
+  }
+};
+
+const recordSuccess = () => {
+  primitiveRunnerState.consecutiveFailures = 0;
+  primitiveRunnerState.circuitOpenUntilMs = 0;
+};
+
+const getCircuitBreakerState = (nowMs: number): PrimitiveCircuitBreakerState => {
+  return primitiveRunnerState.circuitOpenUntilMs > nowMs ? "open" : "closed";
+};
+
+const createPrimitiveCallFrame = (input: RunPrimitiveScrollInput): PrimitiveCallFrame => {
+  const startedSnapshot = input.context.clock.now();
+  return {
+    startedSnapshot,
+    primitiveCallId: buildStableMouseScrollRef("mouse-scroll-primitive-call", [
+      input.scrollExecutionRef,
+      startedSnapshot.isoTimestamp,
+      startedSnapshot.monotonicMs,
+    ]),
+    primitiveStartedAt: startedSnapshot.isoTimestamp,
+  };
+};
+
+const buildRunDurationMs = (frame: PrimitiveCallFrame, endedSnapshot: PrimitiveClockSnapshot) => {
+  return Math.max(0, Math.round(endedSnapshot.monotonicMs - frame.startedSnapshot.monotonicMs));
+};
+
+const buildFailureResult = (input: {
+  frame: PrimitiveCallFrame;
+  endedSnapshot: PrimitiveClockSnapshot;
+  store: PrimitiveExecutionStore;
+  primitiveExecutionRef: string | null;
+  primitiveDecision: "failed" | "threw" | "aborted";
+  failureReason: PrimitiveScrollFailureReason;
+  statusMessage: string;
+  timeoutDecision: PrimitiveTimeoutDecision;
+  abortDecision: PrimitiveAbortDecision;
+  portHangDetected: boolean;
+  primitivePortKind: string;
+  dataQualityFlags: string[];
+}) => {
+  return buildPrimitiveScrollFailureResult({
+    ok: false,
+    primitiveExecutionRefs: input.store.primitiveExecutionRefs,
+    primitiveExecutionRef: input.primitiveExecutionRef,
+    primitiveDecision: input.primitiveDecision,
+    failureReason: input.failureReason,
+    statusMessage: input.statusMessage,
+    startedAt: input.frame.primitiveStartedAt,
+    endedAt: input.endedSnapshot.isoTimestamp,
+    durationMs: buildRunDurationMs(input.frame, input.endedSnapshot),
+    clock: {
+      startedMonotonicMs: input.frame.startedSnapshot.monotonicMs,
+      endedMonotonicMs: input.endedSnapshot.monotonicMs,
+    },
+    dataQualityFlags: input.dataQualityFlags,
+    primitiveCallId: input.frame.primitiveCallId,
+    primitiveStartedAt: input.frame.primitiveStartedAt,
+    primitiveEndedAt: input.endedSnapshot.isoTimestamp,
+    timeoutDecision: input.timeoutDecision,
+    abortDecision: input.abortDecision,
+    circuitBreakerState: getCircuitBreakerState(input.endedSnapshot.monotonicMs),
+    portHangDetected: input.portHangDetected,
+    primitivePortKind: input.primitivePortKind,
+    perIterationPrimitiveProofs: input.store.perIterationPrimitiveProofs,
+  });
+};
+
+const buildSuccessResult = (frame: PrimitiveCallFrame, endedSnapshot: PrimitiveClockSnapshot, store: PrimitiveExecutionStore) => {
+  recordSuccess();
+  return buildPrimitiveScrollSuccessResult({
+    ok: true,
+    primitiveExecutionRefs: store.primitiveExecutionRefs,
+    primitiveDecision: "succeeded",
+    statusMessage: "Mouse Scroll executed governed primitive sequence.",
+    startedAt: frame.primitiveStartedAt,
+    endedAt: endedSnapshot.isoTimestamp,
+    durationMs: buildRunDurationMs(frame, endedSnapshot),
+    clock: {
+      startedMonotonicMs: frame.startedSnapshot.monotonicMs,
+      endedMonotonicMs: endedSnapshot.monotonicMs,
+    },
+    primitiveCallId: frame.primitiveCallId,
+    primitiveStartedAt: frame.primitiveStartedAt,
+    primitiveEndedAt: endedSnapshot.isoTimestamp,
+    timeoutDecision: "within_limit",
+    abortDecision: "not_requested",
+    circuitBreakerState: "closed",
+    portHangDetected: false,
+    primitivePortKind: store.perIterationPrimitiveProofs.at(-1)?.primitivePortKind ?? "browser-controller",
+    perIterationPrimitiveProofs: store.perIterationPrimitiveProofs,
+    dataQualityFlags: [],
+  });
+};
+
+const buildImmediateRejection = (frame: PrimitiveCallFrame, context: MouseScrollExecutionContext): PrimitiveScrollResult | null => {
+  closeCircuitIfExpired(frame.startedSnapshot.monotonicMs);
+  if (primitiveRunnerState.circuitOpenUntilMs > frame.startedSnapshot.monotonicMs) {
+    return buildFailureResult({
+      frame,
+      endedSnapshot: context.clock.now(),
+      store: { primitiveExecutionRefs: [], perIterationPrimitiveProofs: [] },
       primitiveExecutionRef: null,
       primitiveDecision: "failed",
       failureReason: "primitive_circuit_open",
       statusMessage: "Mouse Scroll primitive circuit breaker is open.",
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: ["primitive_circuit_open"],
-      primitiveCallId,
-      primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
-      circuitBreakerState: "open",
       portHangDetected: false,
       primitivePortKind: "browser-controller",
-      perIterationPrimitiveProofs,
-    };
+      dataQualityFlags: ["primitive_circuit_open"],
+    });
   }
-
   if (primitiveRunnerState.activeScrolls >= MAX_CONCURRENT_SCROLLS) {
-    const endedSnapshot = input.context.clock.now();
-    return {
-      ok: false,
-      primitiveExecutionRefs,
+    return buildFailureResult({
+      frame,
+      endedSnapshot: context.clock.now(),
+      store: { primitiveExecutionRefs: [], perIterationPrimitiveProofs: [] },
       primitiveExecutionRef: null,
       primitiveDecision: "failed",
       failureReason: "primitive_concurrency_guard",
       statusMessage: "Mouse Scroll primitive concurrency guard rejected the call.",
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: ["primitive_concurrency_guard"],
-      primitiveCallId,
-      primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
-      circuitBreakerState: "closed",
       portHangDetected: false,
       primitivePortKind: "browser-controller",
-      perIterationPrimitiveProofs,
-    };
+      dataQualityFlags: ["primitive_concurrency_guard"],
+    });
+  }
+  return null;
+};
+
+const appendIterationProof = (
+  store: PrimitiveExecutionStore,
+  repeatIndex: number,
+  primitiveCallId: string,
+  primitiveExecutionRef: string | null,
+  status: PrimitiveIterationStatus,
+  iterationStarted: PrimitiveClockSnapshot,
+  iterationEnded: PrimitiveClockSnapshot,
+  timeoutDecision: PrimitiveTimeoutDecision,
+  abortDecision: PrimitiveAbortDecision,
+  portHangDetected: boolean,
+  primitivePortKind: string,
+) => {
+  store.perIterationPrimitiveProofs.push(buildPrimitiveIterationProof({
+    repeatIndex,
+    primitiveCallId,
+    primitiveExecutionRef,
+    status,
+    startedAt: iterationStarted.isoTimestamp,
+    endedAt: iterationEnded.isoTimestamp,
+    durationMs: Math.max(0, Math.round(iterationEnded.monotonicMs - iterationStarted.monotonicMs)),
+    timeoutDecision,
+    abortDecision,
+    portHangDetected,
+    primitivePortKind,
+  }));
+};
+
+const resolveExecutionRef = (primitiveExecutionRef: string) => {
+  return primitiveExecutionRef.trim().length > 0 ? primitiveExecutionRef : null;
+};
+
+const runPrimitivePortCall = async (
+  input: RunPrimitiveScrollInput,
+  iteration: number,
+  abortController: AbortController,
+  setTimeoutHandle: (handle: ReturnType<typeof setTimeout>) => void,
+  markTimeoutTriggered: () => void,
+): Promise<PrimitivePortResult> => {
+  return Promise.race([
+    input.context.primitivePort.scroll({
+      attemptRef: input.attemptRef,
+      scrollExecutionRef: input.scrollExecutionRef,
+      idempotencyKey: input.idempotencyKey,
+      sessionId: input.sessionId,
+      roundId: input.roundId,
+      videoVisitId: input.videoVisitId,
+      geometryGuardProofRef: input.geometryGuardProofRef,
+      sourceCoordinateProofRef: input.sourceCoordinateProofRef,
+      sourceTargetRef: input.sourceTargetRef,
+      coordinateSpace: input.coordinateSpace,
+      anchorPoint: input.executableAnchor,
+      deltaX: input.executableDelta.deltaX,
+      deltaY: input.executableDelta.deltaY,
+      repeatIndex: iteration,
+      repeatTotal: input.repeat,
+      targetLabel: `${input.targetLabel}:${iteration}`,
+      timeoutMs: input.timeoutMs,
+      postActionVerificationRequired: true,
+      operatorApprovalRef: input.operatorApprovalRef,
+      abortSignal: abortController.signal,
+    }),
+    new Promise<never>((_, reject) => {
+      const timeoutHandle = setTimeout(() => {
+        markTimeoutTriggered();
+        abortController.abort();
+        reject(new Error("Mouse Scroll primitive timed out before completion."));
+      }, input.timeoutMs);
+      setTimeoutHandle(timeoutHandle);
+    }),
+  ]);
+};
+
+const runScrollIteration = async (
+  input: RunPrimitiveScrollInput,
+  frame: PrimitiveCallFrame,
+  store: PrimitiveExecutionStore,
+  iteration: number,
+): Promise<PrimitiveScrollResult | null> => {
+  const iterationStarted = input.context.clock.now();
+  const iterationCallId = buildStableMouseScrollRef("mouse-scroll-primitive-iteration", [frame.primitiveCallId, iteration]);
+  const abortController = new AbortController();
+  let timeoutTriggered = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const primitiveResult = await runPrimitivePortCall(
+      input,
+      iteration,
+      abortController,
+      (handle) => { timeoutHandle = handle; },
+      () => { timeoutTriggered = true; },
+    );
+    const iterationEnded = input.context.clock.now();
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
+
+    const timeoutDecision: PrimitiveTimeoutDecision = timeoutTriggered ? "timed_out" : "within_limit";
+    const abortDecision: PrimitiveAbortDecision = timeoutTriggered ? "timeout_abort_requested" : "not_requested";
+    const executionRef = resolveExecutionRef(primitiveResult.primitiveExecutionRef);
+    if (executionRef === null) {
+      recordFailure(iterationEnded.monotonicMs);
+      appendIterationProof(store, iteration, iterationCallId, null, "failed", iterationStarted, iterationEnded, timeoutDecision, abortDecision, timeoutTriggered, primitiveResult.portKind);
+      return buildFailureResult({
+        frame,
+        endedSnapshot: iterationEnded,
+        store,
+        primitiveExecutionRef: null,
+        primitiveDecision: "failed",
+        failureReason: "primitive_execution_ref_missing",
+        statusMessage: "Mouse Scroll primitive returned no primitiveExecutionRef.",
+        timeoutDecision,
+        abortDecision,
+        portHangDetected: timeoutTriggered,
+        primitivePortKind: primitiveResult.portKind,
+        dataQualityFlags: ["primitive_execution_ref_missing"],
+      });
+    }
+
+    store.primitiveExecutionRefs.push(executionRef);
+    appendIterationProof(store, iteration, iterationCallId, executionRef, primitiveResult.ok ? "succeeded" : "failed", iterationStarted, iterationEnded, timeoutDecision, abortDecision, timeoutTriggered, primitiveResult.portKind);
+    if (!primitiveResult.ok) {
+      recordFailure(iterationEnded.monotonicMs);
+      return buildFailureResult({
+        frame,
+        endedSnapshot: iterationEnded,
+        store,
+        primitiveExecutionRef: executionRef,
+        primitiveDecision: "failed",
+        failureReason: "primitive_failed",
+        statusMessage: primitiveResult.message,
+        timeoutDecision,
+        abortDecision,
+        portHangDetected: timeoutTriggered,
+        primitivePortKind: primitiveResult.portKind,
+        dataQualityFlags: ["primitive_failed"],
+      });
+    }
+
+    if (buildRunDurationMs(frame, iterationEnded) > input.maxDurationMs) {
+      recordFailure(iterationEnded.monotonicMs);
+      return buildFailureResult({
+        frame,
+        endedSnapshot: iterationEnded,
+        store,
+        primitiveExecutionRef: executionRef,
+        primitiveDecision: "failed",
+        failureReason: "primitive_timeout",
+        statusMessage: `Mouse Scroll primitive exceeded maxDurationMs ${input.maxDurationMs}.`,
+        timeoutDecision: "timed_out",
+        abortDecision,
+        portHangDetected: timeoutTriggered,
+        primitivePortKind: primitiveResult.portKind,
+        dataQualityFlags: ["primitive_timeout"],
+      });
+    }
+
+    return null;
+  } catch (error) {
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
+    const iterationEnded = input.context.clock.now();
+    const timeoutDecision: PrimitiveTimeoutDecision = error instanceof Error && error.message.includes("timed out") ? "timed_out" : "within_limit";
+    const abortDecision: PrimitiveAbortDecision = timeoutDecision === "timed_out" ? "timeout_abort_requested" : "not_requested";
+    const failureReason: PrimitiveScrollFailureReason = timeoutDecision === "timed_out"
+      ? "primitive_timeout"
+      : error instanceof Error && error.name === "AbortError"
+        ? "primitive_aborted"
+        : "primitive_threw";
+    const primitiveDecision = failureReason === "primitive_aborted" ? "aborted" : failureReason === "primitive_threw" ? "threw" : "failed";
+    recordFailure(iterationEnded.monotonicMs);
+    appendIterationProof(store, iteration, iterationCallId, null, primitiveDecision, iterationStarted, iterationEnded, timeoutDecision, abortDecision, timeoutDecision === "timed_out", "browser-controller");
+    return buildFailureResult({
+      frame,
+      endedSnapshot: iterationEnded,
+      store,
+      primitiveExecutionRef: null,
+      primitiveDecision,
+      failureReason,
+      statusMessage: error instanceof Error ? error.message : "Mouse Scroll primitive threw unexpectedly.",
+      timeoutDecision,
+      abortDecision,
+      portHangDetected: timeoutDecision === "timed_out",
+      primitivePortKind: "browser-controller",
+      dataQualityFlags: timeoutDecision === "timed_out" ? ["primitive_timeout", "primitive_port_hang_detected"] : [failureReason],
+    });
+  }
+};
+
+export async function runPrimitiveScroll(input: RunPrimitiveScrollInput): Promise<PrimitiveScrollResult> {
+  const frame = createPrimitiveCallFrame(input);
+  const immediateRejection = buildImmediateRejection(frame, input.context);
+  if (immediateRejection) {
+    return immediateRejection;
   }
 
+  const store: PrimitiveExecutionStore = { primitiveExecutionRefs: [], perIterationPrimitiveProofs: [] };
   primitiveRunnerState.activeScrolls += 1;
-
   try {
     for (let iteration = 1; iteration <= input.repeat; iteration += 1) {
-      const iterationStarted = input.context.clock.now();
-      const iterationCallId = buildStableMouseScrollRef("mouse-scroll-primitive-iteration", [primitiveCallId, iteration]);
-      const abortController = new AbortController();
-      let timeoutTriggered = false;
-      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-
-      try {
-        const primitiveResult = await Promise.race([
-          input.context.primitivePort.scroll({
-            attemptRef: input.attemptRef,
-            scrollExecutionRef: input.scrollExecutionRef,
-            idempotencyKey: input.idempotencyKey,
-            sessionId: input.sessionId,
-            roundId: input.roundId,
-            videoVisitId: input.videoVisitId,
-            geometryGuardProofRef: input.geometryGuardProofRef,
-            sourceCoordinateProofRef: input.sourceCoordinateProofRef,
-            sourceTargetRef: input.sourceTargetRef,
-            coordinateSpace: input.coordinateSpace,
-            anchorPoint: input.executableAnchor,
-            deltaX: input.executableDelta.deltaX,
-            deltaY: input.executableDelta.deltaY,
-            repeatIndex: iteration,
-            repeatTotal: input.repeat,
-            targetLabel: `${input.targetLabel}:${iteration}`,
-            timeoutMs: input.timeoutMs,
-            postActionVerificationRequired: true,
-            operatorApprovalRef: input.operatorApprovalRef,
-            abortSignal: abortController.signal,
-          }),
-          new Promise<never>((_, reject) => {
-            timeoutHandle = setTimeout(() => {
-              timeoutTriggered = true;
-              abortController.abort();
-              reject(new Error("Mouse Scroll primitive timed out before completion."));
-            }, input.timeoutMs);
-          }),
-        ]);
-        if (timeoutHandle !== null) {
-          clearTimeout(timeoutHandle);
-        }
-
-        const iterationEnded = input.context.clock.now();
-        const durationMs = Math.max(0, Math.round(iterationEnded.monotonicMs - iterationStarted.monotonicMs));
-        const executionRef = primitiveResult.primitiveExecutionRef.trim().length > 0 ? primitiveResult.primitiveExecutionRef : null;
-
-        if (executionRef === null) {
-          recordFailure(iterationEnded.monotonicMs);
-          perIterationPrimitiveProofs.push({
-            repeatIndex: iteration,
-            primitiveCallId: iterationCallId,
-            primitiveExecutionRef: null,
-            status: "failed",
-            startedAt: iterationStarted.isoTimestamp,
-            endedAt: iterationEnded.isoTimestamp,
-            durationMs,
-            timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-            abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-            portHangDetected: timeoutTriggered,
-            primitivePortKind: primitiveResult.portKind,
-          });
-          return {
-            ok: false,
-            primitiveExecutionRefs,
-            primitiveExecutionRef: null,
-            primitiveDecision: "failed",
-            failureReason: "primitive_execution_ref_missing",
-            statusMessage: "Mouse Scroll primitive returned no primitiveExecutionRef.",
-            startedAt: primitiveStartedAt,
-            endedAt: iterationEnded.isoTimestamp,
-            durationMs: Math.max(0, Math.round(iterationEnded.monotonicMs - startedSnapshot.monotonicMs)),
-            clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: iterationEnded.monotonicMs },
-            dataQualityFlags: ["primitive_execution_ref_missing"],
-            primitiveCallId,
-            primitiveStartedAt,
-            primitiveEndedAt: iterationEnded.isoTimestamp,
-            timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-            abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-            circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > iterationEnded.monotonicMs ? "open" : "closed",
-            portHangDetected: timeoutTriggered,
-            primitivePortKind: primitiveResult.portKind,
-            perIterationPrimitiveProofs,
-          };
-        }
-
-        primitiveExecutionRefs.push(executionRef);
-        perIterationPrimitiveProofs.push({
-          repeatIndex: iteration,
-          primitiveCallId: iterationCallId,
-          primitiveExecutionRef: executionRef,
-          status: primitiveResult.ok ? "succeeded" : "failed",
-          startedAt: iterationStarted.isoTimestamp,
-          endedAt: iterationEnded.isoTimestamp,
-          durationMs,
-          timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-          abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-          portHangDetected: timeoutTriggered,
-          primitivePortKind: primitiveResult.portKind,
-        });
-
-        if (!primitiveResult.ok) {
-          recordFailure(iterationEnded.monotonicMs);
-          return {
-            ok: false,
-            primitiveExecutionRefs,
-            primitiveExecutionRef: executionRef,
-            primitiveDecision: "failed",
-            failureReason: "primitive_failed",
-            statusMessage: primitiveResult.message,
-            startedAt: primitiveStartedAt,
-            endedAt: iterationEnded.isoTimestamp,
-            durationMs: Math.max(0, Math.round(iterationEnded.monotonicMs - startedSnapshot.monotonicMs)),
-            clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: iterationEnded.monotonicMs },
-            dataQualityFlags: ["primitive_failed"],
-            primitiveCallId,
-            primitiveStartedAt,
-            primitiveEndedAt: iterationEnded.isoTimestamp,
-            timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-            abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-            circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > iterationEnded.monotonicMs ? "open" : "closed",
-            portHangDetected: timeoutTriggered,
-            primitivePortKind: primitiveResult.portKind,
-            perIterationPrimitiveProofs,
-          };
-        }
-
-        if (Math.max(0, Math.round(iterationEnded.monotonicMs - startedSnapshot.monotonicMs)) > input.maxDurationMs) {
-          recordFailure(iterationEnded.monotonicMs);
-          return {
-            ok: false,
-            primitiveExecutionRefs,
-            primitiveExecutionRef: executionRef,
-            primitiveDecision: "failed",
-            failureReason: "primitive_timeout",
-            statusMessage: `Mouse Scroll primitive exceeded maxDurationMs ${input.maxDurationMs}.`,
-            startedAt: primitiveStartedAt,
-            endedAt: iterationEnded.isoTimestamp,
-            durationMs: Math.max(0, Math.round(iterationEnded.monotonicMs - startedSnapshot.monotonicMs)),
-            clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: iterationEnded.monotonicMs },
-            dataQualityFlags: ["primitive_timeout"],
-            primitiveCallId,
-            primitiveStartedAt,
-            primitiveEndedAt: iterationEnded.isoTimestamp,
-            timeoutDecision: "timed_out",
-            abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-            circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > iterationEnded.monotonicMs ? "open" : "closed",
-            portHangDetected: timeoutTriggered,
-            primitivePortKind: primitiveResult.portKind,
-            perIterationPrimitiveProofs,
-          };
-        }
-      } catch (error) {
-        if (timeoutHandle !== null) {
-          clearTimeout(timeoutHandle);
-        }
-        const iterationEnded = input.context.clock.now();
-        const durationMs = Math.max(0, Math.round(iterationEnded.monotonicMs - iterationStarted.monotonicMs));
-        const timeoutDecision = error instanceof Error && error.message.includes("timed out") ? "timed_out" : "within_limit";
-        const abortDecision = timeoutDecision === "timed_out" ? "timeout_abort_requested" : "not_requested";
-        const failureReason = timeoutDecision === "timed_out"
-          ? "primitive_timeout"
-          : error instanceof Error && error.name === "AbortError"
-            ? "primitive_aborted"
-            : "primitive_threw";
-        const primitiveDecision = failureReason === "primitive_aborted" ? "aborted" : failureReason === "primitive_threw" ? "threw" : "failed";
-
-        recordFailure(iterationEnded.monotonicMs);
-        perIterationPrimitiveProofs.push({
-          repeatIndex: iteration,
-          primitiveCallId: iterationCallId,
-          primitiveExecutionRef: null,
-          status: primitiveDecision,
-          startedAt: iterationStarted.isoTimestamp,
-          endedAt: iterationEnded.isoTimestamp,
-          durationMs,
-          timeoutDecision,
-          abortDecision,
-          portHangDetected: timeoutDecision === "timed_out",
-          primitivePortKind: "browser-controller",
-        });
-        return {
-          ok: false,
-          primitiveExecutionRefs,
-          primitiveExecutionRef: null,
-          primitiveDecision,
-          failureReason,
-          statusMessage: error instanceof Error ? error.message : "Mouse Scroll primitive threw unexpectedly.",
-          startedAt: primitiveStartedAt,
-          endedAt: iterationEnded.isoTimestamp,
-          durationMs: Math.max(0, Math.round(iterationEnded.monotonicMs - startedSnapshot.monotonicMs)),
-          clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: iterationEnded.monotonicMs },
-          dataQualityFlags: timeoutDecision === "timed_out" ? ["primitive_timeout", "primitive_port_hang_detected"] : [failureReason],
-          primitiveCallId,
-          primitiveStartedAt,
-          primitiveEndedAt: iterationEnded.isoTimestamp,
-          timeoutDecision,
-          abortDecision,
-          circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > iterationEnded.monotonicMs ? "open" : "closed",
-          portHangDetected: timeoutDecision === "timed_out",
-          primitivePortKind: "browser-controller",
-          perIterationPrimitiveProofs,
-        };
+      const failedResult = await runScrollIteration(input, frame, store, iteration);
+      if (failedResult) {
+        return failedResult;
       }
     }
 
-    const endedSnapshot = input.context.clock.now();
-    recordSuccess();
-    return {
-      ok: true,
-      primitiveExecutionRefs,
-      primitiveDecision: "succeeded",
-      statusMessage: "Mouse Scroll executed governed primitive sequence.",
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: [],
-      primitiveCallId,
-      primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
-      timeoutDecision: "within_limit",
-      abortDecision: "not_requested",
-      circuitBreakerState: "closed",
-      portHangDetected: false,
-      primitivePortKind: perIterationPrimitiveProofs.at(-1)?.primitivePortKind ?? "browser-controller",
-      perIterationPrimitiveProofs: perIterationPrimitiveProofs as Array<{
-        repeatIndex: number;
-        primitiveCallId: string;
-        primitiveExecutionRef: string | null;
-        status: "succeeded";
-        startedAt: string;
-        endedAt: string;
-        durationMs: number;
-        timeoutDecision: "within_limit";
-        abortDecision: "not_requested";
-        portHangDetected: false;
-        primitivePortKind: string;
-      }>,
-    };
+    return buildSuccessResult(frame, input.context.clock.now(), store);
   } finally {
     primitiveRunnerState.activeScrolls = Math.max(0, primitiveRunnerState.activeScrolls - 1);
   }

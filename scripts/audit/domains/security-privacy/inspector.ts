@@ -3,11 +3,12 @@ import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesys
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { scanFilesForPatterns } from "../_shared/scan-for-patterns.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import type { PatternRule } from "../_shared/pattern-scan-rule.js";
 
 const LEGACY_FORENSICS_STORE_PATH = "src/capabilities/forensics-persistence/shared/store/evidence-store-service.ts";
 const STORAGE_ADAPTER_PATH = "src/lib/storage/evidence-store/evidence-store-service.ts";
 
-const SENSITIVE_PATTERNS = [
+const SENSITIVE_PATTERNS: PatternRule[] = [
   {
     lawId: "GRASSEYE-SECURITY-PRIVACY-001-V1",
     severity: "error",
@@ -32,7 +33,7 @@ const SENSITIVE_PATTERNS = [
     pattern: /browserless|remote browser|stealth|anti-detect|fingerprint spoof|proxy pool/i,
     message: "Forbidden remote-browser or anti-detection pattern found in source tree.",
   },
-] as const;
+];
 
 const hasSensitiveExport = (text: string): boolean => /export\s+(const|let|var|function|class|async function)\s+(raw|stored|saved|exported)?\s*(cookies?|cookieJar|access[_-]?token|refresh[_-]?token|session[_-]?token|auth[_-]?token|password)\b/i.test(text);
 

@@ -37,7 +37,7 @@ const circuitBreaker: CircuitBreaker = {
 
 let activeRuns = 0;
 
-function getCircuitBreakerState(nowMs: number): LocalAiCircuitBreakerState {
+function getCircuitBreakerState(nowMs: number): runtimeOutput.LocalAiCircuitBreakerState {
   if (circuitBreaker.openedAtMs === null) {
     return "closed";
   }

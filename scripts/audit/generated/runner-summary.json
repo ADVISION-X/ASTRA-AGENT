@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T00:41:35.628Z",
+  "generatedAt": "2026-05-01T01:54:13.980Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 2,
@@ -214,6 +214,20 @@
         {
           "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
           "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
+          "line": 12,
+          "severity": "error",
+          "message": "Owner inspector capabilityDomain literal does not match its manifest."
+        },
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
+          "line": 12,
+          "severity": "error",
+          "message": "Owner inspectorId literal does not match its manifest."
+        },
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
           "line": 1,
           "severity": "error",
           "message": "Owner inspector must export one default inspection entrypoint."
@@ -247,459 +261,18 @@
           "message": "Audit-system inspector must import inspectCodePurity from ../code-purity/components/inspect-code-purity.js."
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-ui/ast-utils.ts",
-          "line": 258,
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts",
+          "line": 1,
           "severity": "error",
-          "message": "Function hasUnsafeEscape exceeds code-purity function limits."
+          "message": "Import or export structure exceeds code-purity limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-          "file": "scripts/audit/domains/commander-console-ui/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File crosses too many real owner boundaries or cross-owner imports."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/commander-console-ui/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-ui/boundary-attack.ts",
-          "line": 22,
-          "severity": "error",
-          "message": "Function runBoundaryAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-ui/required-shape.ts",
-          "line": 29,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File crosses too many real owner boundaries or cross-owner imports."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/forbidden-shape.ts",
-          "line": 25,
-          "severity": "error",
-          "message": "Function runForbiddenShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/commander-console-user-love/required-shape.ts",
-          "line": 29,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/geometry-guard-capability/run-geometry-forbidden-checks.ts",
-          "line": 72,
-          "severity": "error",
-          "message": "Function hasNoForbiddenViolations exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/geometry-guard-capability/run-geometry-forbidden-checks.ts",
-          "line": 86,
-          "severity": "error",
-          "message": "Function getForbiddenShapePassed exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/geometry-guard-capability/run-geometry-required-shape-checks.ts",
-          "line": 124,
-          "severity": "error",
-          "message": "Function getRequiredShapePassed exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/local-ai-runtime/run-local-ai-runtime-checks.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit phase hard limit of 350 lines.",
-          "detail": "381"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "scripts/audit/domains/local-ai-runtime/run-local-ai-runtime-checks.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-ai-runtime/run-local-ai-runtime-checks.ts",
-          "line": 327,
-          "severity": "error",
-          "message": "Function createLocalAiRuntimePhases exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/local-app-shell/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "553"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-app-shell/inspector.ts",
-          "line": 83,
-          "severity": "error",
-          "message": "Function inspectLocalAppShellBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/local-browser-session/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "735"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-browser-session/inspector.ts",
-          "line": 402,
-          "severity": "error",
-          "message": "Function inspectLocalBrowserSessionBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-browser-session/inspector.ts",
-          "line": 173,
-          "severity": "error",
-          "message": "Function getReturnedObjectLiteral exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-browser-session/inspector.ts",
-          "line": 312,
-          "severity": "error",
-          "message": "Function hasForbiddenModuleReference exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/local-browser-session/inspector.ts",
-          "line": 356,
-          "severity": "error",
-          "message": "Function hasForbiddenApiUsage exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/mouse-scroll-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
-          "line": 17,
-          "severity": "error",
-          "message": "Function runForbiddenShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
-          "line": 24,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/multi-frame-evidence/inspector.ts",
-          "line": 15,
-          "severity": "error",
-          "message": "Function inspectMultiFrameScreenshotBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/multi-frame-evidence/inspector.ts",
-          "line": 63,
-          "severity": "error",
-          "message": "Function inspectMultiFrameAiBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/nerve-bus-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/nerve-bus-capability/boundary-attack.ts",
-          "line": 13,
-          "severity": "error",
-          "message": "Function runBoundaryAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/nerve-bus-capability/forbidden-shape.ts",
-          "line": 16,
-          "severity": "error",
-          "message": "Function runForbiddenShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
-          "line": 25,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/orchestration-capability/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "394"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/orchestration-capability/inspector.ts",
-          "line": 151,
-          "severity": "error",
-          "message": "Function orchestrationCapabilityInspector exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-          "file": "scripts/audit/domains/orchestration-capability/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File crosses too many real owner boundaries or cross-owner imports."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/platform-action/inspector.ts",
-          "line": 44,
-          "severity": "error",
-          "message": "Function inspectPlatformActionBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-          "file": "scripts/audit/domains/post-action-verification-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File crosses too many real owner boundaries or cross-owner imports."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/post-action-verification-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/post-action-verification-capability/forbidden-shape.ts",
-          "line": 8,
-          "severity": "error",
-          "message": "Function runForbiddenShape exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
-          "line": 9,
-          "severity": "error",
-          "message": "Function runRequiredShape exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/screenshot-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/screenshot-capability/forbidden-shape.ts",
-          "line": 9,
-          "severity": "error",
-          "message": "Function runForbiddenShape exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
-          "line": 9,
-          "severity": "error",
-          "message": "Function runRequiredShape exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/security-privacy/inspector.ts",
-          "line": 18,
-          "severity": "error",
-          "message": "Function securityPrivacyInspector exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/startup-entrypoint/inspector.ts",
-          "line": 52,
-          "severity": "error",
-          "message": "Function inspectStartupEntrypointBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/structured-logging/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "351"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/structured-logging/inspector.ts",
-          "line": 181,
-          "severity": "error",
-          "message": "Function inspectStructuredLoggingBoundary exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-          "file": "scripts/audit/domains/structured-logging/inspector.ts",
           "line": 1,
           "severity": "error",
           "message": "File crosses too many real owner boundaries or cross-owner imports."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/text-input-capability/ast-utils.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/text-input-capability/boundary-attack.ts",
-          "line": 12,
-          "severity": "error",
-          "message": "Function runBoundaryAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
-          "line": 17,
-          "severity": "error",
-          "message": "Function runForbiddenShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/text-input-capability/required-shape.ts",
-          "line": 40,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/type-safety/inspector.ts",
-          "line": 38,
-          "severity": "error",
-          "message": "Function inspectTypeSafety exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the audit inspector hard limit of 250 lines.",
-          "detail": "797"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 312,
-          "severity": "error",
-          "message": "Function hasCoordinateSpaceExclusion exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 389,
-          "severity": "error",
-          "message": "Function runRequiredShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 512,
-          "severity": "error",
-          "message": "Function runForbiddenShapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 566,
-          "severity": "error",
-          "message": "Function runBoundaryAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-          "line": 653,
-          "severity": "error",
-          "message": "Function runAntiEscapeAttack exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/app/runtime-api-handlers.ts",
-          "line": 23,
-          "severity": "error",
-          "message": "Function handleRuntimeReadRequest exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "src/app/task-api-handlers.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the app/api handler hard limit of 250 lines.",
-          "detail": "462"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/app/task-api-handlers.ts",
-          "line": 17,
-          "severity": "error",
-          "message": "Function resolveMissionStartBinding exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/app/task-api-handlers.ts",
-          "line": 114,
-          "severity": "error",
-          "message": "Function handleTaskRequest exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/ai/runtime/ai-payload-budget-gate.ts",
-          "line": 68,
-          "severity": "error",
-          "message": "Function evaluateAiPayloadBudgetGate exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
@@ -707,113 +280,6 @@
           "line": 1,
           "severity": "error",
           "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
-          "line": 94,
-          "severity": "error",
-          "message": "Function validateEvidenceBinding exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
-          "line": 111,
-          "severity": "error",
-          "message": "Function validateButtonAndTimingPolicy exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
-          "line": 171,
-          "severity": "error",
-          "message": "Function validateDesktopClickPolicy exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
-          "line": 238,
-          "severity": "error",
-          "message": "Function validateClickPolicy exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/geometry-proof-gate.ts",
-          "line": 3,
-          "severity": "error",
-          "message": "Function validateGeometryProof exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-dispatch-failure.ts",
-          "line": 6,
-          "severity": "error",
-          "message": "Function dispatchMouseClickFailure exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-idempotency.ts",
-          "line": 40,
-          "severity": "error",
-          "message": "Function createMouseClickIdempotencyRegistry exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-idempotency.ts",
-          "line": 73,
-          "severity": "error",
-          "message": "Function reserve exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-007-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-idempotency.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File mixes multiple roles behind neutral or broad structure.",
-          "detail": "schema-and-runtime"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-input-gate.ts",
-          "line": 170,
-          "severity": "error",
-          "message": "Function buildInvalidInputFailureEnvelope exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-proof-builder.ts",
-          "line": 6,
-          "severity": "error",
-          "message": "Function buildMouseClickRuntimeProof exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-          "line": 6,
-          "severity": "error",
-          "message": "Function buildMouseClickResult exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/pre-click-safety-gate.ts",
-          "line": 5,
-          "severity": "error",
-          "message": "Function validatePreClickSafety exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "File exceeds the runtime/implementation hard limit of 300 lines.",
-          "detail": "317"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-          "line": 39,
-          "severity": "error",
-          "message": "Function runPrimitiveClick exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -923,19 +389,40 @@
           "message": "Function validatePreScrollSafety exceeds code-purity function limits."
         },
         {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner-result.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
           "file": "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
           "line": 1,
           "severity": "error",
           "message": "File exceeds the runtime/implementation hard limit of 300 lines.",
-          "detail": "448"
+          "detail": "422"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
-          "line": 40,
+          "line": 211,
           "severity": "error",
-          "message": "Function runPrimitiveScroll exceeds code-purity function limits."
+          "message": "Function appendIterationProof exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
+          "line": 243,
+          "severity": "error",
+          "message": "Function runPrimitivePortCall exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
+          "line": 284,
+          "severity": "error",
+          "message": "Function runScrollIteration exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -2482,6 +1969,20 @@
           "message": "File crosses too many real owner boundaries or cross-owner imports."
         },
         {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/lib/local-runtime/runtime-round-lifecycle-recorder.ts",
+          "line": 16,
+          "severity": "error",
+          "message": "Function recordRoundLifecycleStep exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/runtime-round-lifecycle-recorder.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-005-V1",
           "file": "src/lib/local-runtime/runtime-round-request-builders.ts",
           "line": 1,
@@ -2767,13 +2268,6 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "src/types/local-browser-session.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Import or export structure exceeds code-purity limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
           "file": "src/types/local-persistence.ts",
           "line": 1,
           "severity": "error",
@@ -2901,7 +2395,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1341 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1389 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -2911,9 +2405,9 @@
         },
         {
           "name": "touched-file-rule",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Touched active files still exceed their hard limits."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Touched active files stay within hard limits."
         },
         {
           "name": "function-shape-limits",
@@ -2997,7 +2491,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 388
+      "violationCount": 317
     }
   ]
 }

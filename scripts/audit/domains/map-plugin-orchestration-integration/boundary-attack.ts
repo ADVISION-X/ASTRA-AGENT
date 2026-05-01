@@ -4,12 +4,16 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 import { getSource } from "./audit-project.js";
+import {
+  hasGovernedTaskStartBindingResolution,
+  hasTaskStartDelegation,
+  TASK_API_HANDLERS,
+  TASK_START_BINDING,
+} from "./task-start-launch-inspection.js";
 
 const ACTIVE_MAP_REGISTRY = "src/map-plugins/registry/active-map-registry.ts";
 const MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
 const TASK_TEMPLATE_REGISTRY = "src/features/commander-console/task-template-registry.ts";
-const TASK_API_HANDLERS = "src/app/task-api-handlers.ts";
-
 const inspectActiveRegistry = (project: Project): Finding[] => {
   const registrySource = getSource(project, ACTIVE_MAP_REGISTRY);
   return hasCallExpression(registrySource, "toDeveloperBinding") && hasCallExpression(registrySource, "toActiveOperationalMapRecord")
@@ -32,10 +36,13 @@ const inspectTaskTemplateRegistry = (project: Project): Finding[] => {
 };
 
 const inspectTaskApi = (project: Project): Finding[] => {
-  const taskApiSource = getSource(project, TASK_API_HANDLERS);
-  return hasCallExpression(taskApiSource, "resolveMissionStartBinding") && hasCallExpression(taskApiSource, "getDefaultMapPluginRegistry")
+  if (!hasTaskStartDelegation(project)) {
+    return [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_API_HANDLERS, line: 1, severity: "fatal", message: "Task API must route task-template launches through the dedicated task-start control path." })];
+  }
+
+  return hasGovernedTaskStartBindingResolution(project)
     ? []
-    : [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_API_HANDLERS, line: 1, severity: "fatal", message: "Task API must resolve task-template launches through the active registry instead of trusting raw ordinary-mode bindings." })];
+    : [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_START_BINDING, line: 1, severity: "fatal", message: "Task start launch binding must resolve task-template launches through the active registry instead of trusting raw ordinary-mode bindings." })];
 };
 
 export function runBoundaryAttack(project: Project): { findings: Finding[]; phase: InspectorPhase } {

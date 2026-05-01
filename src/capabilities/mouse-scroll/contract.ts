@@ -2,7 +2,7 @@ import type { z } from "zod";
 
 import type { MouseScrollClockPort } from "./ports/mouse-scroll-clock-port.js";
 import type { MouseScrollPrimitivePort } from "./ports/mouse-scroll-primitive-port.js";
-import type { MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idempotency.js";
+import type { MouseScrollIdempotencyRegistry } from "./runtime/mouse-scroll-idempotency-types.js";
 import {
   MouseScrollAbilityInputSchema,
   MouseScrollAbilityResultSchema,

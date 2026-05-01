@@ -186,9 +186,11 @@ const hasTraceabilityTypeFields = (runtimeProofType: SourceFile): boolean => {
   return [runtimeProofFields.has("proofId"), runtimeProofFields.has("outputRecordRefs"), runtimeProofFields.has("artifactRefs"), runtimeProofFields.has("debugLogRef")].every(Boolean);
 };
 
-const hasTraceabilityBuilderFields = (functionNode: Node | undefined): boolean => {
-  return Boolean(functionNode)
-    && hasObjectProperty(functionNode, "outputRecordRefs")
+const hasTraceabilityBuilderFields = (functionNode: Node | null | undefined): boolean => {
+  if (!functionNode) {
+    return false;
+  }
+  return hasObjectProperty(functionNode, "outputRecordRefs")
     && hasObjectProperty(functionNode, "artifactRefs")
     && hasObjectProperty(functionNode, "debugLogRef");
 };

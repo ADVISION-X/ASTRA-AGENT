@@ -3,6 +3,97 @@ import { MouseClickRuntimeProofSchema } from "../schema.js";
 import { MOUSE_CLICK_PROOF } from "../shared/mouse-click-proof.js";
 import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 
+function buildProofIdentity(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
+  return {
+    proofId: buildStableMouseClickRef("mouse-click-proof", [input.attemptRef, input.status]),
+    runId: buildStableMouseClickRef("mouse-click-run", [input.attemptRef, input.childCapabilityId]),
+    missionId: input.sessionId ?? input.attemptRef,
+    sessionId: input.sessionId,
+    roundId: input.roundId,
+    videoVisitId: input.videoVisitId,
+    abilityGroupId: "mouse-click",
+    childCapabilityId: input.childCapabilityId,
+    sourceAbilityGroupId: input.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.sourceChildCapabilityId,
+    inputRef: input.inputRef,
+    outputRef: input.outputRef,
+    attemptRef: input.attemptRef,
+  };
+}
+
+function buildProofGeometry(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
+  return {
+    actionExecutionRef: input.actionExecutionRef,
+    rejectionRef: input.rejectionRef,
+    parseErrorRef: input.parseErrorRef,
+    receivedShapeHash: input.receivedShapeHash,
+    geometryGuardRef: input.geometryGuardRef,
+    geometryGuardProofRef: input.geometryGuardProofRef,
+    sourceCoordinateProofRef: input.sourceCoordinateProofRef,
+    sourceTargetRef: input.sourceTargetRef,
+    sourceEvidenceRef: input.sourceEvidenceRef,
+    coordinateSpace: input.coordinateSpace,
+    sourceCoordinateSpace: input.sourceCoordinateSpace,
+    requestedExecutionSpace: input.requestedExecutionSpace,
+    normalizedCoordinateSpace: input.normalizedCoordinateSpace,
+    requestedCoordinate: input.requestedCoordinate,
+    executableCoordinate: input.executableCoordinate,
+    bounds: input.bounds,
+    sourceBounds: input.sourceBounds,
+    targetBounds: input.targetBounds,
+    coordinateRoundingDecision: input.coordinateRoundingDecision,
+    scaleDecision: input.scaleDecision,
+    transformDecision: input.transformDecision,
+  };
+}
+
+function buildProofPrimitive(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
+  return {
+    button: input.button,
+    clickCount: input.clickCount,
+    preActionDecision: input.preActionDecision,
+    policyDecision: input.policyDecision,
+    policyDecisionReason: input.policyDecisionReason,
+    geometryDecision: input.geometryDecision,
+    safetyDecision: input.safetyDecision,
+    safetyDecisionReason: input.safetyDecisionReason,
+    idempotencyKey: input.idempotencyKey,
+    idempotencyDecision: input.idempotencyDecision,
+    primitiveDecision: input.primitiveDecision,
+    primitiveCallId: input.primitiveCallId,
+    primitiveExecutionRef: input.primitiveExecutionRef,
+    primitiveTimeoutMs: input.primitiveTimeoutMs,
+    maxDurationMs: input.maxDurationMs,
+    timeoutDecision: input.timeoutDecision,
+    abortDecision: input.abortDecision,
+    circuitBreakerState: input.circuitBreakerState,
+    clickSuppressedReason: input.clickSuppressedReason,
+    primitivePortKind: input.primitivePortKind,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitiveEndedAt: input.primitiveEndedAt,
+  };
+}
+
+function buildProofOutcome(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
+  return {
+    postActionVerificationRequired: input.postActionVerificationRequired,
+    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
+    verificationRefPolicy: MOUSE_CLICK_PROOF.VERIFICATION_REF_POLICY,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+    status: input.status,
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason,
+    dataQualityFlags: input.dataQualityFlags,
+    clock: {
+      portKind: "system-monotonic-clock",
+      startedMonotonicMs: input.clock.startedMonotonicMs,
+      endedMonotonicMs: input.clock.endedMonotonicMs,
+    },
+  };
+}
+
 export function buildMouseClickRuntimeProof(input: {
   attemptRef: string;
   childCapabilityId: MouseClickChildCapabilityId;
@@ -68,76 +159,9 @@ export function buildMouseClickRuntimeProof(input: {
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
 }) {
   return MouseClickRuntimeProofSchema.parse({
-    proofId: buildStableMouseClickRef("mouse-click-proof", [input.attemptRef, input.status]),
-    runId: buildStableMouseClickRef("mouse-click-run", [input.attemptRef, input.childCapabilityId]),
-    missionId: input.sessionId ?? input.attemptRef,
-    sessionId: input.sessionId,
-    roundId: input.roundId,
-    videoVisitId: input.videoVisitId,
-    abilityGroupId: "mouse-click",
-    childCapabilityId: input.childCapabilityId,
-    sourceAbilityGroupId: input.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.sourceChildCapabilityId,
-    inputRef: input.inputRef,
-    outputRef: input.outputRef,
-    attemptRef: input.attemptRef,
-    actionExecutionRef: input.actionExecutionRef,
-    rejectionRef: input.rejectionRef,
-    parseErrorRef: input.parseErrorRef,
-    receivedShapeHash: input.receivedShapeHash,
-    geometryGuardRef: input.geometryGuardRef,
-    geometryGuardProofRef: input.geometryGuardProofRef,
-    sourceCoordinateProofRef: input.sourceCoordinateProofRef,
-    sourceTargetRef: input.sourceTargetRef,
-    sourceEvidenceRef: input.sourceEvidenceRef,
-    coordinateSpace: input.coordinateSpace,
-    sourceCoordinateSpace: input.sourceCoordinateSpace,
-    requestedExecutionSpace: input.requestedExecutionSpace,
-    normalizedCoordinateSpace: input.normalizedCoordinateSpace,
-    requestedCoordinate: input.requestedCoordinate,
-    executableCoordinate: input.executableCoordinate,
-    bounds: input.bounds,
-    sourceBounds: input.sourceBounds,
-    targetBounds: input.targetBounds,
-    coordinateRoundingDecision: input.coordinateRoundingDecision,
-    scaleDecision: input.scaleDecision,
-    transformDecision: input.transformDecision,
-    button: input.button,
-    clickCount: input.clickCount,
-    preActionDecision: input.preActionDecision,
-    policyDecision: input.policyDecision,
-    policyDecisionReason: input.policyDecisionReason,
-    geometryDecision: input.geometryDecision,
-    safetyDecision: input.safetyDecision,
-    safetyDecisionReason: input.safetyDecisionReason,
-    idempotencyKey: input.idempotencyKey,
-    idempotencyDecision: input.idempotencyDecision,
-    primitiveDecision: input.primitiveDecision,
-    primitiveCallId: input.primitiveCallId,
-    primitiveExecutionRef: input.primitiveExecutionRef,
-    primitiveTimeoutMs: input.primitiveTimeoutMs,
-    maxDurationMs: input.maxDurationMs,
-    timeoutDecision: input.timeoutDecision,
-    abortDecision: input.abortDecision,
-    circuitBreakerState: input.circuitBreakerState,
-    clickSuppressedReason: input.clickSuppressedReason,
-    primitivePortKind: input.primitivePortKind,
-    primitiveStartedAt: input.primitiveStartedAt,
-    primitiveEndedAt: input.primitiveEndedAt,
-    postActionVerificationRequired: input.postActionVerificationRequired,
-    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
-    verificationRefPolicy: MOUSE_CLICK_PROOF.VERIFICATION_REF_POLICY,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs: input.durationMs,
-    status: input.status,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    dataQualityFlags: input.dataQualityFlags,
-    clock: {
-      portKind: "system-monotonic-clock",
-      startedMonotonicMs: input.clock.startedMonotonicMs,
-      endedMonotonicMs: input.clock.endedMonotonicMs,
-    },
+    ...buildProofIdentity(input),
+    ...buildProofGeometry(input),
+    ...buildProofPrimitive(input),
+    ...buildProofOutcome(input),
   });
 }

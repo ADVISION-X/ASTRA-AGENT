@@ -11,6 +11,13 @@ import { missingFiles } from "./audit-files.js";
 import { SCORECARD_PATH } from "./constants.js";
 import { REQUIRED_AUDIT_FILES, REQUIRED_SOURCE_FILES } from "./file-lists.js";
 import { createBootstrappedRegistry } from "./registry-bootstrap.js";
+import {
+  hasGovernedTaskStartBindingResolution,
+  hasTaskStartDelegation,
+  TASK_API_HANDLERS,
+  TASK_START_BINDING,
+  TASK_START_FLOW,
+} from "./task-start-launch-inspection.js";
 
 const OPERATIONAL_MAP_PACKAGE_SCHEMA = "src/map-plugins/schema/operational-map-package.schema.ts";
 const TASK_TEMPLATE_PACKAGE_SCHEMA = "src/map-plugins/schema/task-template-package.schema.ts";
@@ -18,8 +25,6 @@ const ACTIVE_MAP_REGISTRY = "src/map-plugins/registry/active-map-registry.ts";
 const MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
 const ORCHESTRATION_SCHEMA = "src/capabilities/orchestration/schema.ts";
 const TASK_TEMPLATE_REGISTRY = "src/features/commander-console/task-template-registry.ts";
-const TASK_API_HANDLERS = "src/app/task-api-handlers.ts";
-
 const inspectMissingIntegrationFiles = async (): Promise<Finding[]> => {
   const missing = await missingFiles([...REQUIRED_SOURCE_FILES, ...REQUIRED_AUDIT_FILES]);
   return missing.map((filePath) => createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1", file: filePath, line: 1, severity: "fatal", message: "Map-plugin orchestration integration required file is missing." }));
@@ -74,13 +79,16 @@ const inspectOrchestrationSchema = async (): Promise<Finding[]> => {
 const inspectCommanderConsumers = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   const taskTemplateRegistrySource = getSource(project, TASK_TEMPLATE_REGISTRY);
-  const taskApiSource = getSource(project, TASK_API_HANDLERS);
 
   if (!hasCallExpression(taskTemplateRegistrySource, "listOrdinaryTaskTemplates") || !hasCallExpression(taskTemplateRegistrySource, "getTaskTemplateDeveloperBinding")) {
     findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander task-template registry must consume ordinary task feeds and optional developer bindings separately." }));
   }
-  if (!hasCallExpression(taskApiSource, "resolveMissionStartBinding") || !hasCallExpression(taskApiSource, "getDefaultMapPluginRegistry")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_API_HANDLERS, line: 1, severity: "fatal", message: "Task API must resolve approved launch bindings through the governed active registry before mission dispatch." }));
+  if (!hasTaskStartDelegation(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_API_HANDLERS, line: 1, severity: "fatal", message: "Task API must delegate /api/tasks/start through the dedicated task-start control path before mission dispatch." }));
+  }
+  if (!hasGovernedTaskStartBindingResolution(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_START_FLOW, line: 1, severity: "fatal", message: "Task start flow must resolve approved launch bindings through the governed active registry before mission dispatch." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_START_BINDING, line: 1, severity: "fatal", message: "Task start binding must source approved launch records from the governed active registry." }));
   }
 
   return findings;

@@ -75,6 +75,24 @@ function readFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function readBounds(value: unknown): { width: number; height: number } | null {
+  if (!isObject(value)) {
+    return null;
+  }
+  const width = readFiniteNumber(value.width);
+  const height = readFiniteNumber(value.height);
+  return width === null || height === null ? null : { width, height };
+}
+
+function readCoordinate(value: unknown): { x: number; y: number } | null {
+  if (!isObject(value)) {
+    return null;
+  }
+  const x = readFiniteNumber(value.x);
+  const y = readFiniteNumber(value.y);
+  return x === null || y === null ? null : { x, y };
+}
+
 function resolveChildCapabilityId(value: unknown): MouseClickChildCapabilityId {
   return value === "click-desktop-coordinate" ? "click-desktop-coordinate" : "click-browser-coordinate";
 }
@@ -84,6 +102,10 @@ function resolveCoordinateSpace(value: unknown, childCapabilityId: MouseClickChi
     return "desktopScreen";
   }
   return childCapabilityId === "click-desktop-coordinate" ? "desktopScreen" : "browserViewport";
+}
+
+function resolveSourceCoordinateSpace(value: unknown): MouseClickCoordinateSpace | null {
+  return value === "desktopScreen" || value === "browserViewport" ? value : null;
 }
 
 function resolveButton(value: unknown): MouseClickButton {
@@ -167,53 +189,76 @@ export function buildMouseClickExecutionSeed(input: ParsedMouseClickAbilityInput
   };
 }
 
-export function buildInvalidInputFailureEnvelope(input: unknown, fallbackChildCapabilityId?: MouseClickChildCapabilityId): MouseClickFailureEnvelope {
+function readFailureEnvelopeGeometry(raw: UnknownObject | null, childCapabilityId: MouseClickChildCapabilityId) {
+  const geometryProof = raw && isObject(raw.geometryGuardProof) ? raw.geometryGuardProof : null;
+  return {
+    geometryProof,
+    coordinateSpace: resolveCoordinateSpace(geometryProof?.normalizedCoordinateSpace, childCapabilityId),
+    requestedCoordinate: readCoordinate(geometryProof?.normalizedClickPoint),
+    targetBounds: readBounds(raw?.bounds),
+    sourceBounds: readBounds(geometryProof?.sourceBounds),
+  };
+}
+
+function readFailureEnvelopeRaw(input: unknown, fallbackChildCapabilityId?: MouseClickChildCapabilityId) {
   const raw = isObject(input) ? input : null;
   const childCapabilityId = fallbackChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
-  const geometryProof = raw && isObject(raw.geometryGuardProof) ? raw.geometryGuardProof : null;
   const safetyPolicy = MouseClickSafetyPolicySchema.safeParse(raw && isObject(raw.safetyPolicy) ? raw.safetyPolicy : undefined);
-  const coordinateSpace = resolveCoordinateSpace(geometryProof?.normalizedCoordinateSpace, childCapabilityId);
-  const requestedX = geometryProof && isObject(geometryProof.normalizedClickPoint)
-    ? readFiniteNumber(geometryProof.normalizedClickPoint.x)
-    : null;
-  const requestedY = geometryProof && isObject(geometryProof.normalizedClickPoint)
-    ? readFiniteNumber(geometryProof.normalizedClickPoint.y)
-    : null;
-  const boundsWidth = raw && isObject(raw.bounds) ? readFiniteNumber(raw.bounds.width) : null;
-  const boundsHeight = raw && isObject(raw.bounds) ? readFiniteNumber(raw.bounds.height) : null;
-  const sourceBoundsWidth = geometryProof && isObject(geometryProof.sourceBounds) ? readFiniteNumber(geometryProof.sourceBounds.width) : null;
-  const sourceBoundsHeight = geometryProof && isObject(geometryProof.sourceBounds) ? readFiniteNumber(geometryProof.sourceBounds.height) : null;
+  const geometryState = readFailureEnvelopeGeometry(raw, childCapabilityId);
   const receivedShapeHash = stableHash("mouse-click-input-shape", raw ?? input);
   const parseErrorRef = stableHash("mouse-click-parse-error", formatParseIssues(input));
 
   return {
-    attemptRef: stableHash("mouse-click-attempt", [receivedShapeHash, childCapabilityId]),
-    inputRef: stableHash("mouse-click-input", [receivedShapeHash, childCapabilityId]),
+    raw,
     childCapabilityId,
-    sessionId: null,
-    roundId: readNonEmptyString(raw?.roundId),
-    videoVisitId: readNonEmptyString(raw?.videoVisitId),
-    requestedBy: readNonEmptyString(raw?.requestedBy),
-    purpose: readNonEmptyString(raw?.purpose),
-    geometryGuardRef: geometryProof ? readNonEmptyString(geometryProof.geometryGuardRef) : null,
-    geometryGuardProofRef: geometryProof ? readNonEmptyString(geometryProof.proofId) : null,
-    sourceCoordinateProofRef: readNonEmptyString(raw?.sourceCoordinateProofRef),
-    sourceAbilityGroupId: geometryProof ? readNonEmptyString(geometryProof.sourceAbilityGroupId) : null,
-    sourceChildCapabilityId: geometryProof ? readNonEmptyString(geometryProof.sourceChildCapabilityId) : null,
-    sourceEvidenceRef: readNonEmptyString(raw?.sourceEvidenceRef),
-    sourceTargetRef: readNonEmptyString(raw?.sourceTargetRef),
-    parseErrorRef,
+    ...geometryState,
+    safetyPolicy,
     receivedShapeHash,
-    coordinateSpace,
-    sourceCoordinateSpace: geometryProof?.normalizedCoordinateSpace === "desktopScreen" || geometryProof?.normalizedCoordinateSpace === "browserViewport"
-      ? geometryProof.normalizedCoordinateSpace
-      : null,
-    requestedCoordinate: requestedX === null || requestedY === null ? null : { x: requestedX, y: requestedY },
-    sourceBounds: sourceBoundsWidth === null || sourceBoundsHeight === null ? null : { width: sourceBoundsWidth, height: sourceBoundsHeight },
-    targetBounds: boundsWidth === null || boundsHeight === null ? null : { width: boundsWidth, height: boundsHeight },
-    button: resolveButton(raw?.button),
-    clickCount: resolveClickCount(raw?.clickCount),
-    safetyPolicy: safetyPolicy.success ? safetyPolicy.data : MouseClickSafetyPolicySchema.parse(undefined),
+    parseErrorRef,
+  };
+}
+
+function buildFailureEnvelopeIdentity(rawState: ReturnType<typeof readFailureEnvelopeRaw>) {
+  return {
+    attemptRef: stableHash("mouse-click-attempt", [rawState.receivedShapeHash, rawState.childCapabilityId]),
+    inputRef: stableHash("mouse-click-input", [rawState.receivedShapeHash, rawState.childCapabilityId]),
+    childCapabilityId: rawState.childCapabilityId,
+    sessionId: null,
+    roundId: readNonEmptyString(rawState.raw?.roundId),
+    videoVisitId: readNonEmptyString(rawState.raw?.videoVisitId),
+    requestedBy: readNonEmptyString(rawState.raw?.requestedBy),
+    purpose: readNonEmptyString(rawState.raw?.purpose),
+    geometryGuardRef: rawState.geometryProof ? readNonEmptyString(rawState.geometryProof.geometryGuardRef) : null,
+    geometryGuardProofRef: rawState.geometryProof ? readNonEmptyString(rawState.geometryProof.proofId) : null,
+    sourceCoordinateProofRef: readNonEmptyString(rawState.raw?.sourceCoordinateProofRef),
+    sourceAbilityGroupId: rawState.geometryProof ? readNonEmptyString(rawState.geometryProof.sourceAbilityGroupId) : null,
+    sourceChildCapabilityId: rawState.geometryProof ? readNonEmptyString(rawState.geometryProof.sourceChildCapabilityId) : null,
+    sourceEvidenceRef: readNonEmptyString(rawState.raw?.sourceEvidenceRef),
+    sourceTargetRef: readNonEmptyString(rawState.raw?.sourceTargetRef),
+    parseErrorRef: rawState.parseErrorRef,
+    receivedShapeHash: rawState.receivedShapeHash,
+  };
+}
+
+function buildFailureEnvelopeRuntime(rawState: ReturnType<typeof readFailureEnvelopeRaw>) {
+  return {
+    coordinateSpace: rawState.coordinateSpace,
+    sourceCoordinateSpace: resolveSourceCoordinateSpace(rawState.geometryProof?.normalizedCoordinateSpace),
+    requestedCoordinate: rawState.requestedCoordinate,
+    sourceBounds: rawState.sourceBounds,
+    targetBounds: rawState.targetBounds,
+    button: resolveButton(rawState.raw?.button),
+    clickCount: resolveClickCount(rawState.raw?.clickCount),
+    safetyPolicy: rawState.safetyPolicy.success ? rawState.safetyPolicy.data : MouseClickSafetyPolicySchema.parse(undefined),
+  };
+}
+
+export function buildInvalidInputFailureEnvelope(input: unknown, fallbackChildCapabilityId?: MouseClickChildCapabilityId): MouseClickFailureEnvelope {
+  const rawState = readFailureEnvelopeRaw(input, fallbackChildCapabilityId);
+
+  return {
+    ...buildFailureEnvelopeIdentity(rawState),
+    ...buildFailureEnvelopeRuntime(rawState),
   };
 }
 

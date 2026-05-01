@@ -9,7 +9,9 @@ import type { RuntimeDeliveryState } from "../../types/runtime.js";
 import type { StructuredRuntimeSnapshotSummary } from "../../types/structured-log.js";
 import { isLocalAiRuntimeError } from "../local-ai/local-ai-runtime-error.js";
 import { createId } from "./ids.js";
-import { emitRuntimeSnapshotSummary, emitSupplementalRuntimeEvent, recordRoundLifecycleStep } from "./runtime-proof-support.js";
+import { recordRoundLifecycleStep } from "./runtime-round-lifecycle-recorder.js";
+import { emitSupplementalRuntimeEvent } from "./runtime-supplemental-event-recorder.js";
+import { emitRuntimeSnapshotSummary } from "./runtime-snapshot-summary-recorder.js";
 
 function describeLocalAiFailure(error: unknown): {
   decision: "local_ai_unavailable" | "invalid_ai_output";

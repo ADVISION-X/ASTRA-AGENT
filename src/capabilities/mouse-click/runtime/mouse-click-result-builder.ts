@@ -3,6 +3,109 @@ import { MouseClickAbilityResultSchema } from "../schema.js";
 import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 import { buildMouseClickRuntimeProof } from "./mouse-click-proof-builder.js";
 
+function buildVerificationState(input: Parameters<typeof buildMouseClickResult>[0]) {
+  const postActionVerificationRequired = input.status === "success";
+  const postActionVerificationHandoffRef = postActionVerificationRequired && input.actionExecutionRef && input.primitiveExecutionRef
+    ? buildStableMouseClickRef("mouse-click-post-action-verification", [input.actionExecutionRef, input.primitiveExecutionRef])
+    : null;
+  return { postActionVerificationRequired, postActionVerificationHandoffRef };
+}
+
+function buildSuccessOutput(input: Parameters<typeof buildMouseClickResult>[0], verification: ReturnType<typeof buildVerificationState>) {
+  return input.status === "success" && input.actionExecutionRef && input.primitiveExecutionRef && input.executableCoordinate
+    ? {
+        attemptRef: input.seed.attemptRef,
+        actionExecutionRef: input.actionExecutionRef,
+        primitiveExecutionRef: input.primitiveExecutionRef,
+        normalizedClickPoint: input.executableCoordinate,
+        coordinateSpace: input.seed.coordinateSpace,
+        button: input.seed.button,
+        clickCount: input.seed.clickCount,
+        postActionVerificationRequired: true as const,
+        postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
+      }
+    : null;
+}
+
+function buildRuntimeProofSeed(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string) {
+  return {
+    attemptRef: input.seed.attemptRef,
+    childCapabilityId: input.seed.childCapabilityId,
+    sessionId: input.seed.sessionId,
+    roundId: input.seed.roundId,
+    videoVisitId: input.seed.videoVisitId,
+    sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
+    parseErrorRef: input.seed.parseErrorRef,
+    receivedShapeHash: input.seed.receivedShapeHash,
+    geometryGuardRef: input.seed.geometryGuardRef,
+    geometryGuardProofRef: input.seed.geometryGuardProofRef,
+    sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
+    sourceTargetRef: input.seed.sourceTargetRef,
+    sourceEvidenceRef: input.seed.sourceEvidenceRef,
+    inputRef: input.seed.inputRef,
+    outputRef,
+    coordinateSpace: input.seed.coordinateSpace,
+    sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
+    requestedExecutionSpace: input.seed.coordinateSpace,
+    normalizedCoordinateSpace: input.seed.coordinateSpace,
+    requestedCoordinate: input.requestedCoordinate,
+    executableCoordinate: input.status === "success" ? input.executableCoordinate : null,
+    bounds: input.seed.targetBounds,
+    sourceBounds: input.seed.sourceBounds,
+    targetBounds: input.seed.targetBounds,
+    coordinateRoundingDecision: input.coordinateRoundingDecision,
+    scaleDecision: "not_applicable",
+    transformDecision: "geometry_guard_normalized_coordinate_accepted",
+  };
+}
+
+function buildRuntimeProofOutcome(input: Parameters<typeof buildMouseClickResult>[0], verification: ReturnType<typeof buildVerificationState>) {
+  return {
+    button: input.seed.button,
+    clickCount: input.seed.clickCount,
+    actionExecutionRef: input.actionExecutionRef,
+    rejectionRef: input.rejectionRef,
+    idempotencyKey: input.idempotencyKey,
+    idempotencyDecision: input.idempotencyDecision,
+    primitiveExecutionRef: input.primitiveExecutionRef,
+    primitiveCallId: input.primitiveCallId,
+    primitiveTimeoutMs: input.primitiveTimeoutMs,
+    maxDurationMs: input.maxDurationMs,
+    timeoutDecision: input.timeoutDecision,
+    abortDecision: input.abortDecision,
+    circuitBreakerState: input.circuitBreakerState,
+    clickSuppressedReason: input.clickSuppressedReason,
+    primitivePortKind: input.primitivePortKind,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitiveEndedAt: input.primitiveEndedAt,
+    postActionVerificationRequired: verification.postActionVerificationRequired,
+    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+    status: input.status,
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason,
+    preActionDecision: input.preActionDecision,
+    policyDecision: input.policyDecision,
+    policyDecisionReason: input.policyDecisionReason,
+    geometryDecision: input.geometryDecision,
+    safetyDecision: input.safetyDecision,
+    safetyDecisionReason: input.safetyDecisionReason,
+    primitiveDecision: input.primitiveDecision,
+    dataQualityFlags: input.dataQualityFlags,
+    clock: input.clock,
+  };
+}
+
+function buildRuntimeProofInput(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string, verification: ReturnType<typeof buildVerificationState>) {
+  return {
+    ...buildRuntimeProofSeed(input, outputRef),
+    ...buildRuntimeProofOutcome(input, verification),
+  };
+}
+
 export function buildMouseClickResult(input: {
   seed: MouseClickResultSeed;
   idempotencyKey: string | null;
@@ -41,88 +144,9 @@ export function buildMouseClickResult(input: {
   dataQualityFlags: string[];
 }) {
   const outputRef = buildStableMouseClickRef("mouse-click-output", [input.seed.attemptRef, input.status]);
-  const postActionVerificationRequired = input.status === "success";
-  const postActionVerificationHandoffRef = postActionVerificationRequired && input.actionExecutionRef && input.primitiveExecutionRef
-    ? buildStableMouseClickRef("mouse-click-post-action-verification", [input.actionExecutionRef, input.primitiveExecutionRef])
-    : null;
-  const output = input.status === "success" && input.actionExecutionRef && input.primitiveExecutionRef && input.executableCoordinate
-    ? {
-        attemptRef: input.seed.attemptRef,
-        actionExecutionRef: input.actionExecutionRef,
-        primitiveExecutionRef: input.primitiveExecutionRef,
-        normalizedClickPoint: input.executableCoordinate,
-        coordinateSpace: input.seed.coordinateSpace,
-        button: input.seed.button,
-        clickCount: input.seed.clickCount,
-        postActionVerificationRequired: true as const,
-        postActionVerificationHandoffRef,
-      }
-    : null;
-
-  const runtimeProof = buildMouseClickRuntimeProof({
-    attemptRef: input.seed.attemptRef,
-    childCapabilityId: input.seed.childCapabilityId,
-    sessionId: input.seed.sessionId,
-    roundId: input.seed.roundId,
-    videoVisitId: input.seed.videoVisitId,
-    sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
-    parseErrorRef: input.seed.parseErrorRef,
-    receivedShapeHash: input.seed.receivedShapeHash,
-    geometryGuardRef: input.seed.geometryGuardRef,
-    geometryGuardProofRef: input.seed.geometryGuardProofRef,
-    sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
-    sourceTargetRef: input.seed.sourceTargetRef,
-    sourceEvidenceRef: input.seed.sourceEvidenceRef,
-    inputRef: input.seed.inputRef,
-    outputRef,
-    coordinateSpace: input.seed.coordinateSpace,
-    sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
-    requestedExecutionSpace: input.seed.coordinateSpace,
-    normalizedCoordinateSpace: input.seed.coordinateSpace,
-    requestedCoordinate: input.requestedCoordinate,
-    executableCoordinate: input.status === "success" ? input.executableCoordinate : null,
-    bounds: input.seed.targetBounds,
-    sourceBounds: input.seed.sourceBounds,
-    targetBounds: input.seed.targetBounds,
-    coordinateRoundingDecision: input.coordinateRoundingDecision,
-    scaleDecision: "not_applicable",
-    transformDecision: "geometry_guard_normalized_coordinate_accepted",
-    button: input.seed.button,
-    clickCount: input.seed.clickCount,
-    actionExecutionRef: input.actionExecutionRef,
-    rejectionRef: input.rejectionRef,
-    idempotencyKey: input.idempotencyKey,
-    idempotencyDecision: input.idempotencyDecision,
-    primitiveExecutionRef: input.primitiveExecutionRef,
-    primitiveCallId: input.primitiveCallId,
-    primitiveTimeoutMs: input.primitiveTimeoutMs,
-    maxDurationMs: input.maxDurationMs,
-    timeoutDecision: input.timeoutDecision,
-    abortDecision: input.abortDecision,
-    circuitBreakerState: input.circuitBreakerState,
-    clickSuppressedReason: input.clickSuppressedReason,
-    primitivePortKind: input.primitivePortKind,
-    primitiveStartedAt: input.primitiveStartedAt,
-    primitiveEndedAt: input.primitiveEndedAt,
-    postActionVerificationRequired,
-    postActionVerificationHandoffRef,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs: input.durationMs,
-    status: input.status,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    preActionDecision: input.preActionDecision,
-    policyDecision: input.policyDecision,
-    policyDecisionReason: input.policyDecisionReason,
-    geometryDecision: input.geometryDecision,
-    safetyDecision: input.safetyDecision,
-    safetyDecisionReason: input.safetyDecisionReason,
-    primitiveDecision: input.primitiveDecision,
-    dataQualityFlags: input.dataQualityFlags,
-    clock: input.clock,
-  });
+  const verification = buildVerificationState(input);
+  const output = buildSuccessOutput(input, verification);
+  const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));
 
   return MouseClickAbilityResultSchema.parse({
     abilityGroupId: "mouse-click",

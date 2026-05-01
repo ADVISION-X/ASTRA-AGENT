@@ -109,7 +109,8 @@ function collectRunnerFindings(project: ReturnType<typeof makeProject>): Finding
 }
 
 function collectProofBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  return !hasCallExpressionPath(getSourceFile(project, PATHS.PROOF_BUILDER), ["NerveBusTransportProofSchema", "parse"])
+  const proofBuilderSource = getSourceFile(project, PATHS.PROOF_BUILDER);
+  return !proofBuilderSource || !hasCallExpressionPath(proofBuilderSource, ["NerveBusTransportProofSchema", "parse"])
     ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus proof builder must parse governed proof output." })]
     : [];
 }

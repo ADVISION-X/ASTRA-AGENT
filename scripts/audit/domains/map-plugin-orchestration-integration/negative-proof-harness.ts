@@ -30,9 +30,9 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "binding-resolution bypass mutation",
-    file: "src/app/task-api-handlers.ts",
-    search: "const resolvedBinding = resolveMissionStartBinding({",
-    replace: "const resolvedBinding = { ok: true, taskTemplateId, requestedPlatformId: normalizeRequestedPlatformId(body.requestedPlatformId), selectedMapId: body.selectedMapId?.trim() || null } as const;\n    // mutated: bypassed governed launch-binding resolution\n    void resolveMissionStartBinding;\n    const _unusedResolvedBinding = {",
+    file: "src/lib/local-app-shell/task-start-flow.ts",
+    search: "  const binding = resolveMissionStartBinding({\n    taskTemplateId: draft.taskTemplateId,\n    requestedPlatformId: draft.requestedPlatformId,\n    selectedMapId: draft.selectedMapId,\n  });",
+    replace: "  const binding = {\n    ok: true,\n    taskTemplateId: draft.taskTemplateId ?? \"mutated-template\",\n    activationId: \"mutated-activation\",\n    requestedPlatformId: draft.requestedPlatformId ?? \"tiktok-web\",\n    selectedMapId: draft.selectedMapId ?? \"mutated-map\",\n  } as const;\n  // mutated: bypassed governed launch-binding resolution",
   },
 ];
 

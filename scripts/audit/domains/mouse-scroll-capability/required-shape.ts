@@ -89,7 +89,13 @@ function collectChildImplementationFindings(project: ReturnType<typeof makeProje
       findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: childSource ? toMouseScrollRelativePath(childSource) : PATHS.INDEX, line: 1, severity: "fatal", message: "Mouse Scroll child implementation must delegate through executeMouseScroll." }));
       continue;
     }
-    const hasParse = childSource.getDescendants().some((node) => Node.isCallExpression(node) && Node.isPropertyAccessExpression(node.getExpression()) && node.getExpression().getName() === "parse");
+    const hasParse = childSource.getDescendants().some((node) => {
+      if (!Node.isCallExpression(node)) {
+        return false;
+      }
+      const expression = node.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "parse";
+    });
     if (!hasParse) {
       findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: toMouseScrollRelativePath(childSource), line: 1, severity: "fatal", message: "Mouse Scroll child implementation must parse its governed child result." }));
     }

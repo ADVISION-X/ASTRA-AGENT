@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import type { MouseClickIdempotencyRegistry } from "./runtime/mouse-click-idempotency.js";
+import type { MouseClickIdempotencyRegistry } from "./runtime/mouse-click-idempotency-port.js";
 import type { MouseClickClockPort } from "./ports/mouse-click-clock-port.js";
 import type { MouseClickPrimitivePort } from "./ports/mouse-click-primitive-port.js";
 import {

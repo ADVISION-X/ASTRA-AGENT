@@ -78,6 +78,18 @@ const getIdentifierLiteralValue = (initializer: Expression): string | undefined 
     : undefined;
 };
 
+const getPropertyAccessLiteralValue = (initializer: Expression): string | undefined => {
+  if (!Node.isPropertyAccessExpression(initializer)) {
+    return undefined;
+  }
+
+  const symbol = initializer.getNameNode().getSymbol() ?? initializer.getSymbol();
+  const declaration = symbol?.getDeclarations()[0];
+  return declaration && Node.isPropertyAssignment(declaration)
+    ? getStringLiteralValue(declaration.getInitializer())
+    : undefined;
+};
+
 export const getObjectLiteralString = (
   objectLiteral: ObjectLiteralExpression,
   propertyName: string,
@@ -88,7 +100,9 @@ export const getObjectLiteralString = (
   }
 
   const initializer = property.getInitializer();
-  return getStringLiteralValue(initializer) ?? (initializer ? getIdentifierLiteralValue(initializer) : undefined);
+  return getStringLiteralValue(initializer)
+    ?? (initializer ? getIdentifierLiteralValue(initializer) : undefined)
+    ?? (initializer ? getPropertyAccessLiteralValue(initializer) : undefined);
 };
 
 export const getReferencePaths = (identifier: Identifier): string[] => {

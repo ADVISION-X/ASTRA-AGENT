@@ -7,21 +7,25 @@ import { getAuditProject, getNodeLine, getSourceFileOrThrow, toRelativeSourcePat
 const REQUIRED_INSPECTOR_CALLS = [
   {
     localName: "validateGeneratedArtifacts",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./components/validate-generated-artifacts.js",
     importName: "validateGeneratedArtifacts",
   },
   {
     localName: "validateRequiredPhaseDomains",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./components/validate-required-phase-domains.js",
     importName: "validateRequiredPhaseDomains",
   },
   {
     localName: "validateNoSimulatedProductionPaths",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./components/validate-no-simulated-production-paths.js",
     importName: "validateNoSimulatedProductionPaths",
   },
   {
     localName: "inspectCodePurity",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "../code-purity/components/inspect-code-purity.js",
     importName: "inspectCodePurity",
   },
@@ -251,21 +255,22 @@ export const validateOwnedLawExecution = async (
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
   const project = getAuditProject();
-  const sourceFile = getSourceFileOrThrow(project, "scripts/audit/domains/audit-system/inspector.ts");
-  const relativePath = toRelativeSourcePath(sourceFile);
-  const promiseAllCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && Node.isIdentifier(expression.getExpression())
-      && expression.getExpression().getText() === "Promise"
-      && expression.getName() === "all";
-  });
-  const promiseAllArgument = promiseAllCall?.getArguments()[0];
-  const promiseAllItems = promiseAllArgument && Node.isArrayLiteralExpression(promiseAllArgument)
-    ? promiseAllArgument.getElements()
-    : [];
 
   for (const requiredCall of REQUIRED_INSPECTOR_CALLS) {
+    const sourceFile = getSourceFileOrThrow(project, requiredCall.targetFile);
+    const relativePath = toRelativeSourcePath(sourceFile);
+    const promiseAllCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+      const expression = callExpression.getExpression();
+      return Node.isPropertyAccessExpression(expression)
+        && Node.isIdentifier(expression.getExpression())
+        && expression.getExpression().getText() === "Promise"
+        && expression.getName() === "all";
+    });
+    const promiseAllArgument = promiseAllCall?.getArguments()[0];
+    const promiseAllItems = promiseAllArgument && Node.isArrayLiteralExpression(promiseAllArgument)
+      ? promiseAllArgument.getElements()
+      : [];
+
     findings.push(...collectRequiredCallFindings({ sourceFile, relativePath, requiredCall, promiseAllCall, promiseAllItems }));
   }
 

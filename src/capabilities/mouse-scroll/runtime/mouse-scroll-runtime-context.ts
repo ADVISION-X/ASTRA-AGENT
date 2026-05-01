@@ -1,7 +1,7 @@
 import type { MouseScrollAbilityResult, MouseScrollChildCapabilityId, ParsedMouseScrollAbilityInput } from "../contract.js";
 import type { MouseScrollClockPort } from "../ports/mouse-scroll-clock-port.js";
 import type { MouseScrollPrimitivePort } from "../ports/mouse-scroll-primitive-port.js";
-import type { MouseScrollIdempotencyRegistry } from "./mouse-scroll-idempotency.js";
+import type { MouseScrollIdempotencyRegistry } from "./mouse-scroll-idempotency-types.js";
 
 export type MouseScrollExecutionContext = {
   primitivePort: MouseScrollPrimitivePort;

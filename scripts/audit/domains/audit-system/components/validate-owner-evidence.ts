@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
+import { getRegisteredInspector } from "../../../core/inspector-registry.js";
 import { createFinding, createPhase } from "../../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 import { getAuditProject, getNodeLine, getObjectLiteralString, getSourceFileOrThrow, toRelativeSourcePath } from "../../../core/ts-morph.js";
@@ -147,29 +148,11 @@ const collectFinalizeResultFindings = (
   ];
 };
 
-const collectDefaultExportFindings = (
-  sourceFile: ReturnType<typeof getSourceFileOrThrow>,
-  typeChecker: ReturnType<ReturnType<typeof getAuditProject>["getTypeChecker"]>,
+const collectRegistryEntrypointFindings = (
+  owner: InspectorContext["enforcementMatrix"]["owners"][number],
   relativePath: string,
 ): Finding[] => {
-  const defaultExportSymbol = sourceFile.getDefaultExportSymbol();
-  if (!defaultExportSymbol) {
-    return [
-      createFinding({
-        lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-        file: relativePath,
-        line: 1,
-        severity: "error",
-        message: "Owner inspector must export one default inspection entrypoint.",
-      }),
-    ];
-  }
-
-  const defaultExportDeclaration = defaultExportSymbol.getDeclarations()[0];
-  const defaultExportType = defaultExportDeclaration
-    ? typeChecker.getTypeOfSymbolAtLocation(defaultExportSymbol, defaultExportDeclaration)
-    : undefined;
-  if (defaultExportType && defaultExportType.getCallSignatures().length > 0) {
+  if (getRegisteredInspector(owner.entry) !== null) {
     return [];
   }
 
@@ -177,16 +160,15 @@ const collectDefaultExportFindings = (
     createFinding({
       lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
       file: relativePath,
-      line: getNodeLine(defaultExportDeclaration ?? sourceFile),
+      line: 1,
       severity: "error",
-      message: "Owner inspector default export must resolve to a callable inspector type.",
+      message: "Owner inspector entry must be registered in the static audit inspector registry.",
     }),
   ];
 };
 
 const collectOwnerEvidenceFindings = (
   project: ReturnType<typeof getAuditProject>,
-  typeChecker: ReturnType<ReturnType<typeof getAuditProject>["getTypeChecker"]>,
   owner: InspectorContext["enforcementMatrix"]["owners"][number],
 ): Finding[] => {
   const sourceFile = getSourceFileOrThrow(project, owner.entry);
@@ -197,7 +179,7 @@ const collectOwnerEvidenceFindings = (
   return [
     ...collectSharedOwnerOptionFindings(owner, relativePath, sharedOwnerOptions, runDomainOwnerOptions),
     ...collectFinalizeResultFindings(sourceFile, owner, relativePath),
-    ...collectDefaultExportFindings(sourceFile, typeChecker, relativePath),
+    ...collectRegistryEntrypointFindings(owner, relativePath),
   ];
 };
 
@@ -207,7 +189,7 @@ const createOwnerEvidencePhase = (findings: Finding[]): InspectorPhase =>
     findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
     findings.length === 0,
     findings.length === 0
-      ? "Every owner inspector exposes shared owner evidence and domain alignment."
+      ? "Every owner inspector exposes shared owner evidence and static registry alignment."
       : "Some owner inspectors do not provide authentic owner evidence.",
   );
 
@@ -216,10 +198,9 @@ export const validateOwnerEvidence = async (
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const findings: Finding[] = [];
   const project = getAuditProject();
-  const typeChecker = project.getTypeChecker();
 
   for (const owner of context.enforcementMatrix.owners) {
-    findings.push(...collectOwnerEvidenceFindings(project, typeChecker, owner));
+    findings.push(...collectOwnerEvidenceFindings(project, owner));
   }
 
   return { findings, phases: [createOwnerEvidencePhase(findings)] };

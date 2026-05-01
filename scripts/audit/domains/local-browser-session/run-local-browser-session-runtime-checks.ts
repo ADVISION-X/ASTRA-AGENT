@@ -287,7 +287,8 @@ export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings:
   pushControllerFindings(findings, controllerSource);
   debug("validated local-browser-session helper, startup, workbench, server, and controller boundaries");
 
-  const runtimeBoundaryPassed = !findings.some((finding) => [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH].includes(finding.file));
+  const governedRuntimeFiles: string[] = [HELPER_PATH, CONTROLLER_PATH, WORKBENCH_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH];
+  const runtimeBoundaryPassed = !findings.some((finding) => governedRuntimeFiles.includes(finding.file));
   return {
     findings,
     phases: [

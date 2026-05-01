@@ -79,7 +79,7 @@ function createStartupFinding(input: StartupFindingInput): Finding {
     line: input.line ?? 1,
     severity: input.severity ?? "error",
     message: input.message,
-    detail: input.detail,
+    ...(input.detail !== undefined ? { detail: input.detail } : {}),
   });
 }
 

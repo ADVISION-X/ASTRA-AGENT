@@ -2,6 +2,53 @@ import type { MouseClickCoordinateSpace, ParsedMouseClickAbilityInput } from "..
 
 const MAX_ALLOWED_BOUND = 12_000;
 
+function createSafetyFailure(input: {
+  failureReason: "geometry_proof_missing_coordinate" | "invalid_bounds" | "bounds_too_large" | "unsupported_coordinate_space" | "non_finite_coordinate" | "out_of_bounds";
+  statusMessage: string;
+  safetyDecisionReason: string;
+  dataQualityFlags: string[];
+}) {
+  return {
+    ok: false as const,
+    status: "failed" as const,
+    failureReason: input.failureReason,
+    statusMessage: input.statusMessage,
+    policyDecision: "block" as const,
+    safetyDecision: "block" as const,
+    safetyDecisionReason: input.safetyDecisionReason,
+    dataQualityFlags: input.dataQualityFlags,
+  };
+}
+
+function validateRequestedCoordinate(request: ParsedMouseClickAbilityInput, expectedCoordinateSpace: MouseClickCoordinateSpace) {
+  const requestedCoordinate = request.geometryGuardProof.normalizedClickPoint;
+  if (!requestedCoordinate) {
+    return createSafetyFailure({ failureReason: "geometry_proof_missing_coordinate", statusMessage: "Mouse Click requires Geometry Guard normalizedClickPoint.", safetyDecisionReason: "geometry_coordinate_missing", dataQualityFlags: ["geometry_coordinate_missing"] });
+  }
+  return request.geometryGuardProof.normalizedCoordinateSpace !== expectedCoordinateSpace
+    ? createSafetyFailure({ failureReason: "unsupported_coordinate_space", statusMessage: "Geometry Guard coordinate space no longer matches this child capability.", safetyDecisionReason: "coordinate_space_mismatch", dataQualityFlags: ["coordinate_space_mismatch"] })
+    : requestedCoordinate;
+}
+
+function validateBounds(bounds: { width: number; height: number }) {
+  if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) || bounds.width <= 0 || bounds.height <= 0) {
+    return createSafetyFailure({ failureReason: "invalid_bounds", statusMessage: "Mouse Click bounds must be finite positive dimensions.", safetyDecisionReason: "invalid_bounds", dataQualityFlags: ["invalid_bounds"] });
+  }
+  return bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND
+    ? createSafetyFailure({ failureReason: "bounds_too_large", statusMessage: "Mouse Click bounds exceed the governed maximum size.", safetyDecisionReason: "bounds_too_large", dataQualityFlags: ["bounds_too_large"] })
+    : null;
+}
+
+function validateExecutableCoordinate(requestedCoordinate: { x: number; y: number }, bounds: { width: number; height: number }) {
+  if (!Number.isFinite(requestedCoordinate.x) || !Number.isFinite(requestedCoordinate.y)) {
+    return createSafetyFailure({ failureReason: "non_finite_coordinate", statusMessage: "Mouse Click requires finite coordinates.", safetyDecisionReason: "non_finite_coordinate", dataQualityFlags: ["non_finite_coordinate"] });
+  }
+  const executableCoordinate = { x: Math.round(requestedCoordinate.x), y: Math.round(requestedCoordinate.y) };
+  return executableCoordinate.x < 0 || executableCoordinate.x >= bounds.width || executableCoordinate.y < 0 || executableCoordinate.y >= bounds.height
+    ? createSafetyFailure({ failureReason: "out_of_bounds", statusMessage: "Mouse Click executableCoordinate is outside the governed bounds window.", safetyDecisionReason: "out_of_bounds", dataQualityFlags: ["out_of_bounds"] })
+    : executableCoordinate;
+}
+
 export function validatePreClickSafety(input: {
   request: ParsedMouseClickAbilityInput;
   expectedCoordinateSpace: MouseClickCoordinateSpace;
@@ -26,85 +73,18 @@ export function validatePreClickSafety(input: {
       safetyDecisionReason: string;
       dataQualityFlags: string[];
     } {
-  const requestedCoordinate = input.request.geometryGuardProof.normalizedClickPoint;
+  const requestedCoordinate = validateRequestedCoordinate(input.request, input.expectedCoordinateSpace);
   const bounds = input.request.bounds;
-  if (!requestedCoordinate) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "geometry_proof_missing_coordinate",
-      statusMessage: "Mouse Click requires Geometry Guard normalizedClickPoint.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "geometry_coordinate_missing",
-      dataQualityFlags: ["geometry_coordinate_missing"],
-    };
+  if (!("x" in requestedCoordinate)) {
+    return requestedCoordinate;
   }
-  if (input.request.geometryGuardProof.normalizedCoordinateSpace !== input.expectedCoordinateSpace) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "unsupported_coordinate_space",
-      statusMessage: "Geometry Guard coordinate space no longer matches this child capability.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "coordinate_space_mismatch",
-      dataQualityFlags: ["coordinate_space_mismatch"],
-    };
+  const boundsFailure = validateBounds(bounds);
+  if (boundsFailure) {
+    return boundsFailure;
   }
-  if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) || bounds.width <= 0 || bounds.height <= 0) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_bounds",
-      statusMessage: "Mouse Click bounds must be finite positive dimensions.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "invalid_bounds",
-      dataQualityFlags: ["invalid_bounds"],
-    };
-  }
-  if (bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "bounds_too_large",
-      statusMessage: "Mouse Click bounds exceed the governed maximum size.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "bounds_too_large",
-      dataQualityFlags: ["bounds_too_large"],
-    };
-  }
-  if (!Number.isFinite(requestedCoordinate.x) || !Number.isFinite(requestedCoordinate.y)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "non_finite_coordinate",
-      statusMessage: "Mouse Click requires finite coordinates.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "non_finite_coordinate",
-      dataQualityFlags: ["non_finite_coordinate"],
-    };
-  }
-
-  const executableCoordinate = {
-    x: Math.round(requestedCoordinate.x),
-    y: Math.round(requestedCoordinate.y),
-  };
-
-  if (executableCoordinate.x < 0 || executableCoordinate.x >= bounds.width || executableCoordinate.y < 0 || executableCoordinate.y >= bounds.height) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "out_of_bounds",
-      statusMessage: "Mouse Click executableCoordinate is outside the governed bounds window.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "out_of_bounds",
-      dataQualityFlags: ["out_of_bounds"],
-    };
+  const executableCoordinate = validateExecutableCoordinate(requestedCoordinate, bounds);
+  if (!("x" in executableCoordinate)) {
+    return executableCoordinate;
   }
 
   return {

@@ -15,7 +15,6 @@ type PrimitiveFailureReason =
 type PrimitiveFailureDecision = "failed" | "threw" | "aborted";
 
 type PrimitiveCommonFrame = {
-  primitiveExecutionRef: string | null;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -92,7 +91,6 @@ export type PrimitiveClickFailureResult = {
 export type PrimitiveClickResult = PrimitiveClickSuccessResult | PrimitiveClickFailureResult;
 
 const buildPrimitiveCommonFrame = (input: PrimitiveFrameInput): PrimitiveCommonFrame => ({
-  primitiveExecutionRef: input.primitiveExecutionRef,
   startedAt: input.startedSnapshot.isoTimestamp,
   endedAt: input.endedSnapshot.isoTimestamp,
   durationMs: Math.max(0, Math.round(input.endedSnapshot.monotonicMs - input.startedSnapshot.monotonicMs)),
@@ -114,6 +112,7 @@ export const buildPrimitiveFailureResult = (input: PrimitiveFailureInput): Primi
   ok: false,
   failureReason: input.failureReason,
   primitiveDecision: input.primitiveDecision,
+  primitiveExecutionRef: input.primitiveExecutionRef,
   statusMessage: input.statusMessage,
   dataQualityFlags: input.dataQualityFlags,
   timeoutDecision: input.timeoutTriggered ? "timed_out" : "within_limit",

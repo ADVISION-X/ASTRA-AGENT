@@ -51,7 +51,7 @@ const getObjectLiteralPropertyNames = (node: Node | undefined): Set<string> => {
   }));
 };
 
-const isShapePassthroughCall = (expression: Node): boolean => {
+const isShapePassthroughCall = (expression: Node): expression is import("ts-morph").PropertyAccessExpression => {
   return Node.isPropertyAccessExpression(expression)
     && (expression.getName() === "strict" || expression.getName() === "superRefine");
 };

@@ -96,6 +96,10 @@ function validateEvidenceBinding(request: ParsedMouseClickAbilityInput): MouseCl
     return null;
   }
 
+  return createEvidenceBindingFailure(request);
+}
+
+function createEvidenceBindingFailure(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure {
   const operatorApproved = request.safetyPolicy.allowOperatorManual && request.safetyPolicy.operatorManualApprovalRef !== null;
   return createPolicyFailure({
     status: operatorApproved ? "review_required" : "failed",
@@ -108,7 +112,7 @@ function validateEvidenceBinding(request: ParsedMouseClickAbilityInput): MouseCl
   });
 }
 
-function validateButtonAndTimingPolicy(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure | null {
+function validateButtonPolicy(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure | null {
   if (request.button === "right" && !request.safetyPolicy.allowRightClick) {
     return createPolicyFailure({
       status: "failed",
@@ -120,19 +124,20 @@ function validateButtonAndTimingPolicy(request: ParsedMouseClickAbilityInput): M
       dataQualityFlags: ["right_click_blocked"],
     });
   }
+  return request.clickCount === 2 && !request.safetyPolicy.allowDoubleClick
+    ? createPolicyFailure({
+        status: "failed",
+        failureReason: "double_click_not_allowed",
+        reviewRequiredReason: null,
+        statusMessage: "Double click is blocked unless allowDoubleClick=true.",
+        policyDecision: "block",
+        policyDecisionReason: "double_click_blocked",
+        dataQualityFlags: ["double_click_blocked"],
+      })
+    : null;
+}
 
-  if (request.clickCount === 2 && !request.safetyPolicy.allowDoubleClick) {
-    return createPolicyFailure({
-      status: "failed",
-      failureReason: "double_click_not_allowed",
-      reviewRequiredReason: null,
-      statusMessage: "Double click is blocked unless allowDoubleClick=true.",
-      policyDecision: "block",
-      policyDecisionReason: "double_click_blocked",
-      dataQualityFlags: ["double_click_blocked"],
-    });
-  }
-
+function validateTimingPolicy(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure | null {
   if (request.clickCount !== 1 && request.clickCount !== 2) {
     return createPolicyFailure({
       status: "failed",
@@ -144,35 +149,35 @@ function validateButtonAndTimingPolicy(request: ParsedMouseClickAbilityInput): M
       dataQualityFlags: ["invalid_click_count"],
     });
   }
-
-  return !Number.isFinite(request.safetyPolicy.maxDurationMs) || request.safetyPolicy.maxDurationMs <= 0
+  if (!Number.isFinite(request.safetyPolicy.maxDurationMs) || request.safetyPolicy.maxDurationMs <= 0) {
+    return createPolicyFailure({
+      status: "failed",
+      failureReason: "invalid_duration_limit",
+      reviewRequiredReason: null,
+      statusMessage: "Mouse Click maxDurationMs must be a finite positive integer.",
+      policyDecision: "block",
+      policyDecisionReason: "invalid_max_duration",
+      dataQualityFlags: ["invalid_max_duration"],
+    });
+  }
+  return !Number.isFinite(request.safetyPolicy.primitiveTimeoutMs) || request.safetyPolicy.primitiveTimeoutMs <= 0 || request.safetyPolicy.primitiveTimeoutMs > request.safetyPolicy.maxDurationMs
     ? createPolicyFailure({
         status: "failed",
-        failureReason: "invalid_duration_limit",
+        failureReason: "invalid_primitive_timeout",
         reviewRequiredReason: null,
-        statusMessage: "Mouse Click maxDurationMs must be a finite positive integer.",
+        statusMessage: "Mouse Click primitiveTimeoutMs must be finite, positive, and <= maxDurationMs.",
         policyDecision: "block",
-        policyDecisionReason: "invalid_max_duration",
-        dataQualityFlags: ["invalid_max_duration"],
+        policyDecisionReason: "invalid_primitive_timeout",
+        dataQualityFlags: ["invalid_primitive_timeout"],
       })
-    : !Number.isFinite(request.safetyPolicy.primitiveTimeoutMs) || request.safetyPolicy.primitiveTimeoutMs <= 0 || request.safetyPolicy.primitiveTimeoutMs > request.safetyPolicy.maxDurationMs
-      ? createPolicyFailure({
-          status: "failed",
-          failureReason: "invalid_primitive_timeout",
-          reviewRequiredReason: null,
-          statusMessage: "Mouse Click primitiveTimeoutMs must be finite, positive, and <= maxDurationMs.",
-          policyDecision: "block",
-          policyDecisionReason: "invalid_primitive_timeout",
-          dataQualityFlags: ["invalid_primitive_timeout"],
-        })
-      : null;
+    : null;
 }
 
-function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIsoTimestamp: string): MouseClickPolicyFailure | null {
-  if (request.childCapabilityId !== "click-desktop-coordinate") {
-    return null;
-  }
+function validateButtonAndTimingPolicy(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure | null {
+  return validateButtonPolicy(request) ?? validateTimingPolicy(request);
+}
 
+function validateDesktopPhasePolicy(request: ParsedMouseClickAbilityInput): MouseClickPolicyFailure | null {
   if (!request.safetyPolicy.currentPhaseAllowsDesktopClick) {
     return createPolicyFailure({
       status: "review_required",
@@ -184,19 +189,20 @@ function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIs
       dataQualityFlags: ["desktop_click_phase_blocked"],
     });
   }
+  return !request.safetyPolicy.platformProfileAllowsDesktopClick
+    ? createPolicyFailure({
+        status: "review_required",
+        failureReason: null,
+        reviewRequiredReason: "desktopScreen click is blocked by the active platform profile.",
+        statusMessage: "Desktop screen click is blocked by the platform profile.",
+        policyDecision: "review_required",
+        policyDecisionReason: "desktop_click_profile_blocked",
+        dataQualityFlags: ["desktop_click_profile_blocked"],
+      })
+    : null;
+}
 
-  if (!request.safetyPolicy.platformProfileAllowsDesktopClick) {
-    return createPolicyFailure({
-      status: "review_required",
-      failureReason: null,
-      reviewRequiredReason: "desktopScreen click is blocked by the active platform profile.",
-      statusMessage: "Desktop screen click is blocked by the platform profile.",
-      policyDecision: "review_required",
-      policyDecisionReason: "desktop_click_profile_blocked",
-      dataQualityFlags: ["desktop_click_profile_blocked"],
-    });
-  }
-
+function validateDesktopApprovalPolicy(request: ParsedMouseClickAbilityInput, nowIsoTimestamp: string): MouseClickPolicyFailure | null {
   if (!request.safetyPolicy.allowDesktopScreenClick) {
     return createPolicyFailure({
       status: "review_required",
@@ -208,7 +214,6 @@ function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIs
       dataQualityFlags: ["desktop_click_disabled_by_policy"],
     });
   }
-
   if (request.safetyPolicy.desktopScreenOperatorApprovalRef === null) {
     return createPolicyFailure({
       status: "review_required",
@@ -220,7 +225,6 @@ function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIs
       dataQualityFlags: ["desktop_operator_approval_missing"],
     });
   }
-
   return request.safetyPolicy.desktopOperatorApprovalValidUntil !== null
     && request.safetyPolicy.desktopOperatorApprovalValidUntil <= nowIsoTimestamp
     ? createPolicyFailure({
@@ -235,38 +239,32 @@ function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIs
     : null;
 }
 
+function validateDesktopClickPolicy(request: ParsedMouseClickAbilityInput, nowIsoTimestamp: string): MouseClickPolicyFailure | null {
+  if (request.childCapabilityId !== "click-desktop-coordinate") {
+    return null;
+  }
+  return validateDesktopPhasePolicy(request) ?? validateDesktopApprovalPolicy(request, nowIsoTimestamp);
+}
+
+function getClickPolicyValidators(nowIsoTimestamp: string): Array<(request: ParsedMouseClickAbilityInput) => MouseClickPolicyFailure | null> {
+  return [
+    validateRequiredFields,
+    validatePurposePolicy,
+    validateSourceBindings,
+    validateEvidenceBinding,
+    validateButtonAndTimingPolicy,
+    (request) => validateDesktopClickPolicy(request, nowIsoTimestamp),
+  ];
+}
+
 export function validateClickPolicy(input: { request: ParsedMouseClickAbilityInput; nowIsoTimestamp: string }):
   | { ok: true; policyDecision: "allow"; policyDecisionReason: "policy_gate_passed" }
   | MouseClickPolicyFailure {
-  const request = input.request;
-  const requiredFieldsFailure = validateRequiredFields(request);
-  if (requiredFieldsFailure) {
-    return requiredFieldsFailure;
-  }
-
-  const purposeFailure = validatePurposePolicy(request);
-  if (purposeFailure) {
-    return purposeFailure;
-  }
-
-  const sourceBindingFailure = validateSourceBindings(request);
-  if (sourceBindingFailure) {
-    return sourceBindingFailure;
-  }
-
-  const evidenceBindingFailure = validateEvidenceBinding(request);
-  if (evidenceBindingFailure) {
-    return evidenceBindingFailure;
-  }
-
-  const buttonTimingFailure = validateButtonAndTimingPolicy(request);
-  if (buttonTimingFailure) {
-    return buttonTimingFailure;
-  }
-
-  const desktopFailure = validateDesktopClickPolicy(request, input.nowIsoTimestamp);
-  if (desktopFailure) {
-    return desktopFailure;
+  for (const validate of getClickPolicyValidators(input.nowIsoTimestamp)) {
+    const failure = validate(input.request);
+    if (failure) {
+      return failure;
+    }
   }
 
   return { ok: true, policyDecision: "allow", policyDecisionReason: "policy_gate_passed" };
