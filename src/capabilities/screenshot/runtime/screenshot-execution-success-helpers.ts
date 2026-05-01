@@ -11,6 +11,9 @@ import { dispatchScreenshotExecutionFailure, type ScreenshotExecutionScope } fro
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotExecutionPlan, ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import { buildScreenshotSuccessOutput } from "./screenshot-result-builder.js";
+import { runArtifactStorageGate } from "./artifact-storage-gate.js";
+import { runCaptureRunner } from "./capture-runner.js";
+import { runImageProcessingRunner } from "./image-processing-runner.js";
 
 type ScreenshotDecision = ScreenshotRuntimeProof["privacyDecision"];
 
@@ -18,44 +21,9 @@ type ScreenshotGateFailure = {
   message: string;
 };
 
-type ScreenshotCaptureRun = {
-  failure: ScreenshotGateFailure | null;
-  decision: ScreenshotDecision;
-  captureResult?: {
-    kind: string;
-    capture: {
-      sourceFilePath?: string | null;
-      width?: number | null;
-      height?: number | null;
-      createdAt?: string | null;
-      pageUrl?: string | null;
-      pageTitle?: string | null;
-      screenId?: string | null;
-    };
-  } | null;
-};
-
-type ScreenshotImageRun = {
-  failure: ScreenshotGateFailure | null;
-  decision: ScreenshotDecision;
-  output?: {
-    outputFilePath?: string | null;
-    width?: number | null;
-    height?: number | null;
-    mimeType?: string | null;
-    sourceWidth?: number | null;
-    sourceHeight?: number | null;
-    cropOffsetX?: number | null;
-    cropOffsetY?: number | null;
-  };
-};
-
-type ScreenshotArtifactGate = {
-  failure: ScreenshotGateFailure | null;
-  decision: ScreenshotRuntimeProof["artifactDecision"];
-  artifactRef: { storageRef: string } | null;
-  outputHash: string | null;
-};
+type ScreenshotCaptureRun = Awaited<ReturnType<typeof runCaptureRunner>>;
+type ScreenshotImageRun = Awaited<ReturnType<typeof runImageProcessingRunner>>;
+type ScreenshotArtifactGate = Awaited<ReturnType<typeof runArtifactStorageGate>>;
 
 type ScreenshotRegionGate = {
   failure: ScreenshotGateFailure | null;
@@ -63,7 +31,7 @@ type ScreenshotRegionGate = {
 };
 
 type ScreenshotOutputBoundaryGate = {
-  decision: ScreenshotRuntimeProof["artifactDecision"];
+  decision: ScreenshotRuntimeProof["outputBoundaryDecision"];
   failure: ReturnType<typeof createScreenshotFailure> | null;
 };
 
@@ -113,21 +81,21 @@ const buildScreenshotSuccessOutputIdentityFields = (input: ScreenshotSuccessOutp
   evidenceId: input.pathInput.scope.evidenceId,
   pageUrl: input.pathInput.captureRun?.captureResult?.kind === "browser" ? input.pathInput.captureRun.captureResult.capture.pageUrl : null,
   pageTitle: input.pathInput.captureRun?.captureResult?.kind === "browser" ? input.pathInput.captureRun.captureResult.capture.pageTitle : null,
-  width: input.outputWidth,
-  height: input.outputHeight,
-  coordinateSpace: input.coordinateSpace,
+  width: input.outputWidth!,
+  height: input.outputHeight!,
+  coordinateSpace: input.coordinateSpace!,
   scaleMapping: input.scaleMapping,
   sourceHash: input.sourceHash,
   outputHash: input.pathInput.artifactGate.outputHash!,
 });
 
-const resolveScreenshotOriginalDimensions = (input: ScreenshotSuccessOutputInput): { originalWidth: number | null; originalHeight: number | null } => ({
+const resolveScreenshotOriginalDimensions = (input: ScreenshotSuccessOutputInput): { originalWidth: number; originalHeight: number } => ({
   originalWidth: input.pathInput.plan.kind === "capture"
-    ? input.outputWidth
-    : input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? input.outputWidth,
+    ? input.outputWidth!
+    : input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? input.outputWidth!,
   originalHeight: input.pathInput.plan.kind === "capture"
-    ? input.outputHeight
-    : input.pathInput.imageRun?.output?.sourceHeight ?? input.pathInput.gates.sourceGate.sourceProof?.sourceHeight ?? input.outputHeight,
+    ? input.outputHeight!
+    : input.pathInput.imageRun?.output?.sourceHeight ?? input.pathInput.gates.sourceGate.sourceProof?.sourceHeight ?? input.outputHeight!,
 });
 
 const resolveScreenshotSourceScreenshotEvidenceId = (input: ScreenshotSuccessOutputInput): string | null =>
@@ -135,7 +103,7 @@ const resolveScreenshotSourceScreenshotEvidenceId = (input: ScreenshotSuccessOut
 
 const resolveScreenshotScreenId = (input: ScreenshotSuccessOutputInput): string | null =>
   input.pathInput.captureRun?.captureResult?.kind === "desktop"
-    ? input.pathInput.captureRun.captureResult.capture.screenId
+    ? (input.pathInput.captureRun.captureResult.capture.screenId ?? null)
     : input.pathInput.request.source.kind === "desktop_screen"
       ? input.pathInput.request.source.screenId
       : null;
@@ -168,7 +136,7 @@ const resolveScreenshotScaleMapping = (input: ScreenshotSuccessPathInput): Scree
   input.plan.kind === "capture"
     ? buildIdentityScaleMapping({
         sourceScreenshotEvidenceId: null,
-        sourceStorageRef: input.artifactGate.artifactRef?.storageRef ?? input.scope.fallbackSourceArtifactRef ?? "",
+        sourceStorageRef: input.artifactGate.artifactRef?.storageRef ?? input.scope.fallbackSourceArtifactRef?.storageRef ?? "",
         sourceCoordinateSpace: input.registryEntry.coordinateSpacePolicy === "desktop_screen_pixels" ? "desktop_screen_pixels" : "browser_viewport_pixels",
         sourceWidth: input.captureRun?.captureResult?.capture.width ?? input.imageRun?.output?.sourceWidth ?? 0,
         sourceHeight: input.captureRun?.captureResult?.capture.height ?? input.imageRun?.output?.sourceHeight ?? 0,
@@ -215,7 +183,7 @@ const buildScreenshotOutputBoundaryFailureResult = (input: {
   captureRun: ScreenshotCaptureRun | null;
   imageRun: ScreenshotImageRun | null;
   outputBoundaryGate: ScreenshotOutputBoundaryGate;
-}): ScreenshotAbilityResult =>
+}): Promise<ScreenshotAbilityResult> =>
   dispatchScreenshotExecutionFailure({
     request: input.request,
     context: input.context,

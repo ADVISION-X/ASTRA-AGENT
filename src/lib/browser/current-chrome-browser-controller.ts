@@ -6,6 +6,8 @@ import { createInitialLocalBrowserSessionState } from "./local-browser-session.j
 import type {
   BrowserActionResult,
   BrowserCaptureResult,
+  BrowserTextInputAction,
+  BrowserTextInputKey,
   BrowserController,
   BrowserGeometrySnapshot,
   BrowserScrollCoordinateSpace,
@@ -20,6 +22,7 @@ import {
   buildOpenUrlScript,
   clickAt,
   readFrontChromeWindowState,
+  runAppleScript,
   scrollAt,
 } from "./current-chrome-browser-controller-primitives.js";
 import {
@@ -170,6 +173,15 @@ export class CurrentChromeBrowserController implements BrowserController {
   async close(): Promise<BrowserActionResult> {
     await this.refreshSnapshot().catch(() => undefined);
     return createBrowserActionResult({ actionId: createId("browser"), message: "left current Chrome session open for the operator", fallbackUsed: false });
+  }
+
+  private createActionResult(input: { message: string; ok?: boolean; fallbackUsed?: boolean }): BrowserActionResult {
+    return createBrowserActionResult({
+      actionId: createId("browser"),
+      message: input.message,
+      ...(input.ok === undefined ? {} : { ok: input.ok }),
+      ...(input.fallbackUsed === undefined ? {} : { fallbackUsed: input.fallbackUsed }),
+    });
   }
 
   private async refreshSnapshot() {

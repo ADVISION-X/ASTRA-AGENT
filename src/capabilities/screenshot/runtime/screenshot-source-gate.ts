@@ -5,6 +5,26 @@ import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
+type StoredImageScreenshotRequest = Extract<ScreenshotAbilityInput, { source: { kind: "stored_image" } }>;
+
+type StoredImageSourceProof = ScreenshotSourceProof & {
+  sourceStorageRef: string;
+  sourceArtifactRef: NonNullable<ScreenshotSourceProof["sourceArtifactRef"]>;
+  sourceHash: string;
+  sourceScreenshotEvidenceId: string;
+};
+
+function hasStoredImageSource(request: ScreenshotAbilityInput): request is StoredImageScreenshotRequest {
+  return request.source.kind === "stored_image";
+}
+
+function hasStoredImageSourceProof(sourceProof: ScreenshotSourceProof): sourceProof is StoredImageSourceProof {
+  return sourceProof.sourceStorageRef !== null
+    && sourceProof.sourceArtifactRef !== null
+    && sourceProof.sourceHash !== null
+    && sourceProof.sourceScreenshotEvidenceId !== null;
+}
+
 function buildScreenshotSourceFailure(input: {
   reason: string;
   message: string;
@@ -16,7 +36,7 @@ function buildScreenshotSourceFailure(input: {
     failure: createScreenshotFailure({
       code: "source_policy_violation",
       message: input.message,
-      detail: input.detail ?? undefined,
+      detail: input.detail ?? null,
     }),
   };
 }
@@ -39,7 +59,7 @@ function resolveScreenshotSourceKindFailure(request: ScreenshotAbilityInput) {
   return null;
 }
 
-function resolveStoredImageSourceHeaderFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageSourceHeaderFailure(request: StoredImageScreenshotRequest, sourceProof: ScreenshotSourceProof) {
   if (!sourceProof.proofRef) {
     return buildScreenshotSourceFailure({
       reason: "source_proof_ref_required",
@@ -47,31 +67,17 @@ function resolveStoredImageSourceHeaderFailure(request: ScreenshotAbilityInput, 
     });
   }
 
-  if (!sourceProof.sourceHash) {
-    return buildScreenshotSourceFailure({
-      reason: "source_hash_required",
-      message: "Stored image sourceProof must include sourceHash.",
-    });
-  }
-
-  if (!sourceProof.sourceScreenshotEvidenceId) {
-    return buildScreenshotSourceFailure({
-      reason: "source_screenshot_evidence_required",
-      message: "Stored image sourceProof must include sourceScreenshotEvidenceId.",
-    });
-  }
-
-  if (!sourceProof.sourceArtifactRef) {
+  if (!hasStoredImageSourceProof(sourceProof)) {
     return buildScreenshotSourceFailure({
       reason: "source_artifact_ref_required",
-      message: "Stored image sourceProof must include sourceArtifactRef.",
+      message: "Stored image sourceProof must include sourceHash, sourceScreenshotEvidenceId, sourceStorageRef, and sourceArtifactRef.",
     });
   }
 
   return resolveStoredImageSourceBindingFailure(request, sourceProof);
 }
 
-function resolveStoredImageStorageRefFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageStorageRefFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   if (sourceProof.sourceStorageRef && sourceProof.sourceStorageRef === request.source.sourceStorageRef) {
     return null;
   }
@@ -82,7 +88,7 @@ function resolveStoredImageStorageRefFailure(request: ScreenshotAbilityInput, so
   });
 }
 
-function resolveStoredImageArtifactStorageFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageArtifactStorageFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   if (sourceProof.sourceArtifactRef.storageRef === request.source.sourceStorageRef) {
     return null;
   }
@@ -93,7 +99,7 @@ function resolveStoredImageArtifactStorageFailure(request: ScreenshotAbilityInpu
   });
 }
 
-function resolveStoredImageArtifactHashFailure(sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageArtifactHashFailure(sourceProof: StoredImageSourceProof) {
   if (sourceProof.sourceArtifactRef.sha256 === sourceProof.sourceHash) {
     return null;
   }
@@ -104,7 +110,7 @@ function resolveStoredImageArtifactHashFailure(sourceProof: ScreenshotSourceProo
   });
 }
 
-function resolveStoredImageSessionFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageSessionFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   if (sourceProof.sessionId === request.sessionId) {
     return null;
   }
@@ -115,7 +121,7 @@ function resolveStoredImageSessionFailure(request: ScreenshotAbilityInput, sourc
   });
 }
 
-function resolveStoredImageRoundFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageRoundFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   if (!request.roundId || !sourceProof.roundId || sourceProof.roundId === request.roundId) {
     return null;
   }
@@ -126,7 +132,7 @@ function resolveStoredImageRoundFailure(request: ScreenshotAbilityInput, sourceP
   });
 }
 
-function resolveStoredImageVideoVisitFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageVideoVisitFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   if (!request.videoVisitId || !sourceProof.videoVisitId || sourceProof.videoVisitId === request.videoVisitId) {
     return null;
   }
@@ -137,7 +143,7 @@ function resolveStoredImageVideoVisitFailure(request: ScreenshotAbilityInput, so
   });
 }
 
-function resolveStoredImageSourceBindingFailure(request: ScreenshotAbilityInput, sourceProof: ScreenshotSourceProof) {
+function resolveStoredImageSourceBindingFailure(request: StoredImageScreenshotRequest, sourceProof: StoredImageSourceProof) {
   return (
     resolveStoredImageStorageRefFailure(request, sourceProof)
     ?? resolveStoredImageArtifactStorageFailure(request, sourceProof)
@@ -149,7 +155,7 @@ function resolveStoredImageSourceBindingFailure(request: ScreenshotAbilityInput,
 }
 
 async function resolveStoredImageSourceFileAvailabilityFailure(input: {
-  request: ScreenshotAbilityInput;
+  request: StoredImageScreenshotRequest;
 }) {
   await access(input.request.source.sourceStorageRef);
   const sourceFileStat = await lstat(input.request.source.sourceStorageRef);
@@ -164,8 +170,8 @@ async function resolveStoredImageSourceFileAvailabilityFailure(input: {
 }
 
 async function resolveStoredImageSourcePathFailure(input: {
-  request: ScreenshotAbilityInput;
-  sourceProof: ScreenshotSourceProof;
+  request: StoredImageScreenshotRequest;
+  sourceProof: StoredImageSourceProof;
 }) {
   const resolvedSourcePath = await realpath(input.request.source.sourceStorageRef);
   const resolvedArtifactPath = await realpath(input.sourceProof.sourceArtifactRef.storageRef);
@@ -180,9 +186,9 @@ async function resolveStoredImageSourcePathFailure(input: {
 }
 
 async function resolveStoredImageSourceHashFailure(input: {
-  request: ScreenshotAbilityInput;
+  request: StoredImageScreenshotRequest;
   context: ScreenshotRuntimeContext;
-  sourceProof: ScreenshotSourceProof;
+  sourceProof: StoredImageSourceProof;
 }) {
   const measuredHash = await input.context.imageProcessingPort.hashFile(input.request.source.sourceStorageRef);
   if (measuredHash === input.sourceProof.sourceHash) {
@@ -196,9 +202,9 @@ async function resolveStoredImageSourceHashFailure(input: {
 }
 
 async function resolveStoredImageSourceDimensionFailure(input: {
-  request: ScreenshotAbilityInput;
+  request: StoredImageScreenshotRequest;
   context: ScreenshotRuntimeContext;
-  sourceProof: ScreenshotSourceProof;
+  sourceProof: StoredImageSourceProof;
 }) {
   const measuredImage = await input.context.imageProcessingPort.inspectImage(input.request.source.sourceStorageRef);
   if ((input.sourceProof.sourceWidth && input.sourceProof.sourceWidth !== measuredImage.width) || (input.sourceProof.sourceHeight && input.sourceProof.sourceHeight !== measuredImage.height)) {
@@ -212,9 +218,9 @@ async function resolveStoredImageSourceDimensionFailure(input: {
 }
 
 async function resolveStoredImageSourceFileFailure(input: {
-  request: ScreenshotAbilityInput;
+  request: StoredImageScreenshotRequest;
   context: ScreenshotRuntimeContext;
-  sourceProof: ScreenshotSourceProof;
+  sourceProof: StoredImageSourceProof;
 }) {
   try {
     return (
@@ -235,15 +241,25 @@ async function resolveStoredImageSourceFileFailure(input: {
 }
 
 async function resolveStoredImageSourceGate(input: {
-  request: ScreenshotAbilityInput;
+  request: StoredImageScreenshotRequest;
   registryEntry: ScreenshotChildRegistryEntry;
   context: ScreenshotRuntimeContext;
 }) {
   const sourceProof = input.request.source.sourceProof;
+  const headerFailure = resolveStoredImageSourceHeaderFailure(input.request, sourceProof);
+  if (headerFailure) {
+    return headerFailure;
+  }
+
+  if (!hasStoredImageSourceProof(sourceProof)) {
+    return buildScreenshotSourceFailure({
+      reason: "source_artifact_ref_required",
+      message: "Stored image sourceProof must include sourceHash, sourceScreenshotEvidenceId, sourceStorageRef, and sourceArtifactRef.",
+    });
+  }
+
   return (
-    resolveStoredImageSourceHeaderFailure(input.request, sourceProof)
-    ?? resolveStoredImageSourceBindingFailure(input.request, sourceProof)
-    ?? await resolveStoredImageSourceFileFailure({ request: input.request, context: input.context, sourceProof })
+    await resolveStoredImageSourceFileFailure({ request: input.request, context: input.context, sourceProof })
     ?? {
       decision: { status: "passed" as const, reason: null },
       sourceProof,
@@ -274,14 +290,18 @@ async function resolveScreenshotSourceGate(input: {
     };
   }
 
-  if (input.request.source.kind !== "stored_image") {
+  if (!hasStoredImageSource(input.request)) {
     return buildScreenshotSourceFailure({
       reason: "stored_image_source_required",
       message: `${input.request.childCapabilityId} requires source.kind=stored_image.`,
     });
   }
 
-  return resolveStoredImageSourceGate(input);
+  return resolveStoredImageSourceGate({
+    request: input.request,
+    registryEntry: input.registryEntry,
+    context: input.context,
+  });
 }
 
 export async function runScreenshotSourceGate(input: {

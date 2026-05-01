@@ -26,6 +26,8 @@ type PageStatePreflightResolution =
   | { ok: true; state: PageStatePreflightState }
   | { ok: false; gate: FailedPageStateGate };
 
+type PageStateValidatedPreflightState = Omit<PageStatePreflightState, "freshnessGate" | "platformGate">;
+
 export type PageStatePreflightInput = {
   request: PageStateAbilityInput;
   clock: PageStateClockPort;
@@ -70,7 +72,9 @@ function dispatchPreflightFailure(input: PageStatePreflightInput, gate: FailedPa
     : dispatchPageStateFailure({ ...failureWithDecision, pageStateType: gate.failure.pageStateType });
 }
 
-function resolvePageStatePreflightValidationGates(input: PageStatePreflightInput): PageStatePreflightResolution {
+function resolvePageStatePreflightValidationGates(input: PageStatePreflightInput):
+  | { ok: true; state: PageStateValidatedPreflightState }
+  | { ok: false; gate: FailedPageStateGate } {
   const inputGate = gatePageStateInput(input.request);
   if (!inputGate.ok) return { ok: false, gate: inputGate };
 
@@ -90,19 +94,23 @@ function resolvePageStatePreflightValidationGates(input: PageStatePreflightInput
       payloadBudgetGate,
       sourceGate,
       proofBindingGate,
-      freshnessGate: gateSnapshotFreshness({ request: input.request, clock: input.clock }),
-      platformGate: gatePlatformProfile({ request: input.request, profilePort: input.profilePort }),
     },
   };
 }
 
-function resolvePageStatePreflightEnvironmentGates(input: PageStatePreflightInput, state: PageStatePreflightState): PageStatePreflightResolution {
-  if (!state.freshnessGate.ok) return { ok: false, gate: state.freshnessGate };
-  if (!state.platformGate.ok) return { ok: false, gate: state.platformGate };
+function resolvePageStatePreflightEnvironmentGates(input: PageStatePreflightInput, state: PageStateValidatedPreflightState): PageStatePreflightResolution {
+  const freshnessGate = gateSnapshotFreshness({ request: input.request, clock: input.clock });
+  if (!freshnessGate.ok) return { ok: false, gate: freshnessGate };
 
+  const platformGate = gatePlatformProfile({ request: input.request, profilePort: input.profilePort });
+  if (!platformGate.ok) return { ok: false, gate: platformGate };
   return {
     ok: true,
-    state,
+    state: {
+      ...state,
+      freshnessGate,
+      platformGate,
+    },
   };
 }
 

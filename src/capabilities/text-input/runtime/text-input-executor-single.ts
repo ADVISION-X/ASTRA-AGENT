@@ -1,4 +1,4 @@
-import type { TextInputResultSeed } from "./text-input-input-gate.js";
+import type { TextInputExecutionSeed } from "./text-input-input-gate.js";
 import type { TextInputRuntimeContext } from "./text-input-runtime-context.js";
 import {
   mergeFlags,
@@ -10,7 +10,7 @@ import { runPrimitiveTextInput } from "./primitive-text-input-runner.js";
 type PrimitiveTextInputRunResult = Awaited<ReturnType<typeof runPrimitiveTextInput>>;
 
 function buildSinglePrimitiveExecutionDraft(input: {
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
   primitiveResult: PrimitiveTextInputRunResult;
@@ -49,7 +49,7 @@ function buildSinglePrimitiveExecutionDraft(input: {
 
 export async function executeSinglePrimitiveOperation(input: {
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
 }) {

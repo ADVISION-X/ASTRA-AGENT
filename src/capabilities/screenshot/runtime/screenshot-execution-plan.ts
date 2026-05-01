@@ -1,4 +1,4 @@
-import type { ScreenshotAbilityInput } from "../contract.js";
+import type { PrepareAiInputInput, ScreenshotAbilityInput } from "../contract.js";
 import { captureBrowserViewportChildCapability } from "../children/capture-browser-viewport/implementation.js";
 import { captureDesktopScreenChildCapability } from "../children/capture-desktop-screen/implementation.js";
 import { captureRegionChildCapability } from "../children/capture-region/implementation.js";
@@ -13,7 +13,7 @@ const screenshotChildPlanExecutors = {
   "capture-region": captureRegionChildCapability.execute,
   "optimize-lossless": optimizeLosslessChildCapability.execute,
   "prepare-ai-input": (input: {
-    request: ScreenshotAbilityInput;
+    request: PrepareAiInputInput;
     context: ScreenshotRuntimeContext;
     resolvedMaxAiWidth: number | null;
   }) => prepareAiInputChildCapability.execute({
@@ -30,6 +30,22 @@ export async function executeScreenshotChildPlan(input: {
   context: ScreenshotRuntimeContext;
   resolvedMaxAiWidth: number | null;
 }): Promise<ScreenshotExecutionPlan | null> {
-  const executor = screenshotChildPlanExecutors[input.request.childCapabilityId as keyof typeof screenshotChildPlanExecutors];
-  return executor ? executor(input as never) : null;
+  switch (input.request.childCapabilityId) {
+    case "capture-browser-viewport":
+      return screenshotChildPlanExecutors["capture-browser-viewport"]({ request: input.request, context: input.context });
+    case "capture-desktop-screen":
+      return screenshotChildPlanExecutors["capture-desktop-screen"]({ request: input.request, context: input.context });
+    case "capture-region":
+      return screenshotChildPlanExecutors["capture-region"]({ request: input.request, context: input.context });
+    case "optimize-lossless":
+      return screenshotChildPlanExecutors["optimize-lossless"]({ request: input.request, context: input.context });
+    case "prepare-ai-input":
+      return screenshotChildPlanExecutors["prepare-ai-input"]({
+        request: input.request,
+        context: input.context,
+        resolvedMaxAiWidth: input.resolvedMaxAiWidth,
+      });
+    default:
+      return null;
+  }
 }

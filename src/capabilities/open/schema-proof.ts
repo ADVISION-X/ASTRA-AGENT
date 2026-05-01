@@ -118,6 +118,15 @@ const openRuntimeProofClockShape = {
   }).strict(),
 };
 
+const OpenRuntimeProofBaseSchema = z.object({
+  ...openRuntimeProofIdentityShape,
+  ...openRuntimeProofSourceShape,
+  ...openRuntimeProofDecisionShape,
+  ...openRuntimeProofClockShape,
+}).strict();
+
+type OpenRuntimeProofBaseValue = z.output<typeof OpenRuntimeProofBaseSchema>;
+
 const validateOpenRuntimeProofTiming = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx) => {
   if (value.clock.startedMonotonicMs > value.clock.endedMonotonicMs) {
     context.addIssue({
@@ -164,18 +173,14 @@ const validateOpenRuntimeProofOutput = (value: OpenRuntimeProofValidationValue, 
   }
 };
 
-const validateOpenRuntimeProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx) => {
-  validateOpenRuntimeProofTiming(value, context);
-  validateOpenRuntimeProofStatus(value, context);
-  validateOpenRuntimeProofOutput(value, context);
+const validateOpenRuntimeProof = (value: OpenRuntimeProofBaseValue, context: z.RefinementCtx) => {
+  const proof = value as OpenRuntimeProofValidationValue;
+  validateOpenRuntimeProofTiming(proof, context);
+  validateOpenRuntimeProofStatus(proof, context);
+  validateOpenRuntimeProofOutput(proof, context);
 };
 
-export const OpenRuntimeProofSchema = z.object({
-  ...openRuntimeProofIdentityShape,
-  ...openRuntimeProofSourceShape,
-  ...openRuntimeProofDecisionShape,
-  ...openRuntimeProofClockShape,
-}).strict().superRefine(validateOpenRuntimeProof);
+export const OpenRuntimeProofSchema = OpenRuntimeProofBaseSchema.superRefine(validateOpenRuntimeProof);
 
 export const OpenResultSchema = z.object({
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),

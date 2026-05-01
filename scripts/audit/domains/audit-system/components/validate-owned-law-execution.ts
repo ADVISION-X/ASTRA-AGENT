@@ -8,25 +8,25 @@ const REQUIRED_INSPECTOR_CALLS = [
   {
     localName: "validateGeneratedArtifacts",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    importPath: "./components/validate-generated-artifacts.js",
+    importPath: "./validate-generated-artifacts.js",
     importName: "validateGeneratedArtifacts",
   },
   {
     localName: "validateRequiredPhaseDomains",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    importPath: "./components/validate-required-phase-domains.js",
+    importPath: "./validate-required-phase-domains.js",
     importName: "validateRequiredPhaseDomains",
   },
   {
     localName: "validateNoSimulatedProductionPaths",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    importPath: "./components/validate-no-simulated-production-paths.js",
+    importPath: "./validate-no-simulated-production-paths.js",
     importName: "validateNoSimulatedProductionPaths",
   },
   {
     localName: "inspectCodePurity",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    importPath: "../code-purity/components/inspect-code-purity.js",
+    importPath: "../../code-purity/components/inspect-code-purity.js",
     importName: "inspectCodePurity",
   },
 ] as const;

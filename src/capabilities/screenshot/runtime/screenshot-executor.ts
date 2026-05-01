@@ -9,9 +9,9 @@ import { runPrivacyPolicyGate } from "./privacy-policy-gate.js";
 import { buildScreenshotExecutionScope, dispatchScreenshotExecutionFailure } from "./screenshot-execution-failure.js";
 import { executeScreenshotExecutionFlow } from "./screenshot-execution-flow.js";
 import { startScreenshotClock } from "./screenshot-clock.js";
+import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 type ScreenshotRuntimeContext = Parameters<typeof runBrowserSessionGate>[0]["context"];
-type ScreenshotChildRegistryEntry = ReturnType<typeof getScreenshotChildRegistryEntry>;
 
 const initializeScreenshotGates = async (input: {
   request: ScreenshotAbilityInput;
@@ -51,6 +51,9 @@ export async function executeScreenshotRequest(input: {
   context: ScreenshotRuntimeContext;
 }): Promise<ScreenshotAbilityResult> {
   const registryEntry = getScreenshotChildRegistryEntry(input.request.childCapabilityId);
+  if (!registryEntry) {
+    throw new Error(`Screenshot child capability is not registered for ${input.request.childCapabilityId}.`);
+  }
   const clockStart = startScreenshotClock(input.context.clockPort);
   const scope = buildScreenshotExecutionScope({ request: input.request, registryEntry });
   const gates = await initializeScreenshotGates({ request: input.request, context: input.context, registryEntry });

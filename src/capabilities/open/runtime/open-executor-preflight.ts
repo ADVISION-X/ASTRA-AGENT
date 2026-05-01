@@ -61,9 +61,14 @@ const resolveOpenChildTargetAndUrlState = async (input: {
     return { failureResult: targetPolicyFailure };
   }
 
+  const resolvedTargetUrl = targetPolicy.resolvedTargetUrl;
+  if (resolvedTargetUrl === null) {
+    return { failureResult: resolveTargetPolicyFailureResult({ request: input.request, profile: input.profile, started, clock: input.context.clock, targetPolicy })! };
+  }
+
   const urlSafety = evaluateUrlSafety({
     profile: input.profile,
-    targetUrl: targetPolicy.resolvedTargetUrl,
+    targetUrl: resolvedTargetUrl,
   });
   const urlSafetyFailure = resolveUrlSafetyFailureResult({
     request: input.request,
@@ -91,6 +96,10 @@ const resolveOpenChildSessionGateState = async (input: {
   state: OpenChildTargetAndUrlState;
 }): Promise<OpenChildSessionGateState | { failureResult: OpenResult }> => {
   const normalizedTargetUrl = input.state.urlSafety.normalizedUrl;
+  if (normalizedTargetUrl === null) {
+    return { failureResult: resolveUrlSafetyFailureResult({ request: input.request, profile: input.profile, started: input.state.started, clock: input.context.clock, targetPolicy: input.state.targetPolicy, urlSafety: input.state.urlSafety })! };
+  }
+
   const sessionGate = await evaluateRealChromeSession({
     browser: input.context.browser,
   });
@@ -121,6 +130,11 @@ const resolveOpenChildIdempotencyState = (input: {
   context: OpenChildExecutionContext;
   state: OpenChildSessionGateState;
 }): OpenChildPreflightState | { failureResult: OpenResult } => {
+  const sessionSnapshot = input.state.sessionGate.sessionSnapshot;
+  if (sessionSnapshot === null) {
+    return { failureResult: resolveSessionGateFailureResult({ request: input.request, profile: input.profile, started: input.state.started, clock: input.context.clock, targetPolicy: input.state.targetPolicy, urlSafety: input.state.urlSafety, sessionGate: input.state.sessionGate, normalizedTargetUrl: input.state.normalizedTargetUrl })! };
+  }
+
   const reservationClock = input.context.clock.now();
   const idempotency = input.context.idempotency.reserve({
     sessionId: input.request.sessionId,
@@ -128,7 +142,7 @@ const resolveOpenChildIdempotencyState = (input: {
     targetUrl: input.state.normalizedTargetUrl,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
-    currentUrl: input.state.sessionGate.sessionSnapshot.currentUrl,
+    currentUrl: sessionSnapshot.currentUrl,
     allowReplay: input.profile.allowReplay,
     nowIsoTimestamp: reservationClock.isoTimestamp,
     nowMonotonicMs: reservationClock.monotonicMs,

@@ -1,7 +1,11 @@
 import { POST_ACTION_CHILD_POLICY_MAP } from "../shared/post-action-policy.js";
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
 
-function createInputGateFailure(statusMessage: string, dataQualityFlag: string, failureReason: "missing_expected_outcome" | "missing_requested_context" | "action_status_not_success" | "source_runtime_proof_missing") {
+function createInputGateFailure(
+  statusMessage: string,
+  dataQualityFlag: string,
+  failureReason: "missing_expected_outcome" | "missing_requested_context" | "action_status_not_success" | "source_runtime_proof_missing",
+) {
   return {
     ok: false as const,
     status: "failed" as const,
@@ -63,19 +67,13 @@ function resolveSourceRuntimeProofFailure(request: ParsedPostActionVerificationA
 }
 
 export function validatePostActionVerificationInput(request: ParsedPostActionVerificationAbilityInput) {
-  return resolveExpectedOutcomeFailure(request)
-    ?? resolveRequestedContextFailure(request)
-    ?? resolveActionStatusFailure(request)
-    ?? resolveSourceRuntimeProofFailure(request)
-    ?? {
+  return (
+    resolveExpectedOutcomeFailure(request) ??
+    resolveRequestedContextFailure(request) ??
+    resolveActionStatusFailure(request) ??
+    resolveSourceRuntimeProofFailure(request) ?? {
       ok: true as const,
       inputDecision: "allow" as const,
-    };
-}
-  }
-
-  return {
-    ok: true,
-    inputDecision: "allow" as const,
-  };
+    }
+  );
 }

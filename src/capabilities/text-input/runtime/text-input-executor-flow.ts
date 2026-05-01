@@ -3,12 +3,12 @@ import type { TextInputRuntimeContext } from "./text-input-runtime-context.js";
 import type { TextInputRuntimeDecisionState } from "./text-input-execution-support.js";
 import { createTextInputActionExecutionRef } from "./text-input-execution-support.js";
 import { executeTextInputPlan } from "./text-input-executor-plan.js";
-import type { TextInputResultSeed } from "./text-input-input-gate.js";
+import type { TextInputExecutionSeed } from "./text-input-input-gate.js";
 
 export async function executeTextInputFlow(input: {
   request: ParsedTextInputAbilityInput;
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   state: TextInputRuntimeDecisionState;
 }) {
   return executeTextInputPlan({

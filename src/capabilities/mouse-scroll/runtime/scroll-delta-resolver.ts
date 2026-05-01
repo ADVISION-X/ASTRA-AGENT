@@ -168,6 +168,14 @@ function resolveCustomScrollDelta(input: DeltaResolutionInput): ScrollDeltaSucce
 }
 
 function resolveMagnitudeScrollDelta(input: DeltaResolutionInput): ScrollDeltaSuccess | ScrollDeltaFailure {
+  if (input.request.magnitude === "customDelta") {
+    return createScrollDeltaFailure({
+      failureReason: "invalid_custom_delta",
+      statusMessage: "Mouse Scroll magnitude resolver cannot execute customDelta without the custom-delta branch.",
+      dataQualityFlags: ["custom_delta_invalid"],
+    });
+  }
+
   const resolved = resolveAxisMagnitude({
     direction: input.direction,
     magnitude: input.request.magnitude,

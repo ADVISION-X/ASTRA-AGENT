@@ -1,4 +1,4 @@
-import type { ScreenshotAbilityInput } from "../contract.js";
+import type { ScreenshotAbilityInput, ScreenshotAbilityResult, ScreenshotFailure, ScreenshotRuntimeProof, ScreenshotSourceProof } from "../contract.js";
 import { runRegionProofGate } from "./region-proof-gate.js";
 import { runCaptureRunner } from "./capture-runner.js";
 import { runImageProcessingRunner } from "./image-processing-runner.js";
@@ -17,18 +17,19 @@ import {
   resolveScreenshotOutputMetadata,
 } from "./screenshot-execution-phase-helpers.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
-import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
+import type { ScreenshotChildRegistryEntry, ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotClockStart } from "./screenshot-clock.js";
-import type { ScreenshotAbilityResult, ScreenshotRuntimeProof } from "../contract.js";
+
+type ScreenshotDecision = ScreenshotRuntimeProof["privacyDecision"];
 
 export type ScreenshotExecutionGateState = {
-  failure: { message: string } | null;
-  decision: ScreenshotRuntimeProof["privacyDecision"];
+  failure: ScreenshotFailure | null;
+  decision: ScreenshotDecision;
 };
 
 export type ScreenshotExecutionSourceGateState = ScreenshotExecutionGateState & {
-  sourceProof: ScreenshotRuntimeProof["sourceProof"];
+  sourceProof: ScreenshotSourceProof | null;
 };
 
 export type ScreenshotExecutionBrowserSessionGateState = ScreenshotExecutionGateState & {
@@ -53,13 +54,13 @@ async function executeScreenshotRegionGatePhase(input: {
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
-}): Promise<{ regionGate: { failure: { message: string } | null; decision: ScreenshotRuntimeProof["privacyDecision"] } } | ScreenshotRuntimeProof["decisions"]> {
+}): Promise<{ regionGate: { failure: ScreenshotFailure | null; decision: ScreenshotDecision } } | ScreenshotAbilityResult> {
   const regionGate = runRegionProofGate({
     sourceProof: input.gates.sourceGate.sourceProof,
     region: input.plan.kind === "image-processing" && "region" in input.plan ? input.plan.region : null,
   });
   if (regionGate.failure || regionGate.decision.status === "failed") {
-    return buildScreenshotRegionValidationFailure({
+    return await buildScreenshotRegionValidationFailure({
       request: input.request,
       context: input.context,
       scope: input.scope,
@@ -81,7 +82,7 @@ async function executeScreenshotCaptureAndImagePhase(input: {
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
-  registryEntry: { maxDurationMs: number };
+  registryEntry: ScreenshotChildRegistryEntry;
 }): Promise<{ captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null; } | ScreenshotAbilityResult> {
   const captureRun = await resolveScreenshotCaptureRun({
     plan: input.plan,
@@ -95,7 +96,7 @@ async function executeScreenshotCaptureAndImagePhase(input: {
     context: input.context,
     registryEntry: input.registryEntry,
   });
-  const failure = resolveScreenshotCaptureAndImagePhaseFailure({
+  const failure = await resolveScreenshotCaptureAndImagePhaseFailure({
     request: input.request,
     context: input.context,
     scope: input.scope,
@@ -124,8 +125,8 @@ function validateAndExtractScreenshotMetadata(input: {
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
   gates: ScreenshotExecutionGates;
-}) {
-  const metadataResolution = resolveScreenshotOutputMetadata({
+}): Promise<ScreenshotAbilityResult | { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string }> {
+  return resolveScreenshotOutputMetadata({
     plan: input.plan,
     captureRun: input.captureRun,
     imageRun: input.imageRun,
@@ -134,13 +135,7 @@ function validateAndExtractScreenshotMetadata(input: {
     scope: input.scope,
     clockStart: input.clockStart,
     gates: input.gates,
-  });
-
-  if (!metadataResolution.ok) {
-    return metadataResolution.failure;
-  }
-
-  return metadataResolution.metadata;
+  }).then((metadataResolution) => (metadataResolution.ok ? metadataResolution.metadata : metadataResolution.failure));
 }
 
 async function executeScreenshotArtifactStoragePhase(input: {
@@ -153,7 +148,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
   clockStart: ScreenshotClockStart;
   gates: ScreenshotExecutionGates;
   metadata: { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string };
-  registryEntry: { maxDurationMs: number; outputImageKind: string; coordinateSpacePolicy: string };
+  registryEntry: ScreenshotChildRegistryEntry;
 }) {
   const artifactGate = await runArtifactStorageGate({
     context: input.context,
@@ -167,7 +162,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
     createdAt: input.metadata.createdAt,
   });
   if (artifactGate.failure || artifactGate.decision.status !== "passed" || !artifactGate.artifactRef || !artifactGate.outputHash) {
-    return buildScreenshotArtifactStorageFailure({
+    return await buildScreenshotArtifactStorageFailure({
       request: input.request,
       context: input.context,
       scope: input.scope,
@@ -201,11 +196,11 @@ export async function executeScreenshotExecutionPhases(input: {
   plan: ScreenshotExecutionPlan;
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
-  registryEntry: { maxDurationMs: number; outputImageKind: string; coordinateSpacePolicy: string };
+  registryEntry: ScreenshotChildRegistryEntry;
   clockStart: ScreenshotClockStart;
   scope: ScreenshotExecutionScope;
   gates: ScreenshotExecutionGates;
-}): Promise<Awaited<ReturnType<typeof executeScreenshotExecutionSuccess>> | ScreenshotRuntimeProof> {
+}): Promise<ScreenshotAbilityResult> {
   const regionPhase = await executeScreenshotRegionGatePhase(input);
   if ("status" in regionPhase) {
     return regionPhase;
@@ -214,7 +209,7 @@ export async function executeScreenshotExecutionPhases(input: {
   if ("status" in capturePhase) {
     return capturePhase;
   }
-  const metadataPhase = validateAndExtractScreenshotMetadata({
+  const metadataPhase = await validateAndExtractScreenshotMetadata({
     ...input,
     captureRun: capturePhase.captureRun,
     imageRun: capturePhase.imageRun,

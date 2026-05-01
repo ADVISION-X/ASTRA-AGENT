@@ -58,7 +58,7 @@ export class OllamaRuntimeAdapter implements LocalAiRuntimeAdapter {
       prompt: input.prompt,
       images: imageArtifacts.map((artifact) => artifact.base64),
       timeoutMs: input.timeoutMs,
-      debugHook: input.debugHook,
+      ...(input.debugHook ? { debugHook: input.debugHook } : {}),
     });
   }
 
@@ -70,7 +70,7 @@ export class OllamaRuntimeAdapter implements LocalAiRuntimeAdapter {
       model: input.modelName,
       prompt: input.prompt,
       timeoutMs: input.timeoutMs,
-      debugHook: input.debugHook,
+      ...(input.debugHook ? { debugHook: input.debugHook } : {}),
     });
   }
 

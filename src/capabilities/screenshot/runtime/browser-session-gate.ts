@@ -30,7 +30,7 @@ function buildBrowserSessionGateFailure(input: {
     failure: createScreenshotFailure({
       code: "browser_session_invalid",
       message: input.message,
-      detail: input.detail ?? undefined,
+      detail: input.detail ?? null,
     }),
   };
 }

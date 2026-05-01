@@ -97,10 +97,14 @@ function buildActionOutput(input: {
   selectedCandidate: VisualTargetResolvedCandidate;
 }): VisualTargetOutput {
   const geometryGuardHandoffRef = buildStableVisualTargetRef("visual-target-geometry-handoff", [input.commonOutput.targetId, input.commonOutput.sourceCandidateRef]);
+  const clickPoint = input.selectedCandidate.executableClickPoint ?? {
+    x: Math.round(input.selectedCandidate.executableBoundingBox.x + (input.selectedCandidate.executableBoundingBox.width / 2)),
+    y: Math.round(input.selectedCandidate.executableBoundingBox.y + (input.selectedCandidate.executableBoundingBox.height / 2)),
+  };
   return {
     targetNature: "action",
     ...input.commonOutput,
-    candidateClickPoint: input.selectedCandidate.executableClickPoint,
+    candidateClickPoint: clickPoint,
     executable: false,
     actionIntentCandidate: true,
     notExecutableUntilGeometryGuard: true,
@@ -115,7 +119,7 @@ function buildActionOutput(input: {
       coordinateSpace: input.commonOutput.coordinateSpace,
       originalCandidateCoordinateSpace: input.commonOutput.originalCandidateCoordinateSpace,
       boundingBox: input.commonOutput.boundingBox,
-      clickPoint: input.selectedCandidate.executableClickPoint,
+      clickPoint,
       scaleMapping: input.selectedCandidate.geometryScaleMapping,
     },
     parsedValue: null,

@@ -7,7 +7,10 @@ function getObservationsByKind<K extends PostActionObservation["kind"]>(
   observations: PostActionObservation[],
   kind: K,
 ): Array<PostActionObservation & { kind: K; payload: Extract<PostActionObservation["payload"], { kind: K }> }> {
-  return observations.filter((observation): observation is PostActionObservation & { kind: K; payload: Extract<PostActionObservation["payload"], { kind: K }> } => observation.kind === kind && observation.payload.kind === kind);
+  return observations.filter(
+    (observation): observation is PostActionObservation & { kind: K; payload: Extract<PostActionObservation["payload"], { kind: K }> } =>
+      observation.kind === kind && observation.payload.kind === kind,
+  );
 }
 
 function buildVideoChangedAfterScrollIncompleteResult(input: {
@@ -140,7 +143,6 @@ function resolveVideoChangedAfterScrollObservationPair(input: {
 
   return {
     ok: true as const,
-    videoIdentityObservations,
     beforeObservation,
     afterObservation,
   };
@@ -149,9 +151,14 @@ function resolveVideoChangedAfterScrollObservationPair(input: {
 function resolveVideoChangedAfterScrollOutcome(input: {
   beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
   afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
+  actionStartedAtMs: number;
+  actionEndedAtMs: number;
+  beforeEvidenceRef: string | null;
+  afterEvidenceRef: string | null;
+}) {
   if (
-    parsePostActionTimestampMs(input.beforeObservation.capturedAt) >= input.actionStartedAtMs
-    || parsePostActionTimestampMs(input.afterObservation.capturedAt) <= input.actionEndedAtMs
+    parsePostActionTimestampMs(input.beforeObservation.capturedAt) >= input.actionStartedAtMs ||
+    parsePostActionTimestampMs(input.afterObservation.capturedAt) <= input.actionEndedAtMs
   ) {
     return buildVideoChangedAfterScrollWindowConflictResult({
       beforeRef: input.beforeObservation.ref,
@@ -165,11 +172,12 @@ function resolveVideoChangedAfterScrollOutcome(input: {
   const afterVideoId = input.afterObservation.payload.videoId;
   const beforeSignature = input.beforeObservation.payload.visualSignature;
   const afterSignature = input.afterObservation.payload.visualSignature;
-  const changed = beforeVideoId !== null && afterVideoId !== null
-    ? beforeVideoId !== afterVideoId
-    : beforeSignature !== null && afterSignature !== null
-      ? beforeSignature !== afterSignature
-      : null;
+  const changed =
+    beforeVideoId !== null && afterVideoId !== null
+      ? beforeVideoId !== afterVideoId
+      : beforeSignature !== null && afterSignature !== null
+        ? beforeSignature !== afterSignature
+        : null;
 
   if (changed === null) {
     return buildVideoChangedAfterScrollUnknownResult({

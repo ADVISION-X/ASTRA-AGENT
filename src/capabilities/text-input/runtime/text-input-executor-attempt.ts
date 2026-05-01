@@ -5,12 +5,12 @@ import { restoreClipboardAfterOperation } from "./text-input-execution-support.j
 import { prepareTextInputClipboardExecution } from "./text-input-executor-clipboard.js";
 import { executeReplaceInputOperation } from "./text-input-executor-replace.js";
 import { executeSinglePrimitiveOperation } from "./text-input-executor-single.js";
-import type { TextInputResultSeed } from "./text-input-input-gate.js";
+import type { TextInputExecutionSeed } from "./text-input-input-gate.js";
 
 export async function executeTextInputAttempt(input: {
   request: ParsedTextInputAbilityInput;
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   state: TextInputRuntimeDecisionState;
   actionExecutionRef: string;
 }) {

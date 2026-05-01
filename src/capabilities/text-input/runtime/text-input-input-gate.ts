@@ -135,7 +135,9 @@ function resolveTargetKind(value: unknown): TextInputTargetKind | null {
 }
 
 function resolveKey(value: unknown): TextInputKey | TextInputCommitKey | null {
-  return typeof value === "string" && TEXT_INPUT_ALLOWED_KEYS.has(value as TextInputKey | TextInputCommitKey) ? value : null;
+  return typeof value === "string" && TEXT_INPUT_ALLOWED_KEYS.has(value as TextInputKey | TextInputCommitKey)
+    ? (value as TextInputKey | TextInputCommitKey)
+    : null;
 }
 
 function resolveSourceOwner(value: unknown): TextInputSourceOwner | null {

@@ -1,38 +1,9 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject, payloadValueToInteger, payloadValueToString } from "./workbench-payload.js";
-
-type HumanCommandType =
-  | "start-mission"
-  | "pause-mission"
-  | "resume-mission"
-  | "stop-mission"
-  | "emergency-stop"
-  | "approve-candidate"
-  | "reject-candidate"
-  | "mark-review-required"
-  | "hold-candidate";
+import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
+import type { HumanCommandEnvelope, HumanCommandResultEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 
 type HumanCommandStatus = "success" | "failed" | "review_required";
-
-type HumanCommandEnvelope = {
-  envelopeId: string;
-  commandId: string;
-  missionId: string;
-  mapId: string;
-  stepId: string;
-  inputRef: string;
-  commandType: HumanCommandType;
-};
-
-type HumanCommandResultEnvelope = {
-  envelopeId: string;
-  resultId: string;
-  status: HumanCommandStatus;
-  outputRef: string | null;
-  diagnosticPayloadRef: string | null;
-  failureReason: string | null;
-  reviewRequiredReason: string | null;
-};
 
 type HumanCommandHandledResult = {
   envelope: HumanCommandResultEnvelope;
@@ -236,7 +207,7 @@ export const handleHumanCommandEnvelope = async (
   runtime: WorkbenchRuntime,
   envelope: HumanCommandEnvelope,
   inputPayload: HumanCommandPayloadDocument,
-): Promise<HumanCommandHandledResult> => {
+): Promise<NerveBusHandledResult<HumanCommandResultEnvelope>> => {
   try {
     const payload = payloadDocumentToObject(inputPayload);
     return await routeHumanCommand(runtime, envelope, payload);

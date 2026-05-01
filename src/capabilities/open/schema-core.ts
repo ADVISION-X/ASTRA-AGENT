@@ -25,32 +25,32 @@ import {
   OPEN_TARGET_KINDS,
 } from "./shared/open-target-profile.js";
 
-const nullableString = z.string().min(1).nullable().default(null);
-const nullableUrl = z.string().url().nullable().default(null);
-const nonNegativeInt = z.number().int().nonnegative();
+export const nullableString = z.string().min(1).nullable().default(null);
+export const nullableUrl = z.string().url().nullable().default(null);
+export const nonNegativeInt = z.number().int().nonnegative();
 
-const OpenChildCapabilityIdSchema = z.enum(OPEN_CHILD_CAPABILITY_IDS);
-const OpenTargetKindSchema = z.enum(OPEN_TARGET_KINDS);
-const OpenPlatformIdSchema = z.enum(OPEN_PLATFORM_IDS);
-const OpenStatusSchema = z.enum(OPEN_RESULT_STATUSES);
-const OpenFailureCodeSchema = z.enum(OPEN_FAILURE_CODES);
-const OpenAllowedCallerSchema = z.enum(OPEN_ALLOWED_CALLERS);
-const OpenTargetUrlSourceSchema = z.enum(["provided", "registered_profile", "rejected_missing"]);
-const OpenTraceFieldSourceSchema = z.enum(["provided", "unavailable"]);
-const OpenFailureInputParseDecisionSchema = z.enum(["parsed", "fallback_trace_only"]);
-const OpenTimeoutDecisionSchema = z.enum(["within_limit", "timed_out"]);
-const OpenAbortDecisionSchema = z.enum(["not_requested", "timeout_abort_requested", "operator_abort_requested"]);
-const OpenCircuitBreakerStateSchema = z.enum(["closed", "open"]);
-const OpenIdempotencyDecisionSchema = z.enum([
+export const OpenChildCapabilityIdSchema = z.enum(OPEN_CHILD_CAPABILITY_IDS);
+export const OpenTargetKindSchema = z.enum(OPEN_TARGET_KINDS);
+export const OpenPlatformIdSchema = z.enum(OPEN_PLATFORM_IDS);
+export const OpenStatusSchema = z.enum(OPEN_RESULT_STATUSES);
+export const OpenFailureCodeSchema = z.enum(OPEN_FAILURE_CODES);
+export const OpenAllowedCallerSchema = z.enum(OPEN_ALLOWED_CALLERS);
+export const OpenTargetUrlSourceSchema = z.enum(["provided", "registered_profile", "rejected_missing"]);
+export const OpenTraceFieldSourceSchema = z.enum(["provided", "unavailable"]);
+export const OpenFailureInputParseDecisionSchema = z.enum(["parsed", "fallback_trace_only"]);
+export const OpenTimeoutDecisionSchema = z.enum(["within_limit", "timed_out"]);
+export const OpenAbortDecisionSchema = z.enum(["not_requested", "timeout_abort_requested", "operator_abort_requested"]);
+export const OpenCircuitBreakerStateSchema = z.enum(["closed", "open"]);
+export const OpenIdempotencyDecisionSchema = z.enum([
   "reserved",
   "duplicate_review_required",
   "already_on_target",
   "scope_capacity_exceeded",
   "not_started",
 ]);
-const OpenAlreadyOnTargetFreshnessDecisionSchema = z.enum(["not_applicable", "freshness_required", "freshness_verified"]);
+export const OpenAlreadyOnTargetFreshnessDecisionSchema = z.enum(["not_applicable", "freshness_required", "freshness_verified"]);
 
-const OpenDataQualityFlagSchema = z.object({
+export const OpenDataQualityFlagSchema = z.object({
   code: z.string().min(1),
   severity: z.enum(["info", "warn", "error"]),
   reason: z.string().min(1),
@@ -97,7 +97,7 @@ const OpenFailurePolicySchema = z.object({
   fakeAllowDecisionForbidden: z.literal(true),
 }).strict();
 
-const OpenFailureSchema = z.object({
+export const OpenFailureSchema = z.object({
   code: OpenFailureCodeSchema,
   message: z.string().min(1),
   detail: nullableString,
@@ -287,5 +287,26 @@ const OpenOutputSchema = z.object({
   pageStateHandoffRequired: z.literal(true),
 }).strict();
 
-export { nullableString, nullableUrl, nonNegativeInt, OpenChildCapabilityIdSchema, OpenTargetKindSchema, OpenPlatformIdSchema, OpenStatusSchema, OpenFailureCodeSchema, OpenAllowedCallerSchema, OpenTargetUrlSourceSchema, OpenTraceFieldSourceSchema, OpenFailureInputParseDecisionSchema, OpenTimeoutDecisionSchema, OpenAbortDecisionSchema, OpenCircuitBreakerStateSchema, OpenIdempotencyDecisionSchema, OpenAlreadyOnTargetFreshnessDecisionSchema, OpenDataQualityFlagSchema, OpenTimeoutPolicySchema, OpenIdempotencyPolicySchema, OpenBoundaryPolicySchema, OpenProofPolicySchema, OpenOutputPolicySchema, OpenFailurePolicySchema, OpenFailureSchema, OpenTargetProfileSchema, OpenRequestSchema, BrowserSessionSnapshotSchema, NavigationResultSchema, OpenTargetPolicyDecisionSchema, OpenUrlSafetyDecisionSchema, OpenSessionDecisionSchema, OpenNavigationDecisionSchema, PostOpenStateDecisionSchema, OpenOutputSchema };
+export {
+  BrowserLoginStateSchema,
+  BrowserModeSchema,
+  BrowserProfileStatusSchema,
+  BrowserProfileVerificationStatusSchema,
+  OpenTimeoutPolicySchema,
+  OpenIdempotencyPolicySchema,
+  OpenBoundaryPolicySchema,
+  OpenProofPolicySchema,
+  OpenOutputPolicySchema,
+  OpenFailurePolicySchema,
+  OpenTargetProfileSchema,
+  OpenRequestSchema,
+  BrowserSessionSnapshotSchema,
+  NavigationResultSchema,
+  OpenTargetPolicyDecisionSchema,
+  OpenUrlSafetyDecisionSchema,
+  OpenSessionDecisionSchema,
+  OpenNavigationDecisionSchema,
+  PostOpenStateDecisionSchema,
+  OpenOutputSchema,
+};
 

@@ -1,6 +1,6 @@
 import type { MouseScrollExecutionContext } from "./mouse-scroll-runtime-context.js";
 import { buildRunDurationMs } from "./primitive-scroll-frame.js";
-import { buildPrimitiveScrollFailureResult, type PrimitiveAbortDecision, type PrimitivePortResult, type PrimitiveScrollFailureReason, type PrimitiveScrollResult, type PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.js";
+import { buildPrimitiveScrollFailureResult, type PrimitiveAbortDecision, type PrimitiveScrollFailureReason, type PrimitiveScrollResult, type PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.js";
 import type { PrimitiveCallFrame, PrimitiveClockSnapshot, PrimitiveExecutionStore } from "./primitive-scroll-runner-types.js";
 import { closeCircuitIfExpired, getPrimitiveCircuitBreakerState, isPrimitiveConcurrencyBlocked, isPrimitiveCircuitOpen } from "./primitive-scroll-runner-state.js";
 

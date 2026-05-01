@@ -27,7 +27,7 @@ function buildPageOpenedMissingObservationResult() {
   });
 }
 
-function buildPageOpenedBlankResult(pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number]) {
+function buildPageOpenedBlankResult(pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number]) {
   return VerifyPageOpenedOutputSchema.parse({
     observedOutcome: "about:blank",
     verificationDecision: "failed",
@@ -44,7 +44,7 @@ function buildPageOpenedBlankResult(pageStateObservation: ReturnType<typeof getO
   });
 }
 
-function buildPageOpenedBlockedResult(pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number], loginState: string) {
+function buildPageOpenedBlockedResult(pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number], loginState: string) {
   return VerifyPageOpenedOutputSchema.parse({
     observedOutcome: loginState,
     verificationDecision: "failed",
@@ -61,7 +61,7 @@ function buildPageOpenedBlockedResult(pageStateObservation: ReturnType<typeof ge
   });
 }
 
-function buildPageOpenedReviewRequiredResult(pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number], loginState: string) {
+function buildPageOpenedReviewRequiredResult(pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number], loginState: string) {
   return VerifyPageOpenedOutputSchema.parse({
     observedOutcome: loginState,
     verificationDecision: "review_required",
@@ -78,7 +78,7 @@ function buildPageOpenedReviewRequiredResult(pageStateObservation: ReturnType<ty
   });
 }
 
-function buildPageOpenedUrlMismatchResult(pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number], currentUrl: string, reason: "host_mismatch" | "url_prefix_mismatch") {
+function buildPageOpenedUrlMismatchResult(pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number], currentUrl: string, reason: "host_mismatch" | "prefix_mismatch") {
   return VerifyPageOpenedOutputSchema.parse({
     observedOutcome: currentUrl,
     verificationDecision: "failed",
@@ -95,7 +95,7 @@ function buildPageOpenedUrlMismatchResult(pageStateObservation: ReturnType<typeo
   });
 }
 
-function buildPageOpenedSuccessResult(pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number], currentUrl: string) {
+function buildPageOpenedSuccessResult(pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number], currentUrl: string) {
   return VerifyPageOpenedOutputSchema.parse({
     observedOutcome: currentUrl,
     verificationDecision: "verified",
@@ -124,7 +124,7 @@ function resolvePageOpenedObservation(input: {
 }
 
 function resolvePageOpenedLoginState(input: {
-  pageStateObservation: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number];
+  pageStateObservation: ReturnType<typeof getObservationsByKind<"page_state">>[number];
 }) {
   const currentUrl = input.pageStateObservation.payload.currentUrl;
   const loginState = input.pageStateObservation.payload.loginState;
@@ -145,7 +145,7 @@ function resolvePageOpenedLoginState(input: {
 
 function resolvePageOpenedResult(input: {
   observations: PostActionObservation[];
-  expectedUrlHost: string;
+  expectedUrlHost: string | null;
   expectedUrlPrefix?: string | null;
 }) {
   const observationResolution = resolvePageOpenedObservation({ observations: input.observations });
@@ -161,11 +161,18 @@ function resolvePageOpenedResult(input: {
   const urlDecision = verifyNormalizedPostActionUrl({
     currentUrl: loginResolution.currentUrl,
     expectedUrlHost: input.expectedUrlHost,
-    expectedUrlPrefix: input.expectedUrlPrefix,
+    expectedUrlPrefix: input.expectedUrlPrefix ?? null,
   });
 
-  if (!urlDecision.ok) {
+  if (urlDecision.reason === "host_mismatch" || urlDecision.reason === "prefix_mismatch") {
     return buildPageOpenedUrlMismatchResult(observationResolution.pageStateObservation, loginResolution.currentUrl, urlDecision.reason);
+  }
+
+  if (urlDecision.reason !== null) {
+    return buildPageOpenedReviewRequiredResult(
+      observationResolution.pageStateObservation,
+      observationResolution.pageStateObservation.payload.loginState ?? "unknown",
+    );
   }
 
   return buildPageOpenedSuccessResult(observationResolution.pageStateObservation, loginResolution.currentUrl);
@@ -173,7 +180,7 @@ function resolvePageOpenedResult(input: {
 
 async function executeVerifyPageOpened(input: {
   observations: PostActionObservation[];
-  expectedUrlHost: string;
+  expectedUrlHost: string | null;
   expectedUrlPrefix?: string | null;
 }) {
   return resolvePageOpenedResult(input);

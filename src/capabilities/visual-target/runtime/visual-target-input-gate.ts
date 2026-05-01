@@ -44,7 +44,7 @@ function readKnownEnum<T extends readonly string[]>(value: unknown, allowed: T):
     : null;
 }
 
-export function parseVisualTargetAbilityInput(input: VisualTargetAbilityInput) {
+export function parseVisualTargetAbilityInput(input: unknown) {
   return VisualTargetAbilityInputSchema.safeParse(input);
 }
 

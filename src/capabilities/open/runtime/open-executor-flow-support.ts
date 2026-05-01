@@ -112,6 +112,20 @@ export const resolveIdempotencyFailureResult = (input: {
     return null;
   }
 
+  const beforeSession = input.sessionGate.sessionSnapshot;
+  if (beforeSession === null) {
+    return buildSessionGateFailureResult({
+      request: input.request,
+      profile: input.profile,
+      startedAt: input.started,
+      endedAt: input.clock.now(),
+      targetPolicyDecision: input.targetPolicy.decision,
+      urlSafetyDecision: input.urlSafety.decision,
+      sessionGate: input.sessionGate,
+      normalizedTargetUrl: input.normalizedTargetUrl,
+    });
+  }
+
   const ended = input.clock.now();
   return buildIdempotencyFailureResult({
     request: input.request,
@@ -121,7 +135,7 @@ export const resolveIdempotencyFailureResult = (input: {
     targetPolicyDecision: input.targetPolicy.decision,
     urlSafetyDecision: input.urlSafety.decision,
     sessionDecision: input.sessionGate.decision,
-    beforeSession: input.sessionGate.sessionSnapshot,
+    beforeSession,
     normalizedTargetUrl: input.normalizedTargetUrl,
     idempotency: {
       idempotencyKey: input.idempotency.idempotencyKey,

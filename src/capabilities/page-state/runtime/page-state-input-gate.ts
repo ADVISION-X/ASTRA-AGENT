@@ -1,8 +1,8 @@
-import type { PageStateAbilityInput } from "../schema.js";
+import type { PageStateAbilityInput, PageStateFailureReason } from "../schema.js";
 import { childRequiresObservationSupport } from "../shared/page-state-policy.js";
 import type { PageStateGateFailure } from "../shared/page-state-types.js";
 
-function resolvePageStateInputFailure(request: PageStateAbilityInput): { failureReason: string; stateSummary: string } | null {
+function resolvePageStateInputFailure(request: PageStateAbilityInput): { failureReason: PageStateFailureReason; stateSummary: string } | null {
   if (!request.snapshot.sourceProofRef) {
     return {
       failureReason: "missing_snapshot_proof",
@@ -27,7 +27,7 @@ function resolvePageStateInputFailure(request: PageStateAbilityInput): { failure
   return null;
 }
 
-function createPageStateInputFailure(failureReason: string, stateSummary: string): { ok: false; inputDecision: "fail"; failure: PageStateGateFailure } {
+function createPageStateInputFailure(failureReason: PageStateFailureReason, stateSummary: string): { ok: false; inputDecision: "fail"; failure: PageStateGateFailure } {
   return {
     ok: false,
     inputDecision: "fail",

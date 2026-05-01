@@ -1,5 +1,6 @@
 import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "./types.js";
 import { localizeCommanderText } from "./locale.js";
+export type { ActionableErrorView } from "./view-helper-actionable-errors.js";
 
 const RUNTIME_STATE_LABELS = {
   idle: ["未启动", "Not Started"],

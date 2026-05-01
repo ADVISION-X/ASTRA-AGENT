@@ -72,8 +72,22 @@ export function buildTextInputResult(input: {
     ...buildTextInputRuntimeProofIdentityInput(input, outputRef, diagnosticPayloadRef, debugBundle),
     ...buildTextInputRuntimeProofArtifactInput(input),
     ...buildTextInputRuntimeProofTargetInput(input),
-    ...buildTextInputRuntimeProofPolicyInput(input, outputBoundary),
-    ...buildTextInputRuntimeProofLifecycleInput(input, outputBoundary, postActionVerificationHandoffRef),
+    ...buildTextInputRuntimeProofPolicyInput({
+      ...input,
+      outputBoundaryDecision: outputBoundary.status === "success"
+        ? "valid"
+        : outputBoundary.status === "review_required"
+          ? "review_required_clipboard_restore_failed"
+          : "invalid_failure_payload",
+    }),
+    ...buildTextInputRuntimeProofLifecycleInput({
+      ...input,
+      postActionVerificationHandoffRef,
+      outputBoundaryStatus: outputBoundary.status,
+      dataQualityFlags: outputBoundary.dataQualityFlags,
+      failureReason: outputBoundary.failureReason,
+      reviewRequiredReason: outputBoundary.reviewRequiredReason,
+    }),
     clock: input.clock,
   });
 

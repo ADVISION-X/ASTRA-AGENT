@@ -29,6 +29,8 @@ const executeVisualAbilityCommand = (
     case "geometry-guard":
       return runtime.geometryGuardAbilityGroup.execute(buildGeometryGuardCommand(envelope, inputPayload));
   }
+
+  throw new Error(`Unsupported visual ability target: ${envelope.to}`);
 };
 
 const executePointerAbilityCommand = (
@@ -44,6 +46,8 @@ const executePointerAbilityCommand = (
     case "mouse-scroll":
       return runtime.mouseScrollAbilityGroup.execute(buildMouseScrollCommand(envelope, inputPayload));
   }
+
+  throw new Error(`Unsupported pointer ability target: ${envelope.to}`);
 };
 
 const executeRuntimeAbilityCommand = (
@@ -59,6 +63,8 @@ const executeRuntimeAbilityCommand = (
     case "page-state":
       return runtime.pageStateAbilityGroup.execute(buildPageStateDispatchInput(runtime, envelope));
   }
+
+  throw new Error(`Unsupported runtime ability target: ${envelope.to}`);
 };
 
 const ABILITY_COMMAND_EXECUTORS = {

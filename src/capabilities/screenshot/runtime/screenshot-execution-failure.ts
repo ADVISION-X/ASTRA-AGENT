@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   ScreenshotAbilityInput,
+  ScreenshotArtifactRef,
   ScreenshotFailure,
   ScreenshotRuntimeProof,
   ScreenshotSourceProof,
@@ -22,7 +23,7 @@ export type ScreenshotExecutionScope = {
   outputRef: string;
   idempotencyKey: string;
   evidenceId: string;
-  fallbackSourceArtifactRef: string | null;
+  fallbackSourceArtifactRef: ScreenshotArtifactRef | null;
   proofId: string;
 };
 

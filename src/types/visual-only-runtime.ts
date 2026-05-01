@@ -61,7 +61,7 @@ const VisualOnlyRuntimePolicy = VisualOnlyRuntimePolicySchema.parse({
 type VisualOnlyRuntimeMode = z.infer<typeof VisualOnlyRuntimeModeSchema>;
 type PageUnderstandingSource = z.infer<typeof PageUnderstandingSourceSchema>;
 type ForbiddenPageUnderstandingSource = z.infer<typeof ForbiddenPageUnderstandingSourceSchema>;
-type VisualOnlyRuntimePolicy = z.infer<typeof VisualOnlyRuntimePolicySchema>;
+type VisualOnlyRuntimePolicyShape = z.infer<typeof VisualOnlyRuntimePolicySchema>;
 
 export { VisualOnlyRuntimeModeSchema, PageUnderstandingSourceSchema, ForbiddenPageUnderstandingSourceSchema, VisualOnlyRuntimePolicySchema, VisualOnlyRuntimePolicy };
-export type { VisualOnlyRuntimeMode, PageUnderstandingSource, ForbiddenPageUnderstandingSource, VisualOnlyRuntimePolicy };
+export type { VisualOnlyRuntimeMode, PageUnderstandingSource, ForbiddenPageUnderstandingSource, VisualOnlyRuntimePolicyShape };

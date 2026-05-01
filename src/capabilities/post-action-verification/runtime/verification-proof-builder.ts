@@ -121,6 +121,7 @@ function buildPostActionRuntimeProofDecisionFields(input: {
   observationBindingDecision: string;
   beforeAfterPairDecision: string;
   verificationDecisionTrace: string[];
+  dataQualityFlags: string[];
   startedMonotonicMs: number;
   endedMonotonicMs: number;
 }) {
@@ -143,7 +144,7 @@ function buildPostActionRuntimeProofDecisionFields(input: {
     observationBindingDecision: input.observationBindingDecision,
     beforeAfterPairDecision: input.beforeAfterPairDecision,
     verificationDecisionTrace: input.verificationDecisionTrace,
-    dataQualityFlags: input.request?.observationSet.dataQualityFlags ?? [],
+    dataQualityFlags: input.dataQualityFlags,
     clock: {
       portKind: input.context.clock.portKind,
       startedMonotonicMs: input.startedMonotonicMs,
@@ -221,6 +222,7 @@ function buildPostActionRuntimeProofCoreFields(input: {
       observationBindingDecision: input.observationBindingDecision,
       beforeAfterPairDecision: input.beforeAfterPairDecision,
       verificationDecisionTrace: input.verificationDecisionTrace,
+      dataQualityFlags: input.dataQualityFlags,
       startedMonotonicMs: input.startedMonotonicMs,
       endedMonotonicMs: input.endedMonotonicMs,
     }),

@@ -36,7 +36,7 @@ function validateActionProofSourceCompatibility(input: {
     );
   }
 
-  if (!childPolicy.allowedSourceChildCapabilityIds.includes(proof.sourceChildCapabilityId)) {
+  if (!(childPolicy.allowedSourceChildCapabilityIds as readonly string[]).includes(proof.sourceChildCapabilityId)) {
     return buildActionProofFailure(
       "forbidden_action_source",
       "failed:forbidden_action_source_child",
@@ -45,7 +45,7 @@ function validateActionProofSourceCompatibility(input: {
     );
   }
 
-  if (!childPolicy.allowedActionTypes.includes(proof.actionType)) {
+  if (!(childPolicy.allowedActionTypes as readonly string[]).includes(proof.actionType)) {
     return buildActionProofFailure(
       "forbidden_action_source",
       "failed:forbidden_action_type",

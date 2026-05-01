@@ -3,11 +3,12 @@ import { createHash } from "node:crypto";
 import type { PageStateClockPort } from "../ports/page-state-clock-port.js";
 import { PAGE_STATE_ABILITY_GROUP_ID, PageStateAbilityResultSchema, PageStateRuntimeProofSchema } from "../schema.js";
 import type { PageStateAbilityInput, PageStateDataQualityFlag, PageStateFailureReason, PageStateType } from "../schema.js";
+import type { PageStateExecutionTrace } from "../shared/page-state-types.js";
 import { createPageStateFingerprint } from "./page-state-fingerprint.js";
 import { buildPageStateRuntimeProof } from "./page-state-proof-builder.js";
 import { buildPageStateResult } from "./page-state-result-builder.js";
 
-const PAGE_STATE_FAILURE_TRACE_OVERRIDES = {
+const PAGE_STATE_FAILURE_TRACE_OVERRIDES: Partial<Record<PageStateFailureReason, Partial<PageStateExecutionTrace>>> = {
   invalid_input: { inputDecision: "fail" },
   observation_source_forbidden: { sourceDecision: "fail" },
   payload_budget_exceeded: { payloadBudgetDecision: "fail" },
@@ -23,18 +24,7 @@ const PAGE_STATE_FAILURE_TRACE_OVERRIDES = {
 const buildPageStateFailureTrace = (input: {
   failureReason: PageStateFailureReason;
   decision?: "fail" | "review_required" | "block";
-}): {
-  inputDecision: "allow" | "fail";
-  sourceDecision: "allow" | "fail";
-  payloadBudgetDecision: "allow" | "fail";
-  observationBindingDecision: "bound" | "fail";
-  freshnessDecision: "fail" | "review_required";
-  platformDecision: "match" | "block";
-  classificationDecision: "fail" | "review_required" | "block";
-  outputBoundaryDecision: "allow" | "fail";
-  criticalDataQualityDecision: "fail" | "review_required";
-  proceedDecision: "fail" | "review_required" | "block";
-} => {
+}): PageStateExecutionTrace => {
   const override = PAGE_STATE_FAILURE_TRACE_OVERRIDES[input.failureReason];
   const classificationDecision = input.decision ?? "fail";
   return {
@@ -109,7 +99,7 @@ export function dispatchPageStateFailure(input: {
   const runtimeProof = buildPageStateRuntimeProof({
     request: input.request,
     timing: { startedAt, endedAt },
-    trace: buildPageStateFailureTrace({ failureReason: input.failureReason, decision: input.decision }),
+    trace: buildPageStateFailureTrace({ failureReason: input.failureReason, decision: input.decision ?? "fail" }),
     status: outcome.status, decision: outcome.decision, pageStateType, confidence: outcome.confidence, failureReason: input.failureReason, reviewRequiredReason: outcome.reviewRequiredReason, pageStateFingerprint, observationRefs, dataQualityFlags: outcome.dataQualityFlags,
     diagnosticPayloadRef: `page-state-diagnostic:${input.request.runId}:${input.request.childCapabilityId}:${input.failureReason}`,
   });

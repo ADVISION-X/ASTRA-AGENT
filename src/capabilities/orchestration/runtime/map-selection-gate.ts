@@ -27,7 +27,7 @@ async function resolveMapSelectionCandidate(input: {
   source: Exclude<SelectedMapSource, "rejected_missing">;
   lookup: () => Promise<ActiveOperationalMapRecord | null>;
   failureReason: string;
-}): Promise<MapSelectionResult | null> {
+}): Promise<MapSelectionResult> {
   const record = await input.lookup();
   if (!record) {
     return {

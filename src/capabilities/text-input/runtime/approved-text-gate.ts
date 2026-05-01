@@ -29,7 +29,7 @@ const buildApprovedTextGateFailureResult = (input: {
 });
 
 const validateApprovedTextInputTextFields = (input: { request: ParsedTextInputAbilityInput }) => {
-  if (input.request.inputText.length === 0) {
+  if (!input.request.inputText || input.request.inputText.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "input_text_required",
       statusMessage: "Text Input requires inputText for the selected child capability.",
@@ -37,7 +37,7 @@ const validateApprovedTextInputTextFields = (input: { request: ParsedTextInputAb
     });
   }
 
-  if (input.request.inputTextRef.length === 0) {
+  if (!input.request.inputTextRef || input.request.inputTextRef.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "input_text_ref_required",
       statusMessage: "Text Input requires inputTextRef for the selected child capability.",
@@ -49,7 +49,7 @@ const validateApprovedTextInputTextFields = (input: { request: ParsedTextInputAb
 };
 
 const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInputAbilityInput }) => {
-  if (input.request.approvedText.length === 0) {
+  if (!input.request.approvedText || input.request.approvedText.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "missing_approved_text",
       statusMessage: "Text Input requires approvedText for the selected child capability.",
@@ -57,7 +57,7 @@ const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInpu
     });
   }
 
-  if (input.request.approvedTextRef.length === 0) {
+  if (!input.request.approvedTextRef || input.request.approvedTextRef.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "approved_text_ref_required",
       statusMessage: "Text Input requires approvedTextRef for the selected child capability.",
@@ -107,7 +107,7 @@ const validateApprovedTextExactMatch = (input: { request: ParsedTextInputAbility
 };
 
 const validateApprovedTextLengthPolicy = (input: { request: ParsedTextInputAbilityInput }) => {
-  const textLength = input.request.inputText.length;
+  const textLength = (input.request.inputText ?? "").length;
   if (textLength <= input.request.policy.maxLengthPolicy.maxLength) {
     return null;
   }
@@ -155,5 +155,5 @@ export function validateApprovedText(input: { request: ParsedTextInputAbilityInp
     return failure;
   }
 
-  return buildApprovedTextGatePassResult(input.request.inputText.length);
+  return buildApprovedTextGatePassResult((input.request.inputText ?? "").length);
 }

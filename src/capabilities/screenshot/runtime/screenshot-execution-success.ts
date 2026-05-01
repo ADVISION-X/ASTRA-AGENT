@@ -31,7 +31,7 @@ async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): 
   });
 
   if (outputBoundaryGate.failure || outputBoundaryGate.decision.status !== "passed") {
-    return buildScreenshotOutputBoundaryFailureResult({
+    return await buildScreenshotOutputBoundaryFailureResult({
       request: input.request,
       context: input.context,
       scope: input.scope,

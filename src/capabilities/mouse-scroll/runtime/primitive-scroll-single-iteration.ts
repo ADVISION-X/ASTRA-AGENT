@@ -125,7 +125,7 @@ export const runScrollIteration = async (
       input,
       iteration,
       abortController,
-      setTimeoutHandle: (handle) => { timeoutHandle = handle; },
+      setTimeoutHandle: (handle: ReturnType<typeof setTimeout>) => { timeoutHandle = handle; },
       markTimeoutTriggered: () => { timeoutTriggered = true; },
     });
     clearPrimitiveTimeout(timeoutHandle);

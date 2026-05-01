@@ -28,7 +28,7 @@ export type NavigationDecisionInput = {
   reason: string | null;
   browserActionId: string | null;
   openedUrl: string;
-  pageTitleAfter: string;
+  pageTitleAfter: string | null;
   navigationAttemptRef: string;
   navigationCallId: string;
   redirectChain: ReturnType<typeof buildRedirectChain>;

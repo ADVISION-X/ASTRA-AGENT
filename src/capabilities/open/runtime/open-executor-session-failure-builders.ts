@@ -90,7 +90,7 @@ export function buildIdempotencyFailureResult(input: {
     idempotencyKey: string;
     decision: OpenIdempotencyDecision;
     reason: string | null;
-    alreadyOnTargetDecision: "not_applicable" | "fresh" | "already_fresh";
+    alreadyOnTargetDecision: "not_applicable" | "freshness_required" | "freshness_verified";
   };
 }): OpenResult {
   return buildFailureResult({

@@ -67,7 +67,7 @@ function buildFailureProof(input: OrchestrationLoopProofContext, details: {
     startedAt: timing.startedAt,
     endedAt: timing.endedAt,
     durationMs: timing.durationMs,
-    status: extra.status as MissionState["status"],
+    status: toRuntimeProofStatus(extra.status as MissionState["status"]),
     failureReason,
     mapDecision: "selected",
     transitionDecision: extra.transitionDecision as BuildProofInput["transitionDecision"],

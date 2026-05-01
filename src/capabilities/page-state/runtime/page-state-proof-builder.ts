@@ -41,12 +41,11 @@ function buildPageStateRuntimeProofReferenceFields(input: {
   request: PageStateAbilityInput;
   timing: PageStateExecutionTiming;
   pageStateFingerprint: string;
-  diagnosticPayloadRef?: string | null;
-  structuredRuntimeEventRef?: string | null;
-  resolvedPlatformProfileId?: string | null;
-  matchedHost?: string | null;
+  diagnosticPayloadRef: string | null;
+  structuredRuntimeEventRef: string | null;
+  resolvedPlatformProfileId: string | null;
+  matchedHost: string | null;
 }): Pick<PageStateRuntimeProof,
-  | "proofId"
   | "runId"
   | "missionId"
   | "sessionId"
@@ -99,9 +98,6 @@ function buildPageStateRuntimeProofReferenceFields(input: {
     sourceChildCapabilityId: input.request.snapshot.sourceChildCapabilityId,
     observationRefs: [...input.request.observations.map((observation) => observation.observationId)],
     sourceEvidenceRefs: [...input.request.sourceEvidenceRefs],
-    inputPayloadHash,
-    snapshotHash,
-    observationHash,
     currentUrl: input.request.snapshot.currentUrl,
     currentTitle: input.request.snapshot.currentTitle,
     pageStateFingerprint: input.pageStateFingerprint,
@@ -114,11 +110,10 @@ function buildPageStateRuntimeProofCoreFields(input: {
   request: PageStateAbilityInput;
   timing: PageStateExecutionTiming;
   pageStateFingerprint: string;
-  diagnosticPayloadRef?: string | null;
-  structuredRuntimeEventRef?: string | null;
-  receivedShapeHash?: string | null;
-  resolvedPlatformProfileId?: string | null;
-  matchedHost?: string | null;
+  diagnosticPayloadRef: string | null;
+  structuredRuntimeEventRef: string | null;
+  resolvedPlatformProfileId: string | null;
+  matchedHost: string | null;
 }): Pick<PageStateRuntimeProof,
   | "proofId"
   | "runId"
@@ -157,10 +152,10 @@ function buildPageStateRuntimeProofCoreFields(input: {
     request: input.request,
     timing: input.timing,
     pageStateFingerprint: input.pageStateFingerprint,
-    diagnosticPayloadRef: input.diagnosticPayloadRef,
-    structuredRuntimeEventRef: input.structuredRuntimeEventRef,
-    resolvedPlatformProfileId: input.resolvedPlatformProfileId,
-    matchedHost: input.matchedHost,
+    diagnosticPayloadRef: input.diagnosticPayloadRef ?? null,
+    structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
+    resolvedPlatformProfileId: input.resolvedPlatformProfileId ?? null,
+    matchedHost: input.matchedHost ?? null,
   });
 
   return {
@@ -246,11 +241,10 @@ export function buildPageStateRuntimeProof(input: {
       request: input.request,
       timing: input.timing,
       pageStateFingerprint: input.pageStateFingerprint,
-      diagnosticPayloadRef: input.diagnosticPayloadRef,
-      structuredRuntimeEventRef: input.structuredRuntimeEventRef,
-      receivedShapeHash: input.receivedShapeHash,
-      resolvedPlatformProfileId: input.resolvedPlatformProfileId,
-      matchedHost: input.matchedHost,
+      diagnosticPayloadRef: input.diagnosticPayloadRef ?? null,
+      structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
+      resolvedPlatformProfileId: input.resolvedPlatformProfileId ?? null,
+      matchedHost: input.matchedHost ?? null,
     }),
     ...buildPageStateRuntimeProofDecisionFields({
       timing: input.timing,
@@ -261,8 +255,8 @@ export function buildPageStateRuntimeProof(input: {
       trace: input.trace,
       pageStateType: input.pageStateType,
       confidence: input.confidence,
-      outputBoundaryDecision: input.outputBoundaryDecision,
-      criticalDataQualityDecision: input.criticalDataQualityDecision,
+      outputBoundaryDecision: input.outputBoundaryDecision ?? "allow",
+      criticalDataQualityDecision: input.criticalDataQualityDecision ?? "allow",
       dataQualityFlags: input.dataQualityFlags,
     }),
     outputRef: input.status === "success" ? `page-state-output:${input.request.runId}:${input.request.childCapabilityId}` : null,

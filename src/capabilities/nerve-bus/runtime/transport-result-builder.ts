@@ -11,6 +11,7 @@ import {
   NerveBusPayloadDocumentSchema,
 } from "../schema.js";
 import type { SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve-bus-channel.js";
+import type { AbilityCommandEnvelope, AiRequestEnvelope, HumanCommandEnvelope } from "../shared/nerve-bus-envelope.js";
 import type { NerveBusTransportProof } from "../shared/nerve-bus-proof.js";
 import type { NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.js";
 
@@ -64,7 +65,7 @@ const buildGovernedFailureCommon = (input: GovernedFailureInput, status: "failed
   status,
 } as const);
 
-const buildAbilityFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+const buildAbilityFailureResult = (input: GovernedFailureInput & { envelope: AbilityCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
   const resultEnvelope = AbilityResultEnvelopeSchema.parse({
     ...common,
     envelopeKind: "ability_result",
@@ -88,7 +89,7 @@ const buildAbilityFailureResult = (input: GovernedFailureInput, common: ReturnTy
   });
 };
 
-const buildAiFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+const buildAiFailureResult = (input: GovernedFailureInput & { envelope: AiRequestEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
   const responseEnvelope = AiResponseEnvelopeSchema.parse({
     ...common,
     envelopeKind: "ai_response",
@@ -114,7 +115,7 @@ const buildAiFailureResult = (input: GovernedFailureInput, common: ReturnType<ty
   });
 };
 
-const buildHumanFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+const buildHumanFailureResult = (input: GovernedFailureInput & { envelope: HumanCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
   const resultEnvelope = HumanCommandResultEnvelopeSchema.parse({
     ...common,
     envelopeKind: "human_command_result",
@@ -143,14 +144,14 @@ export async function buildGovernedFailureResult(input: GovernedFailureInput) {
   const common = buildGovernedFailureCommon(input, status);
 
   if (input.envelope.envelopeKind === "ability_command") {
-    return buildAbilityFailureResult(input, common);
+    return buildAbilityFailureResult({ ...input, envelope: input.envelope }, common);
   }
 
   if (input.envelope.envelopeKind === "ai_request") {
-    return buildAiFailureResult(input, common);
+    return buildAiFailureResult({ ...input, envelope: input.envelope }, common);
   }
 
-  return buildHumanFailureResult(input, common);
+  return buildHumanFailureResult({ ...input, envelope: input.envelope }, common);
 }
 
 export { buildFailurePayloadDocument };

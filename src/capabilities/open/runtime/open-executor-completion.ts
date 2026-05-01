@@ -15,6 +15,7 @@ export async function completeOpenChildExecution(input: {
   state: OpenChildPreflightState;
 }): Promise<OpenResult> {
   const pageStateHandoffRef = `page-state:${input.request.runId}:${input.request.childCapabilityId}`;
+  const beforeSession = input.state.sessionGate.sessionSnapshot!;
   const navigation = await runOpenNavigation({
     browser: input.context.browser,
     request: input.request,
@@ -26,12 +27,12 @@ export async function completeOpenChildExecution(input: {
     reservationDecision: input.state.idempotency.decision === "already_on_target" ? "already_on_target" : "reserved",
     alreadyOnTargetDecision: input.state.idempotency.alreadyOnTargetDecision,
     targetProfileRef: input.state.targetPolicy.decision.targetProfileRef,
-    beforeSession: input.state.sessionGate.sessionSnapshot,
+    beforeSession,
   });
 
   const postOpenState = evaluatePostOpenState({
     profile: input.profile,
-    beforeSession: input.state.sessionGate.sessionSnapshot,
+    beforeSession,
     afterSession: navigation.afterSession,
     navigationDecision: navigation.decision,
     pageStateHandoffRef,
@@ -53,7 +54,7 @@ export async function completeOpenChildExecution(input: {
     navigation,
     postOpenState,
     idempotency: input.state.idempotency,
-    beforeSession: input.state.sessionGate.sessionSnapshot,
+    beforeSession,
     started: input.state.started,
     ended,
     pageStateHandoffRef,

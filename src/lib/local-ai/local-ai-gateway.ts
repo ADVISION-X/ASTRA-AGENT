@@ -15,6 +15,8 @@ import type { LocalAiDebugHook } from "./runtime-adapters/local-ai-runtime-adapt
 import { executeGovernedTask } from "./governed-task-execution.js";
 import {
   LocalAiTaskRequestSchema,
+  type LocalAiHealth,
+  type LocalAiInvocationStatus,
   type LocalAiTaskRequest,
   type LocalAiTaskResult,
 } from "../../types/local-ai.js";

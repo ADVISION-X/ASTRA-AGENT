@@ -11,25 +11,6 @@ function buildRegionProofFailure(reason: string, message: string) {
   };
 }
 
-function resolveMissingRegionFailure(input: { region: ScreenshotBoundingBox | null }) {
-  if (input.region) {
-    return null;
-  }
-
-  return {
-    decision: { status: "not_applicable" as const, reason: null },
-    failure: null,
-  };
-}
-
-function resolveMissingSourceProofFailure(input: { sourceProof: ScreenshotSourceProof | null }) {
-  if (input.sourceProof) {
-    return null;
-  }
-
-  return buildRegionProofFailure("source_proof_required", "Region capture requires sourceProof.");
-}
-
 function resolveSourceEvidenceMismatchFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
   if (input.sourceProof.sourceScreenshotEvidenceId === input.region.sourceScreenshotEvidenceId) {
     return null;
@@ -63,7 +44,10 @@ function resolveSourceDimensionsFailure(input: { sourceProof: ScreenshotSourcePr
 }
 
 function resolveRegionBoundsFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
-  if (input.region.x >= 0 && input.region.y >= 0 && input.region.x + input.region.width <= input.sourceProof.sourceWidth && input.region.y + input.region.height <= input.sourceProof.sourceHeight) {
+  const sourceWidth = input.sourceProof.sourceWidth;
+  const sourceHeight = input.sourceProof.sourceHeight;
+
+  if (sourceWidth !== null && sourceHeight !== null && input.region.x >= 0 && input.region.y >= 0 && input.region.x + input.region.width <= sourceWidth && input.region.y + input.region.height <= sourceHeight) {
     return null;
   }
 
@@ -74,20 +58,19 @@ function resolveRegionProofGate(input: {
   sourceProof: ScreenshotSourceProof | null;
   region: ScreenshotBoundingBox | null;
 }) {
-  const missingRegionFailure = resolveMissingRegionFailure(input);
-  if (missingRegionFailure) {
-    return missingRegionFailure;
+  if (!input.region) {
+    return {
+      decision: { status: "not_applicable" as const, reason: null },
+      failure: null,
+    };
   }
 
   const sourceProof = input.sourceProof;
   if (!sourceProof) {
-    return resolveMissingSourceProofFailure(input);
+    return buildRegionProofFailure("source_proof_required", "Region capture requires sourceProof.");
   }
 
   const region = input.region;
-  if (!region) {
-    return missingRegionFailure;
-  }
 
   return (
     resolveSourceEvidenceMismatchFailure({ sourceProof, region })

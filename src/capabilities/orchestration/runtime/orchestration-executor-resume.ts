@@ -40,7 +40,7 @@ type ResumeStateFailureDetails = {
 type ResumeFailureStateInput = {
   missionId: string | null;
   mapId: string | null;
-  requestedPlatform: string | null;
+  requestedPlatform: MissionState["requestedPlatform"];
   humanGoal: string | null;
   failureReason: string;
   startedAt: string;
@@ -61,7 +61,7 @@ function buildResumeFailureState(input: ResumeFailureStateInput): MissionState {
 }
 
 function buildResumeFailureResult(input: ResumeMissionCommandInput, state: MissionState, details: ResumeMissionFailureDetails): MissionExecutionResult {
-  return buildDispatchFailure({
+  const dispatchFailureInput = {
     state,
     commandKind: "resume-mission",
     caller: input.caller,
@@ -72,8 +72,12 @@ function buildResumeFailureResult(input: ResumeMissionCommandInput, state: Missi
     endedAt: details.endedAt,
     durationMs: details.durationMs,
     idempotencyKey: details.idempotencyKey,
-    stateRevisionBefore: details.stateRevisionBefore,
-    mapRecord: details.mapRecord,
+  } as const;
+
+  return buildDispatchFailure({
+    ...dispatchFailureInput,
+    ...(details.stateRevisionBefore === undefined ? {} : { stateRevisionBefore: details.stateRevisionBefore }),
+    ...(details.mapRecord === undefined ? {} : { mapRecord: details.mapRecord }),
   });
 }
 
@@ -119,7 +123,7 @@ function buildResumeStateFailure(
     durationMs: 0,
     idempotencyKey: `resume:${missionId}:${idempotencySuffix}`,
     stateRevisionBefore: state.stateRevision ?? 0,
-    mapRecord,
+    ...(mapRecord === undefined ? {} : { mapRecord }),
   });
 }
 

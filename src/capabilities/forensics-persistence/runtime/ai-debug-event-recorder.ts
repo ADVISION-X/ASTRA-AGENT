@@ -1,4 +1,5 @@
 import type { ForensicsPersistenceAbilityGroup } from "../index.js";
+import type { AiRuntimeStructuredDebugEvent } from "../../ai/runtime-adapters/local-ai-runtime-debug-contract.js";
 import type { AiRuntimeStructuredDebugEventInput } from "./ai-debug-event-contract.js";
 import { buildAiDebugArtifactRefs, buildAiDebugDataQualityFlags, buildAiStructuredRuntimeEvent } from "./ai-debug-event-payload.js";
 
@@ -11,17 +12,23 @@ type AiDebugRecorderRuntime = {
       loginState: string | null;
     };
   };
-  forensicsPersistenceAbilityGroup: ForensicsPersistenceAbilityGroup;
+  forensicsPersistenceAbilityGroup: {
+    writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
+  };
 };
 
 export const recordAiDebugEvent = async (
   runtime: AiDebugRecorderRuntime,
-  input: AiRuntimeStructuredDebugEventInput,
+  input: AiRuntimeStructuredDebugEventInput | AiRuntimeStructuredDebugEvent,
 ): Promise<void> => {
-  const artifactRefs = buildAiDebugArtifactRefs(input);
-  const dataQualityFlags = buildAiDebugDataQualityFlags(input);
+  const normalizedInput: AiRuntimeStructuredDebugEventInput = {
+    ...input,
+    eventType: input.eventType === "AI_ERROR_DEBUG" ? "AI_FAILURE_DEBUG" : input.eventType,
+  };
+  const artifactRefs = buildAiDebugArtifactRefs(normalizedInput);
+  const dataQualityFlags = buildAiDebugDataQualityFlags(normalizedInput);
   const structuredRuntimeEvent = buildAiStructuredRuntimeEvent({
-    event: input,
+    event: normalizedInput,
     browserProfileRef: runtime.browserSessionConfig.profileRef,
     loginState: runtime.browserController.getSessionState().loginState,
     artifactRefs,
@@ -34,10 +41,10 @@ export const recordAiDebugEvent = async (
     recordType: "structured_runtime_event",
     requestedBy: "ai",
     sourceAbilityGroupId: "ai",
-    sourceChildCapabilityId: structuredRuntimeEvent.childCapabilityId,
-    sessionId: input.sessionId,
-    roundId: input.roundId ?? input.attemptId,
-    videoVisitId: input.videoVisitId,
+    sourceChildCapabilityId: structuredRuntimeEvent.childCapabilityId ?? "local-vision-ai",
+    sessionId: normalizedInput.sessionId,
+    roundId: normalizedInput.roundId ?? normalizedInput.attemptId,
+    videoVisitId: normalizedInput.videoVisitId,
     sourceRecordRefs: [],
     parentRefs: [],
     artifactRefs,

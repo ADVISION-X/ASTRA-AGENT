@@ -220,6 +220,28 @@ export async function runTransportHandler<TResult extends SupportedResultEnvelop
     return raceFailure;
   }
 
+  if (raceResult.kind !== "resolved") {
+    return buildHandlerFailureOutcome({
+      decision: "threw",
+      failureReason: "Transport runner reached an unexpected non-resolved state.",
+      timeoutDecision: "within_timeout",
+      handlerCallId,
+      started,
+      ended,
+    });
+  }
+
+  if (raceResult.value === null) {
+    return buildHandlerFailureOutcome({
+      decision: "missing_handler",
+      failureReason: `No handler is registered for ${input.envelope.channelId}.`,
+      timeoutDecision: "within_timeout",
+      handlerCallId,
+      started,
+      ended,
+    });
+  }
+
   return buildHandledOutcome({
     handled: raceResult.value,
     resultSchema: input.resultSchema,

@@ -1,5 +1,5 @@
 import type { PageStateChildCapability } from "./page-state-child-contract.js";
-import type { PageStateAbilityInput } from "../schema.js";
+import type { PageStateAbilityInput, PageStateChildDetection } from "../schema.js";
 import { childAllowsProceed, isBlockedPageStateType, isReviewRequiredPageStateType } from "../shared/page-state-policy.js";
 import type { PageStateClassificationOutcome, PageStateResolvedPlatformProfile } from "../shared/page-state-types.js";
 import { gatePageStateOutputBoundary } from "./page-state-output-boundary-gate.js";
@@ -20,20 +20,30 @@ function mapFailureReason(pageStateType: PageStateClassificationOutcome["pageSta
 }
 
 function buildClassificationOutcome(
-  detection: PageStateClassificationOutcome,
+  detection: PageStateChildDetection,
   resolvedProfile: PageStateResolvedPlatformProfile,
   patch: Partial<PageStateClassificationOutcome>,
 ): PageStateClassificationOutcome {
   return {
-    ...detection,
-    resolvedProfileId: resolvedProfile.profileId,
-    matchedHost: resolvedProfile.matchedHost,
-    ...patch,
+    childCapabilityId: patch.childCapabilityId ?? detection.childCapabilityId,
+    pageStateType: patch.pageStateType ?? detection.pageStateType,
+    stateSummary: patch.stateSummary ?? detection.stateSummary,
+    confidence: patch.confidence ?? detection.confidence,
+    reviewRequiredReason: patch.reviewRequiredReason ?? detection.reviewRequiredReason,
+    dataQualityFlags: patch.dataQualityFlags ?? detection.dataQualityFlags,
+    matchedObservationIds: patch.matchedObservationIds ?? detection.matchedObservationIds,
+    supportingEvidenceRefs: patch.supportingEvidenceRefs ?? detection.supportingEvidenceRefs,
+    supportingReasons: patch.supportingReasons ?? detection.supportingReasons,
+    status: patch.status ?? "success",
+    decision: patch.decision ?? "proceed",
+    failureReason: patch.failureReason ?? null,
+    resolvedProfileId: patch.resolvedProfileId ?? resolvedProfile.profileId,
+    matchedHost: patch.matchedHost ?? resolvedProfile.matchedHost,
   };
 }
 
 function resolveBoundaryClassificationOutcome(input: {
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   resolvedProfile: PageStateResolvedPlatformProfile;
   request: PageStateAbilityInput;
 }): PageStateClassificationOutcome | null {
@@ -59,7 +69,7 @@ function resolveBoundaryClassificationOutcome(input: {
 }
 
 function resolveLowConfidenceClassificationOutcome(input: {
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   request: PageStateAbilityInput;
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): PageStateClassificationOutcome | null {
@@ -77,7 +87,7 @@ function resolveLowConfidenceClassificationOutcome(input: {
 }
 
 function resolveBlockedTypeClassificationOutcome(input: {
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): PageStateClassificationOutcome | null {
   if (!isBlockedPageStateType(input.detection.pageStateType)) {
@@ -92,7 +102,7 @@ function resolveBlockedTypeClassificationOutcome(input: {
 }
 
 function resolveReviewRequiredTypeClassificationOutcome(input: {
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): PageStateClassificationOutcome | null {
   if (!isReviewRequiredPageStateType(input.detection.pageStateType)) {
@@ -109,7 +119,7 @@ function resolveReviewRequiredTypeClassificationOutcome(input: {
 
 function resolveProceedClassificationOutcome(input: {
   request: PageStateAbilityInput;
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): PageStateClassificationOutcome | null {
   if (childAllowsProceed(input.request.childCapabilityId, input.detection.pageStateType)) {
@@ -127,7 +137,7 @@ function resolveProceedClassificationOutcome(input: {
 
 function resolvePageStateClassificationOutcome(input: {
   request: PageStateAbilityInput;
-  detection: PageStateClassificationOutcome;
+  detection: PageStateChildDetection;
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): PageStateClassificationOutcome {
   return resolveBoundaryClassificationOutcome(input)

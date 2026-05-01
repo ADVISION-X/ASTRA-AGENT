@@ -1,16 +1,16 @@
 import type { PageStateProfilePort } from "../ports/page-state-profile-port.js";
-import type { PageStateAbilityInput } from "../schema.js";
+import type { PageStateAbilityInput, PageStateDataQualityFlag, PageStateFailureReason } from "../schema.js";
 import { DEFAULT_PAGE_STATE_PLATFORM_PROFILES } from "../shared/page-state-profile.js";
 import type { PageStateGateFailure, PageStateResolvedPlatformProfile } from "../shared/page-state-types.js";
 
 function createPlatformProfileFailure(input: {
   status: "failed" | "review_required";
   decision: "block" | "review_required";
-  failureReason: string;
+  failureReason: PageStateFailureReason;
   stateSummary: string;
   reviewRequiredReason: string | null;
   pageStateType: PageStateGateFailure["pageStateType"];
-  dataQualityFlags: PageStateGateFailure["dataQualityFlags"];
+  dataQualityFlags: PageStateDataQualityFlag[];
 }): { ok: false; platformDecision: "review_required" | "block"; failure: PageStateGateFailure } {
   return {
     ok: false,

@@ -3,11 +3,11 @@ import { createHash } from "node:crypto";
 import { PostActionVerificationAbilityInputSchema } from "../schema.js";
 import { buildPostActionRuntimeProof } from "./verification-proof-builder.js";
 import { buildPostActionVerificationResult } from "./verification-result-builder.js";
-import type { PostActionFailureReason, PostActionVerificationAbilityInput } from "../contract.js";
+import type { ParsedPostActionVerificationAbilityInput, PostActionFailureReason, PostActionVerificationAbilityInput } from "../contract.js";
 import type { PostActionVerificationRuntimeContext } from "./post-action-verification-runtime-context.js";
 
 function buildDispatchFailureRuntimeProof(input: {
-  request: PostActionVerificationAbilityInput | null;
+  request: ParsedPostActionVerificationAbilityInput | null;
   context: PostActionVerificationRuntimeContext;
   started: ReturnType<PostActionVerificationRuntimeContext["clock"]["now"]>;
   ended: ReturnType<PostActionVerificationRuntimeContext["clock"]["now"]>;
@@ -18,8 +18,8 @@ function buildDispatchFailureRuntimeProof(input: {
   parseDigest: string;
   statusMessage: string;
   failureReason: PostActionFailureReason;
-  reviewRequiredReason?: string | null;
-  parseErrors?: string[];
+  reviewRequiredReason: string | null;
+  parseErrors: string[];
 }) {
   return buildPostActionRuntimeProof({
     request: input.request,
@@ -52,10 +52,10 @@ function buildDispatchFailureRuntimeProof(input: {
 }
 
 function buildDispatchFailureResult(input: {
-  request: PostActionVerificationAbilityInput | null;
+  request: ParsedPostActionVerificationAbilityInput | null;
   status: "failed" | "review_required";
   failureReason: PostActionFailureReason;
-  reviewRequiredReason?: string | null;
+  reviewRequiredReason: string | null;
   statusMessage: string;
   runtimeProof: ReturnType<typeof buildPostActionRuntimeProof>;
   diagnosticPayloadRef: string;
@@ -66,7 +66,7 @@ function buildDispatchFailureResult(input: {
     status: input.status,
     verificationDecision: input.status === "review_required" ? "review_required" : "failed",
     failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason ?? null,
+    reviewRequiredReason: input.reviewRequiredReason,
     statusMessage: input.statusMessage,
     runtimeProof: input.runtimeProof,
     diagnosticPayloadRef: input.diagnosticPayloadRef,
@@ -106,15 +106,15 @@ export function dispatchPostActionVerificationFailure(input: {
     parseDigest,
     statusMessage: input.statusMessage,
     failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    parseErrors: input.parseErrors,
+    reviewRequiredReason: input.reviewRequiredReason ?? null,
+    parseErrors: input.parseErrors ?? [],
   });
 
   return buildDispatchFailureResult({
     request,
     status,
     failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
+    reviewRequiredReason: input.reviewRequiredReason ?? null,
     statusMessage: input.statusMessage,
     runtimeProof,
     diagnosticPayloadRef,

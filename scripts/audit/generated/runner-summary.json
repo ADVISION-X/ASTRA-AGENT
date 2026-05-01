@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-01T11:14:55.433Z",
+  "generatedAt": "2026-05-01T18:23:40.637Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
-    "inspectors": 1,
-    "passed": 0,
+    "inspectors": 2,
+    "passed": 1,
     "failed": 1,
     "blocking": 1
   },
@@ -12,37 +12,7 @@
       "inspector": "GrassEye Map Plugin Package Governance Inspector",
       "inspectorId": "map-plugin-package-governance",
       "capabilityDomain": "map-plugin-package",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
-          "file": "src/map-plugins/schema/operational-map-payload.schema.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Map transition condition schema must use governed branch DSL fields.",
-          "detail": "conditionType, leftRef, operator, rightValue, onTrue, onFalse"
-        },
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Orchestration runtime context must consume the governed active map registry."
-        },
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-001-V1",
-          "file": "src/capabilities/orchestration/ability-group.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Orchestration ability-group must list governed active maps from the registry."
-        },
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-007-V1",
-          "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Map package inspector baseline must pass before negative-proof mutations can run."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -52,9 +22,9 @@
         },
         {
           "name": "required-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
         },
         {
           "name": "forbidden-shape",
@@ -64,9 +34,9 @@
         },
         {
           "name": "boundary-attack",
-          "classification": "ENFORCEMENT MISS",
-          "passed": false,
-          "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
         },
         {
           "name": "anti-escape",
@@ -100,15 +70,475 @@
         },
         {
           "name": "negative-proof-harness",
-          "classification": "FAKE ENFORCEMENT",
-          "passed": false,
-          "summary": "Map package negative-proof harness cannot start because the baseline inspector is not passing."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package negative-proof harness rejects executable payload, hardcoded fallback, and AI draft activation mutations."
         }
       ],
-      "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.",
+      "summary": "Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Audit System Owner Inspector",
+      "inspectorId": "audit-system-owner",
+      "capabilityDomain": "audit-system",
+      "findings": [
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Audit-system inspector must import validateGeneratedArtifacts from ./components/validate-generated-artifacts.js."
+        },
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Audit-system inspector must import validateRequiredPhaseDomains from ./components/validate-required-phase-domains.js."
+        },
+        {
+          "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          "file": "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Audit-system inspector must import validateNoSimulatedProductionPaths from ./components/validate-no-simulated-production-paths.js."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-011-V1",
+          "file": "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Audit-system inspector must import inspectCodePurity from ../code-purity/components/inspect-code-purity.js."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/capabilities/nerve-bus/runtime/ability-command-handler.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/nerve-bus/runtime/transport-runner.ts",
+          "line": 191,
+          "severity": "error",
+          "message": "Function runTransportHandler exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/open/runtime/open-executor-completion.ts",
+          "line": 11,
+          "severity": "error",
+          "message": "Function completeOpenChildExecution exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/open/runtime/open-executor-preflight.ts",
+          "line": 37,
+          "severity": "error",
+          "message": "Function resolveOpenChildTargetAndUrlState exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/open/runtime/real-chrome-session-gate.ts",
+          "line": 90,
+          "severity": "error",
+          "message": "Function evaluateRealChromeSessionSnapshot exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "src/capabilities/open/schema-core.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
+          "detail": "313"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+          "file": "src/capabilities/open/schema-core.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "src/capabilities/open/schema-core.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the orchestration coordinator hard limit of 300 lines.",
+          "detail": "319"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/post-action-verification/children/verify-video-changed-after-scroll/implementation.ts",
+          "line": 151,
+          "severity": "error",
+          "message": "Function resolveVideoChangedAfterScrollOutcome exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-execution-flow.ts",
+          "line": 131,
+          "severity": "error",
+          "message": "Function executeScreenshotExecutionFlow exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-execution-flow.ts",
+          "line": 72,
+          "severity": "error",
+          "message": "Function resolveEarlyFailure exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-execution-flow.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-execution-plan.ts",
+          "line": 28,
+          "severity": "error",
+          "message": "Function executeScreenshotChildPlan exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+          "line": 97,
+          "severity": "error",
+          "message": "Function buildScreenshotSuccessRuntimeProof exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-source-gate.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the runtime/implementation hard limit of 300 lines.",
+          "detail": "318"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+          "file": "src/capabilities/screenshot/runtime/screenshot-source-gate.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/text-input/runtime/text-input-result-builder.ts",
+          "line": 17,
+          "severity": "error",
+          "message": "Function buildTextInputResult exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
+          "line": 142,
+          "severity": "error",
+          "message": "Function inspectCoordinateCandidate exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/workbench-commander-console.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/workbench-commander-types.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/workbench-contract.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/workbench-screenshot-runtime.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/workbench-status.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-007-V1",
+          "file": "src/lib/local-runtime/workbench.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File mixes multiple roles behind neutral or broad structure.",
+          "detail": "schema-and-runtime"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-maintenance.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-records.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-records.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-refs.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-004-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-service.ts",
+          "line": 41,
+          "severity": "error",
+          "message": "Class exceeds code-purity member or constructor limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-service.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-service.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/evidence-store-state.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/forensics-artifact-storage-port.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/storage/evidence-store/forensics-record-storage-port.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/types/visual-action.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        }
+      ],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "law-home",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Active law home is parseable and metadata-complete."
+        },
+        {
+          "name": "manifest-ownership",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Each active capabilityDomain resolves to one manifest owner."
+        },
+        {
+          "name": "generated-artifacts",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Generated registry, matrix, plan, and conflicts are present and readable."
+        },
+        {
+          "name": "required-phase-domains",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Current phase gate and generated plan include every frozen owner and every active law domain from docs/法案辅助文件/GrassEye 法案冻结基线.md."
+        },
+        {
+          "name": "runner-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runner stays on the generated-plan boundary."
+        },
+        {
+          "name": "owner-evidence",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Every owner inspector exposes shared owner evidence and static registry alignment."
+        },
+        {
+          "name": "audit-quality-authority",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit system remains the only repository quality gate authority."
+        },
+        {
+          "name": "owned-law-execution",
+          "classification": "FAKE ENFORCEMENT",
+          "passed": false,
+          "summary": "Audit-system inspector is missing one or more required owned-law execution checks."
+        },
+        {
+          "name": "production-path-simulation-ban",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Production startup and runtime paths are free of fixture/demo simulation markers."
+        },
+        {
+          "name": "scope-activation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "code-purity scans 1559 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+        },
+        {
+          "name": "file-size-limits",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Active source files still exceed code-purity file-size hard limits."
+        },
+        {
+          "name": "touched-file-rule",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Touched active files still exceed their hard limits."
+        },
+        {
+          "name": "function-shape-limits",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "One or more functions exceed line, parameter, nesting, or complexity limits."
+        },
+        {
+          "name": "class-object-limits",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "One or more classes or objects exceed member or constructor limits."
+        },
+        {
+          "name": "owner-boundary-limits",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Cross-owner imports or owner boundaries still exceed code-purity limits."
+        },
+        {
+          "name": "import-export-purity",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Import/export structures still exceed limits or hide coupling through barrels."
+        },
+        {
+          "name": "single-role-files",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "One or more files still mix broad roles behind neutral structure."
+        },
+        {
+          "name": "dead-code-cleanup",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Active source truth is free of fake paths, debug scatter, and dead-code leftovers."
+        },
+        {
+          "name": "refactor-direction",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Refactor direction avoids compatibility bridges and duplicate active paths."
+        },
+        {
+          "name": "disaster-file-queue",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Disaster files are identified and queued for physical split."
+        },
+        {
+          "name": "real-enforcement-coverage",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "All active code-purity laws have inspector coverage, runner execution, and negative proof."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Type escapes, directives, dynamic imports, and wrapper laundering are blocked."
+        },
+        {
+          "name": "inventory-output",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Code-purity writes actionable inventories and split plans."
+        },
+        {
+          "name": "physical-split-direction",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Remediation direction prefers physical deletion and physical splitting."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Negative proof mutates sandbox source, proves fail, resets the sandbox, and proves rollback PASS."
+        }
+      ],
+      "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 4
+      "violationCount": 41
     }
   ]
 }

@@ -1,4 +1,4 @@
-import type { PageStateAbilityInput, PageStateObservation } from "../schema.js";
+import type { PageStateAbilityInput, PageStateFailureReason, PageStateObservation } from "../schema.js";
 import { childRequiresObservationSupport } from "../shared/page-state-policy.js";
 import type { PageStateGateFailure } from "../shared/page-state-types.js";
 
@@ -10,7 +10,7 @@ const ALLOWED_OBSERVATION_SOURCES: Record<PageStateObservation["kind"], readonly
   post_action_verification: ["post-action-verification"],
 };
 
-function resolveObservationSourceFailure(request: PageStateAbilityInput): { decision: "review_required" | "fail"; stateSummary: string; failureReason: string } | null {
+function resolveObservationSourceFailure(request: PageStateAbilityInput): { decision: "review_required" | "fail"; stateSummary: string; failureReason: PageStateFailureReason } | null {
   const mismatchedObservation = request.observations.find(
     (observation) => !ALLOWED_OBSERVATION_SOURCES[observation.kind].includes(observation.sourceAbilityGroupId),
   );
@@ -42,7 +42,7 @@ function resolveObservationSourceFailure(request: PageStateAbilityInput): { deci
   return null;
 }
 
-function createObservationSourceFailure(decision: "review_required" | "fail", failureReason: string, stateSummary: string): { ok: false; sourceDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+function createObservationSourceFailure(decision: "review_required" | "fail", failureReason: PageStateFailureReason, stateSummary: string): { ok: false; sourceDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
   return {
     ok: false,
     sourceDecision: decision,

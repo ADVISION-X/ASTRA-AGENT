@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
 import { IMPORT_EXPORT_LIMITS } from "./purity-thresholds.js";
@@ -40,10 +40,10 @@ const hasRuntimeBody = (sourceFile: SourceFile): boolean => sourceFile.getFuncti
 const hasSchemaBody = (sourceFile: SourceFile): boolean => sourceFile.getInterfaces().length > 0 || sourceFile.getTypeAliases().length > 0;
 const hasFinalSuccessReturn = (sourceFile: SourceFile): boolean => sourceFile.getDescendantsOfKind(SyntaxKind.ReturnStatement).some((statement) => {
   const expression = statement.getExpression();
-  if (!expression || expression.getKind() !== SyntaxKind.ObjectLiteralExpression) {
+  if (!expression || !Node.isObjectLiteralExpression(expression)) {
     return false;
   }
-  return expression.getProperties().some((property) => property.isKind(SyntaxKind.PropertyAssignment) && ["status", "success", "ok", "passed", "classification"].includes(property.getName().replace(/^[\"']|[\"']$/g, "").toLowerCase()));
+  return expression.getProperties().some((property) => Node.isPropertyAssignment(property) && ["status", "success", "ok", "passed", "classification"].includes(property.getName().replace(/^[\"']|[\"']$/g, "").toLowerCase()));
 });
 const hasBranching = (sourceFile: SourceFile): boolean => sourceFile.getDescendantsOfKind(SyntaxKind.IfStatement).length > 0 || sourceFile.getDescendantsOfKind(SyntaxKind.SwitchStatement).length > 0;
 

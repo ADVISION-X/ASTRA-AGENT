@@ -57,7 +57,7 @@ function resolveTargetStateChangedResult(input: {
   observations: PostActionObservation[];
   beforeEvidenceRef: string | null;
   afterEvidenceRef: string | null;
-  expectedTargetType: string;
+  expectedTargetType: string | null;
 }) {
   const visualTarget = getObservationsByKind(input.observations, "visual_target")[0] ?? null;
   const screenshotDiff = getObservationsByKind(input.observations, "screenshot_diff")[0] ?? null;
@@ -78,7 +78,7 @@ function resolveTargetStateChangedResult(input: {
     return buildTargetStateChangedUnknownResult({ evidenceRefs, observationRefs, sourceProofRefs });
   }
 
-  const observedTargetType = visualTarget?.payload.targetType ?? pageState?.payload.targetType ?? input.expectedTargetType;
+  const observedTargetType = visualTarget?.payload.targetType ?? pageState?.payload.targetType ?? input.expectedTargetType ?? "unknown_target";
   return buildTargetStateChangedResult({ changed, observedTargetType, evidenceRefs, observationRefs, sourceProofRefs });
 }
 

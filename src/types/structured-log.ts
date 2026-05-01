@@ -230,7 +230,5 @@ type StructuredAiImageInput = z.infer<typeof StructuredAiImageInputSchema>;
 type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
 type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
 type StructuredActionLog = z.infer<typeof StructuredActionLogSchema>;
-type LiveProofLogSequence = typeof LiveProofLogSequence;
-
 export { StructuredRuntimeLogLevelSchema, StructuredLogStatusSchema, StructuredRuntimeEventTypeSchema, StructuredActionTypeSchema, StructuredActionPurposeSchema, StructuredLogRefSchema, StructuredRuntimeMissingFrameSchema, StructuredAiImageInputSchema, StructuredRuntimeSnapshotSummarySchema, StructuredRuntimeEventSchema, StructuredActionLogSchema, LiveProofLogSequence, LiveProofLogSequenceSchema };
-export type { StructuredLogStatus, StructuredRuntimeLogLevel, StructuredRuntimeEventType, StructuredActionType, StructuredActionPurpose, StructuredLogRef, StructuredRuntimeMissingFrame, StructuredAiImageInput, StructuredRuntimeSnapshotSummary, StructuredRuntimeEvent, StructuredActionLog, LiveProofLogSequence };
+export type { StructuredLogStatus, StructuredRuntimeLogLevel, StructuredRuntimeEventType, StructuredActionType, StructuredActionPurpose, StructuredLogRef, StructuredRuntimeMissingFrame, StructuredAiImageInput, StructuredRuntimeSnapshotSummary, StructuredRuntimeEvent, StructuredActionLog };

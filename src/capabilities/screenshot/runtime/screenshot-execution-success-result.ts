@@ -26,7 +26,7 @@ type ScreenshotSuccessRuntimeProofInput = {
   outputWidth: number | null;
   outputHeight: number | null;
   dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"];
-  outputBoundaryDecision: ScreenshotRuntimeProof["artifactDecision"];
+  outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
 };
 
 const buildScreenshotSuccessDataQualityFlags = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["dataQualityFlags"] => [
@@ -57,7 +57,7 @@ const buildScreenshotSuccessRuntimeProofIdentityFields = (input: ScreenshotSucce
   browserSessionRef: input.pathInput.gates.browserSessionGate.browserSessionRef,
   screenshotEvidenceId: input.pathInput.scope.evidenceId,
   artifactRef: input.pathInput.artifactGate.artifactRef,
-  sourceArtifactRef: input.pathInput.scope.fallbackSourceArtifactRef,
+  sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
   sourceHash: input.sourceHash,
   outputHash: input.pathInput.artifactGate.outputHash,
   sourceWidth: input.pathInput.plan.kind === "capture" ? input.outputWidth : (input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? null),
@@ -97,8 +97,45 @@ const buildScreenshotSuccessRuntimeProofDecisionFields = (input: ScreenshotSucce
 const buildScreenshotSuccessRuntimeProof = (input: ScreenshotSuccessRuntimeProofInput): ScreenshotRuntimeProof =>
   buildScreenshotRuntimeProof({
     request: input.pathInput.request,
-    ...buildScreenshotSuccessRuntimeProofIdentityFields(input),
-    ...buildScreenshotSuccessRuntimeProofDecisionFields(input),
+    proofId: buildScreenshotSuccessRuntimeProofIdentityFields(input).proofId,
+    runId: buildScreenshotSuccessRuntimeProofIdentityFields(input).runId,
+    missionId: buildScreenshotSuccessRuntimeProofIdentityFields(input).missionId,
+    inputRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).inputRef,
+    outputRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputRef,
+    idempotencyKey: buildScreenshotSuccessRuntimeProofDecisionFields(input).idempotencyKey,
+    startedAt: buildScreenshotSuccessRuntimeProofDecisionFields(input).startedAt,
+    endedAt: buildScreenshotSuccessRuntimeProofDecisionFields(input).endedAt,
+    durationMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).durationMs,
+    startedMonotonicMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).clock.startedMonotonicMs,
+    endedMonotonicMs: buildScreenshotSuccessRuntimeProofDecisionFields(input).clock.endedMonotonicMs,
+    status: buildScreenshotSuccessRuntimeProofDecisionFields(input).status,
+    failureReason: buildScreenshotSuccessRuntimeProofDecisionFields(input).failureReason,
+    reviewRequiredReason: buildScreenshotSuccessRuntimeProofDecisionFields(input).reviewRequiredReason,
+    sourceProof: input.pathInput.gates.sourceGate.sourceProof,
+    artifactRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).artifactRef,
+    sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
+    sourceHash: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceHash,
+    outputHash: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputHash,
+    sourceWidth: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceWidth,
+    sourceHeight: buildScreenshotSuccessRuntimeProofIdentityFields(input).sourceHeight,
+    outputWidth: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputWidth,
+    outputHeight: buildScreenshotSuccessRuntimeProofIdentityFields(input).outputHeight,
+    coordinateSpace: buildScreenshotSuccessRuntimeProofIdentityFields(input).coordinateSpace,
+    scaleMapping: buildScreenshotSuccessRuntimeProofIdentityFields(input).scaleMapping,
+    browserSessionRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).browserSessionRef,
+    pageStateProofRef: buildScreenshotSuccessRuntimeProofIdentityFields(input).pageStateProofRef,
+    screenshotEvidenceId: buildScreenshotSuccessRuntimeProofIdentityFields(input).screenshotEvidenceId,
+    decisions: {
+      privacyDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).privacyDecision,
+      sourceDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).sourceDecision,
+      browserSessionDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).browserSessionDecision,
+      pageStateDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).pageStateDecision,
+      captureDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).captureDecision,
+      imageProcessingDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).imageProcessingDecision,
+      artifactDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).artifactDecision,
+      outputBoundaryDecision: buildScreenshotSuccessRuntimeProofDecisionFields(input).outputBoundaryDecision,
+    },
+    dataQualityFlags: buildScreenshotSuccessRuntimeProofDecisionFields(input).dataQualityFlags,
   });
 
 export const buildScreenshotSuccessResult = async (input: {
@@ -109,7 +146,7 @@ export const buildScreenshotSuccessResult = async (input: {
   outputWidth: number | null;
   outputHeight: number | null;
   successOutput: NonNullable<ScreenshotAbilityResult["output"]>;
-  outputBoundaryDecision: ScreenshotRuntimeProof["artifactDecision"];
+  outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
 }): Promise<ScreenshotAbilityResult> => {
   const finished = finishScreenshotClock({
     clockPort: input.pathInput.context.clockPort,

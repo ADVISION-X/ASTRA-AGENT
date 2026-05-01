@@ -20,14 +20,14 @@ function validateObservationBindingEntry(input: {
   observation: ParsedPostActionVerificationAbilityInput["observationSet"]["observations"][number];
 }) {
   const allowlist = POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST[input.observation.kind];
-  if (!allowlist.sourceAbilityGroupIds.includes(input.observation.source.sourceAbilityGroupId)) {
+  if (!(allowlist.sourceAbilityGroupIds as readonly string[]).includes(input.observation.source.sourceAbilityGroupId)) {
     return createObservationBindingFailure(
       `Observation ${input.observation.ref} source ability is not allowed for ${input.observation.kind}.`,
       "failed:forbidden_observation_source_ability",
     );
   }
 
-  if (!allowlist.sourceChildCapabilityIds.includes(input.observation.source.sourceChildCapabilityId)) {
+  if (!(allowlist.sourceChildCapabilityIds as readonly string[]).includes(input.observation.source.sourceChildCapabilityId)) {
     return createObservationBindingFailure(
       `Observation ${input.observation.ref} source child is not allowed for ${input.observation.kind}.`,
       "failed:forbidden_observation_source_child",

@@ -4,5 +4,5 @@ import type { WorkbenchBaseRuntime } from "../../../lib/local-runtime/workbench-
 
 export const createAiRuntime = (runtime: Pick<WorkbenchBaseRuntime, "browserController" | "browserSessionConfig" | "forensicsPersistenceAbilityGroup">) =>
   createConfiguredAiAbilityGroup({
-    emitDebugEvent: (event) => recordAiDebugEvent(runtime as WorkbenchBaseRuntime, event),
+    emitDebugEvent: (event) => recordAiDebugEvent(runtime, event),
   });

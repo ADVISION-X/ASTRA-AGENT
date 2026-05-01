@@ -10,6 +10,7 @@ import {
   submitMissionReviewDecision,
 } from "./runtime/orchestration-executor.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
 import { listActiveOrchestrationMapIds } from "./runtime/orchestration-map-id-list.js";
 import { createOrchestrationNerveBusPort, type CreateOrchestrationAbilityGroupInput } from "./runtime/orchestration-nerve-bus-port-factory.js";
@@ -81,7 +82,10 @@ export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilit
     },
 
     listMapIds() {
-      return listActiveOrchestrationMapIds();
+      return getDefaultMapPluginRegistry()
+        .active
+        .listActivePackages()
+        .map((mapPackage) => mapPackage.manifest.mapId);
     },
 
     async execute(inputValue) {

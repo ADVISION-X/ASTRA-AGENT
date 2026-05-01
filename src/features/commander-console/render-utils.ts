@@ -4,6 +4,7 @@ import type {
   CommanderConsoleStatusTone,
   CommanderConsoleSummaryItem,
 } from "./types.js";
+export { renderJsonBlock } from "./render-advanced-utils.js";
 
 export { escapeHtml };
 

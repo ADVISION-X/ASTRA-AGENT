@@ -7,10 +7,16 @@ import {
   createFailedMissionState,
   createInitialMissionState,
 } from "./orchestration-executor-command-support.js";
+import type { MapSelectionResult, SelectedMapSource } from "./map-selection-gate.js";
 import { parseMissionCommand } from "./mission-command-gate.js";
 import { selectOperationalMap } from "./map-selection-gate.js";
+import type { MapValidationResult } from "./map-validation-gate.js";
 import { validateOperationalMapGate } from "./map-validation-gate.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
+
+type SuccessfulMapSelection = Extract<MapSelectionResult, { selected: true }>;
+type FailedMapSelection = Extract<MapSelectionResult, { selected: false }>;
+type FailedMapValidation = Extract<MapValidationResult, { valid: false }>;
 
 type StartMissionCommandInput = {
   command: unknown;
@@ -26,45 +32,35 @@ type StartMissionFailureDetails = {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  selectedMapSource?: string | null;
-  mapRecord?: ActiveOperationalMapRecord;
+  selectedMapSource?: SelectedMapSource | null;
+  mapRecord?: ActiveOperationalMapRecord | null;
 };
 
 type StartMapSelectionFailureDetails = {
   startedAt: string;
   fallbackIdempotencyKey: string;
-  mapSelection: {
-    failureReason: string;
-    selectedMapSource: string | null;
-    record: ActiveOperationalMapRecord;
-  };
+  mapSelection: FailedMapSelection;
 };
 
 type StartMapValidationFailureDetails = {
   startedAt: string;
   fallbackIdempotencyKey: string;
-  mapSelection: {
-    selectedMapSource: string | null;
-    record: ActiveOperationalMapRecord;
-  };
-  mapValidation: {
-    failureReason: string;
-    map: OperationalMap;
-  };
+  mapSelection: SuccessfulMapSelection;
+  mapValidation: FailedMapValidation;
 };
 
 type StartIdempotencyFailureDetails = {
   startedAt: string;
   idempotencyKey: string;
   map: OperationalMap;
-  selectedMapSource: string | null;
+  selectedMapSource: SelectedMapSource | null;
   mapRecord: ActiveOperationalMapRecord;
 };
 
 type StartFailureStateInput = {
   missionId: string | null;
   mapId: string | null;
-  requestedPlatform: string | null;
+  requestedPlatform: MissionState["requestedPlatform"];
   humanGoal: string | null;
   failureReason: string;
   startedAt: string;
@@ -85,7 +81,7 @@ function buildStartFailureState(input: StartFailureStateInput): MissionState {
 }
 
 function buildStartFailureResult(input: StartMissionCommandInput, state: MissionState, details: StartMissionFailureDetails): MissionExecutionResult {
-  return buildDispatchFailure({
+  const dispatchFailureInput = {
     state,
     commandKind: "start-mission",
     caller: input.caller,
@@ -96,8 +92,12 @@ function buildStartFailureResult(input: StartMissionCommandInput, state: Mission
     endedAt: details.endedAt,
     durationMs: details.durationMs,
     idempotencyKey: details.idempotencyKey,
-    selectedMapSource: details.selectedMapSource,
-    mapRecord: details.mapRecord,
+  } as const;
+
+  return buildDispatchFailure({
+    ...dispatchFailureInput,
+    ...(details.selectedMapSource === undefined ? {} : { selectedMapSource: details.selectedMapSource }),
+    ...(details.mapRecord === undefined ? {} : { mapRecord: details.mapRecord }),
   });
 }
 
@@ -128,7 +128,6 @@ function buildStartMapSelectionFailure(
       durationMs: 0,
       idempotencyKey: fallbackIdempotencyKey,
       selectedMapSource: mapSelection.selectedMapSource,
-      mapRecord: mapSelection.record,
     },
   );
 }
@@ -144,7 +143,7 @@ function buildStartMapValidationFailure(
     input,
     buildStartFailureState({
       missionId: command.missionId,
-      mapId: mapValidation.map.mapId,
+      mapId: mapSelection.record.mapId,
       requestedPlatform: command.requestedPlatform,
       humanGoal: command.humanGoal,
       failureReason: mapValidation.failureReason,

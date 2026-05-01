@@ -62,6 +62,6 @@ export function createTextInputAbilityGroup(input: CreateTextInputAbilityGroupIn
 
   return {
     listChildCapabilityIds: () => listTextInputChildren(),
-    execute: (inputValue) => executeTextInputAbilityInput(registry, input.context, inputValue),
+    execute: async (inputValue) => executeTextInputAbilityInput(registry, input.context, inputValue),
   };
 }

@@ -11,7 +11,7 @@ export function createEmptyPayloadRefs() {
 export function createFailedMissionState(input: {
   missionId: string | null;
   mapId: string | null;
-  requestedPlatform: string | null;
+  requestedPlatform: MissionState["requestedPlatform"];
   humanGoal: string | null;
   lastHumanCommand: "start-mission" | "resume-mission";
   failureReason: string | null;

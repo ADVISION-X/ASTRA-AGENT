@@ -1,15 +1,15 @@
-import type { PageStateAbilityInput } from "../schema.js";
+import type { PageStateAbilityInput, PageStateDataQualityFlag, PageStateFailureReason } from "../schema.js";
 import type { PageStateClockPort } from "../ports/page-state-clock-port.js";
 import type { PageStateGateFailure } from "../shared/page-state-types.js";
 
 type FreshnessFailure = {
   decision: "fail" | "review_required";
-  failureReason: string;
+  failureReason: PageStateFailureReason;
   stateSummary: string;
-  dataQualityFlag: string;
+  dataQualityFlag: PageStateDataQualityFlag;
 };
 
-function createFreshnessFailure(decision: "fail" | "review_required", failureReason: string, stateSummary: string, dataQualityFlag: string): { ok: false; freshnessDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+function createFreshnessFailure(decision: "fail" | "review_required", failureReason: PageStateFailureReason, stateSummary: string, dataQualityFlag: PageStateDataQualityFlag): { ok: false; freshnessDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
   return {
     ok: false,
     freshnessDecision: decision,
@@ -65,8 +65,8 @@ function resolveObservationFreshnessFailure(input: {
       return true;
     }
 
-    const observationAgeMs = input.clock.durationMs(observationReading, now);
-    const skewMs = Math.abs(observationReading.epochMs - snapshotReading.epochMs);
+    const observationAgeMs = input.clock.durationMs(observationReading, input.now);
+    const skewMs = Math.abs(observationReading.epochMs - input.snapshotReadingEpochMs);
     return observationAgeMs > input.request.freshnessPolicy.maxObservationAgeMs
       || skewMs > input.request.freshnessPolicy.maxObservationSkewMs;
   });

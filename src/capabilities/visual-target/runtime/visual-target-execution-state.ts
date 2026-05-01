@@ -8,7 +8,7 @@ import type {
 } from "../contract.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 import { buildVisualTargetResult } from "./visual-target-result-builder.js";
-import { resolveVisualTargetExecutionProfile } from "./visual-target-input-gate.js";
+import { resolveVisualTargetExecutionProfile, type VisualTargetFailureTrace } from "./visual-target-input-gate.js";
 import type { VisualTargetRuntimeDecisionTrace, VisualTargetRuntimeTelemetry } from "./visual-target-proof-builder.js";
 import type { VisualTargetRuntimeContext } from "./visual-target-runtime-context.js";
 import type { VisualTargetCandidateScoreTrace } from "./target-selection-gate.js";
@@ -30,18 +30,7 @@ export type VisualTargetExecutionState = {
   rejectedCandidateRefs: Set<string>;
   dataQualityFlags: Set<VisualTargetDataQualityFlag>;
   decisions: VisualTargetRuntimeDecisionTrace;
-  trace: {
-    childCapabilityId: string;
-    sessionId: string;
-    roundId: string | null;
-    videoVisitId: string | null;
-    sourceAbilityGroupId: string;
-    sourceChildCapabilityId: string;
-    inputRef: string;
-    targetType: ParsedVisualTargetAbilityInput["targetType"];
-    targetNature: ParsedVisualTargetAbilityInput["targetNature"];
-    receivedShapeHash: string;
-  };
+  trace: VisualTargetFailureTrace;
   telemetry: Omit<VisualTargetRuntimeTelemetry, "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">;
   candidateSourceCandidates: VisualTargetCandidate[];
   coordinateCandidates: VisualTargetResolvedCandidate[];
@@ -75,12 +64,12 @@ function buildExecutionTrace(request: ParsedVisualTargetAbilityInput) {
     roundId: request.roundId,
     videoVisitId: request.videoVisitId,
     sourceAbilityGroupId: request.sourceAbilityGroupId,
-    sourceChildCapabilityId: request.sourceChildCapabilityId,
+    sourceChildCapabilityId: request.sourceChildCapabilityId ?? null,
     inputRef: request.inputRef,
     targetType: request.targetType,
     targetNature: request.targetNature,
     receivedShapeHash: hashVisualTargetPayload(request),
-  };
+  } satisfies VisualTargetFailureTrace;
 }
 
 function buildExecutionTelemetry(

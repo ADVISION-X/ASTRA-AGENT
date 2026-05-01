@@ -125,15 +125,26 @@ async function resolveImageProcessingRunner(input: {
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }) {
-  if (input.plan.operation === "capture-region") {
-    return resolveCaptureRegionProcessing(input);
+  switch (input.plan.operation) {
+    case "capture-region":
+      return resolveCaptureRegionProcessing({
+        plan: input.plan,
+        context: input.context,
+        timeoutMs: input.timeoutMs,
+      });
+    case "optimize-lossless":
+      return resolveOptimizeLosslessProcessing({
+        plan: input.plan,
+        context: input.context,
+        timeoutMs: input.timeoutMs,
+      });
+    case "prepare-ai-input":
+      return resolvePrepareAiInputProcessing({
+        plan: input.plan,
+        context: input.context,
+        timeoutMs: input.timeoutMs,
+      });
   }
-
-  if (input.plan.operation === "optimize-lossless") {
-    return resolveOptimizeLosslessProcessing(input);
-  }
-
-  return resolvePrepareAiInputProcessing(input);
 }
 
 export async function runImageProcessingRunner(input: {
@@ -162,6 +173,6 @@ export async function runImageProcessingRunner(input: {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     const timeout = detail.startsWith("timeout:");
-    return buildImageProcessingFailure(detail, timeout);
+    return buildImageProcessingFailure(timeout, detail);
   }
 }

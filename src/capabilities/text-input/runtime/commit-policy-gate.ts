@@ -3,6 +3,7 @@ import { buildStableTextInputRef } from "../shared/text-input-types.js";
 
 const buildCommitPolicyGatePassResult = (commitPolicyRef: string | null) => ({
   ok: true as const,
+  keyPolicyDecision: "allowed" as const,
   commitPolicyRef,
   dataQualityFlags: [] as string[],
 });
@@ -42,7 +43,7 @@ const validateCommitPolicyEnabled = (input: { request: ParsedTextInputAbilityInp
 };
 
 const validateCommitPolicyApprovedCommitRef = (input: { request: ParsedTextInputAbilityInput }) => {
-  if (!input.request.policy.commitPolicy.requireApprovedCommitRef || input.request.approvedCommitRef.length > 0) {
+  if (!input.request.policy.commitPolicy.requireApprovedCommitRef || (input.request.approvedCommitRef?.length ?? 0) > 0) {
     return null;
   }
 
@@ -87,6 +88,10 @@ const validateCommitPolicyMapApproval = (input: { request: ParsedTextInputAbilit
 };
 
 const validateCommitPolicyAllowedKeys = (input: { request: ParsedTextInputAbilityInput }) => {
+  if (input.request.childCapabilityId !== "commit-input") {
+    return null;
+  }
+
   if (input.request.policy.commitPolicy.allowedCommitKeys.includes(input.request.key)) {
     return null;
   }

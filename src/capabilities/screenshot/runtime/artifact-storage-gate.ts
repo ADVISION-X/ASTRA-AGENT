@@ -12,7 +12,7 @@ function buildArtifactStorageFailure(reason: string, message: string, detail: st
     failure: createScreenshotFailure({
       code: reason === "artifact_path_outside_root" ? "artifact_path_invalid" : "artifact_write_failed",
       message,
-      detail: detail ?? undefined,
+      detail,
     }),
   };
 }

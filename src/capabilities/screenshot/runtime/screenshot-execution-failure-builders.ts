@@ -1,4 +1,5 @@
 import type {
+  ScreenshotAbilityResult,
   ScreenshotAbilityInput,
   ScreenshotFailure,
   ScreenshotRuntimeProof,
@@ -13,8 +14,19 @@ import type { ScreenshotClockStart } from "./screenshot-clock.js";
 
 type ScreenshotFailureGateDecision = ScreenshotRuntimeProof["privacyDecision"];
 
+type ScreenshotFailureDecisions = {
+  privacyDecision: ScreenshotRuntimeProof["privacyDecision"];
+  sourceDecision: ScreenshotRuntimeProof["sourceDecision"];
+  browserSessionDecision: ScreenshotRuntimeProof["browserSessionDecision"];
+  pageStateDecision: ScreenshotRuntimeProof["pageStateDecision"];
+  captureDecision: ScreenshotRuntimeProof["captureDecision"];
+  imageProcessingDecision: ScreenshotRuntimeProof["imageProcessingDecision"];
+  artifactDecision: ScreenshotRuntimeProof["artifactDecision"];
+  outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
+};
+
 type ScreenshotFailureGateState = {
-  failure: { message: string } | null;
+  failure: ReturnType<typeof createScreenshotFailure> | null;
   decision: ScreenshotFailureGateDecision;
 };
 
@@ -53,7 +65,7 @@ async function dispatchScreenshotFailureResult(input: {
   sourceProof: ScreenshotSourceProof | null;
   browserSessionRef: string | null;
   pageStateProofRef: string | null;
-  decisions: ScreenshotRuntimeProof["decisions"];
+  decisions: ScreenshotFailureDecisions;
   dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"];
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotExecutionFailure({
@@ -75,7 +87,7 @@ async function dispatchScreenshotFailureResult(input: {
 }
 
 export async function buildScreenshotPlanValidationFailure(input: ScreenshotExecutionFailureContext & {
-  failEarly: { message: string } | null;
+  failEarly: ReturnType<typeof createScreenshotFailure> | null;
   earlyStatus: "failed" | "review_required";
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotFailureResult({
@@ -108,7 +120,7 @@ export async function buildScreenshotPlanValidationFailure(input: ScreenshotExec
 }
 
 export async function buildScreenshotRegionValidationFailure(input: ScreenshotExecutionFailureContext & {
-  regionGate: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision };
+  regionGate: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision };
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotFailureResult({
     request: input.request,
@@ -140,9 +152,9 @@ export async function buildScreenshotRegionValidationFailure(input: ScreenshotEx
 }
 
 export async function buildScreenshotCaptureExecutionFailure(input: ScreenshotExecutionFailureContext & {
-  captureRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
-  imageRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
-  executionFailure: { message: string } | null;
+  captureRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
+  imageRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
+  executionFailure: ReturnType<typeof createScreenshotFailure> | null;
   status: "failed" | "review_required";
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotFailureResult({
@@ -175,8 +187,8 @@ export async function buildScreenshotCaptureExecutionFailure(input: ScreenshotEx
 }
 
 export async function buildScreenshotOutputMetadataFailure(input: ScreenshotExecutionFailureContext & {
-  captureRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
-  imageRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
+  captureRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
+  imageRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotFailureResult({
     request: input.request,
@@ -208,9 +220,9 @@ export async function buildScreenshotOutputMetadataFailure(input: ScreenshotExec
 }
 
 export async function buildScreenshotArtifactStorageFailure(input: ScreenshotExecutionFailureContext & {
-  captureRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
-  imageRun: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision } | null;
-  artifactGate: { failure: { message: string } | null; decision: ScreenshotFailureGateDecision };
+  captureRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
+  imageRun: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision } | null;
+  artifactGate: { failure: ReturnType<typeof createScreenshotFailure> | null; decision: ScreenshotFailureGateDecision };
 }): Promise<ScreenshotAbilityResult> {
   return dispatchScreenshotFailureResult({
     request: input.request,

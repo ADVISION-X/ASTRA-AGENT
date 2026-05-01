@@ -88,7 +88,7 @@ function buildBlockedNavigationDecision(input: {
   openedUrl: string | null;
   pageTitleAfter: string | null;
   redirectChain: string[];
-  alreadyOnTargetFreshnessDecision: "not_applicable" | "fresh" | "already_fresh";
+  alreadyOnTargetFreshnessDecision: "not_applicable" | "freshness_required" | "freshness_verified";
 }): OpenNavigationDecision {
   return {
     status: "failed",

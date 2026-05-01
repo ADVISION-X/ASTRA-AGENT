@@ -39,7 +39,6 @@ export const buildAiDebugArtifactRefs = (input: AiRuntimeStructuredDebugEventInp
 
 export const buildAiDebugDataQualityFlags = (input: AiRuntimeStructuredDebugEventInput): string[] => [
   ...input.parserErrors,
-  ...(input.errorKind ? [input.errorKind] : []),
 ];
 
 const buildAiDebugEventIdentity = (input: AiRuntimeStructuredDebugEventInput) => ({
@@ -66,7 +65,7 @@ const buildAiDebugEventIdentity = (input: AiRuntimeStructuredDebugEventInput) =>
 });
 
 const buildAiDebugEventRuntimeContext = (input: {
-  event: AiRuntimeStructuredDebugEvent;
+  event: AiRuntimeStructuredDebugEventInput;
   browserProfileRef: string | null;
   loginState: string | null;
 }) => ({
@@ -97,7 +96,7 @@ const buildAiDebugEventRuntimeContext = (input: {
 });
 
 const buildAiDebugEventBase = (input: {
-  event: AiRuntimeStructuredDebugEvent;
+  event: AiRuntimeStructuredDebugEventInput;
   browserProfileRef: string | null;
   loginState: string | null;
 }) => ({
@@ -132,7 +131,7 @@ const buildAiDebugEventAiFields = (input: AiRuntimeStructuredDebugEventInput) =>
 });
 
 const buildAiDebugEventRefs = (input: {
-  event: AiRuntimeStructuredDebugEvent;
+  event: AiRuntimeStructuredDebugEventInput;
   artifactRefs: ForensicsArtifactRef[];
   dataQualityFlags: string[];
 }) => ({

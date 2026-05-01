@@ -8,12 +8,12 @@ import { BrowserSessionSnapshotSchema } from "../schema.js";
 import type {
   OpenNavigationRunResult,
   SessionSnapshotResult,
-} from "./navigation-runner-result-builders.js";
+} from "./navigation-runner-shared.js";
 import {
   buildAlreadyOnTargetNavigationResult,
-  buildSessionSnapshotFailureReason,
   buildTimedOutNavigationResult,
 } from "./navigation-runner-result-builders.js";
+import { buildSessionSnapshotFailureReason } from "./navigation-runner-shared.js";
 import {
   finalizeNavigationAfterAttempt,
   runNavigationAttempt,

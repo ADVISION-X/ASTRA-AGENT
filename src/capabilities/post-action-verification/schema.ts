@@ -336,7 +336,7 @@ const PostActionChildAssessmentSchema = z.object({
   confidenceSource: z.string().min(1).max(POST_ACTION_MAX_SIGNAL_TYPE_LENGTH),
 }).strict();
 
-const PostActionVerificationAbilityResultSchema = z.object({
+const PostActionVerificationAbilityResultBaseSchema = z.object({
   status: PostActionVerificationStatusSchema,
   abilityGroupId: z.literal(POST_ACTION_VERIFICATION_ABILITY_GROUP_ID),
   childCapabilityId: PostActionVerificationChildCapabilityIdSchema.nullable(),
@@ -356,10 +356,23 @@ const PostActionVerificationAbilityResultSchema = z.object({
   policyDecision: requiredString,
   runtimeProof: PostActionRuntimeProofSchema,
   dataQualityFlags: dataQualityFlagsSchema,
-}).strict().superRefine(postActionVerificationAbilityResultSuperRefine);
+}).strict();
+
+type PostActionVerificationAbilityResultValue = z.output<typeof PostActionVerificationAbilityResultBaseSchema>;
+
+function postActionVerificationAbilityResultSuperRefine(
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+): void {
+  validatePostActionVerificationAbilityResultRuntimeProofConsistency(value, context);
+  validatePostActionVerificationAbilityResultShape(value, context);
+  validatePostActionVerificationAbilityResultGovernedFields(value, context);
+}
+
+const PostActionVerificationAbilityResultSchema = PostActionVerificationAbilityResultBaseSchema.superRefine(postActionVerificationAbilityResultSuperRefine);
 
 const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
-  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ): void => {
   if (value.runtimeProof.status !== value.status) {
@@ -371,7 +384,7 @@ const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
 };
 
 const validatePostActionVerificationAbilityResultShape = (
-  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
+  value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ): void => {
   if (value.status === "success") {
@@ -412,15 +425,5 @@ const validatePostActionVerificationAbilityResultGovernedFields = (
     context.addIssue({ code: z.ZodIssueCode.custom, message: "actionProofRef is required for governed results", path: ["actionProofRef"] });
   }
 };
-
-const postActionVerificationAbilityResultSuperRefine = (
-  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
-  context: z.RefinementCtx,
-): void => {
-  validatePostActionVerificationAbilityResultRuntimeProofConsistency(value, context);
-  validatePostActionVerificationAbilityResultShape(value, context);
-  validatePostActionVerificationAbilityResultGovernedFields(value, context);
-};
-
 
 export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionVerificationDecisionSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionConfidencePolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildAssessmentSchema, PostActionVerificationAbilityResultSchema };

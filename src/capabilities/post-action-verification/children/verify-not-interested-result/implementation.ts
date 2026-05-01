@@ -30,7 +30,7 @@ function buildNotInterestedUnknownResult(input: {
 }
 
 function buildNotInterestedRuntimeSignalOnlyResult(input: {
-  runtimeSignal: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number] | null;
+  runtimeSignal: ReturnType<typeof getObservationsByKind<"runtime_signal">>[number] | null;
   supportingObservationRefs: string[];
   supportingSourceProofRefs: string[];
 }) {
@@ -52,10 +52,10 @@ function buildNotInterestedRuntimeSignalOnlyResult(input: {
 
 function buildNotInterestedResult(input: {
   changed: boolean;
-  pageState: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number] | null;
-  runtimeSignal: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number] | null;
-  screenshotDiff: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number] | null;
-  videoAfter: ReturnType<typeof getObservationsByKind<PostActionObservation["kind"]>>[number] | null;
+  pageState: ReturnType<typeof getObservationsByKind<"page_state">>[number] | null;
+  runtimeSignal: ReturnType<typeof getObservationsByKind<"runtime_signal">>[number] | null;
+  screenshotDiff: ReturnType<typeof getObservationsByKind<"screenshot_diff">>[number] | null;
+  videoAfter: ReturnType<typeof getObservationsByKind<"video_identity">>[number] | null;
   supportingEvidenceRefs: string[];
   supportingObservationRefs: string[];
   supportingSourceProofRefs: string[];

@@ -151,6 +151,9 @@ function inspectCoordinateCandidate(input: {
   if ("acceptedCandidate" in executableShape) {
     return executableShape;
   }
+  if (executableShape.executableCoordinateSpace === "contact_sheet" || executableShape.executableCoordinateSpace === "ai_input") {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_coordinate_non_executable");
+  }
 
   const acceptedCandidate: VisualTargetResolvedCandidate = {
     ...input.candidate,

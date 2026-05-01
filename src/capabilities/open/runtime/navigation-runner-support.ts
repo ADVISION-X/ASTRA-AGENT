@@ -4,7 +4,7 @@ import { NavigationResultSchema } from "../schema.js";
 import type {
   OpenNavigationRunResult,
   SessionSnapshotResult,
-} from "./navigation-runner-result-builders.js";
+} from "./navigation-runner-shared.js";
 import {
   buildNavigationFailedResult,
   buildNavigationSuccessResult,

@@ -1,5 +1,6 @@
 import { createId } from "./ids.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
+import type { HumanCommandDispatchInput } from "../../capabilities/nerve-bus/contract.js";
 
 type HumanCommandDispatchTargetRecordRef = {
   recordId: string;
@@ -25,7 +26,7 @@ type HumanCommandTransportResultEnvelope = {
 
 export const buildHumanCommandDispatchInput = (
   command: HumanCommandDispatchCommand,
-) => {
+): HumanCommandDispatchInput => {
   const commandId = createId("commander_command");
   const inputPayload = buildPayloadDocument({
     documentType: "human.command",

@@ -84,7 +84,7 @@ function resolvePostActionUrlVerification(input: {
     return prefixResult;
   }
 
-  return { ok: true as const, reason: null as const };
+  return { ok: true as const, reason: null };
 }
 
 export function normalizePostActionUrl(rawUrl: string): URL | null {

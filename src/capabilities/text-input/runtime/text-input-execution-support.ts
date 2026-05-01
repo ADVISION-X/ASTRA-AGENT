@@ -1,7 +1,7 @@
 import { buildStableTextInputRef } from "../shared/text-input-types.js";
 import type { ParsedTextInputAbilityInput } from "../contract.js";
 import { buildTextInputResult } from "./text-input-result-builder.js";
-import type { TextInputResultSeed } from "./text-input-input-gate.js";
+import type { TextInputExecutionSeed, TextInputResultSeed } from "./text-input-input-gate.js";
 import type { TextInputRuntimeContext } from "./text-input-runtime-context.js";
 
 type ExecutionStatus = "success" | "failed" | "review_required";
@@ -163,7 +163,7 @@ function mergeFlags(...groups: string[][]): string[] {
   return [...new Set(groups.flat().filter((value) => value.length > 0))];
 }
 
-function createTextInputActionExecutionRef(seed: TextInputResultSeed) {
+function createTextInputActionExecutionRef(seed: TextInputExecutionSeed) {
   return buildStableTextInputRef("text-input-action", [seed.attemptRef, seed.childCapabilityId]);
 }
 

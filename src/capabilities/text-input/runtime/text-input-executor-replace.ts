@@ -1,5 +1,5 @@
 import { buildStableTextInputRef } from "../shared/text-input-types.js";
-import type { TextInputResultSeed } from "./text-input-input-gate.js";
+import type { TextInputExecutionSeed } from "./text-input-input-gate.js";
 import type { TextInputRuntimeContext } from "./text-input-runtime-context.js";
 import {
   mergeFlags,
@@ -11,7 +11,7 @@ import { runPrimitiveTextInput } from "./primitive-text-input-runner.js";
 type PrimitiveTextInputRunResult = Awaited<ReturnType<typeof runPrimitiveTextInput>>;
 
 function buildReplaceInputClearFailureDraft(input: {
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
   clearResult: PrimitiveTextInputRunResult;
@@ -115,7 +115,7 @@ function buildReplaceInputExecutionTiming(input: {
 }
 
 function buildReplaceInputSuccessDraft(input: {
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
   clearResult: PrimitiveTextInputRunResult;
@@ -144,7 +144,7 @@ function buildReplaceInputSuccessDraft(input: {
 
 async function runReplaceInputClearStep(input: {
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
 }) {
@@ -182,7 +182,7 @@ async function runReplaceInputClearStep(input: {
 
 async function runReplaceInputWriteStep(input: {
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
   clearResult: PrimitiveTextInputRunResult;
@@ -222,7 +222,7 @@ async function runReplaceInputWriteStep(input: {
 
 export async function executeReplaceInputOperation(input: {
   context: TextInputRuntimeContext;
-  seed: TextInputResultSeed;
+  seed: TextInputExecutionSeed;
   actionExecutionRef: string;
   state: TextInputRuntimeDecisionState;
 }) {
