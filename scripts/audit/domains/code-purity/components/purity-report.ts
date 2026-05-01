@@ -5,6 +5,9 @@ import type { PurityInventoryItem, PurityReportDraft } from "./purity-metric-ins
 
 export type PurityReport = {
   generatedAt: string;
+  touchedBaselineSource: string;
+  touchedFiles: string[];
+  scanScope: string[];
   godFileInventory: PurityInventoryItem[];
   disasterFileInventory: PurityInventoryItem[];
   ownerMixingInventory: PurityInventoryItem[];

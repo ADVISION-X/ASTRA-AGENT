@@ -3,129 +3,157 @@ import { hashTextValue } from "../shared/text-input-types.js";
 
 const WRITING_CHILDREN = new Set(["type-text", "paste-text", "replace-input"]);
 
+const buildApprovedTextGatePassResult = (textLength: number) => ({
+  ok: true as const,
+  policyDecision: "allow" as const,
+  statusMessage: "Text Input approved-text gate passed.",
+  textLength,
+  dataQualityFlags: [] as string[],
+});
+
+const buildApprovedTextGateFailureResult = (input: {
+  failureReason: string;
+  statusMessage: string;
+  dataQualityFlag: string;
+  status?: "failed" | "review_required";
+  reviewRequiredReason?: string | null;
+  policyDecision?: "block" | "review_required";
+}) => ({
+  ok: false as const,
+  status: input.status ?? "failed" as const,
+  failureReason: input.failureReason as "input_text_required" | "input_text_ref_required" | "missing_approved_text" | "approved_text_ref_required" | "input_text_hash_mismatch" | "approved_text_hash_mismatch" | "approved_text_chain_mismatch" | "text_too_long",
+  reviewRequiredReason: input.reviewRequiredReason ?? null,
+  policyDecision: input.policyDecision ?? "block" as const,
+  statusMessage: input.statusMessage,
+  dataQualityFlags: [input.dataQualityFlag],
+});
+
+const validateApprovedTextInputTextFields = (input: { request: ParsedTextInputAbilityInput }) => {
+  if (input.request.inputText.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "input_text_required",
+      statusMessage: "Text Input requires inputText for the selected child capability.",
+      dataQualityFlag: "input_text_required",
+    });
+  }
+
+  if (input.request.inputTextRef.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "input_text_ref_required",
+      statusMessage: "Text Input requires inputTextRef for the selected child capability.",
+      dataQualityFlag: "input_text_ref_required",
+    });
+  }
+
+  return null;
+};
+
+const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInputAbilityInput }) => {
+  if (input.request.approvedText.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "missing_approved_text",
+      statusMessage: "Text Input requires approvedText for the selected child capability.",
+      dataQualityFlag: "missing_approved_text",
+    });
+  }
+
+  if (input.request.approvedTextRef.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "approved_text_ref_required",
+      statusMessage: "Text Input requires approvedTextRef for the selected child capability.",
+      dataQualityFlag: "approved_text_ref_required",
+    });
+  }
+
+  return null;
+};
+
+const validateApprovedTextInputHash = (input: { request: ParsedTextInputAbilityInput }) => {
+  const inputHash = hashTextValue(input.request.inputText ?? "");
+  if (input.request.inputTextHash !== inputHash) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "input_text_hash_mismatch",
+      statusMessage: "Text Input rejected inputText because inputTextHash does not match the governed payload.",
+      dataQualityFlag: "input_text_hash_mismatch",
+    });
+  }
+
+  return null;
+};
+
+const validateApprovedTextApprovedHash = (input: { request: ParsedTextInputAbilityInput }) => {
+  const approvedHash = hashTextValue(input.request.approvedText ?? "");
+  if (input.request.approvedTextHash !== approvedHash) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "approved_text_hash_mismatch",
+      statusMessage: "Text Input rejected approvedText because approvedTextHash does not match the approved payload.",
+      dataQualityFlag: "approved_text_hash_mismatch",
+    });
+  }
+
+  return null;
+};
+
+const validateApprovedTextExactMatch = (input: { request: ParsedTextInputAbilityInput }) => {
+  if (input.request.inputTextHash !== input.request.approvedTextHash || (input.request.inputText ?? "") !== (input.request.approvedText ?? "")) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "approved_text_hash_mismatch",
+      statusMessage: "Text Input only writes text whose governed input payload exactly matches the approved payload.",
+      dataQualityFlag: "approved_text_chain_mismatch",
+    });
+  }
+
+  return null;
+};
+
+const validateApprovedTextLengthPolicy = (input: { request: ParsedTextInputAbilityInput }) => {
+  const textLength = input.request.inputText.length;
+  if (textLength <= input.request.policy.maxLengthPolicy.maxLength) {
+    return null;
+  }
+
+  const status = input.request.policy.maxLengthPolicy.failureStatus;
+  return buildApprovedTextGateFailureResult({
+    status,
+    failureReason: status === "failed" ? "text_too_long" : "text_too_long",
+    reviewRequiredReason: status === "review_required"
+      ? `Text Input payload length ${textLength} exceeds governed maxLength ${input.request.policy.maxLengthPolicy.maxLength}.`
+      : null,
+    policyDecision: status === "failed" ? "block" : "review_required",
+    statusMessage: `Text Input payload length ${textLength} exceeds governed maxLength ${input.request.policy.maxLengthPolicy.maxLength}.`,
+    dataQualityFlag: "text_too_long",
+  });
+};
+
+const APPROVED_TEXT_VALIDATORS = [
+  validateApprovedTextInputTextFields,
+  validateApprovedTextApprovedTextFields,
+  validateApprovedTextInputHash,
+  validateApprovedTextApprovedHash,
+  validateApprovedTextExactMatch,
+  validateApprovedTextLengthPolicy,
+] as const;
+
+const resolveApprovedTextValidationFailure = (input: { request: ParsedTextInputAbilityInput }) => {
+  for (const validator of APPROVED_TEXT_VALIDATORS) {
+    const result = validator(input);
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+};
+
 export function validateApprovedText(input: { request: ParsedTextInputAbilityInput }) {
   if (!WRITING_CHILDREN.has(input.request.childCapabilityId)) {
-    return {
-      ok: true as const,
-      policyDecision: "allow" as const,
-      statusMessage: "Text Input approved-text gate passed.",
-      textLength: 0,
-      dataQualityFlags: [] as string[],
-    };
+    return buildApprovedTextGatePassResult(0);
   }
 
-  const inputText = input.request.inputText ?? "";
-  const inputTextRef = input.request.inputTextRef ?? "";
-  const approvedText = input.request.approvedText ?? "";
-  const approvedTextRef = input.request.approvedTextRef ?? "";
-
-  if (inputText.length === 0) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "input_text_required" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input requires inputText for the selected child capability.",
-      dataQualityFlags: ["input_text_required"],
-    };
+  const failure = resolveApprovedTextValidationFailure(input);
+  if (failure) {
+    return failure;
   }
 
-  if (inputTextRef.length === 0) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "input_text_ref_required" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input requires inputTextRef for the selected child capability.",
-      dataQualityFlags: ["input_text_ref_required"],
-    };
-  }
-
-  if (approvedText.length === 0) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "missing_approved_text" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input requires approvedText for the selected child capability.",
-      dataQualityFlags: ["missing_approved_text"],
-    };
-  }
-
-  if (approvedTextRef.length === 0) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "approved_text_ref_required" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input requires approvedTextRef for the selected child capability.",
-      dataQualityFlags: ["approved_text_ref_required"],
-    };
-  }
-
-  const inputHash = hashTextValue(inputText);
-  if (input.request.inputTextHash !== inputHash) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "input_text_hash_mismatch" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input rejected inputText because inputTextHash does not match the governed payload.",
-      dataQualityFlags: ["input_text_hash_mismatch"],
-    };
-  }
-
-  const approvedHash = hashTextValue(approvedText);
-  if (input.request.approvedTextHash !== approvedHash) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "approved_text_hash_mismatch" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input rejected approvedText because approvedTextHash does not match the approved payload.",
-      dataQualityFlags: ["approved_text_hash_mismatch"],
-    };
-  }
-
-  if (input.request.inputTextHash !== input.request.approvedTextHash || inputText !== approvedText) {
-    return {
-      ok: false as const,
-      status: "failed" as const,
-      failureReason: "approved_text_hash_mismatch" as const,
-      reviewRequiredReason: null,
-      policyDecision: "block" as const,
-      statusMessage: "Text Input only writes text whose governed input payload exactly matches the approved payload.",
-      dataQualityFlags: ["approved_text_chain_mismatch"],
-    };
-  }
-
-  const textLength = inputText.length;
-  if (textLength > input.request.policy.maxLengthPolicy.maxLength) {
-    const status = input.request.policy.maxLengthPolicy.failureStatus;
-    return {
-      ok: false as const,
-      status,
-      failureReason: status === "failed" ? ("text_too_long" as const) : null,
-      reviewRequiredReason: status === "review_required"
-        ? `Text Input payload length ${textLength} exceeds governed maxLength ${input.request.policy.maxLengthPolicy.maxLength}.`
-        : null,
-      policyDecision: status === "failed" ? ("block" as const) : ("review_required" as const),
-      statusMessage: `Text Input payload length ${textLength} exceeds governed maxLength ${input.request.policy.maxLengthPolicy.maxLength}.`,
-      dataQualityFlags: ["text_too_long"],
-    };
-  }
-
-  return {
-    ok: true as const,
-    policyDecision: "allow" as const,
-    statusMessage: "Text Input approved-text gate passed.",
-    textLength,
-    dataQualityFlags: [] as string[],
-  };
+  return buildApprovedTextGatePassResult(input.request.inputText.length);
 }

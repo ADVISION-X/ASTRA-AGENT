@@ -11,6 +11,7 @@ const getMissingGeneratedArtifactFindings = async (): Promise<Finding[]> => {
     generatedArtifactPaths.enforcementMatrixYaml,
     generatedArtifactPaths.auditPlan,
     generatedArtifactPaths.auditConflicts,
+    generatedArtifactPaths.touchedFiles,
   ];
 
   for (const requiredFile of requiredFiles) {

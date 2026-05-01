@@ -1,13 +1,6 @@
 import type { ParsedTextInputAbilityInput } from "../contract.js";
-import { validateApprovedText } from "./approved-text-gate.js";
-import { validateClipboardPolicy } from "./clipboard-policy-gate.js";
-import { validateCommitPolicy } from "./commit-policy-gate.js";
-import { validateFocusProof } from "./focus-proof-gate.js";
-import { validateInputTargetProof } from "./input-target-proof-gate.js";
-import { validateKeyPolicy } from "./key-policy-gate.js";
-import { validateSensitiveText } from "./sensitive-text-gate.js";
-import { validateTextPolicy } from "./text-policy-gate.js";
-import { validateTextSourceProof } from "./text-source-proof-gate.js";
+import { validateApprovedText, validateFocusProof, validateInputTargetProof, validateTextPolicy, validateTextSourceProof } from "./text-input-pre-execution-gates.js";
+import { validateClipboardPolicy, validateCommitPolicy, validateKeyPolicy, validateSensitiveText } from "./text-input-stateful-gates.js";
 import { buildRejectedTextInputResult, type TextInputRuntimeDecisionState } from "./text-input-execution-support.js";
 import type { TextInputResultSeed } from "./text-input-input-gate.js";
 import type { TextInputRuntimeContext } from "./text-input-runtime-context.js";

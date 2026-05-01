@@ -317,7 +317,18 @@ const ScreenshotExecutionOutputSchema = z.object({
   contentLines: z.array(z.string().min(1)).default([]),
 }).strict();
 
-const ScreenshotRuntimeProofSchema = z.object({
+const ScreenshotDecisionsSchema = z.object({
+  privacyDecision: ScreenshotDecisionSchema,
+  sourceDecision: ScreenshotDecisionSchema,
+  browserSessionDecision: ScreenshotDecisionSchema,
+  pageStateDecision: ScreenshotDecisionSchema,
+  captureDecision: ScreenshotDecisionSchema,
+  imageProcessingDecision: ScreenshotDecisionSchema,
+  artifactDecision: ScreenshotDecisionSchema,
+  outputBoundaryDecision: ScreenshotDecisionSchema,
+}).strict();
+
+const ScreenshotRuntimeProofIdentitySchema = z.object({
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -336,6 +347,9 @@ const ScreenshotRuntimeProofSchema = z.object({
   screenshotEvidenceId: nullableString,
   artifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
   sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+}).strict();
+
+const ScreenshotRuntimeProofMetricsSchema = z.object({
   sourceHash: nullableString,
   outputHash: nullableString,
   sourceWidth: positiveFiniteNumber.nullable().optional().default(null),
@@ -346,14 +360,9 @@ const ScreenshotRuntimeProofSchema = z.object({
   sourceCoordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).nullable().optional().default(null),
   scaleMapping: ScreenshotScaleMappingSchema.nullable().optional().default(null),
   region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
-  privacyDecision: ScreenshotDecisionSchema,
-  sourceDecision: ScreenshotDecisionSchema,
-  browserSessionDecision: ScreenshotDecisionSchema,
-  pageStateDecision: ScreenshotDecisionSchema,
-  captureDecision: ScreenshotDecisionSchema,
-  imageProcessingDecision: ScreenshotDecisionSchema,
-  artifactDecision: ScreenshotDecisionSchema,
-  outputBoundaryDecision: ScreenshotDecisionSchema,
+}).strict();
+
+const ScreenshotRuntimeProofTimingSchema = z.object({
   idempotencyKey: z.string().min(1),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -367,26 +376,56 @@ const ScreenshotRuntimeProofSchema = z.object({
     startedMonotonicMs: z.number().finite(),
     endedMonotonicMs: z.number().finite(),
   }).strict(),
-}).strict().superRefine((value, context) => {
-  if (value.startedAt > value.endedAt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
+}).strict();
+
+const ScreenshotRuntimeProofBaseSchema = ScreenshotRuntimeProofIdentitySchema
+  .merge(ScreenshotRuntimeProofMetricsSchema)
+  .merge(ScreenshotDecisionsSchema)
+  .merge(ScreenshotRuntimeProofTimingSchema)
+  .strict();
+
+function validateScreenshotRuntimeProofTiming(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+    if (value.startedAt > value.endedAt) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
+    }
+}
+
+function validateScreenshotRuntimeProofSuccessOutputRequirements(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+    if (value.status === "success" && (!value.artifactRef || !value.screenshotEvidenceId || !value.outputHash || !value.outputWidth || !value.outputHeight)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires artifactRef, screenshotEvidenceId, outputHash, and output dimensions", path: ["artifactRef"] });
+    }
+}
+
+function validateScreenshotRuntimeProofSuccessOutputRef(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+    if (value.status === "success" && !value.outputRef) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
+    }
+}
+
+function validateScreenshotRuntimeProofFailureExposure(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+    if (value.status !== "success" && value.artifactRef) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose artifactRef", path: ["artifactRef"] });
+    }
+    if (value.status !== "success" && value.outputRef) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose outputRef", path: ["outputRef"] });
+    }
+}
+
+function validateScreenshotRuntimeProofPrepareAiInput(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+    if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-ai-input proof requires scaleMapping", path: ["scaleMapping"] });
+    }
   }
-  if (value.status === "success" && (!value.artifactRef || !value.screenshotEvidenceId || !value.outputHash || !value.outputWidth || !value.outputHeight)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires artifactRef, screenshotEvidenceId, outputHash, and output dimensions", path: ["artifactRef"] });
-  }
-  if (value.status === "success" && !value.outputRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
-  }
-  if (value.status !== "success" && value.artifactRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose artifactRef", path: ["artifactRef"] });
-  }
-  if (value.status !== "success" && value.outputRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose outputRef", path: ["outputRef"] });
-  }
-  if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-ai-input proof requires scaleMapping", path: ["scaleMapping"] });
-  }
-});
+
+function validateScreenshotRuntimeProof(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
+  validateScreenshotRuntimeProofTiming(value, context);
+  validateScreenshotRuntimeProofSuccessOutputRequirements(value, context);
+  validateScreenshotRuntimeProofSuccessOutputRef(value, context);
+  validateScreenshotRuntimeProofFailureExposure(value, context);
+  validateScreenshotRuntimeProofPrepareAiInput(value, context);
+}
+
+  const ScreenshotRuntimeProofSchema = ScreenshotRuntimeProofBaseSchema.superRefine(validateScreenshotRuntimeProof);
 
 const ScreenshotResultSchema = z.object({
   abilityGroupId: z.literal(SCREENSHOT_ABILITY_GROUP_ID),

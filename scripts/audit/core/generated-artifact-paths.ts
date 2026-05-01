@@ -8,5 +8,6 @@ export const generatedArtifactPaths = {
   enforcementMatrixYaml: path.join(generatedHome, "enforcement-matrix.generated.yaml"),
   auditPlan: path.join(generatedHome, "audit-plan.generated.json"),
   auditConflicts: path.join(generatedHome, "audit-conflicts.generated.json"),
+  touchedFiles: path.join(generatedHome, "touched-files.generated.json"),
   runnerSummary: path.join(generatedHome, "runner-summary.json"),
 } as const;

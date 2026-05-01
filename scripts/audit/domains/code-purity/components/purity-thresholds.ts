@@ -6,6 +6,8 @@ export const FILE_LIMITS = {
   auditInspector: 250,
   auditPhase: 350,
   schemaType: 500,
+  jsonContract: 700,
+  generatedArtifact: 50000,
 } as const;
 
 export const FUNCTION_LIMITS = {

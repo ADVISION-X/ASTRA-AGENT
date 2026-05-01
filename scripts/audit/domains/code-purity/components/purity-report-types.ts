@@ -3,6 +3,7 @@ export interface PurityInventoryItem {
   lines: number;
   fileType: string;
   overLimitBy: number;
+  primaryRole: string;
   functionsOverLimit: string[];
   classMembers: number;
   importCount: number;
@@ -14,6 +15,9 @@ export interface PurityInventoryItem {
 }
 
 export interface PurityReportDraft {
+  touchedBaselineSource: string;
+  touchedFiles: string[];
+  scanScope: string[];
   godFileInventory: PurityInventoryItem[];
   disasterFileInventory: PurityInventoryItem[];
   ownerMixingInventory: PurityInventoryItem[];
@@ -30,6 +34,7 @@ export type PurityItemInput = {
   lineCount: number;
   fileType: string;
   overLimitBy: number;
+  primaryRole: string;
   functionsOverLimit: string[];
   classMembers: number;
   importCount: number;

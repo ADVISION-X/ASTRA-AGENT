@@ -25,21 +25,19 @@ function hasContentLinesLimitExceeded(input: {
   return input.request.contentLines.length > input.request.capturePolicy.maxContentLines;
 }
 
-function resolveContentLinesLimitFailure(input: {
+const CONTENT_LINES_LIMIT_EXCEEDED_REASON = "content_lines_limit_exceeded" as const;
+
+const buildContentLinesLimitExceededMessage = (maxContentLines: number): string => `Screenshot contentLines exceed maxContentLines=${maxContentLines}.`;
+
+const buildContentLinesLimitExceededFailure = (input: {
   request: ScreenshotAbilityInput;
   defaultAiMaxWidth: number;
-}) {
-  if (!hasContentLinesLimitExceeded(input)) {
-    return null;
-  }
+}) => buildScreenshotInputGateFailure({ request: input.request, defaultAiMaxWidth: input.defaultAiMaxWidth, reason: CONTENT_LINES_LIMIT_EXCEEDED_REASON, message: buildContentLinesLimitExceededMessage(input.request.capturePolicy.maxContentLines) });
 
-  return buildScreenshotInputGateFailure({
-    request: input.request,
-    defaultAiMaxWidth: input.defaultAiMaxWidth,
-    reason: "content_lines_limit_exceeded",
-    message: `Screenshot contentLines exceed maxContentLines=${input.request.capturePolicy.maxContentLines}.",
-  });
-}
+const resolveContentLinesLimitFailure = (input: {
+  request: ScreenshotAbilityInput;
+  defaultAiMaxWidth: number;
+}) => hasContentLinesLimitExceeded(input) ? buildContentLinesLimitExceededFailure(input) : null;
 
 function resolveContentLineLengthFailure(input: {
   request: ScreenshotAbilityInput;

@@ -1,7 +1,7 @@
-import { fileExists, writeJsonFile, writeTextFile } from "./core/filesystem.js";
-import { fileURLToPath } from "node:url";
+import { fileExists } from "./core/filesystem.js";
 import { parseModuleLaws } from "./core/law-parser.js";
 import { loadDomainManifests } from "./core/manifests.js";
+import { collectTouchedFilesArtifact } from "./core/touched-files-collector.js";
 import {
   pathFromRepoRoot,
   toRepoRelativePath,
@@ -19,7 +19,8 @@ import type {
 import type { EnforcementMatrix, EnforcementMatrixOwner } from "./core/schema-manifests.js";
 import { readJsonFile } from "./core/filesystem.js";
 import { loadFrozenBaselineDomains } from "./core/frozen-baseline.js";
-import { stringifyYaml } from "./core/yaml.js";
+import { writeCoreGeneratedArtifacts } from "./core/artifact-writers.js";
+import { writeTouchedFilesArtifact } from "./core/touched-files-writer.js";
 
 type ManifestCollectionContext = {
   lawsByDomain: Map<string, LawRecord[]>;
@@ -254,21 +255,6 @@ const appendFrozenPlanConflicts = (
   }
 };
 
-const writeGeneratedArtifacts = async (
-  lawRegistry: GeneratedLawRegistry,
-  enforcementMatrix: EnforcementMatrix,
-  auditPlan: AuditPlan,
-  auditConflicts: AuditConflictsSnapshot,
-): Promise<void> => {
-  await Promise.all([
-    writeJsonFile(generatedArtifactPaths.lawRegistry, lawRegistry),
-    writeJsonFile(generatedArtifactPaths.enforcementMatrixJson, enforcementMatrix),
-    writeTextFile(generatedArtifactPaths.enforcementMatrixYaml, `${stringifyYaml(enforcementMatrix)}\n`),
-    writeJsonFile(generatedArtifactPaths.auditPlan, auditPlan),
-    writeJsonFile(generatedArtifactPaths.auditConflicts, auditConflicts),
-  ]);
-};
-
 export const buildAuditArtifacts = async (): Promise<{
   generatedAt: string;
   lawRegistry: GeneratedLawRegistry;
@@ -281,6 +267,7 @@ export const buildAuditArtifacts = async (): Promise<{
   const manifests = await loadDomainManifests();
   const phaseGate = await readJsonFile<PhaseGate>(defaultPhaseGatePath);
   const frozenBaseline = await loadFrozenBaselineDomains();
+  const touchedFilesArtifact = await collectTouchedFilesArtifact({ allowStatusFallback: true });
 
   const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
   const lawsByDomain = groupLawsByDomain(laws);
@@ -310,7 +297,10 @@ export const buildAuditArtifacts = async (): Promise<{
   };
 
   appendFrozenPlanConflicts(auditConflicts, auditPlanOwners, frozenBaseline);
-  await writeGeneratedArtifacts(lawRegistry, enforcementMatrix, auditPlan, auditConflicts);
+  await Promise.all([
+    writeCoreGeneratedArtifacts(lawRegistry, enforcementMatrix, auditPlan, auditConflicts),
+    writeTouchedFilesArtifact(touchedFilesArtifact),
+  ]);
 
   return {
     generatedAt,
@@ -320,28 +310,3 @@ export const buildAuditArtifacts = async (): Promise<{
     auditConflicts,
   };
 };
-
-const main = async (): Promise<void> => {
-  const artifacts = await buildAuditArtifacts();
-  for (const conflict of artifacts.auditConflicts.conflicts) {
-    process.stderr.write(
-      `[AUDIT-BUILD-CONFLICT] ${conflict.kind} ${conflict.capabilityDomain ?? "unknown-domain"} ${conflict.lawId ?? "no-law-id"}: ${conflict.message}\n`,
-    );
-  }
-  process.stdout.write(
-    `Generated ${artifacts.lawRegistry.laws.length} active laws, ${artifacts.enforcementMatrix.owners.length} owners, ${artifacts.auditPlan.owners.length} planned inspections, ${artifacts.auditConflicts.conflicts.length} conflicts.\n`,
-  );
-  if (artifacts.auditConflicts.conflicts.length > 0) {
-    process.exit(1);
-  }
-  process.stdout.write("[AUDIT-BUILD PASS] generated artifacts with zero conflicts.\n");
-  process.exit(0);
-};
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
-    process.stderr.write(`[AUDIT-BUILD ERROR] ${message}\n`);
-    process.exit(1);
-  });
-}

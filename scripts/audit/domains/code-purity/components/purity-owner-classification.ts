@@ -7,10 +7,10 @@ const splitRelativePath = (relativePath: string): string[] =>
 
 const getLibOwner = (libSegment: string): string => {
   const libOwners: Record<string, string> = {
-    browser: "open",
-    "local-ai": "ai",
-    "local-runtime": "commander-console",
-    storage: "forensics-persistence",
+    browser: "browser-primitive-adapter",
+    "local-ai": "ai-runtime-adapter",
+    "local-runtime": "local-runtime-composition-root",
+    storage: "forensics-storage-adapter",
   };
   return libOwners[libSegment] ?? libSegment;
 };
@@ -35,11 +35,11 @@ const getNestedSrcOwner = (parts: string[]): string | undefined => {
   if (parts[0] !== "src") {
     return undefined;
   }
-  if (parts[1] === "capabilities" && parts[2]) {
+  if ((parts[1] === "capabilities" || parts[1] === "features") && parts[2]) {
     return parts[2];
   }
-  if (parts[1] === "features" && parts[2]) {
-    return parts[2];
+  if (parts[1] === "lib" && parts[2] === "storage" && parts[3] === "evidence-store") {
+    return "forensics-storage-adapter";
   }
   if (parts[1] === "lib" && parts[2]) {
     return getLibOwner(parts[2]);
@@ -65,6 +65,9 @@ const getModuleOwner = (parts: string[]): string | undefined =>
 
 export const classifyOwnerBoundary = (relativePath: string): string => {
   const parts = splitRelativePath(relativePath);
+  if (parts[0] === "src" && parts[1] === "types") {
+    return "type-only";
+  }
   return getModuleOwner(parts) ?? "unknown";
 };
 
