@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T11:07:24.718Z",
+  "generatedAt": "2026-05-01T11:12:29.343Z",
   "godFileInventory": [],
   "disasterFileInventory": [
     {
@@ -687,7 +687,7 @@
   "functionOverLimitInventory": [
     {
       "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 297,
+      "lines": 165,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -1648,7 +1648,7 @@
   "importExportOverLimitInventory": [
     {
       "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 297,
+      "lines": 165,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [
@@ -2116,22 +2116,6 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
-      "lines": 297,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "executePostActionVerification"
-      ],
-      "classMembers": 0,
-      "importCount": 14,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
       "lines": 295,
       "fileType": "runtime/implementation",
@@ -2388,6 +2372,22 @@
       ],
       "classMembers": 0,
       "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts",
+      "lines": 165,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "executePostActionVerification"
+      ],
+      "classMembers": 0,
+      "importCount": 14,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
