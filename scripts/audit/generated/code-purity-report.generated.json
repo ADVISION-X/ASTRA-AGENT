@@ -1,37 +1,14 @@
 {
-  "generatedAt": "2026-05-01T12:28:22.571Z",
+  "generatedAt": "2026-05-01T12:32:00.734Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/build-audit-artifacts.ts",
-    "scripts/audit/core/generated-artifact-paths.ts",
-    "scripts/audit/domains/audit-system/components/validate-generated-artifacts.ts",
-    "scripts/audit/domains/code-purity/components/inspect-code-purity.ts",
-    "scripts/audit/domains/code-purity/components/purity-file-categories.ts",
-    "scripts/audit/domains/code-purity/components/purity-metric-inspection.ts",
     "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
-    "scripts/audit/domains/code-purity/components/purity-report-draft.ts",
-    "scripts/audit/domains/code-purity/components/purity-report-types.ts",
-    "scripts/audit/domains/code-purity/components/purity-report.ts",
-    "scripts/audit/domains/code-purity/components/purity-runtime-constants.ts",
-    "scripts/audit/domains/code-purity/components/purity-thresholds.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    "scripts/audit/generated/law-registry.generated.json",
-    "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
-    "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-    "src/capabilities/screenshot/runtime/screenshot-input-gate.ts",
-    "src/capabilities/screenshot/schema.ts",
-    "src/capabilities/text-input/ability-group.ts",
-    "src/capabilities/text-input/runtime/approved-text-gate.ts",
-    "src/capabilities/text-input/runtime/commit-policy-gate.ts",
-    "src/capabilities/text-input/runtime/input-target-proof-gate.ts",
-    "src/capabilities/text-input/runtime/primitive-text-input-runner.ts",
-    "src/capabilities/text-input/runtime/sensitive-text-gate.ts",
-    "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    "src/capabilities/text-input/runtime/text-input-executor.ts"
+    "scripts/audit/generated/law-registry.generated.json"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -45,7 +22,7 @@
   "disasterFileInventory": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3287,
+      "lines": 3196,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -995,25 +972,8 @@
   "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
-      "file": "scripts/audit/core/artifact-writers.ts",
-      "lines": 30,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "writer",
-      "functionsOverLimit": [
-        "writeGeneratedArtifacts"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
-      "lines": 86,
+      "lines": 82,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -1919,7 +1879,7 @@
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3287,
+      "lines": 3196,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2869,23 +2829,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
-      "lines": 86,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "getNestedSrcOwner"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-ai/local-ai-runtime-vision-task.ts",
       "lines": 84,
       "fileType": "ordinary implementation",
@@ -2901,6 +2844,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
+      "lines": 82,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "getNestedSrcOwner"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/features/commander-console/CommanderAppShell.ts",
@@ -3151,29 +3111,12 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/core/artifact-writers.ts",
-      "lines": 30,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "writer",
-      "functionsOverLimit": [
-        "writeGeneratedArtifacts"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3287,
+      "lines": 3196,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

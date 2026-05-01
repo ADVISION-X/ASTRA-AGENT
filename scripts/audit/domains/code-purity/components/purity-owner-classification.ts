@@ -31,21 +31,16 @@ const getDirectSrcOwner = (parts: string[]): string | undefined => {
   return undefined;
 };
 
-const getNestedSrcOwner = (parts: string[]): string | undefined => {
-  if (parts[0] !== "src") {
-    return undefined;
-  }
-  if ((parts[1] === "capabilities" || parts[1] === "features") && parts[2]) {
-    return parts[2];
-  }
-  if (parts[1] === "lib" && parts[2] === "storage" && parts[3] === "evidence-store") {
-    return "forensics-storage-adapter";
-  }
-  if (parts[1] === "lib" && parts[2]) {
-    return getLibOwner(parts[2]);
-  }
-  return undefined;
-};
+const getNestedSrcOwner = (parts: string[]): string | undefined =>
+  parts[0] !== "src"
+    ? undefined
+    : parts[1] === "capabilities" || parts[1] === "features"
+      ? parts[2]
+      : parts[1] === "lib" && parts[2] === "storage" && parts[3] === "evidence-store"
+        ? "forensics-storage-adapter"
+        : parts[1] === "lib" && parts[2]
+          ? getLibOwner(parts[2])
+          : undefined;
 
 const getSrcOwner = (parts: string[]): string | undefined =>
   getDirectSrcOwner(parts) ?? getNestedSrcOwner(parts);
