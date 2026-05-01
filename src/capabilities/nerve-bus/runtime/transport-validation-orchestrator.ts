@@ -8,56 +8,98 @@ import type { NerveBusChannelRegistryEntry } from "../shared/nerve-bus-policy.js
 import type { NerveBusRuntimeContext } from "./transport-context.js";
 import { buildGuardFailureDetails, type ExecutionClockSnapshot, type ExecutionFailureDetails } from "./transport-failure-details-builders.js";
 
+const resolveEnvelopeInputGateFailure = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
+  child: NerveBusChildDefinition<TEnvelope, TResult>;
+  envelope: TEnvelope;
+  registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
+  context: NerveBusRuntimeContext;
+}, started: ExecutionClockSnapshot): ExecutionFailureDetails | null => {
+  const inputGate = enforceEnvelopeInputGate({ envelope: input.envelope, registryEntry: input.registryEntry });
+  if (inputGate.ok) {
+    return null;
+  }
+
+  return buildGuardFailureDetails(input, started, {
+    failureReason: inputGate.reason,
+    integrityDecision: inputGate.integrityDecision,
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: "not_started",
+    queueDecision: "not_started",
+    timeoutDecision: "not_started",
+    policyDecision: "allowed",
+    status: "failed",
+  });
+};
+
+const resolveChannelPolicyGateFailure = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
+  child: NerveBusChildDefinition<TEnvelope, TResult>;
+  envelope: TEnvelope;
+  registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
+  context: NerveBusRuntimeContext;
+}, started: ExecutionClockSnapshot): ExecutionFailureDetails | null => {
+  const policyGate = enforceChannelPolicyGate({ envelope: input.envelope, registryEntry: input.registryEntry });
+  if (policyGate.ok) {
+    return null;
+  }
+
+  return buildGuardFailureDetails(input, started, {
+    failureReason: policyGate.reason,
+    integrityDecision: "valid",
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: "not_started",
+    queueDecision: "not_started",
+    timeoutDecision: "not_started",
+    policyDecision: "forbidden_route",
+    status: "failed",
+  });
+};
+
+const resolveEnvelopeIntegrityGateFailure = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
+  child: NerveBusChildDefinition<TEnvelope, TResult>;
+  envelope: TEnvelope;
+  registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
+  context: NerveBusRuntimeContext;
+}, started: ExecutionClockSnapshot): ExecutionFailureDetails | null => {
+  const integrityGate = enforceEnvelopeIntegrityGate({
+    envelope: input.envelope,
+    registryEntry: input.registryEntry,
+    clock: input.context.clock,
+  });
+  if (integrityGate.ok) {
+    return null;
+  }
+
+  return buildGuardFailureDetails(input, started, {
+    failureReason: integrityGate.reason,
+    integrityDecision: integrityGate.integrityDecision,
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: "not_started",
+    queueDecision: "not_started",
+    timeoutDecision: "not_started",
+    policyDecision: "allowed",
+    status: "failed",
+  });
+};
+
 export const runInitialValidationGates = async <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   child: NerveBusChildDefinition<TEnvelope, TResult>;
   envelope: TEnvelope;
   registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
   context: NerveBusRuntimeContext;
 }, started: ExecutionClockSnapshot): Promise<ExecutionFailureDetails | null> => {
-  const inputGate = enforceEnvelopeInputGate({ envelope: input.envelope, registryEntry: input.registryEntry });
-  if (!inputGate.ok) {
-    return buildGuardFailureDetails(input, started, {
-      failureReason: inputGate.reason,
-      integrityDecision: inputGate.integrityDecision,
-      idempotencyDecision: "replay_rejected",
-      sequenceDecision: "not_started",
-      queueDecision: "not_started",
-      timeoutDecision: "not_started",
-      policyDecision: "allowed",
-      status: "failed",
-    });
+  const inputGateFailure = resolveEnvelopeInputGateFailure(input, started);
+  if (inputGateFailure) {
+    return inputGateFailure;
   }
 
-  const policyGate = enforceChannelPolicyGate({ envelope: input.envelope, registryEntry: input.registryEntry });
-  if (!policyGate.ok) {
-    return buildGuardFailureDetails(input, started, {
-      failureReason: policyGate.reason,
-      integrityDecision: "valid",
-      idempotencyDecision: "replay_rejected",
-      sequenceDecision: "not_started",
-      queueDecision: "not_started",
-      timeoutDecision: "not_started",
-      policyDecision: "forbidden_route",
-      status: "failed",
-    });
+  const policyGateFailure = resolveChannelPolicyGateFailure(input, started);
+  if (policyGateFailure) {
+    return policyGateFailure;
   }
 
-  const integrityGate = enforceEnvelopeIntegrityGate({
-    envelope: input.envelope,
-    registryEntry: input.registryEntry,
-    clock: input.context.clock,
-  });
-  if (!integrityGate.ok) {
-    return buildGuardFailureDetails(input, started, {
-      failureReason: integrityGate.reason,
-      integrityDecision: integrityGate.integrityDecision,
-      idempotencyDecision: "replay_rejected",
-      sequenceDecision: "not_started",
-      queueDecision: "not_started",
-      timeoutDecision: "not_started",
-      policyDecision: "allowed",
-      status: "failed",
-    });
+  const integrityGateFailure = resolveEnvelopeIntegrityGateFailure(input, started);
+  if (integrityGateFailure) {
+    return integrityGateFailure;
   }
 
   return null;

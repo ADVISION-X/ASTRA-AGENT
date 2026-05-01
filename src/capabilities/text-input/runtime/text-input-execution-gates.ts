@@ -21,6 +21,51 @@ type GateOutcome = {
   dataQualityFlags: string[];
 };
 
+function runTextInputPreExecutionGates(input: {
+  request: ParsedTextInputAbilityInput;
+  context: TextInputRuntimeContext;
+}) {
+  const targetGate = validateInputTargetProof({ request: input.request });
+  if (!targetGate.ok) return targetGate;
+
+  const focusGate = validateFocusProof({ request: input.request, currentIsoTimestamp: input.context.clock.now().isoTimestamp });
+  if (!focusGate.ok) return focusGate;
+
+  const sourceGate = validateTextSourceProof({ request: input.request });
+  if (!sourceGate.ok) return sourceGate;
+
+  const approvedTextGate = validateApprovedText({ request: input.request });
+  if (!approvedTextGate.ok) return approvedTextGate;
+
+  return validateTextPolicy({ request: input.request });
+}
+
+function runTextInputStatefulExecutionGates(input: {
+  request: ParsedTextInputAbilityInput;
+  context: TextInputRuntimeContext;
+  state: TextInputRuntimeDecisionState;
+}) {
+  const sensitiveGate = validateSensitiveText({ request: input.request });
+  input.state.sensitiveTextDecision = sensitiveGate.sensitiveTextDecision;
+  input.state.redactionDecision = sensitiveGate.redactionDecision;
+  if (!sensitiveGate.ok) return sensitiveGate;
+
+  const keyGate = validateKeyPolicy({ request: input.request });
+  input.state.keyPolicyDecision = keyGate.keyPolicyDecision;
+  if (!keyGate.ok) return keyGate;
+
+  const commitGate = validateCommitPolicy({ request: input.request });
+  input.state.keyPolicyDecision = commitGate.keyPolicyDecision;
+  if (!commitGate.ok) return commitGate;
+
+  const clipboardGate = validateClipboardPolicy({ request: input.request });
+  input.state.clipboardDecision = clipboardGate.clipboardDecision;
+  if (!clipboardGate.ok) return clipboardGate;
+
+  input.state.clipboardProofRef = clipboardGate.clipboardProofRef;
+  return null;
+}
+
 function buildGateFailureResult(input: {
   seed: TextInputResultSeed;
   context: TextInputRuntimeContext;
@@ -46,50 +91,11 @@ export function runTextInputExecutionGates(input: {
   seed: TextInputResultSeed;
   state: TextInputRuntimeDecisionState;
 }) {
-  const targetGate = validateInputTargetProof({ request: input.request });
-  if (!targetGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: targetGate });
+  const preExecutionGate = runTextInputPreExecutionGates({ request: input.request, context: input.context });
+  if (!preExecutionGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: preExecutionGate });
 
-  const focusGate = validateFocusProof({ request: input.request, currentIsoTimestamp: input.context.clock.now().isoTimestamp });
-  if (!focusGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: focusGate });
-
-  const sourceGate = validateTextSourceProof({ request: input.request });
-  if (!sourceGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: sourceGate });
-
-  const approvedTextGate = validateApprovedText({ request: input.request });
-  if (!approvedTextGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: approvedTextGate });
-
-  const textPolicyGate = validateTextPolicy({ request: input.request });
-  if (!textPolicyGate.ok) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: textPolicyGate });
-
-  const sensitiveGate = validateSensitiveText({ request: input.request });
-  if (!sensitiveGate.ok) {
-    input.state.sensitiveTextDecision = sensitiveGate.sensitiveTextDecision;
-    input.state.redactionDecision = sensitiveGate.redactionDecision;
-    return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: sensitiveGate });
-  }
-  input.state.sensitiveTextDecision = sensitiveGate.sensitiveTextDecision;
-  input.state.redactionDecision = sensitiveGate.redactionDecision;
-
-  const keyGate = validateKeyPolicy({ request: input.request });
-  if (!keyGate.ok) {
-    input.state.keyPolicyDecision = keyGate.keyPolicyDecision;
-    return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: keyGate });
-  }
-  input.state.keyPolicyDecision = keyGate.keyPolicyDecision;
-
-  const commitGate = validateCommitPolicy({ request: input.request });
-  if (!commitGate.ok) {
-    input.state.keyPolicyDecision = commitGate.keyPolicyDecision;
-    return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: commitGate });
-  }
-  input.state.commitPolicyRef = commitGate.commitPolicyRef;
-
-  const clipboardGate = validateClipboardPolicy({ request: input.request });
-  if (!clipboardGate.ok) {
-    input.state.clipboardDecision = clipboardGate.clipboardDecision;
-    return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: clipboardGate });
-  }
-  input.state.clipboardProofRef = clipboardGate.clipboardProofRef;
+  const statefulGate = runTextInputStatefulExecutionGates({ request: input.request, context: input.context, state: input.state });
+  if (statefulGate) return buildGateFailureResult({ seed: input.seed, context: input.context, state: input.state, gate: statefulGate });
 
   return null;
 }

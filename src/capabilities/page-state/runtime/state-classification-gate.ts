@@ -4,25 +4,142 @@ import { childAllowsProceed, isBlockedPageStateType, isReviewRequiredPageStateTy
 import type { PageStateClassificationOutcome, PageStateResolvedPlatformProfile } from "../shared/page-state-types.js";
 import { gatePageStateOutputBoundary } from "./page-state-output-boundary-gate.js";
 
+const FAILURE_REASON_BY_PAGE_STATE_TYPE: Partial<Record<PageStateClassificationOutcome["pageStateType"], PageStateClassificationOutcome["failureReason"]>> = {
+  login_required: "login_wall_detected",
+  safety_wall: "safety_wall_detected",
+  captcha_challenge: "safety_wall_detected",
+  modal_overlay_present: "modal_overlay_detected",
+  page_abnormal: "page_abnormal_detected",
+  wrong_domain: "platform_mismatch",
+  feed_not_ready: "insufficient_signal",
+  video_unstable: "insufficient_signal",
+};
+
 function mapFailureReason(pageStateType: PageStateClassificationOutcome["pageStateType"]): PageStateClassificationOutcome["failureReason"] {
-  switch (pageStateType) {
-    case "login_required":
-      return "login_wall_detected";
-    case "safety_wall":
-    case "captcha_challenge":
-      return "safety_wall_detected";
-    case "modal_overlay_present":
-      return "modal_overlay_detected";
-    case "page_abnormal":
-      return "page_abnormal_detected";
-    case "wrong_domain":
-      return "platform_mismatch";
-    case "feed_not_ready":
-    case "video_unstable":
-      return "insufficient_signal";
-    default:
-      return null;
+  return FAILURE_REASON_BY_PAGE_STATE_TYPE[pageStateType] ?? null;
+}
+
+function buildClassificationOutcome(
+  detection: PageStateClassificationOutcome,
+  resolvedProfile: PageStateResolvedPlatformProfile,
+  patch: Partial<PageStateClassificationOutcome>,
+): PageStateClassificationOutcome {
+  return {
+    ...detection,
+    resolvedProfileId: resolvedProfile.profileId,
+    matchedHost: resolvedProfile.matchedHost,
+    ...patch,
+  };
+}
+
+function resolveBoundaryClassificationOutcome(input: {
+  detection: PageStateClassificationOutcome;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+  request: PageStateAbilityInput;
+}): PageStateClassificationOutcome | null {
+  const boundary = gatePageStateOutputBoundary({ request: input.request, detection: input.detection });
+  if (boundary.ok) {
+    return null;
   }
+
+  return buildClassificationOutcome(input.detection, input.resolvedProfile, {
+    status: boundary.failure.status,
+    decision: boundary.failure.decision,
+    failureReason: boundary.failure.failureReason,
+    pageStateType: boundary.failure.pageStateType,
+    stateSummary: boundary.failure.stateSummary,
+    confidence: 0,
+    reviewRequiredReason: boundary.failure.reviewRequiredReason,
+    dataQualityFlags: boundary.failure.dataQualityFlags,
+    matchedObservationIds: [],
+    supportingEvidenceRefs: [],
+    supportingReasons: [boundary.failure.stateSummary],
+    childCapabilityId: input.request.childCapabilityId,
+  });
+}
+
+function resolveLowConfidenceClassificationOutcome(input: {
+  detection: PageStateClassificationOutcome;
+  request: PageStateAbilityInput;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+}): PageStateClassificationOutcome | null {
+  if (input.detection.confidence >= input.request.confidencePolicy.minimumConfidence) {
+    return null;
+  }
+
+  return buildClassificationOutcome(input.detection, input.resolvedProfile, {
+    status: input.request.confidencePolicy.allowReviewRequired ? "review_required" : "failed",
+    decision: input.request.confidencePolicy.allowReviewRequired ? "review_required" : "fail",
+    failureReason: "low_confidence",
+    reviewRequiredReason: input.detection.reviewRequiredReason ?? "Review required because confidence is below the minimum confidence policy.",
+    dataQualityFlags: [...input.detection.dataQualityFlags, "low_confidence"],
+  });
+}
+
+function resolveBlockedTypeClassificationOutcome(input: {
+  detection: PageStateClassificationOutcome;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+}): PageStateClassificationOutcome | null {
+  if (!isBlockedPageStateType(input.detection.pageStateType)) {
+    return null;
+  }
+
+  return buildClassificationOutcome(input.detection, input.resolvedProfile, {
+    status: "failed",
+    decision: "block",
+    failureReason: mapFailureReason(input.detection.pageStateType) ?? "classification_failed",
+  });
+}
+
+function resolveReviewRequiredTypeClassificationOutcome(input: {
+  detection: PageStateClassificationOutcome;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+}): PageStateClassificationOutcome | null {
+  if (!isReviewRequiredPageStateType(input.detection.pageStateType)) {
+    return null;
+  }
+
+  return buildClassificationOutcome(input.detection, input.resolvedProfile, {
+    status: "review_required",
+    decision: "review_required",
+    failureReason: mapFailureReason(input.detection.pageStateType) ?? "classification_failed",
+    reviewRequiredReason: input.detection.reviewRequiredReason ?? `Review required for ${input.detection.pageStateType}.`,
+  });
+}
+
+function resolveProceedClassificationOutcome(input: {
+  request: PageStateAbilityInput;
+  detection: PageStateClassificationOutcome;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+}): PageStateClassificationOutcome | null {
+  if (childAllowsProceed(input.request.childCapabilityId, input.detection.pageStateType)) {
+    return null;
+  }
+
+  return buildClassificationOutcome(input.detection, input.resolvedProfile, {
+    status: input.request.statePolicy.allowUnknownState ? "review_required" : "failed",
+    decision: input.request.statePolicy.allowUnknownState ? "review_required" : "fail",
+    failureReason: "classification_failed",
+    reviewRequiredReason: `Review required because ${input.detection.pageStateType} is not a governed proceed state for ${input.request.childCapabilityId}.`,
+    dataQualityFlags: [...input.detection.dataQualityFlags, "insufficient_signal"],
+  });
+}
+
+function resolvePageStateClassificationOutcome(input: {
+  request: PageStateAbilityInput;
+  detection: PageStateClassificationOutcome;
+  resolvedProfile: PageStateResolvedPlatformProfile;
+}): PageStateClassificationOutcome {
+  return resolveBoundaryClassificationOutcome(input)
+    ?? resolveLowConfidenceClassificationOutcome(input)
+    ?? resolveBlockedTypeClassificationOutcome(input)
+    ?? resolveReviewRequiredTypeClassificationOutcome(input)
+    ?? resolveProceedClassificationOutcome(input)
+    ?? buildClassificationOutcome(input.detection, input.resolvedProfile, {
+      status: "success",
+      decision: "proceed",
+      failureReason: null,
+    });
 }
 
 export async function classifyPageState(input: {
@@ -31,83 +148,5 @@ export async function classifyPageState(input: {
   resolvedProfile: PageStateResolvedPlatformProfile;
 }): Promise<PageStateClassificationOutcome> {
   const detection = await input.childCapability.execute(input.request);
-  const boundary = gatePageStateOutputBoundary({ request: input.request, detection });
-  if (!boundary.ok) {
-    return {
-      ...detection,
-      status: boundary.failure.status,
-      decision: boundary.failure.decision,
-      failureReason: boundary.failure.failureReason,
-      resolvedProfileId: input.resolvedProfile.profileId,
-      matchedHost: input.resolvedProfile.matchedHost,
-      pageStateType: boundary.failure.pageStateType,
-      stateSummary: boundary.failure.stateSummary,
-      confidence: 0,
-      reviewRequiredReason: boundary.failure.reviewRequiredReason,
-      dataQualityFlags: boundary.failure.dataQualityFlags,
-      matchedObservationIds: [],
-      supportingEvidenceRefs: [],
-      supportingReasons: [boundary.failure.stateSummary],
-      childCapabilityId: input.request.childCapabilityId,
-    };
-  }
-  const lowConfidence = detection.confidence < input.request.confidencePolicy.minimumConfidence;
-
-  if (lowConfidence) {
-    return {
-      ...detection,
-      status: input.request.confidencePolicy.allowReviewRequired ? "review_required" : "failed",
-      decision: input.request.confidencePolicy.allowReviewRequired ? "review_required" : "fail",
-      failureReason: "low_confidence",
-      resolvedProfileId: input.resolvedProfile.profileId,
-      matchedHost: input.resolvedProfile.matchedHost,
-      reviewRequiredReason: detection.reviewRequiredReason ?? "Review required because confidence is below the minimum confidence policy.",
-      dataQualityFlags: [...detection.dataQualityFlags, "low_confidence"],
-    };
-  }
-
-  if (isBlockedPageStateType(detection.pageStateType)) {
-    return {
-      ...detection,
-      status: "failed",
-      decision: "block",
-      failureReason: mapFailureReason(detection.pageStateType) ?? "classification_failed",
-      resolvedProfileId: input.resolvedProfile.profileId,
-      matchedHost: input.resolvedProfile.matchedHost,
-    };
-  }
-
-  if (isReviewRequiredPageStateType(detection.pageStateType)) {
-    return {
-      ...detection,
-      status: "review_required",
-      decision: "review_required",
-      failureReason: mapFailureReason(detection.pageStateType) ?? "classification_failed",
-      resolvedProfileId: input.resolvedProfile.profileId,
-      matchedHost: input.resolvedProfile.matchedHost,
-      reviewRequiredReason: detection.reviewRequiredReason ?? `Review required for ${detection.pageStateType}.`,
-    };
-  }
-
-  if (!childAllowsProceed(input.request.childCapabilityId, detection.pageStateType)) {
-    return {
-      ...detection,
-      status: input.request.statePolicy.allowUnknownState ? "review_required" : "failed",
-      decision: input.request.statePolicy.allowUnknownState ? "review_required" : "fail",
-      failureReason: "classification_failed",
-      resolvedProfileId: input.resolvedProfile.profileId,
-      matchedHost: input.resolvedProfile.matchedHost,
-      reviewRequiredReason: `Review required because ${detection.pageStateType} is not a governed proceed state for ${input.request.childCapabilityId}.`,
-      dataQualityFlags: [...detection.dataQualityFlags, "insufficient_signal"],
-    };
-  }
-
-  return {
-    ...detection,
-    status: "success",
-    decision: "proceed",
-    failureReason: null,
-    resolvedProfileId: input.resolvedProfile.profileId,
-    matchedHost: input.resolvedProfile.matchedHost,
-  };
+  return resolvePageStateClassificationOutcome({ request: input.request, detection, resolvedProfile: input.resolvedProfile });
 }

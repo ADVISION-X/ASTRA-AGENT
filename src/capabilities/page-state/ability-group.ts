@@ -10,43 +10,43 @@ import type { PageStateRuntimeContext } from "./runtime/page-state-runtime-conte
 
 type CallInput = Omit<PageStateAbilityInput, "childCapabilityId">;
 
-export function createPageStateAbilityGroup(context: PageStateRuntimeContext): PageStateAbilityGroup {
-  const executeById = async (childCapabilityId: PageStateChildCapabilityId, callInput: CallInput) => {
-    const parsedInput = PageStateAbilityInputSchema.safeParse({ childCapabilityId, ...callInput });
-    if (!parsedInput.success) {
-      return dispatchInvalidPageStateInput({
-        rawInput: { childCapabilityId, ...callInput },
-        issues: parsedInput.error.issues,
-        clock: context.clock,
-      });
-    }
-
-    const capability = context.registry.get(childCapabilityId);
-    if (!capability) {
-      return dispatchPageStateFailure({
-        request: parsedInput.data,
-        failureReason: "child_not_registered",
-        stateSummary: `Page State child capability ${childCapabilityId} is not registered.`,
-        status: "failed",
-        decision: "fail",
-        clock: context.clock,
-      });
-    }
-
-    return executePageState({
-      request: parsedInput.data,
-      childCapability: capability,
+async function executePageStateChildCapability(context: PageStateRuntimeContext, childCapabilityId: PageStateChildCapabilityId, callInput: CallInput) {
+  const parsedInput = PageStateAbilityInputSchema.safeParse({ childCapabilityId, ...callInput });
+  if (!parsedInput.success) {
+    return dispatchInvalidPageStateInput({
+      rawInput: { childCapabilityId, ...callInput },
+      issues: parsedInput.error.issues,
       clock: context.clock,
-      profilePort: context.profilePort,
     });
-  };
+  }
 
+  const capability = context.registry.get(childCapabilityId);
+  if (!capability) {
+    return dispatchPageStateFailure({
+      request: parsedInput.data,
+      failureReason: "child_not_registered",
+      stateSummary: `Page State child capability ${childCapabilityId} is not registered.`,
+      status: "failed",
+      decision: "fail",
+      clock: context.clock,
+    });
+  }
+
+  return executePageState({
+    request: parsedInput.data,
+    childCapability: capability,
+    clock: context.clock,
+    profilePort: context.profilePort,
+  });
+}
+
+export function createPageStateAbilityGroup(context: PageStateRuntimeContext): PageStateAbilityGroup {
   return {
     listChildCapabilityIds() {
       return [...context.registry.keys()] as PageStateChildCapabilityId[];
     },
     execute(input) {
-      return executeById(input.childCapabilityId, input);
+      return executePageStateChildCapability(context, input.childCapabilityId, input);
     },
   };
 }

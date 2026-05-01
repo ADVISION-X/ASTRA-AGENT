@@ -10,62 +10,61 @@ const ALLOWED_OBSERVATION_SOURCES: Record<PageStateObservation["kind"], readonly
   post_action_verification: ["post-action-verification"],
 };
 
-export function gateObservationSources(request: PageStateAbilityInput):
-  | { ok: true; sourceDecision: "allow" }
-  | { ok: false; sourceDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+function resolveObservationSourceFailure(request: PageStateAbilityInput): { decision: "review_required" | "fail"; stateSummary: string; failureReason: string } | null {
   const mismatchedObservation = request.observations.find(
     (observation) => !ALLOWED_OBSERVATION_SOURCES[observation.kind].includes(observation.sourceAbilityGroupId),
   );
 
   if (mismatchedObservation) {
     return {
-      ok: false,
-      sourceDecision: "fail",
-      failure: {
-        status: "failed",
-        decision: "fail",
-        failureReason: "observation_source_forbidden",
-        stateSummary: `Observation ${mismatchedObservation.observationId} uses a forbidden source for ${mismatchedObservation.kind}.`,
-        reviewRequiredReason: null,
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["source_mismatch"],
-      },
+      decision: "fail",
+      failureReason: "observation_source_forbidden",
+      stateSummary: `Observation ${mismatchedObservation.observationId} uses a forbidden source for ${mismatchedObservation.kind}.`,
     };
   }
 
   if (childRequiresObservationSupport(request.childCapabilityId) && request.observations.length === 0) {
     return {
-      ok: false,
-      sourceDecision: "review_required",
-      failure: {
-        status: "review_required",
-        decision: "review_required",
-        failureReason: "missing_observation_support",
-        stateSummary: `Page State child ${request.childCapabilityId} needs a governed observation source.`,
-        reviewRequiredReason: "Review required because no governed observation source was supplied.",
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["missing_observation", "source_mismatch"],
-      },
+      decision: "review_required",
+      failureReason: "missing_observation_support",
+      stateSummary: `Page State child ${request.childCapabilityId} needs a governed observation source.`,
     };
   }
 
   if (request.snapshot.sourceProofRef !== request.openHandoff.openProofRef && request.snapshot.sourceAbilityGroupId === "open") {
     return {
-      ok: false,
-      sourceDecision: "review_required",
-      failure: {
-        status: "review_required",
-        decision: "review_required",
-        failureReason: "observation_source_mismatch",
-        stateSummary: "Page State snapshot source proof does not match the open handoff proof.",
-        reviewRequiredReason: "Review required because snapshot source proof and open handoff proof are inconsistent.",
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["source_mismatch"],
-      },
+      decision: "review_required",
+      failureReason: "observation_source_mismatch",
+      stateSummary: "Page State snapshot source proof does not match the open handoff proof.",
     };
+  }
+
+  return null;
+}
+
+function createObservationSourceFailure(decision: "review_required" | "fail", failureReason: string, stateSummary: string): { ok: false; sourceDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+  return {
+    ok: false,
+    sourceDecision: decision,
+    failure: {
+      status: decision === "fail" ? "failed" : "review_required",
+      decision,
+      failureReason,
+      stateSummary,
+      reviewRequiredReason: decision === "fail" ? null : stateSummary,
+      pageStateType: "unknown_page",
+      confidence: 0,
+      dataQualityFlags: decision === "fail" ? ["source_mismatch"] : ["missing_observation", "source_mismatch"],
+    },
+  };
+}
+
+export function gateObservationSources(request: PageStateAbilityInput):
+  | { ok: true; sourceDecision: "allow" }
+  | { ok: false; sourceDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+  const failure = resolveObservationSourceFailure(request);
+  if (failure) {
+    return createObservationSourceFailure(failure.decision, failure.failureReason, failure.stateSummary);
   }
 
   return { ok: true, sourceDecision: "allow" };

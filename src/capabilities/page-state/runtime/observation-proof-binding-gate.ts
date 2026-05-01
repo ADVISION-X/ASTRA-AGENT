@@ -9,30 +9,28 @@ const ALLOWED_SOURCE_CHILDREN: Record<string, readonly string[]> = {
   "runtime-signal": ["runtime-signal", "page-runtime-signal", "local-runtime-signal"],
 };
 
-export function gateObservationProofBinding(request: PageStateAbilityInput):
-  | { ok: true; observationBindingDecision: "bound" }
-  | { ok: false; observationBindingDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
-  const evidenceRefSet = new Set(request.sourceEvidenceRefs);
-
-  for (const observation of request.observations) {
-    if (!observation.sourceProofRef || observation.sourceProofRef.length === 0) {
-      return createBindingFailure("fail", `Observation ${observation.observationId} is missing source proof binding.`);
-    }
-
-    const allowedChildren = ALLOWED_SOURCE_CHILDREN[observation.sourceAbilityGroupId] ?? [];
-    if (!allowedChildren.includes(observation.sourceChildCapabilityId)) {
-      return createBindingFailure("fail", `Observation ${observation.observationId} uses a forbidden source child capability.`);
-    }
-
-    const supportingRefMatched = request.sourceEvidenceRefs.some((ref) => observation.sourceProofRef.includes(ref) || ref.includes(observation.sourceProofRef));
-    const openProofMatched = observation.sourceProofRef === request.openHandoff.openProofRef;
-    const snapshotProofMatched = observation.sourceProofRef === request.snapshot.sourceProofRef;
-    if (!supportingRefMatched && !openProofMatched && !snapshotProofMatched && evidenceRefSet.size > 0) {
-      return createBindingFailure("review_required", `Observation ${observation.observationId} proof cannot be bound to the request evidence chain.`);
-    }
+function resolveObservationBindingFailure(input: {
+  observation: PageStateAbilityInput["observations"][number];
+  request: PageStateAbilityInput;
+  evidenceRefSet: Set<string>;
+}): { decision: "review_required" | "fail"; reason: string } | null {
+  if (!input.observation.sourceProofRef || input.observation.sourceProofRef.length === 0) {
+    return { decision: "fail", reason: `Observation ${input.observation.observationId} is missing source proof binding.` };
   }
 
-  return { ok: true, observationBindingDecision: "bound" };
+  const allowedChildren = ALLOWED_SOURCE_CHILDREN[input.observation.sourceAbilityGroupId] ?? [];
+  if (!allowedChildren.includes(input.observation.sourceChildCapabilityId)) {
+    return { decision: "fail", reason: `Observation ${input.observation.observationId} uses a forbidden source child capability.` };
+  }
+
+  const supportingRefMatched = input.request.sourceEvidenceRefs.some((ref) => input.observation.sourceProofRef.includes(ref) || ref.includes(input.observation.sourceProofRef));
+  const openProofMatched = input.observation.sourceProofRef === input.request.openHandoff.openProofRef;
+  const snapshotProofMatched = input.observation.sourceProofRef === input.request.snapshot.sourceProofRef;
+  if (!supportingRefMatched && !openProofMatched && !snapshotProofMatched && input.evidenceRefSet.size > 0) {
+    return { decision: "review_required", reason: `Observation ${input.observation.observationId} proof cannot be bound to the request evidence chain.` };
+  }
+
+  return null;
 }
 
 function createBindingFailure(
@@ -53,4 +51,19 @@ function createBindingFailure(
       dataQualityFlags: ["source_mismatch"],
     },
   };
+}
+
+export function gateObservationProofBinding(request: PageStateAbilityInput):
+  | { ok: true; observationBindingDecision: "bound" }
+  | { ok: false; observationBindingDecision: "review_required" | "fail"; failure: PageStateGateFailure } {
+  const evidenceRefSet = new Set(request.sourceEvidenceRefs);
+
+  for (const observation of request.observations) {
+    const bindingFailure = resolveObservationBindingFailure({ observation, request, evidenceRefSet });
+    if (bindingFailure) {
+      return createBindingFailure(bindingFailure.decision, bindingFailure.reason);
+    }
+  }
+
+  return { ok: true, observationBindingDecision: "bound" };
 }

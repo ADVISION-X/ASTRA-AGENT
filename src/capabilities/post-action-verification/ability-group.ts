@@ -6,6 +6,70 @@ import { createPostActionVerificationRegistry, listPostActionVerificationChildre
 import { executePostActionVerification } from "./runtime/post-action-verification-executor.js";
 import { dispatchPostActionVerificationFailure } from "./runtime/verification-dispatch-failure.js";
 
+async function executePostActionVerificationChildCapability(input: {
+  registry: ReturnType<typeof createPostActionVerificationRegistry>;
+  context: {
+    clock: PostActionVerificationClockPort;
+    evidenceReadPort: PostActionEvidenceReadPort;
+  };
+  childCapabilityId: PostActionVerificationChildCapabilityId;
+  callInput: ParsedPostActionVerificationAbilityInput;
+}) {
+  const capability = input.registry.get(input.childCapabilityId);
+  if (!capability) {
+    return dispatchPostActionVerificationFailure({
+      rawInput: input.callInput,
+      context: input.context,
+      status: "failed",
+      failureReason: "unknown_child_capability",
+      statusMessage: `Post Action Verification child capability is not registered for ${input.childCapabilityId}.`,
+    });
+  }
+
+  try {
+    return PostActionVerificationAbilityResultSchema.parse(await executePostActionVerification({
+      request: input.callInput,
+      context: input.context,
+      capability,
+    }));
+  } catch (error) {
+    return dispatchPostActionVerificationFailure({
+      rawInput: input.callInput,
+      context: input.context,
+      failureReason: "child_execution_failed",
+      statusMessage: error instanceof Error ? error.message : "Post Action Verification child execution failed.",
+    });
+  }
+}
+
+async function executePostActionVerificationInput(input: {
+  registry: ReturnType<typeof createPostActionVerificationRegistry>;
+  context: {
+    clock: PostActionVerificationClockPort;
+    evidenceReadPort: PostActionEvidenceReadPort;
+  };
+  inputValue: PostActionVerificationAbilityInput;
+}) {
+  const parsed = PostActionVerificationAbilityInputSchema.safeParse(input.inputValue);
+  if (!parsed.success) {
+    return dispatchPostActionVerificationFailure({
+      rawInput: input.inputValue,
+      context: input.context,
+      status: "failed",
+      failureReason: "input_schema_invalid",
+      statusMessage: "Post Action Verification rejected invalid input schema.",
+      parseErrors: parsed.error.issues.map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`),
+    });
+  }
+
+  return executePostActionVerificationChildCapability({
+    registry: input.registry,
+    context: input.context,
+    childCapabilityId: parsed.data.childCapabilityId,
+    callInput: parsed.data,
+  });
+}
+
 export function createPostActionVerificationAbilityGroup(input: CreatePostActionVerificationAbilityGroupInput): PostActionVerificationAbilityGroup {
   const registry = createPostActionVerificationRegistry();
   const context = {
@@ -13,51 +77,12 @@ export function createPostActionVerificationAbilityGroup(input: CreatePostAction
     evidenceReadPort: input.evidenceReadPort,
   };
 
-  const executeById = async (childCapabilityId: PostActionVerificationChildCapabilityId, callInput: ParsedPostActionVerificationAbilityInput) => {
-    const capability = registry.get(childCapabilityId);
-    if (!capability) {
-      return dispatchPostActionVerificationFailure({
-        rawInput: callInput,
-        context,
-          status: "failed",
-        failureReason: "unknown_child_capability",
-        statusMessage: `Post Action Verification child capability is not registered for ${childCapabilityId}.`,
-      });
-    }
-
-    try {
-      return PostActionVerificationAbilityResultSchema.parse(await executePostActionVerification({
-        request: callInput,
-        context,
-        capability,
-      }));
-    } catch (error) {
-      return dispatchPostActionVerificationFailure({
-        rawInput: callInput,
-        context,
-        failureReason: "child_execution_failed",
-        statusMessage: error instanceof Error ? error.message : "Post Action Verification child execution failed.",
-      });
-    }
-  };
-
   return {
     listChildCapabilityIds() {
       return listPostActionVerificationChildren();
     },
     async execute(inputValue: PostActionVerificationAbilityInput) {
-      const parsed = PostActionVerificationAbilityInputSchema.safeParse(inputValue);
-      if (!parsed.success) {
-        return dispatchPostActionVerificationFailure({
-          rawInput: inputValue,
-          context,
-          status: "failed",
-          failureReason: "input_schema_invalid",
-          statusMessage: "Post Action Verification rejected invalid input schema.",
-          parseErrors: parsed.error.issues.map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`),
-        });
-      }
-      return executeById(parsed.data.childCapabilityId, parsed.data);
+      return executePostActionVerificationInput({ registry, context, inputValue });
     },
   };
 }

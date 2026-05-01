@@ -8,77 +8,10 @@ import { validateObservationProofBinding } from "./observation-proof-binding-gat
 import { validatePostActionOutputBoundary } from "./post-action-output-boundary-gate.js";
 import { validatePostActionPayloadBudget } from "./post-action-payload-budget-gate.js";
 import { validatePostActionVerificationInput } from "./verification-input-gate.js";
+import { buildGateRejectedResult } from "./verification-gate-rejection-result.js";
 import { validateVerificationPolicy } from "./verification-policy-gate.js";
 import type { ParsedPostActionVerificationAbilityInput, PostActionFailureReason } from "../contract.js";
 import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext } from "./post-action-verification-runtime-context.js";
-
-function buildGateRejectedResult(input: {
-  request: ParsedPostActionVerificationAbilityInput;
-  context: PostActionVerificationRuntimeContext;
-  startedAt: string;
-  endedAt: string;
-  startedMonotonicMs: number;
-  endedMonotonicMs: number;
-  status: "failed" | "review_required";
-  failureReason: PostActionFailureReason;
-  reviewRequiredReason: string | null;
-  statusMessage: string;
-  inputDecision: string;
-  payloadBudgetDecision: string;
-  actionProofDecision: string;
-  evidenceSourceDecision: string;
-  observationBindingDecision: string;
-  beforeAfterDecision: string;
-  beforeAfterPairDecision: string;
-  policyDecision: string;
-  outputBoundaryDecision: string;
-  criticalDataQualityDecision: string;
-  verificationDecisionTrace: string[];
-  dataQualityFlags: string[];
-  diagnosticPayloadRef: string;
-}) {
-  const verificationDecision = input.status === "review_required" ? "review_required" : "failed";
-  const runtimeProof = buildPostActionRuntimeProof({
-    request: input.request,
-    context: input.context,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    startedMonotonicMs: input.startedMonotonicMs,
-    endedMonotonicMs: input.endedMonotonicMs,
-    status: input.status,
-    verificationDecision,
-    confidence: 0,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    inputDecision: input.inputDecision,
-    actionProofDecision: input.actionProofDecision,
-    evidenceSourceDecision: input.evidenceSourceDecision,
-    beforeAfterDecision: input.beforeAfterDecision,
-    policyDecision: input.policyDecision,
-    outputBoundaryDecision: input.outputBoundaryDecision,
-    criticalDataQualityDecision: input.criticalDataQualityDecision,
-    observationBindingDecision: input.observationBindingDecision,
-    beforeAfterPairDecision: input.beforeAfterPairDecision,
-    verificationDecisionTrace: input.verificationDecisionTrace,
-    dataQualityFlags: input.dataQualityFlags,
-    inputRef: input.request.inputRef,
-    outputRef: null,
-    diagnosticPayloadRef: input.diagnosticPayloadRef,
-  });
-
-  return buildPostActionVerificationResult({
-    request: input.request,
-    assessment: null,
-    status: input.status,
-    verificationDecision,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    statusMessage: input.statusMessage,
-    runtimeProof,
-    diagnosticPayloadRef: input.diagnosticPayloadRef,
-    dataQualityFlags: input.dataQualityFlags,
-  });
-}
 
 export async function executePostActionVerification(input: {
   request: ParsedPostActionVerificationAbilityInput;

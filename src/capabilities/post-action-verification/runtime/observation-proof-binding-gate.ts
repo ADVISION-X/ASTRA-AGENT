@@ -2,6 +2,48 @@ import { POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST } from "../shared/post-action-
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
 import type { PostActionVerificationRuntimeContext } from "./post-action-verification-runtime-context.js";
 
+function createObservationBindingFailure(statusMessage: string, decision: "failed:duplicate_observation_ref" | "failed:forbidden_observation_source_ability" | "failed:forbidden_observation_source_child" | "review_required:observation_source_proof_unverified") {
+  return {
+    ok: false as const,
+    status: decision.startsWith("review_required") ? "review_required" as const : "failed" as const,
+    failureReason: "observation_binding_conflict" as const,
+    reviewRequiredReason: decision.startsWith("review_required") ? statusMessage : null,
+    statusMessage,
+    dataQualityFlags: ["observation_binding_conflict"],
+    observationBindingDecision: decision,
+  };
+}
+
+function validateObservationBindingEntry(input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  context: PostActionVerificationRuntimeContext;
+  observation: ParsedPostActionVerificationAbilityInput["observationSet"]["observations"][number];
+}) {
+  const allowlist = POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST[input.observation.kind];
+  if (!allowlist.sourceAbilityGroupIds.includes(input.observation.source.sourceAbilityGroupId)) {
+    return createObservationBindingFailure(
+      `Observation ${input.observation.ref} source ability is not allowed for ${input.observation.kind}.`,
+      "failed:forbidden_observation_source_ability",
+    );
+  }
+
+  if (!allowlist.sourceChildCapabilityIds.includes(input.observation.source.sourceChildCapabilityId)) {
+    return createObservationBindingFailure(
+      `Observation ${input.observation.ref} source child is not allowed for ${input.observation.kind}.`,
+      "failed:forbidden_observation_source_child",
+    );
+  }
+
+  if (!input.context.evidenceReadPort.verifyProofRef(input.request, input.observation.source.sourceProofRef)) {
+    return createObservationBindingFailure(
+      `Observation ${input.observation.ref} proof binding could not be verified.`,
+      "review_required:observation_source_proof_unverified",
+    );
+  }
+
+  return null;
+}
+
 export function validateObservationProofBinding(input: {
   request: ParsedPostActionVerificationAbilityInput;
   context: PostActionVerificationRuntimeContext;
@@ -10,55 +52,12 @@ export function validateObservationProofBinding(input: {
 
   for (const observation of input.request.observationSet.observations) {
     if (seenRefs.has(observation.ref)) {
-      return {
-        ok: false,
-        status: "failed" as const,
-        failureReason: "observation_binding_conflict" as const,
-        reviewRequiredReason: null,
-        statusMessage: `Observation ref ${observation.ref} must be unique.`,
-        dataQualityFlags: ["observation_binding_conflict"],
-        observationBindingDecision: "failed:duplicate_observation_ref" as const,
-      };
+      return createObservationBindingFailure(`Observation ref ${observation.ref} must be unique.`, "failed:duplicate_observation_ref");
     }
     seenRefs.add(observation.ref);
-
-    const allowlist = POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST[observation.kind];
-    const sourceAbilityGroupIds: readonly string[] = allowlist.sourceAbilityGroupIds;
-    const sourceChildCapabilityIds: readonly string[] = allowlist.sourceChildCapabilityIds;
-    if (!sourceAbilityGroupIds.includes(observation.source.sourceAbilityGroupId)) {
-      return {
-        ok: false,
-        status: "failed" as const,
-        failureReason: "observation_binding_conflict" as const,
-        reviewRequiredReason: null,
-        statusMessage: `Observation ${observation.ref} source ability is not allowed for ${observation.kind}.`,
-        dataQualityFlags: ["observation_binding_conflict"],
-        observationBindingDecision: "failed:forbidden_observation_source_ability" as const,
-      };
-    }
-
-    if (!sourceChildCapabilityIds.includes(observation.source.sourceChildCapabilityId)) {
-      return {
-        ok: false,
-        status: "failed" as const,
-        failureReason: "observation_binding_conflict" as const,
-        reviewRequiredReason: null,
-        statusMessage: `Observation ${observation.ref} source child is not allowed for ${observation.kind}.`,
-        dataQualityFlags: ["observation_binding_conflict"],
-        observationBindingDecision: "failed:forbidden_observation_source_child" as const,
-      };
-    }
-
-    if (!input.context.evidenceReadPort.verifyProofRef(input.request, observation.source.sourceProofRef)) {
-      return {
-        ok: false,
-        status: "review_required" as const,
-        failureReason: "observation_binding_conflict" as const,
-        reviewRequiredReason: `Observation ${observation.ref} proof ref is not bound to the governed proof chain.`,
-        statusMessage: `Observation ${observation.ref} proof binding could not be verified.`,
-        dataQualityFlags: ["observation_binding_conflict"],
-        observationBindingDecision: "review_required:observation_source_proof_unverified" as const,
-      };
+    const failure = validateObservationBindingEntry({ request: input.request, context: input.context, observation });
+    if (failure) {
+      return failure;
     }
   }
 

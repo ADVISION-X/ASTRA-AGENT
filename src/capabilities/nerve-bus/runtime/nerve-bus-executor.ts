@@ -80,6 +80,35 @@ const finalizeExecutionOutcome = async <TEnvelope extends SupportedEnvelope, TRe
   return completeSuccessfulExecution(input, started, outcome);
 };
 
+const runQueuedExecution = async <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
+  child: NerveBusChildDefinition<TEnvelope, TResult>;
+  envelope: TEnvelope;
+  inputPayload: NerveBusPayloadDocument;
+  registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
+  context: NerveBusRuntimeContext;
+}, started: ExecutionClockSnapshot) => {
+  const lease = await input.context.queue.tryAcquire();
+  if (!lease) {
+    return finalizeExecutionFailure(input, started, buildQueueRejectedFailureDetails(input, started));
+  }
+
+  try {
+    const outcome = await input.child.execute({
+      envelope: input.envelope,
+      inputPayload: input.inputPayload,
+      registryEntry: input.registryEntry,
+      context: input.context,
+    });
+    return finalizeExecutionOutcome(input, started, outcome);
+  } catch (error) {
+    const failedAt = input.context.clock.now();
+    await input.context.idempotency.release(input.envelope.idempotencyKey);
+    return finalizeExecutionFailure(input, started, buildUnexpectedFailureDetails(input, started, failedAt, error));
+  } finally {
+    await lease.release();
+  }
+};
+
 export async function executeNerveBusChild<TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   child: NerveBusChildDefinition<TEnvelope, TResult>;
   envelope: TEnvelope;
@@ -112,24 +141,5 @@ export async function executeNerveBusChild<TEnvelope extends SupportedEnvelope, 
     return finalizeExecutionFailure(input, started, postIdempotencyFailure);
   }
 
-  const lease = await input.context.queue.tryAcquire();
-  if (!lease) {
-    return finalizeExecutionFailure(input, started, buildQueueRejectedFailureDetails(input, started));
-  }
-
-  try {
-    const outcome = await input.child.execute({
-      envelope: input.envelope,
-      inputPayload: input.inputPayload,
-      registryEntry: input.registryEntry,
-      context: input.context,
-    });
-    return finalizeExecutionOutcome(input, started, outcome);
-  } catch (error) {
-    const failedAt = input.context.clock.now();
-    await input.context.idempotency.release(input.envelope.idempotencyKey);
-    return finalizeExecutionFailure(input, started, buildUnexpectedFailureDetails(input, started, failedAt, error));
-  } finally {
-    await lease.release();
-  }
+    return runQueuedExecution(input, started);
 }

@@ -58,31 +58,58 @@ function validateAllowedAbilityGroups(map: OperationalMap): string | null {
   return null;
 }
 
+function resolveForbiddenOwnerValue(candidate: string | null | undefined, matchMode: "equals" | "includes"): string | null {
+  if (!candidate) {
+    return null;
+  }
+
+  for (const forbidden of FORBIDDEN_OWNER_VALUES) {
+    const matches = matchMode === "includes" ? candidate.includes(forbidden) : candidate === forbidden;
+    if (matches) {
+      return forbidden;
+    }
+  }
+
+  return null;
+}
+
+function resolveForbiddenStepOwnerReason(step: OperationalMap["steps"][number]): string | null {
+  const targetAbilityGroupId = "targetAbilityGroupId" in step ? step.targetAbilityGroupId : null;
+  const targetForbiddenOwner = resolveForbiddenOwnerValue(targetAbilityGroupId as string | null | undefined, "equals");
+  if (targetForbiddenOwner) {
+    return `Step "${step.stepId}" references forbidden targetAbilityGroupId "${targetForbiddenOwner}".`;
+  }
+
+  const promptContractId = "promptContractId" in step ? step.promptContractId : null;
+  const promptForbiddenOwner = resolveForbiddenOwnerValue(promptContractId as string | null | undefined, "includes");
+  if (promptForbiddenOwner) {
+    return `Step "${step.stepId}" promptContractId "${promptContractId}" references forbidden owner "${promptForbiddenOwner}".`;
+  }
+
+  const transitionOwner = "transitionOwner" in step ? step.transitionOwner : null;
+  const transitionForbiddenOwner = resolveForbiddenOwnerValue(transitionOwner as string | null | undefined, "equals");
+  if (transitionForbiddenOwner) {
+    return `Step "${step.stepId}" transitionOwner "${transitionOwner}" is forbidden.`;
+  }
+
+  return null;
+}
+
+function resolveForbiddenTransitionOwnerReason(transition: OperationalMap["transitions"][number]): string | null {
+  const decisionOwner = "decisionOwner" in transition ? transition.decisionOwner : null;
+  const forbiddenOwner = resolveForbiddenOwnerValue(decisionOwner as string | null | undefined, "equals");
+  if (forbiddenOwner) {
+    return `Transition "${transition.transitionId}" decisionOwner "${decisionOwner}" is forbidden.`;
+  }
+
+  return null;
+}
+
 function checkForbiddenStepOwnerValues(map: OperationalMap): string | null {
   for (const step of map.steps) {
-    if ("targetAbilityGroupId" in step && step.targetAbilityGroupId) {
-      const abilityGroupId = step.targetAbilityGroupId as string;
-      for (const forbidden of FORBIDDEN_OWNER_VALUES) {
-        if (abilityGroupId === forbidden) {
-          return `Step "${step.stepId}" references forbidden targetAbilityGroupId "${forbidden}".`;
-        }
-      }
-    }
-    if ("promptContractId" in step && step.promptContractId) {
-      const promptContractId = step.promptContractId as string;
-      for (const forbidden of FORBIDDEN_OWNER_VALUES) {
-        if (promptContractId.includes(forbidden)) {
-          return `Step "${step.stepId}" promptContractId "${promptContractId}" references forbidden owner "${forbidden}".`;
-        }
-      }
-    }
-    if ("transitionOwner" in step && step.transitionOwner) {
-      const transitionOwner = step.transitionOwner as string;
-      for (const forbidden of FORBIDDEN_OWNER_VALUES) {
-        if (transitionOwner === forbidden) {
-          return `Step "${step.stepId}" transitionOwner "${transitionOwner}" is forbidden.`;
-        }
-      }
+    const forbiddenReason = resolveForbiddenStepOwnerReason(step);
+    if (forbiddenReason) {
+      return forbiddenReason;
     }
   }
 
@@ -91,13 +118,9 @@ function checkForbiddenStepOwnerValues(map: OperationalMap): string | null {
 
 function checkForbiddenTransitionOwnerValues(map: OperationalMap): string | null {
   for (const transition of map.transitions) {
-    if ("decisionOwner" in transition && transition.decisionOwner) {
-      const decisionOwner = transition.decisionOwner as string;
-      for (const forbidden of FORBIDDEN_OWNER_VALUES) {
-        if (decisionOwner === forbidden) {
-          return `Transition "${transition.transitionId}" decisionOwner "${decisionOwner}" is forbidden.`;
-        }
-      }
+    const forbiddenReason = resolveForbiddenTransitionOwnerReason(transition);
+    if (forbiddenReason) {
+      return forbiddenReason;
     }
   }
   return null;

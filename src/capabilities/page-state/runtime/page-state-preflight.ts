@@ -22,6 +22,10 @@ type FailedPageStateGate = {
   };
 };
 
+type PageStatePreflightResolution =
+  | { ok: true; state: PageStatePreflightState }
+  | { ok: false; gate: FailedPageStateGate };
+
 export type PageStatePreflightInput = {
   request: PageStateAbilityInput;
   clock: PageStateClockPort;
@@ -66,36 +70,18 @@ function dispatchPreflightFailure(input: PageStatePreflightInput, gate: FailedPa
     : dispatchPageStateFailure({ ...failureWithDecision, pageStateType: gate.failure.pageStateType });
 }
 
-export function runPageStatePreflight(input: PageStatePreflightInput): PageStatePreflightResult {
+function resolvePageStatePreflightValidationGates(input: PageStatePreflightInput): PageStatePreflightResolution {
   const inputGate = gatePageStateInput(input.request);
-  if (!inputGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, inputGate) };
-  }
+  if (!inputGate.ok) return { ok: false, gate: inputGate };
 
   const payloadBudgetGate = gatePageStatePayloadBudget(input.request);
-  if (!payloadBudgetGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, payloadBudgetGate) };
-  }
+  if (!payloadBudgetGate.ok) return { ok: false, gate: payloadBudgetGate };
 
   const sourceGate = gateObservationSources(input.request);
-  if (!sourceGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, sourceGate) };
-  }
+  if (!sourceGate.ok) return { ok: false, gate: sourceGate };
 
   const proofBindingGate = gateObservationProofBinding(input.request);
-  if (!proofBindingGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, proofBindingGate) };
-  }
-
-  const freshnessGate = gateSnapshotFreshness({ request: input.request, clock: input.clock });
-  if (!freshnessGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, freshnessGate) };
-  }
-
-  const platformGate = gatePlatformProfile({ request: input.request, profilePort: input.profilePort });
-  if (!platformGate.ok) {
-    return { ok: false, result: dispatchPreflightFailure(input, platformGate) };
-  }
+  if (!proofBindingGate.ok) return { ok: false, gate: proofBindingGate };
 
   return {
     ok: true,
@@ -104,8 +90,36 @@ export function runPageStatePreflight(input: PageStatePreflightInput): PageState
       payloadBudgetGate,
       sourceGate,
       proofBindingGate,
-      freshnessGate,
-      platformGate,
+      freshnessGate: gateSnapshotFreshness({ request: input.request, clock: input.clock }),
+      platformGate: gatePlatformProfile({ request: input.request, profilePort: input.profilePort }),
     },
   };
+}
+
+function resolvePageStatePreflightEnvironmentGates(input: PageStatePreflightInput, state: PageStatePreflightState): PageStatePreflightResolution {
+  if (!state.freshnessGate.ok) return { ok: false, gate: state.freshnessGate };
+  if (!state.platformGate.ok) return { ok: false, gate: state.platformGate };
+
+  return {
+    ok: true,
+    state,
+  };
+}
+
+function resolvePageStatePreflight(input: PageStatePreflightInput): PageStatePreflightResolution {
+  const validationResolution = resolvePageStatePreflightValidationGates(input);
+  if (!validationResolution.ok) {
+    return validationResolution;
+  }
+
+  return resolvePageStatePreflightEnvironmentGates(input, validationResolution.state);
+}
+
+export function runPageStatePreflight(input: PageStatePreflightInput): PageStatePreflightResult {
+  const resolution = resolvePageStatePreflight(input);
+  if (!resolution.ok) {
+    return { ok: false, result: dispatchPreflightFailure(input, resolution.gate) };
+  }
+
+  return { ok: true, state: resolution.state };
 }

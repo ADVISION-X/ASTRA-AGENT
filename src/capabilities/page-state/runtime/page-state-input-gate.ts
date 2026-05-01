@@ -2,56 +2,52 @@ import type { PageStateAbilityInput } from "../schema.js";
 import { childRequiresObservationSupport } from "../shared/page-state-policy.js";
 import type { PageStateGateFailure } from "../shared/page-state-types.js";
 
-export function gatePageStateInput(request: PageStateAbilityInput): { ok: true; inputDecision: "allow" } | { ok: false; inputDecision: "fail"; failure: PageStateGateFailure } {
+function resolvePageStateInputFailure(request: PageStateAbilityInput): { failureReason: string; stateSummary: string } | null {
   if (!request.snapshot.sourceProofRef) {
     return {
-      ok: false,
-      inputDecision: "fail",
-      failure: {
-        status: "failed",
-        decision: "fail",
-        failureReason: "missing_snapshot_proof",
-        stateSummary: "Page State input is missing snapshot proof binding.",
-        reviewRequiredReason: null,
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["insufficient_signal"],
-      },
+      failureReason: "missing_snapshot_proof",
+      stateSummary: "Page State input is missing snapshot proof binding.",
     };
   }
 
   if (!request.openHandoff.openProofRef || !request.openHandoff.browserSessionRef) {
     return {
-      ok: false,
-      inputDecision: "fail",
-      failure: {
-        status: "failed",
-        decision: "fail",
-        failureReason: "missing_open_handoff",
-        stateSummary: "Page State input is missing the open handoff binding.",
-        reviewRequiredReason: null,
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["insufficient_signal"],
-      },
+      failureReason: "missing_open_handoff",
+      stateSummary: "Page State input is missing the open handoff binding.",
     };
   }
 
   if (childRequiresObservationSupport(request.childCapabilityId) && request.observations.length === 0) {
     return {
-      ok: false,
-      inputDecision: "fail",
-      failure: {
-        status: "failed",
-        decision: "fail",
-        failureReason: "missing_observation_support",
-        stateSummary: `Page State child ${request.childCapabilityId} requires governed observations.`,
-        reviewRequiredReason: null,
-        pageStateType: "unknown_page",
-        confidence: 0,
-        dataQualityFlags: ["missing_observation", "insufficient_signal"],
-      },
+      failureReason: "missing_observation_support",
+      stateSummary: `Page State child ${request.childCapabilityId} requires governed observations.`,
     };
+  }
+
+  return null;
+}
+
+function createPageStateInputFailure(failureReason: string, stateSummary: string): { ok: false; inputDecision: "fail"; failure: PageStateGateFailure } {
+  return {
+    ok: false,
+    inputDecision: "fail",
+    failure: {
+      status: "failed",
+      decision: "fail",
+      failureReason,
+      stateSummary,
+      reviewRequiredReason: null,
+      pageStateType: "unknown_page",
+      confidence: 0,
+      dataQualityFlags: ["insufficient_signal"],
+    },
+  };
+}
+
+export function gatePageStateInput(request: PageStateAbilityInput): { ok: true; inputDecision: "allow" } | { ok: false; inputDecision: "fail"; failure: PageStateGateFailure } {
+  const failure = resolvePageStateInputFailure(request);
+  if (failure) {
+    return createPageStateInputFailure(failure.failureReason, failure.stateSummary);
   }
 
   return { ok: true, inputDecision: "allow" };

@@ -1,54 +1,77 @@
 import { POST_ACTION_CHILD_POLICY_MAP } from "../shared/post-action-policy.js";
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
 
-export function validatePostActionVerificationInput(request: ParsedPostActionVerificationAbilityInput) {
+function createInputGateFailure(statusMessage: string, dataQualityFlag: string, failureReason: "missing_expected_outcome" | "missing_requested_context" | "action_status_not_success" | "source_runtime_proof_missing") {
+  return {
+    ok: false as const,
+    status: "failed" as const,
+    failureReason,
+    reviewRequiredReason: null,
+    statusMessage,
+    dataQualityFlags: [dataQualityFlag],
+    inputDecision: `failed:${failureReason}` as const,
+  };
+}
+
+function resolveExpectedOutcomeFailure(request: ParsedPostActionVerificationAbilityInput) {
   const childPolicy = POST_ACTION_CHILD_POLICY_MAP[request.childCapabilityId];
-  if (request.expectedOutcome.outcomeType !== childPolicy.expectedOutcomeType) {
-    return {
-      ok: false,
-      status: "failed" as const,
-      failureReason: "missing_expected_outcome" as const,
-      reviewRequiredReason: null,
-      statusMessage: `Expected outcome ${childPolicy.expectedOutcomeType} is required for ${request.childCapabilityId}.`,
-      dataQualityFlags: ["expected_outcome_mismatch"],
-      inputDecision: "failed:expected_outcome_mismatch" as const,
-    };
+  if (request.expectedOutcome.outcomeType === childPolicy.expectedOutcomeType) {
+    return null;
   }
 
-  if (!request.requestedBy || !request.sessionId || request.roundId === undefined || request.videoVisitId === undefined || !request.inputRef) {
-    return {
-      ok: false,
-      status: "failed" as const,
-      failureReason: "missing_requested_context" as const,
-      reviewRequiredReason: null,
-      statusMessage: "Post Action Verification requires requestedBy, sessionId, roundId, videoVisitId, and inputRef bindings.",
-      dataQualityFlags: ["requested_context_missing"],
-      inputDecision: "failed:missing_requested_context" as const,
-    };
+  return createInputGateFailure(
+    `Expected outcome ${childPolicy.expectedOutcomeType} is required for ${request.childCapabilityId}.`,
+    "expected_outcome_mismatch",
+    "missing_expected_outcome",
+  );
+}
+
+function resolveRequestedContextFailure(request: ParsedPostActionVerificationAbilityInput) {
+  if (request.requestedBy && request.sessionId && request.roundId !== undefined && request.videoVisitId !== undefined && request.inputRef) {
+    return null;
   }
 
-  if (request.actionProof.actionStatus !== "success") {
-    return {
-      ok: false,
-      status: "failed" as const,
-      failureReason: "action_status_not_success" as const,
-      reviewRequiredReason: null,
-      statusMessage: "Post Action Verification cannot verify a failed or blocked action as successful.",
-      dataQualityFlags: ["action_not_success"],
-      inputDecision: "failed:action_status_not_success" as const,
-    };
+  return createInputGateFailure(
+    "Post Action Verification requires requestedBy, sessionId, roundId, videoVisitId, and inputRef bindings.",
+    "requested_context_missing",
+    "missing_requested_context",
+  );
+}
+
+function resolveActionStatusFailure(request: ParsedPostActionVerificationAbilityInput) {
+  if (request.actionProof.actionStatus === "success") {
+    return null;
   }
 
-  if (!request.actionProof.sourceRuntimeProofRef) {
-    return {
-      ok: false,
-      status: "failed" as const,
-      failureReason: "source_runtime_proof_missing" as const,
-      reviewRequiredReason: null,
-      statusMessage: "sourceRuntimeProofRef is required for governed verification.",
-      dataQualityFlags: ["source_runtime_proof_missing"],
-      inputDecision: "failed:source_runtime_proof_missing" as const,
+  return createInputGateFailure(
+    "Post Action Verification cannot verify a failed or blocked action as successful.",
+    "action_not_success",
+    "action_status_not_success",
+  );
+}
+
+function resolveSourceRuntimeProofFailure(request: ParsedPostActionVerificationAbilityInput) {
+  if (request.actionProof.sourceRuntimeProofRef) {
+    return null;
+  }
+
+  return createInputGateFailure(
+    "sourceRuntimeProofRef is required for governed verification.",
+    "source_runtime_proof_missing",
+    "source_runtime_proof_missing",
+  );
+}
+
+export function validatePostActionVerificationInput(request: ParsedPostActionVerificationAbilityInput) {
+  return resolveExpectedOutcomeFailure(request)
+    ?? resolveRequestedContextFailure(request)
+    ?? resolveActionStatusFailure(request)
+    ?? resolveSourceRuntimeProofFailure(request)
+    ?? {
+      ok: true as const,
+      inputDecision: "allow" as const,
     };
+}
   }
 
   return {

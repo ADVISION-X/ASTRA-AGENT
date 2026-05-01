@@ -15,6 +15,22 @@ function resolveObservationRefs(input: {
   return [...new Set([...input.request.observations.map((observation) => observation.observationId), ...input.matchedObservationIds])];
 }
 
+function resolveOutputBoundaryDecision(input: Awaited<ReturnType<typeof classifyPageState>>): PageStateExecutionTrace["outputBoundaryDecision"] {
+  return input.status === "success"
+    ? "allow"
+    : input.failureReason === "output_boundary_violation"
+      ? "fail"
+      : "review_required";
+}
+
+function resolveCriticalDataQualityDecision(input: Awaited<ReturnType<typeof classifyPageState>>): PageStateExecutionTrace["criticalDataQualityDecision"] {
+  return input.status === "success"
+    ? "allow"
+    : input.failureReason === "low_confidence" || input.failureReason === "insufficient_signal"
+      ? "review_required"
+      : "allow";
+}
+
 function buildClassificationTrace(input: {
   preflight: PageStatePreflightState;
   outcome: Awaited<ReturnType<typeof classifyPageState>>;
@@ -35,8 +51,8 @@ function buildClassificationTrace(input: {
     freshnessDecision: input.preflight.freshnessGate.freshnessDecision,
     platformDecision: input.preflight.platformGate.platformDecision,
     classificationDecision,
-    outputBoundaryDecision: input.outcome.status === "success" ? "allow" : input.outcome.failureReason === "output_boundary_violation" ? "fail" : "review_required",
-    criticalDataQualityDecision: input.outcome.status === "success" ? "allow" : input.outcome.failureReason === "low_confidence" ? "review_required" : input.outcome.failureReason === "insufficient_signal" ? "review_required" : "allow",
+    outputBoundaryDecision: resolveOutputBoundaryDecision(input.outcome),
+    criticalDataQualityDecision: resolveCriticalDataQualityDecision(input.outcome),
     proceedDecision: input.outcome.decision,
   };
 }

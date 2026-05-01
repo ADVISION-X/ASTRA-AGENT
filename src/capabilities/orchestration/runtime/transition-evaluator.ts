@@ -19,12 +19,12 @@ function resolveConditionValue(result: MissionStepResultRecord, source: "status"
   return source === "status" ? result.status : result.decision ?? null;
 }
 
-export function evaluateStepTransition(input: {
+function findMatchingTransitions(input: {
   map: OperationalMap;
   currentStepId: string;
   result: MissionStepResultRecord;
-}): TransitionEvaluationResult {
-  const candidates = input.map.transitions.filter((candidate) => {
+}): OperationalMap["transitions"] {
+  return input.map.transitions.filter((candidate) => {
     if (candidate.fromStepId !== input.currentStepId) {
       return false;
     }
@@ -34,19 +34,35 @@ export function evaluateStepTransition(input: {
     const actual = resolveConditionValue(input.result, candidate.condition.source);
     return actual === candidate.condition.equals;
   });
+}
+
+function buildNoValidTransitionFailure(mapId: string, currentStepId: string, status: string): string {
+  return `Map "${mapId}" has no matching transition from step "${currentStepId}" for status "${status}".`;
+}
+
+function buildAmbiguousTransitionFailure(mapId: string, currentStepId: string, transitions: OperationalMap["transitions"]): string {
+  const ids = transitions.map((t) => t.transitionId).join(", ");
+  return `Map "${mapId}" step "${currentStepId}" matched ${transitions.length} transitions: [${ids}]. Exactly one must match.`;
+}
+
+export function evaluateStepTransition(input: {
+  map: OperationalMap;
+  currentStepId: string;
+  result: MissionStepResultRecord;
+}): TransitionEvaluationResult {
+  const candidates = findMatchingTransitions(input);
 
   if (candidates.length === 0) {
     return {
       decision: "no_valid_transition",
-      failureReason: `Map "${input.map.mapId}" has no matching transition from step "${input.currentStepId}" for status "${input.result.status}".`,
+      failureReason: buildNoValidTransitionFailure(input.map.mapId, input.currentStepId, input.result.status),
     };
   }
 
   if (candidates.length > 1) {
-    const ids = candidates.map((t) => t.transitionId).join(", ");
     return {
       decision: "ambiguous_transition",
-      failureReason: `Map "${input.map.mapId}" step "${input.currentStepId}" matched ${candidates.length} transitions: [${ids}]. Exactly one must match.`,
+      failureReason: buildAmbiguousTransitionFailure(input.map.mapId, input.currentStepId, candidates),
     };
   }
 
