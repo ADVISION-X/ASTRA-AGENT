@@ -4,7 +4,7 @@ import { MouseScrollAbilityResultSchema } from "../schema.js";
 import { buildStableMouseScrollRef } from "../shared/mouse-scroll-types.js";
 import { buildMouseScrollRuntimeProof } from "./mouse-scroll-proof-builder.js";
 
-export function buildMouseScrollResult(input: {
+type BuildMouseScrollResultInput = {
   seed: MouseScrollResultSeed;
   idempotencyKey: string | null;
   scrollExecutionRef: string | null;
@@ -56,12 +56,19 @@ export function buildMouseScrollResult(input: {
   primitiveTimeoutMs: number;
   maxDurationMs: number;
   dataQualityFlags: string[];
-}) {
-  const outputRef = buildStableMouseScrollRef("mouse-scroll-output", [input.seed.attemptRef, input.status]);
-  const postActionVerificationHandoffRef = input.status === "success" && input.scrollExecutionRef !== null
+};
+
+const buildPostActionVerificationHandoffRef = (input: BuildMouseScrollResultInput) => {
+  return input.status === "success" && input.scrollExecutionRef !== null
     ? buildStableMouseScrollRef("mouse-scroll-post-action-handoff", [input.scrollExecutionRef])
     : null;
-  const output = input.status === "success" && input.scrollExecutionRef !== null && input.executableAnchor !== null && input.executableDelta !== null
+};
+
+const buildMouseScrollOutput = (
+  input: BuildMouseScrollResultInput,
+  postActionVerificationHandoffRef: string | null,
+) => {
+  return input.status === "success" && input.scrollExecutionRef !== null && input.executableAnchor !== null && input.executableDelta !== null
     ? {
         scrollExecutionRef: input.scrollExecutionRef,
         primitiveExecutionRefs: input.primitiveExecutionRefs,
@@ -75,70 +82,98 @@ export function buildMouseScrollResult(input: {
         postActionVerificationHandoffRef,
       }
     : null;
-  const runtimeProof = buildMouseScrollRuntimeProof({
-    attemptRef: input.seed.attemptRef,
-    childCapabilityId: input.seed.childCapabilityId,
-    sessionId: input.seed.sessionId,
-    roundId: input.seed.roundId,
-    videoVisitId: input.seed.videoVisitId,
-    sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
-    geometryGuardRef: input.seed.geometryGuardRef,
-    geometryGuardProofRef: input.seed.geometryGuardProofRef,
-    inputRef: input.seed.inputRef,
-    outputRef,
-    scrollExecutionRef: input.scrollExecutionRef,
-    rejectionRef: input.rejectionRef,
-    parseErrorRef: input.seed.parseErrorRef,
-    receivedShapeHash: input.seed.receivedShapeHash,
-    sourceEvidenceRef: input.seed.sourceEvidenceRef,
-    sourceTargetRef: input.seed.sourceTargetRef,
-    sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
-    regionRef: input.seed.regionRef,
-    coordinateSpace: input.seed.coordinateSpace,
-    sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
-    anchorPoint: input.requestedAnchor,
-    region: input.seed.region,
-    bounds: input.seed.bounds,
-    direction: input.seed.direction,
-    magnitude: input.seed.magnitude,
-    requestedDelta: input.requestedDelta,
-    executableDelta: input.status === "success" ? input.executableDelta : null,
-    deltaResolutionDecision: input.deltaResolutionDecision,
-    deltaCapDecision: input.deltaCapDecision,
-    repeat: input.seed.repeat,
-    idempotencyKey: input.idempotencyKey,
-    idempotencyDecision: input.idempotencyDecision,
-    primitiveExecutionRefs: input.primitiveExecutionRefs,
-    primitiveCallId: input.primitiveCallId,
-    primitiveStartedAt: input.primitiveStartedAt,
-    primitiveEndedAt: input.primitiveEndedAt,
-    primitivePortKind: input.primitivePortKind,
-    perIterationPrimitiveProofs: input.perIterationPrimitiveProofs,
-    primitiveTimeoutMs: input.primitiveTimeoutMs,
-    maxDurationMs: input.maxDurationMs,
-    timeoutDecision: input.timeoutDecision,
-    abortDecision: input.abortDecision,
-    circuitBreakerState: input.circuitBreakerState,
-    postActionVerificationRequired: input.status === "success",
-    postActionVerificationHandoffRef,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs: input.durationMs,
-    status: input.status,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    policyDecision: input.policyDecision,
-    policyDecisionReason: input.policyDecisionReason,
-    geometryDecision: input.geometryDecision,
-    geometryDecisionReason: input.geometryDecisionReason,
-    safetyDecision: input.safetyDecision,
-    safetyDecisionReason: input.safetyDecisionReason,
-    primitiveDecision: input.primitiveDecision,
-    dataQualityFlags: input.dataQualityFlags,
-    clock: input.clock,
-  });
+};
 
+const buildMouseScrollRuntimeProofSourceFields = (input: BuildMouseScrollResultInput, outputRef: string) => ({
+  attemptRef: input.seed.attemptRef,
+  childCapabilityId: input.seed.childCapabilityId,
+  sessionId: input.seed.sessionId,
+  roundId: input.seed.roundId,
+  videoVisitId: input.seed.videoVisitId,
+  sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
+  sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
+  geometryGuardRef: input.seed.geometryGuardRef,
+  geometryGuardProofRef: input.seed.geometryGuardProofRef,
+  inputRef: input.seed.inputRef,
+  outputRef,
+  scrollExecutionRef: input.scrollExecutionRef,
+  rejectionRef: input.rejectionRef,
+  parseErrorRef: input.seed.parseErrorRef,
+  receivedShapeHash: input.seed.receivedShapeHash,
+  sourceEvidenceRef: input.seed.sourceEvidenceRef,
+  sourceTargetRef: input.seed.sourceTargetRef,
+  sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
+  regionRef: input.seed.regionRef,
+  coordinateSpace: input.seed.coordinateSpace,
+  sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
+  anchorPoint: input.requestedAnchor,
+  region: input.seed.region,
+  bounds: input.seed.bounds,
+  direction: input.seed.direction,
+  magnitude: input.seed.magnitude,
+  requestedDelta: input.requestedDelta,
+  executableDelta: input.status === "success" ? input.executableDelta : null,
+  deltaResolutionDecision: input.deltaResolutionDecision,
+  deltaCapDecision: input.deltaCapDecision,
+  repeat: input.seed.repeat,
+  idempotencyKey: input.idempotencyKey,
+  idempotencyDecision: input.idempotencyDecision,
+});
+
+const buildMouseScrollRuntimeProofPrimitiveFields = (
+  input: BuildMouseScrollResultInput,
+  postActionVerificationHandoffRef: string | null,
+) => ({
+  primitiveExecutionRefs: input.primitiveExecutionRefs,
+  primitiveCallId: input.primitiveCallId,
+  primitiveStartedAt: input.primitiveStartedAt,
+  primitiveEndedAt: input.primitiveEndedAt,
+  primitivePortKind: input.primitivePortKind,
+  perIterationPrimitiveProofs: input.perIterationPrimitiveProofs,
+  primitiveTimeoutMs: input.primitiveTimeoutMs,
+  maxDurationMs: input.maxDurationMs,
+  timeoutDecision: input.timeoutDecision,
+  abortDecision: input.abortDecision,
+  circuitBreakerState: input.circuitBreakerState,
+  postActionVerificationRequired: input.status === "success",
+  postActionVerificationHandoffRef,
+  startedAt: input.startedAt,
+  endedAt: input.endedAt,
+  durationMs: input.durationMs,
+  clock: input.clock,
+});
+
+const buildMouseScrollRuntimeProofDecisionFields = (input: BuildMouseScrollResultInput) => ({
+  status: input.status,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason,
+  policyDecision: input.policyDecision,
+  policyDecisionReason: input.policyDecisionReason,
+  geometryDecision: input.geometryDecision,
+  geometryDecisionReason: input.geometryDecisionReason,
+  safetyDecision: input.safetyDecision,
+  safetyDecisionReason: input.safetyDecisionReason,
+  primitiveDecision: input.primitiveDecision,
+  dataQualityFlags: input.dataQualityFlags,
+});
+
+const buildMouseScrollRuntimeProofForResult = (
+  input: BuildMouseScrollResultInput,
+  outputRef: string,
+  postActionVerificationHandoffRef: string | null,
+) => {
+  return buildMouseScrollRuntimeProof({
+    ...buildMouseScrollRuntimeProofSourceFields(input, outputRef),
+    ...buildMouseScrollRuntimeProofPrimitiveFields(input, postActionVerificationHandoffRef),
+    ...buildMouseScrollRuntimeProofDecisionFields(input),
+  });
+};
+
+const parseMouseScrollResult = (
+  input: BuildMouseScrollResultInput,
+  output: ReturnType<typeof buildMouseScrollOutput>,
+  runtimeProof: ReturnType<typeof buildMouseScrollRuntimeProofForResult>,
+) => {
   return MouseScrollAbilityResultSchema.parse({
     status: input.status,
     abilityGroupId: "mouse-scroll",
@@ -155,4 +190,13 @@ export function buildMouseScrollResult(input: {
     dataQualityFlags: input.dataQualityFlags,
     runtimeProof,
   });
+};
+
+export function buildMouseScrollResult(input: BuildMouseScrollResultInput) {
+  const outputRef = buildStableMouseScrollRef("mouse-scroll-output", [input.seed.attemptRef, input.status]);
+  const postActionVerificationHandoffRef = buildPostActionVerificationHandoffRef(input);
+  const output = buildMouseScrollOutput(input, postActionVerificationHandoffRef);
+  const runtimeProof = buildMouseScrollRuntimeProofForResult(input, outputRef, postActionVerificationHandoffRef);
+
+  return parseMouseScrollResult(input, output, runtimeProof);
 }

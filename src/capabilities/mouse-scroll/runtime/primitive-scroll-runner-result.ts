@@ -1,4 +1,4 @@
-export type PrimitiveScrollFailureReason =
+type PrimitiveScrollFailureReason =
   | "primitive_failed"
   | "primitive_threw"
   | "primitive_timeout"
@@ -7,12 +7,12 @@ export type PrimitiveScrollFailureReason =
   | "primitive_concurrency_guard"
   | "primitive_aborted";
 
-export type PrimitiveTimeoutDecision = "within_limit" | "timed_out";
-export type PrimitiveAbortDecision = "not_requested" | "timeout_abort_requested";
-export type PrimitiveCircuitBreakerState = "closed" | "open";
-export type PrimitiveIterationStatus = "failed" | "threw" | "aborted" | "succeeded";
+type PrimitiveTimeoutDecision = "within_limit" | "timed_out";
+type PrimitiveAbortDecision = "not_requested" | "timeout_abort_requested";
+type PrimitiveCircuitBreakerState = "closed" | "open";
+type PrimitiveIterationStatus = "failed" | "threw" | "aborted" | "succeeded";
 
-export type PrimitiveIterationProof = {
+type PrimitiveIterationProof = {
   repeatIndex: number;
   primitiveCallId: string;
   primitiveExecutionRef: string | null;
@@ -45,22 +45,40 @@ type PrimitiveScrollResultBase = {
   dataQualityFlags: string[];
 };
 
-export type PrimitiveScrollSuccessResult = PrimitiveScrollResultBase & {
+type PrimitiveScrollSuccessResult = PrimitiveScrollResultBase & {
   ok: true;
   primitiveDecision: "succeeded";
 };
 
-export type PrimitiveScrollFailureResult = PrimitiveScrollResultBase & {
+type PrimitiveScrollFailureResult = PrimitiveScrollResultBase & {
   ok: false;
   primitiveExecutionRef: string | null;
   primitiveDecision: "failed" | "threw" | "aborted";
   failureReason: PrimitiveScrollFailureReason;
 };
 
-export type PrimitiveScrollResult = PrimitiveScrollSuccessResult | PrimitiveScrollFailureResult;
+type PrimitiveScrollResult = PrimitiveScrollSuccessResult | PrimitiveScrollFailureResult;
 
-export const buildPrimitiveIterationProof = (input: PrimitiveIterationProof): PrimitiveIterationProof => input;
+const buildPrimitiveIterationProof = (input: PrimitiveIterationProof): PrimitiveIterationProof => input;
 
-export const buildPrimitiveScrollSuccessResult = (input: PrimitiveScrollSuccessResult): PrimitiveScrollSuccessResult => input;
+const buildPrimitiveScrollSuccessResult = (input: PrimitiveScrollSuccessResult): PrimitiveScrollSuccessResult => input;
 
-export const buildPrimitiveScrollFailureResult = (input: PrimitiveScrollFailureResult): PrimitiveScrollFailureResult => input;
+const buildPrimitiveScrollFailureResult = (input: PrimitiveScrollFailureResult): PrimitiveScrollFailureResult => input;
+
+export {
+  buildPrimitiveIterationProof,
+  buildPrimitiveScrollFailureResult,
+  buildPrimitiveScrollSuccessResult,
+};
+
+export type {
+  PrimitiveAbortDecision,
+  PrimitiveCircuitBreakerState,
+  PrimitiveIterationProof,
+  PrimitiveIterationStatus,
+  PrimitiveScrollFailureReason,
+  PrimitiveScrollFailureResult,
+  PrimitiveScrollResult,
+  PrimitiveScrollSuccessResult,
+  PrimitiveTimeoutDecision,
+};

@@ -1,5 +1,3 @@
-import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup } from "./contract.js";
 import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
@@ -12,6 +10,9 @@ import {
   submitMissionReviewDecision,
 } from "./runtime/orchestration-executor.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
+import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
+import { listActiveOrchestrationMapIds } from "./runtime/orchestration-map-id-list.js";
+import { createOrchestrationNerveBusPort, type CreateOrchestrationAbilityGroupInput } from "./runtime/orchestration-nerve-bus-port-factory.js";
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
 
 function createMissionEntryMethods(context: ReturnType<typeof createOrchestrationRuntimeContext>) {
@@ -64,11 +65,11 @@ function createMissionStateMethods(context: ReturnType<typeof createOrchestratio
   };
 }
 
-export function createOrchestrationAbilityGroup(input: {
-  nerveBus: NerveBusAbilityGroup;
-}): OrchestrationAbilityGroup {
-  const registry = getDefaultMapPluginRegistry();
-  const context = createOrchestrationRuntimeContext(input.nerveBus);
+export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
+  const context = createOrchestrationRuntimeContext({
+    mapStore: createDefaultOrchestrationMapStore(),
+    nerveBus: createOrchestrationNerveBusPort(input),
+  });
   const children = createOrchestrationChildren();
   const missionEntry = createMissionEntryMethods(context);
   const missionTransitions = createMissionTransitionMethods(context);
@@ -80,7 +81,7 @@ export function createOrchestrationAbilityGroup(input: {
     },
 
     listMapIds() {
-      return registry.active.listActivePackages().map((mapPackage) => mapPackage.manifest.mapId);
+      return listActiveOrchestrationMapIds();
     },
 
     async execute(inputValue) {

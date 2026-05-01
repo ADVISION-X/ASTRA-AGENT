@@ -8,15 +8,15 @@ import {
 } from "../../schema.js";
 import { OpenFacebookRequestSchema, OpenFacebookResultSchema } from "./schema.js";
 
-export const OPEN_FACEBOOK_CHILD_ID = "open-facebook" as const;
-export const OPEN_FACEBOOK_PLATFORM_ID = "facebook-web" as const;
-export const OPEN_FACEBOOK_TARGET_KIND = "platform-feed" as const;
-export const OPEN_FACEBOOK_PURPOSE = "Open the governed Facebook Reels feed without bypassing Open runtime gates." as const;
-export const OPEN_FACEBOOK_ALLOWED_HOSTNAMES = ["facebook.com", "www.facebook.com", "m.facebook.com"] as const;
-export const OPEN_FACEBOOK_ALLOWED_SCHEMES = ["https"] as const;
-export const OPEN_FACEBOOK_REQUIRES_REAL_CHROME_SESSION = true as const;
-export const OPEN_FACEBOOK_PAGE_STATE_HANDOFF_REQUIRED = true as const;
-export const OPEN_FACEBOOK_BOUNDARY_POLICY = OpenBoundaryPolicySchema.parse({
+const OPEN_FACEBOOK_CHILD_ID = "open-facebook" as const;
+const OPEN_FACEBOOK_PLATFORM_ID = "facebook-web" as const;
+const OPEN_FACEBOOK_TARGET_KIND = "platform-feed" as const;
+const OPEN_FACEBOOK_PURPOSE = "Open the governed Facebook Reels feed without bypassing Open runtime gates." as const;
+const OPEN_FACEBOOK_ALLOWED_HOSTNAMES = ["facebook.com", "www.facebook.com", "m.facebook.com"] as const;
+const OPEN_FACEBOOK_ALLOWED_SCHEMES = ["https"] as const;
+const OPEN_FACEBOOK_REQUIRES_REAL_CHROME_SESSION = true as const;
+const OPEN_FACEBOOK_PAGE_STATE_HANDOFF_REQUIRED = true as const;
+const OPEN_FACEBOOK_BOUNDARY_POLICY = OpenBoundaryPolicySchema.parse({
 	allowedCaller: ["orchestration", "nerve-bus"],
 	requiresNerveBus: true,
 	requiresPageStateHandoff: true,
@@ -31,22 +31,42 @@ export const OPEN_FACEBOOK_BOUNDARY_POLICY = OpenBoundaryPolicySchema.parse({
 		"forensics-persistence",
 	],
 });
-export const OPEN_FACEBOOK_PROOF_POLICY = OpenProofPolicySchema.parse({
+const OPEN_FACEBOOK_PROOF_POLICY = OpenProofPolicySchema.parse({
 	requireRuntimeProof: true,
 	requireNegativeProof: true,
 	allowFailureOutput: false,
 	allowReviewOutput: false,
 });
-export const OPEN_FACEBOOK_OUTPUT_POLICY = OpenOutputPolicySchema.parse({
+const OPEN_FACEBOOK_OUTPUT_POLICY = OpenOutputPolicySchema.parse({
 	successRequiresPageStateHandoff: true,
 	failureOutputMustBeNull: true,
 	reviewOutputMustBeNull: true,
 });
-export const OPEN_FACEBOOK_FAILURE_POLICY = OpenFailurePolicySchema.parse({
+const OPEN_FACEBOOK_FAILURE_POLICY = OpenFailurePolicySchema.parse({
 	dispatchFailureUsesEnvelopeOnly: true,
 	fakeTargetProfileForbidden: true,
 	fakeAllowDecisionForbidden: true,
 });
 
-export type OpenFacebookRequest = z.output<typeof OpenFacebookRequestSchema>;
-export type OpenFacebookResult = z.output<typeof OpenFacebookResultSchema>;
+type OpenFacebookRequest = z.output<typeof OpenFacebookRequestSchema>;
+type OpenFacebookResult = z.output<typeof OpenFacebookResultSchema>;
+
+export {
+  OPEN_FACEBOOK_CHILD_ID,
+  OPEN_FACEBOOK_PLATFORM_ID,
+  OPEN_FACEBOOK_TARGET_KIND,
+  OPEN_FACEBOOK_PURPOSE,
+  OPEN_FACEBOOK_ALLOWED_HOSTNAMES,
+  OPEN_FACEBOOK_ALLOWED_SCHEMES,
+  OPEN_FACEBOOK_REQUIRES_REAL_CHROME_SESSION,
+  OPEN_FACEBOOK_PAGE_STATE_HANDOFF_REQUIRED,
+  OPEN_FACEBOOK_BOUNDARY_POLICY,
+  OPEN_FACEBOOK_PROOF_POLICY,
+  OPEN_FACEBOOK_OUTPUT_POLICY,
+  OPEN_FACEBOOK_FAILURE_POLICY,
+};
+
+export type {
+  OpenFacebookRequest,
+  OpenFacebookResult,
+};

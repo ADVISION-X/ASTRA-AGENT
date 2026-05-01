@@ -6,6 +6,113 @@ import {
   normalizeOpenUrl,
 } from "../shared/open-url.js";
 
+const resolveOpenScheme = (protocol: string): "http" | "https" | null =>
+  protocol === "https:" ? "https" : protocol === "http:" ? "http" : null;
+
+const buildUrlSafetyDecision = (input: {
+  status: "allow" | "block";
+  reason: string | null;
+  normalizedUrl: string | null;
+  hostname: string | null;
+  scheme: "http" | "https" | null;
+}): OpenUrlSafetyDecision => OpenUrlSafetyDecisionSchema.parse({
+  status: input.status,
+  reason: input.reason,
+  normalizedUrl: input.normalizedUrl,
+  hostname: input.hostname,
+  scheme: input.scheme,
+});
+
+const buildUrlSafetyResult = (input: {
+  ok: boolean;
+  failureCode: "url_policy_blocked" | null;
+  reason: string | null;
+  normalizedUrl: string | null;
+  hostname: string | null;
+  scheme: "http" | "https" | null;
+  decisionStatus: "allow" | "block";
+}): {
+  ok: boolean;
+  failureCode: "url_policy_blocked" | null;
+  reason: string | null;
+  normalizedUrl: string | null;
+  hostname: string | null;
+  scheme: "http" | "https" | null;
+  decision: OpenUrlSafetyDecision;
+} => ({
+  ok: input.ok,
+  failureCode: input.failureCode,
+  reason: input.reason,
+  normalizedUrl: input.normalizedUrl,
+  hostname: input.hostname,
+  scheme: input.scheme,
+  decision: buildUrlSafetyDecision({
+    status: input.decisionStatus,
+    reason: input.reason,
+    normalizedUrl: input.normalizedUrl,
+    hostname: input.hostname,
+    scheme: input.scheme,
+  }),
+});
+
+const buildInvalidUrlPolicyBlockResult = (): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
+  ok: false,
+  failureCode: "url_policy_blocked",
+  reason: "target url is not a valid absolute url",
+  normalizedUrl: null,
+  hostname: null,
+  scheme: null,
+  decisionStatus: "block",
+});
+
+const buildForbiddenProtocolPolicyBlockResult = (parsedUrl: URL): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
+  ok: false,
+  failureCode: "url_policy_blocked",
+  reason: `forbidden target url protocol: ${parsedUrl.protocol}`,
+  normalizedUrl: parsedUrl.toString(),
+  hostname: parsedUrl.hostname,
+  scheme: resolveOpenScheme(parsedUrl.protocol),
+  decisionStatus: "block",
+});
+
+const buildDisallowedSchemePolicyBlockResult = (
+  parsedUrl: URL,
+  profile: OpenTargetProfile,
+  scheme: "http" | "https" | null,
+): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
+  ok: false,
+  failureCode: "url_policy_blocked",
+  reason: `scheme ${parsedUrl.protocol} is not allowed for ${profile.childCapabilityId}`,
+  normalizedUrl: parsedUrl.toString(),
+  hostname: parsedUrl.hostname,
+  scheme,
+  decisionStatus: "block",
+});
+
+const buildHostnamePolicyBlockResult = (
+  parsedUrl: URL,
+  profile: OpenTargetProfile,
+  scheme: "http" | "https" | null,
+): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
+  ok: false,
+  failureCode: "url_policy_blocked",
+  reason: `hostname ${parsedUrl.hostname} is outside the governed allowlist for ${profile.childCapabilityId}`,
+  normalizedUrl: parsedUrl.toString(),
+  hostname: parsedUrl.hostname,
+  scheme,
+  decisionStatus: "block",
+});
+
+const buildAllowedUrlPolicyResult = (parsedUrl: URL, scheme: "http" | "https" | null): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
+  ok: true,
+  failureCode: null,
+  reason: null,
+  normalizedUrl: parsedUrl.toString(),
+  hostname: parsedUrl.hostname,
+  scheme,
+  decisionStatus: "allow",
+});
+
 export function evaluateUrlSafety(input: {
   profile: OpenTargetProfile;
   targetUrl: string;
@@ -22,91 +129,21 @@ export function evaluateUrlSafety(input: {
   try {
     parsedUrl = normalizeOpenUrl(input.targetUrl);
   } catch {
-    return {
-      ok: false,
-      failureCode: "url_policy_blocked",
-      reason: "target url is not a valid absolute url",
-      normalizedUrl: null,
-      hostname: null,
-      scheme: null,
-      decision: OpenUrlSafetyDecisionSchema.parse({
-        status: "block",
-        reason: "target url is not a valid absolute url",
-        normalizedUrl: null,
-        hostname: null,
-        scheme: null,
-      }),
-    };
+    return buildInvalidUrlPolicyBlockResult();
   }
 
   if (isForbiddenOpenProtocol(parsedUrl.protocol)) {
-    return {
-      ok: false,
-      failureCode: "url_policy_blocked",
-      reason: `forbidden target url protocol: ${parsedUrl.protocol}`,
-      normalizedUrl: parsedUrl.toString(),
-      hostname: parsedUrl.hostname,
-      scheme: parsedUrl.protocol === "https:" ? "https" : "http",
-      decision: OpenUrlSafetyDecisionSchema.parse({
-        status: "block",
-        reason: `forbidden target url protocol: ${parsedUrl.protocol}`,
-        normalizedUrl: parsedUrl.toString(),
-        hostname: parsedUrl.hostname,
-        scheme: parsedUrl.protocol === "https:" ? "https" : "http",
-      }),
-    };
+    return buildForbiddenProtocolPolicyBlockResult(parsedUrl);
   }
 
-  const scheme = parsedUrl.protocol === "https:" ? "https" : parsedUrl.protocol === "http:" ? "http" : null;
+  const scheme = resolveOpenScheme(parsedUrl.protocol);
   if (!scheme || !input.profile.allowedSchemes.includes(scheme)) {
-    return {
-      ok: false,
-      failureCode: "url_policy_blocked",
-      reason: `scheme ${parsedUrl.protocol} is not allowed for ${input.profile.childCapabilityId}`,
-      normalizedUrl: parsedUrl.toString(),
-      hostname: parsedUrl.hostname,
-      scheme: scheme ?? "http",
-      decision: OpenUrlSafetyDecisionSchema.parse({
-        status: "block",
-        reason: `scheme ${parsedUrl.protocol} is not allowed for ${input.profile.childCapabilityId}`,
-        normalizedUrl: parsedUrl.toString(),
-        hostname: parsedUrl.hostname,
-        scheme: scheme ?? "http",
-      }),
-    };
+    return buildDisallowedSchemePolicyBlockResult(parsedUrl, input.profile, scheme);
   }
 
   if (!matchesAllowedHostname(parsedUrl.hostname, input.profile.allowedHostnames)) {
-    return {
-      ok: false,
-      failureCode: "url_policy_blocked",
-      reason: `hostname ${parsedUrl.hostname} is outside the governed allowlist for ${input.profile.childCapabilityId}`,
-      normalizedUrl: parsedUrl.toString(),
-      hostname: parsedUrl.hostname,
-      scheme,
-      decision: OpenUrlSafetyDecisionSchema.parse({
-        status: "block",
-        reason: `hostname ${parsedUrl.hostname} is outside the governed allowlist for ${input.profile.childCapabilityId}`,
-        normalizedUrl: parsedUrl.toString(),
-        hostname: parsedUrl.hostname,
-        scheme,
-      }),
-    };
+    return buildHostnamePolicyBlockResult(parsedUrl, input.profile, scheme);
   }
 
-  return {
-    ok: true,
-    failureCode: null,
-    reason: null,
-    normalizedUrl: parsedUrl.toString(),
-    hostname: parsedUrl.hostname,
-    scheme,
-    decision: OpenUrlSafetyDecisionSchema.parse({
-      status: "allow",
-      reason: null,
-      normalizedUrl: parsedUrl.toString(),
-      hostname: parsedUrl.hostname,
-      scheme,
-    }),
-  };
+  return buildAllowedUrlPolicyResult(parsedUrl, scheme);
 }

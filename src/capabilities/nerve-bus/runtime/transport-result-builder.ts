@@ -14,6 +14,16 @@ import type { SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve
 import type { NerveBusTransportProof } from "../shared/nerve-bus-proof.js";
 import type { NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.js";
 
+type GovernedFailureInput = {
+  envelope: SupportedEnvelope;
+  failureReason: string;
+  reviewRequiredReason?: string | null;
+  status?: "failed" | "review_required";
+  proof: NerveBusTransportProof;
+  diagnosticPayloadRef: { outputRef: string; payloadRefs: string[] };
+  transportDecision?: "executed" | "duplicate_skipped" | "replay_rejected" | "queue_rejected";
+};
+
 function buildFailurePayloadDocument(input: {
   envelope: SupportedEnvelope;
   failureReason: string;
@@ -31,87 +41,80 @@ function buildFailurePayloadDocument(input: {
   });
 }
 
-export async function buildGovernedFailureResult(input: {
-  envelope: SupportedEnvelope;
-  failureReason: string;
-  reviewRequiredReason?: string | null;
-  status?: "failed" | "review_required";
-  proof: NerveBusTransportProof;
-  diagnosticPayloadRef: { outputRef: string; payloadRefs: string[] };
-  transportDecision?: "executed" | "duplicate_skipped" | "replay_rejected" | "queue_rejected";
-}) {
-  const status = input.status ?? "failed";
-  const common = {
+const buildGovernedFailureCommon = (input: GovernedFailureInput, status: "failed" | "review_required") => ({
+  abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
+  transportId: input.envelope.transportId,
+  traceId: input.envelope.traceId,
+  spanId: input.envelope.spanId,
+  attemptId: input.envelope.attemptId,
+  missionId: input.envelope.missionId,
+  mapId: input.envelope.mapId,
+  stepId: input.envelope.stepId,
+  idempotencyKey: input.envelope.idempotencyKey,
+  sequenceNo: input.envelope.sequenceNo,
+  inputRef: input.envelope.inputRef,
+  payloadRef: input.diagnosticPayloadRef.payloadRefs,
+  payload: input.envelope.payload,
+  createdAt: input.proof.endedAt,
+  expiresAt: input.envelope.expiresAt,
+  outputRef: null,
+  diagnosticPayloadRef: input.diagnosticPayloadRef.outputRef,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason ?? null,
+  status,
+} as const);
+
+const buildAbilityFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+  const resultEnvelope = AbilityResultEnvelopeSchema.parse({
+    ...common,
+    envelopeKind: "ability_result",
+    channelId: "ability-to-orchestration",
+    envelopeId: `${input.envelope.envelopeId}:result`,
+    resultId: `${input.envelope.commandId}:result`,
+    from: input.envelope.to,
+    to: "orchestration",
+  });
+
+  return AbilityTransportResultSchema.parse({
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
-    transportId: input.envelope.transportId,
-    traceId: input.envelope.traceId,
-    spanId: input.envelope.spanId,
-    attemptId: input.envelope.attemptId,
-    missionId: input.envelope.missionId,
-    mapId: input.envelope.mapId,
-    stepId: input.envelope.stepId,
-    idempotencyKey: input.envelope.idempotencyKey,
-    sequenceNo: input.envelope.sequenceNo,
-    inputRef: input.envelope.inputRef,
-    payloadRef: input.diagnosticPayloadRef.payloadRefs,
-    payload: input.envelope.payload,
-    createdAt: input.proof.endedAt,
-    expiresAt: input.envelope.expiresAt,
-    outputRef: null,
-    diagnosticPayloadRef: input.diagnosticPayloadRef.outputRef,
+    channelId: input.envelope.channelId,
+    status: common.status,
+    transportDecision: input.transportDecision ?? "executed",
+    commandEnvelope: input.envelope,
+    resultEnvelope,
+    proof: input.proof,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
-    status,
-  } as const;
+  });
+};
 
-  if (input.envelope.envelopeKind === "ability_command") {
-    const resultEnvelope = AbilityResultEnvelopeSchema.parse({
-      ...common,
-      envelopeKind: "ability_result",
-      channelId: "ability-to-orchestration",
-      envelopeId: `${input.envelope.envelopeId}:result`,
-      resultId: `${input.envelope.commandId}:result`,
-      from: input.envelope.to,
-      to: "orchestration",
-    });
-    return AbilityTransportResultSchema.parse({
-      abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
-      channelId: input.envelope.channelId,
-      status,
-      transportDecision: input.transportDecision ?? "executed",
-      commandEnvelope: input.envelope,
-      resultEnvelope,
-      proof: input.proof,
-      failureReason: input.failureReason,
-      reviewRequiredReason: input.reviewRequiredReason ?? null,
-    });
-  }
+const buildAiFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+  const responseEnvelope = AiResponseEnvelopeSchema.parse({
+    ...common,
+    envelopeKind: "ai_response",
+    channelId: "ai-to-orchestration",
+    envelopeId: `${input.envelope.envelopeId}:response`,
+    responseId: `${input.envelope.requestId}:response`,
+    from: "ai",
+    to: "orchestration",
+    decision: "transport_failed",
+    confidence: null,
+  });
 
-  if (input.envelope.envelopeKind === "ai_request") {
-    const responseEnvelope = AiResponseEnvelopeSchema.parse({
-      ...common,
-      envelopeKind: "ai_response",
-      channelId: "ai-to-orchestration",
-      envelopeId: `${input.envelope.envelopeId}:response`,
-      responseId: `${input.envelope.requestId}:response`,
-      from: "ai",
-      to: "orchestration",
-      decision: "transport_failed",
-      confidence: null,
-    });
-    return AiTransportResultSchema.parse({
-      abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
-      channelId: input.envelope.channelId,
-      status,
-      transportDecision: input.transportDecision ?? "executed",
-      requestEnvelope: input.envelope,
-      responseEnvelope,
-      proof: input.proof,
-      failureReason: input.failureReason,
-      reviewRequiredReason: input.reviewRequiredReason ?? null,
-    });
-  }
+  return AiTransportResultSchema.parse({
+    abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
+    channelId: input.envelope.channelId,
+    status: common.status,
+    transportDecision: input.transportDecision ?? "executed",
+    requestEnvelope: input.envelope,
+    responseEnvelope,
+    proof: input.proof,
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason ?? null,
+  });
+};
 
+const buildHumanFailureResult = (input: GovernedFailureInput, common: ReturnType<typeof buildGovernedFailureCommon>) => {
   const resultEnvelope = HumanCommandResultEnvelopeSchema.parse({
     ...common,
     envelopeKind: "human_command_result",
@@ -121,10 +124,11 @@ export async function buildGovernedFailureResult(input: {
     from: "orchestration",
     to: "commander-console",
   });
+
   return HumanCommandTransportResultSchema.parse({
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
     channelId: input.envelope.channelId,
-    status,
+    status: common.status,
     transportDecision: input.transportDecision ?? "executed",
     commandEnvelope: input.envelope,
     resultEnvelope,
@@ -132,6 +136,21 @@ export async function buildGovernedFailureResult(input: {
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
   });
+};
+
+export async function buildGovernedFailureResult(input: GovernedFailureInput) {
+  const status = input.status ?? "failed";
+  const common = buildGovernedFailureCommon(input, status);
+
+  if (input.envelope.envelopeKind === "ability_command") {
+    return buildAbilityFailureResult(input, common);
+  }
+
+  if (input.envelope.envelopeKind === "ai_request") {
+    return buildAiFailureResult(input, common);
+  }
+
+  return buildHumanFailureResult(input, common);
 }
 
 export { buildFailurePayloadDocument };

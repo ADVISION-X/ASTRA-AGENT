@@ -15,6 +15,22 @@ type DeltaResolutionInput = {
   region: MouseScrollRegion | null;
 };
 
+type ScrollDeltaFailure = {
+  ok: false;
+  failureReason: "invalid_custom_delta" | "delta_limit_exceeded" | "zero_delta";
+  statusMessage: string;
+  dataQualityFlags: string[];
+};
+
+type ScrollDeltaSuccess = {
+  ok: true;
+  requestedDelta: MouseScrollDelta;
+  executableDelta: MouseScrollDelta;
+  deltaResolutionDecision: string;
+  deltaCapDecision: string;
+  dataQualityFlags: string[];
+};
+
 function isVertical(direction: MouseScrollDirection): boolean {
   return direction === "up" || direction === "down";
 }
@@ -32,32 +48,59 @@ function toSignedDelta(direction: MouseScrollDirection, magnitude: number): Mous
   return { deltaX: magnitude, deltaY: 0 };
 }
 
-function normalizeCustomDelta(direction: MouseScrollDirection, delta: MouseScrollDelta): MouseScrollDelta | null {
-  const normalized = {
+function createScrollDeltaFailure(input: {
+  failureReason: ScrollDeltaFailure["failureReason"];
+  statusMessage: string;
+  dataQualityFlags: string[];
+}): ScrollDeltaFailure {
+  return {
+    ok: false,
+    failureReason: input.failureReason,
+    statusMessage: input.statusMessage,
+    dataQualityFlags: input.dataQualityFlags,
+  };
+}
+
+function roundCustomDelta(delta: MouseScrollDelta): MouseScrollDelta {
+  return {
     deltaX: Math.round(delta.deltaX),
     deltaY: Math.round(delta.deltaY),
   };
+}
+
+function matchesDirectionAxis(direction: MouseScrollDirection, delta: MouseScrollDelta): boolean {
+  return isVertical(direction)
+    ? delta.deltaX === 0 && delta.deltaY !== 0
+    : delta.deltaY === 0 && delta.deltaX !== 0;
+}
+
+function matchesDirectionSign(direction: MouseScrollDirection, delta: MouseScrollDelta): boolean {
+  if (direction === "up") {
+    return delta.deltaY < 0;
+  }
+  if (direction === "down") {
+    return delta.deltaY > 0;
+  }
+  if (direction === "left") {
+    return delta.deltaX < 0;
+  }
+
+  return delta.deltaX > 0;
+}
+
+function normalizeCustomDelta(direction: MouseScrollDirection, delta: MouseScrollDelta): MouseScrollDelta | null {
+  const normalized = roundCustomDelta(delta);
   if (normalized.deltaX === 0 && normalized.deltaY === 0) {
     return null;
   }
-  if (isVertical(direction) && (normalized.deltaX !== 0 || normalized.deltaY === 0)) {
+  if (!matchesDirectionAxis(direction, normalized)) {
     return null;
   }
-  if (!isVertical(direction) && (normalized.deltaY !== 0 || normalized.deltaX === 0)) {
+
+  if (!matchesDirectionSign(direction, normalized)) {
     return null;
   }
-  if (direction === "up" && normalized.deltaY >= 0) {
-    return null;
-  }
-  if (direction === "down" && normalized.deltaY <= 0) {
-    return null;
-  }
-  if (direction === "left" && normalized.deltaX >= 0) {
-    return null;
-  }
-  if (direction === "right" && normalized.deltaX <= 0) {
-    return null;
-  }
+
   return normalized;
 }
 
@@ -91,61 +134,43 @@ function resolveAxisMagnitude(input: {
   };
 }
 
-export function resolveScrollDelta(input: DeltaResolutionInput):
-  | {
-      ok: true;
-      requestedDelta: MouseScrollDelta;
-      executableDelta: MouseScrollDelta;
-      deltaResolutionDecision: string;
-      deltaCapDecision: string;
-      dataQualityFlags: string[];
-    }
-  | {
-      ok: false;
-      failureReason: "invalid_custom_delta" | "delta_limit_exceeded" | "zero_delta";
-      statusMessage: string;
-      dataQualityFlags: string[];
-    } {
-  const requestedMagnitude = input.request.magnitude;
-  if (requestedMagnitude === "customDelta") {
-    if (input.request.customDelta === null) {
-      return {
-        ok: false,
-        failureReason: "invalid_custom_delta",
-        statusMessage: "Mouse Scroll customDelta magnitude requires a finite customDelta payload.",
-        dataQualityFlags: ["custom_delta_missing"],
-      };
-    }
-    const normalized = normalizeCustomDelta(input.direction, input.request.customDelta);
-    if (normalized === null) {
-      return {
-        ok: false,
-        failureReason: "invalid_custom_delta",
-        statusMessage: "Mouse Scroll customDelta must match direction and cannot fall back to zero.",
-        dataQualityFlags: ["custom_delta_invalid"],
-      };
-    }
-    if (Math.abs(normalized.deltaX) > input.request.safetyPolicy.maxDeltaAbs || Math.abs(normalized.deltaY) > input.request.safetyPolicy.maxDeltaAbs) {
-      return {
-        ok: false,
+function resolveCustomScrollDelta(input: DeltaResolutionInput): ScrollDeltaSuccess | ScrollDeltaFailure {
+  if (input.request.customDelta === null) {
+    return createScrollDeltaFailure({
+      failureReason: "invalid_custom_delta",
+      statusMessage: "Mouse Scroll customDelta magnitude requires a finite customDelta payload.",
+      dataQualityFlags: ["custom_delta_missing"],
+    });
+  }
+  const normalized = normalizeCustomDelta(input.direction, input.request.customDelta);
+  if (normalized === null) {
+    return createScrollDeltaFailure({
+      failureReason: "invalid_custom_delta",
+      statusMessage: "Mouse Scroll customDelta must match direction and cannot resolve to a zero delta.",
+      dataQualityFlags: ["custom_delta_invalid"],
+    });
+  }
+
+  return Math.abs(normalized.deltaX) > input.request.safetyPolicy.maxDeltaAbs || Math.abs(normalized.deltaY) > input.request.safetyPolicy.maxDeltaAbs
+    ? createScrollDeltaFailure({
         failureReason: "delta_limit_exceeded",
         statusMessage: "Mouse Scroll customDelta exceeds maxDeltaAbs and cannot be executed.",
         dataQualityFlags: ["delta_limit_exceeded"],
+      })
+    : {
+        ok: true,
+        requestedDelta: normalized,
+        executableDelta: normalized,
+        deltaResolutionDecision: "custom_delta_normalized",
+        deltaCapDecision: "not_capped",
+        dataQualityFlags: [],
       };
-    }
-    return {
-      ok: true,
-      requestedDelta: normalized,
-      executableDelta: normalized,
-      deltaResolutionDecision: "custom_delta_normalized",
-      deltaCapDecision: "not_capped",
-      dataQualityFlags: [],
-    };
-  }
+}
 
+function resolveMagnitudeScrollDelta(input: DeltaResolutionInput): ScrollDeltaSuccess | ScrollDeltaFailure {
   const resolved = resolveAxisMagnitude({
     direction: input.direction,
-    magnitude: requestedMagnitude,
+    magnitude: input.request.magnitude,
     bounds: input.bounds,
     region: input.region,
     coordinateSpace: input.coordinateSpace,
@@ -154,13 +179,13 @@ export function resolveScrollDelta(input: DeltaResolutionInput):
   const requestedDelta = toSignedDelta(input.direction, resolved.requestedAxisDelta);
   const executableDelta = toSignedDelta(input.direction, resolved.executableAxisDelta);
   if (executableDelta.deltaX === 0 && executableDelta.deltaY === 0) {
-    return {
-      ok: false,
+    return createScrollDeltaFailure({
       failureReason: "zero_delta",
-      statusMessage: "Mouse Scroll resolved to a zero delta and cannot report no-op success.",
+      statusMessage: "Mouse Scroll resolved to an executable delta of zero and cannot proceed.",
       dataQualityFlags: ["zero_delta"],
-    };
+    });
   }
+
   return {
     ok: true,
     requestedDelta,
@@ -169,4 +194,10 @@ export function resolveScrollDelta(input: DeltaResolutionInput):
     deltaCapDecision: resolved.deltaCapDecision,
     dataQualityFlags: resolved.dataQualityFlags,
   };
+}
+
+export function resolveScrollDelta(input: DeltaResolutionInput): ScrollDeltaSuccess | ScrollDeltaFailure {
+  return input.request.magnitude === "customDelta"
+    ? resolveCustomScrollDelta(input)
+    : resolveMagnitudeScrollDelta(input);
 }

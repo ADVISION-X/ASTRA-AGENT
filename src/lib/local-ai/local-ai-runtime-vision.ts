@@ -1,15 +1,17 @@
 import { z } from "zod";
 
-import type { LocalAiTaskRequest } from "../../types/local-ai.js";
-import type { VideoFrameSamplePointLabel } from "../../types/multi-frame-evidence.js";
-import { VisionProductPresencePayloadSchema } from "../../types/vision-product-presence.js";
+import {
+  LocalAiVisionProductPresencePayloadSchema,
+  type LocalAiVisionFrameSamplePointLabel,
+  type LocalAiVisionTaskRequest,
+} from "../../types/local-ai-runtime-vision-contract.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
 import { extractFirstJsonObject } from "./runtime-adapters/runtime-adapter-utils.js";
 import { resolveExpectedFrameLabels } from "./local-ai-runtime-vision-prompt.js";
 
 type JsonRecord = Record<string, unknown>;
-type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
-type VisionFrameObservation = z.infer<typeof VisionProductPresencePayloadSchema>[
+type VisionProductPresenceRequest = Extract<LocalAiVisionTaskRequest, { taskType: "vision.productPresence" }>;
+type VisionFrameObservation = z.infer<typeof LocalAiVisionProductPresencePayloadSchema>[
   "frameLevelObservations"
 ][number];
 
@@ -18,10 +20,16 @@ const isRecord = (value: unknown): value is JsonRecord => typeof value === "obje
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
 
+const NULLABLE_BOOLEAN_BY_TEXT = {
+  true: true,
+  false: false,
+  null: null,
+} as const;
+
 const isExpectedFrameLabel = (
   value: string,
-  expectedFrameLabels: VideoFrameSamplePointLabel[],
-): value is VideoFrameSamplePointLabel => expectedFrameLabels.includes(value as VideoFrameSamplePointLabel);
+  expectedFrameLabels: LocalAiVisionFrameSamplePointLabel[],
+): value is LocalAiVisionFrameSamplePointLabel => expectedFrameLabels.includes(value as LocalAiVisionFrameSamplePointLabel);
 
 const normalizeNullableBoolean = (value: unknown): boolean | null | undefined => {
   if (typeof value === "boolean" || value === null) {
@@ -32,17 +40,9 @@ const normalizeNullableBoolean = (value: unknown): boolean | null | undefined =>
   }
 
   const normalized = value.trim().toLowerCase();
-  if (normalized === "true") {
-    return true;
-  }
-  if (normalized === "false") {
-    return false;
-  }
-  if (normalized === "null") {
-    return null;
-  }
-
-  return undefined;
+  return normalized in NULLABLE_BOOLEAN_BY_TEXT
+    ? NULLABLE_BOOLEAN_BY_TEXT[normalized as keyof typeof NULLABLE_BOOLEAN_BY_TEXT]
+    : undefined;
 };
 
 const parseRuntimeJsonOutput = (text: string, taskType: string): unknown => {
@@ -57,7 +57,7 @@ const parseRuntimeJsonOutput = (text: string, taskType: string): unknown => {
 
 const createFallbackFrameObservation = (
   input: {
-    expectedFrameLabels: VideoFrameSamplePointLabel[];
+    expectedFrameLabels: LocalAiVisionFrameSamplePointLabel[];
     evidenceObservations: string[];
     isProductVideo: boolean | null;
     visibleProductTypes: string[];
@@ -86,7 +86,7 @@ const hasEntryCollectionAdjustment = (
 const normalizeFrameObservation = (
   entry: unknown,
   index: number,
-  expectedFrameLabels: VideoFrameSamplePointLabel[],
+  expectedFrameLabels: LocalAiVisionFrameSamplePointLabel[],
   fallbackObservation: VisionFrameObservation,
 ): { adjusted: boolean; observation: VisionFrameObservation } => {
   if (!isRecord(entry)) {
@@ -127,7 +127,7 @@ const normalizeFrameObservation = (
 const normalizeFrameObservations = (
   request: VisionProductPresenceRequest,
   value: JsonRecord,
-  expectedFrameLabels: VideoFrameSamplePointLabel[],
+  expectedFrameLabels: LocalAiVisionFrameSamplePointLabel[],
   fallbackObservation: VisionFrameObservation,
 ): { adjusted: boolean; observations: VisionFrameObservation[] } => {
   const incomingFrameObservations = Array.isArray(value.frameLevelObservations) ? value.frameLevelObservations : [];
@@ -187,13 +187,13 @@ const normalizeVisionRuntimeOutput = (
 export const parseVisionRuntimeOutput = (text: string, request: VisionProductPresenceRequest): {
   adjusted: boolean;
   normalizedFrameCount: number;
-  payload: z.infer<typeof VisionProductPresencePayloadSchema>;
+  payload: z.infer<typeof LocalAiVisionProductPresencePayloadSchema>;
 } => {
   const parsed = parseRuntimeJsonOutput(text, request.taskType);
   const normalizedOutput = normalizeVisionRuntimeOutput(parsed, request);
 
   try {
-    const payload = VisionProductPresencePayloadSchema.parse(normalizedOutput.normalized);
+    const payload = LocalAiVisionProductPresencePayloadSchema.parse(normalizedOutput.normalized);
     return {
       adjusted: normalizedOutput.adjusted,
       normalizedFrameCount: payload.frameLevelObservations.length,

@@ -22,56 +22,62 @@ function toSelectedMapResult(record: ActiveOperationalMapRecord, selectedMapSour
   };
 }
 
+async function resolveMapSelectionCandidate(input: {
+  mapStore: OrchestrationMapStorePort;
+  source: Exclude<SelectedMapSource, "rejected_missing">;
+  lookup: () => Promise<ActiveOperationalMapRecord | null>;
+  failureReason: string;
+}): Promise<MapSelectionResult | null> {
+  const record = await input.lookup();
+  if (!record) {
+    return {
+      selected: false,
+      selectedMapSource: "rejected_missing",
+      failureReason: input.failureReason,
+    };
+  }
+
+  return toSelectedMapResult(record, input.source);
+}
+
 export async function selectOperationalMap(input: {
   command: MissionCommand;
   mapStore: OrchestrationMapStorePort;
 }): Promise<MapSelectionResult> {
   if (input.command.preferredMapId) {
-    const record = await input.mapStore.getActiveMapRecord(input.command.preferredMapId);
-    if (!record) {
-      return {
-        selected: false,
-        selectedMapSource: "rejected_missing",
-        failureReason: `Preferred map id "${input.command.preferredMapId}" is not registered.`,
-      };
-    }
-    return toSelectedMapResult(record, "preferred_map_id");
+    return resolveMapSelectionCandidate({
+      mapStore: input.mapStore,
+      source: "preferred_map_id",
+      lookup: () => input.mapStore.getActiveMapRecord(input.command.preferredMapId!),
+      failureReason: `Preferred map id "${input.command.preferredMapId}" is not registered.`,
+    });
   }
 
   if (input.command.initialPayload.selectedMapId) {
-    const record = await input.mapStore.getActiveMapRecord(input.command.initialPayload.selectedMapId);
-    if (!record) {
-      return {
-        selected: false,
-        selectedMapSource: "rejected_missing",
-        failureReason: `Initial payload map id "${input.command.initialPayload.selectedMapId}" is not registered.`,
-      };
-    }
-    return toSelectedMapResult(record, "initial_payload_map_id");
+    return resolveMapSelectionCandidate({
+      mapStore: input.mapStore,
+      source: "initial_payload_map_id",
+      lookup: () => input.mapStore.getActiveMapRecord(input.command.initialPayload.selectedMapId!),
+      failureReason: `Initial payload map id "${input.command.initialPayload.selectedMapId}" is not registered.`,
+    });
   }
 
   if (input.command.taskTemplateId) {
-    const record = await input.mapStore.getActiveMapRecordByTaskTemplateId(input.command.taskTemplateId);
-    if (!record) {
-      return {
-        selected: false,
-        selectedMapSource: "rejected_missing",
-        failureReason: `Task template id "${input.command.taskTemplateId}" is not bound to an active approved map.`,
-      };
-    }
-    return toSelectedMapResult(record, "task_template_id");
+    return resolveMapSelectionCandidate({
+      mapStore: input.mapStore,
+      source: "task_template_id",
+      lookup: () => input.mapStore.getActiveMapRecordByTaskTemplateId(input.command.taskTemplateId!),
+      failureReason: `Task template id "${input.command.taskTemplateId}" is not bound to an active approved map.`,
+    });
   }
 
   if (input.command.activationId) {
-    const record = await input.mapStore.getActiveMapRecordByActivationId(input.command.activationId);
-    if (!record) {
-      return {
-        selected: false,
-        selectedMapSource: "rejected_missing",
-        failureReason: `Activation id "${input.command.activationId}" is not bound to an active approved map.`,
-      };
-    }
-    return toSelectedMapResult(record, "activation_id");
+    return resolveMapSelectionCandidate({
+      mapStore: input.mapStore,
+      source: "activation_id",
+      lookup: () => input.mapStore.getActiveMapRecordByActivationId(input.command.activationId!),
+      failureReason: `Activation id "${input.command.activationId}" is not bound to an active approved map.`,
+    });
   }
 
   return {

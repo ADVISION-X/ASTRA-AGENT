@@ -35,33 +35,33 @@ import { DEFAULT_TIKTOK_URL, OPEN_ABILITY_GROUP_ID, TIKTOK_PLATFORM_ID } from ".
 
 export { DEFAULT_TIKTOK_URL, OPEN_ABILITY_GROUP_ID, TIKTOK_PLATFORM_ID };
 
-export type OpenAbilityGroupId = typeof OPEN_ABILITY_GROUP_ID;
-export type OpenChildCapabilityId = z.output<typeof OpenChildCapabilityIdSchema>;
-export type OpenPlatformId = z.output<typeof OpenPlatformIdSchema>;
-export type OpenTargetKind = z.output<typeof OpenTargetKindSchema>;
-export type OpenStatus = z.output<typeof OpenStatusSchema>;
-export type OpenFailure = z.output<typeof OpenFailureSchema>;
-export type OpenTargetProfile = z.output<typeof OpenTargetProfileSchema>;
-export type OpenAllowedCaller = z.output<typeof OpenAllowedCallerSchema>;
-export type OpenBoundaryPolicy = z.output<typeof OpenBoundaryPolicySchema>;
-export type OpenProofPolicy = z.output<typeof OpenProofPolicySchema>;
-export type OpenOutputPolicy = z.output<typeof OpenOutputPolicySchema>;
-export type OpenFailurePolicy = z.output<typeof OpenFailurePolicySchema>;
-export type OpenTimeoutPolicy = z.output<typeof OpenTimeoutPolicySchema>;
-export type OpenIdempotencyPolicy = z.output<typeof OpenIdempotencyPolicySchema>;
-export type OpenDataQualityFlag = z.output<typeof OpenDataQualityFlagSchema>;
-export type OpenTargetUrlSource = z.output<typeof OpenTargetUrlSourceSchema>;
-export type BrowserSessionSnapshot = z.output<typeof BrowserSessionSnapshotSchema>;
-export type OpenBrowserNavigationResult = z.output<typeof NavigationResultSchema>;
-export type OpenTargetPolicyDecision = z.output<typeof OpenTargetPolicyDecisionSchema>;
-export type OpenUrlSafetyDecision = z.output<typeof OpenUrlSafetyDecisionSchema>;
-export type OpenSessionDecision = z.output<typeof OpenSessionDecisionSchema>;
-export type OpenNavigationDecision = z.output<typeof OpenNavigationDecisionSchema>;
-export type PostOpenStateDecision = z.output<typeof PostOpenStateDecisionSchema>;
-export type OpenRequest = z.input<typeof OpenRequestSchema>;
-export type ParsedOpenRequest = z.output<typeof OpenRequestSchema>;
-export type OpenResult = z.output<typeof OpenResultSchema>;
-export type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
+type OpenAbilityGroupId = typeof OPEN_ABILITY_GROUP_ID;
+type OpenChildCapabilityId = z.output<typeof OpenChildCapabilityIdSchema>;
+type OpenPlatformId = z.output<typeof OpenPlatformIdSchema>;
+type OpenTargetKind = z.output<typeof OpenTargetKindSchema>;
+type OpenStatus = z.output<typeof OpenStatusSchema>;
+type OpenFailure = z.output<typeof OpenFailureSchema>;
+type OpenTargetProfile = z.output<typeof OpenTargetProfileSchema>;
+type OpenAllowedCaller = z.output<typeof OpenAllowedCallerSchema>;
+type OpenBoundaryPolicy = z.output<typeof OpenBoundaryPolicySchema>;
+type OpenProofPolicy = z.output<typeof OpenProofPolicySchema>;
+type OpenOutputPolicy = z.output<typeof OpenOutputPolicySchema>;
+type OpenFailurePolicy = z.output<typeof OpenFailurePolicySchema>;
+type OpenTimeoutPolicy = z.output<typeof OpenTimeoutPolicySchema>;
+type OpenIdempotencyPolicy = z.output<typeof OpenIdempotencyPolicySchema>;
+type OpenDataQualityFlag = z.output<typeof OpenDataQualityFlagSchema>;
+type OpenTargetUrlSource = z.output<typeof OpenTargetUrlSourceSchema>;
+type BrowserSessionSnapshot = z.output<typeof BrowserSessionSnapshotSchema>;
+type OpenBrowserNavigationResult = z.output<typeof NavigationResultSchema>;
+type OpenTargetPolicyDecision = z.output<typeof OpenTargetPolicyDecisionSchema>;
+type OpenUrlSafetyDecision = z.output<typeof OpenUrlSafetyDecisionSchema>;
+type OpenSessionDecision = z.output<typeof OpenSessionDecisionSchema>;
+type OpenNavigationDecision = z.output<typeof OpenNavigationDecisionSchema>;
+type PostOpenStateDecision = z.output<typeof PostOpenStateDecisionSchema>;
+type OpenRequest = z.input<typeof OpenRequestSchema>;
+type ParsedOpenRequest = z.output<typeof OpenRequestSchema>;
+type OpenResult = z.output<typeof OpenResultSchema>;
+type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
 
 export type CreateOpenAbilityGroupInput = {
   browser: OpenBrowserPort;
@@ -74,3 +74,33 @@ export interface OpenAbilityGroup {
   listChildCapabilityIds(): OpenChildCapabilityId[];
   execute(input: OpenRequest): Promise<OpenResult>;
 }
+
+export type {
+  OpenAbilityGroupId,
+  OpenAllowedCaller,
+  OpenBoundaryPolicy,
+  OpenBrowserNavigationResult,
+  OpenChildCapabilityId,
+  OpenDataQualityFlag,
+  OpenFailure,
+  OpenFailurePolicy,
+  OpenIdempotencyPolicy,
+  OpenNavigationDecision,
+  OpenOutputPolicy,
+  OpenPlatformId,
+  OpenProofPolicy,
+  OpenRequest,
+  OpenResult,
+  OpenRuntimeProof,
+  OpenSessionDecision,
+  OpenStatus,
+  OpenTargetKind,
+  OpenTargetPolicyDecision,
+  OpenTargetProfile,
+  OpenTargetUrlSource,
+  OpenTimeoutPolicy,
+  OpenUrlSafetyDecision,
+  ParsedOpenRequest,
+  BrowserSessionSnapshot,
+  PostOpenStateDecision,
+};

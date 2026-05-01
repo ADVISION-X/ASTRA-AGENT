@@ -23,21 +23,21 @@ import { MOUSE_CLICK_ABILITY_GROUP_ID, MOUSE_CLICK_CHILD_CAPABILITY_IDS } from "
 
 export { MOUSE_CLICK_ABILITY_GROUP_ID, MOUSE_CLICK_CHILD_CAPABILITY_IDS };
 
-export type MouseClickChildCapabilityId = z.output<typeof MouseClickChildCapabilityIdSchema>;
-export type MouseClickCoordinateSpace = z.output<typeof MouseClickCoordinateSpaceSchema>;
-export type MouseClickButton = z.output<typeof MouseClickButtonSchema>;
-export type MouseClickCount = z.output<typeof MouseClickCountSchema>;
-export type MouseClickFailureReason = z.output<typeof MouseClickFailureReasonSchema>;
-export type MouseClickStatus = z.output<typeof MouseClickStatusSchema>;
-export type MouseClickSafetyPolicy = z.output<typeof MouseClickSafetyPolicySchema>;
-export type MouseClickGeometryGuardProof = z.output<typeof MouseClickGeometryGuardProofSchema>;
-export type MouseClickRuntimeProof = z.output<typeof MouseClickRuntimeProofSchema>;
-export type MouseClickAbilityInput = z.input<typeof MouseClickAbilityInputSchema>;
-export type ParsedMouseClickAbilityInput = z.output<typeof MouseClickAbilityInputSchema>;
-export type MouseClickSuccessOutput = z.output<typeof MouseClickSuccessOutputSchema>;
-export type ClickBrowserCoordinateInput = z.output<typeof ClickBrowserCoordinateInputSchema>;
-export type ClickDesktopCoordinateInput = z.output<typeof ClickDesktopCoordinateInputSchema>;
-export type MouseClickAbilityResult = z.output<typeof MouseClickAbilityResultSchema>;
+type MouseClickChildCapabilityId = z.output<typeof MouseClickChildCapabilityIdSchema>;
+type MouseClickCoordinateSpace = z.output<typeof MouseClickCoordinateSpaceSchema>;
+type MouseClickButton = z.output<typeof MouseClickButtonSchema>;
+type MouseClickCount = z.output<typeof MouseClickCountSchema>;
+type MouseClickFailureReason = z.output<typeof MouseClickFailureReasonSchema>;
+type MouseClickStatus = z.output<typeof MouseClickStatusSchema>;
+type MouseClickSafetyPolicy = z.output<typeof MouseClickSafetyPolicySchema>;
+type MouseClickGeometryGuardProof = z.output<typeof MouseClickGeometryGuardProofSchema>;
+type MouseClickRuntimeProof = z.output<typeof MouseClickRuntimeProofSchema>;
+type MouseClickAbilityInput = z.input<typeof MouseClickAbilityInputSchema>;
+type ParsedMouseClickAbilityInput = z.output<typeof MouseClickAbilityInputSchema>;
+type MouseClickSuccessOutput = z.output<typeof MouseClickSuccessOutputSchema>;
+type ClickBrowserCoordinateInput = z.output<typeof ClickBrowserCoordinateInputSchema>;
+type ClickDesktopCoordinateInput = z.output<typeof ClickDesktopCoordinateInputSchema>;
+type MouseClickAbilityResult = z.output<typeof MouseClickAbilityResultSchema>;
 
 export type MouseClickAbilityContext = {
   primitivePort: MouseClickPrimitivePort;
@@ -56,3 +56,21 @@ export interface MouseClickAbilityGroup {
   listChildCapabilityIds(): MouseClickChildCapabilityId[];
   execute(input: MouseClickAbilityInput): Promise<MouseClickAbilityResult>;
 }
+
+export type {
+  ClickBrowserCoordinateInput,
+  ClickDesktopCoordinateInput,
+  MouseClickAbilityInput,
+  MouseClickAbilityResult,
+  MouseClickButton,
+  MouseClickChildCapabilityId,
+  MouseClickCoordinateSpace,
+  MouseClickCount,
+  MouseClickFailureReason,
+  MouseClickGeometryGuardProof,
+  MouseClickRuntimeProof,
+  MouseClickSafetyPolicy,
+  MouseClickStatus,
+  MouseClickSuccessOutput,
+  ParsedMouseClickAbilityInput,
+};

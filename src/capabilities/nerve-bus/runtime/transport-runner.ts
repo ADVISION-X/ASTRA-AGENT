@@ -34,12 +34,24 @@ export type NerveBusRunnerOutcome<TResult extends SupportedResultEnvelope> =
     circuitBreakerState: "closed";
   };
 
+type TimedRaceResult<T> =
+  | { kind: "resolved"; value: T }
+  | { kind: "timed_out" }
+  | { kind: "threw"; error: unknown };
+
+type TransportResultSchema<TResult extends SupportedResultEnvelope> = {
+  parse(data: unknown): TResult;
+  safeParse(data: unknown):
+    | { success: true; data: TResult }
+    | { success: false; error: { message: string } };
+};
+
 async function raceWithTimeout<T>(input: {
   promise: Promise<T>;
   timeoutMs: number;
   onTimeout(): void;
-}): Promise<{ kind: "resolved"; value: T } | { kind: "timed_out" }> {
-  return new Promise((resolve, reject) => {
+}): Promise<TimedRaceResult<T>> {
+  return new Promise((resolve) => {
     const timer = setTimeout(() => {
       input.onTimeout();
       resolve({ kind: "timed_out" });
@@ -51,11 +63,130 @@ async function raceWithTimeout<T>(input: {
       },
       (error) => {
         clearTimeout(timer);
-        reject(error);
+        resolve({ kind: "threw", error });
       },
     );
   });
 }
+
+const buildRunnerTiming = (
+  started: ReturnType<NerveBusRuntimeContext["clock"]["now"]>,
+  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>,
+  handlerCallId: string,
+) => ({
+  handlerCallId,
+  handlerStartedAt: started.iso,
+  handlerEndedAt: ended.iso,
+  handlerDurationMs: Math.max(0, ended.monotonicMs - started.monotonicMs),
+  circuitBreakerState: "closed" as const,
+});
+
+const buildHandlerFailureOutcome = <TResult extends SupportedResultEnvelope>(input: {
+  decision: NerveBusRunnerOutcome<TResult> extends infer T
+    ? T extends { kind: "handler_failed"; handlerDecision: infer U }
+      ? U
+      : never
+    : never;
+  failureReason: string;
+  timeoutDecision: "within_timeout" | "timed_out";
+  handlerCallId: string;
+  started: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+}): NerveBusRunnerOutcome<TResult> => ({
+  kind: "handler_failed",
+  outputPayload: null,
+  handlerDecision: input.decision,
+  failureReason: input.failureReason,
+  reviewRequiredReason: null,
+  timeoutDecision: input.timeoutDecision,
+  ...buildRunnerTiming(input.started, input.ended, input.handlerCallId),
+});
+
+const parseHandledEnvelope = <TResult extends SupportedResultEnvelope>(
+  resultSchema: TransportResultSchema<TResult>,
+  handledEnvelope: unknown,
+) => {
+  const parsed = resultSchema.safeParse(handledEnvelope);
+  return parsed.success
+    ? { ok: true as const, value: parsed.data }
+    : { ok: false as const, failureReason: parsed.error.message };
+};
+
+const buildHandledOutcome = <TResult extends SupportedResultEnvelope>(input: {
+  handled: NerveBusHandledResult<TResult>;
+  resultSchema: TransportResultSchema<TResult>;
+  handlerCallId: string;
+  started: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+}): NerveBusRunnerOutcome<TResult> => {
+  const parsedEnvelope = parseHandledEnvelope(input.resultSchema, input.handled.envelope);
+  if (!parsedEnvelope.ok) {
+    return buildHandlerFailureOutcome({
+      decision: "invalid_result",
+      failureReason: parsedEnvelope.failureReason,
+      timeoutDecision: "within_timeout",
+      handlerCallId: input.handlerCallId,
+      started: input.started,
+      ended: input.ended,
+    });
+  }
+
+  return {
+    kind: "handled",
+    resultEnvelope: parsedEnvelope.value,
+    outputPayload: input.handled.outputPayload,
+    handlerDecision: "executed",
+    failureReason: input.handled.envelope.failureReason ?? null,
+    reviewRequiredReason: input.handled.envelope.reviewRequiredReason ?? null,
+    timeoutDecision: "within_timeout",
+    ...buildRunnerTiming(input.started, input.ended, input.handlerCallId),
+  };
+};
+
+const resolveRaceFailure = <TResult extends SupportedResultEnvelope>(input: {
+  envelope: SupportedEnvelope;
+  controller: AbortController;
+  handlerCallId: string;
+  started: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>;
+  timeoutMs: number;
+  raceResult: TimedRaceResult<NerveBusHandledResult<TResult> | null>;
+}): NerveBusRunnerOutcome<TResult> | null => {
+  if (input.raceResult.kind === "timed_out") {
+    return buildHandlerFailureOutcome({
+      decision: "timed_out",
+      failureReason: `Transport timed out after ${input.timeoutMs}ms.`,
+      timeoutDecision: "timed_out",
+      handlerCallId: input.handlerCallId,
+      started: input.started,
+      ended: input.ended,
+    });
+  }
+
+  if (input.raceResult.kind === "threw") {
+    return buildHandlerFailureOutcome({
+      decision: input.controller.signal.aborted ? "aborted" : "threw",
+      failureReason: input.raceResult.error instanceof Error ? input.raceResult.error.message : "unknown transport runner failure",
+      timeoutDecision: input.controller.signal.aborted ? "timed_out" : "within_timeout",
+      handlerCallId: input.handlerCallId,
+      started: input.started,
+      ended: input.ended,
+    });
+  }
+
+  if (!input.raceResult.value) {
+    return buildHandlerFailureOutcome({
+      decision: "missing_handler",
+      failureReason: `No handler is registered for ${input.envelope.channelId}.`,
+      timeoutDecision: "within_timeout",
+      handlerCallId: input.handlerCallId,
+      started: input.started,
+      ended: input.ended,
+    });
+  }
+
+  return null;
+};
 
 export async function runTransportHandler<TResult extends SupportedResultEnvelope>(input: {
   envelope: SupportedEnvelope;
@@ -63,99 +194,37 @@ export async function runTransportHandler<TResult extends SupportedResultEnvelop
   context: NerveBusRuntimeContext;
   timeoutMs: number;
   invoke(signal: AbortSignal): Promise<NerveBusHandledResult<TResult> | null>;
-  resultSchema: { parse(data: unknown): TResult };
+  resultSchema: TransportResultSchema<TResult>;
 }): Promise<NerveBusRunnerOutcome<TResult>> {
   const handlerCallId = createId("nerve_bus_handler_call");
   const started = input.context.clock.now();
   const controller = new AbortController();
-  try {
-    const raceResult = await raceWithTimeout({
-      promise: input.invoke(controller.signal),
-      timeoutMs: input.timeoutMs,
-      onTimeout() {
-        controller.abort(`Transport timed out after ${input.timeoutMs}ms.`);
-      },
-    });
-    const ended = input.context.clock.now();
-    const handlerDurationMs = Math.max(0, ended.monotonicMs - started.monotonicMs);
-
-    if (raceResult.kind === "timed_out") {
-      return {
-        kind: "handler_failed",
-        outputPayload: null,
-        handlerDecision: "timed_out",
-        failureReason: `Transport timed out after ${input.timeoutMs}ms.`,
-        reviewRequiredReason: null,
-        timeoutDecision: "timed_out",
-        handlerCallId,
-        handlerStartedAt: started.iso,
-        handlerEndedAt: ended.iso,
-        handlerDurationMs,
-        circuitBreakerState: "closed",
-      };
-    }
-
-    const handled = raceResult.value;
-    if (!handled) {
-      return {
-        kind: "handler_failed",
-        outputPayload: null,
-        handlerDecision: "missing_handler",
-        failureReason: `No handler is registered for ${input.envelope.channelId}.`,
-        reviewRequiredReason: null,
-        timeoutDecision: "within_timeout",
-        handlerCallId,
-        handlerStartedAt: started.iso,
-        handlerEndedAt: ended.iso,
-        handlerDurationMs,
-        circuitBreakerState: "closed",
-      };
-    }
-
-    try {
-      return {
-        kind: "handled",
-        resultEnvelope: input.resultSchema.parse(handled.envelope),
-        outputPayload: handled.outputPayload,
-        handlerDecision: "executed",
-        failureReason: handled.envelope.failureReason ?? null,
-        reviewRequiredReason: handled.envelope.reviewRequiredReason ?? null,
-        timeoutDecision: "within_timeout",
-        handlerCallId,
-        handlerStartedAt: started.iso,
-        handlerEndedAt: ended.iso,
-        handlerDurationMs,
-        circuitBreakerState: "closed",
-      };
-    } catch (error) {
-      return {
-        kind: "handler_failed",
-        outputPayload: null,
-        handlerDecision: "invalid_result",
-        failureReason: error instanceof Error ? error.message : "invalid transport handler result",
-        reviewRequiredReason: null,
-        timeoutDecision: "within_timeout",
-        handlerCallId,
-        handlerStartedAt: started.iso,
-        handlerEndedAt: ended.iso,
-        handlerDurationMs,
-        circuitBreakerState: "closed",
-      };
-    }
-  } catch (error) {
-    const ended = input.context.clock.now();
-    return {
-      kind: "handler_failed",
-      outputPayload: null,
-      handlerDecision: controller.signal.aborted ? "aborted" : "threw",
-      failureReason: error instanceof Error ? error.message : "unknown transport runner failure",
-      reviewRequiredReason: null,
-      timeoutDecision: controller.signal.aborted ? "timed_out" : "within_timeout",
-      handlerCallId,
-      handlerStartedAt: started.iso,
-      handlerEndedAt: ended.iso,
-      handlerDurationMs: Math.max(0, ended.monotonicMs - started.monotonicMs),
-      circuitBreakerState: "closed",
-    };
+  const raceResult = await raceWithTimeout({
+    promise: input.invoke(controller.signal),
+    timeoutMs: input.timeoutMs,
+    onTimeout() {
+      controller.abort(`Transport timed out after ${input.timeoutMs}ms.`);
+    },
+  });
+  const ended = input.context.clock.now();
+  const raceFailure = resolveRaceFailure({
+    envelope: input.envelope,
+    controller,
+    handlerCallId,
+    started,
+    ended,
+    timeoutMs: input.timeoutMs,
+    raceResult,
+  });
+  if (raceFailure) {
+    return raceFailure;
   }
+
+  return buildHandledOutcome({
+    handled: raceResult.value,
+    resultSchema: input.resultSchema,
+    handlerCallId,
+    started,
+    ended,
+  });
 }

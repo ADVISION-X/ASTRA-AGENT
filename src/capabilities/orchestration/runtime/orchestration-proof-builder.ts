@@ -68,8 +68,49 @@ export type BuildProofInput = {
   dataQualityFlags?: string[];
 };
 
-export function buildOrchestrationRuntimeProof(input: BuildProofInput): z.output<typeof RuntimeProofSchema> {
-  return RuntimeProofSchema.parse({
+function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "proofId"
+  | "missionId"
+  | "mapId"
+  | "taskTemplateId"
+  | "activationId"
+  | "mapPackageId"
+  | "mapPackageVersion"
+  | "mapVersion"
+  | "selectedMapSource"
+  | "stepId"
+  | "targetAbilityGroupId"
+  | "targetChildCapabilityId"
+  | "childCapabilityId"
+  | "commandKind"
+  | "internalOperationKind"
+  | "caller"
+  | "idempotencyKey"
+  | "sequenceNo"
+  | "stateRevisionBefore"
+  | "stateRevisionAfter"
+  | "stateHashBefore"
+  | "stateHashAfter"
+  | "stepDispatchCallId"
+  | "stepTimeoutMs"
+  | "timeoutDecision"
+  | "abortDecision"
+  | "nerveBusEnvelopeId"
+  | "nerveBusDispatchDecision"
+  | "transitionId"
+  | "transitionEvaluationDecision"
+  | "transitionConditionSource"
+  | "transitionConditionExpected"
+  | "transitionConditionActual"
+  | "inputRef"
+  | "outputRef"
+  | "abilityResultRef"
+  | "reviewDispatchEnvelopeId"
+  | "finalizationDecision"
+  | "structuredRuntimeEventRef"
+  | "previousStepId"
+  | "nextStepId"> {
+  return {
     proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`,
     missionId: input.missionId,
     mapId: input.mapId,
@@ -111,6 +152,22 @@ export function buildOrchestrationRuntimeProof(input: BuildProofInput): z.output
     structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
     previousStepId: input.previousStepId ?? null,
     nextStepId: input.nextStepId ?? null,
+  };
+}
+
+function buildOrchestrationProofDecisionFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "startedAt"
+  | "endedAt"
+  | "durationMs"
+  | "status"
+  | "failureReason"
+  | "reviewRequiredReason"
+  | "mapDecision"
+  | "transitionDecision"
+  | "loopDecision"
+  | "stateDecision"
+  | "emergencyDecision"> {
+  return {
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
@@ -122,6 +179,19 @@ export function buildOrchestrationRuntimeProof(input: BuildProofInput): z.output
     loopDecision: input.loopDecision,
     stateDecision: input.stateDecision,
     emergencyDecision: input.emergencyDecision,
+  };
+}
+
+function buildOrchestrationProofTailFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>, "dataQualityFlags"> {
+  return {
     dataQualityFlags: input.dataQualityFlags ?? [],
+  };
+}
+
+export function buildOrchestrationRuntimeProof(input: BuildProofInput): z.output<typeof RuntimeProofSchema> {
+  return RuntimeProofSchema.parse({
+    ...buildOrchestrationProofCoreFields(input),
+    ...buildOrchestrationProofDecisionFields(input),
+    ...buildOrchestrationProofTailFields(input),
   });
 }

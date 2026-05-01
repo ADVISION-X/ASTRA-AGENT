@@ -1,25 +1,21 @@
 import { z } from "zod";
 
 import {
-  MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS,
-  MapPluginAllowedAbilityGroupIdSchema,
-  MapPluginOperationalMapSchema,
-  MapPluginOperationalMapStepSchema,
-  MapPluginPayloadRefKeySchema,
-  MapPluginTransitionSchema,
-} from "../../map-plugins/schema/operational-map-core.schema.js";
-import {
-  MapPluginStepKindSchema,
-  MapPluginTransitionConditionSchema,
-  MapPluginTransitionConditionSourceSchema,
-  MapPluginTransitionStatusSchema,
-} from "../../map-plugins/schema/operational-map-payload.schema.js";
-import {
-  MapPluginOrchestrationSequencePolicySchema,
-  MapPluginProofPolicySchema,
-  MapPluginTimeoutPolicySchema,
-} from "../../map-plugins/schema/operational-map-policy.schema.js";
-import { RequestedPlatformIdSchema } from "../../map-plugins/schema/platform-id.schema.js";
+  OrchestrationAllowedAbilityGroupIdSchemaSource,
+  OrchestrationAllowedAbilityGroupIdsSchemaSource,
+  OrchestrationOperationalMapSchemaSource,
+  OrchestrationOperationalMapStepSchemaSource,
+  OrchestrationPayloadRefKeySchemaSource,
+  OrchestrationProofPolicySchemaSource,
+  OrchestrationRequestedPlatformIdSchemaSource,
+  OrchestrationSequencePolicySchemaSource,
+  OrchestrationStepKindSchemaSource,
+  OrchestrationTimeoutPolicySchemaSource,
+  OrchestrationTransitionConditionSchemaSource,
+  OrchestrationTransitionConditionSourceSchemaSource,
+  OrchestrationTransitionSchemaSource,
+  OrchestrationTransitionStatusSchemaSource,
+} from "../../map-plugins/schema/orchestration-consumer.schema.js";
 
 export const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";
 
@@ -52,12 +48,12 @@ export const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
   "loop-guard",
 ] as const;
 
-export const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS;
+export const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
 export const MissionConfiguredMaxRoundsSchema = z.number().int().min(1).max(9);
 export const MissionConfiguredMaxMinutesSchema = z.number().int().min(1).max(180);
 export const OrchestrationChildCapabilityIdSchema = z.enum(ORCHESTRATION_CHILD_CAPABILITY_IDS);
 export const OperationalMapIdSchema = z.string().min(1);
-export const AllowedAbilityGroupIdSchema = MapPluginAllowedAbilityGroupIdSchema;
+export const AllowedAbilityGroupIdSchema = OrchestrationAllowedAbilityGroupIdSchemaSource;
 export const MissionHumanCommandKindSchema = z.enum(ORCHESTRATION_HUMAN_COMMAND_KINDS);
 export const MissionInternalOperationKindSchema = z.enum(ORCHESTRATION_INTERNAL_OPERATION_KINDS);
 export const SelectedMapSourceSchema = z.enum(["preferred_map_id", "initial_payload_map_id", "task_template_id", "activation_id", "rejected_missing"]);
@@ -71,9 +67,9 @@ export const MissionStatusSchema = z.enum([
   "review_required",
   "stopped",
 ]);
-export const StepKindSchema = MapPluginStepKindSchema;
-export const TransitionStatusSchema = MapPluginTransitionStatusSchema;
-export const TransitionConditionSourceSchema = MapPluginTransitionConditionSourceSchema;
+export const StepKindSchema = OrchestrationStepKindSchemaSource;
+export const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
+export const TransitionConditionSourceSchema = OrchestrationTransitionConditionSourceSchemaSource;
 export const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
 export const MapDecisionSchema = z.enum(["selected", "rejected"]);
 export const TransitionDecisionSchema = z.enum(["continue", "finalize", "review_required", "failed"]);
@@ -84,10 +80,10 @@ export const StepDispatchDecisionSchema = z.enum(["dispatched", "timeout_before_
 export const TransitionEvaluationDecisionSchema = z.enum(["matched", "no_valid_transition", "ambiguous_transition", "invalid_decision"]);
 export const NerveBusDispatchDecisionSchema = z.enum(["dispatched", "pending_commander_channel", "dispatch_failed"]);
 
-export const PayloadRefKeySchema = MapPluginPayloadRefKeySchema;
+export const PayloadRefKeySchema = OrchestrationPayloadRefKeySchemaSource;
 
 export const PayloadRefBundleSchema = z.object({
-  requestedPlatformId: RequestedPlatformIdSchema.nullable().optional().default(null),
+  requestedPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
   selectedMapId: OperationalMapIdSchema.nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
   targetUrl: z.string().min(1).nullable().optional().default(null),
@@ -124,7 +120,7 @@ export const MissionInitialPayloadSchema = z.object({
 export const MissionCommandSchema = z.object({
   missionId: z.string().min(1),
   humanGoal: z.string().min(1),
-  requestedPlatform: RequestedPlatformIdSchema,
+  requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource,
   preferredMapId: OperationalMapIdSchema.nullable().optional().default(null),
   taskTemplateId: z.string().min(1).nullable().optional().default(null),
   activationId: z.string().min(1).nullable().optional().default(null),
@@ -145,13 +141,13 @@ export const MissionControlCommandSchema = z.object({
   note: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-export const TransitionConditionSchema = MapPluginTransitionConditionSchema;
-export const OrchestrationSequencePolicySchema = MapPluginOrchestrationSequencePolicySchema;
-export const TimeoutPolicySchema = MapPluginTimeoutPolicySchema;
-export const ProofPolicySchema = MapPluginProofPolicySchema;
-export const OperationalMapStepSchema = MapPluginOperationalMapStepSchema;
-export const TransitionSchema = MapPluginTransitionSchema;
-export const OperationalMapSchema = MapPluginOperationalMapSchema;
+export const TransitionConditionSchema = OrchestrationTransitionConditionSchemaSource;
+export const OrchestrationSequencePolicySchema = OrchestrationSequencePolicySchemaSource;
+export const TimeoutPolicySchema = OrchestrationTimeoutPolicySchemaSource;
+export const ProofPolicySchema = OrchestrationProofPolicySchemaSource;
+export const OperationalMapStepSchema = OrchestrationOperationalMapStepSchemaSource;
+export const TransitionSchema = OrchestrationTransitionSchemaSource;
+export const OperationalMapSchema = OrchestrationOperationalMapSchemaSource;
 
 export const MissionStepResultSchema = z.object({
   status: TransitionStatusSchema,
@@ -234,7 +230,7 @@ export const RuntimeProofSchema = z.object({
 export const MissionStateSchema = z.object({
   missionId: z.string().min(1).nullable().optional().default(null),
   mapId: OperationalMapIdSchema.nullable().optional().default(null),
-  requestedPlatform: RequestedPlatformIdSchema.nullable().optional().default(null),
+  requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
   humanGoal: z.string().min(1).nullable().optional().default(null),
   configuredMaxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   configuredMaxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),

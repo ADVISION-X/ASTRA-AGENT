@@ -31,27 +31,27 @@ const {
   VERIFICATION_REF_POLICY: MOUSE_SCROLL_VERIFICATION_REF_POLICY,
 } = MOUSE_SCROLL_PROOF;
 
-export const MouseScrollChildCapabilityIdSchema = z.enum(MOUSE_SCROLL_CHILD_CAPABILITY_IDS);
-export const MouseScrollCoordinateSpaceSchema = z.enum(MOUSE_SCROLL_COORDINATE_SPACES);
-export const MouseScrollDirectionSchema = z.enum(MOUSE_SCROLL_DIRECTIONS);
-export const MouseScrollMagnitudeSchema = z.enum(MOUSE_SCROLL_MAGNITUDES);
-export const MouseScrollFailureReasonSchema = z.enum(MOUSE_SCROLL_FAILURE_REASONS);
-export const MouseScrollStatusSchema = z.enum(MOUSE_SCROLL_STATUSES);
-export const MouseScrollPolicyDecisionSchema = z.enum(MOUSE_SCROLL_POLICY_DECISIONS);
-export const MouseScrollGeometryDecisionSchema = z.enum(MOUSE_SCROLL_GEOMETRY_DECISIONS);
-export const MouseScrollSafetyDecisionSchema = z.enum(MOUSE_SCROLL_SAFETY_DECISIONS);
-export const MouseScrollPrimitiveDecisionSchema = z.enum(MOUSE_SCROLL_PRIMITIVE_DECISIONS);
-export const MouseScrollIdempotencyDecisionSchema = z.enum(MOUSE_SCROLL_IDEMPOTENCY_DECISIONS);
-export const MouseScrollTimeoutDecisionSchema = z.enum(MOUSE_SCROLL_TIMEOUT_DECISIONS);
-export const MouseScrollAbortDecisionSchema = z.enum(MOUSE_SCROLL_ABORT_DECISIONS);
-export const MouseScrollCircuitBreakerStateSchema = z.enum(MOUSE_SCROLL_CIRCUIT_BREAKER_STATES);
+const MouseScrollChildCapabilityIdSchema = z.enum(MOUSE_SCROLL_CHILD_CAPABILITY_IDS);
+const MouseScrollCoordinateSpaceSchema = z.enum(MOUSE_SCROLL_COORDINATE_SPACES);
+const MouseScrollDirectionSchema = z.enum(MOUSE_SCROLL_DIRECTIONS);
+const MouseScrollMagnitudeSchema = z.enum(MOUSE_SCROLL_MAGNITUDES);
+const MouseScrollFailureReasonSchema = z.enum(MOUSE_SCROLL_FAILURE_REASONS);
+const MouseScrollStatusSchema = z.enum(MOUSE_SCROLL_STATUSES);
+const MouseScrollPolicyDecisionSchema = z.enum(MOUSE_SCROLL_POLICY_DECISIONS);
+const MouseScrollGeometryDecisionSchema = z.enum(MOUSE_SCROLL_GEOMETRY_DECISIONS);
+const MouseScrollSafetyDecisionSchema = z.enum(MOUSE_SCROLL_SAFETY_DECISIONS);
+const MouseScrollPrimitiveDecisionSchema = z.enum(MOUSE_SCROLL_PRIMITIVE_DECISIONS);
+const MouseScrollIdempotencyDecisionSchema = z.enum(MOUSE_SCROLL_IDEMPOTENCY_DECISIONS);
+const MouseScrollTimeoutDecisionSchema = z.enum(MOUSE_SCROLL_TIMEOUT_DECISIONS);
+const MouseScrollAbortDecisionSchema = z.enum(MOUSE_SCROLL_ABORT_DECISIONS);
+const MouseScrollCircuitBreakerStateSchema = z.enum(MOUSE_SCROLL_CIRCUIT_BREAKER_STATES);
 
-export const MouseScrollAnchorSchema = z.object({ x: finiteNumber, y: finiteNumber }).strict();
-export const MouseScrollDeltaSchema = z.object({ deltaX: finiteNumber, deltaY: finiteNumber }).strict();
-export const MouseScrollBoundsSchema = z.object({ width: positiveFiniteNumber, height: positiveFiniteNumber }).strict();
-export const MouseScrollRegionSchema = z.object({ x: finiteNumber, y: finiteNumber, width: positiveFiniteNumber, height: positiveFiniteNumber }).strict();
+const MouseScrollAnchorSchema = z.object({ x: finiteNumber, y: finiteNumber }).strict();
+const MouseScrollDeltaSchema = z.object({ deltaX: finiteNumber, deltaY: finiteNumber }).strict();
+const MouseScrollBoundsSchema = z.object({ width: positiveFiniteNumber, height: positiveFiniteNumber }).strict();
+const MouseScrollRegionSchema = z.object({ x: finiteNumber, y: finiteNumber, width: positiveFiniteNumber, height: positiveFiniteNumber }).strict();
 
-export const MouseScrollSafetyPolicySchema = z.object({
+const MouseScrollSafetyPolicySchema = z.object({
   allowOperatorManual: z.boolean().default(DEFAULT_MOUSE_SCROLL_SAFETY_POLICY.allowOperatorManual),
   operatorManualApprovalRef: nullableString,
   allowReplay: z.boolean().default(DEFAULT_MOUSE_SCROLL_SAFETY_POLICY.allowReplay),
@@ -72,9 +72,9 @@ export const MouseScrollSafetyPolicySchema = z.object({
   requireStableVideoVisitBinding: z.boolean().default(DEFAULT_MOUSE_SCROLL_SAFETY_POLICY.requireStableVideoVisitBinding),
 }).strict();
 
-export const GeometryScrollProofRefSchema = z.string().min(1);
+const GeometryScrollProofRefSchema = z.string().min(1);
 
-export const MouseScrollGeometryScrollProofSchema = z.object({
+const MouseScrollGeometryScrollProofSchema = z.object({
   proofId: GeometryScrollProofRefSchema,
   geometryGuardRef: z.string().min(1),
   abilityGroupId: z.literal("geometry-guard"),
@@ -119,7 +119,7 @@ const MouseScrollBaseInputSchema = z.object({
   safetyPolicy: MouseScrollSafetyPolicySchema.default(DEFAULT_MOUSE_SCROLL_SAFETY_POLICY),
 }).strict();
 
-export const ScrollBrowserViewportInputSchema = MouseScrollBaseInputSchema.extend({
+const ScrollBrowserViewportInputSchema = MouseScrollBaseInputSchema.extend({
   childCapabilityId: z.literal("scroll-browser-viewport"),
   coordinateSpace: z.literal("browserViewport"),
   geometryScrollProof: MouseScrollGeometryScrollProofSchema.extend({
@@ -129,7 +129,7 @@ export const ScrollBrowserViewportInputSchema = MouseScrollBaseInputSchema.exten
   regionRef: z.null().default(null),
 }).strict();
 
-export const ScrollDesktopScreenInputSchema = MouseScrollBaseInputSchema.extend({
+const ScrollDesktopScreenInputSchema = MouseScrollBaseInputSchema.extend({
   childCapabilityId: z.literal("scroll-desktop-screen"),
   coordinateSpace: z.literal("desktopScreen"),
   geometryScrollProof: MouseScrollGeometryScrollProofSchema.extend({
@@ -139,7 +139,7 @@ export const ScrollDesktopScreenInputSchema = MouseScrollBaseInputSchema.extend(
   regionRef: z.null().default(null),
 }).strict();
 
-export const ScrollRegionInputSchema = MouseScrollBaseInputSchema.extend({
+const ScrollRegionInputSchema = MouseScrollBaseInputSchema.extend({
   childCapabilityId: z.literal("scroll-region"),
   region: MouseScrollRegionSchema,
   regionRef: z.string().min(1),
@@ -148,19 +148,19 @@ export const ScrollRegionInputSchema = MouseScrollBaseInputSchema.extend({
   }),
 }).strict();
 
-export const MouseScrollAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
+const MouseScrollAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   ScrollBrowserViewportInputSchema,
   ScrollDesktopScreenInputSchema,
   ScrollRegionInputSchema,
 ]);
 
-export const MouseScrollClockSchema = z.object({
+const MouseScrollClockSchema = z.object({
   portKind: z.literal(MOUSE_SCROLL_CLOCK_KIND),
   startedMonotonicMs: finiteNumber,
   endedMonotonicMs: finiteNumber,
 }).strict();
 
-export const MouseScrollPerIterationPrimitiveProofSchema = z.object({
+const MouseScrollPerIterationPrimitiveProofSchema = z.object({
   repeatIndex: positiveInt,
   primitiveCallId: z.string().min(1),
   primitiveExecutionRef: nullableString,
@@ -174,7 +174,7 @@ export const MouseScrollPerIterationPrimitiveProofSchema = z.object({
   primitivePortKind: z.string().min(1),
 }).strict();
 
-export const MouseScrollRuntimeProofSchema = z.object({
+const MouseScrollRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -263,7 +263,7 @@ export const MouseScrollRuntimeProofSchema = z.object({
   }
 });
 
-export const MouseScrollSuccessOutputSchema = z.object({
+const MouseScrollSuccessOutputSchema = z.object({
   scrollExecutionRef: z.string().min(1),
   primitiveExecutionRefs: z.array(z.string().min(1)).min(1),
   coordinateSpace: MouseScrollCoordinateSpaceSchema,
@@ -292,19 +292,19 @@ const MouseScrollBaseResultSchema = z.object({
   runtimeProof: MouseScrollRuntimeProofSchema,
 }).strict();
 
-export const ScrollBrowserViewportResultSchema = MouseScrollBaseResultSchema.extend({
+const ScrollBrowserViewportResultSchema = MouseScrollBaseResultSchema.extend({
   childCapabilityId: z.literal("scroll-browser-viewport"),
 }).strict();
 
-export const ScrollDesktopScreenResultSchema = MouseScrollBaseResultSchema.extend({
+const ScrollDesktopScreenResultSchema = MouseScrollBaseResultSchema.extend({
   childCapabilityId: z.literal("scroll-desktop-screen"),
 }).strict();
 
-export const ScrollRegionResultSchema = MouseScrollBaseResultSchema.extend({
+const ScrollRegionResultSchema = MouseScrollBaseResultSchema.extend({
   childCapabilityId: z.literal("scroll-region"),
 }).strict();
 
-export const MouseScrollAbilityResultSchema = z.discriminatedUnion("childCapabilityId", [
+const MouseScrollAbilityResultSchema = z.discriminatedUnion("childCapabilityId", [
   ScrollBrowserViewportResultSchema,
   ScrollDesktopScreenResultSchema,
   ScrollRegionResultSchema,
@@ -323,4 +323,41 @@ export const MouseScrollAbilityResultSchema = z.discriminatedUnion("childCapabil
   }
 });
 
-export const MouseScrollResultSchema = MouseScrollAbilityResultSchema;
+const MouseScrollResultSchema = MouseScrollAbilityResultSchema;
+
+export {
+  GeometryScrollProofRefSchema,
+  MouseScrollAbilityInputSchema,
+  MouseScrollAbilityResultSchema,
+  MouseScrollAbortDecisionSchema,
+  MouseScrollAnchorSchema,
+  MouseScrollBoundsSchema,
+  MouseScrollChildCapabilityIdSchema,
+  MouseScrollCircuitBreakerStateSchema,
+  MouseScrollClockSchema,
+  MouseScrollCoordinateSpaceSchema,
+  MouseScrollDeltaSchema,
+  MouseScrollDirectionSchema,
+  MouseScrollFailureReasonSchema,
+  MouseScrollGeometryDecisionSchema,
+  MouseScrollGeometryScrollProofSchema,
+  MouseScrollIdempotencyDecisionSchema,
+  MouseScrollMagnitudeSchema,
+  MouseScrollPerIterationPrimitiveProofSchema,
+  MouseScrollPolicyDecisionSchema,
+  MouseScrollPrimitiveDecisionSchema,
+  MouseScrollRegionSchema,
+  MouseScrollResultSchema,
+  MouseScrollRuntimeProofSchema,
+  MouseScrollSafetyDecisionSchema,
+  MouseScrollSafetyPolicySchema,
+  MouseScrollStatusSchema,
+  MouseScrollSuccessOutputSchema,
+  MouseScrollTimeoutDecisionSchema,
+  ScrollBrowserViewportInputSchema,
+  ScrollBrowserViewportResultSchema,
+  ScrollDesktopScreenInputSchema,
+  ScrollDesktopScreenResultSchema,
+  ScrollRegionInputSchema,
+  ScrollRegionResultSchema,
+};

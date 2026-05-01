@@ -8,8 +8,7 @@ import { hasMethodNamed } from "../_shared/ast-literal-queries.js";
 import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
-import { SCORECARD_PATH } from "./constants.js";
-import { REQUIRED_AUDIT_FILES, REQUIRED_SOURCE_FILES } from "./file-lists.js";
+import { REQUIRED_AUDIT_FILES, REQUIRED_SOURCE_FILES, SCORECARD_PATH } from "./file-lists.js";
 import { createBootstrappedRegistry } from "./registry-bootstrap.js";
 import {
   hasGovernedTaskStartBindingResolution,

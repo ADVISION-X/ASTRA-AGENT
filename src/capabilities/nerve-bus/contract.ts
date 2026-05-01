@@ -10,7 +10,12 @@ import type {
 } from "./schema.js";
 import type { AbilityTransportResult, AiTransportResult, HumanCommandTransportResult } from "./shared/nerve-bus-result.js";
 import type { NerveBusChannelId } from "./shared/nerve-bus-routing-types.js";
+import type { NerveBusClockPort } from "./ports/nerve-bus-clock-port.js";
 import type { NerveBusHandlerPort } from "./ports/nerve-bus-handler-port.js";
+import type { NerveBusHandledResult } from "./ports/nerve-bus-handler-port.js";
+import type { NerveBusIdempotencyPort } from "./ports/nerve-bus-idempotency-port.js";
+import type { NerveBusQueuePort } from "./ports/nerve-bus-queue-port.js";
+import type { NerveBusPayloadDocument, NerveBusTransportPort } from "./ports/nerve-bus-transport-port.js";
 
 export { NERVE_BUS_ABILITY_GROUP_ID };
 
@@ -28,3 +33,13 @@ export interface NerveBusAbilityGroup {
   dispatchAbilityCommand(input: AbilityCommandDispatchInput): Promise<AbilityTransportResult>;
   requestAi(input: AiRequestDispatchInput): Promise<AiTransportResult>;
 }
+
+export type {
+  NerveBusClockPort,
+  NerveBusHandledResult,
+  NerveBusHandlerPort,
+  NerveBusIdempotencyPort,
+  NerveBusPayloadDocument,
+  NerveBusQueuePort,
+  NerveBusTransportPort,
+};

@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const NERVE_BUS_ABILITY_GROUP_ID = "nerve-bus";
+const NERVE_BUS_ABILITY_GROUP_ID = "nerve-bus";
 
-export const GOVERNED_ABILITY_GROUP_IDS = [
+const GOVERNED_ABILITY_GROUP_IDS = [
   "commander-console",
   "orchestration",
   "nerve-bus",
@@ -19,7 +19,7 @@ export const GOVERNED_ABILITY_GROUP_IDS = [
   "page-state",
 ] as const;
 
-export const ABILITY_TARGET_IDS = [
+const ABILITY_TARGET_IDS = [
   "open",
   "screenshot",
   "visual-target",
@@ -32,7 +32,7 @@ export const ABILITY_TARGET_IDS = [
   "page-state",
 ] as const;
 
-export const NERVE_BUS_CHANNEL_IDS = [
+const NERVE_BUS_CHANNEL_IDS = [
   "commander-to-orchestration",
   "orchestration-to-commander",
   "orchestration-to-ability",
@@ -41,25 +41,25 @@ export const NERVE_BUS_CHANNEL_IDS = [
   "ai-to-orchestration",
 ] as const;
 
-export const NERVE_BUS_CHILD_IDS = NERVE_BUS_CHANNEL_IDS;
-export const COMMANDER_TARGET_IDS = ["orchestration"] as const;
-export const AI_TARGET_IDS = ["ai"] as const;
-export const ROUTABLE_EXECUTION_TARGET_IDS = [...ABILITY_TARGET_IDS, ...AI_TARGET_IDS] as const;
+const NERVE_BUS_CHILD_IDS = NERVE_BUS_CHANNEL_IDS;
+const COMMANDER_TARGET_IDS = ["orchestration"] as const;
+const AI_TARGET_IDS = ["ai"] as const;
+const ROUTABLE_EXECUTION_TARGET_IDS = [...ABILITY_TARGET_IDS, ...AI_TARGET_IDS] as const;
 
-export const GovernedAbilityGroupIdSchema = z.enum(GOVERNED_ABILITY_GROUP_IDS);
-export const NerveBusAbilityGroupIdSchema = z.literal(NERVE_BUS_ABILITY_GROUP_ID);
-export const NerveBusChannelIdSchema = z.enum(NERVE_BUS_CHANNEL_IDS);
-export const NerveBusChildCapabilityIdSchema = z.enum(NERVE_BUS_CHILD_IDS);
-export const AbilityTargetIdSchema = z.enum(ABILITY_TARGET_IDS);
-export const CommanderTargetIdSchema = z.enum(COMMANDER_TARGET_IDS);
-export const AiTargetIdSchema = z.enum(AI_TARGET_IDS);
-export const RoutableExecutionTargetIdSchema = z.enum(ROUTABLE_EXECUTION_TARGET_IDS);
-export const EnvelopeStatusSchema = z.enum(["success", "failed", "review_required"]);
-export const TransportDecisionSchema = z.enum(["executed", "duplicate_skipped", "replay_rejected", "queue_rejected"]);
-export const PolicyDecisionSchema = z.enum(["allowed", "forbidden_route"]);
-export const QueueDecisionSchema = z.enum(["acquired", "queue_rejected", "not_started"]);
-export const SequenceDecisionSchema = z.enum(["accepted", "out_of_order", "duplicate", "not_started"]);
-export const IntegrityDecisionSchema = z.enum([
+const GovernedAbilityGroupIdSchema = z.enum(GOVERNED_ABILITY_GROUP_IDS);
+const NerveBusAbilityGroupIdSchema = z.literal(NERVE_BUS_ABILITY_GROUP_ID);
+const NerveBusChannelIdSchema = z.enum(NERVE_BUS_CHANNEL_IDS);
+const NerveBusChildCapabilityIdSchema = z.enum(NERVE_BUS_CHILD_IDS);
+const AbilityTargetIdSchema = z.enum(ABILITY_TARGET_IDS);
+const CommanderTargetIdSchema = z.enum(COMMANDER_TARGET_IDS);
+const AiTargetIdSchema = z.enum(AI_TARGET_IDS);
+const RoutableExecutionTargetIdSchema = z.enum(ROUTABLE_EXECUTION_TARGET_IDS);
+const EnvelopeStatusSchema = z.enum(["success", "failed", "review_required"]);
+const TransportDecisionSchema = z.enum(["executed", "duplicate_skipped", "replay_rejected", "queue_rejected"]);
+const PolicyDecisionSchema = z.enum(["allowed", "forbidden_route"]);
+const QueueDecisionSchema = z.enum(["acquired", "queue_rejected", "not_started"]);
+const SequenceDecisionSchema = z.enum(["accepted", "out_of_order", "duplicate", "not_started"]);
+const IntegrityDecisionSchema = z.enum([
   "valid",
   "invalid_schema",
   "missing_payload_ref",
@@ -70,33 +70,33 @@ export const IntegrityDecisionSchema = z.enum([
   "mismatched_result",
   "payload_ref_policy_failed",
 ]);
-export const IdempotencyDecisionSchema = z.enum(["executed", "duplicate_skipped", "replay_rejected"]);
-export const TimeoutDecisionSchema = z.enum(["within_timeout", "timed_out", "not_started"]);
-export const HandlerDecisionSchema = z.enum(["executed", "missing_handler", "threw", "invalid_result", "timed_out", "aborted", "not_invoked"]);
-export const CircuitBreakerStateSchema = z.enum(["closed"]);
+const IdempotencyDecisionSchema = z.enum(["executed", "duplicate_skipped", "replay_rejected"]);
+const TimeoutDecisionSchema = z.enum(["within_timeout", "timed_out", "not_started"]);
+const HandlerDecisionSchema = z.enum(["executed", "missing_handler", "threw", "invalid_result", "timed_out", "aborted", "not_invoked"]);
+const CircuitBreakerStateSchema = z.enum(["closed"]);
 
-export const IsoDateTimeSchema = z.string().datetime();
-export const NonEmptyRefSchema = z.string().min(1);
-export const PayloadRefListSchema = z.array(NonEmptyRefSchema).min(1).max(20);
-export const EnvelopeIdSchema = z.string().min(1);
-export const TraceIdSchema = z.string().min(1);
-export const SpanIdSchema = z.string().min(1);
-export const AttemptIdSchema = z.string().min(1);
-export const IdempotencyKeySchema = z.string().min(1);
-export const InputRefSchema = z.string().min(1);
-export const OutputRefSchema = z.string().min(1);
-export const MissionIdSchema = z.string().min(1);
-export const MapIdSchema = z.string().min(1);
-export const StepIdSchema = z.string().min(1);
-export const SequenceNoSchema = z.number().int().min(0);
+const IsoDateTimeSchema = z.string().datetime();
+const NonEmptyRefSchema = z.string().min(1);
+const PayloadRefListSchema = z.array(NonEmptyRefSchema).min(1).max(20);
+const EnvelopeIdSchema = z.string().min(1);
+const TraceIdSchema = z.string().min(1);
+const SpanIdSchema = z.string().min(1);
+const AttemptIdSchema = z.string().min(1);
+const IdempotencyKeySchema = z.string().min(1);
+const InputRefSchema = z.string().min(1);
+const OutputRefSchema = z.string().min(1);
+const MissionIdSchema = z.string().min(1);
+const MapIdSchema = z.string().min(1);
+const StepIdSchema = z.string().min(1);
+const SequenceNoSchema = z.number().int().min(0);
 
-export const NerveBusPayloadAttributeValueSchema = z.union([z.string().min(1), z.number().finite(), z.boolean(), z.null()]);
-export const NerveBusPayloadAttributeSchema = z.object({
+const NerveBusPayloadAttributeValueSchema = z.union([z.string().min(1), z.number().finite(), z.boolean(), z.null()]);
+const NerveBusPayloadAttributeSchema = z.object({
   key: z.string().min(1),
   value: NerveBusPayloadAttributeValueSchema,
 }).strict();
 
-export const NerveBusPayloadMetadataSchema = z.object({
+const NerveBusPayloadMetadataSchema = z.object({
   summary: z.string().min(1).max(400).nullable().default(null),
   entityRefs: z.array(NonEmptyRefSchema).max(50).default([]),
   evidenceRefs: z.array(NonEmptyRefSchema).max(50).default([]),
@@ -104,7 +104,7 @@ export const NerveBusPayloadMetadataSchema = z.object({
   attributes: z.array(NerveBusPayloadAttributeSchema).max(100).default([]),
 }).strict();
 
-export const NerveBusPayloadDocumentSchema = z.object({
+const NerveBusPayloadDocumentSchema = z.object({
   documentType: z.string().min(1),
   documentRef: z.string().min(1),
   summary: z.string().min(1).max(400),
@@ -118,7 +118,7 @@ export const NerveBusPayloadDocumentSchema = z.object({
   ).max(100).default([]),
 }).strict();
 
-export const NerveBusEnvelopeBaseSchema = z.object({
+const NerveBusEnvelopeBaseSchema = z.object({
   abilityGroupId: NerveBusAbilityGroupIdSchema,
   channelId: NerveBusChannelIdSchema,
   envelopeId: EnvelopeIdSchema,
@@ -138,7 +138,7 @@ export const NerveBusEnvelopeBaseSchema = z.object({
   expiresAt: IsoDateTimeSchema,
 }).strict();
 
-export const AbilityCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const AbilityCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("ability_command"),
   channelId: z.literal("orchestration-to-ability"),
   commandId: z.string().min(1),
@@ -147,7 +147,7 @@ export const AbilityCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   commandName: z.string().min(1),
 }).strict();
 
-export const AbilityResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const AbilityResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("ability_result"),
   channelId: z.literal("ability-to-orchestration"),
   resultId: z.string().min(1),
@@ -161,7 +161,7 @@ export const AbilityResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
 
-export const AiRequestEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const AiRequestEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("ai_request"),
   channelId: z.literal("orchestration-to-ai"),
   requestId: z.string().min(1),
@@ -171,7 +171,7 @@ export const AiRequestEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   promptRef: z.string().min(1),
 }).strict();
 
-export const AiResponseEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const AiResponseEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("ai_response"),
   channelId: z.literal("ai-to-orchestration"),
   responseId: z.string().min(1),
@@ -186,7 +186,7 @@ export const AiResponseEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
 
-export const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("human_command"),
   channelId: z.literal("commander-to-orchestration"),
   commandId: z.string().min(1),
@@ -195,7 +195,7 @@ export const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   commandType: z.string().min(1),
 }).strict();
 
-export const HumanCommandResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
+const HumanCommandResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.extend({
   envelopeKind: z.literal("human_command_result"),
   channelId: z.literal("orchestration-to-commander"),
   resultId: z.string().min(1),
@@ -208,22 +208,22 @@ export const HumanCommandResultEnvelopeSchema = NerveBusEnvelopeBaseSchema.exten
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
 
-export const AbilityCommandDispatchInputSchema = z.object({
+const AbilityCommandDispatchInputSchema = z.object({
   envelope: AbilityCommandEnvelopeSchema,
   inputPayload: NerveBusPayloadDocumentSchema,
 }).strict();
 
-export const AiRequestDispatchInputSchema = z.object({
+const AiRequestDispatchInputSchema = z.object({
   envelope: AiRequestEnvelopeSchema,
   inputPayload: NerveBusPayloadDocumentSchema,
 }).strict();
 
-export const HumanCommandDispatchInputSchema = z.object({
+const HumanCommandDispatchInputSchema = z.object({
   envelope: HumanCommandEnvelopeSchema,
   inputPayload: NerveBusPayloadDocumentSchema,
 }).strict();
 
-export const NerveBusTransportProofSchema = z.object({
+const NerveBusTransportProofSchema = z.object({
   proofId: z.string().min(1),
   transportId: z.string().min(1),
   traceId: TraceIdSchema,
@@ -263,7 +263,7 @@ export const NerveBusTransportProofSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)),
 }).strict();
 
-export const AbilityTransportResultSchema = z.object({
+const AbilityTransportResultSchema = z.object({
   abilityGroupId: NerveBusAbilityGroupIdSchema,
   channelId: z.literal("orchestration-to-ability"),
   status: EnvelopeStatusSchema,
@@ -275,7 +275,7 @@ export const AbilityTransportResultSchema = z.object({
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
 
-export const AiTransportResultSchema = z.object({
+const AiTransportResultSchema = z.object({
   abilityGroupId: NerveBusAbilityGroupIdSchema,
   channelId: z.literal("orchestration-to-ai"),
   status: EnvelopeStatusSchema,
@@ -287,7 +287,7 @@ export const AiTransportResultSchema = z.object({
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
 
-export const HumanCommandTransportResultSchema = z.object({
+const HumanCommandTransportResultSchema = z.object({
   abilityGroupId: NerveBusAbilityGroupIdSchema,
   channelId: z.literal("commander-to-orchestration"),
   status: EnvelopeStatusSchema,
@@ -298,3 +298,64 @@ export const HumanCommandTransportResultSchema = z.object({
   failureReason: z.string().min(1).nullable(),
   reviewRequiredReason: z.string().min(1).nullable(),
 }).strict();
+
+export {
+  NERVE_BUS_ABILITY_GROUP_ID,
+  GOVERNED_ABILITY_GROUP_IDS,
+  ABILITY_TARGET_IDS,
+  NERVE_BUS_CHANNEL_IDS,
+  NERVE_BUS_CHILD_IDS,
+  COMMANDER_TARGET_IDS,
+  AI_TARGET_IDS,
+  ROUTABLE_EXECUTION_TARGET_IDS,
+  GovernedAbilityGroupIdSchema,
+  NerveBusAbilityGroupIdSchema,
+  NerveBusChannelIdSchema,
+  NerveBusChildCapabilityIdSchema,
+  AbilityTargetIdSchema,
+  CommanderTargetIdSchema,
+  AiTargetIdSchema,
+  RoutableExecutionTargetIdSchema,
+  EnvelopeStatusSchema,
+  TransportDecisionSchema,
+  PolicyDecisionSchema,
+  QueueDecisionSchema,
+  SequenceDecisionSchema,
+  IntegrityDecisionSchema,
+  IdempotencyDecisionSchema,
+  TimeoutDecisionSchema,
+  HandlerDecisionSchema,
+  CircuitBreakerStateSchema,
+  IsoDateTimeSchema,
+  NonEmptyRefSchema,
+  PayloadRefListSchema,
+  EnvelopeIdSchema,
+  TraceIdSchema,
+  SpanIdSchema,
+  AttemptIdSchema,
+  IdempotencyKeySchema,
+  InputRefSchema,
+  OutputRefSchema,
+  MissionIdSchema,
+  MapIdSchema,
+  StepIdSchema,
+  SequenceNoSchema,
+  NerveBusPayloadAttributeValueSchema,
+  NerveBusPayloadAttributeSchema,
+  NerveBusPayloadMetadataSchema,
+  NerveBusPayloadDocumentSchema,
+  NerveBusEnvelopeBaseSchema,
+  AbilityCommandEnvelopeSchema,
+  AbilityResultEnvelopeSchema,
+  AiRequestEnvelopeSchema,
+  AiResponseEnvelopeSchema,
+  HumanCommandEnvelopeSchema,
+  HumanCommandResultEnvelopeSchema,
+  AbilityCommandDispatchInputSchema,
+  AiRequestDispatchInputSchema,
+  HumanCommandDispatchInputSchema,
+  NerveBusTransportProofSchema,
+  AbilityTransportResultSchema,
+  AiTransportResultSchema,
+  HumanCommandTransportResultSchema,
+};

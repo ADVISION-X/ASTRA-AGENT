@@ -2,133 +2,100 @@ import type { BrowserSessionSnapshot, OpenSessionDecision } from "../contract.js
 import type { OpenBrowserPort } from "../ports/open-browser-port.js";
 import { BrowserSessionSnapshotSchema, OpenSessionDecisionSchema } from "../schema.js";
 
-export async function evaluateRealChromeSession(input: {
-  browser: OpenBrowserPort;
-}): Promise<{
+type RealChromeSessionGateResult = {
   ok: boolean;
   failureCode: "session_gate_blocked" | "session_snapshot_failed" | null;
   status: "failed" | "review_required";
   reason: string | null;
   sessionSnapshot: BrowserSessionSnapshot | null;
   decision: OpenSessionDecision;
-}> {
-  let rawSnapshot: BrowserSessionSnapshot;
-  try {
-    rawSnapshot = BrowserSessionSnapshotSchema.parse(await input.browser.getSessionSnapshot());
-  } catch (error) {
-    return {
-      ok: false,
-      failureCode: "session_snapshot_failed",
-      status: "failed",
-      reason: error instanceof Error ? error.message : "open browser session snapshot failed",
-      sessionSnapshot: null,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "block",
-        reason: error instanceof Error ? error.message : "open browser session snapshot failed",
-        browserMode: "unsupported",
-        profileStatus: "profile_unavailable",
-        profileVerificationStatus: "default_unverified",
-      }),
-    };
-  }
+};
 
-  if (rawSnapshot.browserMode !== "real_chrome_persistent") {
-    return {
-      ok: false,
-      failureCode: "session_gate_blocked",
-      status: "failed",
-      reason: "open requires a real_chrome_persistent browser session",
-      sessionSnapshot: rawSnapshot,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "block",
-        reason: "open requires a real_chrome_persistent browser session",
-        browserMode: rawSnapshot.browserMode,
-        profileStatus: rawSnapshot.profileStatus,
-        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-      }),
-    };
-  }
+const buildSessionDecision = (input: {
+const evaluateRealChromeSessionSnapshot = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult => {
+  status: "allow" | "block" | "review_required";
+  reason: string | null;
+  browserMode: BrowserSessionSnapshot["browserMode"];
+  profileStatus: BrowserSessionSnapshot["profileStatus"];
+  profileVerificationStatus: BrowserSessionSnapshot["profileVerificationStatus"];
+}) => OpenSessionDecisionSchema.parse({
+  status: input.status,
+  reason: input.reason,
+  browserMode: input.browserMode,
+  profileStatus: input.profileStatus,
+  profileVerificationStatus: input.profileVerificationStatus,
+});
 
-  if (rawSnapshot.profileVerificationStatus !== "operator_verified") {
-    return {
-      ok: false,
-      failureCode: "session_gate_blocked",
+const buildRealChromeSessionGateResult = (input: {
+  ok: boolean;
+  failureCode: "session_gate_blocked" | "session_snapshot_failed" | null;
+  status: "failed" | "review_required";
+  reason: string | null;
+  sessionSnapshot: BrowserSessionSnapshot | null;
+  decision: OpenSessionDecision;
+}): RealChromeSessionGateResult => input;
+
+const buildSnapshotFailureResult = (reason: string): RealChromeSessionGateResult => buildRealChromeSessionGateResult({
+  ok: false,
+  failureCode: "session_snapshot_failed",
+  status: "failed",
+  reason,
+  sessionSnapshot: null,
+  decision: buildSessionDecision({
+    status: "block",
+    reason,
+    browserMode: "unsupported",
+    profileStatus: "profile_unavailable",
+    profileVerificationStatus: "default_unverified",
+  }),
+});
+
+const buildBlockedSessionResult = (input: {
+  rawSnapshot: BrowserSessionSnapshot;
+  reason: string;
+  status: "failed" | "review_required";
+}): RealChromeSessionGateResult => buildRealChromeSessionGateResult({
+  ok: false,
+  failureCode: "session_gate_blocked",
+  status: input.status,
+  reason: input.reason,
+  sessionSnapshot: input.rawSnapshot,
+  decision: buildSessionDecision({
+    status: input.status === "failed" ? "block" : "review_required",
+    reason: input.reason,
+    browserMode: input.rawSnapshot.browserMode,
+    profileStatus: input.rawSnapshot.profileStatus,
+    profileVerificationStatus: input.rawSnapshot.profileVerificationStatus,
+  }),
+});
+
+const buildAllowedSessionResult = (rawSnapshot: BrowserSessionSnapshot): RealChromeSessionGateResult => buildRealChromeSessionGateResult({
+  ok: true,
+  failureCode: null,
+  status: "failed",
+  reason: null,
+  sessionSnapshot: rawSnapshot,
+  decision: buildSessionDecision({
+    status: "allow",
+    reason: null,
+    browserMode: rawSnapshot.browserMode,
+    profileStatus: rawSnapshot.profileStatus,
+    profileVerificationStatus: rawSnapshot.profileVerificationStatus,
+  }),
+});
+
+  return evaluateRealChromeSessionSnapshot(rawSnapshot);
       status: "review_required",
-      reason: "browser session profile must be operator_verified before governed open",
-      sessionSnapshot: rawSnapshot,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "review_required",
-        reason: "browser session profile must be operator_verified before governed open",
-        browserMode: rawSnapshot.browserMode,
-        profileStatus: rawSnapshot.profileStatus,
-        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-      }),
-    };
-  }
-
-  if (rawSnapshot.profileStatus !== "profile_ready" && rawSnapshot.profileStatus !== "logged_in") {
-    return {
-      ok: false,
-      failureCode: "session_gate_blocked",
-      status: "review_required",
-      reason: `browser profile is not ready for governed open: ${rawSnapshot.profileStatus}`,
-      sessionSnapshot: rawSnapshot,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "review_required",
-        reason: `browser profile is not ready for governed open: ${rawSnapshot.profileStatus}`,
-        browserMode: rawSnapshot.browserMode,
-        profileStatus: rawSnapshot.profileStatus,
-        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-      }),
-    };
-  }
-
-  if (rawSnapshot.loginState === "review_required") {
-    return {
-      ok: false,
-      failureCode: "session_gate_blocked",
-      status: "review_required",
-      reason: rawSnapshot.reviewRequiredReason ?? "browser session requires operator review before governed open",
-      sessionSnapshot: rawSnapshot,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "review_required",
-        reason: rawSnapshot.reviewRequiredReason ?? "browser session requires operator review before governed open",
-        browserMode: rawSnapshot.browserMode,
-        profileStatus: rawSnapshot.profileStatus,
-        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-      }),
-    };
+    });
   }
 
   if (rawSnapshot.loginState === "login_required") {
-    return {
-      ok: false,
-      failureCode: "session_gate_blocked",
-      status: "review_required",
+    return buildBlockedSessionResult({
+      rawSnapshot,
       reason: rawSnapshot.loginRequiredReason ?? "browser session requires login before governed open",
-      sessionSnapshot: rawSnapshot,
-      decision: OpenSessionDecisionSchema.parse({
-        status: "review_required",
-        reason: rawSnapshot.loginRequiredReason ?? "browser session requires login before governed open",
-        browserMode: rawSnapshot.browserMode,
-        profileStatus: rawSnapshot.profileStatus,
-        profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-      }),
-    };
+      status: "review_required",
+    });
   }
 
-  return {
-    ok: true,
-    failureCode: null,
-    status: "failed",
-    reason: null,
-    sessionSnapshot: rawSnapshot,
-    decision: OpenSessionDecisionSchema.parse({
-      status: "allow",
-      reason: null,
-      browserMode: rawSnapshot.browserMode,
-      profileStatus: rawSnapshot.profileStatus,
-      profileVerificationStatus: rawSnapshot.profileVerificationStatus,
-    }),
-  };
+  return buildAllowedSessionResult(rawSnapshot);
 }

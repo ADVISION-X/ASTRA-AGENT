@@ -16,36 +16,58 @@ function containsSensitiveToken(value: string | null): boolean {
   return MOUSE_SCROLL_SENSITIVE_TARGET_TOKENS.some((token) => normalized.includes(token));
 }
 
-export function validateScrollPolicy(input: {
+type ScrollPolicyInput = {
   request: ParsedMouseScrollAbilityInput;
   expectedCoordinateSpace: MouseScrollCoordinateSpace;
   nowIsoTimestamp: string;
-}):
-  | { ok: true; policyDecision: "allow"; policyDecisionReason: string }
-  | {
-      ok: false;
-      status: "failed" | "review_required";
-      failureReason:
-        | "missing_requested_by"
-        | "missing_purpose"
-        | "forbidden_purpose"
-        | "missing_source_ref"
-        | "operator_manual_approval_required"
-        | "desktop_screen_disabled_by_policy"
-        | "desktop_screen_phase_blocked"
-        | "desktop_screen_profile_blocked"
-        | "desktop_screen_operator_approval_required"
-        | "desktop_screen_operator_approval_stale"
-        | "sensitive_target_blocked";
-      reviewRequiredReason: string | null;
-      statusMessage: string;
-      policyDecision: "block" | "review_required";
-      policyDecisionReason: string;
-      dataQualityFlags: string[];
-    } {
-  if (!input.request.requestedBy.trim()) {
-    return {
-      ok: false,
+};
+
+type ScrollPolicyFailureReason =
+  | "missing_requested_by"
+  | "missing_purpose"
+  | "forbidden_purpose"
+  | "missing_source_ref"
+  | "operator_manual_approval_required"
+  | "desktop_screen_disabled_by_policy"
+  | "desktop_screen_phase_blocked"
+  | "desktop_screen_profile_blocked"
+  | "desktop_screen_operator_approval_required"
+  | "desktop_screen_operator_approval_stale"
+  | "sensitive_target_blocked";
+
+type ScrollPolicyFailure = {
+  ok: false;
+  status: "failed" | "review_required";
+  failureReason: ScrollPolicyFailureReason;
+  reviewRequiredReason: string | null;
+  statusMessage: string;
+  policyDecision: "block" | "review_required";
+  policyDecisionReason: string;
+  dataQualityFlags: string[];
+};
+
+const createScrollPolicyFailure = (input: {
+  status: "failed" | "review_required";
+  failureReason: ScrollPolicyFailureReason;
+  reviewRequiredReason: string | null;
+  statusMessage: string;
+  policyDecision: "block" | "review_required";
+  policyDecisionReason: string;
+  dataQualityFlags: string[];
+}): ScrollPolicyFailure => ({
+  ok: false,
+  status: input.status,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason,
+  statusMessage: input.statusMessage,
+  policyDecision: input.policyDecision,
+  policyDecisionReason: input.policyDecisionReason,
+  dataQualityFlags: input.dataQualityFlags,
+});
+
+const validateScrollRequesterFields = (request: ParsedMouseScrollAbilityInput): ScrollPolicyFailure | null => {
+  if (!request.requestedBy.trim()) {
+    return createScrollPolicyFailure({
       status: "failed",
       failureReason: "missing_requested_by",
       reviewRequiredReason: null,
@@ -53,25 +75,25 @@ export function validateScrollPolicy(input: {
       policyDecision: "block",
       policyDecisionReason: "requested_by_missing",
       dataQualityFlags: ["requested_by_missing"],
-    };
+    });
   }
 
-  if (!input.request.purpose.trim()) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "missing_purpose",
-      reviewRequiredReason: null,
-      statusMessage: "Mouse Scroll requires purpose.",
-      policyDecision: "block",
-      policyDecisionReason: "purpose_missing",
-      dataQualityFlags: ["purpose_missing"],
-    };
-  }
+  return !request.purpose.trim()
+    ? createScrollPolicyFailure({
+        status: "failed",
+        failureReason: "missing_purpose",
+        reviewRequiredReason: null,
+        statusMessage: "Mouse Scroll requires purpose.",
+        policyDecision: "block",
+        policyDecisionReason: "purpose_missing",
+        dataQualityFlags: ["purpose_missing"],
+      })
+    : null;
+};
 
-  if (!purposeAllowed(input.request.purpose)) {
-    return {
-      ok: false,
+const validateScrollPurposePolicy = (request: ParsedMouseScrollAbilityInput): ScrollPolicyFailure | null => {
+  if (!purposeAllowed(request.purpose)) {
+    return createScrollPolicyFailure({
       status: "failed",
       failureReason: "forbidden_purpose",
       reviewRequiredReason: null,
@@ -79,52 +101,53 @@ export function validateScrollPolicy(input: {
       policyDecision: "block",
       policyDecisionReason: "purpose_allowlist_blocked",
       dataQualityFlags: ["forbidden_purpose"],
-    };
+    });
   }
 
-  if (containsSensitiveToken(input.request.sourceTargetRef) || containsSensitiveToken(input.request.purpose)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "sensitive_target_blocked",
-      reviewRequiredReason: null,
-      statusMessage: "Mouse Scroll cannot target sensitive login, captcha, permission, payment, or destructive surfaces.",
-      policyDecision: "block",
-      policyDecisionReason: "sensitive_target_blocked",
-      dataQualityFlags: ["sensitive_target_blocked"],
-    };
+  return containsSensitiveToken(request.sourceTargetRef) || containsSensitiveToken(request.purpose)
+    ? createScrollPolicyFailure({
+        status: "failed",
+        failureReason: "sensitive_target_blocked",
+        reviewRequiredReason: null,
+        statusMessage: "Mouse Scroll cannot target sensitive login, captcha, permission, payment, or destructive surfaces.",
+        policyDecision: "block",
+        policyDecisionReason: "sensitive_target_blocked",
+        dataQualityFlags: ["sensitive_target_blocked"],
+      })
+    : null;
+};
+
+const validateScrollSourceRefs = (request: ParsedMouseScrollAbilityInput): ScrollPolicyFailure | null => {
+  const hasSourceRef = Boolean(request.sourceEvidenceRef) || Boolean(request.sourceTargetRef);
+  if (hasSourceRef) {
+    return null;
   }
-
-  const hasSourceRef = Boolean(input.request.sourceEvidenceRef) || Boolean(input.request.sourceTargetRef);
-  if (!hasSourceRef) {
-    if (input.request.safetyPolicy.allowOperatorManual && input.request.safetyPolicy.operatorManualApprovalRef) {
-      return {
-        ok: false,
-        status: "review_required",
-        failureReason: "operator_manual_approval_required",
-        reviewRequiredReason: "Mouse Scroll requires operator review because source refs are absent.",
-        statusMessage: "Mouse Scroll requires source refs or explicit operator review.",
-        policyDecision: "review_required",
-        policyDecisionReason: "source_ref_missing_review",
-        dataQualityFlags: ["source_ref_missing"],
-      };
-    }
-
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "missing_source_ref",
-      reviewRequiredReason: null,
-      statusMessage: "Mouse Scroll requires sourceEvidenceRef or sourceTargetRef.",
-      policyDecision: "block",
-      policyDecisionReason: "source_ref_missing",
+  if (request.safetyPolicy.allowOperatorManual && request.safetyPolicy.operatorManualApprovalRef) {
+    return createScrollPolicyFailure({
+      status: "review_required",
+      failureReason: "operator_manual_approval_required",
+      reviewRequiredReason: "Mouse Scroll requires operator review because source refs are absent.",
+      statusMessage: "Mouse Scroll requires source refs or explicit operator review.",
+      policyDecision: "review_required",
+      policyDecisionReason: "source_ref_missing_review",
       dataQualityFlags: ["source_ref_missing"],
-    };
+    });
   }
 
-  if (input.expectedCoordinateSpace === "desktopScreen" && !input.request.safetyPolicy.currentPhaseAllowsDesktopScroll) {
-    return {
-      ok: false,
+  return createScrollPolicyFailure({
+    status: "failed",
+    failureReason: "missing_source_ref",
+    reviewRequiredReason: null,
+    statusMessage: "Mouse Scroll requires sourceEvidenceRef or sourceTargetRef.",
+    policyDecision: "block",
+    policyDecisionReason: "source_ref_missing",
+    dataQualityFlags: ["source_ref_missing"],
+  });
+};
+
+const validateDesktopScreenRolloutPolicy = (request: ParsedMouseScrollAbilityInput): ScrollPolicyFailure | null => {
+  if (!request.safetyPolicy.currentPhaseAllowsDesktopScroll) {
+    return createScrollPolicyFailure({
       status: "review_required",
       failureReason: "desktop_screen_phase_blocked",
       reviewRequiredReason: "Desktop-screen scroll is phase-gated until explicit rollout approval.",
@@ -132,25 +155,25 @@ export function validateScrollPolicy(input: {
       policyDecision: "review_required",
       policyDecisionReason: "desktop_phase_gate_blocked",
       dataQualityFlags: ["desktop_phase_gate_blocked"],
-    };
+    });
   }
 
-  if (input.expectedCoordinateSpace === "desktopScreen" && !input.request.safetyPolicy.platformProfileAllowsDesktopScroll) {
-    return {
-      ok: false,
-      status: "review_required",
-      failureReason: "desktop_screen_profile_blocked",
-      reviewRequiredReason: "Desktop-screen scroll is blocked by the active platform profile.",
-      statusMessage: "Mouse Scroll desktopScreen path is blocked by the platform profile.",
-      policyDecision: "review_required",
-      policyDecisionReason: "desktop_platform_profile_blocked",
-      dataQualityFlags: ["desktop_platform_profile_blocked"],
-    };
-  }
+  return !request.safetyPolicy.platformProfileAllowsDesktopScroll
+    ? createScrollPolicyFailure({
+        status: "review_required",
+        failureReason: "desktop_screen_profile_blocked",
+        reviewRequiredReason: "Desktop-screen scroll is blocked by the active platform profile.",
+        statusMessage: "Mouse Scroll desktopScreen path is blocked by the platform profile.",
+        policyDecision: "review_required",
+        policyDecisionReason: "desktop_platform_profile_blocked",
+        dataQualityFlags: ["desktop_platform_profile_blocked"],
+      })
+    : null;
+};
 
-  if (input.expectedCoordinateSpace === "desktopScreen" && !input.request.safetyPolicy.allowDesktopScreenScroll) {
-    return {
-      ok: false,
+const validateDesktopScreenApprovalPolicy = (input: ScrollPolicyInput): ScrollPolicyFailure | null => {
+  if (!input.request.safetyPolicy.allowDesktopScreenScroll) {
+    return createScrollPolicyFailure({
       status: "review_required",
       failureReason: "desktop_screen_disabled_by_policy",
       reviewRequiredReason: "Desktop-screen scroll requires explicit allowDesktopScreenScroll policy.",
@@ -158,12 +181,10 @@ export function validateScrollPolicy(input: {
       policyDecision: "review_required",
       policyDecisionReason: "desktop_policy_disabled",
       dataQualityFlags: ["desktop_policy_disabled"],
-    };
+    });
   }
-
-  if (input.expectedCoordinateSpace === "desktopScreen" && input.request.safetyPolicy.desktopScreenOperatorApprovalRef === null) {
-    return {
-      ok: false,
+  if (input.request.safetyPolicy.desktopScreenOperatorApprovalRef === null) {
+    return createScrollPolicyFailure({
       status: "review_required",
       failureReason: "desktop_screen_operator_approval_required",
       reviewRequiredReason: "Desktop-screen scroll requires desktopScreenOperatorApprovalRef.",
@@ -171,24 +192,41 @@ export function validateScrollPolicy(input: {
       policyDecision: "review_required",
       policyDecisionReason: "desktop_operator_approval_missing",
       dataQualityFlags: ["desktop_operator_approval_missing"],
-    };
+    });
   }
 
-  if (
-    input.expectedCoordinateSpace === "desktopScreen"
-    && input.request.safetyPolicy.desktopOperatorApprovalValidUntil !== null
+  return input.request.safetyPolicy.desktopOperatorApprovalValidUntil !== null
     && input.request.safetyPolicy.desktopOperatorApprovalValidUntil <= input.nowIsoTimestamp
-  ) {
-    return {
-      ok: false,
-      status: "review_required",
-      failureReason: "desktop_screen_operator_approval_stale",
-      reviewRequiredReason: "Desktop-screen scroll operator approval is stale and must be refreshed.",
-      statusMessage: "Mouse Scroll desktopScreen operator approval has expired.",
-      policyDecision: "review_required",
-      policyDecisionReason: "desktop_operator_approval_stale",
-      dataQualityFlags: ["desktop_operator_approval_stale"],
-    };
+    ? createScrollPolicyFailure({
+        status: "review_required",
+        failureReason: "desktop_screen_operator_approval_stale",
+        reviewRequiredReason: "Desktop-screen scroll operator approval is stale and must be refreshed.",
+        statusMessage: "Mouse Scroll desktopScreen operator approval has expired.",
+        policyDecision: "review_required",
+        policyDecisionReason: "desktop_operator_approval_stale",
+        dataQualityFlags: ["desktop_operator_approval_stale"],
+      })
+    : null;
+};
+
+const validateDesktopScreenScrollPolicy = (input: ScrollPolicyInput): ScrollPolicyFailure | null => {
+  if (input.expectedCoordinateSpace !== "desktopScreen") {
+    return null;
+  }
+
+  return validateDesktopScreenRolloutPolicy(input.request)
+    ?? validateDesktopScreenApprovalPolicy(input);
+};
+
+export function validateScrollPolicy(input: ScrollPolicyInput):
+  | { ok: true; policyDecision: "allow"; policyDecisionReason: string }
+  | ScrollPolicyFailure {
+  const failure = validateScrollRequesterFields(input.request)
+    ?? validateScrollPurposePolicy(input.request)
+    ?? validateScrollSourceRefs(input.request)
+    ?? validateDesktopScreenScrollPolicy(input);
+  if (failure) {
+    return failure;
   }
 
   return { ok: true, policyDecision: "allow", policyDecisionReason: "policy_gate_passed" };

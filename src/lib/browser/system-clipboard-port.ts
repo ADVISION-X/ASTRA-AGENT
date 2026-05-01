@@ -1,8 +1,69 @@
 import { spawn } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 
 import type { ClipboardPort, ClipboardReadResult, ClipboardWriteResult } from "../../capabilities/text-input/ports/clipboard-port.js";
-import { hashTextValue } from "../../capabilities/text-input/shared/text-input-types.js";
-import { createId } from "../local-runtime/ids.js";
+
+function hashClipboardText(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+function createClipboardRef(prefix: "clipboard_snapshot" | "clipboard_write"): string {
+  return `${prefix}:${randomUUID()}`;
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function buildReadSuccess(text: string): ClipboardReadResult {
+  return {
+    ok: true,
+    text,
+    snapshotRef: createClipboardRef("clipboard_snapshot"),
+    textHash: hashClipboardText(text),
+    textLength: text.length,
+    capturedAt: new Date().toISOString(),
+    message: "clipboard read succeeded",
+    portKind: "system-clipboard",
+  };
+}
+
+function buildReadFailure(error: unknown): ClipboardReadResult {
+  return {
+    ok: false,
+    text: null,
+    snapshotRef: null,
+    textHash: null,
+    textLength: null,
+    capturedAt: null,
+    message: toErrorMessage(error, "clipboard read failed"),
+    portKind: "system-clipboard",
+  };
+}
+
+function buildWriteSuccess(text: string): ClipboardWriteResult {
+  return {
+    ok: true,
+    snapshotRef: createClipboardRef("clipboard_write"),
+    textHash: hashClipboardText(text),
+    textLength: text.length,
+    writtenAt: new Date().toISOString(),
+    message: "clipboard write succeeded",
+    portKind: "system-clipboard",
+  };
+}
+
+function buildWriteFailure(error: unknown): ClipboardWriteResult {
+  return {
+    ok: false,
+    snapshotRef: null,
+    textHash: null,
+    textLength: null,
+    writtenAt: null,
+    message: toErrorMessage(error, "clipboard write failed"),
+    portKind: "system-clipboard",
+  };
+}
 
 function readClipboardText(): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -51,55 +112,14 @@ function writeClipboardText(text: string): Promise<void> {
 
 export function createSystemClipboardPort(): ClipboardPort {
   return {
-    async readText(): Promise<ClipboardReadResult> {
-      try {
-        const text = await readClipboardText();
-        return {
-          ok: true,
-          text,
-          snapshotRef: createId("clipboard_snapshot"),
-          textHash: hashTextValue(text),
-          textLength: text.length,
-          capturedAt: new Date().toISOString(),
-          message: "clipboard read succeeded",
-          portKind: "system-clipboard",
-        };
-      } catch (error) {
-        return {
-          ok: false,
-          text: null,
-          snapshotRef: null,
-          textHash: null,
-          textLength: null,
-          capturedAt: null,
-          message: error instanceof Error ? error.message : "clipboard read failed",
-          portKind: "system-clipboard",
-        };
-      }
+    readText(): Promise<ClipboardReadResult> {
+      return readClipboardText().then(buildReadSuccess, buildReadFailure);
     },
-    async writeText(text: string): Promise<ClipboardWriteResult> {
-      try {
-        await writeClipboardText(text);
-        return {
-          ok: true,
-          snapshotRef: createId("clipboard_write"),
-          textHash: hashTextValue(text),
-          textLength: text.length,
-          writtenAt: new Date().toISOString(),
-          message: "clipboard write succeeded",
-          portKind: "system-clipboard",
-        };
-      } catch (error) {
-        return {
-          ok: false,
-          snapshotRef: null,
-          textHash: null,
-          textLength: null,
-          writtenAt: null,
-          message: error instanceof Error ? error.message : "clipboard write failed",
-          portKind: "system-clipboard",
-        };
-      }
+    writeText(text: string): Promise<ClipboardWriteResult> {
+      return writeClipboardText(text).then(
+        () => buildWriteSuccess(text),
+        buildWriteFailure,
+      );
     },
   };
 }

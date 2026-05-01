@@ -35,7 +35,30 @@ function collectReachableSteps(map: OperationalMap): Set<string> {
   return visited;
 }
 
-function checkForbiddenOwnerValues(map: OperationalMap): string | null {
+function validateReachableSteps(map: OperationalMap): string | null {
+  const reachableSteps = collectReachableSteps(map);
+  if (!reachableSteps.has(map.initialStepId)) {
+    return `Operational map ${map.mapId} cannot reach its initial step.`;
+  }
+
+  for (const step of map.steps) {
+    if (!reachableSteps.has(step.stepId)) {
+      return `Operational map ${map.mapId} contains unreachable step ${step.stepId}.`;
+    }
+  }
+
+  return null;
+}
+
+function validateAllowedAbilityGroups(map: OperationalMap): string | null {
+  if (map.allowedAbilityGroups.includes("ai") && map.steps.every((step) => step.stepKind !== "ai")) {
+    return `Operational map ${map.mapId} allows ai but declares no AI steps.`;
+  }
+
+  return null;
+}
+
+function checkForbiddenStepOwnerValues(map: OperationalMap): string | null {
   for (const step of map.steps) {
     if ("targetAbilityGroupId" in step && step.targetAbilityGroupId) {
       const abilityGroupId = step.targetAbilityGroupId as string;
@@ -62,6 +85,11 @@ function checkForbiddenOwnerValues(map: OperationalMap): string | null {
       }
     }
   }
+
+  return null;
+}
+
+function checkForbiddenTransitionOwnerValues(map: OperationalMap): string | null {
   for (const transition of map.transitions) {
     if ("decisionOwner" in transition && transition.decisionOwner) {
       const decisionOwner = transition.decisionOwner as string;
@@ -75,6 +103,20 @@ function checkForbiddenOwnerValues(map: OperationalMap): string | null {
   return null;
 }
 
+function validateOperationalMapStructure(map: OperationalMap): string | null {
+  const reachableReason = validateReachableSteps(map);
+  if (reachableReason) {
+    return reachableReason;
+  }
+
+  const abilityGroupReason = validateAllowedAbilityGroups(map);
+  if (abilityGroupReason) {
+    return abilityGroupReason;
+  }
+
+  return checkForbiddenStepOwnerValues(map) ?? checkForbiddenTransitionOwnerValues(map);
+}
+
 export type MapValidationResult =
   | { valid: true; map: OperationalMap }
   | { valid: false; failureReason: string };
@@ -86,20 +128,7 @@ export function validateOperationalMapGate(map: OperationalMap): MapValidationRe
   }
   const parsed = parseResult.data;
 
-  const reachableSteps = collectReachableSteps(parsed);
-  if (!reachableSteps.has(parsed.initialStepId)) {
-    return { valid: false, failureReason: `Operational map ${parsed.mapId} cannot reach its initial step.` };
-  }
-  for (const step of parsed.steps) {
-    if (!reachableSteps.has(step.stepId)) {
-      return { valid: false, failureReason: `Operational map ${parsed.mapId} contains unreachable step ${step.stepId}.` };
-    }
-  }
-  if (parsed.allowedAbilityGroups.includes("ai") && parsed.steps.every((step) => step.stepKind !== "ai")) {
-    return { valid: false, failureReason: `Operational map ${parsed.mapId} allows ai but declares no AI steps.` };
-  }
-
-  const forbiddenReason = checkForbiddenOwnerValues(parsed);
+  const forbiddenReason = validateOperationalMapStructure(parsed);
   if (forbiddenReason) {
     return { valid: false, failureReason: forbiddenReason };
   }

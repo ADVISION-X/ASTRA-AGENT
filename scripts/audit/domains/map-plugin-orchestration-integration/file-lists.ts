@@ -1,5 +1,7 @@
 import { AUDIT_ROOT, INSPECTOR_PATH, SCORECARD_PATH } from "./constants.js";
 
+export { SCORECARD_PATH };
+
 export const REQUIRED_SOURCE_FILES = [
   "src/map-plugins/schema/platform-id.schema.ts",
   "src/map-plugins/schema/operational-map-core.schema.ts",

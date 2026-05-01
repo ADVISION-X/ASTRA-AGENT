@@ -2,6 +2,72 @@ import type { MouseScrollCoordinateSpace, MouseScrollRegion, ParsedMouseScrollAb
 
 const MAX_ALLOWED_BOUND = 12_000;
 
+type PreScrollSafetyFailureReason =
+  | "invalid_coordinate_space"
+  | "invalid_bounds"
+  | "invalid_region"
+  | "anchor_out_of_bounds"
+  | "anchor_outside_region"
+  | "invalid_repeat"
+  | "invalid_duration_limit"
+  | "invalid_primitive_timeout"
+  | "invalid_delta_limit"
+  | "bounds_too_large";
+
+type PreScrollSafetySuccess = {
+  ok: true;
+  requestedAnchor: { x: number; y: number };
+  executableAnchor: { x: number; y: number };
+  bounds: { width: number; height: number };
+  region: MouseScrollRegion | null;
+  coordinateRoundingDecision: string;
+  safetyDecision: "allow";
+  safetyDecisionReason: string;
+};
+
+type PreScrollSafetyFailure = {
+  ok: false;
+  status: "failed";
+  failureReason: PreScrollSafetyFailureReason;
+  statusMessage: string;
+  policyDecision: "block";
+  safetyDecision: "block";
+  safetyDecisionReason: string;
+  dataQualityFlags: string[];
+};
+
+const createPreScrollSafetyFailure = (input: {
+  failureReason: PreScrollSafetyFailureReason;
+  statusMessage: string;
+  safetyDecisionReason: string;
+  dataQualityFlags: string[];
+}): PreScrollSafetyFailure => ({
+  ok: false,
+  status: "failed",
+  failureReason: input.failureReason,
+  statusMessage: input.statusMessage,
+  policyDecision: "block",
+  safetyDecision: "block",
+  safetyDecisionReason: input.safetyDecisionReason,
+  dataQualityFlags: input.dataQualityFlags,
+});
+
+const createPreScrollSafetySuccess = (input: {
+  requestedAnchor: { x: number; y: number };
+  executableAnchor: { x: number; y: number };
+  bounds: { width: number; height: number };
+  region: MouseScrollRegion | null;
+}): PreScrollSafetySuccess => ({
+  ok: true,
+  requestedAnchor: input.requestedAnchor,
+  executableAnchor: input.executableAnchor,
+  bounds: input.bounds,
+  region: input.region,
+  coordinateRoundingDecision: "rounded_to_integer",
+  safetyDecision: "allow",
+  safetyDecisionReason: "bounds_and_anchor_valid",
+});
+
 function isPointWithinBounds(point: { x: number; y: number }, bounds: { width: number; height: number }): boolean {
   return point.x >= 0 && point.y >= 0 && point.x < bounds.width && point.y < bounds.height;
 }
@@ -26,230 +92,187 @@ function regionsMatch(left: MouseScrollRegion, right: MouseScrollRegion): boolea
   return left.x === right.x && left.y === right.y && left.width === right.width && left.height === right.height;
 }
 
+const validatePreScrollCoordinateSpace = (
+  request: ParsedMouseScrollAbilityInput,
+  expectedCoordinateSpace: MouseScrollCoordinateSpace,
+): PreScrollSafetyFailure | null => {
+  return request.coordinateSpace === expectedCoordinateSpace
+    ? null
+    : createPreScrollSafetyFailure({
+        failureReason: "invalid_coordinate_space",
+        statusMessage: "Mouse Scroll coordinateSpace no longer matches this child capability.",
+        safetyDecisionReason: "coordinate_space_mismatch",
+        dataQualityFlags: ["coordinate_space_mismatch"],
+      });
+};
+
+const validatePreScrollBounds = (request: ParsedMouseScrollAbilityInput): PreScrollSafetyFailure | null => {
+  const bounds = request.bounds;
+  if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) || bounds.width <= 0 || bounds.height <= 0) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_bounds",
+      statusMessage: "Mouse Scroll bounds must be finite positive dimensions.",
+      safetyDecisionReason: "invalid_bounds",
+      dataQualityFlags: ["invalid_bounds"],
+    });
+  }
+
+  return bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND
+    ? createPreScrollSafetyFailure({
+        failureReason: "bounds_too_large",
+        statusMessage: "Mouse Scroll bounds exceed the governed maximum size.",
+        safetyDecisionReason: "bounds_too_large",
+        dataQualityFlags: ["bounds_too_large"],
+      })
+    : null;
+};
+
+const validatePreScrollRepeatPolicy = (request: ParsedMouseScrollAbilityInput): PreScrollSafetyFailure | null => {
+  if (!Number.isInteger(request.repeat) || request.repeat <= 0 || request.repeat > request.safetyPolicy.maxRepeat) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_repeat",
+      statusMessage: "Mouse Scroll repeat must be a finite positive integer within maxRepeat.",
+      safetyDecisionReason: "repeat_out_of_range",
+      dataQualityFlags: ["invalid_repeat"],
+    });
+  }
+
+  return null;
+};
+
+const validatePreScrollDurationPolicy = (request: ParsedMouseScrollAbilityInput): PreScrollSafetyFailure | null => {
+  if (!Number.isFinite(request.safetyPolicy.maxDurationMs) || request.safetyPolicy.maxDurationMs <= 0) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_duration_limit",
+      statusMessage: "Mouse Scroll requires a finite positive maxDurationMs.",
+      safetyDecisionReason: "invalid_max_duration",
+      dataQualityFlags: ["invalid_duration_limit"],
+    });
+  }
+  if (
+    !Number.isFinite(request.safetyPolicy.primitiveTimeoutMs)
+    || request.safetyPolicy.primitiveTimeoutMs <= 0
+    || request.safetyPolicy.primitiveTimeoutMs > request.safetyPolicy.maxDurationMs
+  ) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_primitive_timeout",
+      statusMessage: "Mouse Scroll requires a finite positive primitiveTimeoutMs.",
+      safetyDecisionReason: "invalid_primitive_timeout",
+      dataQualityFlags: ["invalid_primitive_timeout"],
+    });
+  }
+
+  return !Number.isFinite(request.safetyPolicy.maxDeltaAbs) || request.safetyPolicy.maxDeltaAbs <= 0
+    ? createPreScrollSafetyFailure({
+        failureReason: "invalid_delta_limit",
+        statusMessage: "Mouse Scroll requires a finite positive maxDeltaAbs.",
+        safetyDecisionReason: "invalid_delta_limit",
+        dataQualityFlags: ["invalid_delta_limit"],
+      })
+    : null;
+};
+
+const validateAnchorWithinBounds = (
+  executableAnchor: { x: number; y: number },
+  bounds: { width: number; height: number },
+): PreScrollSafetyFailure | null => {
+  return isPointWithinBounds(executableAnchor, bounds)
+    ? null
+    : createPreScrollSafetyFailure({
+        failureReason: "anchor_out_of_bounds",
+        statusMessage: "Mouse Scroll executableAnchor is outside the governed bounds window.",
+        safetyDecisionReason: "anchor_out_of_bounds",
+        dataQualityFlags: ["anchor_out_of_bounds"],
+      });
+};
+
+const validateNonRegionScroll = (request: ParsedMouseScrollAbilityInput): PreScrollSafetyFailure | null => {
+  return request.region === null && request.regionRef === null
+    ? null
+    : createPreScrollSafetyFailure({
+        failureReason: "invalid_region",
+        statusMessage: "Non-region Mouse Scroll children must not carry region or regionRef.",
+        safetyDecisionReason: "unexpected_region_payload",
+        dataQualityFlags: ["unexpected_region_payload"],
+      });
+};
+
+const validateScrollRegionPayload = (
+  request: ParsedMouseScrollAbilityInput,
+  bounds: { width: number; height: number },
+  executableAnchor: { x: number; y: number },
+): PreScrollSafetyFailure | MouseScrollRegion => {
+  const region = request.region;
+  const proofRegion = request.geometryScrollProof.normalizedRegion;
+  if (region === null || request.regionRef === null || proofRegion === null) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_region",
+      statusMessage: "scroll-region requires region, regionRef, and Geometry Guard normalizedRegion proof.",
+      safetyDecisionReason: "region_payload_incomplete",
+      dataQualityFlags: ["region_payload_incomplete"],
+    });
+  }
+  if (!regionsMatch(region, proofRegion)) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_region",
+      statusMessage: "scroll-region region must match Geometry Guard normalizedRegion exactly.",
+      safetyDecisionReason: "region_proof_mismatch",
+      dataQualityFlags: ["region_proof_mismatch"],
+    });
+  }
+  if (!isRegionWithinBounds(region, bounds)) {
+    return createPreScrollSafetyFailure({
+      failureReason: "invalid_region",
+      statusMessage: "scroll-region region must stay inside the governed bounds window.",
+      safetyDecisionReason: "region_out_of_bounds",
+      dataQualityFlags: ["region_out_of_bounds"],
+    });
+  }
+
+  return isPointWithinRegion(executableAnchor, region)
+    ? region
+    : createPreScrollSafetyFailure({
+        failureReason: "anchor_outside_region",
+        statusMessage: "scroll-region anchor must stay inside the Geometry Guard normalizedRegion.",
+        safetyDecisionReason: "anchor_outside_region",
+        dataQualityFlags: ["anchor_outside_region"],
+      });
+};
+
 export function validatePreScrollSafety(input: {
   request: ParsedMouseScrollAbilityInput;
   expectedCoordinateSpace: MouseScrollCoordinateSpace;
 }):
-  | {
-      ok: true;
-      requestedAnchor: { x: number; y: number };
-      executableAnchor: { x: number; y: number };
-      bounds: { width: number; height: number };
-      region: MouseScrollRegion | null;
-      coordinateRoundingDecision: string;
-      safetyDecision: "allow";
-      safetyDecisionReason: string;
-    }
-  | {
-      ok: false;
-      status: "failed";
-      failureReason:
-        | "invalid_coordinate_space"
-        | "invalid_bounds"
-        | "invalid_region"
-        | "anchor_out_of_bounds"
-        | "anchor_outside_region"
-        | "invalid_repeat"
-        | "invalid_duration_limit"
-        | "invalid_primitive_timeout"
-        | "invalid_delta_limit"
-        | "bounds_too_large";
-      statusMessage: string;
-      policyDecision: "block";
-      safetyDecision: "block";
-      safetyDecisionReason: string;
-      dataQualityFlags: string[];
-    } {
+  | PreScrollSafetySuccess
+  | PreScrollSafetyFailure {
   const requestedAnchor = input.request.geometryScrollProof.normalizedAnchorPoint;
-  if (input.request.coordinateSpace !== input.expectedCoordinateSpace) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_coordinate_space",
-      statusMessage: "Mouse Scroll coordinateSpace no longer matches this child capability.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "coordinate_space_mismatch",
-      dataQualityFlags: ["coordinate_space_mismatch"],
-    };
-  }
-
   const bounds = input.request.bounds;
-  if (!Number.isFinite(bounds.width) || !Number.isFinite(bounds.height) || bounds.width <= 0 || bounds.height <= 0) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_bounds",
-      statusMessage: "Mouse Scroll bounds must be finite positive dimensions.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "invalid_bounds",
-      dataQualityFlags: ["invalid_bounds"],
-    };
-  }
-  if (bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "bounds_too_large",
-      statusMessage: "Mouse Scroll bounds exceed the governed maximum size.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "bounds_too_large",
-      dataQualityFlags: ["bounds_too_large"],
-    };
-  }
-  if (!Number.isInteger(input.request.repeat) || input.request.repeat <= 0 || input.request.repeat > input.request.safetyPolicy.maxRepeat) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_repeat",
-      statusMessage: "Mouse Scroll repeat must be a finite positive integer within maxRepeat.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "repeat_out_of_range",
-      dataQualityFlags: ["invalid_repeat"],
-    };
-  }
-  if (!Number.isFinite(input.request.safetyPolicy.maxDurationMs) || input.request.safetyPolicy.maxDurationMs <= 0) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_duration_limit",
-      statusMessage: "Mouse Scroll requires a finite positive maxDurationMs.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "invalid_max_duration",
-      dataQualityFlags: ["invalid_duration_limit"],
-    };
-  }
-  if (!Number.isFinite(input.request.safetyPolicy.primitiveTimeoutMs) || input.request.safetyPolicy.primitiveTimeoutMs <= 0 || input.request.safetyPolicy.primitiveTimeoutMs > input.request.safetyPolicy.maxDurationMs) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_primitive_timeout",
-      statusMessage: "Mouse Scroll requires a finite positive primitiveTimeoutMs.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "invalid_primitive_timeout",
-      dataQualityFlags: ["invalid_primitive_timeout"],
-    };
-  }
-  if (!Number.isFinite(input.request.safetyPolicy.maxDeltaAbs) || input.request.safetyPolicy.maxDeltaAbs <= 0) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_delta_limit",
-      statusMessage: "Mouse Scroll requires a finite positive maxDeltaAbs.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "invalid_delta_limit",
-      dataQualityFlags: ["invalid_delta_limit"],
-    };
-  }
-
   const executableAnchor = {
     x: Math.round(requestedAnchor.x),
     y: Math.round(requestedAnchor.y),
   };
-  if (!isPointWithinBounds(executableAnchor, bounds)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "anchor_out_of_bounds",
-      statusMessage: "Mouse Scroll executableAnchor is outside the governed bounds window.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "anchor_out_of_bounds",
-      dataQualityFlags: ["anchor_out_of_bounds"],
-    };
+  const failure = validatePreScrollCoordinateSpace(input.request, input.expectedCoordinateSpace)
+    ?? validatePreScrollBounds(input.request)
+    ?? validatePreScrollRepeatPolicy(input.request)
+    ?? validatePreScrollDurationPolicy(input.request)
+    ?? validateAnchorWithinBounds(executableAnchor, bounds);
+  if (failure) {
+    return failure;
   }
 
   if (input.request.childCapabilityId !== "scroll-region") {
-    if (input.request.region !== null || input.request.regionRef !== null) {
-      return {
-        ok: false,
-        status: "failed",
-        failureReason: "invalid_region",
-        statusMessage: "Non-region Mouse Scroll children must not carry region or regionRef.",
-        policyDecision: "block",
-        safetyDecision: "block",
-        safetyDecisionReason: "unexpected_region_payload",
-        dataQualityFlags: ["unexpected_region_payload"],
-      };
+    const nonRegionFailure = validateNonRegionScroll(input.request);
+    if (nonRegionFailure) {
+      return nonRegionFailure;
     }
 
-    return {
-      ok: true,
-      requestedAnchor,
-      executableAnchor,
-      bounds,
-      region: null,
-      coordinateRoundingDecision: "rounded_to_integer",
-      safetyDecision: "allow",
-      safetyDecisionReason: "bounds_and_anchor_valid",
-    };
+    return createPreScrollSafetySuccess({ requestedAnchor, executableAnchor, bounds, region: null });
   }
 
-  const region = input.request.region;
-  const proofRegion = input.request.geometryScrollProof.normalizedRegion;
-  if (region === null || input.request.regionRef === null || proofRegion === null) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region requires region, regionRef, and Geometry Guard normalizedRegion proof.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "region_payload_incomplete",
-      dataQualityFlags: ["region_payload_incomplete"],
-    };
-  }
-  if (!regionsMatch(region, proofRegion)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region region must match Geometry Guard normalizedRegion exactly.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "region_proof_mismatch",
-      dataQualityFlags: ["region_proof_mismatch"],
-    };
-  }
-  if (!isRegionWithinBounds(region, bounds)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region region must stay inside the governed bounds window.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "region_out_of_bounds",
-      dataQualityFlags: ["region_out_of_bounds"],
-    };
-  }
-  if (!isPointWithinRegion(executableAnchor, region)) {
-    return {
-      ok: false,
-      status: "failed",
-      failureReason: "anchor_outside_region",
-      statusMessage: "scroll-region anchor must stay inside the Geometry Guard normalizedRegion.",
-      policyDecision: "block",
-      safetyDecision: "block",
-      safetyDecisionReason: "anchor_outside_region",
-      dataQualityFlags: ["anchor_outside_region"],
-    };
+  const regionOutcome = validateScrollRegionPayload(input.request, bounds, executableAnchor);
+  if ("ok" in regionOutcome) {
+    return regionOutcome;
   }
 
-  return {
-    ok: true,
-    requestedAnchor,
-    executableAnchor,
-    bounds,
-    region,
-    coordinateRoundingDecision: "rounded_to_integer",
-    safetyDecision: "allow",
-    safetyDecisionReason: "bounds_and_anchor_valid",
-  };
+  return createPreScrollSafetySuccess({ requestedAnchor, executableAnchor, bounds, region: regionOutcome });
 }

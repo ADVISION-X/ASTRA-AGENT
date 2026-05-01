@@ -30,7 +30,14 @@ export type {
   AiRequestDispatchInput,
   CreateNerveBusAbilityGroupInput,
   HumanCommandDispatchInput,
+  NerveBusClockPort,
   NerveBusAbilityGroup,
+  NerveBusHandledResult,
+  NerveBusHandlerPort,
+  NerveBusIdempotencyPort,
+  NerveBusPayloadDocument,
+  NerveBusQueuePort,
+  NerveBusTransportPort,
 } from "./contract.js";
 export type {
   AbilityTargetId,
@@ -54,9 +61,4 @@ export type {
   HumanCommandTransportResult,
 } from "./shared/nerve-bus-result.js";
 export type { NerveBusTransportProof } from "./shared/nerve-bus-proof.js";
-export type { NerveBusClockPort } from "./ports/nerve-bus-clock-port.js";
-export type { NerveBusHandlerPort, NerveBusHandledResult } from "./ports/nerve-bus-handler-port.js";
-export type { NerveBusIdempotencyPort } from "./ports/nerve-bus-idempotency-port.js";
-export type { NerveBusQueuePort } from "./ports/nerve-bus-queue-port.js";
-export type { NerveBusPayloadDocument, NerveBusTransportPort } from "./ports/nerve-bus-transport-port.js";
 export { listNerveBusChildren } from "./registry.js";

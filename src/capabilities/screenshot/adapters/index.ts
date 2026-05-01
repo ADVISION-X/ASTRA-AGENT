@@ -1,18 +1,18 @@
 export {
   createFilesystemScreenshotArtifactPort,
-} from "../ports/screenshot-artifact-port.js";
+} from "./filesystem-screenshot-artifact-port.js";
 export type {
   ScreenshotArtifactPort,
 } from "../ports/screenshot-artifact-port.js";
 export {
   createBrowserControllerScreenshotCapturePort,
-} from "../ports/screenshot-capture-port.js";
+} from "./browser-controller-screenshot-capture-port.js";
 export type {
   ScreenshotCapturePort,
 } from "../ports/screenshot-capture-port.js";
 export {
   createSharpScreenshotImageProcessingPort,
-} from "../ports/screenshot-image-processing-port.js";
+} from "./sharp-screenshot-image-processing-port.js";
 export type {
   ScreenshotImageProcessingPort,
 } from "../ports/screenshot-image-processing-port.js";

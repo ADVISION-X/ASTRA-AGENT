@@ -6,131 +6,147 @@ function buildTargetProfileRef(childCapabilityId: OpenTargetProfile["childCapabi
   return `open-target-profile:${childCapabilityId}`;
 }
 
-export function evaluateOpenTargetPolicy(input: {
+const requiresNerveBusCallerContext = (input: {
   request: ParsedOpenRequest;
   profile: OpenTargetProfile;
-  profileOverride: OpenProfileOverride | null;
-}): {
+}): boolean => input.profile.requiresNerveBus && input.request.sourceAbilityGroupId !== "nerve-bus" && input.request.requestedBy !== "orchestration";
+
+const matchesRegisteredOpenTargetProfile = (input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+}): boolean => input.request.childCapabilityId === input.profile.childCapabilityId && input.request.platformId === input.profile.platformId && input.request.targetKind === input.profile.targetKind;
+
+type OpenTargetPolicyOutcome = {
   ok: boolean;
   failureCode: "target_policy_blocked" | null;
   reason: string | null;
   resolvedTargetUrl: string | null;
   resolvedTargetTitle: string | null;
   decision: OpenTargetPolicyDecision;
-} {
+};
+
+const buildTargetPolicyDecision = (input: {
+  status: "allow" | "block";
+  reason: string | null;
+  targetProfileRef: string | null;
+  resolvedTargetUrl: string | null;
+  resolvedTargetTitle: string | null;
+  targetUrlSource: "provided" | "registered_profile" | "rejected_missing";
+}): OpenTargetPolicyDecision => OpenTargetPolicyDecisionSchema.parse({
+  status: input.status,
+  reason: input.reason,
+  targetProfileRef: input.targetProfileRef,
+  resolvedTargetUrl: input.resolvedTargetUrl,
+  resolvedTargetTitle: input.resolvedTargetTitle,
+  targetUrlSource: input.targetUrlSource,
+});
+
+const buildTargetPolicyOutcome = (input: {
+  ok: boolean;
+  failureCode: "target_policy_blocked" | null;
+  reason: string | null;
+  resolvedTargetUrl: string | null;
+  resolvedTargetTitle: string | null;
+  targetProfileRef: string | null;
+  targetUrlSource: "provided" | "registered_profile" | "rejected_missing";
+  decisionStatus: "allow" | "block";
+}): OpenTargetPolicyOutcome => ({
+  ok: input.ok,
+  failureCode: input.failureCode,
+  reason: input.reason,
+  resolvedTargetUrl: input.resolvedTargetUrl,
+  resolvedTargetTitle: input.resolvedTargetTitle,
+  decision: buildTargetPolicyDecision({
+    status: input.decisionStatus,
+    reason: input.reason,
+    targetProfileRef: input.targetProfileRef,
+    resolvedTargetUrl: input.resolvedTargetUrl,
+    resolvedTargetTitle: input.resolvedTargetTitle,
+    targetUrlSource: input.targetUrlSource,
+  }),
+});
+
+const buildAllowedProvidedTargetPolicyOutcome = (
+  input: ParsedOpenRequest,
+  profile: OpenTargetProfile,
+  profileOverride: OpenProfileOverride | null,
+  targetProfileRef: string,
+): OpenTargetPolicyOutcome => buildTargetPolicyOutcome({
+  ok: true,
+  failureCode: null,
+  reason: null,
+  resolvedTargetUrl: input.targetUrl,
+  resolvedTargetTitle: input.targetTitle ?? profileOverride?.defaultTitle ?? profile.defaultTitle,
+  targetProfileRef,
+  targetUrlSource: "provided",
+  decisionStatus: "allow",
+});
+
+const buildRegisteredProfileTargetPolicyOutcome = (
+  profile: OpenTargetProfile,
+  profileOverride: OpenProfileOverride | null,
+  targetProfileRef: string,
+  input: ParsedOpenRequest,
+): OpenTargetPolicyOutcome => buildTargetPolicyOutcome({
+  ok: true,
+  failureCode: null,
+  reason: null,
+  resolvedTargetUrl: profileOverride?.defaultUrl ?? profile.defaultUrl,
+  resolvedTargetTitle: input.targetTitle ?? profileOverride?.defaultTitle ?? profile.defaultTitle,
+  targetProfileRef,
+  targetUrlSource: "registered_profile",
+  decisionStatus: "allow",
+});
+
+const buildRejectedTargetPolicyOutcome = (reason: string): OpenTargetPolicyOutcome => buildTargetPolicyOutcome({
+  ok: false,
+  failureCode: "target_policy_blocked",
+  reason,
+  resolvedTargetUrl: null,
+  resolvedTargetTitle: null,
+  targetProfileRef: null,
+  targetUrlSource: "rejected_missing",
+  decisionStatus: "block",
+});
+
+const resolveOpenTargetPolicyBlockReason = (input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+}): string | null => {
+  if (!input.profile.allowedCaller.includes(input.request.requestedBy)) {
+    return `requestedBy ${input.request.requestedBy} is outside the governed caller allowlist`;
+  }
+
+  if (requiresNerveBusCallerContext({ request: input.request, profile: input.profile })) {
+    return "open requires orchestration-issued or nerve-bus-transported caller context";
+  }
+
+  if (!matchesRegisteredOpenTargetProfile({ request: input.request, profile: input.profile })) {
+    return "request childCapabilityId / platformId / targetKind does not match the registered open target profile";
+  }
+
+  if (!input.request.targetUrl && input.request.targetProfileRef !== buildTargetProfileRef(input.profile.childCapabilityId)) {
+    return `open requires targetUrl or explicit targetProfileRef ${buildTargetProfileRef(input.profile.childCapabilityId)}; silent profile defaulting is forbidden`;
+  }
+
+  return null;
+};
+
+export function evaluateOpenTargetPolicy(input: {
+  request: ParsedOpenRequest;
+  profile: OpenTargetProfile;
+  profileOverride: OpenProfileOverride | null;
+}): OpenTargetPolicyOutcome {
   const targetProfileRef = buildTargetProfileRef(input.profile.childCapabilityId);
 
-  if (!input.profile.allowedCaller.includes(input.request.requestedBy)) {
-    const reason = `requestedBy ${input.request.requestedBy} is outside the governed caller allowlist`;
-    return {
-      ok: false,
-      failureCode: "target_policy_blocked",
-      reason,
-      resolvedTargetUrl: null,
-      resolvedTargetTitle: null,
-      decision: OpenTargetPolicyDecisionSchema.parse({
-        status: "block",
-        reason,
-        targetProfileRef: null,
-        resolvedTargetUrl: null,
-        resolvedTargetTitle: null,
-        targetUrlSource: "rejected_missing",
-      }),
-    };
-  }
-
-  if (input.profile.requiresNerveBus && input.request.sourceAbilityGroupId !== "nerve-bus" && input.request.requestedBy !== "orchestration") {
-    const reason = "open requires orchestration-issued or nerve-bus-transported caller context";
-    return {
-      ok: false,
-      failureCode: "target_policy_blocked",
-      reason,
-      resolvedTargetUrl: null,
-      resolvedTargetTitle: null,
-      decision: OpenTargetPolicyDecisionSchema.parse({
-        status: "block",
-        reason,
-        targetProfileRef: null,
-        resolvedTargetUrl: null,
-        resolvedTargetTitle: null,
-        targetUrlSource: "rejected_missing",
-      }),
-    };
-  }
-
-  if (
-    input.request.childCapabilityId !== input.profile.childCapabilityId
-    || input.request.platformId !== input.profile.platformId
-    || input.request.targetKind !== input.profile.targetKind
-  ) {
-    const reason = "request childCapabilityId / platformId / targetKind does not match the registered open target profile";
-    return {
-      ok: false,
-      failureCode: "target_policy_blocked",
-      reason,
-      resolvedTargetUrl: null,
-      resolvedTargetTitle: null,
-      decision: OpenTargetPolicyDecisionSchema.parse({
-        status: "block",
-        reason,
-        targetProfileRef: null,
-        resolvedTargetUrl: null,
-        resolvedTargetTitle: null,
-        targetUrlSource: "rejected_missing",
-      }),
-    };
+  const blockReason = resolveOpenTargetPolicyBlockReason(input);
+  if (blockReason) {
+    return buildRejectedTargetPolicyOutcome(blockReason);
   }
 
   if (input.request.targetUrl) {
-    return {
-      ok: true,
-      failureCode: null,
-      reason: null,
-      resolvedTargetUrl: input.request.targetUrl,
-      resolvedTargetTitle: input.request.targetTitle ?? input.profileOverride?.defaultTitle ?? input.profile.defaultTitle,
-      decision: OpenTargetPolicyDecisionSchema.parse({
-        status: "allow",
-        reason: null,
-        targetProfileRef,
-        resolvedTargetUrl: input.request.targetUrl,
-        resolvedTargetTitle: input.request.targetTitle ?? input.profileOverride?.defaultTitle ?? input.profile.defaultTitle,
-        targetUrlSource: "provided",
-      }),
-    };
+    return buildAllowedProvidedTargetPolicyOutcome(input.request, input.profile, input.profileOverride, targetProfileRef);
   }
 
-  if (input.request.targetProfileRef !== targetProfileRef) {
-    const reason = `open requires targetUrl or explicit targetProfileRef ${targetProfileRef}; silent profile defaulting is forbidden`;
-    return {
-      ok: false,
-      failureCode: "target_policy_blocked",
-      reason,
-      resolvedTargetUrl: null,
-      resolvedTargetTitle: null,
-      decision: OpenTargetPolicyDecisionSchema.parse({
-        status: "block",
-        reason,
-        targetProfileRef: null,
-        resolvedTargetUrl: null,
-        resolvedTargetTitle: null,
-        targetUrlSource: "rejected_missing",
-      }),
-    };
-  }
-
-  return {
-    ok: true,
-    failureCode: null,
-    reason: null,
-    resolvedTargetUrl: input.profileOverride?.defaultUrl ?? input.profile.defaultUrl,
-    resolvedTargetTitle: input.request.targetTitle ?? input.profileOverride?.defaultTitle ?? input.profile.defaultTitle,
-    decision: OpenTargetPolicyDecisionSchema.parse({
-      status: "allow",
-      reason: null,
-      targetProfileRef,
-      resolvedTargetUrl: input.profileOverride?.defaultUrl ?? input.profile.defaultUrl,
-      resolvedTargetTitle: input.request.targetTitle ?? input.profileOverride?.defaultTitle ?? input.profile.defaultTitle,
-      targetUrlSource: "registered_profile",
-    }),
-  };
+  return buildRegisteredProfileTargetPolicyOutcome(input.profile, input.profileOverride, targetProfileRef, input.request);
 }

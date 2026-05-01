@@ -31,33 +31,33 @@ const {
   VERIFICATION_REF_POLICY: MOUSE_CLICK_VERIFICATION_REF_POLICY,
 } = MOUSE_CLICK_PROOF;
 
-export const MouseClickChildCapabilityIdSchema = z.enum(MOUSE_CLICK_CHILD_CAPABILITY_IDS);
-export const MouseClickCoordinateSpaceSchema = z.enum(MOUSE_CLICK_COORDINATE_SPACES);
-export const MouseClickButtonSchema = z.enum(MOUSE_CLICK_BUTTONS);
-export const MouseClickCountSchema = z.union([z.literal(MOUSE_CLICK_COUNTS[0]), z.literal(MOUSE_CLICK_COUNTS[1])]);
-export const MouseClickFailureReasonSchema = z.enum(MOUSE_CLICK_FAILURE_REASONS);
-export const MouseClickStatusSchema = z.enum(MOUSE_CLICK_STATUSES);
-export const MouseClickGeometryDecisionSchema = z.enum(MOUSE_CLICK_GEOMETRY_DECISIONS);
-export const MouseClickPolicyDecisionSchema = z.enum(MOUSE_CLICK_POLICY_DECISIONS);
-export const MouseClickSafetyDecisionSchema = z.enum(MOUSE_CLICK_SAFETY_DECISIONS);
-export const MouseClickPrimitiveDecisionSchema = z.enum(MOUSE_CLICK_PRIMITIVE_DECISIONS);
-export const MouseClickIdempotencyDecisionSchema = z.enum(MOUSE_CLICK_IDEMPOTENCY_DECISIONS);
-export const MouseClickTimeoutDecisionSchema = z.enum(MOUSE_CLICK_TIMEOUT_DECISIONS);
-export const MouseClickAbortDecisionSchema = z.enum(MOUSE_CLICK_ABORT_DECISIONS);
-export const MouseClickCircuitBreakerStateSchema = z.enum(MOUSE_CLICK_CIRCUIT_BREAKER_STATES);
-export const MouseClickPreActionDecisionSchema = z.enum(MOUSE_CLICK_PRE_ACTION_DECISIONS);
+const MouseClickChildCapabilityIdSchema = z.enum(MOUSE_CLICK_CHILD_CAPABILITY_IDS);
+const MouseClickCoordinateSpaceSchema = z.enum(MOUSE_CLICK_COORDINATE_SPACES);
+const MouseClickButtonSchema = z.enum(MOUSE_CLICK_BUTTONS);
+const MouseClickCountSchema = z.union([z.literal(MOUSE_CLICK_COUNTS[0]), z.literal(MOUSE_CLICK_COUNTS[1])]);
+const MouseClickFailureReasonSchema = z.enum(MOUSE_CLICK_FAILURE_REASONS);
+const MouseClickStatusSchema = z.enum(MOUSE_CLICK_STATUSES);
+const MouseClickGeometryDecisionSchema = z.enum(MOUSE_CLICK_GEOMETRY_DECISIONS);
+const MouseClickPolicyDecisionSchema = z.enum(MOUSE_CLICK_POLICY_DECISIONS);
+const MouseClickSafetyDecisionSchema = z.enum(MOUSE_CLICK_SAFETY_DECISIONS);
+const MouseClickPrimitiveDecisionSchema = z.enum(MOUSE_CLICK_PRIMITIVE_DECISIONS);
+const MouseClickIdempotencyDecisionSchema = z.enum(MOUSE_CLICK_IDEMPOTENCY_DECISIONS);
+const MouseClickTimeoutDecisionSchema = z.enum(MOUSE_CLICK_TIMEOUT_DECISIONS);
+const MouseClickAbortDecisionSchema = z.enum(MOUSE_CLICK_ABORT_DECISIONS);
+const MouseClickCircuitBreakerStateSchema = z.enum(MOUSE_CLICK_CIRCUIT_BREAKER_STATES);
+const MouseClickPreActionDecisionSchema = z.enum(MOUSE_CLICK_PRE_ACTION_DECISIONS);
 
-export const MouseClickPointSchema = z.object({
+const MouseClickPointSchema = z.object({
   x: finiteNumber,
   y: finiteNumber,
 }).strict();
 
-export const MouseClickBoundsSchema = z.object({
+const MouseClickBoundsSchema = z.object({
   width: positiveFiniteNumber,
   height: positiveFiniteNumber,
 }).strict();
 
-export const MouseClickSafetyPolicySchema = z.object({
+const MouseClickSafetyPolicySchema = z.object({
   allowOperatorManual: z.boolean().default(DEFAULT_MOUSE_CLICK_SAFETY_POLICY.allowOperatorManual),
   operatorManualApprovalRef: nullableString,
   allowRightClick: z.boolean().default(DEFAULT_MOUSE_CLICK_SAFETY_POLICY.allowRightClick),
@@ -78,7 +78,7 @@ export const MouseClickSafetyPolicySchema = z.object({
   requireStableVideoVisitBinding: z.boolean().default(DEFAULT_MOUSE_CLICK_SAFETY_POLICY.requireStableVideoVisitBinding),
 }).strict();
 
-export const MouseClickGeometryGuardProofSchema = z.object({
+const MouseClickGeometryGuardProofSchema = z.object({
   proofId: z.string().min(1),
   geometryGuardRef: z.string().min(1),
   abilityGroupId: z.literal("geometry-guard"),
@@ -116,32 +116,74 @@ const MouseClickBaseInputSchema = z.object({
   safetyPolicy: MouseClickSafetyPolicySchema.default(DEFAULT_MOUSE_CLICK_SAFETY_POLICY),
 }).strict();
 
-export const ClickBrowserCoordinateInputSchema = MouseClickBaseInputSchema.extend({
+const ClickBrowserCoordinateInputSchema = MouseClickBaseInputSchema.extend({
   childCapabilityId: z.literal("click-browser-coordinate"),
   geometryGuardProof: MouseClickGeometryGuardProofSchema.extend({
     normalizedCoordinateSpace: z.literal("browserViewport"),
   }),
 }).strict();
 
-export const ClickDesktopCoordinateInputSchema = MouseClickBaseInputSchema.extend({
+const ClickDesktopCoordinateInputSchema = MouseClickBaseInputSchema.extend({
   childCapabilityId: z.literal("click-desktop-coordinate"),
   geometryGuardProof: MouseClickGeometryGuardProofSchema.extend({
     normalizedCoordinateSpace: z.literal("desktopScreen"),
   }),
 }).strict();
 
-export const MouseClickAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
+const MouseClickAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   ClickBrowserCoordinateInputSchema,
   ClickDesktopCoordinateInputSchema,
 ]);
 
-export const MouseClickClockSchema = z.object({
+const MouseClickClockSchema = z.object({
   portKind: z.literal(MOUSE_CLICK_CLOCK_KIND),
   startedMonotonicMs: finiteNumber,
   endedMonotonicMs: finiteNumber,
 }).strict();
 
-export const MouseClickRuntimeProofSchema = z.object({
+type MouseClickRuntimeProofRefinement = {
+  startedAt: string;
+  endedAt: string;
+  status: string;
+  actionExecutionRef: string | null;
+  primitiveExecutionRef: string | null;
+  executableCoordinate: unknown | null;
+  postActionVerificationRequired: boolean;
+  postActionVerificationHandoffRef: string | null;
+};
+
+const addMouseClickRuntimeIssue = (context: z.RefinementCtx, message: string, path: (string | number)[]): void => {
+  context.addIssue({ code: z.ZodIssueCode.custom, message, path });
+};
+
+const validateMouseClickSuccessProof = (value: MouseClickRuntimeProofRefinement, context: z.RefinementCtx): void => {
+  if (value.actionExecutionRef === null) {
+    addMouseClickRuntimeIssue(context, "success proof requires actionExecutionRef", ["actionExecutionRef"]);
+  }
+  if (value.primitiveExecutionRef === null) {
+    addMouseClickRuntimeIssue(context, "success proof requires primitiveExecutionRef", ["primitiveExecutionRef"]);
+  }
+  if (value.executableCoordinate === null) {
+    addMouseClickRuntimeIssue(context, "success proof requires executableCoordinate", ["executableCoordinate"]);
+  }
+  if (!value.postActionVerificationRequired || value.postActionVerificationHandoffRef === null) {
+    addMouseClickRuntimeIssue(context, "success proof requires post-action verification handoff", ["postActionVerificationHandoffRef"]);
+  }
+};
+
+const validateMouseClickRuntimeProof = (value: MouseClickRuntimeProofRefinement, context: z.RefinementCtx): void => {
+  if (value.startedAt > value.endedAt) {
+    addMouseClickRuntimeIssue(context, "startedAt must not be after endedAt", ["startedAt"]);
+  }
+  if (value.status === "success") {
+    validateMouseClickSuccessProof(value, context);
+  }
+  if (value.status !== "success" && value.executableCoordinate !== null) {
+    addMouseClickRuntimeIssue(context, "non-success proof must not expose executableCoordinate", ["executableCoordinate"]);
+  }
+};
+
+const MouseClickRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -209,30 +251,9 @@ export const MouseClickRuntimeProofSchema = z.object({
   reviewRequiredReason: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   clock: MouseClickClockSchema,
-}).strict().superRefine((value, context) => {
-  if (value.startedAt > value.endedAt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
-  }
-  if (value.status === "success") {
-    if (value.actionExecutionRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionExecutionRef", path: ["actionExecutionRef"] });
-    }
-    if (value.primitiveExecutionRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRef", path: ["primitiveExecutionRef"] });
-    }
-    if (value.executableCoordinate === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires executableCoordinate", path: ["executableCoordinate"] });
-    }
-    if (!value.postActionVerificationRequired || value.postActionVerificationHandoffRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
-    }
-  }
-  if (value.status !== "success" && value.executableCoordinate !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must not expose executableCoordinate", path: ["executableCoordinate"] });
-  }
-});
+}).strict().superRefine(validateMouseClickRuntimeProof);
 
-export const MouseClickSuccessOutputSchema = z.object({
+const MouseClickSuccessOutputSchema = z.object({
   attemptRef: z.string().min(1),
   actionExecutionRef: z.string().min(1),
   primitiveExecutionRef: z.string().min(1),
@@ -261,15 +282,15 @@ const MouseClickBaseResultSchema = z.object({
   runtimeProof: MouseClickRuntimeProofSchema,
 }).strict();
 
-export const ClickBrowserCoordinateResultSchema = MouseClickBaseResultSchema.extend({
+const ClickBrowserCoordinateResultSchema = MouseClickBaseResultSchema.extend({
   childCapabilityId: z.literal("click-browser-coordinate"),
 }).strict();
 
-export const ClickDesktopCoordinateResultSchema = MouseClickBaseResultSchema.extend({
+const ClickDesktopCoordinateResultSchema = MouseClickBaseResultSchema.extend({
   childCapabilityId: z.literal("click-desktop-coordinate"),
 }).strict();
 
-export const MouseClickAbilityResultSchema = z.discriminatedUnion("childCapabilityId", [
+const MouseClickAbilityResultSchema = z.discriminatedUnion("childCapabilityId", [
   ClickBrowserCoordinateResultSchema,
   ClickDesktopCoordinateResultSchema,
 ]).superRefine((value, context) => {
@@ -286,3 +307,34 @@ export const MouseClickAbilityResultSchema = z.discriminatedUnion("childCapabili
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.attemptRef must equal result.attemptRef", path: ["runtimeProof", "attemptRef"] });
   }
 });
+
+export {
+  ClickBrowserCoordinateInputSchema,
+  ClickBrowserCoordinateResultSchema,
+  ClickDesktopCoordinateInputSchema,
+  ClickDesktopCoordinateResultSchema,
+  MouseClickAbilityInputSchema,
+  MouseClickAbilityResultSchema,
+  MouseClickAbortDecisionSchema,
+  MouseClickBoundsSchema,
+  MouseClickButtonSchema,
+  MouseClickChildCapabilityIdSchema,
+  MouseClickCircuitBreakerStateSchema,
+  MouseClickClockSchema,
+  MouseClickCoordinateSpaceSchema,
+  MouseClickCountSchema,
+  MouseClickFailureReasonSchema,
+  MouseClickGeometryDecisionSchema,
+  MouseClickGeometryGuardProofSchema,
+  MouseClickIdempotencyDecisionSchema,
+  MouseClickPointSchema,
+  MouseClickPolicyDecisionSchema,
+  MouseClickPreActionDecisionSchema,
+  MouseClickPrimitiveDecisionSchema,
+  MouseClickRuntimeProofSchema,
+  MouseClickSafetyDecisionSchema,
+  MouseClickSafetyPolicySchema,
+  MouseClickStatusSchema,
+  MouseClickSuccessOutputSchema,
+  MouseClickTimeoutDecisionSchema,
+};

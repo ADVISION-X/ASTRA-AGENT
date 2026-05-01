@@ -10,140 +10,28 @@ import type {
   BrowserGeometrySnapshot,
   BrowserScrollCoordinateSpace,
   BrowserStateSnapshot,
-  BrowserTextInputAction,
-  BrowserTextInputKey,
 } from "./browser-controller.js";
 import { createId } from "../local-runtime/ids.js";
-import type { ChromeWindowState } from "./current-chrome-window-control.js";
 import {
-  buildOpenUrlScript as buildCurrentChromeOpenUrlScript,
-  readFrontChromeWindowState as readCurrentChromeWindowState,
-  runAppleScript as runCurrentChromeAppleScript,
-  runJxa as runCurrentChromeJxa,
   runSpawn,
 } from "./current-chrome-window-control.js";
+import {
+  activateChrome,
+  buildOpenUrlScript,
+  clickAt,
+  readFrontChromeWindowState,
+  scrollAt,
+} from "./current-chrome-browser-controller-primitives.js";
+import {
+  createBrowserActionResult,
+  resolveChromeLoginState,
+} from "./current-chrome-browser-session-state.js";
+import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
 
 type CurrentChromeBrowserControllerOptions = {
   sessionConfig: LocalBrowserSessionConfig;
   screenshotDir: string;
   headlessRequested?: boolean;
-};
-
-const LOGIN_URL_TOKENS = ["login", "signin", "signup"];
-const LOGIN_TITLE_TOKENS = ["log in", "sign in", "注册", "登录"];
-const REVIEW_TOKENS = ["captcha", "challenge", "verify", "safety"];
-
-const containsToken = (value: string, tokens: string[]): boolean => tokens.some((token) => value.includes(token));
-const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
-const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
-const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
-
-const activateChrome = async (): Promise<void> => { await runAppleScript('tell application "Google Chrome" to activate'); };
-
-const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-
-const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
-
-const clickAt = async (x: number, y: number, button: "left" | "right" | "middle", clickCount: 1 | 2): Promise<void> => {
-  const buttonCode = button === "right"
-    ? "$.kCGMouseButtonRight"
-    : button === "middle"
-      ? "$.kCGMouseButtonCenter"
-      : "$.kCGMouseButtonLeft";
-  const downType = button === "right"
-    ? "$.kCGEventRightMouseDown"
-    : button === "middle"
-      ? "$.kCGEventOtherMouseDown"
-      : "$.kCGEventLeftMouseDown";
-  const upType = button === "right"
-    ? "$.kCGEventRightMouseUp"
-    : button === "middle"
-      ? "$.kCGEventOtherMouseUp"
-      : "$.kCGEventLeftMouseUp";
-  const buttonField = button === "middle"
-    ? "$.CGEventSetIntegerValueField(event, $.kCGMouseEventButtonNumber, 2);"
-    : "";
-  await runJxa(`
-ObjC.import('ApplicationServices');
-// macOS CGEvent mouse path marker: $.kCGEventLeftMouseDown / $.kCGEventLeftMouseUp
-function post(type, x, y) {
-  const point = $.CGPointMake(x, y);
-  const event = $.CGEventCreateMouseEvent(null, type, point, ${buttonCode});
-  ${buttonField}
-  $.CGEventPost($.kCGHIDEventTap, event);
-}
-post($.kCGEventMouseMoved, ${x}, ${y});
-for (let count = 0; count < ${clickCount}; count += 1) {
-  delay(0.02);
-  post(${downType}, ${x}, ${y});
-  delay(0.02);
-  post(${upType}, ${x}, ${y});
-}
-`);
-};
-
-const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    key code ${keyCode}
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-};
-
-const keystrokeBrowserText = async (text: string, abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    keystroke "${escapeAppleScriptText(text)}"
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-};
-
-const selectAllBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    keystroke "a" using command down
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-};
-
-const pasteBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    keystroke "v" using command down
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-};
-
-const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
-  Enter: 36,
-  Tab: 48,
-  Escape: 53,
-  Backspace: 51,
-  Delete: 117,
-  ArrowUp: 126,
-  ArrowDown: 125,
-  ArrowLeft: 123,
-  ArrowRight: 124,
-};
-
-const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: AbortSignal): Promise<void> => {
-  await pressBrowserKey(BROWSER_TEXT_INPUT_KEY_CODES[key], abortSignal);
-};
-
-const scrollAt = async (x: number, y: number, deltaX: number, deltaY: number): Promise<void> => {
-  await runJxa(`
-ObjC.import('ApplicationServices');
-const point = $.CGPointMake(${x}, ${y});
-const moveEvent = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, $.kCGMouseButtonLeft);
-$.CGEventPost($.kCGHIDEventTap, moveEvent);
-delay(0.02);
-const scrollEvent = $.CGEventCreateScrollWheelEvent(null, $.kCGScrollEventUnitPixel, 2, ${Math.round(deltaY)}, ${Math.round(deltaX)});
-$.CGEventPost($.kCGHIDEventTap, scrollEvent);
-`);
 };
 
 export class CurrentChromeBrowserController implements BrowserController {
@@ -237,53 +125,9 @@ export class CurrentChromeBrowserController implements BrowserController {
   }
 
   async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
-    await activateChrome();
-
-    if ((input.action === "type-text" || input.action === "replace-input") && (!input.text || input.text.length === 0)) {
-      return this.createActionResult({
-        ok: false,
-        message: `missing text for ${input.action} on ${input.targetLabel}`,
-        fallbackUsed: input.fallbackUsed ?? false,
-      });
-    }
-
-    if ((input.action === "press-key" || input.action === "commit-input") && !input.key) {
-      return this.createActionResult({
-        ok: false,
-        message: `missing key for ${input.action} on ${input.targetLabel}`,
-        fallbackUsed: input.fallbackUsed ?? false,
-      });
-    }
-
-    switch (input.action) {
-      case "type-text":
-        await keystrokeBrowserText(input.text ?? "", input.abortSignal);
-        break;
-      case "paste-text":
-        await pasteBrowserText(input.abortSignal);
-        break;
-      case "clear-input":
-        await selectAllBrowserText(input.abortSignal);
-        await pressNamedBrowserKey("Backspace", input.abortSignal);
-        break;
-      case "replace-input":
-        await selectAllBrowserText(input.abortSignal);
-        await pressNamedBrowserKey("Backspace", input.abortSignal);
-        await keystrokeBrowserText(input.text ?? "", input.abortSignal);
-        break;
-      case "press-key":
-        await pressNamedBrowserKey(input.key ?? "Enter", input.abortSignal);
-        break;
-      case "commit-input":
-        await pressNamedBrowserKey(input.key ?? "Enter", input.abortSignal);
-        break;
-    }
-
+    const result = await executeCurrentChromeTextInput(input, () => createId("browser"));
     await this.wait(300);
-    return this.createActionResult({
-      message: `${input.action} executed for ${input.targetLabel}`,
-      fallbackUsed: input.fallbackUsed ?? false,
-    });
+    return result;
   }
 
   async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
@@ -320,12 +164,12 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   async close(): Promise<BrowserActionResult> {
     await this.refreshSnapshot().catch(() => undefined);
-    return this.createActionResult({ message: "left current Chrome session open for the operator", fallbackUsed: false });
+    return createBrowserActionResult({ actionId: createId("browser"), message: "left current Chrome session open for the operator", fallbackUsed: false });
   }
 
-  private async refreshSnapshot(): Promise<ChromeWindowState> {
+  private async refreshSnapshot() {
     const state = await readFrontChromeWindowState();
-    const loginState = this.resolveLoginState(state.currentUrl, state.currentTitle);
+    const loginState = resolveChromeLoginState(state.currentUrl, state.currentTitle);
     this.snapshot = {
       ...this.snapshot,
       profileVerificationStatus: "operator_verified",
@@ -340,30 +184,5 @@ export class CurrentChromeBrowserController implements BrowserController {
       lastLoginCheckAt: new Date().toISOString(),
     };
     return state;
-  }
-
-  private resolveLoginState(currentUrl: string, currentTitle: string): BrowserStateSnapshot["loginState"] {
-    const normalizedUrl = currentUrl.toLowerCase();
-    const normalizedTitle = currentTitle.toLowerCase();
-    if (normalizedUrl === "about:blank") {
-      return "unknown";
-    }
-    if (containsToken(normalizedUrl, REVIEW_TOKENS) || containsToken(normalizedTitle, REVIEW_TOKENS)) {
-      return "review_required";
-    }
-    if (containsToken(normalizedUrl, LOGIN_URL_TOKENS) || containsToken(normalizedTitle, LOGIN_TITLE_TOKENS)) {
-      return "login_required";
-    }
-    return "logged_in";
-  }
-
-  private createActionResult(input: { message: string; fallbackUsed?: boolean; ok?: boolean }): BrowserActionResult {
-    return {
-      browserActionId: createId("browser"),
-      ok: input.ok ?? true,
-      message: input.message,
-      createdAt: new Date().toISOString(),
-      fallbackUsed: input.fallbackUsed ?? false,
-    };
   }
 }

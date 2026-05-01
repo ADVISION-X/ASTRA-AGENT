@@ -10,6 +10,178 @@ type StepDispatchResult =
   | { dispatched: true; stepResult: z.output<typeof MissionStepResultSchema> }
   | { dispatched: false; failureReason: string };
 
+async function dispatchReviewStep(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: Extract<OperationalMap["steps"][number], { stepKind: "review" }>;
+  reason?: string;
+  sequenceNo: number;
+  idempotencyKey: string;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+  missionId: string;
+}): Promise<StepDispatchResult> {
+  const timeoutResult = await dispatchWithTimeout(
+    async (_signal) => input.context.nerveBus.sendReviewRequestToCommander({
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      reason: input.reason ?? input.state.reviewRequiredReason ?? "orchestration requires human review",
+      payloadRefs: input.state.payloadRefs,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
+    }),
+    DEFAULT_STEP_TIMEOUT_MS,
+  );
+
+  if (timeoutResult.timedOut) {
+    return { dispatched: false, failureReason: `Review dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
+  }
+
+  const reviewResult = timeoutResult.result;
+  return {
+    dispatched: true,
+    stepResult: MissionStepResultSchema.parse({
+      status: "review_required",
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      childCapabilityId: input.step.childCapabilityId,
+      targetAbilityGroupId: null,
+      envelopeId: reviewResult.reviewDispatchRef,
+      resultRef: reviewResult.reviewDispatchRef,
+      outputRef: reviewResult.payloadRefs.reviewReasonRef ?? null,
+      decision: null,
+      failureReason: reviewResult.failureReason,
+      reviewRequiredReason: input.reason ?? reviewResult.failureReason,
+      payloadRefs: reviewResult.payloadRefs,
+    }),
+  };
+}
+
+function buildFinalizeStepResult(input: {
+  map: OperationalMap;
+  missionId: string;
+  step: Extract<OperationalMap["steps"][number], { stepKind: "finalize" }>;
+}): StepDispatchResult {
+  return {
+    dispatched: true,
+    stepResult: MissionStepResultSchema.parse({
+      status: "success",
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      childCapabilityId: input.step.childCapabilityId,
+      targetAbilityGroupId: null,
+      payloadRefs: {},
+    }),
+  };
+}
+
+async function dispatchAiStep(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: Extract<OperationalMap["steps"][number], { stepKind: "ai" }>;
+  sequenceNo: number;
+  idempotencyKey: string;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+  missionId: string;
+}): Promise<StepDispatchResult> {
+  if (!input.step.promptContractId) {
+    return { dispatched: false, failureReason: `AI step "${input.step.stepId}" is missing required promptContractId.` };
+  }
+
+  const timeoutResult = await dispatchWithTimeout(
+    async (_signal) => input.context.nerveBus.sendRequestToAi({
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      promptContractId: input.step.promptContractId!,
+      payloadRefs: input.state.payloadRefs,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
+      timeoutMs: DEFAULT_STEP_TIMEOUT_MS,
+    }),
+    DEFAULT_STEP_TIMEOUT_MS,
+  );
+
+  if (timeoutResult.timedOut) {
+    return { dispatched: false, failureReason: `AI dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
+  }
+
+  const dispatchResult = timeoutResult.result;
+  return {
+    dispatched: true,
+    stepResult: MissionStepResultSchema.parse({
+      status: dispatchResult.status,
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      childCapabilityId: input.step.childCapabilityId,
+      targetAbilityGroupId: null,
+      envelopeId: dispatchResult.envelopeId,
+      resultRef: dispatchResult.resultRef,
+      outputRef: dispatchResult.payloadRefs.aiResultRef ?? null,
+      decision: dispatchResult.decision,
+      failureReason: dispatchResult.failureReason,
+      reviewRequiredReason: dispatchResult.status === "review_required" ? (dispatchResult.failureReason ?? "review required") : null,
+      payloadRefs: { ...input.state.payloadRefs, ...dispatchResult.payloadRefs },
+    }),
+  };
+}
+
+async function dispatchAbilityStep(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: Extract<OperationalMap["steps"][number], { stepKind: "ability" }>;
+  sequenceNo: number;
+  idempotencyKey: string;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+  missionId: string;
+}): Promise<StepDispatchResult> {
+  if (!input.step.targetAbilityGroupId) {
+    return { dispatched: false, failureReason: `Ability step "${input.step.stepId}" is missing required targetAbilityGroupId.` };
+  }
+
+  const timeoutResult = await dispatchWithTimeout(
+    async (_signal) => input.context.nerveBus.sendCommandToAbility({
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      targetAbilityGroupId: input.step.targetAbilityGroupId as Exclude<typeof input.step.targetAbilityGroupId, "ai" | null | undefined>,
+      childCapabilityId: input.step.childCapabilityId,
+      payloadRefs: input.state.payloadRefs,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
+      timeoutMs: DEFAULT_STEP_TIMEOUT_MS,
+    }),
+    DEFAULT_STEP_TIMEOUT_MS,
+  );
+
+  if (timeoutResult.timedOut) {
+    return { dispatched: false, failureReason: `Ability dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
+  }
+
+  const dispatchResult = timeoutResult.result;
+  return {
+    dispatched: true,
+    stepResult: MissionStepResultSchema.parse({
+      status: dispatchResult.status,
+      missionId: input.missionId,
+      mapId: input.map.mapId,
+      stepId: input.step.stepId,
+      childCapabilityId: input.step.childCapabilityId,
+      targetAbilityGroupId: input.step.targetAbilityGroupId,
+      envelopeId: dispatchResult.envelopeId,
+      resultRef: dispatchResult.resultRef,
+      outputRef: dispatchResult.payloadRefs.abilityResultRef ?? null,
+      decision: dispatchResult.decision,
+      failureReason: dispatchResult.failureReason,
+      reviewRequiredReason: dispatchResult.status === "review_required" ? (dispatchResult.failureReason ?? "review required") : null,
+      payloadRefs: { ...input.state.payloadRefs, ...dispatchResult.payloadRefs },
+    }),
+  };
+}
+
 export async function dispatchOperationalStep(input: {
   state: MissionState;
   map: OperationalMap;
@@ -32,156 +204,47 @@ export async function dispatchOperationalStep(input: {
     return { dispatched: false, failureReason: "Cannot dispatch step: mission has no missionId." };
   }
 
-  const stepTimeoutMs = DEFAULT_STEP_TIMEOUT_MS;
-
   if (step.stepKind === "review") {
-    const timeoutResult = await dispatchWithTimeout(
-      async (_signal) => {
-        return input.context.nerveBus.sendReviewRequestToCommander({
-          missionId,
-          mapId: input.map.mapId,
-          stepId: step.stepId,
-          reason: input.reason ?? input.state.reviewRequiredReason ?? "orchestration requires human review",
-          payloadRefs: input.state.payloadRefs,
-          sequenceNo: input.sequenceNo,
-          idempotencyKey: input.idempotencyKey,
-        });
-      },
-      stepTimeoutMs,
-    );
-
-    if (timeoutResult.timedOut) {
-      return { dispatched: false, failureReason: `Review dispatch timed out after ${stepTimeoutMs}ms for step "${step.stepId}".` };
-    }
-
-    const reviewResult = timeoutResult.result;
-    return {
-      dispatched: true,
-      stepResult: MissionStepResultSchema.parse({
-        status: "review_required",
-        missionId,
-        mapId: input.map.mapId,
-        stepId: step.stepId,
-        childCapabilityId: step.childCapabilityId,
-        targetAbilityGroupId: null,
-        envelopeId: reviewResult.reviewDispatchRef,
-        resultRef: reviewResult.reviewDispatchRef,
-        outputRef: reviewResult.payloadRefs.reviewReasonRef ?? null,
-        decision: null,
-        failureReason: reviewResult.failureReason,
-        reviewRequiredReason: input.reason ?? reviewResult.failureReason,
-        payloadRefs: reviewResult.payloadRefs,
-      }),
-    };
+    return dispatchReviewStep({
+      state: input.state,
+      map: input.map,
+      step,
+      reason: input.reason,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
+      context: input.context,
+      missionId,
+    });
   }
 
   if (step.stepKind === "finalize") {
-    return {
-      dispatched: true,
-      stepResult: MissionStepResultSchema.parse({
-        status: "success",
-        missionId,
-        mapId: input.map.mapId,
-        stepId: step.stepId,
-        childCapabilityId: step.childCapabilityId,
-        targetAbilityGroupId: null,
-        payloadRefs: input.state.payloadRefs,
-      }),
-    };
+    return buildFinalizeStepResult({
+      map: input.map,
+      missionId,
+      step,
+    });
   }
 
   if (step.stepKind === "ai") {
-    if (!step.promptContractId) {
-      return {
-        dispatched: false,
-        failureReason: `AI step "${step.stepId}" is missing required promptContractId.`,
-      };
-    }
-    const timeoutResult = await dispatchWithTimeout(
-      async (_signal) =>
-        input.context.nerveBus.sendRequestToAi({
-          missionId,
-          mapId: input.map.mapId,
-          stepId: step.stepId,
-          promptContractId: step.promptContractId!,
-          payloadRefs: input.state.payloadRefs,
-          sequenceNo: input.sequenceNo,
-          idempotencyKey: input.idempotencyKey,
-          timeoutMs: stepTimeoutMs,
-        }),
-      stepTimeoutMs,
-    );
-
-    if (timeoutResult.timedOut) {
-      return { dispatched: false, failureReason: `AI dispatch timed out after ${stepTimeoutMs}ms for step "${step.stepId}".` };
-    }
-
-    const dispatchResult = timeoutResult.result;
-    return {
-      dispatched: true,
-      stepResult: MissionStepResultSchema.parse({
-        status: dispatchResult.status,
-        missionId,
-        mapId: input.map.mapId,
-        stepId: step.stepId,
-        childCapabilityId: step.childCapabilityId,
-        targetAbilityGroupId: null,
-        envelopeId: dispatchResult.envelopeId,
-        resultRef: dispatchResult.resultRef,
-        outputRef: dispatchResult.payloadRefs.aiResultRef ?? null,
-        decision: dispatchResult.decision,
-        failureReason: dispatchResult.failureReason,
-        reviewRequiredReason: dispatchResult.status === "review_required" ? (dispatchResult.failureReason ?? "review required") : null,
-        payloadRefs: { ...input.state.payloadRefs, ...dispatchResult.payloadRefs },
-      }),
-    };
+    return dispatchAiStep({
+      state: input.state,
+      map: input.map,
+      step,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
+      context: input.context,
+      missionId,
+    });
   }
 
   // ability step
-  if (!step.targetAbilityGroupId) {
-    return {
-      dispatched: false,
-      failureReason: `Ability step "${step.stepId}" is missing required targetAbilityGroupId.`,
-    };
-  }
-
-  const timeoutResult = await dispatchWithTimeout(
-    async (_signal) =>
-      input.context.nerveBus.sendCommandToAbility({
-        missionId,
-        mapId: input.map.mapId,
-        stepId: step.stepId,
-        targetAbilityGroupId: step.targetAbilityGroupId as Exclude<typeof step.targetAbilityGroupId, "ai" | null | undefined>,
-        childCapabilityId: step.childCapabilityId,
-        payloadRefs: input.state.payloadRefs,
-        sequenceNo: input.sequenceNo,
-        idempotencyKey: input.idempotencyKey,
-        timeoutMs: stepTimeoutMs,
-      }),
-    stepTimeoutMs,
-  );
-
-  if (timeoutResult.timedOut) {
-    return { dispatched: false, failureReason: `Ability dispatch timed out after ${stepTimeoutMs}ms for step "${step.stepId}".` };
-  }
-
-  const dispatchResult = timeoutResult.result;
-  return {
-    dispatched: true,
-    stepResult: MissionStepResultSchema.parse({
-      status: dispatchResult.status,
-      missionId,
-      mapId: input.map.mapId,
-      stepId: step.stepId,
-      childCapabilityId: step.childCapabilityId,
-      targetAbilityGroupId: step.targetAbilityGroupId,
-      envelopeId: dispatchResult.envelopeId,
-      resultRef: dispatchResult.resultRef,
-      outputRef: dispatchResult.payloadRefs.abilityResultRef ?? null,
-      decision: dispatchResult.decision,
-      failureReason: dispatchResult.failureReason,
-      reviewRequiredReason: dispatchResult.status === "review_required" ? (dispatchResult.failureReason ?? "review required") : null,
-      payloadRefs: { ...input.state.payloadRefs, ...dispatchResult.payloadRefs },
-    }),
-  };
+  return dispatchAbilityStep({
+    state: input.state,
+    map: input.map,
+    step,
+    sequenceNo: input.sequenceNo,
+    idempotencyKey: input.idempotencyKey,
+    context: input.context,
+    missionId,
+  });
 }
