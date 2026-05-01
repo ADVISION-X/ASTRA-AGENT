@@ -4,6 +4,7 @@ import type {
   ScreenshotAbilityInput,
   ScreenshotAbilityResult,
   ScreenshotRuntimeProof,
+  ScreenshotScaleMapping,
   ScreenshotSourceProof,
 } from "../contract.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
@@ -90,7 +91,7 @@ type ScreenshotArtifactGate = {
   outputHash: string | null;
 };
 
-async function executeScreenshotSuccessPath(input: {
+type ScreenshotSuccessPathInput = {
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   registryEntry: ScreenshotChildRegistryEntry;
@@ -102,11 +103,19 @@ async function executeScreenshotSuccessPath(input: {
   captureRun: ScreenshotCaptureRun | null;
   imageRun: ScreenshotImageRun | null;
   artifactGate: ScreenshotArtifactGate;
-}): Promise<ScreenshotAbilityResult> {
-  const sourceHash = input.plan.kind === "capture"
-    ? input.artifactGate.outputHash
+};
+
+type ScreenshotSuccessPathFailureGate = Awaited<ReturnType<typeof runScreenshotOutputBoundaryGate>>;
+
+type ScreenshotSuccessClockFinish = ReturnType<typeof finishScreenshotClock>;
+
+const resolveScreenshotSourceHash = async (input: ScreenshotSuccessPathInput): Promise<string> =>
+  input.plan.kind === "capture"
+    ? input.artifactGate.outputHash ?? ""
     : input.gates.sourceGate.sourceProof?.sourceHash ?? await input.context.imageProcessingPort.hashFile(input.plan.sourceFilePath);
-  const scaleMapping = input.plan.kind === "capture"
+
+const resolveScreenshotScaleMapping = (input: ScreenshotSuccessPathInput): ScreenshotScaleMapping | null =>
+  input.plan.kind === "capture"
     ? buildIdentityScaleMapping({
         sourceScreenshotEvidenceId: null,
         sourceStorageRef: input.artifactGate.artifactRef?.storageRef ?? input.scope.fallbackSourceArtifactRef ?? "",
@@ -135,14 +144,165 @@ async function executeScreenshotSuccessPath(input: {
           sourceHeight: input.imageRun?.output?.sourceHeight ?? input.captureRun?.captureResult?.capture.height ?? 0,
         });
 
-  const coordinateSpace = input.plan.kind === "capture"
+const resolveScreenshotCoordinateSpace = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["coordinateSpace"] =>
+  input.plan.kind === "capture"
     ? (input.registryEntry.coordinateSpacePolicy as "browser_viewport_pixels" | "desktop_screen_pixels")
     : input.plan.operation === "prepare-ai-input"
       ? "ai_input_pixels"
       : "source_image_pixels";
 
-  const outputWidth = input.captureRun?.captureResult?.capture.width ?? input.imageRun?.output?.width ?? null;
-  const outputHeight = input.captureRun?.captureResult?.capture.height ?? input.imageRun?.output?.height ?? null;
+const resolveScreenshotOutputDimensions = (input: ScreenshotSuccessPathInput): { outputWidth: number | null; outputHeight: number | null } => ({
+  outputWidth: input.captureRun?.captureResult?.capture.width ?? input.imageRun?.output?.width ?? null,
+  outputHeight: input.captureRun?.captureResult?.capture.height ?? input.imageRun?.output?.height ?? null,
+});
+
+const buildScreenshotOutputBoundaryFailureResult = (input: {
+  request: ScreenshotAbilityInput;
+  context: ScreenshotRuntimeContext;
+  scope: ScreenshotExecutionScope;
+  clockStart: ScreenshotClockStart;
+  gates: ScreenshotExecutionGates;
+  captureRun: ScreenshotCaptureRun | null;
+  imageRun: ScreenshotImageRun | null;
+  outputBoundaryGate: ScreenshotSuccessPathFailureGate;
+}): ScreenshotAbilityResult =>
+  dispatchScreenshotExecutionFailure({
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    status: "failed",
+    message: input.outputBoundaryGate.failure?.message ?? "Screenshot output boundary validation failed.",
+    failureReason: input.outputBoundaryGate.failure ?? createScreenshotFailure({
+      code: "output_schema_invalid",
+      message: "Screenshot output boundary validation failed.",
+    }),
+    reviewRequiredReason: null,
+    startedAt: input.clockStart.startedAt,
+    startedMonotonicMs: input.clockStart.startedMonotonicMs,
+    sourceProof: input.gates.sourceGate.sourceProof,
+    browserSessionRef: input.gates.browserSessionGate.browserSessionRef,
+    pageStateProofRef: input.gates.pageStateGate.pageStateProofRef,
+    dataQualityFlags: [],
+    decisions: {
+      privacyDecision: input.gates.privacyGate.decision,
+      sourceDecision: input.gates.sourceGate.decision,
+      browserSessionDecision: input.gates.browserSessionGate.decision,
+      pageStateDecision: input.gates.pageStateGate.decision,
+      captureDecision: input.captureRun?.decision ?? { status: "not_applicable", reason: null },
+      imageProcessingDecision: input.imageRun?.decision ?? { status: "not_applicable", reason: null },
+      artifactDecision: input.outputBoundaryGate.decision,
+      outputBoundaryDecision: input.outputBoundaryGate.decision,
+    },
+  });
+
+const buildScreenshotSuccessDataQualityFlags = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["dataQualityFlags"] => [
+  "artifact_persisted",
+  input.plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
+  input.gates.browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
+  input.gates.pageStateGate.pageStateProofRef ? "page_state_verified" : "page_state_unverified",
+  input.regionGate.decision.status === "passed" ? "region_proof_verified" : null,
+  input.plan.kind === "image-processing" && input.plan.operation === "optimize-lossless" ? "lossless_equivalence_verified" : null,
+  input.request.childCapabilityId === "capture-desktop-screen" ? "desktop_capture_requested" : null,
+].filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
+
+const buildScreenshotSuccessRuntimeProof = (input: {
+  pathInput: ScreenshotSuccessPathInput;
+  finished: ScreenshotSuccessClockFinish;
+  sourceHash: string;
+  scaleMapping: ScreenshotScaleMapping | null;
+  coordinateSpace: ScreenshotRuntimeProof["coordinateSpace"];
+  outputWidth: number | null;
+  outputHeight: number | null;
+  dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"];
+  outputBoundaryDecision: ScreenshotSuccessPathFailureGate["decision"];
+}): ScreenshotRuntimeProof =>
+  buildScreenshotRuntimeProof({
+    request: input.pathInput.request,
+    proofId: buildRef("screenshot-proof", `${input.pathInput.scope.inputRef}:${input.pathInput.scope.idempotencyKey}:success`),
+    runId: input.pathInput.scope.runId,
+    missionId: input.pathInput.scope.missionId,
+    inputRef: input.pathInput.scope.inputRef,
+    outputRef: input.pathInput.scope.outputRef,
+    idempotencyKey: input.pathInput.scope.idempotencyKey,
+    startedAt: input.pathInput.clockStart.startedAt,
+    endedAt: input.finished.endedAt,
+    durationMs: input.finished.durationMs,
+    startedMonotonicMs: input.pathInput.clockStart.startedMonotonicMs,
+    endedMonotonicMs: input.finished.endedMonotonicMs,
+    status: "success",
+    failureReason: null,
+    reviewRequiredReason: null,
+    sourceProof: input.pathInput.gates.sourceGate.sourceProof,
+    artifactRef: input.pathInput.artifactGate.artifactRef,
+    sourceArtifactRef: input.pathInput.scope.fallbackSourceArtifactRef,
+    sourceHash: input.sourceHash,
+    outputHash: input.pathInput.artifactGate.outputHash,
+    sourceWidth: input.pathInput.plan.kind === "capture" ? input.outputWidth : (input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? null),
+    sourceHeight: input.pathInput.plan.kind === "capture" ? input.outputHeight : (input.pathInput.imageRun?.output?.sourceHeight ?? input.pathInput.gates.sourceGate.sourceProof?.sourceHeight ?? null),
+    outputWidth: input.outputWidth,
+    outputHeight: input.outputHeight,
+    coordinateSpace: input.coordinateSpace,
+    scaleMapping: input.scaleMapping,
+    browserSessionRef: input.pathInput.gates.browserSessionGate.browserSessionRef,
+    pageStateProofRef: input.pathInput.gates.pageStateGate.pageStateProofRef,
+    screenshotEvidenceId: input.pathInput.scope.evidenceId,
+    decisions: {
+      privacyDecision: input.pathInput.gates.privacyGate.decision,
+      sourceDecision: input.pathInput.gates.sourceGate.decision,
+      browserSessionDecision: input.pathInput.gates.browserSessionGate.decision,
+      pageStateDecision: input.pathInput.gates.pageStateGate.decision,
+      captureDecision: input.pathInput.captureRun?.decision ?? { status: "not_applicable", reason: null },
+      imageProcessingDecision: input.pathInput.imageRun?.decision ?? { status: "not_applicable", reason: null },
+      artifactDecision: input.pathInput.artifactGate.decision,
+      outputBoundaryDecision: input.outputBoundaryDecision,
+    },
+    dataQualityFlags: input.dataQualityFlags,
+  });
+
+const buildScreenshotSuccessResult = async (input: {
+  pathInput: ScreenshotSuccessPathInput;
+  sourceHash: string;
+  scaleMapping: ScreenshotScaleMapping | null;
+  coordinateSpace: ScreenshotRuntimeProof["coordinateSpace"];
+  outputWidth: number | null;
+  outputHeight: number | null;
+  successOutput: ReturnType<typeof buildScreenshotSuccessOutput>;
+  outputBoundaryGate: ScreenshotSuccessPathFailureGate;
+}): Promise<ScreenshotAbilityResult> => {
+  const finished = finishScreenshotClock({
+    clockPort: input.pathInput.context.clockPort,
+    startedAt: input.pathInput.clockStart.startedAt,
+    startedMonotonicMs: input.pathInput.clockStart.startedMonotonicMs,
+  });
+  const dataQualityFlags = buildScreenshotSuccessDataQualityFlags(input.pathInput);
+  const runtimeProof = buildScreenshotSuccessRuntimeProof({
+    pathInput: input.pathInput,
+    finished,
+    sourceHash: input.sourceHash,
+    scaleMapping: input.scaleMapping,
+    coordinateSpace: input.coordinateSpace,
+    outputWidth: input.outputWidth,
+    outputHeight: input.outputHeight,
+    dataQualityFlags,
+    outputBoundaryDecision: input.outputBoundaryGate.decision,
+  });
+
+  return buildScreenshotResult({
+    request: input.pathInput.request,
+    status: "success",
+    message: "Screenshot execution succeeded.",
+    output: input.successOutput,
+    failureReason: null,
+    reviewRequiredReason: null,
+    runtimeProof,
+  });
+};
+
+async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): Promise<ScreenshotAbilityResult> {
+  const sourceHash = await resolveScreenshotSourceHash(input);
+  const scaleMapping = resolveScreenshotScaleMapping(input);
+  const coordinateSpace = resolveScreenshotCoordinateSpace(input);
+  const { outputWidth, outputHeight } = resolveScreenshotOutputDimensions(input);
   const successOutput = buildScreenshotSuccessOutput({
     request: input.request,
     artifactRef: input.artifactGate.artifactRef!,
@@ -178,117 +338,30 @@ async function executeScreenshotSuccessPath(input: {
     output: successOutput,
   });
   if (outputBoundaryGate.failure || outputBoundaryGate.decision.status !== "passed") {
-    return dispatchScreenshotExecutionFailure({
+    return buildScreenshotOutputBoundaryFailureResult({
       request: input.request,
       context: input.context,
       scope: input.scope,
-      status: "failed",
-      message: outputBoundaryGate.failure?.message ?? "Screenshot output boundary validation failed.",
-      failureReason: outputBoundaryGate.failure ?? createScreenshotFailure({
-        code: "output_schema_invalid",
-        message: "Screenshot output boundary validation failed.",
-      }),
-      reviewRequiredReason: null,
-      startedAt: input.clockStart.startedAt,
-      startedMonotonicMs: input.clockStart.startedMonotonicMs,
-      sourceProof: input.gates.sourceGate.sourceProof,
-      browserSessionRef: input.gates.browserSessionGate.browserSessionRef,
-      pageStateProofRef: input.gates.pageStateGate.pageStateProofRef,
-      dataQualityFlags: [],
-      decisions: {
-        privacyDecision: input.gates.privacyGate.decision,
-        sourceDecision: input.gates.sourceGate.decision,
-        browserSessionDecision: input.gates.browserSessionGate.decision,
-        pageStateDecision: input.gates.pageStateGate.decision,
-        captureDecision: input.captureRun?.decision ?? { status: "not_applicable", reason: null },
-        imageProcessingDecision: input.imageRun?.decision ?? { status: "not_applicable", reason: null },
-        artifactDecision: input.artifactGate.decision,
-        outputBoundaryDecision: outputBoundaryGate.decision,
-      },
+      clockStart: input.clockStart,
+      gates: input.gates,
+      captureRun: input.captureRun,
+      imageRun: input.imageRun,
+      outputBoundaryGate,
     });
   }
 
-  const finished = finishScreenshotClock({
-    clockPort: input.context.clockPort,
-    startedAt: input.clockStart.startedAt,
-    startedMonotonicMs: input.clockStart.startedMonotonicMs,
-  });
-  const dataQualityFlags: ScreenshotRuntimeProof["dataQualityFlags"] = [
-    "artifact_persisted",
-    input.plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
-    input.gates.browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
-    input.gates.pageStateGate.pageStateProofRef ? "page_state_verified" : "page_state_unverified",
-    input.regionGate.decision.status === "passed" ? "region_proof_verified" : null,
-    input.plan.kind === "image-processing" && input.plan.operation === "optimize-lossless" ? "lossless_equivalence_verified" : null,
-    input.request.childCapabilityId === "capture-desktop-screen" ? "desktop_capture_requested" : null,
-  ].filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
-
-  const runtimeProof = buildScreenshotRuntimeProof({
-    request: input.request,
-    proofId: buildRef("screenshot-proof", `${input.scope.inputRef}:${input.scope.idempotencyKey}:success`),
-    runId: input.scope.runId,
-    missionId: input.scope.missionId,
-    inputRef: input.scope.inputRef,
-    outputRef: input.scope.outputRef,
-    idempotencyKey: input.scope.idempotencyKey,
-    startedAt: input.clockStart.startedAt,
-    endedAt: finished.endedAt,
-    durationMs: finished.durationMs,
-    startedMonotonicMs: input.clockStart.startedMonotonicMs,
-    endedMonotonicMs: finished.endedMonotonicMs,
-    status: "success",
-    failureReason: null,
-    reviewRequiredReason: null,
-    sourceProof: input.gates.sourceGate.sourceProof,
-    artifactRef: input.artifactGate.artifactRef,
-    sourceArtifactRef: input.scope.fallbackSourceArtifactRef,
+  return buildScreenshotSuccessResult({
+    pathInput: input,
     sourceHash,
-    outputHash: input.artifactGate.outputHash,
-    sourceWidth: input.plan.kind === "capture" ? outputWidth : (input.imageRun?.output?.sourceWidth ?? input.gates.sourceGate.sourceProof?.sourceWidth ?? null),
-    sourceHeight: input.plan.kind === "capture" ? outputHeight : (input.imageRun?.output?.sourceHeight ?? input.gates.sourceGate.sourceProof?.sourceHeight ?? null),
+    scaleMapping,
+    coordinateSpace,
     outputWidth,
     outputHeight,
-    coordinateSpace,
-    scaleMapping,
-    browserSessionRef: input.gates.browserSessionGate.browserSessionRef,
-    pageStateProofRef: input.gates.pageStateGate.pageStateProofRef,
-    screenshotEvidenceId: input.scope.evidenceId,
-    decisions: {
-      privacyDecision: input.gates.privacyGate.decision,
-      sourceDecision: input.gates.sourceGate.decision,
-      browserSessionDecision: input.gates.browserSessionGate.decision,
-      pageStateDecision: input.gates.pageStateGate.decision,
-      captureDecision: input.captureRun?.decision ?? { status: "not_applicable", reason: null },
-      imageProcessingDecision: input.imageRun?.decision ?? { status: "not_applicable", reason: null },
-      artifactDecision: input.artifactGate.decision,
-      outputBoundaryDecision: outputBoundaryGate.decision,
-    },
-    dataQualityFlags,
-  });
-
-  return buildScreenshotResult({
-    request: input.request,
-    status: "success",
-    message: "Screenshot execution succeeded.",
-    output: successOutput,
-    failureReason: null,
-    reviewRequiredReason: null,
-    runtimeProof,
+    successOutput,
+    outputBoundaryGate,
   });
 }
 
-export async function executeScreenshotExecutionSuccess(input: {
-  request: ScreenshotAbilityInput;
-  context: ScreenshotRuntimeContext;
-  registryEntry: ScreenshotChildRegistryEntry;
-  clockStart: ScreenshotClockStart;
-  scope: ScreenshotExecutionScope;
-  gates: ScreenshotExecutionGates;
-  plan: ScreenshotExecutionPlan;
-  regionGate: ScreenshotRegionGate;
-  captureRun: ScreenshotCaptureRun | null;
-  imageRun: ScreenshotImageRun | null;
-  artifactGate: ScreenshotArtifactGate;
-}): Promise<ScreenshotAbilityResult> {
+export async function executeScreenshotExecutionSuccess(input: ScreenshotSuccessPathInput): Promise<ScreenshotAbilityResult> {
   return executeScreenshotSuccessPath(input);
 }

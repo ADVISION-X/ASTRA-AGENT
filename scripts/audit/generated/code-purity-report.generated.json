@@ -1,23 +1,25 @@
 {
-  "generatedAt": "2026-05-01T11:32:07.378Z",
-  "godFileInventory": [],
-  "disasterFileInventory": [
+  "generatedAt": "2026-05-01T11:40:04.107Z",
+  "godFileInventory": [
     {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 188,
+      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
+      "lines": 368,
       "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 13,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
+      "overLimitBy": 68,
+      "functionsOverLimit": [
+        "executeScreenshotSuccessPath",
+        "buildScreenshotSuccessRuntimeProof"
       ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
-    },
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
+  "disasterFileInventory": [
     {
       "file": "src/lib/local-ai/local-ai-gateway.ts",
       "lines": 204,
@@ -27,6 +29,22 @@
       "classMembers": 15,
       "importCount": 9,
       "crossOwnerImports": 1,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [
+        "class-and-free-functions"
+      ],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-error.ts",
+      "lines": 22,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "functionsOverLimit": [],
+      "classMembers": 1,
+      "importCount": 0,
+      "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [
         "class-and-free-functions"
@@ -280,22 +298,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/workbench.ts",
-      "lines": 72,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 16,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
-    },
-    {
       "file": "src/lib/storage/evidence-store/evidence-store-maintenance.ts",
       "lines": 106,
       "fileType": "ordinary implementation",
@@ -347,11 +349,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/storage/evidence-store/evidence-store-state.ts",
@@ -366,22 +366,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/storage/json-state-store.ts",
-      "lines": 36,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 5,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
     },
     {
       "file": "src/types/visual-action.ts",
@@ -648,11 +632,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/storage/evidence-store/evidence-store-state.ts",
@@ -686,36 +668,20 @@
   "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
-      "lines": 153,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "resolveScreenshotCaptureAndImagePhaseFailure",
-        "resolveScreenshotOutputMetadata"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
-      "lines": 295,
+      "lines": 368,
       "fileType": "runtime/implementation",
-      "overLimitBy": 0,
+      "overLimitBy": 68,
       "functionsOverLimit": [
-        "executeScreenshotSuccessPath"
+        "executeScreenshotSuccessPath",
+        "buildScreenshotSuccessRuntimeProof"
       ],
       "classMembers": 0,
       "importCount": 12,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "BLOCKING",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
@@ -1590,11 +1556,9 @@
       "importCount": 2,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/storage/evidence-store/evidence-store-service.ts",
@@ -1606,11 +1570,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "importExportOverLimitInventory": [
@@ -1727,11 +1689,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "remediationQueue": [
@@ -1761,11 +1721,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/workbench-human-command.ts",
@@ -2019,6 +1977,23 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
+      "lines": 368,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 68,
+      "functionsOverLimit": [
+        "executeScreenshotSuccessPath",
+        "buildScreenshotSuccessRuntimeProof"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/screenshot/schema.ts",
       "lines": 414,
       "fileType": "schema/type",
@@ -2050,22 +2025,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
-      "lines": 295,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "executeScreenshotSuccessPath"
-      ],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
@@ -2186,22 +2145,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 188,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 13,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
-    },
-    {
       "file": "src/lib/local-ai/governed-task-execution.ts",
       "lines": 185,
       "fileType": "ordinary implementation",
@@ -2291,23 +2234,6 @@
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
-      "lines": 153,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "resolveScreenshotCaptureAndImagePhaseFailure",
-        "resolveScreenshotOutputMetadata"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -2765,11 +2691,9 @@
       "importCount": 2,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-ai/local-ai-runtime-comment-signal-task.ts",
@@ -2965,13 +2889,13 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/storage/json-state-store.ts",
-      "lines": 36,
+      "file": "src/lib/local-ai/local-ai-runtime-error.ts",
+      "lines": 22,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "functionsOverLimit": [],
-      "classMembers": 5,
-      "importCount": 2,
+      "classMembers": 1,
+      "importCount": 0,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [
@@ -3008,11 +2932,9 @@
       "importCount": 19,
       "crossOwnerImports": 9,
       "ownerBoundaries": 1,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
+      "roleMixingSignals": [],
       "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/workbench-human-command.ts",

@@ -51,10 +51,26 @@ const hasJsxCrossOwnerRuntimeSignal = (sourceFile: SourceFile, importedOwners: s
   (sourceFile.getDescendantsOfKind(SyntaxKind.JsxElement).length > 0 || sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement).length > 0)
   && importedOwners.length > 2;
 
+const hasTopLevelFreeFunctions = (sourceFile: SourceFile): boolean =>
+  sourceFile.getStatements().some((statement) => {
+    if (Node.isFunctionDeclaration(statement)) {
+      return true;
+    }
+
+    if (!Node.isVariableStatement(statement)) {
+      return false;
+    }
+
+    return statement.getDeclarations().some((declaration) => {
+      const initializer = declaration.getInitializer();
+      return initializer !== undefined && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer));
+    });
+  });
+
 const buildRoleMixingChecks = (sourceFile: SourceFile, relativePath: string, importedOwners: string[]) => [
   ["generic-bucket", isGenericBucketSourceFile(relativePath) && importedOwners.length > 1],
   ["schema-and-runtime", sourceFile.getInterfaces().length > 0 && getFunctionNodes(sourceFile).length > 0 && !relativePath.endsWith("schema.ts")],
-  ["class-and-free-functions", sourceFile.getClasses().length > 0 && getFunctionNodes(sourceFile).length > 4],
+  ["class-and-free-functions", sourceFile.getClasses().length > 0 && hasTopLevelFreeFunctions(sourceFile)],
   ["jsx-plus-cross-owner-runtime", hasJsxCrossOwnerRuntimeSignal(sourceFile, importedOwners)],
 ] as const;
 
