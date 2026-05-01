@@ -1,6 +1,14 @@
 import type { VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
+import {
+  createVisualTargetGateBlocked,
+  createVisualTargetGateReviewRequired,
+  createVisualTargetGateSuccess,
+  type VisualTargetGateBlocked,
+  type VisualTargetGateReviewRequired,
+  type VisualTargetGateSuccess,
+} from "./visual-target-gate-results.js";
 
 export type VisualTargetCandidateScoreTrace = {
   candidateRef: string;
@@ -43,76 +51,87 @@ function scoreCandidate(input: {
   };
 }
 
-export function selectTargetCandidate(input: {
+type SelectedTargetCandidate = VisualTargetGateSuccess<"selected", {
+  candidates: VisualTargetResolvedCandidate[];
+  selectedCandidate: VisualTargetResolvedCandidate;
+  candidateScoreTrace: VisualTargetCandidateScoreTrace[];
+  selectionTrace: string[];
+}>;
+
+type MissingTargetCandidate = VisualTargetGateBlocked<"no_candidate", {
+  candidateScoreTrace: VisualTargetCandidateScoreTrace[];
+  selectionTrace: string[];
+}>;
+
+type TargetSelectionReviewRequired = VisualTargetGateReviewRequired<"review_required", {
+  candidateScoreTrace: VisualTargetCandidateScoreTrace[];
+  selectionTrace: string[];
+}>;
+
+function createMissingTargetCandidateFailure(): MissingTargetCandidate {
+  return createVisualTargetGateBlocked({
+    decision: "no_candidate",
+    failureReason: "no_candidates",
+    statusMessage: "Visual Target has no candidates after gating.",
+    dataQualityFlags: [],
+    extra: { candidateScoreTrace: [], selectionTrace: ["selection aborted: no candidates survived gating"] },
+  });
+}
+
+function scoreTargetCandidates(input: {
   candidates: VisualTargetResolvedCandidate[];
   nowEpochMs: number;
   freshnessTtlMs: number;
-  minimumConfidence: number;
-}):
-  | {
-      ok: true;
-      decision: "selected";
-      candidates: VisualTargetResolvedCandidate[];
-      selectedCandidate: VisualTargetResolvedCandidate;
-      candidateScoreTrace: VisualTargetCandidateScoreTrace[];
-      selectionTrace: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    }
-  | {
-      ok: false;
-      decision: "no_candidate" | "review_required";
-      status: "failed" | "review_required";
-      failureReason: VisualTargetFailureReason;
-      statusMessage: string;
-      reviewRequiredReason: string | null;
-      candidateScoreTrace: VisualTargetCandidateScoreTrace[];
-      selectionTrace: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    } {
-  if (input.candidates.length === 0) {
-    return {
-      ok: false,
-      decision: "no_candidate",
-      status: "failed",
-      failureReason: "no_candidates",
-      statusMessage: "Visual Target has no candidates after gating.",
-      reviewRequiredReason: null,
-      candidateScoreTrace: [],
-      selectionTrace: ["selection aborted: no candidates survived gating"],
-      dataQualityFlags: [],
-    };
-  }
-
+}): {
+  sortedCandidates: VisualTargetResolvedCandidate[];
+  candidateScoreTrace: VisualTargetCandidateScoreTrace[];
+  selectionTrace: string[];
+} {
   const scored = [...input.candidates]
     .map((candidate) => ({
       candidate,
       trace: scoreCandidate({ candidate, nowEpochMs: input.nowEpochMs, freshnessTtlMs: input.freshnessTtlMs }),
     }))
     .sort((left, right) => right.trace.finalScore - left.trace.finalScore || left.trace.tieBreakKey.localeCompare(right.trace.tieBreakKey));
-  const sorted = scored.map((entry) => entry.candidate);
-  const selectionTrace = scored.map((entry, index) => `rank ${index + 1}: ${entry.candidate.candidateRef} score=${entry.trace.finalScore.toFixed(4)} tieBreak=${entry.trace.tieBreakKey}`);
 
-  if (sorted[0]!.confidence < input.minimumConfidence) {
-    return {
-      ok: false,
+  return {
+    sortedCandidates: scored.map((entry) => entry.candidate),
+    candidateScoreTrace: scored.map((entry) => entry.trace),
+    selectionTrace: scored.map((entry, index) => `rank ${index + 1}: ${entry.candidate.candidateRef} score=${entry.trace.finalScore.toFixed(4)} tieBreak=${entry.trace.tieBreakKey}`),
+  };
+}
+
+export function selectTargetCandidate(input: {
+  candidates: VisualTargetResolvedCandidate[];
+  nowEpochMs: number;
+  freshnessTtlMs: number;
+  minimumConfidence: number;
+}): SelectedTargetCandidate | MissingTargetCandidate | TargetSelectionReviewRequired {
+  if (input.candidates.length === 0) {
+    return createMissingTargetCandidateFailure();
+  }
+
+  const scoredCandidates = scoreTargetCandidates(input);
+  const selectedCandidate = scoredCandidates.sortedCandidates[0]!;
+
+  if (selectedCandidate.confidence < input.minimumConfidence) {
+    return createVisualTargetGateReviewRequired({
       decision: "review_required",
-      status: "review_required",
       failureReason: "confidence_below_threshold",
       statusMessage: "Visual Target top candidate is below minimum confidence policy.",
       reviewRequiredReason: "Visual Target requires review because top candidate confidence is below threshold.",
-      candidateScoreTrace: scored.map((entry) => entry.trace),
-      selectionTrace,
       dataQualityFlags: ["low_confidence"],
-    };
+      extra: {
+        candidateScoreTrace: scoredCandidates.candidateScoreTrace,
+        selectionTrace: scoredCandidates.selectionTrace,
+      },
+    });
   }
 
-  return {
-    ok: true,
-    decision: "selected",
-    candidates: sorted,
-    selectedCandidate: sorted[0]!,
-    candidateScoreTrace: scored.map((entry) => entry.trace),
-    selectionTrace,
-    dataQualityFlags: [],
-  };
+  return createVisualTargetGateSuccess("selected", [], {
+    candidates: scoredCandidates.sortedCandidates,
+    selectedCandidate,
+    candidateScoreTrace: scoredCandidates.candidateScoreTrace,
+    selectionTrace: scoredCandidates.selectionTrace,
+  });
 }

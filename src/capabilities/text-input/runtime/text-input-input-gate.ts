@@ -12,6 +12,18 @@ import { buildStableTextInputRef } from "../shared/text-input-types.js";
 
 type UnknownObject = { [key: string]: unknown };
 
+const TEXT_INPUT_ALLOWED_KEYS = new Set<TextInputKey | TextInputCommitKey>([
+  "Tab",
+  "Escape",
+  "Backspace",
+  "Delete",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Enter",
+]);
+
 export type TextInputExecutionSeed = {
   attemptRef: string;
   inputRef: string;
@@ -123,22 +135,7 @@ function resolveTargetKind(value: unknown): TextInputTargetKind | null {
 }
 
 function resolveKey(value: unknown): TextInputKey | TextInputCommitKey | null {
-  if (
-    value === "Tab" ||
-    value === "Escape" ||
-    value === "Backspace" ||
-    value === "Delete" ||
-    value === "ArrowUp" ||
-    value === "ArrowDown" ||
-    value === "ArrowLeft" ||
-    value === "ArrowRight"
-  ) {
-    return value;
-  }
-  if (value === "Enter") {
-    return value;
-  }
-  return null;
+  return typeof value === "string" && TEXT_INPUT_ALLOWED_KEYS.has(value as TextInputKey | TextInputCommitKey) ? value : null;
 }
 
 function resolveSourceOwner(value: unknown): TextInputSourceOwner | null {
@@ -190,90 +187,78 @@ export function buildTextInputExecutionSeed(input: ParsedTextInputAbilityInput):
   return {
     attemptRef: buildStableTextInputRef("text-input-attempt", [inputRef, input.requestedBy]),
     inputRef,
-    childCapabilityId: input.childCapabilityId,
-    sessionId: input.sessionId,
-    roundId: input.roundId,
-    videoVisitId: input.videoVisitId,
-    requestedBy: input.requestedBy,
-    purpose: input.purpose,
-    sourceAbilityGroupId: input.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.sourceChildCapabilityId,
-    sourceOwner: input.sourceOwner,
-    sourceProofRef: input.sourceProofRef,
-    inputText: input.inputText,
-    inputTextRef: input.inputTextRef,
-    inputTextHash: input.inputTextHash,
-    approvedText: input.approvedText,
-    approvedTextRef: input.approvedTextRef,
-    approvedTextHash: input.approvedTextHash,
-    approvedCommitRef: input.approvedCommitRef,
-    targetRef: input.targetRef,
-    targetProofRef: input.targetProofRef,
-    targetProofOwner: input.targetProofOwner,
-    targetKind: input.targetKind,
-    targetEvidenceRefs: input.targetEvidenceRefs,
-    focusProofRef: input.focusProofRef,
-    focusProofOwner: input.focusProofOwner,
-    focusVerifiedAt: input.focusVerifiedAt,
-    geometryGuardProofRef: input.geometryGuardProofRef,
-    mouseClickProofRef: input.mouseClickProofRef,
-    postActionFocusVerificationRef: input.postActionFocusVerificationRef,
-    operatorApprovalRef: input.operatorApprovalRef,
-    humanApprovalRef: input.humanApprovalRef,
-    mapPolicyApprovalRef: input.mapPolicyApprovalRef,
-    key: input.key,
-    policy: input.policy,
+    ...input,
     parseErrorRef: null,
     receivedShapeHash: null,
   };
 }
 
-function buildInvalidInputFailureEnvelope(input: unknown, fallbackChildCapabilityId?: TextInputChildCapabilityId): TextInputFailureEnvelope {
-  const raw = isObject(input) ? input : null;
-  const childCapabilityId = fallbackChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
-  const parseErrorText = formatParseIssues(input);
-  const receivedShapeHash = buildStableTextInputRef("text-input-input-shape", raw ?? input);
-  const parsedPolicy = TextInputPolicySchema.safeParse(raw?.policy);
-
+function buildTextInputFailureIdentityFields(
+  raw: UnknownObject,
+  childCapabilityId: TextInputChildCapabilityId | null,
+  receivedShapeHash: string,
+): Pick<TextInputFailureEnvelope, "attemptRef" | "inputRef" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "requestedBy" | "purpose" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef"> {
   return {
     attemptRef: buildStableTextInputRef("text-input-attempt", [receivedShapeHash, childCapabilityId]),
     inputRef: buildStableTextInputRef("text-input-input", [receivedShapeHash, childCapabilityId]),
     childCapabilityId,
-    sessionId: readNonEmptyString(raw?.sessionId),
-    roundId: readNonEmptyString(raw?.roundId),
-    videoVisitId: readNonEmptyString(raw?.videoVisitId),
-    requestedBy: readNonEmptyString(raw?.requestedBy),
-    purpose: readNonEmptyString(raw?.purpose),
-    sourceAbilityGroupId: readNonEmptyString(raw?.sourceAbilityGroupId),
-    sourceChildCapabilityId: readNonEmptyString(raw?.sourceChildCapabilityId),
-    sourceOwner: resolveSourceOwner(raw?.sourceOwner),
-    sourceProofRef: readNonEmptyString(raw?.sourceProofRef),
-    inputText: typeof raw?.inputText === "string" ? raw.inputText : null,
-    inputTextRef: readNonEmptyString(raw?.inputTextRef),
-    inputTextHash: readNonEmptyString(raw?.inputTextHash),
-    approvedText: typeof raw?.approvedText === "string" ? raw.approvedText : null,
-    approvedTextRef: readNonEmptyString(raw?.approvedTextRef),
-    approvedTextHash: readNonEmptyString(raw?.approvedTextHash),
-    approvedCommitRef: readNonEmptyString(raw?.approvedCommitRef),
-    targetRef: readNonEmptyString(raw?.targetRef),
-    targetProofRef: readNonEmptyString(raw?.targetProofRef),
-    targetProofOwner: readNonEmptyString(raw?.targetProofOwner),
-    targetKind: resolveTargetKind(raw?.targetKind),
-    targetEvidenceRefs: Array.isArray(raw?.targetEvidenceRefs)
+    sessionId: readNonEmptyString(raw.sessionId),
+    roundId: readNonEmptyString(raw.roundId),
+    videoVisitId: readNonEmptyString(raw.videoVisitId),
+    requestedBy: readNonEmptyString(raw.requestedBy),
+    purpose: readNonEmptyString(raw.purpose),
+    sourceAbilityGroupId: readNonEmptyString(raw.sourceAbilityGroupId),
+    sourceChildCapabilityId: readNonEmptyString(raw.sourceChildCapabilityId),
+    sourceOwner: resolveSourceOwner(raw.sourceOwner),
+    sourceProofRef: readNonEmptyString(raw.sourceProofRef),
+  };
+}
+
+function buildTextInputFailureContentFields(
+  raw: UnknownObject,
+  parseErrorText: string,
+  policy: TextInputPolicy,
+): Pick<TextInputFailureEnvelope, "inputText" | "inputTextRef" | "inputTextHash" | "approvedText" | "approvedTextRef" | "approvedTextHash" | "approvedCommitRef" | "targetRef" | "targetProofRef" | "targetProofOwner" | "targetKind" | "targetEvidenceRefs" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "operatorApprovalRef" | "humanApprovalRef" | "mapPolicyApprovalRef" | "key" | "policy" | "parseErrorRef"> {
+  return {
+    inputText: typeof raw.inputText === "string" ? raw.inputText : null,
+    inputTextRef: readNonEmptyString(raw.inputTextRef),
+    inputTextHash: readNonEmptyString(raw.inputTextHash),
+    approvedText: typeof raw.approvedText === "string" ? raw.approvedText : null,
+    approvedTextRef: readNonEmptyString(raw.approvedTextRef),
+    approvedTextHash: readNonEmptyString(raw.approvedTextHash),
+    approvedCommitRef: readNonEmptyString(raw.approvedCommitRef),
+    targetRef: readNonEmptyString(raw.targetRef),
+    targetProofRef: readNonEmptyString(raw.targetProofRef),
+    targetProofOwner: readNonEmptyString(raw.targetProofOwner),
+    targetKind: resolveTargetKind(raw.targetKind),
+    targetEvidenceRefs: Array.isArray(raw.targetEvidenceRefs)
       ? raw.targetEvidenceRefs.filter((value): value is string => typeof value === "string" && value.length > 0)
       : [],
-    focusProofRef: readNonEmptyString(raw?.focusProofRef),
-    focusProofOwner: readNonEmptyString(raw?.focusProofOwner),
-    focusVerifiedAt: readNonEmptyString(raw?.focusVerifiedAt),
-    geometryGuardProofRef: readNonEmptyString(raw?.geometryGuardProofRef),
-    mouseClickProofRef: readNonEmptyString(raw?.mouseClickProofRef),
-    postActionFocusVerificationRef: readNonEmptyString(raw?.postActionFocusVerificationRef),
-    operatorApprovalRef: readNonEmptyString(raw?.operatorApprovalRef),
-    humanApprovalRef: readNonEmptyString(raw?.humanApprovalRef),
-    mapPolicyApprovalRef: readNonEmptyString(raw?.mapPolicyApprovalRef),
-    key: resolveKey(raw?.key),
-    policy: parsedPolicy.success ? parsedPolicy.data : TextInputPolicySchema.parse({}),
+    focusProofRef: readNonEmptyString(raw.focusProofRef),
+    focusProofOwner: readNonEmptyString(raw.focusProofOwner),
+    focusVerifiedAt: readNonEmptyString(raw.focusVerifiedAt),
+    geometryGuardProofRef: readNonEmptyString(raw.geometryGuardProofRef),
+    mouseClickProofRef: readNonEmptyString(raw.mouseClickProofRef),
+    postActionFocusVerificationRef: readNonEmptyString(raw.postActionFocusVerificationRef),
+    operatorApprovalRef: readNonEmptyString(raw.operatorApprovalRef),
+    humanApprovalRef: readNonEmptyString(raw.humanApprovalRef),
+    mapPolicyApprovalRef: readNonEmptyString(raw.mapPolicyApprovalRef),
+    key: resolveKey(raw.key),
+    policy,
     parseErrorRef: buildStableTextInputRef("text-input-parse-error", parseErrorText),
+  };
+}
+
+function buildInvalidInputFailureEnvelope(input: unknown, fallbackChildCapabilityId?: TextInputChildCapabilityId): TextInputFailureEnvelope {
+  const raw = isObject(input) ? input : {};
+  const childCapabilityId = fallbackChildCapabilityId ?? resolveChildCapabilityId(raw.childCapabilityId);
+  const parseErrorText = formatParseIssues(input);
+  const receivedShapeHash = buildStableTextInputRef("text-input-input-shape", raw);
+  const parsedPolicy = TextInputPolicySchema.safeParse(raw.policy);
+
+  return {
+    ...buildTextInputFailureIdentityFields(raw, childCapabilityId, receivedShapeHash),
+    ...buildTextInputFailureContentFields(raw, parseErrorText, parsedPolicy.success ? parsedPolicy.data : TextInputPolicySchema.parse({})),
     receivedShapeHash,
   };
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T12:32:00.734Z",
+  "generatedAt": "2026-05-01T13:16:37.017Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
@@ -8,7 +8,24 @@
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    "scripts/audit/generated/law-registry.generated.json"
+    "scripts/audit/generated/law-registry.generated.json",
+    "src/app/create-workbench-server.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-gateway.ts",
+    "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+    "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
+    "src/capabilities/text-input/runtime/text-input-result-builder.ts",
+    "src/capabilities/text-input/schema.ts",
+    "src/capabilities/visual-target/ability-group.ts",
+    "src/capabilities/visual-target/runtime/ai-result-proof-gate.ts",
+    "src/capabilities/visual-target/runtime/ambiguity-gate.ts",
+    "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
+    "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
+    "src/capabilities/visual-target/runtime/page-state-consistency-gate.ts",
+    "src/capabilities/visual-target/runtime/screenshot-proof-gate.ts",
+    "src/capabilities/visual-target/runtime/target-selection-gate.ts",
+    "src/capabilities/visual-target/runtime/target-type-policy-gate.ts",
+    "src/lib/local-app-shell/render-commander-console-page.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -22,7 +39,7 @@
   "disasterFileInventory": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3196,
+      "lines": 2740,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -49,36 +66,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
-    },
-    {
-      "file": "src/app/create-workbench-server.ts",
-      "lines": 68,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-      "lines": 244,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 11,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-ai/local-ai-gateway.ts",
@@ -561,36 +548,6 @@
   ],
   "ownerMixingInventory": [
     {
-      "file": "src/app/create-workbench-server.ts",
-      "lines": 68,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-      "lines": 244,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 11,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-ai/prompt-registry.ts",
       "lines": 80,
       "fileType": "ordinary implementation",
@@ -972,155 +929,19 @@
   "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
-      "file": "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
-      "lines": 82,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "getNestedSrcOwner"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
-      "lines": 288,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "resolveKey",
-        "buildTextInputExecutionSeed",
-        "buildInvalidInputFailureEnvelope"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
-      "lines": 151,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "buildTextInputRuntimeProof"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-      "lines": 179,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "buildTextInputResult"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/schema.ts",
-      "lines": 388,
-      "fileType": "schema/type",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "TextInputRuntimeProofSchema",
-        "TextInputAbilityResultSchema"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/ability-group.ts",
-      "lines": 57,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "createVisualTargetAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/ai-result-proof-gate.ts",
-      "lines": 138,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "validateAiResultProof"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/ambiguity-gate.ts",
-      "lines": 92,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateAmbiguity"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
-      "lines": 167,
+      "lines": 199,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
+        "createCandidateSourceReview",
+        "inspectCandidateSourceCandidate",
+        "createEmptyCandidateSourceFailure",
         "validateCandidateSources"
       ],
       "classMembers": 0,
-      "importCount": 3,
+      "importCount": 4,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -1129,80 +950,12 @@
     },
     {
       "file": "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
-      "lines": 174,
+      "lines": 235,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "validateCoordinateSpace"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/page-state-consistency-gate.ts",
-      "lines": 75,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validatePageStateConsistency"
-      ],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/screenshot-proof-gate.ts",
-      "lines": 130,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "validateScreenshotProof"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/target-selection-gate.ts",
-      "lines": 118,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "selectTargetCandidate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/target-type-policy-gate.ts",
-      "lines": 100,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateTargetTypePolicy"
+        "resolveExecutableCandidateShape"
       ],
       "classMembers": 0,
       "importCount": 3,
@@ -1879,7 +1632,7 @@
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3196,
+      "lines": 2740,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1953,21 +1706,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-      "lines": 244,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 11,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/workbench-human-command.ts",
@@ -2294,21 +2032,6 @@
       "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
     },
     {
-      "file": "src/app/create-workbench-server.ts",
-      "lines": 68,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-runtime/workbench-runtime-admin.ts",
       "lines": 68,
       "fileType": "ordinary implementation",
@@ -2416,43 +2139,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/text-input/schema.ts",
-      "lines": 388,
-      "fileType": "schema/type",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "TextInputRuntimeProofSchema",
-        "TextInputAbilityResultSchema"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
-      "lines": 288,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "resolveKey",
-        "buildTextInputExecutionSeed",
-        "buildInvalidInputFailureEnvelope"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/visual-target/runtime/visual-target-executor.ts",
       "lines": 264,
       "fileType": "runtime/implementation",
@@ -2490,6 +2176,43 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
+      "lines": 235,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveExecutableCandidateShape"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
+      "lines": 199,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createCandidateSourceReview",
+        "inspectCandidateSourceCandidate",
+        "createEmptyCandidateSourceFailure",
+        "validateCandidateSources"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-ai/governed-task-execution.ts",
       "lines": 185,
       "fileType": "ordinary implementation",
@@ -2507,23 +2230,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-      "lines": 179,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "buildTextInputResult"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts",
       "lines": 178,
       "fileType": "runtime/implementation",
@@ -2534,23 +2240,6 @@
       ],
       "classMembers": 0,
       "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
-      "lines": 174,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateCoordinateSpace"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -2573,74 +2262,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
-      "lines": 167,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateCandidateSources"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
-      "lines": 151,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "buildTextInputRuntimeProof"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/ai-result-proof-gate.ts",
-      "lines": 138,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "validateAiResultProof"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/screenshot-proof-gate.ts",
-      "lines": 130,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "validateScreenshotProof"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/browser/current-chrome-browser-controller-primitives.ts",
@@ -2670,23 +2291,6 @@
       ],
       "classMembers": 0,
       "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/target-selection-gate.ts",
-      "lines": 118,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "selectTargetCandidate"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -2727,23 +2331,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/target-type-policy-gate.ts",
-      "lines": 100,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateTargetTypePolicy"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/visual-target/runtime/visual-target-result-builder.ts",
@@ -2797,23 +2384,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/visual-target/runtime/ambiguity-gate.ts",
-      "lines": 92,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateAmbiguity"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/features/commander-console/CommanderMacShell.ts",
       "lines": 90,
       "fileType": "ordinary implementation",
@@ -2844,23 +2414,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/code-purity/components/purity-owner-classification.ts",
-      "lines": 82,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "getNestedSrcOwner"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/features/commander-console/CommanderAppShell.ts",
@@ -2908,23 +2461,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/visual-target/runtime/page-state-consistency-gate.ts",
-      "lines": 75,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validatePageStateConsistency"
-      ],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/workbench.ts",
@@ -3028,23 +2564,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/visual-target/ability-group.ts",
-      "lines": 57,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "createVisualTargetAbilityGroup"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/features/commander-console/pages/ResultsPage.ts",
       "lines": 56,
       "fileType": "ordinary implementation",
@@ -3116,7 +2635,7 @@
   "firstPhysicalSplitPlan": [
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 3196,
+      "lines": 2740,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

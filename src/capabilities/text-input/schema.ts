@@ -301,29 +301,9 @@ const TextInputRuntimeProofSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   clock: TextInputClockSchema,
 }).strict().superRefine((value, context) => {
-  if (value.startedAt > value.endedAt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
-  }
-  if (value.status === "success") {
-    if (value.outputRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
-    }
-    if (value.actionExecutionRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionExecutionRef", path: ["actionExecutionRef"] });
-    }
-    if (value.primitiveExecutionRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRef", path: ["primitiveExecutionRef"] });
-    }
-    if (value.postActionVerificationHandoffRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
-    }
-  }
-  if (value.status !== "success" && value.outputRef !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require outputRef=null", path: ["outputRef"] });
-  }
-  if (value.status !== "success" && value.diagnosticPayloadRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-  }
+  validateTextInputRuntimeProofChronology(value, context);
+  validateTextInputRuntimeProofSuccessRequirements(value, context);
+  validateTextInputRuntimeProofFailureRequirements(value, context);
 });
 
 const TextInputSuccessOutputSchema = z.object({
@@ -364,6 +344,52 @@ const TextInputAbilityResultSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   runtimeProof: TextInputRuntimeProofSchema,
 }).strict().superRefine((value, context) => {
+  validateTextInputAbilityResultOutputRequirements(value, context);
+  validateTextInputAbilityResultRuntimeProofRequirements(value, context);
+});
+
+type TextInputRuntimeProofValue = z.infer<typeof TextInputRuntimeProofSchema>;
+type TextInputAbilityResultValue = z.infer<typeof TextInputAbilityResultSchema>;
+
+function validateTextInputRuntimeProofChronology(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
+  if (value.startedAt > value.endedAt) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
+  }
+}
+
+function validateTextInputRuntimeProofSuccessRequirements(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
+  if (value.status !== "success") {
+    return;
+  }
+
+  if (value.outputRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
+  }
+  if (value.actionExecutionRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionExecutionRef", path: ["actionExecutionRef"] });
+  }
+  if (value.primitiveExecutionRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRef", path: ["primitiveExecutionRef"] });
+  }
+  if (value.postActionVerificationHandoffRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
+  }
+}
+
+function validateTextInputRuntimeProofFailureRequirements(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
+  if (value.status === "success") {
+    return;
+  }
+
+  if (value.outputRef !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require outputRef=null", path: ["outputRef"] });
+  }
+  if (value.diagnosticPayloadRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
+  }
+}
+
+function validateTextInputAbilityResultOutputRequirements(value: TextInputAbilityResultValue, context: z.RefinementCtx): void {
   if (value.status === "success" && value.output === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success requires output", path: ["output"] });
   }
@@ -373,6 +399,9 @@ const TextInputAbilityResultSchema = z.object({
   if (value.status !== "success" && value.diagnosticPayloadRef === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
   }
+}
+
+function validateTextInputAbilityResultRuntimeProofRequirements(value: TextInputAbilityResultValue, context: z.RefinementCtx): void {
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
@@ -382,6 +411,6 @@ const TextInputAbilityResultSchema = z.object({
   if (value.runtimeProof.diagnosticPayloadRef !== value.diagnosticPayloadRef) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.diagnosticPayloadRef must equal result.diagnosticPayloadRef", path: ["runtimeProof", "diagnosticPayloadRef"] });
   }
-});
+}
 
 export { TextInputChildCapabilityIdSchema, TextInputTargetKindSchema, TextInputKeySchema, TextInputCommitKeySchema, TextInputFailureReasonSchema, TextInputStatusSchema, TextInputPolicyDecisionSchema, TextInputPrimitiveDecisionSchema, TextInputClipboardDecisionSchema, TextInputSensitiveTextDecisionSchema, TextInputRedactionDecisionSchema, TextInputKeyPolicyDecisionSchema, TextInputOutputBoundaryDecisionSchema, TextInputSourceOwnerSchema, TextInputTargetProofOwnerSchema, TextInputFocusProofOwnerSchema, TextInputMaxLengthPolicySchema, TextInputSensitiveTextPolicySchema, TextInputRedactionPolicySchema, TextInputClipboardPolicySchema, TextInputCommitPolicySchema, TextInputKeyPolicySchema, TextInputReplacePolicySchema, TextInputPolicySchema, TypeTextAbilityInputSchema, PasteTextAbilityInputSchema, ClearInputAbilityInputSchema, ReplaceInputAbilityInputSchema, PressKeyAbilityInputSchema, CommitInputAbilityInputSchema, TextInputAbilityInputSchema, TextInputClockSchema, TextInputRuntimeProofSchema, TextInputSuccessOutputSchema, TextInputAbilityResultSchema };

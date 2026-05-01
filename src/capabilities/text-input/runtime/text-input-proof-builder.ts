@@ -1,6 +1,105 @@
 import { TextInputRuntimeProofSchema } from "../schema.js";
 import { buildStableTextInputRef } from "../shared/text-input-types.js";
 
+function buildTextInputRuntimeProofIdentityFields(input: Parameters<typeof buildTextInputRuntimeProof>[0]) {
+  return {
+    proofId: buildStableTextInputRef("text-input-proof", [input.attemptRef, input.status]),
+    runId: buildStableTextInputRef("text-input-run", [input.attemptRef]),
+    sessionId: input.sessionId,
+    roundId: input.roundId,
+    videoVisitId: input.videoVisitId,
+    abilityGroupId: "text-input",
+    childCapabilityId: input.childCapabilityId,
+    sourceAbilityGroupId: input.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.sourceChildCapabilityId,
+    sourceOwner: input.sourceOwner,
+    sourceProofRef: input.sourceProofRef,
+    inputRef: input.inputRef,
+    outputRef: input.outputRef,
+    diagnosticPayloadRef: input.diagnosticPayloadRef,
+    debugLogRef: input.debugLogRef,
+    structuredRuntimeEventRef: input.structuredRuntimeEventRef,
+    attemptRef: input.attemptRef,
+  };
+}
+
+function buildTextInputRuntimeProofExecutionFields(input: Parameters<typeof buildTextInputRuntimeProof>[0]) {
+  return {
+    actionExecutionRef: input.actionExecutionRef,
+    primitiveExecutionRef: input.primitiveExecutionRef,
+    clearPrimitiveExecutionRef: input.clearPrimitiveExecutionRef,
+    writePrimitiveExecutionRef: input.writePrimitiveExecutionRef,
+    operationRef: input.operationRef,
+    inputTextRef: input.inputTextRef,
+    inputTextHash: input.inputTextHash,
+    approvedTextRef: input.approvedTextRef,
+    approvedTextHash: input.approvedTextHash,
+    typedTextHash: input.typedTextHash,
+    keySequenceHash: input.keySequenceHash,
+    approvedCommitRef: input.approvedCommitRef,
+  };
+}
+
+function buildTextInputRuntimeProofTargetFields(input: Parameters<typeof buildTextInputRuntimeProof>[0]) {
+  return {
+    targetRef: input.targetRef,
+    targetProofRef: input.targetProofRef,
+    targetProofOwner: input.targetProofOwner,
+    focusProofRef: input.focusProofRef,
+    focusProofOwner: input.focusProofOwner,
+    focusVerifiedAt: input.focusVerifiedAt,
+    geometryGuardProofRef: input.geometryGuardProofRef,
+    mouseClickProofRef: input.mouseClickProofRef,
+    postActionFocusVerificationRef: input.postActionFocusVerificationRef,
+    targetKind: input.targetKind,
+    targetEvidenceRefs: input.targetEvidenceRefs,
+    actionKind: input.actionKind,
+    key: input.key,
+    textLength: input.textLength,
+  };
+}
+
+function buildTextInputRuntimeProofDecisionFields(input: Parameters<typeof buildTextInputRuntimeProof>[0]) {
+  return {
+    policyDecision: input.policyDecision,
+    sensitiveTextDecision: input.sensitiveTextDecision,
+    redactionDecision: input.redactionDecision,
+    keyPolicyDecision: input.keyPolicyDecision,
+    outputBoundaryDecision: input.outputBoundaryDecision,
+    clipboardDecision: input.clipboardDecision,
+    clipboardSnapshotRef: input.clipboardSnapshotRef,
+    clipboardProofRef: input.clipboardProofRef,
+    originalClipboardHash: input.originalClipboardHash,
+    restoredClipboardHash: input.restoredClipboardHash,
+    commitPolicyRef: input.commitPolicyRef,
+    primitiveDecision: input.primitiveDecision,
+    primitivePortKind: input.primitivePortKind,
+    replaceWriteMode: input.replaceWriteMode,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitiveEndedAt: input.primitiveEndedAt,
+    maxDurationMs: input.maxDurationMs,
+    primitiveTimeoutMs: input.primitiveTimeoutMs,
+    postActionVerificationRequired: true as const,
+    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
+    verificationRefPolicy: "target_proof_ref+focus_proof_ref+approved_text_ref+action_execution_ref",
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+    status: input.status,
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason,
+    dataQualityFlags: input.dataQualityFlags,
+  };
+}
+
+function buildTextInputRuntimeProofClockFields(clock: Parameters<typeof buildTextInputRuntimeProof>[0]["clock"]) {
+  return {
+    portKind: "system-monotonic-clock",
+    startedMonotonicMs: clock.startedMonotonicMs,
+    endedMonotonicMs: clock.endedMonotonicMs,
+  };
+}
+
 export function buildTextInputRuntimeProof(input: {
   attemptRef: string;
   childCapabilityId: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input" | null;
@@ -71,6 +170,19 @@ export function buildTextInputRuntimeProof(input: {
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
 }) {
   return TextInputRuntimeProofSchema.parse({
+    ...buildTextInputRuntimeProofIdentityFields(input),
+    ...buildTextInputRuntimeProofArtifactFields(input),
+    ...buildTextInputRuntimeProofTargetFields(input),
+    ...buildTextInputRuntimeProofPolicyFields(input),
+    ...buildTextInputRuntimeProofLifecycleFields(input),
+    clock: buildTextInputRuntimeProofClock(input.clock),
+  });
+}
+
+type TextInputRuntimeProofInput = Parameters<typeof buildTextInputRuntimeProof>[0];
+
+export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRuntimeProofInput, "attemptRef" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "inputRef" | "outputRef" | "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">) {
+  return {
     proofId: buildStableTextInputRef("text-input-proof", [input.attemptRef, input.status]),
     runId: buildStableTextInputRef("text-input-run", [input.attemptRef]),
     sessionId: input.sessionId,
@@ -88,6 +200,11 @@ export function buildTextInputRuntimeProof(input: {
     debugLogRef: input.debugLogRef,
     structuredRuntimeEventRef: input.structuredRuntimeEventRef,
     attemptRef: input.attemptRef,
+  };
+}
+
+export function buildTextInputRuntimeProofArtifactFields(input: Pick<TextInputRuntimeProofInput, "actionExecutionRef" | "primitiveExecutionRef" | "clearPrimitiveExecutionRef" | "writePrimitiveExecutionRef" | "operationRef" | "inputTextRef" | "inputTextHash" | "approvedTextRef" | "approvedTextHash" | "typedTextHash" | "keySequenceHash" | "approvedCommitRef">) {
+  return {
     actionExecutionRef: input.actionExecutionRef,
     primitiveExecutionRef: input.primitiveExecutionRef,
     clearPrimitiveExecutionRef: input.clearPrimitiveExecutionRef,
@@ -100,6 +217,11 @@ export function buildTextInputRuntimeProof(input: {
     typedTextHash: input.typedTextHash,
     keySequenceHash: input.keySequenceHash,
     approvedCommitRef: input.approvedCommitRef,
+  };
+}
+
+export function buildTextInputRuntimeProofTargetFields(input: Pick<TextInputRuntimeProofInput, "targetRef" | "targetProofRef" | "targetProofOwner" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "targetKind" | "targetEvidenceRefs">) {
+  return {
     targetRef: input.targetRef,
     targetProofRef: input.targetProofRef,
     targetProofOwner: input.targetProofOwner,
@@ -111,6 +233,11 @@ export function buildTextInputRuntimeProof(input: {
     postActionFocusVerificationRef: input.postActionFocusVerificationRef,
     targetKind: input.targetKind,
     targetEvidenceRefs: input.targetEvidenceRefs,
+  };
+}
+
+export function buildTextInputRuntimeProofPolicyFields(input: Pick<TextInputRuntimeProofInput, "actionKind" | "key" | "textLength" | "policyDecision" | "sensitiveTextDecision" | "redactionDecision" | "keyPolicyDecision" | "outputBoundaryDecision" | "clipboardDecision" | "clipboardSnapshotRef" | "clipboardProofRef" | "originalClipboardHash" | "restoredClipboardHash" | "commitPolicyRef">) {
+  return {
     actionKind: input.actionKind,
     key: input.key,
     textLength: input.textLength,
@@ -125,6 +252,11 @@ export function buildTextInputRuntimeProof(input: {
     originalClipboardHash: input.originalClipboardHash,
     restoredClipboardHash: input.restoredClipboardHash,
     commitPolicyRef: input.commitPolicyRef,
+  };
+}
+
+export function buildTextInputRuntimeProofLifecycleFields(input: Pick<TextInputRuntimeProofInput, "primitiveDecision" | "primitivePortKind" | "replaceWriteMode" | "primitiveStartedAt" | "primitiveEndedAt" | "maxDurationMs" | "primitiveTimeoutMs" | "postActionVerificationHandoffRef" | "startedAt" | "endedAt" | "durationMs" | "status" | "failureReason" | "reviewRequiredReason" | "dataQualityFlags">) {
+  return {
     primitiveDecision: input.primitiveDecision,
     primitivePortKind: input.primitivePortKind,
     replaceWriteMode: input.replaceWriteMode,
@@ -142,10 +274,13 @@ export function buildTextInputRuntimeProof(input: {
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     dataQualityFlags: input.dataQualityFlags,
-    clock: {
-      portKind: "system-monotonic-clock",
-      startedMonotonicMs: input.clock.startedMonotonicMs,
-      endedMonotonicMs: input.clock.endedMonotonicMs,
-    },
-  });
+  };
+}
+
+function buildTextInputRuntimeProofClock(clock: TextInputRuntimeProofInput["clock"]) {
+  return {
+    portKind: "system-monotonic-clock",
+    startedMonotonicMs: clock.startedMonotonicMs,
+    endedMonotonicMs: clock.endedMonotonicMs,
+  };
 }

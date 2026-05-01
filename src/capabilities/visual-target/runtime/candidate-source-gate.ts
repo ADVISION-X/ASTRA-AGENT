@@ -1,57 +1,170 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetCandidate, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 import type { ResolvedVisualTargetProfile } from "./visual-target-input-gate.js";
 import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
+import {
+  collectVisualTargetFlags,
+  createVisualTargetGateBlocked,
+  createVisualTargetGateReviewRequired,
+  createVisualTargetGateSuccess,
+  type VisualTargetGateBlocked,
+  type VisualTargetGateReviewRequired,
+  type VisualTargetGateSuccess,
+} from "./visual-target-gate-results.js";
+
+type CandidateSourceAllow = VisualTargetGateSuccess<"allow", {
+  bindingDecision: "allow";
+  candidates: VisualTargetCandidate[];
+  rejectedCandidateRefs: string[];
+}>;
+
+type CandidateSourceBlocked = VisualTargetGateBlocked<"block", {
+  bindingDecision: "block";
+  rejectedCandidateRefs: string[];
+}>;
+
+type CandidateSourceReviewRequired = VisualTargetGateReviewRequired<"review_required", {
+  bindingDecision: "review_required";
+  rejectedCandidateRefs: string[];
+}>;
+
+type CandidateSourceInspection = {
+  acceptedCandidate: VisualTargetCandidate | null;
+  rejectedCandidateRef: string | null;
+  dataQualityFlag: VisualTargetDataQualityFlag | null;
+  failure: CandidateSourceReviewRequired | null;
+};
+
+function createCandidateSourceBlocked(
+  failureReason: VisualTargetFailureReason,
+  statusMessage: string,
+  rejectedCandidateRefs: string[],
+  dataQualityFlags: VisualTargetDataQualityFlag[],
+): CandidateSourceBlocked {
+  return createVisualTargetGateBlocked({
+    decision: "block",
+    failureReason,
+    statusMessage,
+    dataQualityFlags,
+    extra: { bindingDecision: "block", rejectedCandidateRefs },
+  });
+}
+
+function createCandidateSourceReview(
+  failureReason: VisualTargetFailureReason,
+  statusMessage: string,
+  reviewRequiredReason: string,
+  rejectedCandidateRefs: string[],
+  dataQualityFlags: VisualTargetDataQualityFlag[],
+): CandidateSourceReviewRequired {
+  return createVisualTargetGateReviewRequired({
+    decision: "review_required",
+    failureReason,
+    statusMessage,
+    reviewRequiredReason,
+    dataQualityFlags,
+    extra: { bindingDecision: "review_required", rejectedCandidateRefs },
+  });
+}
+
+function inspectCandidateSourceCandidate(input: {
+  request: ParsedVisualTargetAbilityInput;
+  nowEpochMs: number;
+  profile: ResolvedVisualTargetProfile;
+  candidate: VisualTargetCandidate;
+}): CandidateSourceInspection {
+  const { candidate } = input;
+  if (candidate.sourceProofRef !== input.request.sourceProof.sourceProofRef) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "candidate_source_binding_mismatch", failure: null };
+  }
+  if (!input.profile.allowedCandidateKinds.includes(candidate.candidateKind)) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "candidate_source_kind_mismatch", failure: null };
+  }
+  if (candidate.candidateKind === "operator_manual" && !input.profile.allowOperatorManual) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "operator_manual_review_required", failure: null };
+  }
+  if (candidate.candidateKind === "operator_manual" && !input.request.sourceProof.operatorApproval) {
+    return {
+      acceptedCandidate: null,
+      rejectedCandidateRef: null,
+      dataQualityFlag: null,
+      failure: createCandidateSourceReview(
+        "operator_approval_required",
+        "operator_manual candidate requires operator approval proof.",
+        "Visual Target requires operator approval proof for operator_manual candidate sources.",
+        [candidate.candidateRef],
+        ["operator_manual_review_required"],
+      ),
+    };
+  }
+  if (candidate.candidateKind === "ai_candidate" && !candidate.sourceFrameRef) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "candidate_source_frame_missing", failure: null };
+  }
+  if (candidate.blockedReason) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "candidate_blocked", failure: null };
+  }
+  if (!candidate.isVisible) {
+    return { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "candidate_invisible", failure: null };
+  }
+
+  const ageMs = Math.max(0, input.nowEpochMs - parseVisualTargetIsoTimestamp(candidate.capturedAt));
+  return ageMs > input.profile.freshnessTtlMs
+    ? { acceptedCandidate: null, rejectedCandidateRef: candidate.candidateRef, dataQualityFlag: "stale_candidate", failure: null }
+    : { acceptedCandidate: candidate, rejectedCandidateRef: null, dataQualityFlag: null, failure: null };
+}
+
+function createEmptyCandidateSourceFailure(
+  rejectedCandidateRefs: string[],
+  dataQualityFlags: Set<VisualTargetDataQualityFlag>,
+): CandidateSourceBlocked | CandidateSourceReviewRequired {
+  const flags = collectVisualTargetFlags(dataQualityFlags);
+  if (dataQualityFlags.has("candidate_blocked")) {
+    return createCandidateSourceBlocked("blocked_candidate", "All visual target candidates were blocked by source policy.", rejectedCandidateRefs, flags);
+  }
+  if (
+    dataQualityFlags.has("candidate_invisible")
+    || dataQualityFlags.has("operator_manual_review_required")
+    || dataQualityFlags.has("candidate_source_binding_mismatch")
+    || dataQualityFlags.has("candidate_source_frame_missing")
+  ) {
+    const failureReason = dataQualityFlags.has("candidate_source_frame_missing")
+      ? "candidate_source_frame_missing"
+      : dataQualityFlags.has("candidate_source_binding_mismatch")
+        ? "candidate_source_binding_mismatch"
+        : dataQualityFlags.has("candidate_invisible")
+          ? "invisible_candidate"
+          : "operator_approval_required";
+    return createCandidateSourceReview(
+      failureReason,
+      "Visual Target requires review because no governed candidate survived source gating.",
+      "Visual Target source gating left no bindable visible candidate for success.",
+      rejectedCandidateRefs,
+      flags,
+    );
+  }
+  return createCandidateSourceBlocked(
+    "missing_candidate_source_proof",
+    "Visual Target candidate source proof validation rejected every candidate.",
+    rejectedCandidateRefs,
+    flags,
+  );
+}
 
 export function validateCandidateSources(input: {
   request: ParsedVisualTargetAbilityInput;
   nowEpochMs: number;
   profile: ResolvedVisualTargetProfile;
-}):
-  | {
-      ok: true;
-      decision: "allow";
-      bindingDecision: "allow";
-      candidates: VisualTargetCandidate[];
-      rejectedCandidateRefs: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    }
-  | {
-      ok: false;
-      status: "failed" | "review_required";
-      decision: "block" | "review_required";
-      bindingDecision: "block" | "review_required";
-      failureReason: VisualTargetFailureReason;
-      statusMessage: string;
-      reviewRequiredReason: string | null;
-      rejectedCandidateRefs: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    } {
+}): CandidateSourceAllow | CandidateSourceBlocked | CandidateSourceReviewRequired {
   if (input.request.candidates.length === 0) {
-    return {
-      ok: false,
-      status: "failed",
-      decision: "block",
-      bindingDecision: "block",
-      failureReason: "no_candidates",
-      statusMessage: "Visual Target request contains no candidates.",
-      reviewRequiredReason: null,
-      rejectedCandidateRefs: [],
-      dataQualityFlags: [],
-    };
+    return createCandidateSourceBlocked("no_candidates", "Visual Target request contains no candidates.", [], []);
   }
 
   if (!input.profile.allowedSourceAbilityGroups.includes(input.request.sourceAbilityGroupId)) {
-    return {
-      ok: false,
-      status: "failed",
-      decision: "block",
-      bindingDecision: "block",
-      failureReason: "invalid_source_ability",
-      statusMessage: "Visual Target sourceAbilityGroupId is outside the child policy allowlist.",
-      reviewRequiredReason: null,
-      rejectedCandidateRefs: [],
-      dataQualityFlags: [],
-    };
+    return createCandidateSourceBlocked(
+      "invalid_source_ability",
+      "Visual Target sourceAbilityGroupId is outside the child policy allowlist.",
+      [],
+      [],
+    );
   }
 
   const candidates: VisualTargetCandidate[] = [];
@@ -59,109 +172,28 @@ export function validateCandidateSources(input: {
   const dataQualityFlags = new Set<VisualTargetDataQualityFlag>();
 
   for (const candidate of input.request.candidates) {
-    if (candidate.sourceProofRef !== input.request.sourceProof.sourceProofRef) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_source_binding_mismatch");
-      continue;
+    const inspection = inspectCandidateSourceCandidate({ ...input, candidate });
+    if (inspection.failure) {
+      return inspection.failure;
     }
-    if (!input.profile.allowedCandidateKinds.includes(candidate.candidateKind)) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_source_kind_mismatch");
-      continue;
+    if (inspection.rejectedCandidateRef) {
+      rejectedCandidateRefs.push(inspection.rejectedCandidateRef);
     }
-    if (candidate.candidateKind === "operator_manual" && !input.profile.allowOperatorManual) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("operator_manual_review_required");
-      continue;
+    if (inspection.dataQualityFlag) {
+      dataQualityFlags.add(inspection.dataQualityFlag);
     }
-    if (candidate.candidateKind === "operator_manual" && !input.request.sourceProof.operatorApproval) {
-      return {
-        ok: false,
-        status: "review_required",
-        decision: "review_required",
-        bindingDecision: "review_required",
-        failureReason: "operator_approval_required",
-        statusMessage: "operator_manual candidate requires operator approval proof.",
-        reviewRequiredReason: "Visual Target requires operator approval proof for operator_manual candidate sources.",
-        rejectedCandidateRefs: [candidate.candidateRef],
-        dataQualityFlags: ["operator_manual_review_required"],
-      };
+    if (inspection.acceptedCandidate) {
+      candidates.push(inspection.acceptedCandidate);
     }
-    if (candidate.candidateKind === "ai_candidate" && !candidate.sourceFrameRef) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_source_frame_missing");
-      continue;
-    }
-    if (candidate.blockedReason) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_blocked");
-      continue;
-    }
-    if (!candidate.isVisible) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_invisible");
-      continue;
-    }
-    const ageMs = Math.max(0, input.nowEpochMs - parseVisualTargetIsoTimestamp(candidate.capturedAt));
-    if (ageMs > input.profile.freshnessTtlMs) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("stale_candidate");
-      continue;
-    }
-    candidates.push(candidate);
   }
 
   if (candidates.length === 0) {
-    if (dataQualityFlags.has("candidate_blocked")) {
-      return {
-        ok: false,
-        status: "failed",
-        decision: "block",
-        bindingDecision: "block",
-        failureReason: "blocked_candidate",
-        statusMessage: "All visual target candidates were blocked by source policy.",
-        reviewRequiredReason: null,
-        rejectedCandidateRefs,
-        dataQualityFlags: [...dataQualityFlags],
-      };
-    }
-    if (
-      dataQualityFlags.has("candidate_invisible")
-      || dataQualityFlags.has("operator_manual_review_required")
-      || dataQualityFlags.has("candidate_source_binding_mismatch")
-      || dataQualityFlags.has("candidate_source_frame_missing")
-    ) {
-      return {
-        ok: false,
-        status: "review_required",
-        decision: "review_required",
-        bindingDecision: "review_required",
-        failureReason: dataQualityFlags.has("candidate_source_frame_missing") ? "candidate_source_frame_missing" : dataQualityFlags.has("candidate_source_binding_mismatch") ? "candidate_source_binding_mismatch" : dataQualityFlags.has("candidate_invisible") ? "invisible_candidate" : "operator_approval_required",
-        statusMessage: "Visual Target requires review because no governed candidate survived source gating.",
-        reviewRequiredReason: "Visual Target source gating left no bindable visible candidate for success.",
-        rejectedCandidateRefs,
-        dataQualityFlags: [...dataQualityFlags],
-      };
-    }
-    return {
-      ok: false,
-      status: "failed",
-      decision: "block",
-      bindingDecision: "block",
-      failureReason: "missing_candidate_source_proof",
-      statusMessage: "Visual Target candidate source proof validation rejected every candidate.",
-      reviewRequiredReason: null,
-      rejectedCandidateRefs,
-      dataQualityFlags: [...dataQualityFlags],
-    };
+    return createEmptyCandidateSourceFailure(rejectedCandidateRefs, dataQualityFlags);
   }
 
-  return {
-    ok: true,
-    decision: "allow",
+  return createVisualTargetGateSuccess("allow", collectVisualTargetFlags(dataQualityFlags), {
     bindingDecision: "allow",
     candidates,
     rejectedCandidateRefs,
-    dataQualityFlags: [...dataQualityFlags],
-  };
+  });
 }

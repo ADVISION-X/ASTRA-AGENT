@@ -1,4 +1,5 @@
 import { isLocalAiRuntimeError } from "../../../lib/local-ai/local-ai-runtime-error.js";
+import { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";
 
 type ProtectedGatewayResult<TResult> =
   | { ok: true; result: TResult; gatewayDurationMs: number }
@@ -57,4 +58,5 @@ async function executeWithTimeout<TResult>(input: {
 }
 
 export { executeWithTimeout };
+export { LocalAiGateway, isLocalAiRuntimeError };
 export type { ProtectedGatewayResult };

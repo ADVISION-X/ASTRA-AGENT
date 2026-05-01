@@ -31,16 +31,48 @@ const getDirectSrcOwner = (parts: string[]): string | undefined => {
   return undefined;
 };
 
-const getNestedSrcOwner = (parts: string[]): string | undefined =>
-  parts[0] !== "src"
-    ? undefined
-    : parts[1] === "capabilities" || parts[1] === "features"
-      ? parts[2]
-      : parts[1] === "lib" && parts[2] === "storage" && parts[3] === "evidence-store"
-        ? "forensics-storage-adapter"
-        : parts[1] === "lib" && parts[2]
-          ? getLibOwner(parts[2])
-          : undefined;
+const isCapabilityOrFeaturePath = (parts: string[]): boolean =>
+  parts[1] === "capabilities" || parts[1] === "features";
+
+const getEvidenceStoreOwner = (parts: string[]): string | undefined => {
+  if (parts[1] !== "lib") {
+    return undefined;
+  }
+  if (parts[2] !== "storage") {
+    return undefined;
+  }
+  if (parts[3] !== "evidence-store") {
+    return undefined;
+  }
+  return "forensics-storage-adapter";
+};
+
+const getNestedLibOwner = (parts: string[]): string | undefined => {
+  if (parts[1] !== "lib") {
+    return undefined;
+  }
+  if (!parts[2]) {
+    return undefined;
+  }
+  return getLibOwner(parts[2]);
+};
+
+const getNestedSrcOwner = (parts: string[]): string | undefined => {
+  if (parts[0] !== "src") {
+    return undefined;
+  }
+
+  if (isCapabilityOrFeaturePath(parts)) {
+    return parts[2];
+  }
+
+  const evidenceStoreOwner = getEvidenceStoreOwner(parts);
+  if (evidenceStoreOwner) {
+    return evidenceStoreOwner;
+  }
+
+  return getNestedLibOwner(parts);
+};
 
 const getSrcOwner = (parts: string[]): string | undefined =>
   getDirectSrcOwner(parts) ?? getNestedSrcOwner(parts);

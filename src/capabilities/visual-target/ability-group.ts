@@ -18,40 +18,44 @@ export function createVisualTargetAbilityGroup(input: CreateVisualTargetAbilityG
   const context = input.runtimeContext;
 
   return {
-    listChildCapabilityIds() {
-      return listVisualTargetChildren();
-    },
-    async execute(inputValue) {
-      const parsed = parseVisualTargetAbilityInput(inputValue);
-      if (!parsed.success) {
-        return dispatchVisualTargetInvalidInputFailure({
-          rawInput: inputValue,
-          clock: context.clock,
-          parseError: parsed.error.message,
-          statusMessage: "Visual Target rejected invalid input schema.",
-        });
-      }
-
-      const capability = registry.get(parsed.data.childCapabilityId);
-      if (!capability) {
-        return dispatchParsedVisualTargetFailure({
-          request: parsed.data,
-          clock: context.clock,
-          failureReason: "unknown_child_capability",
-          statusMessage: `Visual Target child capability is not registered for ${parsed.data.childCapabilityId}.`,
-        });
-      }
-
-      try {
-        return VisualTargetAbilityResultSchema.parse(await capability.execute(parsed.data, context));
-      } catch (error) {
-        return dispatchParsedVisualTargetFailure({
-          request: parsed.data,
-          clock: context.clock,
-          failureReason: "child_execution_failed",
-          statusMessage: error instanceof Error ? error.message : "Visual Target child execution failed.",
-        });
-      }
-    },
+    listChildCapabilityIds: () => listVisualTargetChildren(),
+    execute: (inputValue) => executeVisualTargetAbilityGroupInput(inputValue, context, registry),
   };
+}
+
+async function executeVisualTargetAbilityGroupInput(
+  inputValue: unknown,
+  context: VisualTargetRuntimeContext,
+  registry: ReturnType<typeof createVisualTargetCapabilityRegistry>,
+): Promise<VisualTargetAbilityResult> {
+  const parsed = parseVisualTargetAbilityInput(inputValue);
+  if (!parsed.success) {
+    return dispatchVisualTargetInvalidInputFailure({
+      rawInput: inputValue,
+      clock: context.clock,
+      parseError: parsed.error.message,
+      statusMessage: "Visual Target rejected invalid input schema.",
+    });
+  }
+
+  const capability = registry.get(parsed.data.childCapabilityId);
+  if (!capability) {
+    return dispatchParsedVisualTargetFailure({
+      request: parsed.data,
+      clock: context.clock,
+      failureReason: "unknown_child_capability",
+      statusMessage: `Visual Target child capability is not registered for ${parsed.data.childCapabilityId}.`,
+    });
+  }
+
+  try {
+    return VisualTargetAbilityResultSchema.parse(await capability.execute(parsed.data, context));
+  } catch (error) {
+    return dispatchParsedVisualTargetFailure({
+      request: parsed.data,
+      clock: context.clock,
+      failureReason: "child_execution_failed",
+      statusMessage: error instanceof Error ? error.message : "Visual Target child execution failed.",
+    });
+  }
 }

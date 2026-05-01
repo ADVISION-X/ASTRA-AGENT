@@ -1,12 +1,9 @@
-import { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";
-import { isLocalAiRuntimeError } from "../../../lib/local-ai/local-ai-runtime-error.js";
-import type { LocalAiTaskRequest, LocalAiTaskResult } from "../../../types/local-ai.js";
 import type { AiRuntimeExecutionOutput } from "../contract.js";
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
 import * as runtimeContext from "./local-ai-runtime-context-support.js";
 import * as runtimeDebug from "./local-ai-runtime-debug.js";
 import { hashValue } from "./local-ai-runtime-debug-state.js";
-import { executeWithTimeout, type ProtectedGatewayResult } from "./local-ai-runtime-gateway.js";
+import { executeWithTimeout, isLocalAiRuntimeError, LocalAiGateway, type ProtectedGatewayResult } from "./local-ai-runtime-gateway.js";
 import * as runtimeMapper from "./local-ai-runtime-mapper.js";
 import * as runtimeOutput from "./local-ai-runtime-output.js";
 
@@ -20,6 +17,8 @@ type CircuitBreaker = {
 };
 
 type ExecuteRequest = Parameters<AiRuntimePort["execute"]>[0];
+type LocalAiTaskRequest = Parameters<LocalAiGateway["execute"]>[0];
+type LocalAiTaskResult = Awaited<ReturnType<LocalAiGateway["execute"]>>;
 type LocalAiExecutionContext = {
   request: ExecuteRequest;
   identity: ReturnType<typeof runtimeContext.buildAiRuntimeCallIdentity>;

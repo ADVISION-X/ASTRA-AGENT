@@ -1,5 +1,11 @@
 import type { VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
+import {
+  createVisualTargetGateReviewRequired,
+  createVisualTargetGateSuccess,
+  type VisualTargetGateReviewRequired,
+  type VisualTargetGateSuccess,
+} from "./visual-target-gate-results.js";
 
 function intersectionArea(left: VisualTargetResolvedCandidate, right: VisualTargetResolvedCandidate): number {
   const x1 = Math.max(left.executableBoundingBox.x, right.executableBoundingBox.x);
@@ -27,23 +33,45 @@ function clickPointDistance(left: VisualTargetResolvedCandidate, right: VisualTa
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+type AmbiguityClear = VisualTargetGateSuccess<"clear", { ambiguityTrace: string[] }>;
+type AmbiguityReviewRequired = VisualTargetGateReviewRequired<"review_required", { ambiguityTrace: string[] }>;
+
+function inspectAmbiguityChallenge(input: {
+  primary: VisualTargetResolvedCandidate;
+  challenger: VisualTargetResolvedCandidate;
+  minimumAmbiguityGap: number;
+}): { trace: string; dataQualityFlags: VisualTargetDataQualityFlag[] } {
+  const gap = Math.abs(input.primary.confidence - input.challenger.confidence);
+  const overlap = overlapRatio(input.primary, input.challenger);
+  const nearClickPoint = clickPointDistance(input.primary, input.challenger) <= 4;
+  const sourceConflict = input.primary.candidateKind !== input.challenger.candidateKind;
+  const dataQualityFlags: VisualTargetDataQualityFlag[] = [];
+
+  if (gap < input.minimumAmbiguityGap) {
+    dataQualityFlags.push("ambiguity_confidence_gap");
+  }
+  if (overlap >= 0.4) {
+    dataQualityFlags.push("ambiguity_overlap");
+  }
+  if (nearClickPoint) {
+    dataQualityFlags.push("ambiguity_near_click_point");
+  }
+  if (sourceConflict) {
+    dataQualityFlags.push("ambiguity_source_conflict");
+  }
+
+  return {
+    trace: `compare ${input.primary.candidateRef} vs ${input.challenger.candidateRef}: gap=${gap.toFixed(4)} iou=${overlap.toFixed(4)} nearClick=${nearClickPoint ? "yes" : "no"} sourceConflict=${sourceConflict ? "yes" : "no"}`,
+    dataQualityFlags,
+  };
+}
+
 export function validateAmbiguity(input: {
   candidates: VisualTargetResolvedCandidate[];
   minimumAmbiguityGap: number;
-}):
-  | { ok: true; decision: "clear"; ambiguityTrace: string[]; dataQualityFlags: VisualTargetDataQualityFlag[] }
-  | {
-      ok: false;
-      status: "review_required";
-      decision: "review_required";
-      failureReason: VisualTargetFailureReason;
-      statusMessage: string;
-      reviewRequiredReason: string;
-      ambiguityTrace: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    } {
+}): AmbiguityClear | AmbiguityReviewRequired {
   if (input.candidates.length < 2) {
-    return { ok: true, decision: "clear", ambiguityTrace: ["ambiguity clear: fewer than two candidates"], dataQualityFlags: [] };
+    return createVisualTargetGateSuccess("clear", [], { ambiguityTrace: ["ambiguity clear: fewer than two candidates"] });
   }
 
   const topCandidates = input.candidates.slice(0, 5);
@@ -51,42 +79,19 @@ export function validateAmbiguity(input: {
   const ambiguityTrace = topCandidates.map((candidate, index) => `ambiguity rank ${index + 1}: ${candidate.candidateRef} confidence=${candidate.confidence.toFixed(4)}`);
 
   for (const challenger of topCandidates.slice(1)) {
-    const gap = Math.abs(primary.confidence - challenger.confidence);
-    const overlap = overlapRatio(primary, challenger);
-    const nearClickPoint = clickPointDistance(primary, challenger) <= 4;
-    const sourceConflict = primary.candidateKind !== challenger.candidateKind;
-
-    ambiguityTrace.push(
-      `compare ${primary.candidateRef} vs ${challenger.candidateRef}: gap=${gap.toFixed(4)} iou=${overlap.toFixed(4)} nearClick=${nearClickPoint ? "yes" : "no"} sourceConflict=${sourceConflict ? "yes" : "no"}`,
-    );
-
-    if (gap < input.minimumAmbiguityGap || overlap >= 0.4 || nearClickPoint || sourceConflict) {
-      const flags: VisualTargetDataQualityFlag[] = [];
-      if (gap < input.minimumAmbiguityGap) {
-        flags.push("ambiguity_confidence_gap");
-      }
-      if (overlap >= 0.4) {
-        flags.push("ambiguity_overlap");
-      }
-      if (nearClickPoint) {
-        flags.push("ambiguity_near_click_point");
-      }
-      if (sourceConflict) {
-        flags.push("ambiguity_source_conflict");
-      }
-
-      return {
-        ok: false,
-        status: "review_required",
+    const challenge = inspectAmbiguityChallenge({ primary, challenger, minimumAmbiguityGap: input.minimumAmbiguityGap });
+    ambiguityTrace.push(challenge.trace);
+    if (challenge.dataQualityFlags.length > 0) {
+      return createVisualTargetGateReviewRequired({
         decision: "review_required",
         failureReason: "ambiguous_candidates",
         statusMessage: "Visual Target detected ambiguous candidates and refused success.",
         reviewRequiredReason: "Visual Target requires review because top-ranked candidates are still ambiguous.",
-        ambiguityTrace,
-        dataQualityFlags: flags,
-      };
+        dataQualityFlags: challenge.dataQualityFlags,
+        extra: { ambiguityTrace },
+      });
     }
   }
 
-  return { ok: true, decision: "clear", ambiguityTrace, dataQualityFlags: [] };
+  return createVisualTargetGateSuccess("clear", [], { ambiguityTrace });
 }

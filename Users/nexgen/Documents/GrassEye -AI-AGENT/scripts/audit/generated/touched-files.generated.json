@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T12:31:50.069Z",
+  "generatedAt": "2026-05-01T13:16:26.617Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/touched-files.generated.json",
@@ -9,6 +9,23 @@
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    "scripts/audit/generated/law-registry.generated.json"
+    "scripts/audit/generated/law-registry.generated.json",
+    "src/app/create-workbench-server.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-gateway.ts",
+    "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+    "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
+    "src/capabilities/text-input/runtime/text-input-result-builder.ts",
+    "src/capabilities/text-input/schema.ts",
+    "src/capabilities/visual-target/ability-group.ts",
+    "src/capabilities/visual-target/runtime/ai-result-proof-gate.ts",
+    "src/capabilities/visual-target/runtime/ambiguity-gate.ts",
+    "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
+    "src/capabilities/visual-target/runtime/coordinate-space-gate.ts",
+    "src/capabilities/visual-target/runtime/page-state-consistency-gate.ts",
+    "src/capabilities/visual-target/runtime/screenshot-proof-gate.ts",
+    "src/capabilities/visual-target/runtime/target-selection-gate.ts",
+    "src/capabilities/visual-target/runtime/target-type-policy-gate.ts",
+    "src/lib/local-app-shell/render-commander-console-page.ts"
   ]
 }

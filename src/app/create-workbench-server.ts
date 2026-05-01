@@ -2,7 +2,6 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
-import { getLocaleFromRequestUrl } from "../lib/localization/locale.js";
 import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
@@ -21,9 +20,8 @@ async function handleArtifactOrRootRequest(
   }
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-    const locale = getLocaleFromRequestUrl(url);
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(renderCommanderConsolePage(await activeWorkbench.getCommanderConsoleSnapshot(), { locale, requestUrl: url }));
+    response.end(renderCommanderConsolePage(await activeWorkbench.getCommanderConsoleSnapshot(), url));
     return true;
   }
 

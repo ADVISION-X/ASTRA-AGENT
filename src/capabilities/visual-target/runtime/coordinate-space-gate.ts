@@ -1,5 +1,14 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetCandidate, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
+import {
+  collectVisualTargetFlags,
+  createVisualTargetGateBlocked,
+  createVisualTargetGateReviewRequired,
+  createVisualTargetGateSuccess,
+  type VisualTargetGateBlocked,
+  type VisualTargetGateReviewRequired,
+  type VisualTargetGateSuccess,
+} from "./visual-target-gate-results.js";
 
 function isPointInsideBoundingBox(point: { x: number; y: number }, boundingBox: { x: number; y: number; width: number; height: number }): boolean {
   return point.x >= boundingBox.x
@@ -17,29 +26,176 @@ function isBoundingBoxInsideImage(candidate: VisualTargetCandidate, width: numbe
     && candidate.boundingBox.y + candidate.boundingBox.height <= height;
 }
 
+type CoordinateSpaceAllow = VisualTargetGateSuccess<"allow", {
+  candidates: VisualTargetResolvedCandidate[];
+  rejectedCandidateRefs: string[];
+  coordinateTransformTrace: string[];
+}>;
+
+type CoordinateSpaceBlocked = VisualTargetGateBlocked<"block", {
+  rejectedCandidateRefs: string[];
+  coordinateTransformTrace: string[];
+}>;
+
+type CoordinateSpaceReviewRequired = VisualTargetGateReviewRequired<"review_required", {
+  rejectedCandidateRefs: string[];
+  coordinateTransformTrace: string[];
+}>;
+
+type CoordinateCandidateInspection = {
+  acceptedCandidate: VisualTargetResolvedCandidate | null;
+  rejectedCandidateRef: string | null;
+  dataQualityFlag: VisualTargetDataQualityFlag | null;
+  coordinateTrace: string | null;
+};
+
+function rejectCoordinateCandidate(candidateRef: string, dataQualityFlag: VisualTargetDataQualityFlag): CoordinateCandidateInspection {
+  return { acceptedCandidate: null, rejectedCandidateRef: candidateRef, dataQualityFlag, coordinateTrace: null };
+}
+
+function resolveExecutableCandidateShape(input: {
+  candidate: VisualTargetCandidate;
+  screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
+}):
+  | {
+      executableCoordinateSpace: VisualTargetCandidate["coordinateSpace"];
+      executableBoundingBox: VisualTargetCandidate["boundingBox"];
+      executableClickPoint: VisualTargetCandidate["clickPoint"];
+      coordinateTrace: string | null;
+    }
+  | CoordinateCandidateInspection {
+  const { candidate, screenshot } = input;
+  if (candidate.coordinateSpace === "contact_sheet") {
+    return rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_non_executable");
+  }
+
+  let executableCoordinateSpace = candidate.coordinateSpace;
+  let executableBoundingBox = candidate.boundingBox;
+  let executableClickPoint = candidate.clickPoint;
+  let coordinateTrace: string | null = null;
+
+  if (candidate.coordinateSpace === "ai_input") {
+    if (!candidate.scaleMapping) {
+      return rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_requires_mapping");
+    }
+
+    const expectedScaleX = candidate.scaleMapping.sourceWidth / candidate.scaleMapping.targetWidth;
+    const expectedScaleY = candidate.scaleMapping.sourceHeight / candidate.scaleMapping.targetHeight;
+    if (
+      candidate.scaleMapping.sourceScreenshotEvidenceId !== screenshot.screenshotEvidenceId
+      || candidate.scaleMapping.targetCoordinateSpace !== "ai_input"
+      || Math.abs(candidate.scaleMapping.scaleX - expectedScaleX) > 0.0001
+      || Math.abs(candidate.scaleMapping.scaleY - expectedScaleY) > 0.0001
+    ) {
+      return rejectCoordinateCandidate(candidate.candidateRef, "candidate_mapping_unverified");
+    }
+
+    executableCoordinateSpace = candidate.scaleMapping.sourceCoordinateSpace;
+    executableBoundingBox = {
+      x: candidate.boundingBox.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
+      y: candidate.boundingBox.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
+      width: candidate.boundingBox.width * candidate.scaleMapping.scaleX,
+      height: candidate.boundingBox.height * candidate.scaleMapping.scaleY,
+    };
+    executableClickPoint = candidate.clickPoint
+      ? {
+          x: candidate.clickPoint.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
+          y: candidate.clickPoint.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
+        }
+      : null;
+    coordinateTrace = `candidate ${candidate.candidateRef} mapped from ai_input to ${executableCoordinateSpace}`;
+  }
+
+  return executableCoordinateSpace === "ai_input"
+    ? rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_non_executable")
+    : { executableCoordinateSpace, executableBoundingBox, executableClickPoint, coordinateTrace };
+}
+
+function inspectCoordinateCandidate(input: {
+  candidate: VisualTargetCandidate;
+  screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
+}): CoordinateCandidateInspection {
+  if (!isBoundingBoxInsideImage(input.candidate, input.screenshot.imageWidth, input.screenshot.imageHeight)) {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_bbox_out_of_bounds");
+  }
+
+  const executableShape = resolveExecutableCandidateShape(input);
+  if ("acceptedCandidate" in executableShape) {
+    return executableShape;
+  }
+
+  const acceptedCandidate: VisualTargetResolvedCandidate = {
+    ...input.candidate,
+    originalCoordinateSpace: input.candidate.coordinateSpace,
+    executableCoordinateSpace: executableShape.executableCoordinateSpace,
+    executableBoundingBox: executableShape.executableBoundingBox,
+    executableClickPoint: executableShape.executableClickPoint,
+    geometryScaleMapping: input.candidate.scaleMapping,
+  };
+
+  if (!isBoundingBoxInsideImage({ ...input.candidate, boundingBox: acceptedCandidate.executableBoundingBox }, input.screenshot.imageWidth, input.screenshot.imageHeight)) {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_bbox_out_of_bounds");
+  }
+  if (acceptedCandidate.executableClickPoint && !isPointInsideBoundingBox(acceptedCandidate.executableClickPoint, acceptedCandidate.executableBoundingBox)) {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_bbox_out_of_bounds");
+  }
+
+  return {
+    acceptedCandidate,
+    rejectedCandidateRef: null,
+    dataQualityFlag: null,
+    coordinateTrace: executableShape.coordinateTrace,
+  };
+}
+
+function createCoordinateSpaceFailure(input: {
+  candidates: VisualTargetCandidate[];
+  rejectedCandidateRefs: string[];
+  coordinateTransformTrace: string[];
+  dataQualityFlags: Set<VisualTargetDataQualityFlag>;
+}): CoordinateSpaceBlocked | CoordinateSpaceReviewRequired {
+  const flags = collectVisualTargetFlags(input.dataQualityFlags);
+  if (input.candidates.some((candidate) => candidate.coordinateSpace === "contact_sheet")) {
+    return createVisualTargetGateBlocked({
+      decision: "block",
+      failureReason: "contact_sheet_forbidden",
+      statusMessage: "Visual Target cannot return success from contact_sheet coordinates.",
+      dataQualityFlags: flags,
+      extra: { rejectedCandidateRefs: input.rejectedCandidateRefs, coordinateTransformTrace: input.coordinateTransformTrace },
+    });
+  }
+  if (
+    input.dataQualityFlags.has("candidate_coordinate_requires_mapping")
+    || input.dataQualityFlags.has("candidate_mapping_unverified")
+    || input.dataQualityFlags.has("candidate_coordinate_non_executable")
+  ) {
+    const failureReason = input.dataQualityFlags.has("candidate_mapping_unverified")
+      ? "invalid_scale_mapping"
+      : input.dataQualityFlags.has("candidate_coordinate_non_executable")
+        ? "ai_input_coordinate_non_executable"
+        : "ai_input_scale_mapping_missing";
+    return createVisualTargetGateReviewRequired({
+      decision: "review_required",
+      failureReason,
+      statusMessage: "Visual Target requires verified executable coordinate mapping before success.",
+      reviewRequiredReason: "Visual Target cannot accept non-executable coordinates for governed success.",
+      dataQualityFlags: flags,
+      extra: { rejectedCandidateRefs: input.rejectedCandidateRefs, coordinateTransformTrace: input.coordinateTransformTrace },
+    });
+  }
+  return createVisualTargetGateBlocked({
+    decision: "block",
+    failureReason: "bbox_out_of_bounds",
+    statusMessage: "Visual Target rejected every candidate because coordinates exceed screenshot bounds.",
+    dataQualityFlags: flags,
+    extra: { rejectedCandidateRefs: input.rejectedCandidateRefs, coordinateTransformTrace: input.coordinateTransformTrace },
+  });
+}
+
 export function validateCoordinateSpace(input: {
   request: ParsedVisualTargetAbilityInput;
   candidates: VisualTargetCandidate[];
-}):
-  | {
-      ok: true;
-      decision: "allow";
-      candidates: VisualTargetResolvedCandidate[];
-      rejectedCandidateRefs: string[];
-      coordinateTransformTrace: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    }
-  | {
-      ok: false;
-      status: "failed" | "review_required";
-      decision: "block" | "review_required";
-      failureReason: VisualTargetFailureReason;
-      statusMessage: string;
-      reviewRequiredReason: string | null;
-      rejectedCandidateRefs: string[];
-      coordinateTransformTrace: string[];
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    } {
+}): CoordinateSpaceAllow | CoordinateSpaceBlocked | CoordinateSpaceReviewRequired {
   const screenshot = input.request.sourceProof.screenshot;
   const accepted: VisualTargetResolvedCandidate[] = [];
   const rejectedCandidateRefs: string[] = [];
@@ -47,128 +203,33 @@ export function validateCoordinateSpace(input: {
   const flags = new Set<VisualTargetDataQualityFlag>();
 
   for (const candidate of input.candidates) {
-    if (candidate.coordinateSpace === "contact_sheet") {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      flags.add("candidate_coordinate_non_executable");
-      continue;
+    const inspection = inspectCoordinateCandidate({ candidate, screenshot });
+    if (inspection.rejectedCandidateRef) {
+      rejectedCandidateRefs.push(inspection.rejectedCandidateRef);
     }
-    if (!isBoundingBoxInsideImage(candidate, screenshot.imageWidth, screenshot.imageHeight)) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      flags.add("candidate_bbox_out_of_bounds");
-      continue;
+    if (inspection.dataQualityFlag) {
+      flags.add(inspection.dataQualityFlag);
     }
-    let executableCoordinateSpace = candidate.coordinateSpace;
-    let executableBoundingBox = candidate.boundingBox;
-    let executableClickPoint = candidate.clickPoint;
-
-    if (candidate.coordinateSpace === "ai_input") {
-      if (!candidate.scaleMapping) {
-        rejectedCandidateRefs.push(candidate.candidateRef);
-        flags.add("candidate_coordinate_requires_mapping");
-        continue;
-      }
-      const expectedScaleX = candidate.scaleMapping.sourceWidth / candidate.scaleMapping.targetWidth;
-      const expectedScaleY = candidate.scaleMapping.sourceHeight / candidate.scaleMapping.targetHeight;
-      if (
-        candidate.scaleMapping.sourceScreenshotEvidenceId !== screenshot.screenshotEvidenceId
-        || candidate.scaleMapping.targetCoordinateSpace !== "ai_input"
-        || Math.abs(candidate.scaleMapping.scaleX - expectedScaleX) > 0.0001
-        || Math.abs(candidate.scaleMapping.scaleY - expectedScaleY) > 0.0001
-      ) {
-        rejectedCandidateRefs.push(candidate.candidateRef);
-        flags.add("candidate_mapping_unverified");
-        continue;
-      }
-
-      executableCoordinateSpace = candidate.scaleMapping.sourceCoordinateSpace;
-      executableBoundingBox = {
-        x: candidate.boundingBox.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
-        y: candidate.boundingBox.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
-        width: candidate.boundingBox.width * candidate.scaleMapping.scaleX,
-        height: candidate.boundingBox.height * candidate.scaleMapping.scaleY,
-      };
-      executableClickPoint = candidate.clickPoint
-        ? {
-            x: candidate.clickPoint.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
-            y: candidate.clickPoint.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
-          }
-        : null;
-      coordinateTransformTrace.push(`candidate ${candidate.candidateRef} mapped from ai_input to ${executableCoordinateSpace}`);
+    if (inspection.coordinateTrace) {
+      coordinateTransformTrace.push(inspection.coordinateTrace);
     }
-
-    if (executableCoordinateSpace === "ai_input") {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      flags.add("candidate_coordinate_non_executable");
-      continue;
+    if (inspection.acceptedCandidate) {
+      accepted.push(inspection.acceptedCandidate);
     }
-
-    const resolvedCandidate: VisualTargetResolvedCandidate = {
-      ...candidate,
-      originalCoordinateSpace: candidate.coordinateSpace,
-      executableCoordinateSpace,
-      executableBoundingBox,
-      executableClickPoint,
-      geometryScaleMapping: candidate.scaleMapping,
-    };
-    if (!isBoundingBoxInsideImage({ ...candidate, boundingBox: executableBoundingBox }, screenshot.imageWidth, screenshot.imageHeight)) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      flags.add("candidate_bbox_out_of_bounds");
-      continue;
-    }
-    if (resolvedCandidate.executableClickPoint && !isPointInsideBoundingBox(resolvedCandidate.executableClickPoint, resolvedCandidate.executableBoundingBox)) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      flags.add("candidate_bbox_out_of_bounds");
-      continue;
-    }
-    accepted.push(resolvedCandidate);
   }
 
   if (accepted.length === 0) {
-    if (input.candidates.some((candidate) => candidate.coordinateSpace === "contact_sheet")) {
-      return {
-        ok: false,
-        status: "failed",
-        decision: "block",
-        failureReason: "contact_sheet_forbidden",
-        statusMessage: "Visual Target cannot return success from contact_sheet coordinates.",
-        reviewRequiredReason: null,
-        rejectedCandidateRefs,
-        coordinateTransformTrace,
-        dataQualityFlags: [...flags],
-      };
-    }
-    if (flags.has("candidate_coordinate_requires_mapping") || flags.has("candidate_mapping_unverified") || flags.has("candidate_coordinate_non_executable")) {
-      return {
-        ok: false,
-        status: "review_required",
-        decision: "review_required",
-        failureReason: flags.has("candidate_mapping_unverified") ? "invalid_scale_mapping" : flags.has("candidate_coordinate_non_executable") ? "ai_input_coordinate_non_executable" : "ai_input_scale_mapping_missing",
-        statusMessage: "Visual Target requires verified executable coordinate mapping before success.",
-        reviewRequiredReason: "Visual Target cannot accept non-executable coordinates for governed success.",
-        rejectedCandidateRefs,
-        coordinateTransformTrace,
-        dataQualityFlags: [...flags],
-      };
-    }
-    return {
-      ok: false,
-      status: "failed",
-      decision: "block",
-      failureReason: "bbox_out_of_bounds",
-      statusMessage: "Visual Target rejected every candidate because coordinates exceed screenshot bounds.",
-      reviewRequiredReason: null,
+    return createCoordinateSpaceFailure({
+      candidates: input.candidates,
       rejectedCandidateRefs,
       coordinateTransformTrace,
-      dataQualityFlags: [...flags],
-    };
+      dataQualityFlags: flags,
+    });
   }
 
-  return {
-    ok: true,
-    decision: "allow",
+  return createVisualTargetGateSuccess("allow", collectVisualTargetFlags(flags), {
     candidates: accepted,
     rejectedCandidateRefs,
     coordinateTransformTrace,
-    dataQualityFlags: [...flags],
-  };
+  });
 }
