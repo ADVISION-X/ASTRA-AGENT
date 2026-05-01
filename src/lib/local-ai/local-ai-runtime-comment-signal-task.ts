@@ -11,21 +11,16 @@ import {
   type RuntimeExecutionInput,
 } from "./local-ai-runtime-task-support.js";
 
-export async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
-  const request = input.request as Extract<typeof input.request, { taskType: "comments.intent_analysis" }>;
-  const promptParts = buildCommentPromptParts(request);
-  const promptFullText = isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined;
-  const aiInputArtifactRef = request.evidenceRefs[0]?.id;
-
-  await input.debugHook?.({
-    eventType: "local_ai_runtime_request_started",
-    detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=30000; commentCount=${request.input.cleanedComments.length}`,
-    taskType: request.taskType,
-    promptContractId: request.promptVersion,
-    promptVersion: request.promptVersion,
-    outputSchemaRef: request.schemaVersion,
+function buildCommentSignalDebugStartPayload(input: RuntimeExecutionInput, promptParts: ReturnType<typeof buildCommentPromptParts>, promptFullText: string | undefined, aiInputArtifactRef: string | undefined) {
+  return {
+    eventType: "local_ai_runtime_request_started" as const,
+    detail: `taskType=${input.request.taskType}; model=${input.roleConfig.model}; timeoutMs=30000; commentCount=${(input.request as Extract<typeof input.request, { taskType: "comments.intent_analysis" }>).input.cleanedComments.length}`,
+    taskType: input.request.taskType,
+    promptContractId: input.request.promptVersion,
+    promptVersion: input.request.promptVersion,
+    outputSchemaRef: input.request.schemaVersion,
     modelName: input.roleConfig.model,
-    modelRole: request.modelRole,
+    modelRole: input.request.modelRole,
     runtime: input.roleConfig.runtime,
     systemPromptText: promptParts.systemPrompt,
     userPromptText: promptParts.userPrompt,
@@ -34,7 +29,34 @@ export async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInp
     promptPreview: buildPromptPreview(promptParts.fullPrompt),
     ...(promptFullText ? { promptFullText } : {}),
     ...(aiInputArtifactRef ? { aiInputArtifactRef } : {}),
+  };
+}
+
+function buildCommentSignalResult(input: RuntimeExecutionInput, createdAt: string, payload: ReturnType<typeof CommentSignalPayloadSchema.parse>) {
+  return CommentSignalTaskResultSchema.parse({
+    id: input.request.id,
+    taskType: input.request.taskType,
+    modelRole: input.request.modelRole,
+    provider: "local",
+    runtime: input.roleConfig.runtime,
+    model: input.roleConfig.model,
+    implementationStatus: "model_backed",
+    promptVersion: input.request.promptVersion,
+    schemaVersion: input.request.schemaVersion,
+    evidenceRefs: input.request.evidenceRefs,
+    confidence: payload.confidence,
+    createdAt,
+    result: payload,
   });
+}
+
+export async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
+  const request = input.request as Extract<typeof input.request, { taskType: "comments.intent_analysis" }>;
+  const promptParts = buildCommentPromptParts(request);
+  const promptFullText = isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined;
+  const aiInputArtifactRef = request.evidenceRefs[0]?.id;
+
+  await input.debugHook?.(buildCommentSignalDebugStartPayload(input, promptParts, promptFullText, aiInputArtifactRef));
 
   const responseText = await input.ollamaAdapter.invokeTextTask({
     modelName: input.roleConfig.model,
@@ -50,19 +72,5 @@ export async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInp
     parsedJson: payload,
     parsedDecision: payload.purchaseIntent,
   });
-  return CommentSignalTaskResultSchema.parse({
-    id: request.id,
-    taskType: request.taskType,
-    modelRole: request.modelRole,
-    provider: "local",
-    runtime: input.roleConfig.runtime,
-    model: input.roleConfig.model,
-    implementationStatus: "model_backed",
-    promptVersion: request.promptVersion,
-    schemaVersion: request.schemaVersion,
-    evidenceRefs: request.evidenceRefs,
-    confidence: payload.confidence,
-    createdAt,
-    result: payload,
-  });
+  return buildCommentSignalResult(input, createdAt, payload);
 }

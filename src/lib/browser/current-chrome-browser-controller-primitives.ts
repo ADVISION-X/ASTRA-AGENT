@@ -106,20 +106,20 @@ const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: Abor
   await pressBrowserKey(BROWSER_TEXT_INPUT_KEY_CODES[key], abortSignal);
 };
 
-const scrollAt = async (
-  x: number,
-  y: number,
-  deltaX: number,
-  deltaY: number,
-  _coordinateSpace?: BrowserScrollCoordinateSpace,
-): Promise<void> => {
+const scrollAt = async (input: {
+  x: number;
+  y: number;
+  deltaX: number;
+  deltaY: number;
+  _coordinateSpace?: BrowserScrollCoordinateSpace;
+}): Promise<void> => {
   await runJxa(`
 ObjC.import('ApplicationServices');
-const point = $.CGPointMake(${x}, ${y});
+const point = $.CGPointMake(${input.x}, ${input.y});
 const moveEvent = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, $.kCGMouseButtonLeft);
 $.CGEventPost($.kCGHIDEventTap, moveEvent);
 delay(0.02);
-const scrollEvent = $.CGEventCreateScrollWheelEvent(null, $.kCGScrollEventUnitPixel, 2, ${Math.round(deltaY)}, ${Math.round(deltaX)});
+const scrollEvent = $.CGEventCreateScrollWheelEvent(null, $.kCGScrollEventUnitPixel, 2, ${Math.round(input.deltaY)}, ${Math.round(input.deltaX)});
 $.CGEventPost($.kCGHIDEventTap, scrollEvent);
 `);
 };

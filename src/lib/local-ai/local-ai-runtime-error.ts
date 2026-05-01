@@ -1,10 +1,4 @@
-export type LocalAiRuntimeErrorCode =
-  | "service_unreachable"
-  | "model_missing"
-  | "engine_missing"
-  | "missing_evidence"
-  | "invalid_output"
-  | "disabled_by_policy";
+import type { LocalAiRuntimeErrorCode } from "./local-ai-runtime-error-code.js";
 
 export class LocalAiRuntimeError extends Error {
   constructor(
@@ -17,6 +11,4 @@ export class LocalAiRuntimeError extends Error {
   }
 }
 
-export function isLocalAiRuntimeError(error: unknown): error is LocalAiRuntimeError {
-  return error instanceof LocalAiRuntimeError;
-}
+export type { LocalAiRuntimeErrorCode };

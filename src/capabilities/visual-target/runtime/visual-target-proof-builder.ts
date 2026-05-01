@@ -37,7 +37,7 @@ export type VisualTargetRuntimeTelemetry = {
   structuredRuntimeEventRef: string;
 };
 
-export function buildVisualTargetRuntimeProof(input: {
+type VisualTargetRuntimeProofInput = {
   request: ParsedVisualTargetAbilityInput | null;
   trace: VisualTargetFailureTrace;
   output: VisualTargetOutput | null;
@@ -53,8 +53,10 @@ export function buildVisualTargetRuntimeProof(input: {
   telemetry: VisualTargetRuntimeTelemetry;
   dataQualityFlags: VisualTargetDataQualityFlag[];
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-}): VisualTargetRuntimeProof {
-  return VisualTargetRuntimeProofSchema.parse({
+};
+
+function buildRuntimeProofIdentity(input: VisualTargetRuntimeProofInput) {
+  return {
     proofId: buildStableVisualTargetRef("visual-target-proof", [input.trace.inputRef, input.outputRef, input.status]),
     runId: buildStableVisualTargetRef("visual-target-run", [input.trace.sessionId, input.trace.childCapabilityId, input.trace.roundId, input.trace.videoVisitId]),
     missionId: input.trace.sessionId,
@@ -67,6 +69,11 @@ export function buildVisualTargetRuntimeProof(input: {
     sourceChildCapabilityId: input.trace.sourceChildCapabilityId,
     inputRef: input.trace.inputRef,
     outputRef: input.outputRef,
+  };
+}
+
+function buildRuntimeProofEvidence(input: VisualTargetRuntimeProofInput) {
+  return {
     diagnosticPayloadRef: input.telemetry.diagnosticPayloadRef,
     debugLogRef: input.telemetry.debugLogRef,
     structuredRuntimeEventRef: input.telemetry.structuredRuntimeEventRef,
@@ -80,6 +87,11 @@ export function buildVisualTargetRuntimeProof(input: {
     aiOutputPayloadHash: input.telemetry.aiOutputPayloadHash,
     pageStateProofRef: input.request?.sourceProof.pageState.pageStateProofRef ?? null,
     pageStateHash: input.telemetry.pageStateHash,
+  };
+}
+
+function buildRuntimeProofCandidateState(input: VisualTargetRuntimeProofInput) {
+  return {
     selectedTargetType: input.request?.targetType ?? input.trace.targetType,
     candidateCount: input.request?.candidates.length ?? 0,
     candidateSetHash: input.telemetry.candidateSetHash,
@@ -96,6 +108,11 @@ export function buildVisualTargetRuntimeProof(input: {
     geometryGuardHandoffRef: input.output?.geometryGuardHandoffRef ?? null,
     notExecutableUntilGeometryGuard: input.output?.notExecutableUntilGeometryGuard ?? false,
     geometryGuardHandoffRequired: input.output?.geometryGuardHandoffRequired ?? false,
+  };
+}
+
+function buildRuntimeProofOutcome(input: VisualTargetRuntimeProofInput) {
+  return {
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
@@ -122,5 +139,14 @@ export function buildVisualTargetRuntimeProof(input: {
       startedMonotonicMs: input.clock.startedMonotonicMs,
       endedMonotonicMs: input.clock.endedMonotonicMs,
     },
+  };
+}
+
+export function buildVisualTargetRuntimeProof(input: VisualTargetRuntimeProofInput): VisualTargetRuntimeProof {
+  return VisualTargetRuntimeProofSchema.parse({
+    ...buildRuntimeProofIdentity(input),
+    ...buildRuntimeProofEvidence(input),
+    ...buildRuntimeProofCandidateState(input),
+    ...buildRuntimeProofOutcome(input),
   });
 }

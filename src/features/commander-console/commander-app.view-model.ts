@@ -1,7 +1,7 @@
 import { localizeCommanderText } from "./locale.js";
 import type { CommanderConsoleViewModel } from "./types.js";
 import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, CommanderAppViewModel } from "./commander-app.types.js";
-import { buildActionableErrors } from "./view-helpers.js";
+import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
   if (value === "mission" || value === "results" || value === "review" || value === "health" || value === "developer") {
@@ -11,12 +11,8 @@ function parseCommanderAppPageId(value: string | null | undefined): CommanderApp
   return "home";
 }
 
-export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel, options?: {
-  initialPageId?: string | null;
-}): CommanderAppViewModel {
-  const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
-  const initialPageId = parseCommanderAppPageId(options?.initialPageId);
-  const navItems: CommanderAppNavItem[] = [
+function createCommanderAppNavItems(t: (zh: string, en: string) => string): CommanderAppNavItem[] {
+  return [
     { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
     { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
     { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
@@ -24,7 +20,10 @@ export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel,
     { pageId: "health", label: t("健康", "Health"), shortLabel: t("健康", "Health") },
     { pageId: "developer", label: t("开发者", "Developer"), shortLabel: t("开发者", "Dev"), requiresDeveloperMode: true },
   ];
-  const tabGroups: CommanderAppTabGroup[] = [
+}
+
+function createCommanderAppTabGroups(t: (zh: string, en: string) => string): CommanderAppTabGroup[] {
+  return [
     {
       pageId: "mission",
       groupId: "mission",
@@ -58,10 +57,16 @@ export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel,
       ],
     },
   ];
+}
 
-  const commonViewModel: Omit<CommanderAppViewModel, "initialPageId"> = {
-    navItems,
-    tabGroups,
+export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel, options?: {
+  initialPageId?: string | null;
+}): CommanderAppViewModel {
+  const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
+  return {
+    initialPageId: parseCommanderAppPageId(options?.initialPageId),
+    navItems: createCommanderAppNavItems(t),
+    tabGroups: createCommanderAppTabGroups(t),
     viewportGate: {
       minWidth: 900,
       maxWidth: 1366,
@@ -80,14 +85,4 @@ export function buildCommanderAppViewModel(viewModel: CommanderConsoleViewModel,
     },
     actionableErrors: buildActionableErrors(viewModel),
   };
-
-  return initialPageId === "home"
-    ? {
-        initialPageId: "home",
-        ...commonViewModel,
-      }
-    : {
-        initialPageId,
-        ...commonViewModel,
-      };
 }

@@ -1,4 +1,5 @@
-import { createEvidenceStoreForensicsArtifactStoragePort, createEvidenceStoreForensicsRecordStoragePort } from "./forensics-storage-adapter.js";
+import { createEvidenceStoreForensicsArtifactStoragePort } from "./forensics-artifact-storage-port.js";
+import { createEvidenceStoreForensicsRecordStoragePort } from "./forensics-record-storage-port.js";
 import { EvidenceStoreService } from "./evidence-store-service.js";
 import type { StructuredLogBus } from "../../local-runtime/structured-log-bus.js";
 

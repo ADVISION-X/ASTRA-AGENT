@@ -1,4 +1,5 @@
-import { escapeHtml, renderJsonBlock } from "../render-utils.js";
+import { renderJsonBlock } from "../render-advanced-utils.js";
+import { escapeHtml } from "../render-utils.js";
 import type { ActionableErrorView } from "../view-helpers.js";
 
 export function renderInspectError(item: ActionableErrorView): string {

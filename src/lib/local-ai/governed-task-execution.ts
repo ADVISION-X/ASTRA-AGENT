@@ -57,20 +57,29 @@ const resolveVisionClassification = (summary: string, tags: string[]) => {
   return !hasNegativeHint && hasProductHint;
 };
 
+const resolveVisibleProductTypes = (isProduct: boolean, tags: string[]) => {
+  return isProduct
+    ? tags.filter((tag) => ["product", "organizer", "storage", "kitchen", "bathroom", "tool", "gadget"].includes(tag))
+    : [];
+};
+
+const buildVisionEvidenceObservations = (summary: string) => {
+  return [summary.slice(0, 120)].filter((item) => item.length > 0);
+};
+
 const resolveVisionDecision = (summary: string, tags: string[]) => {
   const isUncertain = summary.includes("uncertain") || summary.includes("maybe");
   const isProduct = resolveVisionClassification(summary, tags);
+  const suggestedNextAction = isUncertain
+    ? "skip_or_operator_review"
+    : (isProduct ? "collect_metrics_like_marker_open_comments" : "click_not_interested_or_scroll_next");
   return {
     confidence: isUncertain ? 0.45 : 0.91,
     isProductVideo: isUncertain ? null : isProduct,
     reason: isProduct ? "summary contains product usage and utility hints" : "summary lacks product utility hints",
-    suggestedNextAction: isUncertain
-      ? "skip_or_operator_review"
-      : isProduct
-        ? "collect_metrics_like_marker_open_comments"
-        : "click_not_interested_or_scroll_next",
-    visibleProductTypes: isProduct ? tags.filter((tag) => ["product", "organizer", "storage", "kitchen", "bathroom", "tool", "gadget"].includes(tag)) : [],
-    evidenceObservations: [summary.slice(0, 120)].filter((item) => item.length > 0),
+    suggestedNextAction,
+    visibleProductTypes: resolveVisibleProductTypes(isProduct, tags),
+    evidenceObservations: buildVisionEvidenceObservations(summary),
     uncertainty: isUncertain ? ["product visibility is uncertain in the current screenshot"] : [],
     mustReview: false,
   } as const;

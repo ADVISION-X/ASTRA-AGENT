@@ -9,18 +9,24 @@ import {
   type RuntimeExecutionInput,
 } from "./local-ai-runtime-task-support.js";
 
-export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
-  const request = input.request as Extract<typeof input.request, { taskType: "vision.productPresence" }>;
+function resolveVisionRequestArtifacts(request: Extract<RuntimeExecutionInput["request"], { taskType: "vision.productPresence" }>) {
   const imagePaths = request.evidenceRefs.map((ref) => ref.filePath).filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0);
   const promptParts = buildVisionPromptParts(request);
-  const prompt = promptParts.fullPrompt;
-  const promptFullText = isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined;
-  const sourceScreenshotEvidenceId = typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined;
-  const aiInputArtifactRef = request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id;
+  return {
+    imagePaths,
+    promptParts,
+    prompt: promptParts.fullPrompt,
+    promptFullText: isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined,
+    sourceScreenshotEvidenceId: typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined,
+    aiInputArtifactRef: request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id,
+  };
+}
 
-  await input.debugHook?.({
-    eventType: "local_ai_runtime_request_started",
-    detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=60000; promptLength=${prompt.length}; imageCount=${imagePaths.length}`,
+function buildVisionDebugStartPayload(input: RuntimeExecutionInput, artifacts: ReturnType<typeof resolveVisionRequestArtifacts>) {
+  const request = input.request as Extract<typeof input.request, { taskType: "vision.productPresence" }>;
+  return {
+    eventType: "local_ai_runtime_request_started" as const,
+    detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=60000; promptLength=${artifacts.prompt.length}; imageCount=${artifacts.imagePaths.length}`,
     taskType: request.taskType,
     promptContractId: "vision.productPresence.v1",
     promptVersion: request.promptVersion,
@@ -28,24 +34,49 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     modelName: input.roleConfig.model,
     modelRole: request.modelRole,
     runtime: input.roleConfig.runtime,
-    systemPromptText: promptParts.systemPrompt,
-    userPromptText: promptParts.userPrompt,
-    systemPromptHash: hashText(promptParts.systemPrompt),
-    userPromptHash: hashText(promptParts.userPrompt),
-    promptPreview: buildPromptPreview(promptParts.fullPrompt),
-    ...(promptFullText ? { promptFullText } : {}),
-    ...(sourceScreenshotEvidenceId ? { sourceScreenshotEvidenceId } : {}),
-    ...(aiInputArtifactRef ? { aiInputArtifactRef } : {}),
+    systemPromptText: artifacts.promptParts.systemPrompt,
+    userPromptText: artifacts.promptParts.userPrompt,
+    systemPromptHash: hashText(artifacts.promptParts.systemPrompt),
+    userPromptHash: hashText(artifacts.promptParts.userPrompt),
+    promptPreview: buildPromptPreview(artifacts.promptParts.fullPrompt),
+    ...(artifacts.promptFullText ? { promptFullText: artifacts.promptFullText } : {}),
+    ...(artifacts.sourceScreenshotEvidenceId ? { sourceScreenshotEvidenceId: artifacts.sourceScreenshotEvidenceId } : {}),
+    ...(artifacts.aiInputArtifactRef ? { aiInputArtifactRef: artifacts.aiInputArtifactRef } : {}),
     imageInputs: request.evidenceRefs.map((ref) => ({
       refId: ref.id,
       filePath: ref.filePath ?? "",
     })),
+  };
+}
+
+function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, payload: ReturnType<typeof parseVisionRuntimeOutput>["payload"]) {
+  return VisionTaskResultSchema.parse({
+    id: input.request.id,
+    taskType: input.request.taskType,
+    modelRole: input.request.modelRole,
+    provider: "local",
+    runtime: input.roleConfig.runtime,
+    model: input.roleConfig.model,
+    implementationStatus: "model_backed",
+    promptVersion: input.request.promptVersion,
+    schemaVersion: input.request.schemaVersion,
+    evidenceRefs: input.request.evidenceRefs,
+    confidence: payload.confidence,
+    createdAt,
+    result: payload,
   });
+}
+
+export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
+  const request = input.request as Extract<typeof input.request, { taskType: "vision.productPresence" }>;
+  const artifacts = resolveVisionRequestArtifacts(request);
+
+  await input.debugHook?.(buildVisionDebugStartPayload(input, artifacts));
 
   const responseText = await input.ollamaAdapter.invokeVisionTask({
     modelName: input.roleConfig.model,
-    prompt,
-    imagePaths,
+    prompt: artifacts.prompt,
+    imagePaths: artifacts.imagePaths,
     timeoutMs: 60_000,
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
@@ -65,19 +96,5 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     parsedDecision: payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain",
   });
 
-  return VisionTaskResultSchema.parse({
-    id: request.id,
-    taskType: request.taskType,
-    modelRole: request.modelRole,
-    provider: "local",
-    runtime: input.roleConfig.runtime,
-    model: input.roleConfig.model,
-    implementationStatus: "model_backed",
-    promptVersion: request.promptVersion,
-    schemaVersion: request.schemaVersion,
-    evidenceRefs: request.evidenceRefs,
-    confidence: payload.confidence,
-    createdAt,
-    result: payload,
-  });
+  return buildVisionTaskResult(input, createdAt, payload);
 }

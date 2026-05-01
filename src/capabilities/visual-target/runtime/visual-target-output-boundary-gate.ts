@@ -2,6 +2,15 @@ import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, Visua
 import { buildStableVisualTargetRef } from "../shared/visual-target-types.js";
 import type { ResolvedVisualTargetProfile } from "./visual-target-input-gate.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
+import {
+  collectVisualTargetFlags,
+  createVisualTargetGateBlocked,
+  createVisualTargetGateReviewRequired,
+  createVisualTargetGateSuccess,
+  type VisualTargetGateBlocked,
+  type VisualTargetGateReviewRequired,
+  type VisualTargetGateSuccess,
+} from "./visual-target-gate-results.js";
 
 const CRITICAL_FLAGS = new Set<VisualTargetDataQualityFlag>([
   "critical_data_quality",
@@ -18,62 +27,56 @@ function parseMetricValue(visibleText: string | null): number | null {
   return normalized ? Number.parseFloat(normalized[0]) : null;
 }
 
-export function validateVisualTargetOutputBoundary(input: {
+type VisualTargetCommonOutput = Omit<VisualTargetOutput, "targetNature" | "candidateClickPoint" | "executable" | "actionIntentCandidate" | "notExecutableUntilGeometryGuard" | "geometryGuardHandoffRequired" | "geometryGuardHandoffRef" | "geometryGuardHandoff" | "parsedValue" | "metricValue">;
+
+type OutputBoundaryAllow = VisualTargetGateSuccess<"allow", {
+  criticalDataQualityDecision: "clear";
+  output: VisualTargetOutput;
+}>;
+
+type OutputBoundaryBlocked = VisualTargetGateBlocked<"block", {
+  criticalDataQualityDecision: "block";
+}>;
+
+type OutputBoundaryReviewRequired = VisualTargetGateReviewRequired<"review_required", {
+  criticalDataQualityDecision: "review_required";
+}>;
+
+function createOutputBoundaryBlocked(
+  failureReason: VisualTargetFailureReason,
+  statusMessage: string,
+  dataQualityFlags: VisualTargetDataQualityFlag[],
+): OutputBoundaryBlocked {
+  return createVisualTargetGateBlocked({
+    decision: "block",
+    failureReason,
+    statusMessage,
+    dataQualityFlags,
+    extra: { criticalDataQualityDecision: "block" },
+  });
+}
+
+function createOutputBoundaryReview(
+  failureReason: VisualTargetFailureReason,
+  statusMessage: string,
+  reviewRequiredReason: string,
+  dataQualityFlags: VisualTargetDataQualityFlag[],
+): OutputBoundaryReviewRequired {
+  return createVisualTargetGateReviewRequired({
+    decision: "review_required",
+    failureReason,
+    statusMessage,
+    reviewRequiredReason,
+    dataQualityFlags,
+    extra: { criticalDataQualityDecision: "review_required" },
+  });
+}
+
+function buildCommonOutput(input: {
   request: ParsedVisualTargetAbilityInput;
-  profile: ResolvedVisualTargetProfile;
   selectedCandidate: VisualTargetResolvedCandidate;
-  accumulatedDataQualityFlags: VisualTargetDataQualityFlag[];
-}):
-  | {
-      ok: true;
-      decision: "allow";
-      criticalDataQualityDecision: "clear";
-      output: VisualTargetOutput;
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    }
-  | {
-      ok: false;
-      status: "failed" | "review_required";
-      decision: "block" | "review_required";
-      criticalDataQualityDecision: "review_required" | "block";
-      failureReason: VisualTargetFailureReason;
-      statusMessage: string;
-      reviewRequiredReason: string | null;
-      dataQualityFlags: VisualTargetDataQualityFlag[];
-    } {
-  const flags = new Set<VisualTargetDataQualityFlag>([
-    ...input.accumulatedDataQualityFlags,
-    ...input.selectedCandidate.dataQualityFlags,
-  ]);
-
-  if ([...flags].some((flag) => CRITICAL_FLAGS.has(flag))) {
-    return {
-      ok: false,
-      status: "failed",
-      decision: "block",
-      criticalDataQualityDecision: "block",
-      failureReason: "critical_data_quality",
-      statusMessage: "Visual Target output boundary detected critical data quality drift.",
-      reviewRequiredReason: null,
-      dataQualityFlags: [...flags],
-    };
-  }
-
-  if (input.selectedCandidate.confidence < input.profile.minimumConfidence) {
-    flags.add("low_confidence");
-    return {
-      ok: false,
-      status: "review_required",
-      decision: "review_required",
-      criticalDataQualityDecision: "review_required",
-      failureReason: "confidence_below_threshold",
-      statusMessage: "Visual Target output boundary rejected low-confidence success output.",
-      reviewRequiredReason: "Visual Target requires review because the selected candidate confidence is below threshold.",
-      dataQualityFlags: [...flags],
-    };
-  }
-
-  const commonOutput = {
+}): VisualTargetCommonOutput {
+  return {
     targetId: buildStableVisualTargetRef("visual-target", [input.request.childCapabilityId, input.request.inputRef, input.selectedCandidate.candidateRef]),
     sourceCandidateRef: input.selectedCandidate.candidateRef,
     sourceScreenshotEvidenceId: input.request.sourceProof.screenshot.screenshotEvidenceId,
@@ -87,92 +90,143 @@ export function validateVisualTargetOutputBoundary(input: {
     confidence: input.selectedCandidate.confidence,
     visibleText: input.selectedCandidate.visibleText ?? null,
   };
+}
 
+function buildActionOutput(input: {
+  commonOutput: VisualTargetCommonOutput;
+  selectedCandidate: VisualTargetResolvedCandidate;
+}): VisualTargetOutput {
+  const geometryGuardHandoffRef = buildStableVisualTargetRef("visual-target-geometry-handoff", [input.commonOutput.targetId, input.commonOutput.sourceCandidateRef]);
+  return {
+    targetNature: "action",
+    ...input.commonOutput,
+    candidateClickPoint: input.selectedCandidate.executableClickPoint,
+    executable: false,
+    actionIntentCandidate: true,
+    notExecutableUntilGeometryGuard: true,
+    geometryGuardHandoffRequired: true,
+    geometryGuardHandoffRef,
+    geometryGuardHandoff: {
+      handoffRef: geometryGuardHandoffRef,
+      handoffKind: "geometry-guard-public-contract-only",
+      executionBoundary: "not-executable-until-geometry-guard",
+      sourceScreenshotEvidenceId: input.commonOutput.sourceScreenshotEvidenceId,
+      sourceScreenshotProofRef: input.commonOutput.sourceScreenshotProofRef,
+      coordinateSpace: input.commonOutput.coordinateSpace,
+      originalCandidateCoordinateSpace: input.commonOutput.originalCandidateCoordinateSpace,
+      boundingBox: input.commonOutput.boundingBox,
+      clickPoint: input.selectedCandidate.executableClickPoint,
+      scaleMapping: input.selectedCandidate.geometryScaleMapping,
+    },
+    parsedValue: null,
+    metricValue: null,
+  };
+}
+
+function buildRegionOutput(commonOutput: VisualTargetCommonOutput): VisualTargetOutput {
+  return {
+    targetNature: "region",
+    ...commonOutput,
+    candidateClickPoint: null,
+    executable: false,
+    actionIntentCandidate: false,
+    notExecutableUntilGeometryGuard: false,
+    geometryGuardHandoffRequired: false,
+    geometryGuardHandoffRef: null,
+    geometryGuardHandoff: null,
+    parsedValue: null,
+    metricValue: null,
+  };
+}
+
+function buildMetricOutput(input: {
+  commonOutput: VisualTargetCommonOutput;
+  selectedCandidate: VisualTargetResolvedCandidate;
+}): VisualTargetOutput {
+  const parsedValue = parseMetricValue(input.selectedCandidate.visibleText ?? null);
+  return {
+    targetNature: "metric",
+    ...input.commonOutput,
+    candidateClickPoint: null,
+    executable: false,
+    actionIntentCandidate: false,
+    notExecutableUntilGeometryGuard: false,
+    geometryGuardHandoffRequired: false,
+    geometryGuardHandoffRef: null,
+    geometryGuardHandoff: null,
+    parsedValue,
+    metricValue: parsedValue,
+  };
+}
+
+function createAllowedOutputBoundaryResult(input: {
+  request: ParsedVisualTargetAbilityInput;
+  profile: ResolvedVisualTargetProfile;
+  selectedCandidate: VisualTargetResolvedCandidate;
+  commonOutput: VisualTargetCommonOutput;
+  outputFlags: VisualTargetDataQualityFlag[];
+}): OutputBoundaryAllow | OutputBoundaryReviewRequired {
   if (input.request.targetNature === "action") {
     if (!input.selectedCandidate.executableClickPoint || input.profile.geometryGuardHandoffPolicy !== "required") {
-      return {
-        ok: false,
-        status: "review_required",
-        decision: "review_required",
-        criticalDataQualityDecision: "review_required",
-        failureReason: "click_point_missing",
-        statusMessage: "Action target output must stay non-executable until Geometry Guard receives a candidate click point.",
-        reviewRequiredReason: "Visual Target requires review because the action output cannot be handed off safely.",
-        dataQualityFlags: [...flags, "output_boundary_violation"],
-      };
+      return createOutputBoundaryReview(
+        "click_point_missing",
+        "Action target output must stay non-executable until Geometry Guard receives a candidate click point.",
+        "Visual Target requires review because the action output cannot be handed off safely.",
+        [...input.outputFlags, "output_boundary_violation"],
+      );
     }
-    const geometryGuardHandoffRef = buildStableVisualTargetRef("visual-target-geometry-handoff", [commonOutput.targetId, commonOutput.sourceCandidateRef]);
-    return {
-      ok: true,
-      decision: "allow",
+    return createVisualTargetGateSuccess("allow", input.outputFlags, {
       criticalDataQualityDecision: "clear",
-      output: {
-        targetNature: "action",
-        ...commonOutput,
-        candidateClickPoint: input.selectedCandidate.executableClickPoint,
-        executable: false,
-        actionIntentCandidate: true,
-        notExecutableUntilGeometryGuard: true,
-        geometryGuardHandoffRequired: true,
-        geometryGuardHandoffRef,
-        geometryGuardHandoff: {
-          handoffRef: geometryGuardHandoffRef,
-          handoffKind: "geometry-guard-public-contract-only",
-          executionBoundary: "not-executable-until-geometry-guard",
-          sourceScreenshotEvidenceId: commonOutput.sourceScreenshotEvidenceId,
-          sourceScreenshotProofRef: commonOutput.sourceScreenshotProofRef,
-          coordinateSpace: commonOutput.coordinateSpace,
-          originalCandidateCoordinateSpace: commonOutput.originalCandidateCoordinateSpace,
-          boundingBox: commonOutput.boundingBox,
-          clickPoint: input.selectedCandidate.executableClickPoint,
-          scaleMapping: input.selectedCandidate.geometryScaleMapping,
-        },
-        parsedValue: null,
-        metricValue: null,
-      },
-      dataQualityFlags: [...flags],
-    };
+      output: buildActionOutput({ commonOutput: input.commonOutput, selectedCandidate: input.selectedCandidate }),
+    });
+  }
+  return input.request.targetNature === "region"
+    ? createVisualTargetGateSuccess("allow", input.outputFlags, {
+      criticalDataQualityDecision: "clear",
+      output: buildRegionOutput(input.commonOutput),
+    })
+    : createVisualTargetGateSuccess("allow", input.outputFlags, {
+      criticalDataQualityDecision: "clear",
+      output: buildMetricOutput({ commonOutput: input.commonOutput, selectedCandidate: input.selectedCandidate }),
+    });
+}
+
+export function validateVisualTargetOutputBoundary(input: {
+  request: ParsedVisualTargetAbilityInput;
+  profile: ResolvedVisualTargetProfile;
+  selectedCandidate: VisualTargetResolvedCandidate;
+  accumulatedDataQualityFlags: VisualTargetDataQualityFlag[];
+}): OutputBoundaryAllow | OutputBoundaryBlocked | OutputBoundaryReviewRequired {
+  const flags = new Set<VisualTargetDataQualityFlag>([
+    ...input.accumulatedDataQualityFlags,
+    ...input.selectedCandidate.dataQualityFlags,
+  ]);
+  const outputFlags = collectVisualTargetFlags(flags);
+
+  if ([...flags].some((flag) => CRITICAL_FLAGS.has(flag))) {
+    return createOutputBoundaryBlocked(
+      "critical_data_quality",
+      "Visual Target output boundary detected critical data quality drift.",
+      outputFlags,
+    );
   }
 
-  if (input.request.targetNature === "region") {
-    return {
-      ok: true,
-      decision: "allow",
-      criticalDataQualityDecision: "clear",
-      output: {
-        targetNature: "region",
-        ...commonOutput,
-        candidateClickPoint: null,
-        executable: false,
-        actionIntentCandidate: false,
-        notExecutableUntilGeometryGuard: false,
-        geometryGuardHandoffRequired: false,
-        geometryGuardHandoffRef: null,
-        geometryGuardHandoff: null,
-        parsedValue: null,
-        metricValue: null,
-      },
-      dataQualityFlags: [...flags],
-    };
+  if (input.selectedCandidate.confidence < input.profile.minimumConfidence) {
+    flags.add("low_confidence");
+    return createOutputBoundaryReview(
+      "confidence_below_threshold",
+      "Visual Target output boundary rejected low-confidence success output.",
+      "Visual Target requires review because the selected candidate confidence is below threshold.",
+      collectVisualTargetFlags(flags),
+    );
   }
 
-  return {
-    ok: true,
-    decision: "allow",
-    criticalDataQualityDecision: "clear",
-    output: {
-      targetNature: "metric",
-      ...commonOutput,
-      candidateClickPoint: null,
-      executable: false,
-      actionIntentCandidate: false,
-      notExecutableUntilGeometryGuard: false,
-      geometryGuardHandoffRequired: false,
-      geometryGuardHandoffRef: null,
-      geometryGuardHandoff: null,
-      parsedValue: parseMetricValue(input.selectedCandidate.visibleText ?? null),
-      metricValue: parseMetricValue(input.selectedCandidate.visibleText ?? null),
-    },
-    dataQualityFlags: [...flags],
-  };
+  const commonOutput = buildCommonOutput(input);
+  return createAllowedOutputBoundaryResult({
+    request: input.request,
+    profile: input.profile,
+    selectedCandidate: input.selectedCandidate,
+    commonOutput,
+    outputFlags,
+  });
 }

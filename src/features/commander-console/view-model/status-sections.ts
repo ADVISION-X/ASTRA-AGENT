@@ -13,6 +13,102 @@ function hasHealthAttention(dashboard: CommanderMissionDashboardView): boolean {
   return dashboard.health.some((entry) => entry.tone === "danger" || entry.tone === "warn");
 }
 
+function resolveRuntimeMetricTone(status: CommanderMissionDashboardView["runtime"]["runtimeStatus"]): "blocked" | "attention" | "ok" {
+  if (status === "failed") {
+    return "blocked";
+  }
+  if (status === "review_required") {
+    return "attention";
+  }
+  return "ok";
+}
+
+function buildReadyRatio(dashboard: CommanderMissionDashboardView, locale: Locale): string {
+  const totals = dashboard.auditSummary.totals;
+  return totals ? `${totals.passed}/${totals.inspectors}` : localizeCommanderText(locale, "未知", "unknown");
+}
+
+function buildPendingReviewLabel(pendingReviews: number, locale: Locale): string {
+  return pendingReviews === 0
+    ? localizeCommanderText(locale, "0 复核", "0 reviews")
+    : localizeCommanderText(locale, `${pendingReviews} 个复核`, `${pendingReviews} reviews`);
+}
+
+function createFailureItem(
+  id: string,
+  label: string,
+  severity: CommanderConsoleFailureItem["severity"],
+  detail: string,
+): CommanderConsoleFailureItem {
+  return { id, label, severity, detail };
+}
+
+function collectBlockingFailures(
+  dashboard: CommanderMissionDashboardView,
+  locale: Locale,
+): CommanderConsoleFailureItem[] {
+  const failures: CommanderConsoleFailureItem[] = [];
+
+  if (dashboard.runtime.reviewReason) {
+    failures.push(createFailureItem(
+      "review-reason",
+      localizeCommanderText(locale, "人工复核原因", "Review reason"),
+      "attention",
+      dashboard.runtime.reviewReason,
+    ));
+  }
+
+  if (dashboard.runtime.lastAiFailureReason) {
+    failures.push(createFailureItem(
+      "ai-failure",
+      localizeCommanderText(locale, "最近 AI 失败", "Latest AI failure"),
+      "blocked",
+      dashboard.runtime.lastAiFailureReason,
+    ));
+  }
+
+  if (dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission.requestedPlatform || !dashboard.mission.selectedMapId)) {
+    failures.push(createFailureItem(
+      "missing-start-binding",
+      localizeCommanderText(locale, "启动草案缺字段", "Start draft missing fields"),
+      "blocked",
+      localizeCommanderText(locale, "运行中的任务缺少已解析绑定，这是非法状态。", "A running mission is missing its resolved binding, which is an invalid state."),
+    ));
+  }
+
+  return failures;
+}
+
+function createClearFailure(locale: Locale): CommanderConsoleFailureItem {
+  return createFailureItem(
+    "clear",
+    localizeCommanderText(locale, "当前无阻断项", "No blocking findings"),
+    "ok",
+    localizeCommanderText(locale, "当前没有从 snapshot 派生出的阻断信号。", "No blocking signal is derived from the current snapshot."),
+  );
+}
+
+function applyReviewStatusSummary(
+  summary: CommanderConsoleViewModel["reviewQueueSummary"],
+  reviewStatus: CommanderMissionDashboardView["candidates"][number]["reviewStatus"],
+): CommanderConsoleViewModel["reviewQueueSummary"] {
+  if (reviewStatus === "approved") {
+    summary.approvedCount += 1;
+    return summary;
+  }
+  if (reviewStatus === "rejected") {
+    summary.rejectedCount += 1;
+    return summary;
+  }
+  if (reviewStatus === "archived" || reviewStatus === "hold") {
+    summary.archivedCount += 1;
+    return summary;
+  }
+
+  summary.pendingCount += 1;
+  return summary;
+}
+
 export function buildBadges(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
@@ -33,16 +129,14 @@ export function buildTopMetrics(
   locale: Locale,
   activeTaskTemplateLabel: string | null,
 ): CommanderConsoleViewModel["topMetrics"] {
-  const totals = dashboard.auditSummary.totals;
-  const readyRatio = totals ? `${totals.passed}/${totals.inspectors}` : localizeCommanderText(locale, "未知", "unknown");
   const pendingReviews = dashboard.candidates.filter((candidate) => candidate.reviewStatus === "pending").length;
 
   return [
-    { id: "runtime", label: localizeCommanderText(locale, "运行", "runtime"), value: dashboard.runtime.runtimeStatus, tone: dashboard.runtime.runtimeStatus === "failed" ? "blocked" : dashboard.runtime.runtimeStatus === "review_required" ? "attention" : "ok" },
+    { id: "runtime", label: localizeCommanderText(locale, "运行", "runtime"), value: dashboard.runtime.runtimeStatus, tone: resolveRuntimeMetricTone(dashboard.runtime.runtimeStatus) },
     { id: "task-template", label: localizeCommanderText(locale, "任务", "task"), value: activeTaskTemplateLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activeTaskTemplateLabel ? "ok" : "attention" },
     { id: "round", label: localizeCommanderText(locale, "轮次", "round"), value: `rnd_${String(dashboard.mission.currentRoundIndex).padStart(3, "0")}`, tone: dashboard.mission.currentRoundIndex > 0 ? "attention" : "ok" },
-    { id: "health", label: localizeCommanderText(locale, "健康", "health"), value: readyRatio, tone: totals?.blocking ? "attention" : "ok" },
-    { id: "pending", label: localizeCommanderText(locale, "待处理", "pending"), value: pendingReviews === 0 ? localizeCommanderText(locale, "0 复核", "0 reviews") : localizeCommanderText(locale, `${pendingReviews} 个复核`, `${pendingReviews} reviews`), tone: pendingReviews > 0 ? "attention" : "ok" },
+    { id: "health", label: localizeCommanderText(locale, "健康", "health"), value: buildReadyRatio(dashboard, locale), tone: dashboard.auditSummary.totals?.blocking ? "attention" : "ok" },
+    { id: "pending", label: localizeCommanderText(locale, "待处理", "pending"), value: buildPendingReviewLabel(pendingReviews, locale), tone: pendingReviews > 0 ? "attention" : "ok" },
   ];
 }
 
@@ -62,41 +156,14 @@ export function buildFailureRadar(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleFailureItem[] {
-  const failures: CommanderConsoleFailureItem[] = [];
-
-  if (dashboard.runtime.reviewReason) {
-    failures.push({ id: "review-reason", label: localizeCommanderText(locale, "人工复核原因", "Review reason"), severity: "attention", detail: dashboard.runtime.reviewReason });
-  }
-
-  if (dashboard.runtime.lastAiFailureReason) {
-    failures.push({ id: "ai-failure", label: localizeCommanderText(locale, "最近 AI 失败", "Latest AI failure"), severity: "blocked", detail: dashboard.runtime.lastAiFailureReason });
-  }
-
-  if (dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission.requestedPlatform || !dashboard.mission.selectedMapId)) {
-    failures.push({ id: "missing-start-binding", label: localizeCommanderText(locale, "启动草案缺字段", "Start draft missing fields"), severity: "blocked", detail: localizeCommanderText(locale, "运行中的任务缺少已解析绑定，这是非法状态。", "A running mission is missing its resolved binding, which is an invalid state.") });
-  }
-
-  if (failures.length === 0) {
-    failures.push({ id: "clear", label: localizeCommanderText(locale, "当前无阻断项", "No blocking findings"), severity: "ok", detail: localizeCommanderText(locale, "当前没有从 snapshot 派生出的阻断信号。", "No blocking signal is derived from the current snapshot.") });
-  }
-
-  return failures;
+  const failures = collectBlockingFailures(dashboard, locale);
+  return failures.length > 0 ? failures : [createClearFailure(locale)];
 }
 
 export function buildReviewSummary(
   dashboard: CommanderMissionDashboardView,
 ): CommanderConsoleViewModel["reviewQueueSummary"] {
   return dashboard.candidates.reduce<CommanderConsoleViewModel["reviewQueueSummary"]>((summary, candidate) => {
-    if (candidate.reviewStatus === "approved") {
-      summary.approvedCount += 1;
-    } else if (candidate.reviewStatus === "rejected") {
-      summary.rejectedCount += 1;
-    } else if (candidate.reviewStatus === "archived" || candidate.reviewStatus === "hold") {
-      summary.archivedCount += 1;
-    } else {
-      summary.pendingCount += 1;
-    }
-
-    return summary;
+    return applyReviewStatusSummary(summary, candidate.reviewStatus);
   }, { pendingCount: 0, approvedCount: 0, rejectedCount: 0, archivedCount: 0 });
 }

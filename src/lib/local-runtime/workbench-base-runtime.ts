@@ -1,6 +1,6 @@
 import { getDefaultLocalDataDir } from "./default-data-dir.js";
-import { createAiRuntime } from "./workbench-ai-runtime.js";
 import { createBrowserRuntime } from "./workbench-browser-runtime.js";
+import { createAiRuntime } from "../../capabilities/ai/runtime/workbench-ai-runtime-factory.js";
 import type { WorkbenchBaseRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
 import { createMouseClickRuntime } from "./workbench-mouse-click-runtime.js";
 import { createMouseScrollRuntime } from "./workbench-mouse-scroll-runtime.js";
@@ -8,7 +8,8 @@ import { createObservationRuntimes } from "./workbench-observation-runtime.js";
 import { createOpenRuntime } from "./workbench-open-runtime.js";
 import { createPersistenceRuntime } from "./workbench-persistence-runtime.js";
 import { createTextInputRuntime } from "./workbench-text-input-runtime.js";
-import { createStructuredTerminalLogListener, isStructuredLogStdoutEnabled, resolveStructuredLogLevel, StructuredLogBus } from "./structured-log-bus.js";
+import { StructuredLogBus } from "./structured-log-bus.js";
+import { createStructuredTerminalLogListener, isStructuredLogStdoutEnabled, resolveStructuredLogLevel } from "./structured-log-terminal.js";
 
 const createStructuredLogRuntime = (): StructuredLogBus => {
   const structuredLogBus = new StructuredLogBus();

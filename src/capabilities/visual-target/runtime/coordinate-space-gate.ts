@@ -49,66 +49,94 @@ type CoordinateCandidateInspection = {
   coordinateTrace: string | null;
 };
 
+type ExecutableCandidateShape = {
+  executableCoordinateSpace: VisualTargetCandidate["coordinateSpace"];
+  executableBoundingBox: VisualTargetCandidate["boundingBox"];
+  executableClickPoint: VisualTargetCandidate["clickPoint"];
+  coordinateTrace: string | null;
+};
+
 function rejectCoordinateCandidate(candidateRef: string, dataQualityFlag: VisualTargetDataQualityFlag): CoordinateCandidateInspection {
   return { acceptedCandidate: null, rejectedCandidateRef: candidateRef, dataQualityFlag, coordinateTrace: null };
+}
+
+function hasVerifiedScaleMapping(input: {
+  candidate: VisualTargetCandidate;
+  screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
+}): boolean {
+  if (!input.candidate.scaleMapping) {
+    return false;
+  }
+  const expectedScaleX = input.candidate.scaleMapping.sourceWidth / input.candidate.scaleMapping.targetWidth;
+  const expectedScaleY = input.candidate.scaleMapping.sourceHeight / input.candidate.scaleMapping.targetHeight;
+  return input.candidate.scaleMapping.sourceScreenshotEvidenceId === input.screenshot.screenshotEvidenceId
+    && input.candidate.scaleMapping.targetCoordinateSpace === "ai_input"
+    && Math.abs(input.candidate.scaleMapping.scaleX - expectedScaleX) <= 0.0001
+    && Math.abs(input.candidate.scaleMapping.scaleY - expectedScaleY) <= 0.0001;
+}
+
+function mapExecutableBoundingBox(candidate: VisualTargetCandidate): VisualTargetCandidate["boundingBox"] {
+  return {
+    x: candidate.boundingBox.x * candidate.scaleMapping!.scaleX + candidate.scaleMapping!.cropOffsetX,
+    y: candidate.boundingBox.y * candidate.scaleMapping!.scaleY + candidate.scaleMapping!.cropOffsetY,
+    width: candidate.boundingBox.width * candidate.scaleMapping!.scaleX,
+    height: candidate.boundingBox.height * candidate.scaleMapping!.scaleY,
+  };
+}
+
+function mapExecutableClickPoint(candidate: VisualTargetCandidate): VisualTargetCandidate["clickPoint"] {
+  return candidate.clickPoint
+    ? {
+        x: candidate.clickPoint.x * candidate.scaleMapping!.scaleX + candidate.scaleMapping!.cropOffsetX,
+        y: candidate.clickPoint.y * candidate.scaleMapping!.scaleY + candidate.scaleMapping!.cropOffsetY,
+      }
+    : null;
+}
+
+function resolveAiInputCandidateShape(input: {
+  candidate: VisualTargetCandidate;
+  screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
+}): ExecutableCandidateShape | CoordinateCandidateInspection {
+  if (!input.candidate.scaleMapping) {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_coordinate_requires_mapping");
+  }
+  if (!hasVerifiedScaleMapping(input)) {
+    return rejectCoordinateCandidate(input.candidate.candidateRef, "candidate_mapping_unverified");
+  }
+  return {
+    executableCoordinateSpace: input.candidate.scaleMapping.sourceCoordinateSpace,
+    executableBoundingBox: mapExecutableBoundingBox(input.candidate),
+    executableClickPoint: mapExecutableClickPoint(input.candidate),
+    coordinateTrace: `candidate ${input.candidate.candidateRef} mapped from ai_input to ${input.candidate.scaleMapping.sourceCoordinateSpace}`,
+  };
 }
 
 function resolveExecutableCandidateShape(input: {
   candidate: VisualTargetCandidate;
   screenshot: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
 }):
-  | {
-      executableCoordinateSpace: VisualTargetCandidate["coordinateSpace"];
-      executableBoundingBox: VisualTargetCandidate["boundingBox"];
-      executableClickPoint: VisualTargetCandidate["clickPoint"];
-      coordinateTrace: string | null;
-    }
+  | ExecutableCandidateShape
   | CoordinateCandidateInspection {
   const { candidate, screenshot } = input;
   if (candidate.coordinateSpace === "contact_sheet") {
     return rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_non_executable");
   }
-
-  let executableCoordinateSpace = candidate.coordinateSpace;
-  let executableBoundingBox = candidate.boundingBox;
-  let executableClickPoint = candidate.clickPoint;
-  let coordinateTrace: string | null = null;
-
-  if (candidate.coordinateSpace === "ai_input") {
-    if (!candidate.scaleMapping) {
-      return rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_requires_mapping");
-    }
-
-    const expectedScaleX = candidate.scaleMapping.sourceWidth / candidate.scaleMapping.targetWidth;
-    const expectedScaleY = candidate.scaleMapping.sourceHeight / candidate.scaleMapping.targetHeight;
-    if (
-      candidate.scaleMapping.sourceScreenshotEvidenceId !== screenshot.screenshotEvidenceId
-      || candidate.scaleMapping.targetCoordinateSpace !== "ai_input"
-      || Math.abs(candidate.scaleMapping.scaleX - expectedScaleX) > 0.0001
-      || Math.abs(candidate.scaleMapping.scaleY - expectedScaleY) > 0.0001
-    ) {
-      return rejectCoordinateCandidate(candidate.candidateRef, "candidate_mapping_unverified");
-    }
-
-    executableCoordinateSpace = candidate.scaleMapping.sourceCoordinateSpace;
-    executableBoundingBox = {
-      x: candidate.boundingBox.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
-      y: candidate.boundingBox.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
-      width: candidate.boundingBox.width * candidate.scaleMapping.scaleX,
-      height: candidate.boundingBox.height * candidate.scaleMapping.scaleY,
+  if (candidate.coordinateSpace !== "ai_input") {
+    return {
+      executableCoordinateSpace: candidate.coordinateSpace,
+      executableBoundingBox: candidate.boundingBox,
+      executableClickPoint: candidate.clickPoint,
+      coordinateTrace: null,
     };
-    executableClickPoint = candidate.clickPoint
-      ? {
-          x: candidate.clickPoint.x * candidate.scaleMapping.scaleX + candidate.scaleMapping.cropOffsetX,
-          y: candidate.clickPoint.y * candidate.scaleMapping.scaleY + candidate.scaleMapping.cropOffsetY,
-        }
-      : null;
-    coordinateTrace = `candidate ${candidate.candidateRef} mapped from ai_input to ${executableCoordinateSpace}`;
   }
 
-  return executableCoordinateSpace === "ai_input"
+  const executableShape = resolveAiInputCandidateShape({ candidate, screenshot });
+  if ("acceptedCandidate" in executableShape) {
+    return executableShape;
+  }
+  return executableShape.executableCoordinateSpace === "ai_input"
     ? rejectCoordinateCandidate(candidate.candidateRef, "candidate_coordinate_non_executable")
-    : { executableCoordinateSpace, executableBoundingBox, executableClickPoint, coordinateTrace };
+    : executableShape;
 }
 
 function inspectCoordinateCandidate(input: {

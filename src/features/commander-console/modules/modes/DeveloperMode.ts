@@ -1,22 +1,42 @@
 import type { CommanderConsoleViewModel } from "../../types.js";
 import { localizeCommanderText } from "../../locale.js";
-import { escapeHtml, renderCard, renderDataTable, renderStatusPill } from "../../render-utils.js";
+import { renderDataTable } from "../../render-advanced-utils.js";
+import { escapeHtml, renderCard, renderStatusPill } from "../../render-utils.js";
 
 import { renderAdvancedFields } from "../command/AdvancedFields.js";
 
-export function renderDeveloperMode(viewModel: CommanderConsoleViewModel): string {
+function renderHealthCard(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
-  const healthRows = viewModel.capabilityHealth.map((entry) => [
+  const rows = viewModel.capabilityHealth.map((entry) => [
     escapeHtml(entry.label),
     renderStatusPill(entry.tone, entry.tone === "danger" ? "blocked" : entry.tone === "warn" ? "attention" : "ok"),
     escapeHtml(entry.detail),
   ]);
-  const logRows = viewModel.runtimeProofTimeline.slice(0, 8).map((entry, index) => [
+  return renderCard(t("能力健康", "Capability Health"), t("开发者模式", "Developer Mode"), renderDataTable([
+    t("能力组", "Capability"),
+    t("状态", "Status"),
+    t("说明", "Detail"),
+  ], rows, t("暂无能力健康记录。", "No capability health records.")));
+}
+
+function renderLogPreviewCard(viewModel: CommanderConsoleViewModel): string {
+  const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
+  const rows = viewModel.runtimeProofTimeline.slice(0, 8).map((entry, index) => [
     escapeHtml(entry.createdAt),
     escapeHtml(entry.step),
     escapeHtml(entry.status),
     `<button type="button" class="cc-inline-button" data-inspect-kind="round" data-inspect-id="${escapeHtml(`${entry.step}-${index}`)}">${escapeHtml(t("检查", "Inspect"))}</button>`,
   ]);
+  return renderCard(t("结构化日志预览", "Structured Log Preview"), t("开发者模式", "Developer Mode"), renderDataTable([
+    t("时间", "Time"),
+    t("步骤", "Step"),
+    t("状态", "Status"),
+    t("调试包", "Debug Bundle"),
+  ], rows, t("当前没有运行日志。", "No runtime logs are available.")));
+}
+
+export function renderDeveloperMode(viewModel: CommanderConsoleViewModel): string {
+  const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
 
   return `<section class="cc-mode-surface cc-developer-surface" data-mode-surface="developer" hidden="hidden">
     <div class="cc-page-grid">
@@ -32,19 +52,10 @@ export function renderDeveloperMode(viewModel: CommanderConsoleViewModel): strin
         )}
       </div>
       <div class="cc-span-6">
-        ${renderCard(t("能力健康", "Capability Health"), t("开发者模式", "Developer Mode"), renderDataTable([
-          t("能力组", "Capability"),
-          t("状态", "Status"),
-          t("说明", "Detail"),
-        ], healthRows, t("暂无能力健康记录。", "No capability health records.")))}
+        ${renderHealthCard(viewModel)}
       </div>
       <div class="cc-span-6">
-        ${renderCard(t("结构化日志预览", "Structured Log Preview"), t("开发者模式", "Developer Mode"), renderDataTable([
-          t("时间", "Time"),
-          t("步骤", "Step"),
-          t("状态", "Status"),
-          t("调试包", "Debug Bundle"),
-        ], logRows, t("当前没有运行日志。", "No runtime logs are available.")))}
+        ${renderLogPreviewCard(viewModel)}
       </div>
     </div>
   </section>`;

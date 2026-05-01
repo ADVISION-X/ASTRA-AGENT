@@ -1,25 +1,52 @@
-import {
-  OperationalMapIdSchema,
-} from "../../capabilities/orchestration/schema.js";
-import type { RequestedPlatformId } from "../../capabilities/orchestration/contract.js";
-import type { CommanderHumanCommandEnvelope } from "../../capabilities/commander-console/contract.js";
-import type {
-  HumanCommandEnvelope,
-  HumanCommandResultEnvelope,
-} from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import type { HumanCommandDispatchInput } from "../../capabilities/nerve-bus/contract.js";
-import type { NerveBusHandledResult } from "../../capabilities/nerve-bus/ports/nerve-bus-handler-port.js";
-import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/ports/nerve-bus-transport-port.js";
-import { createId } from "./ids.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject, payloadValueToInteger, payloadValueToString } from "./workbench-payload.js";
 
+type HumanCommandType =
+  | "start-mission"
+  | "pause-mission"
+  | "resume-mission"
+  | "stop-mission"
+  | "emergency-stop"
+  | "approve-candidate"
+  | "reject-candidate"
+  | "mark-review-required"
+  | "hold-candidate";
+
+type HumanCommandStatus = "success" | "failed" | "review_required";
+
+type HumanCommandEnvelope = {
+  envelopeId: string;
+  commandId: string;
+  missionId: string;
+  mapId: string;
+  stepId: string;
+  inputRef: string;
+  commandType: HumanCommandType;
+};
+
+type HumanCommandResultEnvelope = {
+  envelopeId: string;
+  resultId: string;
+  status: HumanCommandStatus;
+  outputRef: string | null;
+  diagnosticPayloadRef: string | null;
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+};
+
+type HumanCommandHandledResult = {
+  envelope: HumanCommandResultEnvelope;
+  outputPayload: ReturnType<typeof buildPayloadDocument>;
+};
+
+type HumanCommandPayloadDocument = ReturnType<typeof buildPayloadDocument>;
+
 const buildHumanCommandResultEnvelope = (input: {
   envelope: HumanCommandEnvelope;
-  status: "success" | "failed" | "review_required";
+  status: HumanCommandStatus;
   summary: string;
   failureReason?: string | null;
-}): NerveBusHandledResult<HumanCommandResultEnvelope> => {
+}): HumanCommandHandledResult => {
   const outputPayload = buildPayloadDocument({
     documentType: "human.command.result",
     documentRef: `${input.envelope.commandId}:result`,
@@ -75,25 +102,23 @@ const handleStartMission = async (
   envelope: HumanCommandEnvelope,
   payload: Record<string, string | number | boolean | null>,
 ) => {
-  const requestedPlatformId = payloadValueToString(payload.requestedPlatformId) as RequestedPlatformId | null;
+  const requestedPlatformId = payloadValueToString(payload.requestedPlatformId);
   if (!requestedPlatformId) {
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
-  const parsedSelectedMapId = typeof payload.selectedMapId === "string"
-    ? OperationalMapIdSchema.safeParse(payload.selectedMapId)
-    : null;
+  const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
   const missionState = await runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     humanGoal: payloadValueToString(payload.humanGoal) ?? "Discover evidence-backed product opportunities from the active social feed.",
     requestedPlatform: requestedPlatformId,
-    preferredMapId: parsedSelectedMapId?.success ? parsedSelectedMapId.data : null,
+    preferredMapId: parsedSelectedMapId,
     taskTemplateId: payloadValueToString(payload.taskTemplateId),
     activationId: payloadValueToString(payload.activationId),
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: {
       requestedBy: "commander-console",
-      selectedMapId: parsedSelectedMapId?.success ? parsedSelectedMapId.data : null,
+      selectedMapId: parsedSelectedMapId,
       maxRounds: payloadValueToInteger(payload.maxRounds),
       maxMinutes: payloadValueToInteger(payload.maxMinutes),
       operatorNote: payloadValueToString(payload.operatorNote),
@@ -156,25 +181,65 @@ const handleCandidateReview = async (
   return buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Candidate ${candidate.id} is now ${candidate.reviewStatus}.` });
 };
 
+const routeMissionCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: HumanCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+): Promise<HumanCommandHandledResult> => {
+  switch (envelope.commandType) {
+    case "start-mission":
+      return handleStartMission(runtime, envelope, payload);
+    case "pause-mission":
+    case "resume-mission":
+    case "stop-mission":
+    case "emergency-stop":
+      return handleMissionControl(runtime, envelope, payloadValueToString(payload.operatorNote));
+    default:
+      return Promise.resolve(buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: `Unsupported mission command: ${envelope.commandType}.`, failureReason: `Unsupported mission command: ${envelope.commandType}.` }));
+  }
+};
+
+const routeCandidateCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: HumanCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+): Promise<HumanCommandHandledResult> => {
+  switch (envelope.commandType) {
+    case "approve-candidate":
+    case "reject-candidate":
+    case "mark-review-required":
+    case "hold-candidate":
+      return handleCandidateReview(runtime, envelope, payload);
+    default:
+      return Promise.resolve(buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: `Unsupported candidate command: ${envelope.commandType}.`, failureReason: `Unsupported candidate command: ${envelope.commandType}.` }));
+  }
+};
+
+const routeHumanCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: HumanCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+): Promise<HumanCommandHandledResult> => {
+  if (
+    envelope.commandType === "start-mission"
+    || envelope.commandType === "pause-mission"
+    || envelope.commandType === "resume-mission"
+    || envelope.commandType === "stop-mission"
+    || envelope.commandType === "emergency-stop"
+  ) {
+    return routeMissionCommand(runtime, envelope, payload);
+  }
+  return routeCandidateCommand(runtime, envelope, payload);
+};
+
 export const handleHumanCommandEnvelope = async (
   runtime: WorkbenchRuntime,
   envelope: HumanCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-): Promise<NerveBusHandledResult<HumanCommandResultEnvelope>> => {
+  inputPayload: HumanCommandPayloadDocument,
+): Promise<HumanCommandHandledResult> => {
   try {
     const payload = payloadDocumentToObject(inputPayload);
-    switch (envelope.commandType) {
-      case "start-mission": return handleStartMission(runtime, envelope, payload);
-      case "pause-mission":
-      case "resume-mission":
-      case "stop-mission":
-      case "emergency-stop": return handleMissionControl(runtime, envelope, payloadValueToString(payload.operatorNote));
-      case "approve-candidate":
-      case "reject-candidate":
-      case "mark-review-required":
-      case "hold-candidate": return handleCandidateReview(runtime, envelope, payload);
-      default: return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: `Unsupported human command: ${envelope.commandType}.`, failureReason: `Unsupported human command: ${envelope.commandType}.` });
-    }
+    return await routeHumanCommand(runtime, envelope, payload);
   } catch (error) {
     return buildHumanCommandResultEnvelope({
       envelope,
@@ -183,59 +248,4 @@ export const handleHumanCommandEnvelope = async (
       failureReason: error instanceof Error ? error.message : "Unknown human command transport failure",
     });
   }
-};
-
-export const buildHumanCommandDispatchInput = (
-  command: CommanderHumanCommandEnvelope,
-): HumanCommandDispatchInput => {
-  const commandId = createId("commander_command");
-  const inputPayload = buildPayloadDocument({
-    documentType: "human.command",
-    documentRef: `commander-console:${commandId}:input`,
-    summary: `Commander command ${command.commandType}`,
-    content: {
-      commandType: command.commandType,
-      targetMissionId: command.targetMissionId ?? null,
-      selectedMapId: command.selectedMapId ?? null,
-      requestedPlatformId: command.requestedPlatformId ?? null,
-      humanGoal: command.humanGoal ?? null,
-      maxRounds: command.maxRounds ?? null,
-      maxMinutes: command.maxMinutes ?? null,
-      operatorNote: command.operatorNote ?? null,
-      targetRecordId: command.targetRecordRef?.recordId ?? null,
-    },
-  });
-  return {
-    envelope: {
-      ...buildTransportEnvelopeBase({
-        channelId: "commander-to-orchestration",
-        envelopeId: `commander-console:${commandId}`,
-        missionId: command.targetMissionId ?? "human-command",
-        mapId: command.selectedMapId ?? "human-command",
-        stepId: command.commandType,
-        inputRef: inputPayload.documentRef,
-        payloadRefs: { input: inputPayload.documentRef },
-        summary: inputPayload.summary,
-        tags: ["commander-console", command.commandType],
-      }),
-      commandId,
-      envelopeKind: "human_command",
-      from: "commander-console",
-      to: "orchestration",
-      commandType: command.commandType,
-    },
-    inputPayload,
-  } satisfies HumanCommandDispatchInput;
-};
-
-export const describeHumanCommandTransportMessage = (
-  resultEnvelope: HumanCommandResultEnvelope,
-): string => {
-  if (resultEnvelope.status === "failed") {
-    return resultEnvelope.failureReason ?? "command transport failed";
-  }
-  if (resultEnvelope.status === "review_required") {
-    return resultEnvelope.failureReason ?? "command transport requires review";
-  }
-  return resultEnvelope.reviewRequiredReason ?? "command accepted";
 };

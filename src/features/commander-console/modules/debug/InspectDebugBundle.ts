@@ -1,6 +1,6 @@
 import type { CommanderConsoleViewModel } from "../../types.js";
 import { localizeCommanderText } from "../../locale.js";
-import { renderInspectButton } from "../../render-utils.js";
+import { renderInspectButton } from "../../render-advanced-utils.js";
 
 export function renderInspectDebugBundle(viewModel: CommanderConsoleViewModel, kind: "round" | "health" = "round"): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);

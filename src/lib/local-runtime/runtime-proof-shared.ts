@@ -1,6 +1,56 @@
 import type { RoundLifecycleEventStatus, RoundLifecycleStep } from "../../types/evidence-packet.js";
 import type { RuntimeDeliveryState } from "../../types/runtime.js";
-import { resolveRuntimeStepSkillId } from "./runtime-skill-support.js";
+
+const RUNTIME_STEP_TO_SKILL_ID: Partial<Record<RoundLifecycleStep, string>> = {
+  task_start: "write_structured_runtime_event",
+  open_target_page: "open_target_page",
+  detect_login_or_safety: "detect_captcha_or_safety",
+  wait_feed_ready: "wait_feed_ready",
+  single_video_round_start: "update_runtime_snapshot",
+  wait_video_stable: "wait_video_stable",
+  identify_current_video: "identify_current_video",
+  calibrate_geometry: "verify_geometry_still_valid",
+  screenshot_video_area: "detect_video_area",
+  record_video_evidence: "write_data_quality_flags",
+  ask_ai_product_presence: "ask_product_presence",
+  validate_ai_output: "validate_ai_schema",
+  branch: "branch_uncertain",
+  collect_pre_action_metrics: "detect_metric_like_count",
+  like_or_save_marker: "click_like_or_save_marker",
+  open_comments: "click_open_comments",
+  screenshot_comments: "detect_comment_panel",
+  extract_visible_comments: "detect_comment_panel",
+  summarize_comment_signals: "update_runtime_snapshot",
+  create_pending_candidate: "finalize_evidence_packet",
+  create_video_only_pending_candidate: "finalize_evidence_packet",
+  finalize_evidence_packet: "finalize_evidence_packet",
+  finalize_browse_ledger: "finalize_browse_ledger",
+  finalize_failed_or_review_record: "write_data_quality_flags",
+  decide_negative_action: "branch_product_no",
+  click_not_interested: "click_not_interested",
+  scroll_next_video: "scroll_next_video",
+  record_skip_reason: "write_data_quality_flags",
+  record_round_complete: "update_runtime_snapshot",
+  review_required: "update_runtime_snapshot",
+  stop: "update_runtime_snapshot",
+};
+
+const RUNTIME_EVENT_TYPE_TO_SKILL_ID: Partial<Record<string, string>> = {
+  sample_video_frames_started: "sample_frame_3s",
+  multi_frame_capture_completed: "validate_multiframe_evidence",
+  create_contact_sheet_completed: "create_contact_sheet",
+  step_timeout: "write_structured_runtime_event",
+};
+
+const resolveRuntimeStepSkillId = (step: RoundLifecycleStep, eventType?: string): string => {
+  if (eventType && RUNTIME_EVENT_TYPE_TO_SKILL_ID[eventType]) {
+    return RUNTIME_EVENT_TYPE_TO_SKILL_ID[eventType] ?? "update_runtime_snapshot";
+  }
+  if (step === "branch") {
+    return "branch_uncertain";
+  }
+  return RUNTIME_STEP_TO_SKILL_ID[step] ?? "update_runtime_snapshot";
+};
 
 const COMPLETED_EVENT_TYPES: Partial<Record<RoundLifecycleStep, string>> = {
   task_start: "task_started",

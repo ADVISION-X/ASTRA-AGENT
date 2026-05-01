@@ -1,6 +1,6 @@
-import { createConfiguredAiAbilityGroup } from "../../capabilities/ai/index.js";
-import { recordAiDebugEvent } from "./workbench-ai-debug.js";
-import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
+import { createConfiguredAiAbilityGroup } from "../index.js";
+import { recordAiDebugEvent } from "../../forensics-persistence/runtime/ai-debug-event-recorder.js";
+import type { WorkbenchBaseRuntime } from "../../../lib/local-runtime/workbench-contract.js";
 
 export const createAiRuntime = (runtime: Pick<WorkbenchBaseRuntime, "browserController" | "browserSessionConfig" | "forensicsPersistenceAbilityGroup">) =>
   createConfiguredAiAbilityGroup({

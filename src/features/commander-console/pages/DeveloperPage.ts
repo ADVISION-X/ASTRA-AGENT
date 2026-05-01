@@ -1,6 +1,7 @@
 import type { CommanderAppViewModel } from "../commander-app.types.js";
 import { localizeCommanderText } from "../locale.js";
-import { escapeHtml, renderCard, renderJsonBlock } from "../render-utils.js";
+import { renderJsonBlock } from "../render-advanced-utils.js";
+import { escapeHtml, renderCard } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 import { getActiveTaskTemplate } from "../view-helpers.js";
 import { renderPageHeader } from "../layout/PageHeader.js";

@@ -1,4 +1,4 @@
-import { isLocalAiRuntimeError } from "../../../lib/local-ai/local-ai-runtime-error.js";
+import { isLocalAiRuntimeError } from "../../../lib/local-ai/local-ai-runtime-error-guard.js";
 import { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";
 
 type ProtectedGatewayResult<TResult> =

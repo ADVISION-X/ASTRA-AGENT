@@ -1,6 +1,23 @@
 import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "./types.js";
 import { localizeCommanderText } from "./locale.js";
 
+const RUNTIME_STATE_LABELS = {
+  idle: ["未启动", "Not Started"],
+  running: ["运行中", "Running"],
+  paused: ["暂停", "Paused"],
+  review_required: ["复核中", "In Review"],
+  failed: ["出错", "Error"],
+  completed: ["已完成", "Completed"],
+} as const;
+
+const HUMAN_STEP_RULES = [
+  { keywords: ["capture", "screenshot"], label: ["正在截取当前视频画面", "Capturing the current video frame"] },
+  { keywords: ["prepare", "compress", "input"], label: ["正在整理图片给本地 AI", "Preparing the image for local AI"] },
+  { keywords: ["ask", "ai", "judge"], label: ["正在询问本地 AI", "Asking the local AI"] },
+  { keywords: ["write", "ledger", "evidence", "persist"], label: ["正在保存证据", "Saving evidence"] },
+  { keywords: ["browse", "open", "feed"], label: ["正在浏览 TikTok", "Browsing TikTok"] },
+] as const;
+
 function safeDate(value: string | null): number | null {
   if (!value) {
     return null;
@@ -52,25 +69,8 @@ function canRequestCandidateExport(_viewModel: CommanderConsoleViewModel): boole
 
 function formatRuntimeState(viewModel: CommanderConsoleViewModel): string {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
-  if (runtimeStatus === "idle") {
-    return localizeCommanderText(viewModel.locale, "未启动", "Not Started");
-  }
-  if (runtimeStatus === "running") {
-    return localizeCommanderText(viewModel.locale, "运行中", "Running");
-  }
-  if (runtimeStatus === "paused") {
-    return localizeCommanderText(viewModel.locale, "暂停", "Paused");
-  }
-  if (runtimeStatus === "review_required") {
-    return localizeCommanderText(viewModel.locale, "复核中", "In Review");
-  }
-  if (runtimeStatus === "failed") {
-    return localizeCommanderText(viewModel.locale, "出错", "Error");
-  }
-  if (runtimeStatus === "completed") {
-    return localizeCommanderText(viewModel.locale, "已完成", "Completed");
-  }
-  return runtimeStatus;
+  const labels = RUNTIME_STATE_LABELS[runtimeStatus as keyof typeof RUNTIME_STATE_LABELS];
+  return labels ? localizeCommanderText(viewModel.locale, labels[0], labels[1]) : runtimeStatus;
 }
 
 function formatElapsed(viewModel: CommanderConsoleViewModel): string {
@@ -104,20 +104,9 @@ function buildHumanStepLabel(viewModel: CommanderConsoleViewModel): string {
   if (runtimeStatus === "idle") {
     return localizeCommanderText(viewModel.locale, "等待你启动任务", "Waiting for you to start a task");
   }
-  if (currentStep.includes("capture") || currentStep.includes("screenshot")) {
-    return localizeCommanderText(viewModel.locale, "正在截取当前视频画面", "Capturing the current video frame");
-  }
-  if (currentStep.includes("prepare") || currentStep.includes("compress") || currentStep.includes("input")) {
-    return localizeCommanderText(viewModel.locale, "正在整理图片给本地 AI", "Preparing the image for local AI");
-  }
-  if (currentStep.includes("ask") || currentStep.includes("ai") || currentStep.includes("judge")) {
-    return localizeCommanderText(viewModel.locale, "正在询问本地 AI", "Asking the local AI");
-  }
-  if (currentStep.includes("write") || currentStep.includes("ledger") || currentStep.includes("evidence") || currentStep.includes("persist")) {
-    return localizeCommanderText(viewModel.locale, "正在保存证据", "Saving evidence");
-  }
-  if (currentStep.includes("browse") || currentStep.includes("open") || currentStep.includes("feed")) {
-    return localizeCommanderText(viewModel.locale, "正在浏览 TikTok", "Browsing TikTok");
+  const rule = HUMAN_STEP_RULES.find((candidate) => candidate.keywords.some((keyword) => currentStep.includes(keyword)));
+  if (rule) {
+    return localizeCommanderText(viewModel.locale, rule.label[0], rule.label[1]);
   }
   if (latestMessage.trim().length > 0) {
     return latestMessage;
@@ -150,101 +139,4 @@ function formatHealthStatus(viewModel: CommanderConsoleViewModel): string {
   }
   return localizeCommanderText(viewModel.locale, "运行健康", "Healthy");
 }
-
-type ActionableErrorView = {
-  id: string;
-  tone: "ok" | "attention" | "blocked";
-  title: string;
-  whatHappened: string;
-  why: string;
-  nextAction: string;
-  owner: string;
-};
-
-function buildActionableErrors(viewModel: CommanderConsoleViewModel): ActionableErrorView[] {
-  const locale = viewModel.locale;
-  const items: ActionableErrorView[] = [];
-  const reviewReason = viewModel.rawSnapshot.runtime.reviewReason ?? viewModel.rawSnapshot.mission.reviewRequiredReason;
-  const aiFailure = viewModel.rawSnapshot.runtime.lastAiFailureReason;
-  const missionFailure = viewModel.rawSnapshot.mission.failureReason;
-  const missionBindingHealth = viewModel.capabilityHealth.find((entry) => entry.id === "mission" && entry.tone !== "good");
-  const localAiHealth = viewModel.capabilityHealth.find((entry) => entry.id === "localAi" && entry.tone === "danger");
-
-  if (reviewReason) {
-    items.push({
-      id: "review-required",
-      tone: "attention",
-      title: localizeCommanderText(locale, "任务进入人工复核", "Task requires human review"),
-      whatHappened: localizeCommanderText(locale, "系统已经暂停自动推进，并把当前结果挂起等待你决定。", "The system stopped automatic progress and held the current result for your decision."),
-      why: reviewReason,
-      nextAction: localizeCommanderText(locale, "打开复核队列，检查当前记录后选择批准、拒绝，或继续保持待复核。", "Open the review queue, inspect the current record, then approve, reject, or keep it pending."),
-      owner: "Commander Console / Orchestration Review",
-    });
-  }
-
-  if (aiFailure) {
-    items.push({
-      id: "ai-failure",
-      tone: "blocked",
-      title: localizeCommanderText(locale, "本地 AI 没有完成当前判断", "Local AI could not complete the current judgement"),
-      whatHappened: localizeCommanderText(locale, "系统在判断当前视频时被本地 AI 拒绝或中断。", "The system was rejected or interrupted by the local AI while judging the current video."),
-      why: aiFailure,
-      nextAction: localizeCommanderText(locale, "停止任务，打开调试包，检查截图到 AI 输入链路是否完整，再重新开始。", "Stop the task, open the debug bundle, verify the screenshot-to-AI input chain, then restart."),
-      owner: "AI / Screenshot / Orchestration Map Dependency",
-    });
-  }
-
-  if (!aiFailure && localAiHealth) {
-    items.push({
-      id: "local-ai-readiness",
-      tone: "blocked",
-      title: localizeCommanderText(locale, "本地 AI 当前不可用", "Local AI is currently unavailable"),
-      whatHappened: localizeCommanderText(locale, "控制台已经启动，但当前任务启动前预检会被本地 AI 阻断。", "The console is running, but mission preflight is currently blocked by Local AI readiness."),
-      why: localAiHealth.detail,
-      nextAction: localizeCommanderText(locale, "启动 Ollama 或修复本地模型配置，然后重新运行预检。", "Start Ollama or repair the local model configuration, then run preflight again."),
-      owner: "AI Capability / Local AI Runtime",
-    });
-  }
-
-  if (missionBindingHealth) {
-    items.push({
-      id: "mission-binding",
-      tone: missionBindingHealth.tone === "warn" ? "attention" : "blocked",
-      title: localizeCommanderText(locale, "当前没有可执行的地图绑定", "No governed launch binding is currently available"),
-      whatHappened: localizeCommanderText(locale, "启动链路当前无法从已批准任务模板解析出受治理地图绑定。", "The launch flow cannot currently resolve a governed map binding from the approved task-template feed."),
-      why: missionBindingHealth.detail,
-      nextAction: missionBindingHealth.actionableMessage
-        ?? localizeCommanderText(locale, "先激活一个已批准任务模板，再重新开始任务。", "Activate an approved task template, then retry mission start."),
-      owner: missionBindingHealth.ownerResponsible ?? "Commander Console / Orchestration",
-    });
-  }
-
-  if (missionFailure) {
-    items.push({
-      id: "mission-failure",
-      tone: "blocked",
-      title: localizeCommanderText(locale, "任务没有继续推进", "The mission stopped progressing"),
-      whatHappened: localizeCommanderText(locale, "任务已经离开正常推进状态。", "The mission has left its normal execution path."),
-      why: missionFailure,
-      nextAction: localizeCommanderText(locale, "打开调试钻取查看最近关键事件，必要时急停后把调试包交给开发者。", "Open the debug drilldown for recent key events, then emergency stop and hand the debug bundle to a developer if needed."),
-      owner: "Commander Console / Nerve Bus / Orchestration",
-    });
-  }
-
-  if (items.length === 0) {
-    items.push({
-      id: "clear",
-      tone: "ok",
-      title: localizeCommanderText(locale, "当前没有阻断问题", "No blocking issue right now"),
-      whatHappened: localizeCommanderText(locale, "主流程没有发现需要你立即接管的错误。", "The main flow has not surfaced an error that needs immediate takeover."),
-      why: localizeCommanderText(locale, "最近的运行证明没有暴露阻断信号。", "Recent runtime proof does not expose a blocking signal."),
-      nextAction: localizeCommanderText(locale, "继续观察当前步骤；若状态停住不变，打开调试钻取。", "Keep watching the current step; open the debug drilldown if the state stops changing."),
-      owner: "Commander Console Read Model",
-    });
-  }
-
-  return items;
-}
-
-export { getActiveTaskTemplate, getRuntimeTone, canPauseMission, canResumeMission, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail, formatHealthStatus, buildActionableErrors };
-export type { ActionableErrorView };
+export { getActiveTaskTemplate, getRuntimeTone, canPauseMission, canResumeMission, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail, formatHealthStatus };

@@ -1,6 +1,6 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import type { VideoFrameSamplePointLabel } from "../../types/multi-frame-evidence.js";
-import { getVisionProductPresencePromptContract } from "./prompt-registry.js";
+import { VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT } from "./prompts/vision-product-presence.v1.js";
 
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
 
@@ -51,7 +51,7 @@ const buildVisionOutputExample = (request: VisionProductPresenceRequest) => ({
 });
 
 export const buildVisionPromptParts = (request: VisionProductPresenceRequest): VisionPromptParts => {
-  const contract = getVisionProductPresencePromptContract();
+  const contract = VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
   const userPrompt = [
     "Every key in the required schema is mandatory. If uncertain, keep the key and use null, [], or review_required-compatible values instead of omitting fields.",

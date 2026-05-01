@@ -1,6 +1,7 @@
 import type { CommanderConsoleViewModel } from "../../types.js";
 import { localizeCommanderText } from "../../locale.js";
-import { joinHtml, renderCard, renderDataTable } from "../../render-utils.js";
+import { renderDataTable } from "../../render-advanced-utils.js";
+import { joinHtml, renderCard } from "../../render-utils.js";
 
 export function renderDraftMapPanel(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);

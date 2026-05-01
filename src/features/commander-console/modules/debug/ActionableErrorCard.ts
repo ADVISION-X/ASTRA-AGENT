@@ -1,7 +1,7 @@
 import type { CommanderConsoleViewModel } from "../../types.js";
+import { buildActionableErrors } from "../../view-helper-actionable-errors.js";
 import { localizeCommanderText } from "../../locale.js";
 import { escapeHtml, joinHtml, renderCard, renderStatusPill } from "../../render-utils.js";
-import { buildActionableErrors } from "../../view-helpers.js";
 import { renderInspectDebugBundle } from "./InspectDebugBundle.js";
 
 export function renderActionableErrorCard(viewModel: CommanderConsoleViewModel): string {

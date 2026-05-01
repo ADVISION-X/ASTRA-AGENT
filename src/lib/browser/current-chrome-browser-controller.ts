@@ -108,7 +108,12 @@ export class CurrentChromeBrowserController implements BrowserController {
     if (input.deltaX === 0 && input.deltaY === 0) {
       return this.createActionResult({ message: `skipped zero scroll for ${input.targetLabel}`, ok: false, fallbackUsed: input.fallbackUsed ?? false });
     }
-    await scrollAt(Math.round(scrollX), Math.round(scrollY), input.deltaX, input.deltaY);
+    await scrollAt({
+      x: Math.round(scrollX),
+      y: Math.round(scrollY),
+      deltaX: input.deltaX,
+      deltaY: input.deltaY,
+    });
     await this.wait(1200);
     return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}`, fallbackUsed: input.fallbackUsed ?? false });
   }

@@ -1,6 +1,7 @@
 import type { CommanderAppViewModel } from "../commander-app.types.js";
 import { localizeCommanderText } from "../locale.js";
-import { escapeHtml, renderCard, renderTabPanels } from "../render-utils.js";
+import { renderTabPanels } from "../render-advanced-utils.js";
+import { escapeHtml, renderCard } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 import { renderPageHeader } from "../layout/PageHeader.js";
 import { renderCapabilityHealthList } from "../modules/CapabilityHealthList.js";

@@ -27,7 +27,7 @@ function resolveVisualTargetRefs(input: {
   return { debugLogRef, structuredRuntimeEventRef, diagnosticPayloadRef, outputRef };
 }
 
-export function buildVisualTargetResult(input: {
+type VisualTargetResultInput = {
   request: import("../contract.js").ParsedVisualTargetAbilityInput | null;
   trace: VisualTargetFailureTrace;
   status: "success" | "failed" | "review_required";
@@ -43,7 +43,42 @@ export function buildVisualTargetResult(input: {
   telemetry: Omit<VisualTargetRuntimeTelemetry, "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">;
   dataQualityFlags: VisualTargetDataQualityFlag[];
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-}): VisualTargetAbilityResult {
+};
+
+function buildVisualTargetResultPayload(input: {
+  result: VisualTargetResultInput;
+  refs: ReturnType<typeof resolveVisualTargetRefs>;
+  runtimeProof: ReturnType<typeof buildVisualTargetRuntimeProof>;
+}) {
+  return {
+    abilityGroupId: "visual-target",
+    childCapabilityId: input.result.trace.childCapabilityId,
+    targetNature: input.result.status === "success"
+      ? input.result.output?.targetNature ?? input.result.trace.targetNature
+      : input.result.trace.targetNature,
+    status: input.result.status,
+    sessionId: input.result.trace.sessionId,
+    roundId: input.result.trace.roundId,
+    videoVisitId: input.result.trace.videoVisitId,
+    targetType: input.result.status === "success"
+      ? input.result.request?.targetType ?? input.result.trace.targetType
+      : input.result.trace.targetType,
+    output: input.result.output,
+    failureReason: input.result.failureReason,
+    reviewRequiredReason: input.result.reviewRequiredReason,
+    statusMessage: input.result.statusMessage,
+    debugLogRef: input.refs.debugLogRef,
+    diagnosticPayloadRef: input.refs.diagnosticPayloadRef,
+    dataQualityFlags: input.result.dataQualityFlags,
+    startedAt: input.result.startedAt,
+    endedAt: input.result.endedAt,
+    createdAt: input.result.endedAt,
+    durationMs: input.result.durationMs,
+    runtimeProof: input.runtimeProof,
+  };
+}
+
+export function buildVisualTargetResult(input: VisualTargetResultInput): VisualTargetAbilityResult {
   const refs = resolveVisualTargetRefs({
     trace: input.trace,
     status: input.status,
@@ -74,26 +109,5 @@ export function buildVisualTargetResult(input: {
     clock: input.clock,
   });
 
-  return VisualTargetAbilityResultSchema.parse({
-    abilityGroupId: "visual-target",
-    childCapabilityId: input.trace.childCapabilityId,
-    targetNature: input.status === "success" ? input.output?.targetNature ?? input.trace.targetNature : input.trace.targetNature,
-    status: input.status,
-    sessionId: input.trace.sessionId,
-    roundId: input.trace.roundId,
-    videoVisitId: input.trace.videoVisitId,
-    targetType: input.status === "success" ? input.request?.targetType ?? input.trace.targetType : input.trace.targetType,
-    output: input.output,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    statusMessage: input.statusMessage,
-    debugLogRef: refs.debugLogRef,
-    diagnosticPayloadRef: refs.diagnosticPayloadRef,
-    dataQualityFlags: input.dataQualityFlags,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    createdAt: input.endedAt,
-    durationMs: input.durationMs,
-    runtimeProof,
-  });
+  return VisualTargetAbilityResultSchema.parse(buildVisualTargetResultPayload({ result: input, refs, runtimeProof }));
 }
