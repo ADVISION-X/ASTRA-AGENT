@@ -2,7 +2,9 @@ import type { IncomingMessage } from "node:http";
 
 import { createId } from "../lib/local-runtime/ids.js";
 import { parseJsonBody } from "./workbench-api-helpers.js";
-import { normalizePositiveInteger, normalizeRequestedPlatformId, resolveMissionStartBinding, type MissionStartBindingResult } from "./task-start-binding.js";
+import { resolveMissionStartBinding } from "./task-start-binding.js";
+import { normalizePositiveInteger, normalizeRequestedPlatformId } from "./task-start-normalizers.js";
+import type { MissionStartBindingResult } from "./task-start-types.js";
 
 type StartTaskRequestBody = {
   commandSource?: string;

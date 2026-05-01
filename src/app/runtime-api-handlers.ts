@@ -20,6 +20,67 @@ function writeJson(response: ServerResponse, statusCode: number, payload: unknow
   response.end(JSON.stringify(payload, null, 2));
 }
 
+async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL): Promise<boolean> {
+  if (url.pathname === "/api/runtime/health") {
+    writeJson(response, 200, await activeWorkbench.getHealthReport());
+    return true;
+  }
+  if (url.pathname === "/api/runtime/mission-readiness") {
+    writeJson(response, 200, await activeWorkbench.getMissionReadinessReport());
+    return true;
+  }
+  if (url.pathname === "/api/runtime/snapshot") {
+    writeJson(response, 200, await activeWorkbench.getCommanderConsoleSnapshot());
+    return true;
+  }
+  return false;
+}
+
+async function handleRuntimeTimelineRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL, tail: number): Promise<boolean> {
+  if (url.pathname === "/api/runtime/logs") {
+    writeJson(response, 200, await activeWorkbench.listRuntimeDebugEvents(tail));
+    return true;
+  }
+  if (url.pathname === "/api/runtime/actions") {
+    writeJson(response, 200, await activeWorkbench.listRuntimeDebugActions(tail));
+    return true;
+  }
+  return url.pathname === "/api/runtime/local-ai-controls"
+    ? (writeJson(response, 200, await activeWorkbench.getLocalAiRoleControls()), true)
+    : false;
+}
+
+async function handleRuntimeGetRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbench, url: URL, tail: number): Promise<boolean> {
+  if (await handleRuntimeReportRequest(response, activeWorkbench, url)) {
+    return true;
+  }
+  return handleRuntimeTimelineRequest(response, activeWorkbench, url, tail);
+}
+
+async function handleRuntimeLocalAiControlUpdate(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbench): Promise<boolean> {
+  if (request.method !== "POST") {
+    return false;
+  }
+  try {
+    const payload = await readJsonBody(request);
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Local AI control request body must be an object.");
+    }
+    const role = LocalAiModelRoleSchema.parse((payload as { role?: unknown }).role);
+    const enabled = (payload as { enabled?: unknown }).enabled;
+    if (typeof enabled !== "boolean") {
+      throw new Error("Local AI control request requires boolean enabled.");
+    }
+    writeJson(response, 200, await activeWorkbench.setLocalAiRoleStartupState({ role, enabled }));
+  } catch (error) {
+    writeJson(response, 400, {
+      error: "invalid_local_ai_control_request",
+      failureReason: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return true;
+}
+
 export async function handleRuntimeReadRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -29,59 +90,11 @@ export async function handleRuntimeReadRequest(
   const requestedTail = Number.parseInt(url.searchParams.get("tail") ?? "200", 10);
   const tail = Number.isFinite(requestedTail) ? requestedTail : 200;
 
-  if (request.method === "GET" && url.pathname === "/api/runtime/health") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.getHealthReport(), null, 2));
+  if (request.method === "GET" && await handleRuntimeGetRequest(response, activeWorkbench, url, tail)) {
     return true;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/runtime/mission-readiness") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.getMissionReadinessReport(), null, 2));
-    return true;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/runtime/snapshot") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.getCommanderConsoleSnapshot(), null, 2));
-    return true;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/runtime/logs") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.listRuntimeDebugEvents(tail), null, 2));
-    return true;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/runtime/actions") {
-    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify(await activeWorkbench.listRuntimeDebugActions(tail), null, 2));
-    return true;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/runtime/local-ai-controls") {
-    writeJson(response, 200, await activeWorkbench.getLocalAiRoleControls());
-    return true;
-  }
-
-  if (request.method === "POST" && url.pathname === "/api/runtime/local-ai-controls") {
-    try {
-      const payload = await readJsonBody(request);
-      if (!payload || typeof payload !== "object") {
-        throw new Error("Local AI control request body must be an object.");
-      }
-      const role = LocalAiModelRoleSchema.parse((payload as { role?: unknown }).role);
-      const enabled = (payload as { enabled?: unknown }).enabled;
-      if (typeof enabled !== "boolean") {
-        throw new Error("Local AI control request requires boolean enabled.");
-      }
-      writeJson(response, 200, await activeWorkbench.setLocalAiRoleStartupState({ role, enabled }));
-    } catch (error) {
-      writeJson(response, 400, {
-        error: "invalid_local_ai_control_request",
-        failureReason: error instanceof Error ? error.message : String(error),
-      });
-    }
+  if (url.pathname === "/api/runtime/local-ai-controls" && await handleRuntimeLocalAiControlUpdate(request, response, activeWorkbench)) {
     return true;
   }
 

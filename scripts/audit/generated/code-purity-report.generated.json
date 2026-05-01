@@ -1,36 +1,6 @@
 {
-  "generatedAt": "2026-05-01T01:18:20.300Z",
+  "generatedAt": "2026-05-01T01:24:23.397Z",
   "godFileInventory": [
-    {
-      "file": "src/app/task-start-binding.ts",
-      "lines": 254,
-      "fileType": "app/api handler",
-      "overLimitBy": 4,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-      "lines": 317,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 17,
-      "functionsOverLimit": [
-        "runPrimitiveClick"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
     {
       "file": "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
       "lines": 328,
@@ -212,6 +182,22 @@
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
@@ -478,6 +464,22 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-runtime/review-runtime-support.ts",
@@ -878,6 +880,22 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-runtime/review-runtime-support.ts",
       "lines": 289,
       "fileType": "ordinary implementation",
@@ -1137,85 +1155,23 @@
   ],
   "oversizedTouchedFileInventory": [
     {
-      "file": "src/app/task-start-binding.ts",
-      "lines": 254,
-      "fileType": "app/api handler",
-      "overLimitBy": 4,
-      "functionsOverLimit": [],
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
       "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
+      "importCount": 5,
+      "crossOwnerImports": 3,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "functionOverLimitInventory": [
-    {
-      "file": "src/app/runtime-api-handlers.ts",
-      "lines": 90,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "handleRuntimeReadRequest"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/app/task-start-command.ts",
-      "lines": 110,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "handleTaskStartOutcome"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/app/task-start-preflight.ts",
-      "lines": 200,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "recordCommandRejected"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime/ai-payload-budget-gate.ts",
-      "lines": 94,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateAiPayloadBudgetGate"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
     {
       "file": "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
       "lines": 273,
@@ -1352,18 +1308,19 @@
     },
     {
       "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-      "lines": 317,
+      "lines": 299,
       "fileType": "runtime/implementation",
-      "overLimitBy": 17,
+      "overLimitBy": 0,
       "functionsOverLimit": [
-        "runPrimitiveClick"
+        "runPrimitiveClick",
+        "resolvePrimitivePortResult"
       ],
       "classMembers": 0,
-      "importCount": 2,
+      "importCount": 3,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
-      "severity": "BLOCKING",
+      "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
@@ -3436,6 +3393,22 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-runtime/review-runtime-support.ts",
       "lines": 289,
       "fileType": "ordinary implementation",
@@ -3655,34 +3628,6 @@
     }
   ],
   "importExportOverLimitInventory": [
-    {
-      "file": "src/app/task-start-binding.ts",
-      "lines": 254,
-      "fileType": "app/api handler",
-      "overLimitBy": 4,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-      "lines": 262,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 13,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
     {
       "file": "src/capabilities/mouse-click/contract.ts",
       "lines": 58,
@@ -4420,6 +4365,22 @@
   ],
   "remediationQueue": [
     {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-runtime/runtime-proof-support.ts",
       "lines": 310,
       "fileType": "ordinary implementation",
@@ -4951,36 +4912,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-      "lines": 317,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 17,
-      "functionsOverLimit": [
-        "runPrimitiveClick"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/app/task-start-binding.ts",
-      "lines": 254,
-      "fileType": "app/api handler",
-      "overLimitBy": 4,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/page-state/schema.ts",
       "lines": 500,
       "fileType": "schema/type",
@@ -5119,6 +5050,23 @@
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
+      "lines": 299,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "functionsOverLimit": [
+        "runPrimitiveClick",
+        "resolvePrimitivePortResult"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "src/types/local-persistence.ts",
       "lines": 297,
       "fileType": "schema/type",
@@ -5213,20 +5161,6 @@
       "classMembers": 0,
       "importCount": 16,
       "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-      "lines": 262,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 13,
-      "crossOwnerImports": 1,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
@@ -5387,22 +5321,6 @@
       ],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
-    },
-    {
-      "file": "src/app/task-start-preflight.ts",
-      "lines": 200,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "recordCommandRejected"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
       "file": "src/capabilities/open/runtime/post-open-state-gate.ts",
@@ -6246,22 +6164,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/app/task-start-command.ts",
-      "lines": 110,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "handleTaskStartOutcome"
-      ],
-      "classMembers": 0,
-      "importCount": 5,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/orchestration/runtime/map-validation-gate.ts",
       "lines": 109,
       "fileType": "orchestration coordinator",
@@ -6440,22 +6342,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/runtime/ai-payload-budget-gate.ts",
-      "lines": 94,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "evaluateAiPayloadBudgetGate"
-      ],
-      "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
       "file": "src/types/agent-skill.ts",
       "lines": 94,
       "fileType": "schema/type",
@@ -6580,22 +6466,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/app/runtime-api-handlers.ts",
-      "lines": 90,
-      "fileType": "app/api handler",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "handleRuntimeReadRequest"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
       "file": "src/capabilities/post-action-verification/runtime/post-action-output-boundary-gate.ts",
@@ -7715,6 +7585,22 @@
   ],
   "firstPhysicalSplitPlan": [
     {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 361,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 61,
+      "functionsOverLimit": [
+        "sendBindingFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-runtime/runtime-proof-support.ts",
       "lines": 310,
       "fileType": "ordinary implementation",
@@ -7777,22 +7663,6 @@
       ],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by role: class-and-free-functions."
-    },
-    {
-      "file": "src/lib/local-runtime/workbench-human-command.ts",
-      "lines": 241,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "functionsOverLimit": [
-        "handleHumanCommandEnvelope"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ]
 }

@@ -65,29 +65,51 @@ function evaluateEvidencePacketBudget(request: ParsedAiAbilityInput): PayloadBud
   return allow();
 }
 
+function evaluateProductSignalPayloadBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision {
+  const productSignalInput = AiProductSignalSummaryInputSchema.parse(request.input);
+  return productSignalInput.videoSummary.length > MAX_PACKET_SUMMARY_LENGTH
+    ? blocked("payload_budget_summary_exceeded")
+    : allow();
+}
+
+function evaluateObservationTaskPayloadBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision | null {
+  return request.taskType === "product_presence_judgment"
+    || request.taskType === "visual_observation"
+    || request.taskType === "visual_target_candidate_analysis"
+    ? evaluateVisionPayloadBudget(request)
+    : null;
+}
+
+function evaluateCommentTaskPayloadBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision | null {
+  if (request.taskType === "ocr_cleanup") {
+    return evaluateCommentPayloadBudget(AiOcrCleanupInputSchema.parse(request.input).rawCommentBlocks);
+  }
+  return request.taskType === "comment_signal_summary"
+    ? evaluateCommentPayloadBudget(AiCommentSignalSummaryInputSchema.parse(request.input).cleanedComments)
+    : null;
+}
+
+function evaluateTaskPayloadBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision {
+  const observationDecision = evaluateObservationTaskPayloadBudget(request);
+  if (observationDecision) {
+    return observationDecision;
+  }
+  const commentDecision = evaluateCommentTaskPayloadBudget(request);
+  if (commentDecision) {
+    return commentDecision;
+  }
+  if (request.taskType === "product_signal_summary") {
+    return evaluateProductSignalPayloadBudget(request);
+  }
+  if (request.taskType === "evidence_packet_analysis") {
+    return evaluateEvidencePacketBudget(request);
+  }
+  return allow();
+}
+
 export function evaluateAiPayloadBudgetGate(request: ParsedAiAbilityInput): PayloadBudgetDecision {
   if (request.inputRefs.length > MAX_INPUT_REFS) {
     return blocked("payload_budget_input_refs_exceeded");
   }
-
-  switch (request.taskType) {
-    case "product_presence_judgment":
-    case "visual_observation":
-    case "visual_target_candidate_analysis":
-      return evaluateVisionPayloadBudget(request);
-    case "ocr_cleanup":
-      return evaluateCommentPayloadBudget(AiOcrCleanupInputSchema.parse(request.input).rawCommentBlocks);
-    case "comment_signal_summary":
-      return evaluateCommentPayloadBudget(AiCommentSignalSummaryInputSchema.parse(request.input).cleanedComments);
-    case "product_signal_summary": {
-      const productSignalInput = AiProductSignalSummaryInputSchema.parse(request.input);
-      return productSignalInput.videoSummary.length > MAX_PACKET_SUMMARY_LENGTH
-        ? blocked("payload_budget_summary_exceeded")
-        : allow();
-    }
-    case "evidence_packet_analysis":
-      return evaluateEvidencePacketBudget(request);
-    case "schema_validation_only":
-      return allow();
-  }
+  return evaluateTaskPayloadBudget(request);
 }

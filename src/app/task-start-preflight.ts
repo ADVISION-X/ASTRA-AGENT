@@ -2,8 +2,8 @@ import type { ServerResponse } from "node:http";
 
 import { GrassEyeWorkbench } from "../lib/local-runtime/workbench.js";
 import { sendJson } from "./task-api-response.js";
-import type { MissionStartBindingFailure, MissionStartBindingSuccess } from "./task-start-binding.js";
 import type { TaskStartDraft } from "./task-start-request-draft.js";
+import type { MissionStartBindingFailure, MissionStartBindingSuccess } from "./task-start-types.js";
 
 type MissionStartPreflight = Awaited<ReturnType<GrassEyeWorkbench["getMissionStartPreflight"]>>;
 

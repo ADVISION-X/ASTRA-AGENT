@@ -1,5 +1,6 @@
 import type { MouseClickAbilityContext, MouseClickCoordinateSpace, MouseClickButton, MouseClickCount } from "../contract.js";
 import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
+import { buildPrimitiveFailureResult, buildPrimitiveSuccessResult, type PrimitiveClickFailureResult, type PrimitiveClickResult } from "./primitive-click-runner-result.js";
 
 const MAX_CONCURRENT_CLICKS = 1;
 const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 3;
@@ -36,7 +37,7 @@ function recordSuccess() {
   primitiveRunnerState.circuitOpenUntilMs = 0;
 }
 
-export async function runPrimitiveClick(input: {
+type RunPrimitiveClickInput = {
   context: MouseClickAbilityContext;
   attemptRef: string;
   actionExecutionRef: string;
@@ -55,46 +56,195 @@ export async function runPrimitiveClick(input: {
   clickCount: MouseClickCount;
   timeoutMs: number;
   maxDurationMs: number;
-}): Promise<
-  | {
-      ok: true;
-      primitiveExecutionRef: string;
-      primitiveDecision: "succeeded";
-      startedAt: string;
-      endedAt: string;
-      durationMs: number;
-      statusMessage: string;
-      clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-      primitiveCallId: string;
-      primitiveStartedAt: string;
-      primitiveEndedAt: string;
-      timeoutDecision: "within_limit";
-      abortDecision: "not_requested";
-      circuitBreakerState: "closed";
-      portHangDetected: false;
-      primitivePortKind: string;
-    }
-  | {
-      ok: false;
-      failureReason: "primitive_failed" | "primitive_timeout" | "primitive_execution_ref_missing" | "primitive_threw" | "primitive_circuit_open" | "primitive_concurrency_guard" | "primitive_aborted";
-      primitiveDecision: "failed" | "threw" | "aborted";
-      primitiveExecutionRef: string | null;
-      startedAt: string;
-      endedAt: string;
-      durationMs: number;
-      statusMessage: string;
-      clock: { startedMonotonicMs: number; endedMonotonicMs: number };
-      dataQualityFlags: string[];
-      primitiveCallId: string;
-      primitiveStartedAt: string;
-      primitiveEndedAt: string;
-      timeoutDecision: "within_limit" | "timed_out";
-      abortDecision: "not_requested" | "timeout_abort_requested";
-      circuitBreakerState: "closed" | "open";
-      portHangDetected: boolean;
-      primitivePortKind: string;
-    }
-> {
+};
+
+type PrimitiveClockSnapshot = ReturnType<MouseClickAbilityContext["clock"]["now"]>;
+type PrimitivePortResult = Awaited<ReturnType<MouseClickAbilityContext["primitivePort"]["click"]>>;
+
+const buildImmediateFailure = (input: {
+  startedSnapshot: PrimitiveClockSnapshot;
+  primitiveCallId: string;
+  primitiveStartedAt: string;
+  failureReason: PrimitiveClickFailureResult["failureReason"];
+  statusMessage: string;
+  dataQualityFlags: string[];
+}): PrimitiveClickFailureResult => {
+  const endedSnapshot = input.startedSnapshot;
+  return buildPrimitiveFailureResult({
+    startedSnapshot: input.startedSnapshot,
+    endedSnapshot,
+    primitiveCallId: input.primitiveCallId,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitiveExecutionRef: null,
+    primitivePortKind: "browser-controller",
+    failureReason: input.failureReason,
+    primitiveDecision: "failed",
+    statusMessage: input.statusMessage,
+    dataQualityFlags: input.dataQualityFlags,
+    timeoutTriggered: false,
+    circuitOpenUntilMs: primitiveRunnerState.circuitOpenUntilMs,
+  });
+};
+
+const getImmediateRejection = (startedSnapshot: PrimitiveClockSnapshot, primitiveCallId: string, primitiveStartedAt: string): PrimitiveClickFailureResult | null => {
+  closeCircuitIfExpired(startedSnapshot.monotonicMs);
+  if (primitiveRunnerState.circuitOpenUntilMs > startedSnapshot.monotonicMs) {
+    return buildImmediateFailure({
+      startedSnapshot,
+      primitiveCallId,
+      primitiveStartedAt,
+      failureReason: "primitive_circuit_open",
+      statusMessage: "Mouse Click primitive circuit breaker is open.",
+      dataQualityFlags: ["primitive_circuit_open"],
+    });
+  }
+  if (primitiveRunnerState.activeClicks >= MAX_CONCURRENT_CLICKS) {
+    return buildImmediateFailure({
+      startedSnapshot,
+      primitiveCallId,
+      primitiveStartedAt,
+      failureReason: "primitive_concurrency_guard",
+      statusMessage: "Mouse Click primitive concurrency guard rejected the call.",
+      dataQualityFlags: ["primitive_concurrency_guard"],
+    });
+  }
+  return null;
+};
+
+const runPrimitivePortCall = async (
+  input: RunPrimitiveClickInput,
+  abortController: AbortController,
+  setTimeoutHandle: (handle: ReturnType<typeof setTimeout>) => void,
+  markTimeoutTriggered: () => void,
+): Promise<PrimitivePortResult> => {
+  return Promise.race([
+    input.context.primitivePort.click({
+      attemptRef: input.attemptRef,
+      actionExecutionRef: input.actionExecutionRef,
+      idempotencyKey: input.idempotencyKey,
+      sessionId: input.sessionId,
+      roundId: input.roundId,
+      videoVisitId: input.videoVisitId,
+      geometryGuardProofRef: input.geometryGuardProofRef,
+      sourceCoordinateProofRef: input.sourceCoordinateProofRef,
+      sourceTargetRef: input.sourceTargetRef,
+      coordinateSpace: input.coordinateSpace,
+      executableCoordinate: input.executableCoordinate,
+      button: input.button,
+      clickCount: input.clickCount,
+      targetLabel: input.targetLabel,
+      timeoutMs: input.timeoutMs,
+      postActionVerificationRequired: true,
+      operatorApprovalRef: input.operatorApprovalRef,
+      abortSignal: abortController.signal,
+    }),
+    new Promise<never>((_, reject) => {
+      const timeoutHandle = setTimeout(() => {
+        markTimeoutTriggered();
+        abortController.abort();
+        reject(new Error("Mouse Click primitive timed out before completion."));
+      }, input.timeoutMs);
+      setTimeoutHandle(timeoutHandle);
+    }),
+  ]);
+};
+
+const resolvePrimitivePortResult = (input: {
+  primitiveResult: PrimitivePortResult;
+  startedSnapshot: PrimitiveClockSnapshot;
+  endedSnapshot: PrimitiveClockSnapshot;
+  primitiveCallId: string;
+  primitiveStartedAt: string;
+  timeoutTriggered: boolean;
+  maxDurationMs: number;
+}): PrimitiveClickResult => {
+  const frame = {
+    startedSnapshot: input.startedSnapshot,
+    endedSnapshot: input.endedSnapshot,
+    primitiveCallId: input.primitiveCallId,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitivePortKind: input.primitiveResult.portKind,
+  };
+  const durationMs = Math.max(0, Math.round(input.endedSnapshot.monotonicMs - input.startedSnapshot.monotonicMs));
+  if (durationMs > input.maxDurationMs) {
+    recordFailure(input.endedSnapshot.monotonicMs);
+    return buildPrimitiveFailureResult({
+      ...frame,
+      primitiveExecutionRef: input.primitiveResult.primitiveExecutionRef,
+      failureReason: "primitive_timeout",
+      primitiveDecision: "failed",
+      statusMessage: `Mouse Click primitive exceeded maxDurationMs ${input.maxDurationMs}.`,
+      dataQualityFlags: ["primitive_duration_exceeded"],
+      timeoutTriggered: true,
+      circuitOpenUntilMs: primitiveRunnerState.circuitOpenUntilMs,
+    });
+  }
+  if (!input.primitiveResult.ok) {
+    recordFailure(input.endedSnapshot.monotonicMs);
+    return buildPrimitiveFailureResult({
+      ...frame,
+      primitiveExecutionRef: input.primitiveResult.primitiveExecutionRef,
+      failureReason: "primitive_failed",
+      primitiveDecision: "failed",
+      statusMessage: input.primitiveResult.message,
+      dataQualityFlags: ["primitive_failed"],
+      timeoutTriggered: input.timeoutTriggered,
+      circuitOpenUntilMs: primitiveRunnerState.circuitOpenUntilMs,
+    });
+  }
+  if (!input.primitiveResult.primitiveExecutionRef) {
+    recordFailure(input.endedSnapshot.monotonicMs);
+    return buildPrimitiveFailureResult({
+      ...frame,
+      primitiveExecutionRef: null,
+      failureReason: "primitive_execution_ref_missing",
+      primitiveDecision: "failed",
+      statusMessage: "Mouse Click primitive returned success without primitiveExecutionRef.",
+      dataQualityFlags: ["primitive_execution_ref_missing"],
+      timeoutTriggered: input.timeoutTriggered,
+      circuitOpenUntilMs: primitiveRunnerState.circuitOpenUntilMs,
+    });
+  }
+
+  recordSuccess();
+  return buildPrimitiveSuccessResult({
+    ...frame,
+    primitiveExecutionRef: input.primitiveResult.primitiveExecutionRef,
+    statusMessage: input.primitiveResult.message,
+  });
+};
+
+const resolveThrownPrimitiveFailure = (input: {
+  error: unknown;
+  startedSnapshot: PrimitiveClockSnapshot;
+  endedSnapshot: PrimitiveClockSnapshot;
+  primitiveCallId: string;
+  primitiveStartedAt: string;
+  timeoutTriggered: boolean;
+  aborted: boolean;
+}): PrimitiveClickFailureResult => {
+  recordFailure(input.endedSnapshot.monotonicMs);
+  return buildPrimitiveFailureResult({
+    startedSnapshot: input.startedSnapshot,
+    endedSnapshot: input.endedSnapshot,
+    primitiveCallId: input.primitiveCallId,
+    primitiveStartedAt: input.primitiveStartedAt,
+    primitiveExecutionRef: null,
+    primitivePortKind: "browser-controller",
+    failureReason: input.timeoutTriggered ? "primitive_timeout" : input.aborted ? "primitive_aborted" : "primitive_threw",
+    primitiveDecision: input.timeoutTriggered ? "failed" : input.aborted ? "aborted" : "threw",
+    statusMessage: input.timeoutTriggered
+      ? "Mouse Click primitive timed out before completion."
+      : input.error instanceof Error
+        ? input.error.message
+        : "Mouse Click primitive threw an unknown error.",
+    dataQualityFlags: input.timeoutTriggered ? ["primitive_timeout", "primitive_port_hang_detected"] : ["primitive_threw"],
+    timeoutTriggered: input.timeoutTriggered,
+    circuitOpenUntilMs: primitiveRunnerState.circuitOpenUntilMs,
+  });
+};
+
+export async function runPrimitiveClick(input: RunPrimitiveClickInput): Promise<PrimitiveClickResult> {
   const startedSnapshot = input.context.clock.now();
   const primitiveCallId = buildStableMouseClickRef("mouse-click-primitive-call", [
     input.actionExecutionRef,
@@ -102,54 +252,9 @@ export async function runPrimitiveClick(input: {
     startedSnapshot.monotonicMs,
   ]);
   const primitiveStartedAt = startedSnapshot.isoTimestamp;
-  closeCircuitIfExpired(startedSnapshot.monotonicMs);
-
-  if (primitiveRunnerState.circuitOpenUntilMs > startedSnapshot.monotonicMs) {
-    const endedSnapshot = input.context.clock.now();
-    return {
-      ok: false,
-      failureReason: "primitive_circuit_open",
-      primitiveDecision: "failed",
-      primitiveExecutionRef: null,
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      statusMessage: "Mouse Click primitive circuit breaker is open.",
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: ["primitive_circuit_open"],
-      primitiveCallId,
-      primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
-      timeoutDecision: "within_limit",
-      abortDecision: "not_requested",
-      circuitBreakerState: "open",
-      portHangDetected: false,
-      primitivePortKind: "browser-controller",
-    };
-  }
-
-  if (primitiveRunnerState.activeClicks >= MAX_CONCURRENT_CLICKS) {
-    const endedSnapshot = input.context.clock.now();
-    return {
-      ok: false,
-      failureReason: "primitive_concurrency_guard",
-      primitiveDecision: "failed",
-      primitiveExecutionRef: null,
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs: Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs)),
-      statusMessage: "Mouse Click primitive concurrency guard rejected the call.",
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: ["primitive_concurrency_guard"],
-      primitiveCallId,
-      primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
-      timeoutDecision: "within_limit",
-      abortDecision: "not_requested",
-      circuitBreakerState: "closed",
-      portHangDetected: false,
-      primitivePortKind: "browser-controller",
-    };
+  const immediateRejection = getImmediateRejection(startedSnapshot, primitiveCallId, primitiveStartedAt);
+  if (immediateRejection) {
+    return immediateRejection;
   }
 
   primitiveRunnerState.activeClicks += 1;
@@ -158,156 +263,33 @@ export async function runPrimitiveClick(input: {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   try {
-    const primitiveResult = await Promise.race([
-      input.context.primitivePort.click({
-        attemptRef: input.attemptRef,
-        actionExecutionRef: input.actionExecutionRef,
-        idempotencyKey: input.idempotencyKey,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        videoVisitId: input.videoVisitId,
-        geometryGuardProofRef: input.geometryGuardProofRef,
-        sourceCoordinateProofRef: input.sourceCoordinateProofRef,
-        sourceTargetRef: input.sourceTargetRef,
-        coordinateSpace: input.coordinateSpace,
-        executableCoordinate: input.executableCoordinate,
-        button: input.button,
-        clickCount: input.clickCount,
-        targetLabel: input.targetLabel,
-        timeoutMs: input.timeoutMs,
-        postActionVerificationRequired: true,
-        operatorApprovalRef: input.operatorApprovalRef,
-        abortSignal: abortController.signal,
-      }),
-      new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          timeoutTriggered = true;
-          abortController.abort();
-          reject(new Error("Mouse Click primitive timed out before completion."));
-        }, input.timeoutMs);
-      }),
-    ]);
+    const primitiveResult = await runPrimitivePortCall(
+      input,
+      abortController,
+      (handle) => { timeoutHandle = handle; },
+      () => { timeoutTriggered = true; },
+    );
     const endedSnapshot = input.context.clock.now();
-    const durationMs = Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs));
-
-    if (durationMs > input.maxDurationMs) {
-      recordFailure(endedSnapshot.monotonicMs);
-      return {
-        ok: false,
-        failureReason: "primitive_timeout",
-        primitiveDecision: "failed",
-        primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-        startedAt: startedSnapshot.isoTimestamp,
-        endedAt: endedSnapshot.isoTimestamp,
-        durationMs,
-        statusMessage: `Mouse Click primitive exceeded maxDurationMs ${input.maxDurationMs}.`,
-        clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-        dataQualityFlags: ["primitive_duration_exceeded"],
-        primitiveCallId,
-        primitiveStartedAt,
-        primitiveEndedAt: endedSnapshot.isoTimestamp,
-        timeoutDecision: "timed_out",
-        abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-        circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > endedSnapshot.monotonicMs ? "open" : "closed",
-        portHangDetected: timeoutTriggered,
-        primitivePortKind: primitiveResult.portKind,
-      };
-    }
-    if (!primitiveResult.ok) {
-      recordFailure(endedSnapshot.monotonicMs);
-      return {
-        ok: false,
-        failureReason: "primitive_failed",
-        primitiveDecision: "failed",
-        primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-        startedAt: startedSnapshot.isoTimestamp,
-        endedAt: endedSnapshot.isoTimestamp,
-        durationMs,
-        statusMessage: primitiveResult.message,
-        clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-        dataQualityFlags: ["primitive_failed"],
-        primitiveCallId,
-        primitiveStartedAt,
-        primitiveEndedAt: endedSnapshot.isoTimestamp,
-        timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-        abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-        circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > endedSnapshot.monotonicMs ? "open" : "closed",
-        portHangDetected: timeoutTriggered,
-        primitivePortKind: primitiveResult.portKind,
-      };
-    }
-    if (!primitiveResult.primitiveExecutionRef) {
-      recordFailure(endedSnapshot.monotonicMs);
-      return {
-        ok: false,
-        failureReason: "primitive_execution_ref_missing",
-        primitiveDecision: "failed",
-        primitiveExecutionRef: null,
-        startedAt: startedSnapshot.isoTimestamp,
-        endedAt: endedSnapshot.isoTimestamp,
-        durationMs,
-        statusMessage: "Mouse Click primitive returned success without primitiveExecutionRef.",
-        clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-        dataQualityFlags: ["primitive_execution_ref_missing"],
-        primitiveCallId,
-        primitiveStartedAt,
-        primitiveEndedAt: endedSnapshot.isoTimestamp,
-        timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-        abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-        circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > endedSnapshot.monotonicMs ? "open" : "closed",
-        portHangDetected: timeoutTriggered,
-        primitivePortKind: primitiveResult.portKind,
-      };
-    }
-
-    recordSuccess();
-
-    return {
-      ok: true,
-      primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
-      primitiveDecision: "succeeded",
-      startedAt: startedSnapshot.isoTimestamp,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs,
-      statusMessage: primitiveResult.message,
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
+    return resolvePrimitivePortResult({
+      primitiveResult,
+      startedSnapshot,
+      endedSnapshot,
       primitiveCallId,
       primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
-      timeoutDecision: "within_limit",
-      abortDecision: "not_requested",
-      circuitBreakerState: "closed",
-      portHangDetected: false,
-      primitivePortKind: primitiveResult.portKind,
-    };
+      timeoutTriggered,
+      maxDurationMs: input.maxDurationMs,
+    });
   } catch (error) {
     const endedSnapshot = input.context.clock.now();
-    const durationMs = Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs));
-    recordFailure(endedSnapshot.monotonicMs);
-    return {
-      ok: false,
-      failureReason: timeoutTriggered ? "primitive_timeout" : abortController.signal.aborted ? "primitive_aborted" : "primitive_threw",
-      primitiveDecision: timeoutTriggered ? "failed" : abortController.signal.aborted ? "aborted" : "threw",
-      primitiveExecutionRef: null,
-      startedAt: primitiveStartedAt,
-      endedAt: endedSnapshot.isoTimestamp,
-      durationMs,
-      statusMessage: timeoutTriggered
-        ? "Mouse Click primitive timed out before completion."
-        : error instanceof Error
-          ? error.message
-          : "Mouse Click primitive threw an unknown error.",
-      clock: { startedMonotonicMs: startedSnapshot.monotonicMs, endedMonotonicMs: endedSnapshot.monotonicMs },
-      dataQualityFlags: timeoutTriggered ? ["primitive_timeout", "primitive_port_hang_detected"] : ["primitive_threw"],
+    return resolveThrownPrimitiveFailure({
+      error,
+      startedSnapshot,
+      endedSnapshot,
       primitiveCallId,
       primitiveStartedAt,
-      primitiveEndedAt: endedSnapshot.isoTimestamp,
-      timeoutDecision: timeoutTriggered ? "timed_out" : "within_limit",
-      abortDecision: timeoutTriggered ? "timeout_abort_requested" : "not_requested",
-      circuitBreakerState: primitiveRunnerState.circuitOpenUntilMs > endedSnapshot.monotonicMs ? "open" : "closed",
-      portHangDetected: timeoutTriggered,
-      primitivePortKind: "browser-controller",
-    };
+      timeoutTriggered,
+      aborted: abortController.signal.aborted,
+    });
   } finally {
     primitiveRunnerState.activeClicks = Math.max(0, primitiveRunnerState.activeClicks - 1);
     if (timeoutHandle) {
