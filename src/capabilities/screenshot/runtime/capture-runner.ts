@@ -5,6 +5,18 @@ import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotExecutionPlan, ScreenshotRunnerCaptureResult } from "./screenshot-child-contract.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
+function buildCaptureFailure(detail: string, timeout: boolean) {
+  return {
+    decision: { status: timeout ? "review_required" as const : "failed" as const, reason: timeout ? "capture_timeout" : "capture_failed" },
+    captureResult: null,
+    failure: createScreenshotFailure({
+      code: timeout ? "capture_timeout" : "capture_failed",
+      message: timeout ? "Screenshot capture timed out." : "Screenshot capture failed.",
+      detail,
+    }),
+  };
+}
+
 async function runAbortableCapture<T>(input: {
   timeoutMs: number;
   invoke: (abortSignal: AbortSignal) => Promise<T>;
@@ -21,6 +33,63 @@ async function runAbortableCapture<T>(input: {
   }
 }
 
+async function runBrowserViewportCapture(input: {
+  plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }> & { operation: "browser-viewport" };
+  context: ScreenshotRuntimeContext;
+  timeoutMs: number;
+}) {
+  const captureResult = await runAbortableCapture({
+    timeoutMs: input.timeoutMs,
+    invoke: (abortSignal) => input.context.capturePort.captureBrowserViewport({
+      regionLabel: input.plan.regionLabel,
+      contentLines: input.plan.contentLines,
+      abortSignal,
+    }),
+  });
+  ScreenshotBrowserCaptureSchema.parse(captureResult.capture);
+  return {
+    decision: { status: "passed" as const, reason: null },
+    captureResult,
+    failure: null,
+  };
+}
+
+async function runDesktopScreenCapture(input: {
+  plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }> & { operation: "desktop-screen" };
+  context: ScreenshotRuntimeContext;
+  timeoutMs: number;
+  evidenceId: string;
+  createdAt: string;
+}) {
+  const captureResult = await runAbortableCapture({
+    timeoutMs: input.timeoutMs,
+    invoke: (abortSignal) => input.context.capturePort.captureDesktopScreen({
+      screenId: input.plan.screenId,
+      outputPath: path.join(input.context.artifactPort.getRootDir(), ".tmp", `${input.evidenceId}.png`),
+      createdAt: input.createdAt,
+      abortSignal,
+    }),
+  });
+  ScreenshotDesktopCaptureSchema.parse(captureResult.capture);
+  return {
+    decision: { status: "passed" as const, reason: null },
+    captureResult,
+    failure: null,
+  };
+}
+
+async function resolveCaptureRunner(input: {
+  plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }>;
+  context: ScreenshotRuntimeContext;
+  timeoutMs: number;
+  evidenceId: string;
+  createdAt: string;
+}) {
+  return input.plan.operation === "browser-viewport"
+    ? runBrowserViewportCapture({ plan: input.plan, context: input.context, timeoutMs: input.timeoutMs })
+    : runDesktopScreenCapture({ plan: input.plan, context: input.context, timeoutMs: input.timeoutMs, evidenceId: input.evidenceId, createdAt: input.createdAt });
+}
+
 export async function runCaptureRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }>;
   context: ScreenshotRuntimeContext;
@@ -33,51 +102,9 @@ export async function runCaptureRunner(input: {
   failure: ReturnType<typeof createScreenshotFailure> | null;
 }> {
   try {
-    if (input.plan.operation === "browser-viewport") {
-      const browserViewportPlan = input.plan;
-      const captureResult = await runAbortableCapture({
-        timeoutMs: input.timeoutMs,
-        invoke: (abortSignal) => input.context.capturePort.captureBrowserViewport({
-          regionLabel: browserViewportPlan.regionLabel,
-          contentLines: browserViewportPlan.contentLines,
-          abortSignal,
-        }),
-      });
-      ScreenshotBrowserCaptureSchema.parse(captureResult.capture);
-      return {
-        decision: { status: "passed", reason: null },
-        captureResult,
-        failure: null,
-      };
-    }
-
-    const desktopScreenPlan = input.plan;
-    const captureResult = await runAbortableCapture({
-      timeoutMs: input.timeoutMs,
-      invoke: (abortSignal) => input.context.capturePort.captureDesktopScreen({
-        screenId: desktopScreenPlan.screenId,
-        outputPath: path.join(input.context.artifactPort.getRootDir(), ".tmp", `${input.evidenceId}.png`),
-        createdAt: input.createdAt,
-        abortSignal,
-      }),
-    });
-    ScreenshotDesktopCaptureSchema.parse(captureResult.capture);
-    return {
-      decision: { status: "passed", reason: null },
-      captureResult,
-      failure: null,
-    };
+    return await resolveCaptureRunner(input);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    const timeout = detail.startsWith("timeout:") || detail.includes("AbortError");
-    return {
-      decision: { status: timeout ? "review_required" : "failed", reason: timeout ? "capture_timeout" : "capture_failed" },
-      captureResult: null,
-      failure: createScreenshotFailure({
-        code: timeout ? "capture_timeout" : "capture_failed",
-        message: timeout ? "Screenshot capture timed out." : "Screenshot capture failed.",
-        detail,
-      }),
-    };
+    return buildCaptureFailure(detail, detail.startsWith("timeout:") || detail.includes("AbortError"));
   }
 }

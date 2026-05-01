@@ -33,33 +33,33 @@ const confidenceNumber = z.number().min(0).max(1);
 const nonNegativeInt = z.number().int().nonnegative();
 const limitedString = (max: number) => z.string().min(1).max(max);
 
-export const VisualTargetChildCapabilityIdSchema = z.enum(VISUAL_TARGET_CHILD_CAPABILITY_IDS);
-export const VisualTargetStatusSchema = z.enum(VISUAL_TARGET_STATUSES);
-export const VisualTargetTypeSchema = z.enum(VISUAL_TARGET_TYPES);
-export const VisualTargetNatureSchema = z.enum(VISUAL_TARGET_NATURES);
-export const VisualTargetCandidateKindSchema = z.enum(VISUAL_TARGET_CANDIDATE_KINDS);
-export const VisualTargetCoordinateSpaceSchema = z.enum(VISUAL_TARGET_COORDINATE_SPACES);
-export const VisualTargetFailureReasonSchema = z.enum(VISUAL_TARGET_FAILURE_REASONS);
-export const VisualTargetDataQualityFlagSchema = z.enum(VISUAL_TARGET_DATA_QUALITY_FLAGS);
-export const VisualTargetPayloadBudgetDecisionSchema = z.enum(VISUAL_TARGET_PAYLOAD_BUDGET_DECISIONS);
-export const VisualTargetOutputBoundaryDecisionSchema = z.enum(VISUAL_TARGET_OUTPUT_BOUNDARY_DECISIONS);
-export const VisualTargetSourceBindingDecisionSchema = z.enum(VISUAL_TARGET_SOURCE_BINDING_DECISIONS);
-export const VisualTargetCriticalDataQualityDecisionSchema = z.enum(VISUAL_TARGET_CRITICAL_DATA_QUALITY_DECISIONS);
-export const VisualTargetGeometryHandoffDecisionSchema = z.enum(VISUAL_TARGET_GEOMETRY_HANDOFF_DECISIONS);
+const VisualTargetChildCapabilityIdSchema = z.enum(VISUAL_TARGET_CHILD_CAPABILITY_IDS);
+const VisualTargetStatusSchema = z.enum(VISUAL_TARGET_STATUSES);
+const VisualTargetTypeSchema = z.enum(VISUAL_TARGET_TYPES);
+const VisualTargetNatureSchema = z.enum(VISUAL_TARGET_NATURES);
+const VisualTargetCandidateKindSchema = z.enum(VISUAL_TARGET_CANDIDATE_KINDS);
+const VisualTargetCoordinateSpaceSchema = z.enum(VISUAL_TARGET_COORDINATE_SPACES);
+const VisualTargetFailureReasonSchema = z.enum(VISUAL_TARGET_FAILURE_REASONS);
+const VisualTargetDataQualityFlagSchema = z.enum(VISUAL_TARGET_DATA_QUALITY_FLAGS);
+const VisualTargetPayloadBudgetDecisionSchema = z.enum(VISUAL_TARGET_PAYLOAD_BUDGET_DECISIONS);
+const VisualTargetOutputBoundaryDecisionSchema = z.enum(VISUAL_TARGET_OUTPUT_BOUNDARY_DECISIONS);
+const VisualTargetSourceBindingDecisionSchema = z.enum(VISUAL_TARGET_SOURCE_BINDING_DECISIONS);
+const VisualTargetCriticalDataQualityDecisionSchema = z.enum(VISUAL_TARGET_CRITICAL_DATA_QUALITY_DECISIONS);
+const VisualTargetGeometryHandoffDecisionSchema = z.enum(VISUAL_TARGET_GEOMETRY_HANDOFF_DECISIONS);
 
-export const VisualBoundingBoxSchema = z.object({
+const VisualBoundingBoxSchema = z.object({
   x: finiteNumber,
   y: finiteNumber,
   width: z.number().positive(),
   height: z.number().positive(),
 }).strict();
 
-export const VisualClickPointSchema = z.object({
+const VisualClickPointSchema = z.object({
   x: finiteNumber,
   y: finiteNumber,
 }).strict();
 
-export const VisualTargetScaleMappingSchema = z.object({
+const VisualTargetScaleMappingSchema = z.object({
   sourceScreenshotEvidenceId: limitedString(160),
   sourceWidth: z.number().positive(),
   sourceHeight: z.number().positive(),
@@ -73,7 +73,7 @@ export const VisualTargetScaleMappingSchema = z.object({
   targetCoordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet"]),
 }).strict();
 
-export const VisualTargetScreenshotSourceProofSchema = z.object({
+const VisualTargetScreenshotSourceProofSchema = z.object({
   screenshotEvidenceId: limitedString(160),
   artifactRef: limitedString(200),
   screenshotProofRef: limitedString(200),
@@ -91,7 +91,7 @@ export const VisualTargetScreenshotSourceProofSchema = z.object({
   videoVisitId: nullableString,
 }).strict();
 
-export const VisualTargetAiSourceProofSchema = z.object({
+const VisualTargetAiSourceProofSchema = z.object({
   aiResultRef: limitedString(200),
   aiProofRef: limitedString(200),
   promptContractId: limitedString(160),
@@ -110,7 +110,7 @@ export const VisualTargetAiSourceProofSchema = z.object({
   modelRole: limitedString(120),
 }).strict();
 
-export const VisualTargetPageStateProofSchema = z.object({
+const VisualTargetPageStateProofSchema = z.object({
   pageStateProofRef: limitedString(200),
   pageStateType: limitedString(120),
   pageStateFingerprint: limitedString(200),
@@ -124,13 +124,13 @@ export const VisualTargetPageStateProofSchema = z.object({
   videoVisitId: nullableString,
 }).strict();
 
-export const VisualTargetOperatorApprovalProofSchema = z.object({
+const VisualTargetOperatorApprovalProofSchema = z.object({
   operatorApprovalRef: limitedString(200),
   approvedAt: z.string().datetime(),
   operatorId: limitedString(120),
 }).strict();
 
-export const VisualTargetSourceProofSchema = z.object({
+const VisualTargetSourceProofSchema = z.object({
   sourceProofRef: limitedString(200),
   screenshot: VisualTargetScreenshotSourceProofSchema,
   ai: VisualTargetAiSourceProofSchema.nullable().default(null),
@@ -138,7 +138,7 @@ export const VisualTargetSourceProofSchema = z.object({
   operatorApproval: VisualTargetOperatorApprovalProofSchema.nullable().default(null),
 }).strict();
 
-export const VisualTargetCandidateSchema = z.object({
+const VisualTargetCandidateSchema = z.object({
   candidateRef: limitedString(160),
   candidateKind: VisualTargetCandidateKindSchema,
   targetType: VisualTargetTypeSchema,
@@ -158,7 +158,7 @@ export const VisualTargetCandidateSchema = z.object({
   dataQualityFlags: z.array(VisualTargetDataQualityFlagSchema).max(30).default([]),
 }).strict();
 
-export const VisualTargetAbilityInputSchema = z.object({
+const VisualTargetAbilityInputSchema = z.object({
   abilityGroupId: z.literal(VISUAL_TARGET_ABILITY_GROUP_ID).default(VISUAL_TARGET_ABILITY_GROUP_ID),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
   sessionId: limitedString(160),
@@ -174,7 +174,7 @@ export const VisualTargetAbilityInputSchema = z.object({
   candidates: z.array(VisualTargetCandidateSchema).max(50),
 }).strict();
 
-export const VisualTargetGeometryGuardHandoffSchema = z.object({
+const VisualTargetGeometryGuardHandoffSchema = z.object({
   handoffRef: limitedString(200),
   handoffKind: z.literal(VISUAL_TARGET_GEOMETRY_HANDOFF_KIND),
   executionBoundary: z.literal(VISUAL_TARGET_EXECUTION_BOUNDARY),
@@ -187,7 +187,7 @@ export const VisualTargetGeometryGuardHandoffSchema = z.object({
   scaleMapping: VisualTargetScaleMappingSchema.nullable().default(null),
 }).strict();
 
-export const VisualTargetActionOutputSchema = z.object({
+const VisualTargetActionOutputSchema = z.object({
   targetNature: z.literal("action"),
   targetId: limitedString(200),
   sourceCandidateRef: limitedString(160),
@@ -212,7 +212,7 @@ export const VisualTargetActionOutputSchema = z.object({
   metricValue: z.null(),
 }).strict();
 
-export const VisualTargetRegionOutputSchema = z.object({
+const VisualTargetRegionOutputSchema = z.object({
   targetNature: z.literal("region"),
   targetId: limitedString(200),
   sourceCandidateRef: limitedString(160),
@@ -237,7 +237,7 @@ export const VisualTargetRegionOutputSchema = z.object({
   metricValue: z.null(),
 }).strict();
 
-export const VisualTargetMetricOutputSchema = z.object({
+const VisualTargetMetricOutputSchema = z.object({
   targetNature: z.literal("metric"),
   targetId: limitedString(200),
   sourceCandidateRef: limitedString(160),
@@ -262,7 +262,7 @@ export const VisualTargetMetricOutputSchema = z.object({
   metricValue: finiteNumber.nullable().default(null),
 }).strict();
 
-export const VisualTargetOutputSchema = z.discriminatedUnion("targetNature", [
+const VisualTargetOutputSchema = z.discriminatedUnion("targetNature", [
   VisualTargetActionOutputSchema,
   VisualTargetRegionOutputSchema,
   VisualTargetMetricOutputSchema,
@@ -290,7 +290,7 @@ const VisualTargetBaseResultSchema = z.object({
   durationMs: nonNegativeInt,
 }).strict();
 
-export const VisualTargetActionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
+const VisualTargetActionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("action"),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
@@ -302,7 +302,7 @@ export const VisualTargetActionSuccessResultSchema = VisualTargetBaseResultSchem
   diagnosticPayloadRef: z.null(),
 }).strict();
 
-export const VisualTargetRegionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
+const VisualTargetRegionSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("region"),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
@@ -314,7 +314,7 @@ export const VisualTargetRegionSuccessResultSchema = VisualTargetBaseResultSchem
   diagnosticPayloadRef: z.null(),
 }).strict();
 
-export const VisualTargetMetricSuccessResultSchema = VisualTargetBaseResultSchema.extend({
+const VisualTargetMetricSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("success"),
   targetNature: z.literal("metric"),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
@@ -326,7 +326,7 @@ export const VisualTargetMetricSuccessResultSchema = VisualTargetBaseResultSchem
   diagnosticPayloadRef: z.null(),
 }).strict();
 
-export const VisualTargetNonSuccessResultSchema = VisualTargetBaseResultSchema.extend({
+const VisualTargetNonSuccessResultSchema = VisualTargetBaseResultSchema.extend({
   status: VisualTargetStatusSchema.exclude(["success"]),
   childCapabilityId: VisualTargetChildCapabilityIdSchema,
   targetType: VisualTargetTypeSchema,
@@ -336,7 +336,7 @@ export const VisualTargetNonSuccessResultSchema = VisualTargetBaseResultSchema.e
   diagnosticPayloadRef: limitedString(200),
 }).strict();
 
-export const VisualTargetInvalidInputFailureResultSchema = VisualTargetBaseResultSchema.extend({
+const VisualTargetInvalidInputFailureResultSchema = VisualTargetBaseResultSchema.extend({
   status: z.literal("failed"),
   childCapabilityId: VisualTargetChildCapabilityIdSchema.nullable().default(null),
   targetType: VisualTargetTypeSchema.nullable().default(null),
@@ -347,7 +347,7 @@ export const VisualTargetInvalidInputFailureResultSchema = VisualTargetBaseResul
   diagnosticPayloadRef: limitedString(200),
 }).strict();
 
-export const VisualTargetResultSchema = z.union([
+const VisualTargetResultSchema = z.union([
   VisualTargetActionSuccessResultSchema,
   VisualTargetRegionSuccessResultSchema,
   VisualTargetMetricSuccessResultSchema,
@@ -355,7 +355,7 @@ export const VisualTargetResultSchema = z.union([
   VisualTargetInvalidInputFailureResultSchema,
 ]);
 
-export const VisualTargetCandidateScoreTraceSchema = z.object({
+const VisualTargetCandidateScoreTraceSchema = z.object({
   candidateRef: limitedString(160),
   rawConfidence: confidenceNumber,
   freshnessPenalty: z.number().min(0),
@@ -365,7 +365,7 @@ export const VisualTargetCandidateScoreTraceSchema = z.object({
   tieBreakKey: limitedString(200),
 }).strict();
 
-export const VisualTargetRuntimeProofSchema = z.object({
+const VisualTargetRuntimeProofSchema = z.object({
   proofId: limitedString(200),
   runId: limitedString(200),
   missionId: nullableString,
@@ -448,7 +448,7 @@ export const VisualTargetRuntimeProofSchema = z.object({
   }
 });
 
-export const VisualTargetAbilityResultSchema = VisualTargetResultSchema.and(z.object({
+const VisualTargetAbilityResultSchema = VisualTargetResultSchema.and(z.object({
   runtimeProof: VisualTargetRuntimeProofSchema,
 })).superRefine((value, context) => {
   if (value.runtimeProof.status !== value.status) {
@@ -461,3 +461,5 @@ export const VisualTargetAbilityResultSchema = VisualTargetResultSchema.and(z.ob
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must keep output null", path: ["output"] });
   }
 });
+
+export { VisualTargetChildCapabilityIdSchema, VisualTargetStatusSchema, VisualTargetTypeSchema, VisualTargetNatureSchema, VisualTargetCandidateKindSchema, VisualTargetCoordinateSpaceSchema, VisualTargetFailureReasonSchema, VisualTargetDataQualityFlagSchema, VisualTargetPayloadBudgetDecisionSchema, VisualTargetOutputBoundaryDecisionSchema, VisualTargetSourceBindingDecisionSchema, VisualTargetCriticalDataQualityDecisionSchema, VisualTargetGeometryHandoffDecisionSchema, VisualBoundingBoxSchema, VisualClickPointSchema, VisualTargetScaleMappingSchema, VisualTargetScreenshotSourceProofSchema, VisualTargetAiSourceProofSchema, VisualTargetPageStateProofSchema, VisualTargetOperatorApprovalProofSchema, VisualTargetSourceProofSchema, VisualTargetCandidateSchema, VisualTargetAbilityInputSchema, VisualTargetGeometryGuardHandoffSchema, VisualTargetActionOutputSchema, VisualTargetRegionOutputSchema, VisualTargetMetricOutputSchema, VisualTargetOutputSchema, VisualTargetActionSuccessResultSchema, VisualTargetRegionSuccessResultSchema, VisualTargetMetricSuccessResultSchema, VisualTargetNonSuccessResultSchema, VisualTargetInvalidInputFailureResultSchema, VisualTargetResultSchema, VisualTargetCandidateScoreTraceSchema, VisualTargetRuntimeProofSchema, VisualTargetAbilityResultSchema };

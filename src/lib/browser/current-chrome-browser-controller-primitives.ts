@@ -10,14 +10,14 @@ import {
   runJxa as runCurrentChromeJxa,
 } from "./current-chrome-window-control.js";
 
-export const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
-export const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
-export const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
-export const activateChrome = async (): Promise<void> => { await runAppleScript('tell application "Google Chrome" to activate'); };
-export const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-export const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
+const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
+const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
+const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
+const activateChrome = async (): Promise<void> => { await runAppleScript('tell application "Google Chrome" to activate'); };
+const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
 
-export const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
+const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
   Enter: 36,
   Tab: 48,
   Escape: 53,
@@ -29,7 +29,7 @@ export const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> =
   ArrowRight: 124,
 };
 
-export const clickAt = async (x: number, y: number, button: "left" | "right" | "middle", clickCount: 1 | 2): Promise<void> => {
+const clickAt = async (x: number, y: number, button: "left" | "right" | "middle", clickCount: 1 | 2): Promise<void> => {
   const buttonCode = button === "right"
     ? "$.kCGMouseButtonRight"
     : button === "middle"
@@ -66,7 +66,7 @@ for (let count = 0; count < ${clickCount}; count += 1) {
 `);
 };
 
-export const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
+const pressBrowserKey = async (keyCode: number, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
@@ -75,7 +75,7 @@ end tell
 `, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-export const keystrokeBrowserText = async (text: string, abortSignal?: AbortSignal): Promise<void> => {
+const keystrokeBrowserText = async (text: string, abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
@@ -84,7 +84,7 @@ end tell
 `, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-export const selectAllBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
+const selectAllBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
@@ -93,7 +93,7 @@ end tell
 `, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-export const pasteBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
+const pasteBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
@@ -102,11 +102,11 @@ end tell
 `, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-export const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: AbortSignal): Promise<void> => {
+const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: AbortSignal): Promise<void> => {
   await pressBrowserKey(BROWSER_TEXT_INPUT_KEY_CODES[key], abortSignal);
 };
 
-export const scrollAt = async (
+const scrollAt = async (
   x: number,
   y: number,
   deltaX: number,
@@ -123,3 +123,5 @@ const scrollEvent = $.CGEventCreateScrollWheelEvent(null, $.kCGScrollEventUnitPi
 $.CGEventPost($.kCGHIDEventTap, scrollEvent);
 `);
 };
+
+export { buildOpenUrlScript, runAppleScript, runJxa, activateChrome, escapeAppleScriptText, readFrontChromeWindowState, BROWSER_TEXT_INPUT_KEY_CODES, clickAt, pressBrowserKey, keystrokeBrowserText, selectAllBrowserText, pasteBrowserText, pressNamedBrowserKey, scrollAt };

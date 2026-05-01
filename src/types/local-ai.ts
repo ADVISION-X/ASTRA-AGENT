@@ -6,21 +6,21 @@ import {
   VisionProductPresenceRequestInputSchema,
 } from "./vision-product-presence.js";
 
-export const LocalAiTaskTypeSchema = z.enum([
+const LocalAiTaskTypeSchema = z.enum([
   "vision.productPresence",
   "comments.ocr_cleanup",
   "comments.intent_analysis",
   "product.signal_summary"
 ]);
 
-export const LocalAiModelRoleSchema = z.enum([
+const LocalAiModelRoleSchema = z.enum([
   "vision",
   "ocr",
   "commentUnderstanding",
   "productSignal"
 ]);
 
-export const LocalAiRuntimeSchema = z.enum([
+const LocalAiRuntimeSchema = z.enum([
   "ollama",
   "llama.cpp",
   "paddleocr",
@@ -29,7 +29,7 @@ export const LocalAiRuntimeSchema = z.enum([
   "local-wrapper"
 ]);
 
-export const LocalAiImplementationStatusSchema = z.enum([
+const LocalAiImplementationStatusSchema = z.enum([
   "configured-not-connected",
   "governed-heuristic",
   "fixture_heuristic_only",
@@ -37,22 +37,22 @@ export const LocalAiImplementationStatusSchema = z.enum([
   "local_ai_unavailable"
 ]);
 
-export const LocalAiOverallStatusSchema = z.enum(["ready", "degraded", "unavailable"]);
-export const LocalAiDependencyStatusSchema = z.enum(["ready", "missing", "unreachable", "unavailable"]);
-export const LocalAiInvocationStatusSchema = z.enum([
+const LocalAiOverallStatusSchema = z.enum(["ready", "degraded", "unavailable"]);
+const LocalAiDependencyStatusSchema = z.enum(["ready", "missing", "unreachable", "unavailable"]);
+const LocalAiInvocationStatusSchema = z.enum([
   "success",
   "local_ai_unavailable",
   "invalid_ai_output",
   "disabled_by_policy"
 ]);
 
-export const OcrCleanupPayloadSchema = z.object({
+const OcrCleanupPayloadSchema = z.object({
   cleanedComments: z.array(z.string().min(1)),
   uncertainText: z.array(z.string().min(1)),
   confidence: z.number().min(0).max(1)
 });
 
-export const CommentSignalPayloadSchema = z.object({
+const CommentSignalPayloadSchema = z.object({
   purchaseIntent: z.enum(["low", "medium", "high"]),
   painPoints: z.array(z.string().min(1)),
   complaints: z.array(z.string().min(1)),
@@ -60,7 +60,7 @@ export const CommentSignalPayloadSchema = z.object({
   confidence: z.number().min(0).max(1)
 });
 
-export const ProductSignalPayloadSchema = z.object({
+const ProductSignalPayloadSchema = z.object({
   category: z.string().min(1),
   useCase: z.string().min(1),
   sellingPoints: z.array(z.string().min(1)),
@@ -71,7 +71,7 @@ export const ProductSignalPayloadSchema = z.object({
   rationale: z.string().min(1)
 });
 
-export const VisionTaskRequestSchema = z.object({
+const VisionTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.productPresence"),
   modelRole: z.literal("vision"),
@@ -81,7 +81,7 @@ export const VisionTaskRequestSchema = z.object({
   input: VisionProductPresenceRequestInputSchema,
 });
 
-export const OcrTaskRequestSchema = z.object({
+const OcrTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("comments.ocr_cleanup"),
   modelRole: z.literal("ocr"),
@@ -93,7 +93,7 @@ export const OcrTaskRequestSchema = z.object({
   })
 });
 
-export const CommentSignalTaskRequestSchema = z.object({
+const CommentSignalTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("comments.intent_analysis"),
   modelRole: z.literal("commentUnderstanding"),
@@ -105,7 +105,7 @@ export const CommentSignalTaskRequestSchema = z.object({
   })
 });
 
-export const ProductSignalTaskRequestSchema = z.object({
+const ProductSignalTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("product.signal_summary"),
   modelRole: z.literal("productSignal"),
@@ -119,7 +119,7 @@ export const ProductSignalTaskRequestSchema = z.object({
   })
 });
 
-export const LocalAiTaskRequestSchema = z.discriminatedUnion("taskType", [
+const LocalAiTaskRequestSchema = z.discriminatedUnion("taskType", [
   VisionTaskRequestSchema,
   OcrTaskRequestSchema,
   CommentSignalTaskRequestSchema,
@@ -141,38 +141,38 @@ const LocalAiResultBaseSchema = z.object({
   createdAt: z.string().datetime()
 });
 
-export const VisionTaskResultSchema = LocalAiResultBaseSchema.extend({
+const VisionTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.productPresence"),
   modelRole: z.literal("vision"),
   result: VisionProductPresencePayloadSchema
 });
 
-export const OcrTaskResultSchema = LocalAiResultBaseSchema.extend({
+const OcrTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("comments.ocr_cleanup"),
   modelRole: z.literal("ocr"),
   result: OcrCleanupPayloadSchema
 });
 
-export const CommentSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
+const CommentSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("comments.intent_analysis"),
   modelRole: z.literal("commentUnderstanding"),
   result: CommentSignalPayloadSchema
 });
 
-export const ProductSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
+const ProductSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("product.signal_summary"),
   modelRole: z.literal("productSignal"),
   result: ProductSignalPayloadSchema
 });
 
-export const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
+const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
   VisionTaskResultSchema,
   OcrTaskResultSchema,
   CommentSignalTaskResultSchema,
   ProductSignalTaskResultSchema
 ]);
 
-export const LocalAiHealthSchema = z.object({
+const LocalAiHealthSchema = z.object({
   overallStatus: LocalAiOverallStatusSchema,
   implementationStatus: LocalAiImplementationStatusSchema,
   ollamaStatus: LocalAiDependencyStatusSchema,
@@ -193,17 +193,20 @@ export const LocalAiHealthSchema = z.object({
   lastInvocationStatus: LocalAiInvocationStatusSchema.nullable().default(null),
 });
 
-export type LocalAiTaskType = z.infer<typeof LocalAiTaskTypeSchema>;
-export type LocalAiModelRole = z.infer<typeof LocalAiModelRoleSchema>;
-export type LocalAiRuntime = z.infer<typeof LocalAiRuntimeSchema>;
-export type LocalAiImplementationStatus = z.infer<typeof LocalAiImplementationStatusSchema>;
-export type LocalAiOverallStatus = z.infer<typeof LocalAiOverallStatusSchema>;
-export type LocalAiDependencyStatus = z.infer<typeof LocalAiDependencyStatusSchema>;
-export type LocalAiInvocationStatus = z.infer<typeof LocalAiInvocationStatusSchema>;
-export type VisionClassificationPayload = z.infer<typeof VisionProductPresencePayloadSchema>;
-export type OcrCleanupPayload = z.infer<typeof OcrCleanupPayloadSchema>;
-export type CommentSignalPayload = z.infer<typeof CommentSignalPayloadSchema>;
-export type ProductSignalPayload = z.infer<typeof ProductSignalPayloadSchema>;
-export type LocalAiTaskRequest = z.infer<typeof LocalAiTaskRequestSchema>;
-export type LocalAiTaskResult = z.infer<typeof LocalAiTaskResultSchema>;
-export type LocalAiHealth = z.infer<typeof LocalAiHealthSchema>;
+type LocalAiTaskType = z.infer<typeof LocalAiTaskTypeSchema>;
+type LocalAiModelRole = z.infer<typeof LocalAiModelRoleSchema>;
+type LocalAiRuntime = z.infer<typeof LocalAiRuntimeSchema>;
+type LocalAiImplementationStatus = z.infer<typeof LocalAiImplementationStatusSchema>;
+type LocalAiOverallStatus = z.infer<typeof LocalAiOverallStatusSchema>;
+type LocalAiDependencyStatus = z.infer<typeof LocalAiDependencyStatusSchema>;
+type LocalAiInvocationStatus = z.infer<typeof LocalAiInvocationStatusSchema>;
+type VisionClassificationPayload = z.infer<typeof VisionProductPresencePayloadSchema>;
+type OcrCleanupPayload = z.infer<typeof OcrCleanupPayloadSchema>;
+type CommentSignalPayload = z.infer<typeof CommentSignalPayloadSchema>;
+type ProductSignalPayload = z.infer<typeof ProductSignalPayloadSchema>;
+type LocalAiTaskRequest = z.infer<typeof LocalAiTaskRequestSchema>;
+type LocalAiTaskResult = z.infer<typeof LocalAiTaskResultSchema>;
+type LocalAiHealth = z.infer<typeof LocalAiHealthSchema>;
+
+export { LocalAiTaskTypeSchema, LocalAiModelRoleSchema, LocalAiRuntimeSchema, LocalAiImplementationStatusSchema, LocalAiOverallStatusSchema, LocalAiDependencyStatusSchema, LocalAiInvocationStatusSchema, OcrCleanupPayloadSchema, CommentSignalPayloadSchema, ProductSignalPayloadSchema, VisionTaskRequestSchema, OcrTaskRequestSchema, CommentSignalTaskRequestSchema, ProductSignalTaskRequestSchema, LocalAiTaskRequestSchema, VisionTaskResultSchema, OcrTaskResultSchema, CommentSignalTaskResultSchema, ProductSignalTaskResultSchema, LocalAiTaskResultSchema, LocalAiHealthSchema };
+export type { LocalAiTaskType, LocalAiModelRole, LocalAiRuntime, LocalAiImplementationStatus, LocalAiOverallStatus, LocalAiDependencyStatus, LocalAiInvocationStatus, VisionClassificationPayload, OcrCleanupPayload, CommentSignalPayload, ProductSignalPayload, LocalAiTaskRequest, LocalAiTaskResult, LocalAiHealth };

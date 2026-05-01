@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-export type ChromeWindowState = {
+type ChromeWindowState = {
   windowX: number;
   windowY: number;
   width: number;
@@ -11,7 +11,7 @@ export type ChromeWindowState = {
 
 const escapeAppleScriptString = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 
-export const runSpawn = async (command: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> => new Promise((resolve, reject) => {
+const runSpawn = async (command: string, args: string[], options?: { signal?: AbortSignal }): Promise<string> => new Promise((resolve, reject) => {
   const child = spawn(command, args, {
     stdio: ["ignore", "pipe", "pipe"],
     ...(options?.signal ? { signal: options.signal } : {}),
@@ -36,11 +36,11 @@ export const runSpawn = async (command: string, args: string[], options?: { sign
   });
 });
 
-export const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-e", script], options);
+const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-e", script], options);
 
-export const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
+const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runSpawn("osascript", ["-l", "JavaScript", "-e", script], options);
 
-export const buildOpenUrlScript = (url: string): string => {
+const buildOpenUrlScript = (url: string): string => {
   const escapedUrl = escapeAppleScriptString(url);
   return `
 tell application "Google Chrome" to activate
@@ -70,15 +70,15 @@ end tell
 `;
 };
 
-export const activateChrome = async (): Promise<void> => {
+const activateChrome = async (): Promise<void> => {
   await runAppleScript('tell application "Google Chrome" to activate');
 };
 
-export const openUrlInChrome = async (url: string): Promise<void> => {
+const openUrlInChrome = async (url: string): Promise<void> => {
   await runAppleScript(buildOpenUrlScript(url));
 };
 
-export const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => {
+const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => {
   const output = await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "Google Chrome"
@@ -109,7 +109,7 @@ end tell
   };
 };
 
-export const clickAt = async (x: number, y: number): Promise<void> => {
+const clickAt = async (x: number, y: number): Promise<void> => {
   await runJxa(`
 ObjC.import('ApplicationServices');
 function post(type, x, y) {
@@ -125,7 +125,7 @@ post($.kCGEventLeftMouseUp, ${x}, ${y});
 `);
 };
 
-export const pressBrowserKey = async (keyCode: number): Promise<void> => {
+const pressBrowserKey = async (keyCode: number): Promise<void> => {
   await runAppleScript(`
 tell application "Google Chrome" to activate
 tell application "System Events"
@@ -133,3 +133,6 @@ tell application "System Events"
 end tell
 `);
 };
+
+export { runSpawn, runAppleScript, runJxa, buildOpenUrlScript, activateChrome, openUrlInChrome, readFrontChromeWindowState, clickAt, pressBrowserKey };
+export type { ChromeWindowState };

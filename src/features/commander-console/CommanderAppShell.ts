@@ -35,7 +35,7 @@ function renderInspectItemHtml(item: CommanderConsoleInspectItem): string {
   return renderInspectDeveloperRefs(item);
 }
 
-export function renderCommanderAppShell(dashboard: CommanderMissionDashboardView, options: {
+function renderCommanderAppShell(dashboard: CommanderMissionDashboardView, options: {
   locale: Locale;
   requestUrl: URL;
 }): string {
@@ -74,3 +74,5 @@ export function renderCommanderAppShell(dashboard: CommanderMissionDashboardView
   </body>
 </html>`;
 }
+
+export { renderCommanderAppShell };

@@ -38,7 +38,7 @@ import {
 import { toActionEvidenceRef, toAiEvidenceRef, toCandidateEvidenceRef, toEvidencePacketRef, toEvidenceRef } from "./evidence-store-refs.js";
 import { PersistedStateSchema, createInitialState, normalizePersistedState, type PersistedState } from "./evidence-store-state.js";
 
-export class EvidenceStoreService {
+class EvidenceStoreService {
   private readonly stateStore: JsonStateStore<PersistedState>;
   private readonly artifactsDir: string;
 
@@ -264,3 +264,5 @@ export class EvidenceStoreService {
     return toEvidencePacketRef(packet);
   }
 }
+
+export { EvidenceStoreService };

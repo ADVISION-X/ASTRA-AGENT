@@ -6,17 +6,17 @@ import {
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
 
-export const VisionProductPresenceMissingFrameSchema = z.object({
+const VisionProductPresenceMissingFrameSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
   unavailableReason: z.string().min(1),
 });
 
-export const VisionProductPresencePromptIdSchema = z.literal("vision.productPresence.v1");
-export const VisionProductPresenceTaskTypeSchema = z.literal("vision.productPresence");
-export const VisionProductPresencePromptVersionSchema = z.literal("v1");
-export const VisionProductPresenceSchemaVersionSchema = z.literal("vision.productPresence.schema.v1");
+const VisionProductPresencePromptIdSchema = z.literal("vision.productPresence.v1");
+const VisionProductPresenceTaskTypeSchema = z.literal("vision.productPresence");
+const VisionProductPresencePromptVersionSchema = z.literal("v1");
+const VisionProductPresenceSchemaVersionSchema = z.literal("vision.productPresence.schema.v1");
 
-export const VisionProductPresenceSuggestedNextActionSchema = z.enum([
+const VisionProductPresenceSuggestedNextActionSchema = z.enum([
   "collect_metrics_like_marker_open_comments",
   "scroll_next",
   "click_not_interested_or_scroll_next",
@@ -24,7 +24,7 @@ export const VisionProductPresenceSuggestedNextActionSchema = z.enum([
   "review_required",
 ]);
 
-export const VisionProductPresenceRequestInputSchema = z.object({
+const VisionProductPresenceRequestInputSchema = z.object({
   inputMode: ProductPresenceInputModeSchema,
   multiFrameEvidenceSetId: z.string().min(1).nullable().default(null),
   contactSheetEvidenceId: z.string().min(1).nullable().default(null),
@@ -42,14 +42,14 @@ export const VisionProductPresenceRequestInputSchema = z.object({
   tags: z.array(z.string().min(1)).default([]),
 });
 
-export const VisionProductPresenceFrameObservationSchema = z.object({
+const VisionProductPresenceFrameObservationSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
   hasVisibleProduct: z.boolean().nullable(),
   visibleProductTypes: z.array(z.string().min(1)).default([]),
   observations: z.array(z.string().min(1)).default([]),
 });
 
-export const VisionProductPresencePayloadSchema = z.object({
+const VisionProductPresencePayloadSchema = z.object({
   taskType: VisionProductPresenceTaskTypeSchema,
   promptId: VisionProductPresencePromptIdSchema,
   promptVersion: VisionProductPresencePromptVersionSchema,
@@ -76,10 +76,13 @@ export const VisionProductPresencePayloadSchema = z.object({
   mustReview: z.boolean(),
 });
 
-export const validateVisionProductPresenceResult = (input: unknown) => VisionProductPresencePayloadSchema.parse(input);
+const validateVisionProductPresenceResult = (input: unknown) => VisionProductPresencePayloadSchema.parse(input);
 
-export type VisionProductPresenceSuggestedNextAction = z.infer<typeof VisionProductPresenceSuggestedNextActionSchema>;
-export type VisionProductPresenceRequestInput = z.infer<typeof VisionProductPresenceRequestInputSchema>;
-export type VisionProductPresenceFrameObservation = z.infer<typeof VisionProductPresenceFrameObservationSchema>;
-export type VisionProductPresenceResult = z.infer<typeof VisionProductPresencePayloadSchema>;
-export type VisionProductPresencePayload = VisionProductPresenceResult;
+type VisionProductPresenceSuggestedNextAction = z.infer<typeof VisionProductPresenceSuggestedNextActionSchema>;
+type VisionProductPresenceRequestInput = z.infer<typeof VisionProductPresenceRequestInputSchema>;
+type VisionProductPresenceFrameObservation = z.infer<typeof VisionProductPresenceFrameObservationSchema>;
+type VisionProductPresenceResult = z.infer<typeof VisionProductPresencePayloadSchema>;
+type VisionProductPresencePayload = VisionProductPresenceResult;
+
+export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
+export type { VisionProductPresenceSuggestedNextAction, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };

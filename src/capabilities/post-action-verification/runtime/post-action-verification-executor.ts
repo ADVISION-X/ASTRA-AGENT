@@ -205,33 +205,45 @@ export async function executePostActionVerification(input: {
   }
 
   const policyGate = validateVerificationPolicy(input.request);
-  if (!policyGate.ok) {
-    const ended = input.context.clock.now();
-    return buildGateRejectedResult({
-      request: input.request,
-      context: input.context,
-      startedAt: started.isoTimestamp,
-      endedAt: ended.isoTimestamp,
-      startedMonotonicMs: started.monotonicMs,
-      endedMonotonicMs: ended.monotonicMs,
-      status: policyGate.status ?? "failed",
-      failureReason: policyGate.failureReason ?? "verification_execution_failed",
-      reviewRequiredReason: policyGate.reviewRequiredReason ?? null,
-      statusMessage: policyGate.statusMessage ?? "Verification policy gate rejected the request.",
-      inputDecision: inputGate.inputDecision,
-      payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision,
-      actionProofDecision: actionProofGate.actionProofDecision,
-      evidenceSourceDecision: evidenceSourceGate.evidenceSourceDecision,
-      observationBindingDecision: observationBindingGate.observationBindingDecision,
-      beforeAfterDecision: beforeAfterGate.beforeAfterDecision,
-      beforeAfterPairDecision: beforeAfterGate.beforeAfterPairDecision,
-      policyDecision: policyGate.policyDecision,
-      outputBoundaryDecision: "not_run",
-      criticalDataQualityDecision: "not_run",
-      verificationDecisionTrace: [policyGate.policyDecision],
-      dataQualityFlags: policyGate.dataQualityFlags ?? [],
-      diagnosticPayloadRef,
-    });
+  const gateFailures = [
+    { result: inputGate, status: inputGate.status ?? "failed", failureReason: inputGate.failureReason ?? "verification_execution_failed", reviewRequiredReason: inputGate.reviewRequiredReason ?? null, statusMessage: inputGate.statusMessage ?? "Post Action Verification input gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: "not_run", actionProofDecision: "not_run", evidenceSourceDecision: "not_run", observationBindingDecision: "not_run", beforeAfterDecision: "not_run", beforeAfterPairDecision: "not_run", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [inputGate.inputDecision], dataQualityFlags: inputGate.dataQualityFlags ?? [] },
+    { result: payloadBudgetGate, status: payloadBudgetGate.status ?? "failed", failureReason: payloadBudgetGate.failureReason ?? "payload_budget_exceeded", reviewRequiredReason: payloadBudgetGate.reviewRequiredReason ?? null, statusMessage: payloadBudgetGate.statusMessage ?? "Payload budget gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: "not_run", evidenceSourceDecision: "not_run", observationBindingDecision: "not_run", beforeAfterDecision: "not_run", beforeAfterPairDecision: "not_run", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [payloadBudgetGate.payloadBudgetDecision], dataQualityFlags: payloadBudgetGate.dataQualityFlags ?? [] },
+    { result: actionProofGate, status: actionProofGate.status ?? "failed", failureReason: actionProofGate.failureReason ?? "verification_execution_failed", reviewRequiredReason: actionProofGate.reviewRequiredReason ?? null, statusMessage: actionProofGate.statusMessage ?? "Action proof gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: actionProofGate.actionProofDecision, evidenceSourceDecision: "not_run", observationBindingDecision: "not_run", beforeAfterDecision: "not_run", beforeAfterPairDecision: "not_run", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [actionProofGate.actionProofDecision], dataQualityFlags: actionProofGate.dataQualityFlags ?? [] },
+    { result: evidenceSourceGate, status: evidenceSourceGate.status ?? "failed", failureReason: evidenceSourceGate.failureReason ?? "verification_execution_failed", reviewRequiredReason: evidenceSourceGate.reviewRequiredReason ?? null, statusMessage: evidenceSourceGate.statusMessage ?? "Evidence source gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: actionProofGate.actionProofDecision, evidenceSourceDecision: evidenceSourceGate.evidenceSourceDecision, observationBindingDecision: "not_run", beforeAfterDecision: "not_run", beforeAfterPairDecision: "not_run", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [evidenceSourceGate.evidenceSourceDecision], dataQualityFlags: evidenceSourceGate.dataQualityFlags ?? [] },
+    { result: observationBindingGate, status: observationBindingGate.status ?? "failed", failureReason: observationBindingGate.failureReason ?? "observation_binding_conflict", reviewRequiredReason: observationBindingGate.reviewRequiredReason ?? null, statusMessage: observationBindingGate.statusMessage ?? "Observation proof binding gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: actionProofGate.actionProofDecision, evidenceSourceDecision: evidenceSourceGate.evidenceSourceDecision, observationBindingDecision: observationBindingGate.observationBindingDecision, beforeAfterDecision: "not_run", beforeAfterPairDecision: "not_run", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [observationBindingGate.observationBindingDecision], dataQualityFlags: observationBindingGate.dataQualityFlags ?? [] },
+    { result: beforeAfterGate, status: beforeAfterGate.status ?? "review_required", failureReason: beforeAfterGate.failureReason ?? "verification_execution_failed", reviewRequiredReason: beforeAfterGate.reviewRequiredReason ?? null, statusMessage: beforeAfterGate.statusMessage ?? "Before/after gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: actionProofGate.actionProofDecision, evidenceSourceDecision: evidenceSourceGate.evidenceSourceDecision, observationBindingDecision: observationBindingGate.observationBindingDecision, beforeAfterDecision: beforeAfterGate.beforeAfterDecision, beforeAfterPairDecision: beforeAfterGate.beforeAfterPairDecision ?? "review_required:before_after_pair_rejected", policyDecision: "not_run", outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [beforeAfterGate.beforeAfterDecision], dataQualityFlags: beforeAfterGate.dataQualityFlags ?? [] },
+    { result: policyGate, status: policyGate.status ?? "failed", failureReason: policyGate.failureReason ?? "verification_execution_failed", reviewRequiredReason: policyGate.reviewRequiredReason ?? null, statusMessage: policyGate.statusMessage ?? "Verification policy gate rejected the request.", inputDecision: inputGate.inputDecision, payloadBudgetDecision: payloadBudgetGate.payloadBudgetDecision, actionProofDecision: actionProofGate.actionProofDecision, evidenceSourceDecision: evidenceSourceGate.evidenceSourceDecision, observationBindingDecision: observationBindingGate.observationBindingDecision, beforeAfterDecision: beforeAfterGate.beforeAfterDecision, beforeAfterPairDecision: beforeAfterGate.beforeAfterPairDecision, policyDecision: policyGate.policyDecision, outputBoundaryDecision: "not_run", criticalDataQualityDecision: "not_run", verificationDecisionTrace: [policyGate.policyDecision], dataQualityFlags: policyGate.dataQualityFlags ?? [] },
+  ] as const;
+
+  for (const gate of gateFailures) {
+    if (!gate.result.ok) {
+      const ended = input.context.clock.now();
+      return buildGateRejectedResult({
+        request: input.request,
+        context: input.context,
+        startedAt: started.isoTimestamp,
+        endedAt: ended.isoTimestamp,
+        startedMonotonicMs: started.monotonicMs,
+        endedMonotonicMs: ended.monotonicMs,
+        status: gate.status,
+        failureReason: gate.failureReason,
+        reviewRequiredReason: gate.reviewRequiredReason,
+        statusMessage: gate.statusMessage,
+        inputDecision: gate.inputDecision,
+        payloadBudgetDecision: gate.payloadBudgetDecision,
+        actionProofDecision: gate.actionProofDecision,
+        evidenceSourceDecision: gate.evidenceSourceDecision,
+        observationBindingDecision: gate.observationBindingDecision,
+        beforeAfterDecision: gate.beforeAfterDecision,
+        beforeAfterPairDecision: gate.beforeAfterPairDecision,
+        policyDecision: gate.policyDecision,
+        outputBoundaryDecision: gate.outputBoundaryDecision,
+        criticalDataQualityDecision: gate.criticalDataQualityDecision,
+        verificationDecisionTrace: gate.verificationDecisionTrace,
+        dataQualityFlags: gate.dataQualityFlags,
+        diagnosticPayloadRef,
+      });
+    }
   }
 
   const assessment = await input.capability.execute(input.request, input.context);

@@ -68,6 +68,63 @@ export type BuildProofInput = {
   dataQualityFlags?: string[];
 };
 
+function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "proofId"
+  | "missionId"
+  | "mapId"
+  | "taskTemplateId"
+  | "activationId"
+  | "mapPackageId"
+  | "mapPackageVersion"
+  | "mapVersion"
+  | "selectedMapSource"
+  | "stepId"
+  | "targetAbilityGroupId"
+  | "targetChildCapabilityId"
+  | "childCapabilityId"
+  | "commandKind"
+  | "internalOperationKind"
+  | "caller"
+  | "idempotencyKey"
+  | "sequenceNo"> {
+  return { proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+}
+
+function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "stateRevisionBefore"
+  | "stateRevisionAfter"
+  | "stateHashBefore"
+  | "stateHashAfter"
+  | "stepDispatchCallId"
+  | "stepTimeoutMs"
+  | "timeoutDecision"
+  | "abortDecision"> {
+  return { stateRevisionBefore: input.stateRevisionBefore ?? null, stateRevisionAfter: input.stateRevisionAfter ?? null, stateHashBefore: input.stateHashBefore ?? null, stateHashAfter: input.stateHashAfter ?? null, stepDispatchCallId: input.stepDispatchCallId ?? null, stepTimeoutMs: input.stepTimeoutMs ?? null, timeoutDecision: input.timeoutDecision ?? null, abortDecision: input.abortDecision ?? null };
+}
+
+function buildOrchestrationProofRouteFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "nerveBusEnvelopeId"
+  | "nerveBusDispatchDecision"
+  | "transitionId"
+  | "transitionEvaluationDecision"
+  | "transitionConditionSource"
+  | "transitionConditionExpected"
+  | "transitionConditionActual"> {
+  return { nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null, nerveBusDispatchDecision: input.nerveBusDispatchDecision ?? null, transitionId: input.transitionId ?? null, transitionEvaluationDecision: input.transitionEvaluationDecision ?? null, transitionConditionSource: input.transitionConditionSource ?? null, transitionConditionExpected: input.transitionConditionExpected ?? null, transitionConditionActual: input.transitionConditionActual ?? null };
+}
+
+function buildOrchestrationProofArtifactFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
+  | "inputRef"
+  | "outputRef"
+  | "abilityResultRef"
+  | "reviewDispatchEnvelopeId"
+  | "finalizationDecision"
+  | "structuredRuntimeEventRef"
+  | "previousStepId"
+  | "nextStepId"> {
+  return { inputRef: input.inputRef ?? null, outputRef: input.outputRef ?? null, abilityResultRef: input.abilityResultRef ?? null, reviewDispatchEnvelopeId: input.reviewDispatchEnvelopeId ?? null, finalizationDecision: input.finalizationDecision ?? null, structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null, previousStepId: input.previousStepId ?? null, nextStepId: input.nextStepId ?? null };
+}
+
 function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
   | "proofId"
   | "missionId"
@@ -110,49 +167,7 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
   | "structuredRuntimeEventRef"
   | "previousStepId"
   | "nextStepId"> {
-  return {
-    proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`,
-    missionId: input.missionId,
-    mapId: input.mapId,
-    taskTemplateId: input.taskTemplateId ?? null,
-    activationId: input.activationId ?? null,
-    mapPackageId: input.mapPackageId ?? null,
-    mapPackageVersion: input.mapPackageVersion ?? null,
-    mapVersion: input.mapVersion ?? null,
-    selectedMapSource: input.selectedMapSource ?? null,
-    stepId: input.stepId,
-    targetAbilityGroupId: input.targetAbilityGroupId ?? null,
-    targetChildCapabilityId: input.targetChildCapabilityId ?? null,
-    childCapabilityId: input.childCapabilityId,
-    commandKind: input.commandKind,
-    internalOperationKind: input.internalOperationKind ?? null,
-    caller: input.caller,
-    idempotencyKey: input.idempotencyKey,
-    sequenceNo: input.sequenceNo,
-    stateRevisionBefore: input.stateRevisionBefore ?? null,
-    stateRevisionAfter: input.stateRevisionAfter ?? null,
-    stateHashBefore: input.stateHashBefore ?? null,
-    stateHashAfter: input.stateHashAfter ?? null,
-    stepDispatchCallId: input.stepDispatchCallId ?? null,
-    stepTimeoutMs: input.stepTimeoutMs ?? null,
-    timeoutDecision: input.timeoutDecision ?? null,
-    abortDecision: input.abortDecision ?? null,
-    nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null,
-    nerveBusDispatchDecision: input.nerveBusDispatchDecision ?? null,
-    transitionId: input.transitionId ?? null,
-    transitionEvaluationDecision: input.transitionEvaluationDecision ?? null,
-    transitionConditionSource: input.transitionConditionSource ?? null,
-    transitionConditionExpected: input.transitionConditionExpected ?? null,
-    transitionConditionActual: input.transitionConditionActual ?? null,
-    inputRef: input.inputRef ?? null,
-    outputRef: input.outputRef ?? null,
-    abilityResultRef: input.abilityResultRef ?? null,
-    reviewDispatchEnvelopeId: input.reviewDispatchEnvelopeId ?? null,
-    finalizationDecision: input.finalizationDecision ?? null,
-    structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
-    previousStepId: input.previousStepId ?? null,
-    nextStepId: input.nextStepId ?? null,
-  };
+  return { ...buildOrchestrationProofIdentityFields(input), ...buildOrchestrationProofStateFields(input), ...buildOrchestrationProofRouteFields(input), ...buildOrchestrationProofArtifactFields(input) };
 }
 
 function buildOrchestrationProofDecisionFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,

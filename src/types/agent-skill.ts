@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { EvidencePacketActionPurposeSchema } from "./evidence-packet.js";
 
-export const AgentSkillCategorySchema = z.enum([
+const AgentSkillCategorySchema = z.enum([
   "browser_session",
   "video_perception",
   "screenshot",
@@ -14,7 +14,7 @@ export const AgentSkillCategorySchema = z.enum([
   "forensics_persistence",
 ]);
 
-export const AgentSkillStatusSchema = z.enum([
+const AgentSkillStatusSchema = z.enum([
   "active",
   "ready",
   "blocked",
@@ -24,16 +24,16 @@ export const AgentSkillStatusSchema = z.enum([
   "disabled_by_policy",
 ]);
 
-export const VideoOrientationModeSchema = z.enum(["portrait", "landscape", "unknown"]);
+const VideoOrientationModeSchema = z.enum(["portrait", "landscape", "unknown"]);
 
-export const AgentSkillStructuredLogRequirementSchema = z.object({
+const AgentSkillStructuredLogRequirementSchema = z.object({
   requiresRuntimeEvent: z.boolean(),
   requiresActionLog: z.boolean(),
   requiresSkillId: z.boolean(),
   requiresSnapshotUpdate: z.boolean(),
 });
 
-export const AgentMechanicalSkillSchema = z.object({
+const AgentMechanicalSkillSchema = z.object({
   skillId: z.string().min(1),
   category: AgentSkillCategorySchema,
   displayName: z.string().min(1),
@@ -55,7 +55,7 @@ export const AgentMechanicalSkillSchema = z.object({
   productionReadyStatus: AgentSkillStatusSchema,
 });
 
-export const ActiveAgentSkillStateSchema = z.object({
+const ActiveAgentSkillStateSchema = z.object({
   skillId: z.string().min(1),
   category: AgentSkillCategorySchema,
   status: AgentSkillStatusSchema,
@@ -72,7 +72,7 @@ export const ActiveAgentSkillStateSchema = z.object({
   detailSource: z.enum(["initial", "runtime"]),
 });
 
-export const AgentSkillMatrixSnapshotSchema = z.object({
+const AgentSkillMatrixSnapshotSchema = z.object({
   platformId: z.string().min(1),
   adapterId: z.string().min(1),
   visualTargetCatalogId: z.string().min(1),
@@ -85,10 +85,13 @@ export const AgentSkillMatrixSnapshotSchema = z.object({
   snapshotMode: z.enum(["initial", "live"]),
 });
 
-export type AgentSkillCategory = z.infer<typeof AgentSkillCategorySchema>;
-export type AgentSkillStatus = z.infer<typeof AgentSkillStatusSchema>;
-export type VideoOrientationMode = z.infer<typeof VideoOrientationModeSchema>;
-export type AgentSkillStructuredLogRequirement = z.infer<typeof AgentSkillStructuredLogRequirementSchema>;
-export type AgentMechanicalSkill = z.infer<typeof AgentMechanicalSkillSchema>;
-export type ActiveAgentSkillState = z.infer<typeof ActiveAgentSkillStateSchema>;
-export type AgentSkillMatrixSnapshot = z.infer<typeof AgentSkillMatrixSnapshotSchema>;
+type AgentSkillCategory = z.infer<typeof AgentSkillCategorySchema>;
+type AgentSkillStatus = z.infer<typeof AgentSkillStatusSchema>;
+type VideoOrientationMode = z.infer<typeof VideoOrientationModeSchema>;
+type AgentSkillStructuredLogRequirement = z.infer<typeof AgentSkillStructuredLogRequirementSchema>;
+type AgentMechanicalSkill = z.infer<typeof AgentMechanicalSkillSchema>;
+type ActiveAgentSkillState = z.infer<typeof ActiveAgentSkillStateSchema>;
+type AgentSkillMatrixSnapshot = z.infer<typeof AgentSkillMatrixSnapshotSchema>;
+
+export { AgentSkillCategorySchema, AgentSkillStatusSchema, VideoOrientationModeSchema, AgentSkillStructuredLogRequirementSchema, AgentMechanicalSkillSchema, ActiveAgentSkillStateSchema, AgentSkillMatrixSnapshotSchema };
+export type { AgentSkillCategory, AgentSkillStatus, VideoOrientationMode, AgentSkillStructuredLogRequirement, AgentMechanicalSkill, ActiveAgentSkillState, AgentSkillMatrixSnapshot };

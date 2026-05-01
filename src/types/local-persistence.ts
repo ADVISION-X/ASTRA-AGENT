@@ -20,7 +20,7 @@ import {
 import { MultiFrameSamplingStrategySchema } from "./multi-frame-evidence.js";
 import { StructuredRuntimeEventTypeSchema } from "./structured-log.js";
 
-export const LocalDatabaseTableNameSchema = z.enum([
+const LocalDatabaseTableNameSchema = z.enum([
   "browse_sessions",
   "video_rounds",
   "structured_runtime_events",
@@ -34,7 +34,7 @@ export const LocalDatabaseTableNameSchema = z.enum([
   "export_sets",
 ]);
 
-export const LocalPersistencePathLayoutSchema = z.object({
+const LocalPersistencePathLayoutSchema = z.object({
   rootDir: z.literal(".grasseye-local"),
   dataDir: z.literal(".grasseye-local/data"),
   databaseFile: z.literal(".grasseye-local/data/grasseye.sqlite"),
@@ -49,7 +49,7 @@ export const LocalPersistencePathLayoutSchema = z.object({
   runtimeLogsDir: z.literal(".grasseye-local/logs/runtime"),
 });
 
-export const LocalPersistenceRootSchema = z.object({
+const LocalPersistenceRootSchema = z.object({
   pathLayout: LocalPersistencePathLayoutSchema,
   structuredStoreKind: z.literal("sqlite"),
   evidenceStoreKind: z.literal("file_store"),
@@ -57,7 +57,7 @@ export const LocalPersistenceRootSchema = z.object({
   browserProfileStoreKind: z.literal("browser_profile_store"),
 });
 
-export const BrowseSessionRecordSchema = z.object({
+const BrowseSessionRecordSchema = z.object({
   sessionId: z.string().min(1),
   platform: z.string().min(1),
   targetUrl: z.string().min(1),
@@ -78,9 +78,9 @@ export const BrowseSessionRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const VideoRoundFinalizationTypeSchema = z.enum(["evidence_packet", "browse_ledger", "failed_record"]);
+const VideoRoundFinalizationTypeSchema = z.enum(["evidence_packet", "browse_ledger", "failed_record"]);
 
-export const VideoRoundRecordSchema = z.object({
+const VideoRoundRecordSchema = z.object({
   roundId: z.string().min(1),
   sessionId: z.string().min(1),
   videoVisitId: z.string().min(1),
@@ -97,7 +97,7 @@ export const VideoRoundRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const StructuredRuntimeEventRecordSchema = z.object({
+const StructuredRuntimeEventRecordSchema = z.object({
   eventId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -118,7 +118,7 @@ export const StructuredRuntimeEventRecordSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable().default(null),
 });
 
-export const StructuredActionLogRecordSchema = z.object({
+const StructuredActionLogRecordSchema = z.object({
   actionLogId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -137,9 +137,9 @@ export const StructuredActionLogRecordSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable().default(null),
 });
 
-export const EvidenceRecordTypeSchema = z.enum(["video_frame", "contact_sheet", "comment_screenshot", "ocr_text", "ai_result"]);
+const EvidenceRecordTypeSchema = z.enum(["video_frame", "contact_sheet", "comment_screenshot", "ocr_text", "ai_result"]);
 
-export const EvidenceRecordSchema = z.object({
+const EvidenceRecordSchema = z.object({
   evidenceId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -156,7 +156,7 @@ export const EvidenceRecordSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const MultiFrameEvidenceSetRecordSchema = z.object({
+const MultiFrameEvidenceSetRecordSchema = z.object({
   multiFrameEvidenceSetId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -169,7 +169,7 @@ export const MultiFrameEvidenceSetRecordSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const AIResultRecordSchema = z.object({
+const AIResultRecordSchema = z.object({
   aiResultId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -188,7 +188,7 @@ export const AIResultRecordSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const BrowseLedgerEntryRecordSchema = z.object({
+const BrowseLedgerEntryRecordSchema = z.object({
   ledgerEntryId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -203,7 +203,7 @@ export const BrowseLedgerEntryRecordSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const EvidencePacketRecordSchema = z.object({
+const EvidencePacketRecordSchema = z.object({
   packetId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -232,7 +232,7 @@ export const EvidencePacketRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const ProductCandidateRecordSchema = z.object({
+const ProductCandidateRecordSchema = z.object({
   candidateId: z.string().min(1),
   packetId: z.string().min(1),
   sessionId: z.string().min(1),
@@ -245,7 +245,7 @@ export const ProductCandidateRecordSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export const ExportSetRecordSchema = z.object({
+const ExportSetRecordSchema = z.object({
   exportId: z.string().min(1),
   sessionId: z.string().min(1),
   exportVersion: z.string().min(1),
@@ -265,7 +265,7 @@ const LocalPersistenceRelationshipRuleSchema = z.object({
   note: z.string().min(1),
 });
 
-export const LocalPersistenceRelationshipMapSchema = z.object({
+const LocalPersistenceRelationshipMapSchema = z.object({
   sessionToVideoRounds: LocalPersistenceRelationshipRuleSchema,
   videoRoundToRuntimeEvents: LocalPersistenceRelationshipRuleSchema,
   videoRoundToActionLogs: LocalPersistenceRelationshipRuleSchema,
@@ -280,18 +280,21 @@ export const LocalPersistenceRelationshipMapSchema = z.object({
   }),
 });
 
-export type LocalDatabaseTableName = z.infer<typeof LocalDatabaseTableNameSchema>;
-export type LocalPersistencePathLayout = z.infer<typeof LocalPersistencePathLayoutSchema>;
-export type LocalPersistenceRoot = z.infer<typeof LocalPersistenceRootSchema>;
-export type BrowseSessionRecord = z.infer<typeof BrowseSessionRecordSchema>;
-export type VideoRoundRecord = z.infer<typeof VideoRoundRecordSchema>;
-export type StructuredRuntimeEventRecord = z.infer<typeof StructuredRuntimeEventRecordSchema>;
-export type StructuredActionLogRecord = z.infer<typeof StructuredActionLogRecordSchema>;
-export type EvidenceRecord = z.infer<typeof EvidenceRecordSchema>;
-export type MultiFrameEvidenceSetRecord = z.infer<typeof MultiFrameEvidenceSetRecordSchema>;
-export type AIResultRecord = z.infer<typeof AIResultRecordSchema>;
-export type BrowseLedgerEntryRecord = z.infer<typeof BrowseLedgerEntryRecordSchema>;
-export type EvidencePacketRecord = z.infer<typeof EvidencePacketRecordSchema>;
-export type ProductCandidateRecord = z.infer<typeof ProductCandidateRecordSchema>;
-export type ExportSetRecord = z.infer<typeof ExportSetRecordSchema>;
-export type LocalPersistenceRelationshipMap = z.infer<typeof LocalPersistenceRelationshipMapSchema>;
+type LocalDatabaseTableName = z.infer<typeof LocalDatabaseTableNameSchema>;
+type LocalPersistencePathLayout = z.infer<typeof LocalPersistencePathLayoutSchema>;
+type LocalPersistenceRoot = z.infer<typeof LocalPersistenceRootSchema>;
+type BrowseSessionRecord = z.infer<typeof BrowseSessionRecordSchema>;
+type VideoRoundRecord = z.infer<typeof VideoRoundRecordSchema>;
+type StructuredRuntimeEventRecord = z.infer<typeof StructuredRuntimeEventRecordSchema>;
+type StructuredActionLogRecord = z.infer<typeof StructuredActionLogRecordSchema>;
+type EvidenceRecord = z.infer<typeof EvidenceRecordSchema>;
+type MultiFrameEvidenceSetRecord = z.infer<typeof MultiFrameEvidenceSetRecordSchema>;
+type AIResultRecord = z.infer<typeof AIResultRecordSchema>;
+type BrowseLedgerEntryRecord = z.infer<typeof BrowseLedgerEntryRecordSchema>;
+type EvidencePacketRecord = z.infer<typeof EvidencePacketRecordSchema>;
+type ProductCandidateRecord = z.infer<typeof ProductCandidateRecordSchema>;
+type ExportSetRecord = z.infer<typeof ExportSetRecordSchema>;
+type LocalPersistenceRelationshipMap = z.infer<typeof LocalPersistenceRelationshipMapSchema>;
+
+export { LocalDatabaseTableNameSchema, LocalPersistencePathLayoutSchema, LocalPersistenceRootSchema, BrowseSessionRecordSchema, VideoRoundFinalizationTypeSchema, VideoRoundRecordSchema, StructuredRuntimeEventRecordSchema, StructuredActionLogRecordSchema, EvidenceRecordTypeSchema, EvidenceRecordSchema, MultiFrameEvidenceSetRecordSchema, AIResultRecordSchema, BrowseLedgerEntryRecordSchema, EvidencePacketRecordSchema, ProductCandidateRecordSchema, ExportSetRecordSchema, LocalPersistenceRelationshipMapSchema };
+export type { LocalDatabaseTableName, LocalPersistencePathLayout, LocalPersistenceRoot, BrowseSessionRecord, VideoRoundRecord, StructuredRuntimeEventRecord, StructuredActionLogRecord, EvidenceRecord, MultiFrameEvidenceSetRecord, AIResultRecord, BrowseLedgerEntryRecord, EvidencePacketRecord, ProductCandidateRecord, ExportSetRecord, LocalPersistenceRelationshipMap };

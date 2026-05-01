@@ -19,28 +19,28 @@ import {
 
 const nullableString = z.string().min(1).nullable().default(null);
 
-export const StructuredRuntimeLogLevelSchema = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]);
+const StructuredRuntimeLogLevelSchema = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]);
 
-export const StructuredLogStatusSchema = z.enum(["started", "success", "failed", "skipped", "review_required"]);
+const StructuredLogStatusSchema = z.enum(["started", "success", "failed", "skipped", "review_required"]);
 
-export const StructuredRuntimeEventTypeSchema = z.string().min(1);
+const StructuredRuntimeEventTypeSchema = z.string().min(1);
 
-export const StructuredActionTypeSchema = RoundLifecycleStepSchema;
+const StructuredActionTypeSchema = RoundLifecycleStepSchema;
 
-export const StructuredActionPurposeSchema = EvidencePacketActionPurposeSchema;
+const StructuredActionPurposeSchema = EvidencePacketActionPurposeSchema;
 
-export const StructuredLogRefSchema = z.object({
+const StructuredLogRefSchema = z.object({
   refId: z.string().min(1),
   refType: z.enum(["evidence", "action_log", "ai_result", "ledger", "packet", "snapshot", "other"]),
   label: z.string().min(1).nullable().default(null),
 });
 
-export const StructuredRuntimeMissingFrameSchema = z.object({
+const StructuredRuntimeMissingFrameSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
   unavailableReason: z.string().min(1),
 });
 
-export const StructuredAiImageInputSchema = z.object({
+const StructuredAiImageInputSchema = z.object({
   refId: nullableString,
   artifactRef: nullableString,
   filePath: nullableString,
@@ -50,7 +50,7 @@ export const StructuredAiImageInputSchema = z.object({
   height: z.number().int().positive().nullable().default(null),
 });
 
-export const StructuredRuntimeSnapshotSummarySchema = z.object({
+const StructuredRuntimeSnapshotSummarySchema = z.object({
   runtimeStatus: z.string().min(1),
   currentStep: z.string().min(1),
   latestRoundOutcome: z.string().min(1).nullable().default(null),
@@ -68,7 +68,7 @@ export const StructuredRuntimeSnapshotSummarySchema = z.object({
   }),
 });
 
-export const StructuredRuntimeEventSchema = z.object({
+const StructuredRuntimeEventSchema = z.object({
   eventId: z.string().min(1),
   eventType: StructuredRuntimeEventTypeSchema,
   level: StructuredRuntimeLogLevelSchema.default("INFO"),
@@ -154,7 +154,7 @@ export const StructuredRuntimeEventSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 });
 
-export const StructuredActionLogSchema = z.object({
+const StructuredActionLogSchema = z.object({
   actionLogId: z.string().min(1),
   abilityGroupId: z.string().min(1).default("orchestration"),
   childCapabilityId: z.string().min(1).nullable().default(null),
@@ -188,7 +188,7 @@ export const StructuredActionLogSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable().default(null),
 });
 
-export const LiveProofLogSequence = [
+const LiveProofLogSequence = [
   "open_target_page_completed",
   "detect_login_or_safety_completed",
   "wait_feed_ready_completed",
@@ -201,7 +201,7 @@ export const LiveProofLogSequence = [
   "next_video_wait_started",
 ] as const;
 
-export const LiveProofLogSequenceSchema = z.array(StructuredRuntimeEventTypeSchema).superRefine((sequence, ctx) => {
+const LiveProofLogSequenceSchema = z.array(StructuredRuntimeEventTypeSchema).superRefine((sequence, ctx) => {
   let cursor = 0;
 
   for (const eventType of sequence) {
@@ -219,15 +219,18 @@ export const LiveProofLogSequenceSchema = z.array(StructuredRuntimeEventTypeSche
   });
 });
 
-export type StructuredLogStatus = z.infer<typeof StructuredLogStatusSchema>;
-export type StructuredRuntimeLogLevel = z.infer<typeof StructuredRuntimeLogLevelSchema>;
-export type StructuredRuntimeEventType = z.infer<typeof StructuredRuntimeEventTypeSchema>;
-export type StructuredActionType = z.infer<typeof StructuredActionTypeSchema>;
-export type StructuredActionPurpose = z.infer<typeof StructuredActionPurposeSchema>;
-export type StructuredLogRef = z.infer<typeof StructuredLogRefSchema>;
-export type StructuredRuntimeMissingFrame = z.infer<typeof StructuredRuntimeMissingFrameSchema>;
-export type StructuredAiImageInput = z.infer<typeof StructuredAiImageInputSchema>;
-export type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
-export type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
-export type StructuredActionLog = z.infer<typeof StructuredActionLogSchema>;
-export type LiveProofLogSequence = typeof LiveProofLogSequence;
+type StructuredLogStatus = z.infer<typeof StructuredLogStatusSchema>;
+type StructuredRuntimeLogLevel = z.infer<typeof StructuredRuntimeLogLevelSchema>;
+type StructuredRuntimeEventType = z.infer<typeof StructuredRuntimeEventTypeSchema>;
+type StructuredActionType = z.infer<typeof StructuredActionTypeSchema>;
+type StructuredActionPurpose = z.infer<typeof StructuredActionPurposeSchema>;
+type StructuredLogRef = z.infer<typeof StructuredLogRefSchema>;
+type StructuredRuntimeMissingFrame = z.infer<typeof StructuredRuntimeMissingFrameSchema>;
+type StructuredAiImageInput = z.infer<typeof StructuredAiImageInputSchema>;
+type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
+type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
+type StructuredActionLog = z.infer<typeof StructuredActionLogSchema>;
+type LiveProofLogSequence = typeof LiveProofLogSequence;
+
+export { StructuredRuntimeLogLevelSchema, StructuredLogStatusSchema, StructuredRuntimeEventTypeSchema, StructuredActionTypeSchema, StructuredActionPurposeSchema, StructuredLogRefSchema, StructuredRuntimeMissingFrameSchema, StructuredAiImageInputSchema, StructuredRuntimeSnapshotSummarySchema, StructuredRuntimeEventSchema, StructuredActionLogSchema, LiveProofLogSequence, LiveProofLogSequenceSchema };
+export type { StructuredLogStatus, StructuredRuntimeLogLevel, StructuredRuntimeEventType, StructuredActionType, StructuredActionPurpose, StructuredLogRef, StructuredRuntimeMissingFrame, StructuredAiImageInput, StructuredRuntimeSnapshotSummary, StructuredRuntimeEvent, StructuredActionLog, LiveProofLogSequence };

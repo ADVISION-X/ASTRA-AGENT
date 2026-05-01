@@ -6,7 +6,7 @@ import type {
 } from "../../capabilities/commander-console/shared/commander-view-types.js";
 import type { Locale } from "../../lib/localization/dictionaries.js";
 
-export type CommanderConsolePrimaryPageId =
+type CommanderConsolePrimaryPageId =
   | "command-center"
   | "mission-cockpit"
   | "records-exports"
@@ -14,9 +14,9 @@ export type CommanderConsolePrimaryPageId =
   | "map-lab"
   | "run-policy";
 
-export type CommanderConsoleStatusTone = "ok" | "attention" | "blocked";
+type CommanderConsoleStatusTone = "ok" | "attention" | "blocked";
 
-export type CommanderConsoleInspectKind =
+type CommanderConsoleInspectKind =
   | "map"
   | "mission"
   | "round"
@@ -27,13 +27,13 @@ export type CommanderConsoleInspectKind =
   | "policy"
   | "health";
 
-export type CommanderConsoleTabView = {
+type CommanderConsoleTabView = {
   id: string;
   label: string;
   subtitle: string;
 };
 
-export type CommanderConsolePageView = {
+type CommanderConsolePageView = {
   id: CommanderConsolePrimaryPageId;
   navCode: string;
   label: string;
@@ -42,20 +42,20 @@ export type CommanderConsolePageView = {
   tabs: CommanderConsoleTabView[];
 };
 
-export type CommanderConsoleTopMetric = {
+type CommanderConsoleTopMetric = {
   id: string;
   label: string;
   value: string;
   tone: CommanderConsoleStatusTone;
 };
 
-export type CommanderConsoleBadge = {
+type CommanderConsoleBadge = {
   label: string;
   value: string;
   tone: CommanderConsoleStatusTone;
 };
 
-export type CommanderConsoleMapView = {
+type CommanderConsoleMapView = {
   packageId: string;
   version: string;
   mapId: string;
@@ -70,14 +70,14 @@ export type CommanderConsoleMapView = {
   chain: string[];
 };
 
-export type CommanderConsolePreflightCheck = {
+type CommanderConsolePreflightCheck = {
   id: string;
   label: string;
   status: CommanderConsoleStatusTone;
   detail: string;
 };
 
-export type CommanderConsoleTaskTemplate = {
+type CommanderConsoleTaskTemplate = {
   taskTemplateId: string;
   displayName: string;
   description: string;
@@ -109,7 +109,7 @@ export type CommanderConsoleTaskTemplate = {
   disabledReason?: string;
 };
 
-export type CommanderConsoleCommandDraft = {
+type CommanderConsoleCommandDraft = {
   commandType: "start-mission";
   commandSource: "commander-console:start-form-submit";
   taskTemplateId: string | null;
@@ -119,27 +119,27 @@ export type CommanderConsoleCommandDraft = {
   maxMinutes: number;
 };
 
-export type CommanderConsoleSummaryItem = {
+type CommanderConsoleSummaryItem = {
   label: string;
   value: string;
   tone?: CommanderConsoleStatusTone;
 };
 
-export type CommanderConsoleReviewSummary = {
+type CommanderConsoleReviewSummary = {
   pendingCount: number;
   approvedCount: number;
   rejectedCount: number;
   archivedCount: number;
 };
 
-export type CommanderConsoleFailureItem = {
+type CommanderConsoleFailureItem = {
   id: string;
   label: string;
   severity: CommanderConsoleStatusTone;
   detail: string;
 };
 
-export type CommanderConsoleLogEntry = {
+type CommanderConsoleLogEntry = {
   id: string;
   createdAt: string;
   step: string;
@@ -147,26 +147,26 @@ export type CommanderConsoleLogEntry = {
   message: string;
 };
 
-export type CommanderConsoleExportRequest = {
+type CommanderConsoleExportRequest = {
   id: string;
   label: string;
   status: string;
   detail: string;
 };
 
-export type CommanderConsolePolicyCheck = {
+type CommanderConsolePolicyCheck = {
   id: string;
   label: string;
   status: CommanderConsoleStatusTone;
   detail: string;
 };
 
-export type CommanderConsoleInspectReference = {
+type CommanderConsoleInspectReference = {
   label: string;
   value: string;
 };
 
-export type CommanderConsoleInspectItem = {
+type CommanderConsoleInspectItem = {
   kind: CommanderConsoleInspectKind;
   id: string;
   title: string;
@@ -177,7 +177,7 @@ export type CommanderConsoleInspectItem = {
   references: CommanderConsoleInspectReference[];
 };
 
-export type CommanderConsoleViewModel = {
+type CommanderConsoleViewModel = {
   locale: Locale;
   appTitle: string;
   appSubtitle: string;
@@ -207,7 +207,7 @@ export type CommanderConsoleViewModel = {
   rawSnapshot: CommanderMissionDashboardView;
 };
 
-export interface CommanderConsolePublicHandlers {
+interface CommanderConsolePublicHandlers {
   onDraftHumanCommand: (draft: CommanderConsoleCommandDraft) => void;
   onSubmitHumanCommand: (draft: CommanderConsoleCommandDraft) => Promise<void>;
   onPauseMission: () => Promise<void>;
@@ -217,4 +217,4 @@ export interface CommanderConsolePublicHandlers {
   onSubmitReviewDecision: (payload: { candidateId: string; disposition: "approve" | "reject" | "pending" }) => Promise<void>;
   onRequestExport: (payload: { exportType: "candidate-summary" }) => Promise<void>;
   onOpenInspect: (payload: { kind: CommanderConsoleInspectKind; id: string }) => void;
-}
+}export type { CommanderConsolePrimaryPageId, CommanderConsoleStatusTone, CommanderConsoleInspectKind, CommanderConsoleTabView, CommanderConsolePageView, CommanderConsoleTopMetric, CommanderConsoleBadge, CommanderConsoleMapView, CommanderConsolePreflightCheck, CommanderConsoleTaskTemplate, CommanderConsoleCommandDraft, CommanderConsoleSummaryItem, CommanderConsoleReviewSummary, CommanderConsoleFailureItem, CommanderConsoleLogEntry, CommanderConsoleExportRequest, CommanderConsolePolicyCheck, CommanderConsoleInspectReference, CommanderConsoleInspectItem, CommanderConsoleViewModel, CommanderConsolePublicHandlers };

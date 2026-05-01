@@ -10,7 +10,7 @@ function safeDate(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function getActiveTaskTemplate(viewModel: CommanderConsoleViewModel): CommanderConsoleTaskTemplate | null {
+function getActiveTaskTemplate(viewModel: CommanderConsoleViewModel): CommanderConsoleTaskTemplate | null {
   return viewModel.taskTemplates.find((template) => template.availability === "ready"
     && template.developerBinding?.mapId === (viewModel.rawSnapshot.mission.selectedMapId ?? null)
     && template.developerBinding?.requestedPlatformId === (viewModel.rawSnapshot.mission.requestedPlatform ?? null))
@@ -18,7 +18,7 @@ export function getActiveTaskTemplate(viewModel: CommanderConsoleViewModel): Com
     ?? null;
 }
 
-export function getRuntimeTone(viewModel: CommanderConsoleViewModel): "ok" | "attention" | "blocked" {
+function getRuntimeTone(viewModel: CommanderConsoleViewModel): "ok" | "attention" | "blocked" {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
   if (runtimeStatus === "failed") {
     return "blocked";
@@ -29,28 +29,28 @@ export function getRuntimeTone(viewModel: CommanderConsoleViewModel): "ok" | "at
   return "ok";
 }
 
-export function canPauseMission(viewModel: CommanderConsoleViewModel): boolean {
+function canPauseMission(viewModel: CommanderConsoleViewModel): boolean {
   return viewModel.rawSnapshot.runtime.runtimeStatus === "running";
 }
 
-export function canResumeMission(viewModel: CommanderConsoleViewModel): boolean {
+function canResumeMission(viewModel: CommanderConsoleViewModel): boolean {
   return viewModel.rawSnapshot.runtime.runtimeStatus === "paused";
 }
 
-export function canStopMission(viewModel: CommanderConsoleViewModel): boolean {
+function canStopMission(viewModel: CommanderConsoleViewModel): boolean {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
   return runtimeStatus === "running" || runtimeStatus === "paused" || runtimeStatus === "review_required";
 }
 
-export function canEmergencyStopMission(viewModel: CommanderConsoleViewModel): boolean {
+function canEmergencyStopMission(viewModel: CommanderConsoleViewModel): boolean {
   return Boolean(viewModel.rawSnapshot.mission.missionId) && canStopMission(viewModel);
 }
 
-export function canRequestCandidateExport(_viewModel: CommanderConsoleViewModel): boolean {
+function canRequestCandidateExport(_viewModel: CommanderConsoleViewModel): boolean {
   return false;
 }
 
-export function formatRuntimeState(viewModel: CommanderConsoleViewModel): string {
+function formatRuntimeState(viewModel: CommanderConsoleViewModel): string {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
   if (runtimeStatus === "idle") {
     return localizeCommanderText(viewModel.locale, "未启动", "Not Started");
@@ -73,7 +73,7 @@ export function formatRuntimeState(viewModel: CommanderConsoleViewModel): string
   return runtimeStatus;
 }
 
-export function formatElapsed(viewModel: CommanderConsoleViewModel): string {
+function formatElapsed(viewModel: CommanderConsoleViewModel): string {
   const mission = viewModel.rawSnapshot.mission;
   const startedAt = safeDate(mission.startedAt);
   const endedAt = safeDate(mission.endedAt ?? mission.updatedAt);
@@ -93,7 +93,7 @@ export function formatElapsed(viewModel: CommanderConsoleViewModel): string {
   return localizeCommanderText(viewModel.locale, `${minutes} 分钟`, `${minutes}m`);
 }
 
-export function buildHumanStepLabel(viewModel: CommanderConsoleViewModel): string {
+function buildHumanStepLabel(viewModel: CommanderConsoleViewModel): string {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
   const currentStep = (viewModel.rawSnapshot.runtime.currentStep ?? "").toLowerCase();
   const latestMessage = viewModel.runtimeProofTimeline[0]?.message ?? "";
@@ -125,7 +125,7 @@ export function buildHumanStepLabel(viewModel: CommanderConsoleViewModel): strin
   return localizeCommanderText(viewModel.locale, "正在执行当前步骤", "Executing the current step");
 }
 
-export function buildHumanStepDetail(viewModel: CommanderConsoleViewModel): string {
+function buildHumanStepDetail(viewModel: CommanderConsoleViewModel): string {
   const reason = viewModel.rawSnapshot.runtime.reviewReason
     ?? viewModel.rawSnapshot.runtime.lastAiFailureReason
     ?? viewModel.rawSnapshot.mission.failureReason
@@ -139,7 +139,7 @@ export function buildHumanStepDetail(viewModel: CommanderConsoleViewModel): stri
   return localizeCommanderText(viewModel.locale, "系统会持续把关键动作写入运行证明与取证记录。", "The system keeps writing key actions into runtime proof and forensics records.");
 }
 
-export function formatHealthStatus(viewModel: CommanderConsoleViewModel): string {
+function formatHealthStatus(viewModel: CommanderConsoleViewModel): string {
   const hasDanger = viewModel.capabilityHealth.some((entry) => entry.tone === "danger");
   const hasWarn = viewModel.capabilityHealth.some((entry) => entry.tone === "warn");
   if (hasDanger) {
@@ -151,7 +151,7 @@ export function formatHealthStatus(viewModel: CommanderConsoleViewModel): string
   return localizeCommanderText(viewModel.locale, "运行健康", "Healthy");
 }
 
-export type ActionableErrorView = {
+type ActionableErrorView = {
   id: string;
   tone: "ok" | "attention" | "blocked";
   title: string;
@@ -161,7 +161,7 @@ export type ActionableErrorView = {
   owner: string;
 };
 
-export function buildActionableErrors(viewModel: CommanderConsoleViewModel): ActionableErrorView[] {
+function buildActionableErrors(viewModel: CommanderConsoleViewModel): ActionableErrorView[] {
   const locale = viewModel.locale;
   const items: ActionableErrorView[] = [];
   const reviewReason = viewModel.rawSnapshot.runtime.reviewReason ?? viewModel.rawSnapshot.mission.reviewRequiredReason;
@@ -245,3 +245,6 @@ export function buildActionableErrors(viewModel: CommanderConsoleViewModel): Act
 
   return items;
 }
+
+export { getActiveTaskTemplate, getRuntimeTone, canPauseMission, canResumeMission, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail, formatHealthStatus, buildActionableErrors };
+export type { ActionableErrorView };

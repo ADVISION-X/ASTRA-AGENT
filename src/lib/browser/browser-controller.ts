@@ -2,7 +2,7 @@ import type { LocalBrowserSessionState } from "../../types/local-browser-session
 
 import { createId } from "../local-runtime/ids.js";
 
-export type BrowserActionResult = {
+type BrowserActionResult = {
   browserActionId: string;
   ok: boolean;
   message: string;
@@ -10,7 +10,7 @@ export type BrowserActionResult = {
   fallbackUsed: boolean;
 };
 
-export type BrowserCaptureResult = {
+type BrowserCaptureResult = {
   browserActionId: string;
   pageUrl: string;
   pageTitle: string;
@@ -23,14 +23,14 @@ export type BrowserCaptureResult = {
   createdAt: string;
 };
 
-export type BrowserStateSnapshot = LocalBrowserSessionState & {
+type BrowserStateSnapshot = LocalBrowserSessionState & {
   open: boolean;
   currentUrl: string;
   currentTitle: string;
   browserExecutable: string | null;
 };
 
-export type BrowserGeometrySnapshot = {
+type BrowserGeometrySnapshot = {
   windowX: number;
   windowY: number;
   viewportWidth: number;
@@ -49,13 +49,13 @@ export type BrowserGeometrySnapshot = {
   capturedAt: string;
 };
 
-export type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
-export type BrowserClickButton = "left" | "right" | "middle";
-export type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
-export type BrowserTextInputAction = "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input";
-export type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
+type BrowserClickButton = "left" | "right" | "middle";
+type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
+type BrowserTextInputAction = "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input";
+type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
-export interface BrowserController {
+interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
   getGeometrySnapshot(): Promise<BrowserGeometrySnapshot>;
@@ -87,4 +87,4 @@ export interface BrowserController {
   screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
-}
+}export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserClickButton, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController };

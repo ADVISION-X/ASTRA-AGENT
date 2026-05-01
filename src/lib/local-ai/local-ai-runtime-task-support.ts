@@ -12,12 +12,12 @@ import type { LocalAiDebugHook, LocalAiRuntimeAdapter } from "./runtime-adapters
 import { extractFirstJsonObject } from "./runtime-adapters/runtime-adapter-utils.js";
 import { getPromptContract } from "./prompt-registry.js";
 
-export const MODEL_TIMEOUT_MS = {
+const MODEL_TIMEOUT_MS = {
   text: 30_000,
   ocr: 30_000,
 } as const;
 
-export type RuntimeExecutionInput = {
+type RuntimeExecutionInput = {
   request: LocalAiTaskRequest;
   roleConfig: LocalModelRoleConfig;
   ollamaAdapter: LocalAiRuntimeAdapter;
@@ -25,15 +25,15 @@ export type RuntimeExecutionInput = {
   debugHook?: LocalAiDebugHook;
 };
 
-export function hashText(value: string): string {
+function hashText(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export function isFullAiIoDebugEnabled(): boolean {
+function isFullAiIoDebugEnabled(): boolean {
   return process.env.GRASSEYE_DEBUG_AI_IO === "full";
 }
 
-export function truncatePreview(value: string, maxLength = 220): string {
+function truncatePreview(value: string, maxLength = 220): string {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) {
     return normalized;
@@ -42,11 +42,11 @@ export function truncatePreview(value: string, maxLength = 220): string {
   return `${normalized.slice(0, maxLength)}...`;
 }
 
-export function buildPromptPreview(value: string): string {
+function buildPromptPreview(value: string): string {
   return truncatePreview(value, 320);
 }
 
-export function parseRuntimeJsonOutput(text: string, taskType: string): unknown {
+function parseRuntimeJsonOutput(text: string, taskType: string): unknown {
   const extractedJson = extractFirstJsonObject(text);
   try {
     return JSON.parse(extractedJson);
@@ -56,7 +56,7 @@ export function parseRuntimeJsonOutput(text: string, taskType: string): unknown 
   }
 }
 
-export function toJsonPayload<TOutput>(text: string, schema: z.ZodSchema<TOutput>, taskType: string): TOutput {
+function toJsonPayload<TOutput>(text: string, schema: z.ZodSchema<TOutput>, taskType: string): TOutput {
   const parsed = parseRuntimeJsonOutput(text, taskType);
   try {
     return schema.parse(parsed);
@@ -66,7 +66,7 @@ export function toJsonPayload<TOutput>(text: string, schema: z.ZodSchema<TOutput
   }
 }
 
-export function normalizeOcrText(ocrText: string): OcrCleanupPayload {
+function normalizeOcrText(ocrText: string): OcrCleanupPayload {
   const lines = ocrText
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -81,7 +81,7 @@ export function normalizeOcrText(ocrText: string): OcrCleanupPayload {
   };
 }
 
-export function buildCommentPromptParts(request: Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>) {
+function buildCommentPromptParts(request: Extract<LocalAiTaskRequest, { taskType: "comments.intent_analysis" }>) {
   const contract = getPromptContract(request.taskType);
   const userPrompt = [
     "Analyze the cleaned comments and return JSON only.",
@@ -96,3 +96,7 @@ export function buildCommentPromptParts(request: Extract<LocalAiTaskRequest, { t
     fullPrompt: [contract.purpose, userPrompt].join("\n\n"),
   };
 }
+
+
+export { MODEL_TIMEOUT_MS, hashText, isFullAiIoDebugEnabled, truncatePreview, buildPromptPreview, parseRuntimeJsonOutput, toJsonPayload, normalizeOcrText, buildCommentPromptParts };
+export type { RuntimeExecutionInput };

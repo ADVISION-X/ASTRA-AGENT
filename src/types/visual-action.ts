@@ -43,10 +43,10 @@ export const VisualTargetCatalogSchema = z.object({
   failureBehavior: z.string().min(1),
 });
 
-export type VisualActionRequest = z.infer<typeof VisualActionRequestSchema>;
-export type VisualActionResult = z.infer<typeof VisualActionResultSchema>;
-export type VisualActionVerificationResult = z.infer<typeof VisualActionVerificationResultSchema>;
-export type VisualTargetCatalog = z.infer<typeof VisualTargetCatalogSchema>;
+type VisualActionRequest = z.infer<typeof VisualActionRequestSchema>;
+type VisualActionResult = z.infer<typeof VisualActionResultSchema>;
+type VisualActionVerificationResult = z.infer<typeof VisualActionVerificationResultSchema>;
+type VisualTargetCatalog = z.infer<typeof VisualTargetCatalogSchema>;
 
 export {
   VisualBoundingBoxSchema,
@@ -56,3 +56,6 @@ export {
 };
 
 export type { VisualTargetType, VisualBoundingBox, VisualClickPoint, VisualTarget };
+
+
+export type { VisualActionRequest, VisualActionResult, VisualActionVerificationResult, VisualTargetCatalog };

@@ -1,21 +1,21 @@
-export const POST_ACTION_VERIFICATION_MODES = [
+const POST_ACTION_VERIFICATION_MODES = [
   "visual_evidence",
   "observation_only",
   "before_after_comparison",
 ] as const;
 
-export const POST_ACTION_EVIDENCE_MAX_AGE_MS = 15_000;
-export const POST_ACTION_AFTER_EVIDENCE_MAX_LAG_MS = 15_000;
-export const POST_ACTION_MAX_OBSERVATIONS = 50;
-export const POST_ACTION_MAX_EVIDENCE_REFS = 50;
-export const POST_ACTION_MAX_SOURCE_PROOF_REFS = 50;
-export const POST_ACTION_MAX_SUMMARY_LENGTH = 1_000;
-export const POST_ACTION_MAX_SIGNAL_TYPE_LENGTH = 120;
-export const POST_ACTION_MAX_TARGET_TYPE_LENGTH = 120;
-export const POST_ACTION_MAX_STATUS_MESSAGE_LENGTH = 1_000;
-export const POST_ACTION_MAX_DATA_QUALITY_FLAGS = 30;
+const POST_ACTION_EVIDENCE_MAX_AGE_MS = 15_000;
+const POST_ACTION_AFTER_EVIDENCE_MAX_LAG_MS = 15_000;
+const POST_ACTION_MAX_OBSERVATIONS = 50;
+const POST_ACTION_MAX_EVIDENCE_REFS = 50;
+const POST_ACTION_MAX_SOURCE_PROOF_REFS = 50;
+const POST_ACTION_MAX_SUMMARY_LENGTH = 1_000;
+const POST_ACTION_MAX_SIGNAL_TYPE_LENGTH = 120;
+const POST_ACTION_MAX_TARGET_TYPE_LENGTH = 120;
+const POST_ACTION_MAX_STATUS_MESSAGE_LENGTH = 1_000;
+const POST_ACTION_MAX_DATA_QUALITY_FLAGS = 30;
 
-export const POST_ACTION_CHILD_OUTCOME_MAP = {
+const POST_ACTION_CHILD_OUTCOME_MAP = {
   "verify-page-opened": "page_opened",
   "verify-comments-panel-opened": "comments_panel_opened",
   "verify-comments-panel-closed": "comments_panel_closed",
@@ -24,7 +24,7 @@ export const POST_ACTION_CHILD_OUTCOME_MAP = {
   "verify-target-state-changed": "target_state_changed",
 } as const;
 
-export const POST_ACTION_CHILD_VERIFICATION_MODE_MAP = {
+const POST_ACTION_CHILD_VERIFICATION_MODE_MAP = {
   "verify-page-opened": "observation_only",
   "verify-comments-panel-opened": "visual_evidence",
   "verify-comments-panel-closed": "visual_evidence",
@@ -33,7 +33,7 @@ export const POST_ACTION_CHILD_VERIFICATION_MODE_MAP = {
   "verify-target-state-changed": "before_after_comparison",
 } as const;
 
-export const POST_ACTION_CHILD_POLICY_MAP = {
+const POST_ACTION_CHILD_POLICY_MAP = {
   "verify-page-opened": {
     expectedOutcomeType: "page_opened",
     verificationMode: "observation_only",
@@ -102,7 +102,7 @@ export const POST_ACTION_CHILD_POLICY_MAP = {
   },
 } as const;
 
-export const POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST = {
+const POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST = {
   page_state: {
     sourceAbilityGroupIds: ["page-state"],
     sourceChildCapabilityIds: [
@@ -148,3 +148,6 @@ export const POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST = {
     sourceChildCapabilityIds: ["detect-feed-ready", "detect-video-stable", "detect-comment-panel-state", "verify-video-changed-after-scroll"],
   },
 } as const;
+
+
+export { POST_ACTION_VERIFICATION_MODES, POST_ACTION_EVIDENCE_MAX_AGE_MS, POST_ACTION_AFTER_EVIDENCE_MAX_LAG_MS, POST_ACTION_MAX_OBSERVATIONS, POST_ACTION_MAX_EVIDENCE_REFS, POST_ACTION_MAX_SOURCE_PROOF_REFS, POST_ACTION_MAX_SUMMARY_LENGTH, POST_ACTION_MAX_SIGNAL_TYPE_LENGTH, POST_ACTION_MAX_TARGET_TYPE_LENGTH, POST_ACTION_MAX_STATUS_MESSAGE_LENGTH, POST_ACTION_MAX_DATA_QUALITY_FLAGS, POST_ACTION_CHILD_OUTCOME_MAP, POST_ACTION_CHILD_VERIFICATION_MODE_MAP, POST_ACTION_CHILD_POLICY_MAP, POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST };

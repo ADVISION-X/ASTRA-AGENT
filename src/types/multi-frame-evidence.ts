@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VideoFrameSamplePointLabelSchema = z.enum([
+const VideoFrameSamplePointLabelSchema = z.enum([
   "frame_3s",
   "frame_6s",
   "frame_10s",
@@ -9,19 +9,19 @@ export const VideoFrameSamplePointLabelSchema = z.enum([
   "adaptive_late",
 ]);
 
-export const MultiFrameSamplingStrategySchema = z.enum([
+const MultiFrameSamplingStrategySchema = z.enum([
   "fixed_3_6_10",
   "adaptive_short_video",
   "single_frame_fallback",
 ]);
 
-export const ProductPresenceInputModeSchema = z.enum([
+const ProductPresenceInputModeSchema = z.enum([
   "multi_frame_contact_sheet",
   "multi_image",
   "single_frame_fallback",
 ]);
 
-export const VideoFrameSamplePointSchema = z.object({
+const VideoFrameSamplePointSchema = z.object({
   label: VideoFrameSamplePointLabelSchema,
   targetTimestampSec: z.number().nonnegative().nullable().default(null),
   actualTimestampSec: z.number().nonnegative().nullable().default(null),
@@ -34,7 +34,7 @@ export const VideoFrameSamplePointSchema = z.object({
   unavailableReason: z.string().min(1).nullable().default(null),
 });
 
-export const MultiFrameVideoEvidenceSetSchema = z.object({
+const MultiFrameVideoEvidenceSetSchema = z.object({
   multiFrameEvidenceSetId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -47,7 +47,7 @@ export const MultiFrameVideoEvidenceSetSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 });
 
-export const ProductPresenceMultiFrameAIInputSchema = z.object({
+const ProductPresenceMultiFrameAIInputSchema = z.object({
   promptId: z.literal("vision.productPresence.v1"),
   promptVersion: z.literal("v1"),
   schemaVersion: z.literal("vision.productPresence.schema.v1"),
@@ -58,9 +58,12 @@ export const ProductPresenceMultiFrameAIInputSchema = z.object({
   validFrameCount: z.number().int().nonnegative(),
 });
 
-export type VideoFrameSamplePointLabel = z.infer<typeof VideoFrameSamplePointLabelSchema>;
-export type MultiFrameSamplingStrategy = z.infer<typeof MultiFrameSamplingStrategySchema>;
-export type ProductPresenceInputMode = z.infer<typeof ProductPresenceInputModeSchema>;
-export type VideoFrameSamplePoint = z.infer<typeof VideoFrameSamplePointSchema>;
-export type MultiFrameVideoEvidenceSet = z.infer<typeof MultiFrameVideoEvidenceSetSchema>;
-export type ProductPresenceMultiFrameAIInput = z.infer<typeof ProductPresenceMultiFrameAIInputSchema>;
+type VideoFrameSamplePointLabel = z.infer<typeof VideoFrameSamplePointLabelSchema>;
+type MultiFrameSamplingStrategy = z.infer<typeof MultiFrameSamplingStrategySchema>;
+type ProductPresenceInputMode = z.infer<typeof ProductPresenceInputModeSchema>;
+type VideoFrameSamplePoint = z.infer<typeof VideoFrameSamplePointSchema>;
+type MultiFrameVideoEvidenceSet = z.infer<typeof MultiFrameVideoEvidenceSetSchema>;
+type ProductPresenceMultiFrameAIInput = z.infer<typeof ProductPresenceMultiFrameAIInputSchema>;
+
+export { VideoFrameSamplePointLabelSchema, MultiFrameSamplingStrategySchema, ProductPresenceInputModeSchema, VideoFrameSamplePointSchema, MultiFrameVideoEvidenceSetSchema, ProductPresenceMultiFrameAIInputSchema };
+export type { VideoFrameSamplePointLabel, MultiFrameSamplingStrategy, ProductPresenceInputMode, VideoFrameSamplePoint, MultiFrameVideoEvidenceSet, ProductPresenceMultiFrameAIInput };

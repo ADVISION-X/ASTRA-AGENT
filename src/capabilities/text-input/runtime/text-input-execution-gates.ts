@@ -85,7 +85,7 @@ function buildGateFailureResult(input: {
   });
 }
 
-export function runTextInputExecutionGates(input: {
+function runTextInputExecutionGates(input: {
   request: ParsedTextInputAbilityInput;
   context: TextInputRuntimeContext;
   seed: TextInputResultSeed;
@@ -99,3 +99,6 @@ export function runTextInputExecutionGates(input: {
 
   return null;
 }
+
+
+export { runTextInputExecutionGates };

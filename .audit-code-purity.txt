@@ -2,14 +2,7 @@
 > grasseye-local-workbench@0.1.0 audit:code-purity
 > node --import tsx scripts/audit/domains/code-purity/run-inspector.ts
 
-[CODE VIOLATION] code-purity: 168 finding(s)
-- ERROR GRASSEYE-CODE-PURITY-001-V1 src/capabilities/orchestration/runtime/orchestration-executor-loop.ts:1 File exceeds the orchestration coordinator hard limit of 300 lines.
-- ERROR GRASSEYE-CODE-PURITY-002-V1 src/capabilities/orchestration/runtime/orchestration-executor-loop.ts:1 Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/orchestration/runtime/orchestration-executor-loop.ts:54 Function runMissionLoop exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/orchestration/runtime/orchestration-executor-loop.ts:1 Import or export structure exceeds code-purity limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/orchestration/runtime/orchestration-loop-proof-builders.ts:44 Function buildFailureProof exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/orchestration/runtime/orchestration-proof-builder.ts:71 Function buildOrchestrationProofCoreFields exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/orchestration/runtime/step-dispatcher.ts:185 Function dispatchOperationalStep exceeds code-purity function limits.
+[CODE VIOLATION] code-purity: 149 finding(s)
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/orchestration/schema.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/page-state/runtime/page-state-dispatch-failure.ts:10 Function dispatchInvalidPageStateInput exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/page-state/runtime/page-state-dispatch-failure.ts:103 Function dispatchPageStateFailure exceeds code-purity function limits.
@@ -19,28 +12,16 @@
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/post-action-verification/contract.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts:16 Function executePostActionVerification exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/post-action-verification/runtime/post-action-verification-executor.ts:1 Import or export structure exceeds code-purity limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/post-action-verification/runtime/verification-proof-builder.ts:37 Function buildPostActionRuntimeProofCoreFields exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/post-action-verification/schema.ts:359 Function PostActionVerificationAbilityResultSchema exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/post-action-verification/schema.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/post-action-verification/shared/post-action-policy.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/screenshot/contract.ts:1 Import or export structure exceeds code-purity limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/artifact-storage-gate.ts:7 Function runArtifactStorageGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/browser-session-gate.ts:13 Function normalizeComparableUrl contains a silent catch clause.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/browser-session-gate.ts:18 Function runBrowserSessionGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/capture-runner.ts:24 Function runCaptureRunner exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/image-processing-runner.ts:18 Function runImageProcessingRunner exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/page-state-handoff-gate.ts:5 Function runPageStateHandoffGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/privacy-policy-gate.ts:5 Function runPrivacyPolicyGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/region-proof-gate.ts:4 Function runRegionProofGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-dispatch-failure.ts:13 Function dispatchScreenshotFailure exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/screenshot/runtime/screenshot-execution-failure-builders.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-execution-phases.ts:71 Function executeScreenshotCaptureAndImagePhase exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-execution-phases.ts:121 Function validateAndExtractScreenshotMetadata exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-execution-success.ts:93 Function executeScreenshotSuccessPath exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-executor.ts:14 Function executeScreenshotRequest exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-input-gate.ts:5 Function runScreenshotInputGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts:6 Function runScreenshotOutputBoundaryGate exceeds code-purity function limits.
-- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-source-gate.ts:8 Function runScreenshotSourceGate exceeds code-purity function limits.
+- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/runtime/screenshot-input-gate.ts:28 Function resolveContentLinesLimitFailure exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/screenshot/schema.ts:370 Function ScreenshotRuntimeProofSchema exceeds code-purity function limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/screenshot/schema.ts:1 Import or export structure exceeds code-purity limits.
 - ERROR GRASSEYE-CODE-PURITY-006-V1 src/capabilities/screenshot/shared/screenshot-types.ts:1 Import or export structure exceeds code-purity limits.

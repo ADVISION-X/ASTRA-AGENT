@@ -30,35 +30,35 @@ import { VISUAL_TARGET_ABILITY_GROUP_ID } from "./shared/visual-target-types.js"
 export { VISUAL_TARGET_ABILITY_GROUP_ID };
 export const VisualTargetSchema = VisualTargetResultSchema;
 
-export type VisualTargetChildCapabilityId = z.output<typeof VisualTargetChildCapabilityIdSchema>;
-export type VisualTargetStatus = z.output<typeof VisualTargetStatusSchema>;
-export type VisualTargetType = z.output<typeof VisualTargetTypeSchema>;
-export type VisualTargetNature = z.output<typeof VisualTargetNatureSchema>;
-export type VisualBoundingBox = z.output<typeof VisualBoundingBoxSchema>;
-export type VisualClickPoint = z.output<typeof VisualClickPointSchema>;
-export type VisualTargetCoordinateSpace = z.output<typeof VisualTargetCoordinateSpaceSchema>;
-export type VisualTargetFailureReason = z.output<typeof VisualTargetFailureReasonSchema>;
-export type VisualTargetDataQualityFlag = z.output<typeof VisualTargetDataQualityFlagSchema>;
-export type VisualTargetScaleMapping = z.output<typeof VisualTargetScaleMappingSchema>;
-export type VisualTargetScreenshotSourceProof = z.output<typeof VisualTargetScreenshotSourceProofSchema>;
-export type VisualTargetAiSourceProof = z.output<typeof VisualTargetAiSourceProofSchema>;
-export type VisualTargetPageStateProof = z.output<typeof VisualTargetPageStateProofSchema>;
-export type VisualTargetSourceProof = z.output<typeof VisualTargetSourceProofSchema>;
-export type VisualTargetCandidate = z.output<typeof VisualTargetCandidateSchema>;
-export type VisualTargetRuntimeProof = z.output<typeof VisualTargetRuntimeProofSchema>;
-export type VisualTargetOutput = z.output<typeof VisualTargetOutputSchema>;
-export type VisualTargetActionOutput = z.output<typeof VisualTargetActionOutputSchema>;
-export type VisualTargetGeometryGuardHandoff = z.output<typeof VisualTargetGeometryGuardHandoffSchema>;
-export type VisualTargetAbilityInput = z.input<typeof VisualTargetAbilityInputSchema>;
-export type ParsedVisualTargetAbilityInput = z.output<typeof VisualTargetAbilityInputSchema>;
-export type VisualTarget = z.output<typeof VisualTargetResultSchema>;
-export type VisualTargetResult = VisualTarget;
-export type VisualTargetAbilityResult = z.output<typeof VisualTargetAbilityResultSchema>;
-export type SuccessfulVisualTarget = z.output<typeof VisualTargetActionSuccessResultSchema>;
+type VisualTargetChildCapabilityId = z.output<typeof VisualTargetChildCapabilityIdSchema>;
+type VisualTargetStatus = z.output<typeof VisualTargetStatusSchema>;
+type VisualTargetType = z.output<typeof VisualTargetTypeSchema>;
+type VisualTargetNature = z.output<typeof VisualTargetNatureSchema>;
+type VisualBoundingBox = z.output<typeof VisualBoundingBoxSchema>;
+type VisualClickPoint = z.output<typeof VisualClickPointSchema>;
+type VisualTargetCoordinateSpace = z.output<typeof VisualTargetCoordinateSpaceSchema>;
+type VisualTargetFailureReason = z.output<typeof VisualTargetFailureReasonSchema>;
+type VisualTargetDataQualityFlag = z.output<typeof VisualTargetDataQualityFlagSchema>;
+type VisualTargetScaleMapping = z.output<typeof VisualTargetScaleMappingSchema>;
+type VisualTargetScreenshotSourceProof = z.output<typeof VisualTargetScreenshotSourceProofSchema>;
+type VisualTargetAiSourceProof = z.output<typeof VisualTargetAiSourceProofSchema>;
+type VisualTargetPageStateProof = z.output<typeof VisualTargetPageStateProofSchema>;
+type VisualTargetSourceProof = z.output<typeof VisualTargetSourceProofSchema>;
+type VisualTargetCandidate = z.output<typeof VisualTargetCandidateSchema>;
+type VisualTargetRuntimeProof = z.output<typeof VisualTargetRuntimeProofSchema>;
+type VisualTargetOutput = z.output<typeof VisualTargetOutputSchema>;
+type VisualTargetActionOutput = z.output<typeof VisualTargetActionOutputSchema>;
+type VisualTargetGeometryGuardHandoff = z.output<typeof VisualTargetGeometryGuardHandoffSchema>;
+type VisualTargetAbilityInput = z.input<typeof VisualTargetAbilityInputSchema>;
+type ParsedVisualTargetAbilityInput = z.output<typeof VisualTargetAbilityInputSchema>;
+type VisualTarget = z.output<typeof VisualTargetResultSchema>;
+type VisualTargetResult = VisualTarget;
+type VisualTargetAbilityResult = z.output<typeof VisualTargetAbilityResultSchema>;
+type SuccessfulVisualTarget = z.output<typeof VisualTargetActionSuccessResultSchema>;
 
 export type { VisualTargetChildCapability } from "./runtime/visual-target-child-contract.js";
 
-export type VisualTargetPublicTypes = {
+type VisualTargetPublicTypes = {
   abilityGroupId: typeof VISUAL_TARGET_ABILITY_GROUP_ID;
   childCapabilityId: VisualTargetChildCapabilityId;
   targetType: VisualTargetType;
@@ -66,7 +66,9 @@ export type VisualTargetPublicTypes = {
   result: VisualTargetAbilityResult;
 };
 
-export interface VisualTargetAbilityGroup {
+interface VisualTargetAbilityGroup {
   listChildCapabilityIds(): VisualTargetChildCapabilityId[];
   execute(input: VisualTargetAbilityInput): Promise<VisualTargetAbilityResult>;
 }
+
+export type { VisualTargetChildCapabilityId, VisualTargetStatus, VisualTargetType, VisualTargetNature, VisualBoundingBox, VisualClickPoint, VisualTargetCoordinateSpace, VisualTargetFailureReason, VisualTargetDataQualityFlag, VisualTargetScaleMapping, VisualTargetScreenshotSourceProof, VisualTargetAiSourceProof, VisualTargetPageStateProof, VisualTargetSourceProof, VisualTargetCandidate, VisualTargetRuntimeProof, VisualTargetOutput, VisualTargetActionOutput, VisualTargetGeometryGuardHandoff, VisualTargetAbilityInput, ParsedVisualTargetAbilityInput, VisualTarget, VisualTargetResult, VisualTargetAbilityResult, SuccessfulVisualTarget, VisualTargetPublicTypes, VisualTargetAbilityGroup };

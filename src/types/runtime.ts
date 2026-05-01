@@ -1,18 +1,18 @@
 import type { LocalAiHealth, LocalAiTaskType } from "./local-ai.js";
 
-export type AppShellComponentName =
+type AppShellComponentName =
   | "console"
   | "agent"
   | "browserController"
   | "dataStore";
 
-export type MissionReadinessComponentName =
+type MissionReadinessComponentName =
   | "mission"
   | "browserController"
   | "localAi"
   | "dataStore";
 
-export type RuntimeComponentHealth<TName extends string = string> = {
+type RuntimeComponentHealth<TName extends string = string> = {
   name: TName;
   ok: boolean;
   detail: string;
@@ -22,7 +22,7 @@ export type RuntimeComponentHealth<TName extends string = string> = {
   source?: string;
 };
 
-export type RuntimeHealthReport = {
+type RuntimeHealthReport = {
   kind: "app-shell-health";
   status: "ready" | "failed";
   actionableMessage: string;
@@ -30,7 +30,7 @@ export type RuntimeHealthReport = {
   components: RuntimeComponentHealth<AppShellComponentName>[];
 };
 
-export type MissionReadinessReport = {
+type MissionReadinessReport = {
   kind: "mission-readiness";
   status: "ready" | "degraded";
   actionableMessage: string;
@@ -41,7 +41,7 @@ export type MissionReadinessReport = {
   warnings: RuntimeComponentHealth<MissionReadinessComponentName>[];
 };
 
-export type RuntimePageReadyStatus =
+type RuntimePageReadyStatus =
   | "idle"
   | "opening_target_page"
   | "waiting_page_ready"
@@ -49,7 +49,7 @@ export type RuntimePageReadyStatus =
   | "navigation_failed"
   | "review_required";
 
-export type RuntimeRoundStep =
+type RuntimeRoundStep =
   | "idle"
   | "opening_target_page"
   | "waiting_page_ready"
@@ -65,7 +65,7 @@ export type RuntimeRoundStep =
   | "completed"
   | "failed";
 
-export type RuntimeDeliveryState = {
+type RuntimeDeliveryState = {
   currentRoundStep: RuntimeRoundStep;
   currentUrl: string;
   targetUrl: string | null;
@@ -93,7 +93,7 @@ export type RuntimeDeliveryState = {
   lastError: string | null;
 };
 
-export type BrowseRuntimeSnapshot = {
+type BrowseRuntimeSnapshot = {
   runtimeStatus: string;
   browserMode: string;
   browserExecutable: string | null;
@@ -145,4 +145,4 @@ export type BrowseRuntimeSnapshot = {
     evidencePacketCount: number;
     browseLedgerCount: number;
   };
-};
+};export type { AppShellComponentName, MissionReadinessComponentName, RuntimeComponentHealth, RuntimeHealthReport, MissionReadinessReport, RuntimePageReadyStatus, RuntimeRoundStep, RuntimeDeliveryState, BrowseRuntimeSnapshot };

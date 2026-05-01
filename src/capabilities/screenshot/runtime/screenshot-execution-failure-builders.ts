@@ -11,26 +11,26 @@ import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotClockStart } from "./screenshot-clock.js";
 
-export type ScreenshotFailureGateDecision = ScreenshotRuntimeProof["privacyDecision"];
+type ScreenshotFailureGateDecision = ScreenshotRuntimeProof["privacyDecision"];
 
-export type ScreenshotFailureGateState = {
+type ScreenshotFailureGateState = {
   failure: { message: string } | null;
   decision: ScreenshotFailureGateDecision;
 };
 
-export type ScreenshotFailureSourceGateState = ScreenshotFailureGateState & {
+type ScreenshotFailureSourceGateState = ScreenshotFailureGateState & {
   sourceProof: ScreenshotSourceProof | null;
 };
 
-export type ScreenshotFailureBrowserSessionGateState = ScreenshotFailureGateState & {
+type ScreenshotFailureBrowserSessionGateState = ScreenshotFailureGateState & {
   browserSessionRef: string | null;
 };
 
-export type ScreenshotFailurePageStateGateState = ScreenshotFailureGateState & {
+type ScreenshotFailurePageStateGateState = ScreenshotFailureGateState & {
   pageStateProofRef: string | null;
 };
 
-export type ScreenshotExecutionFailureContext = {
+type ScreenshotExecutionFailureContext = {
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
@@ -240,3 +240,4 @@ export async function buildScreenshotArtifactStorageFailure(input: ScreenshotExe
     },
   });
 }
+export type { ScreenshotFailureGateDecision, ScreenshotFailureGateState, ScreenshotFailureSourceGateState, ScreenshotFailureBrowserSessionGateState, ScreenshotFailurePageStateGateState, ScreenshotExecutionFailureContext };

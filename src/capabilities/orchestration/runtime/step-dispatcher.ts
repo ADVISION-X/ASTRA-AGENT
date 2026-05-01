@@ -182,6 +182,31 @@ async function dispatchAbilityStep(input: {
   };
 }
 
+async function dispatchOperationalStepCore(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: OperationalMap["steps"][number];
+  reason?: string;
+  sequenceNo: number;
+  idempotencyKey: string;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+  missionId: string;
+}): Promise<StepDispatchResult> {
+  if (input.step.stepKind === "review") {
+    return dispatchReviewStep({ state: input.state, map: input.map, step: input.step as Extract<OperationalMap["steps"][number], { stepKind: "review" }>, reason: input.reason, sequenceNo: input.sequenceNo, idempotencyKey: input.idempotencyKey, context: input.context, missionId: input.missionId });
+  }
+
+  if (input.step.stepKind === "finalize") {
+    return buildFinalizeStepResult({ map: input.map, missionId: input.missionId, step: input.step as Extract<OperationalMap["steps"][number], { stepKind: "finalize" }> });
+  }
+
+  if (input.step.stepKind === "ai") {
+    return dispatchAiStep({ state: input.state, map: input.map, step: input.step as Extract<OperationalMap["steps"][number], { stepKind: "ai" }>, sequenceNo: input.sequenceNo, idempotencyKey: input.idempotencyKey, context: input.context, missionId: input.missionId });
+  }
+
+  return dispatchAbilityStep({ state: input.state, map: input.map, step: input.step as Extract<OperationalMap["steps"][number], { stepKind: "ability" }>, sequenceNo: input.sequenceNo, idempotencyKey: input.idempotencyKey, context: input.context, missionId: input.missionId });
+}
+
 export async function dispatchOperationalStep(input: {
   state: MissionState;
   map: OperationalMap;
@@ -204,47 +229,5 @@ export async function dispatchOperationalStep(input: {
     return { dispatched: false, failureReason: "Cannot dispatch step: mission has no missionId." };
   }
 
-  if (step.stepKind === "review") {
-    return dispatchReviewStep({
-      state: input.state,
-      map: input.map,
-      step,
-      reason: input.reason,
-      sequenceNo: input.sequenceNo,
-      idempotencyKey: input.idempotencyKey,
-      context: input.context,
-      missionId,
-    });
-  }
-
-  if (step.stepKind === "finalize") {
-    return buildFinalizeStepResult({
-      map: input.map,
-      missionId,
-      step,
-    });
-  }
-
-  if (step.stepKind === "ai") {
-    return dispatchAiStep({
-      state: input.state,
-      map: input.map,
-      step,
-      sequenceNo: input.sequenceNo,
-      idempotencyKey: input.idempotencyKey,
-      context: input.context,
-      missionId,
-    });
-  }
-
-  // ability step
-  return dispatchAbilityStep({
-    state: input.state,
-    map: input.map,
-    step,
-    sequenceNo: input.sequenceNo,
-    idempotencyKey: input.idempotencyKey,
-    context: input.context,
-    missionId,
-  });
+  return dispatchOperationalStepCore({ state: input.state, map: input.map, step, reason: input.reason, sequenceNo: input.sequenceNo, idempotencyKey: input.idempotencyKey, context: input.context, missionId });
 }

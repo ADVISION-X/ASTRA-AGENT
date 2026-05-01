@@ -1,19 +1,19 @@
 import { z } from "zod";
 
-export const VisualOnlyRuntimeModeSchema = z.enum([
+const VisualOnlyRuntimeModeSchema = z.enum([
   "visual_only_real_platform",
   "fixture_only",
   "unsupported",
 ]);
 
-export const PageUnderstandingSourceSchema = z.enum([
+const PageUnderstandingSourceSchema = z.enum([
   "screenshot",
   "ocr",
   "local_visual_ai",
   "visual_target_detection",
 ]);
 
-export const ForbiddenPageUnderstandingSourceSchema = z.enum([
+const ForbiddenPageUnderstandingSourceSchema = z.enum([
   "dom",
   "bom",
   "selector",
@@ -24,7 +24,7 @@ export const ForbiddenPageUnderstandingSourceSchema = z.enum([
   "cookies",
 ]);
 
-export const VisualOnlyRuntimePolicySchema = z.object({
+const VisualOnlyRuntimePolicySchema = z.object({
   mode: VisualOnlyRuntimeModeSchema,
   allowedSources: z.array(PageUnderstandingSourceSchema).min(1),
   forbiddenSources: z.array(ForbiddenPageUnderstandingSourceSchema).min(1),
@@ -35,7 +35,7 @@ export const VisualOnlyRuntimePolicySchema = z.object({
   metricDomExtractionAllowed: z.literal(false),
 });
 
-export const VisualOnlyRuntimePolicy = VisualOnlyRuntimePolicySchema.parse({
+const VisualOnlyRuntimePolicy = VisualOnlyRuntimePolicySchema.parse({
   mode: "visual_only_real_platform",
   allowedSources: ["screenshot", "ocr", "local_visual_ai", "visual_target_detection"],
   forbiddenSources: ["dom", "bom", "selector", "innerText", "textContent", "accessibility_tree_default", "storageState", "cookies"],
@@ -58,7 +58,10 @@ export const VisualOnlyRuntimePolicy = VisualOnlyRuntimePolicySchema.parse({
   metricDomExtractionAllowed: false,
 });
 
-export type VisualOnlyRuntimeMode = z.infer<typeof VisualOnlyRuntimeModeSchema>;
-export type PageUnderstandingSource = z.infer<typeof PageUnderstandingSourceSchema>;
-export type ForbiddenPageUnderstandingSource = z.infer<typeof ForbiddenPageUnderstandingSourceSchema>;
-export type VisualOnlyRuntimePolicy = z.infer<typeof VisualOnlyRuntimePolicySchema>;
+type VisualOnlyRuntimeMode = z.infer<typeof VisualOnlyRuntimeModeSchema>;
+type PageUnderstandingSource = z.infer<typeof PageUnderstandingSourceSchema>;
+type ForbiddenPageUnderstandingSource = z.infer<typeof ForbiddenPageUnderstandingSourceSchema>;
+type VisualOnlyRuntimePolicy = z.infer<typeof VisualOnlyRuntimePolicySchema>;
+
+export { VisualOnlyRuntimeModeSchema, PageUnderstandingSourceSchema, ForbiddenPageUnderstandingSourceSchema, VisualOnlyRuntimePolicySchema, VisualOnlyRuntimePolicy };
+export type { VisualOnlyRuntimeMode, PageUnderstandingSource, ForbiddenPageUnderstandingSource, VisualOnlyRuntimePolicy };

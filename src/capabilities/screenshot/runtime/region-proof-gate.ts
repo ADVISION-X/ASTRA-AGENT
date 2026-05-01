@@ -1,6 +1,107 @@
 import type { ScreenshotBoundingBox, ScreenshotSourceProof } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 
+function buildRegionProofFailure(reason: string, message: string) {
+  return {
+    decision: { status: "failed" as const, reason },
+    failure: createScreenshotFailure({
+      code: "region_proof_invalid",
+      message,
+    }),
+  };
+}
+
+function resolveMissingRegionFailure(input: { region: ScreenshotBoundingBox | null }) {
+  if (input.region) {
+    return null;
+  }
+
+  return {
+    decision: { status: "not_applicable" as const, reason: null },
+    failure: null,
+  };
+}
+
+function resolveMissingSourceProofFailure(input: { sourceProof: ScreenshotSourceProof | null }) {
+  if (input.sourceProof) {
+    return null;
+  }
+
+  return buildRegionProofFailure("source_proof_required", "Region capture requires sourceProof.");
+}
+
+function resolveSourceEvidenceMismatchFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
+  if (input.sourceProof.sourceScreenshotEvidenceId === input.region.sourceScreenshotEvidenceId) {
+    return null;
+  }
+
+  return buildRegionProofFailure("source_evidence_mismatch", "Region sourceScreenshotEvidenceId must match sourceProof.");
+}
+
+function resolveSourceStorageMismatchFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
+  if (input.sourceProof.sourceStorageRef === input.region.sourceStorageRef) {
+    return null;
+  }
+
+  return buildRegionProofFailure("source_storage_mismatch", "Region sourceStorageRef must match sourceProof.");
+}
+
+function resolveCoordinateSpaceMismatchFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
+  if (input.sourceProof.coordinateSpace === input.region.coordinateSpace) {
+    return null;
+  }
+
+  return buildRegionProofFailure("coordinate_space_mismatch", "Region coordinateSpace must match sourceProof coordinateSpace.");
+}
+
+function resolveSourceDimensionsFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
+  if (input.sourceProof.sourceWidth && input.sourceProof.sourceHeight) {
+    return null;
+  }
+
+  return buildRegionProofFailure("source_dimensions_required", "Region proof requires source dimensions.");
+}
+
+function resolveRegionBoundsFailure(input: { sourceProof: ScreenshotSourceProof; region: ScreenshotBoundingBox }) {
+  if (input.region.x >= 0 && input.region.y >= 0 && input.region.x + input.region.width <= input.sourceProof.sourceWidth && input.region.y + input.region.height <= input.sourceProof.sourceHeight) {
+    return null;
+  }
+
+  return buildRegionProofFailure("region_out_of_bounds", "Region exceeds source dimensions.");
+}
+
+function resolveRegionProofGate(input: {
+  sourceProof: ScreenshotSourceProof | null;
+  region: ScreenshotBoundingBox | null;
+}) {
+  const missingRegionFailure = resolveMissingRegionFailure(input);
+  if (missingRegionFailure) {
+    return missingRegionFailure;
+  }
+
+  const sourceProof = input.sourceProof;
+  if (!sourceProof) {
+    return resolveMissingSourceProofFailure(input);
+  }
+
+  const region = input.region;
+  if (!region) {
+    return missingRegionFailure;
+  }
+
+  return (
+    resolveSourceEvidenceMismatchFailure({ sourceProof, region })
+    ?? resolveSourceStorageMismatchFailure({ sourceProof, region })
+    ?? resolveCoordinateSpaceMismatchFailure({ sourceProof, region })
+    ?? resolveSourceDimensionsFailure({ sourceProof, region })
+    ?? resolveRegionBoundsFailure({ sourceProof, region })
+    ?? {
+      decision: { status: "passed" as const, reason: null },
+      failure: null,
+    }
+  );
+}
+
 export function runRegionProofGate(input: {
   sourceProof: ScreenshotSourceProof | null;
   region: ScreenshotBoundingBox | null;
@@ -8,68 +109,5 @@ export function runRegionProofGate(input: {
   decision: { status: "passed" | "failed" | "not_applicable"; reason: string | null };
   failure: ReturnType<typeof createScreenshotFailure> | null;
 } {
-  if (!input.region) {
-    return {
-      decision: { status: "not_applicable", reason: null },
-      failure: null,
-    };
-  }
-  if (!input.sourceProof) {
-    return {
-      decision: { status: "failed", reason: "source_proof_required" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region capture requires sourceProof.",
-      }),
-    };
-  }
-  if (input.sourceProof.sourceScreenshotEvidenceId !== input.region.sourceScreenshotEvidenceId) {
-    return {
-      decision: { status: "failed", reason: "source_evidence_mismatch" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region sourceScreenshotEvidenceId must match sourceProof.",
-      }),
-    };
-  }
-  if (input.sourceProof.sourceStorageRef !== input.region.sourceStorageRef) {
-    return {
-      decision: { status: "failed", reason: "source_storage_mismatch" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region sourceStorageRef must match sourceProof.",
-      }),
-    };
-  }
-  if (input.sourceProof.coordinateSpace !== input.region.coordinateSpace) {
-    return {
-      decision: { status: "failed", reason: "coordinate_space_mismatch" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region coordinateSpace must match sourceProof coordinateSpace.",
-      }),
-    };
-  }
-  if (!input.sourceProof.sourceWidth || !input.sourceProof.sourceHeight) {
-    return {
-      decision: { status: "failed", reason: "source_dimensions_required" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region proof requires source dimensions.",
-      }),
-    };
-  }
-  if (input.region.x < 0 || input.region.y < 0 || input.region.x + input.region.width > input.sourceProof.sourceWidth || input.region.y + input.region.height > input.sourceProof.sourceHeight) {
-    return {
-      decision: { status: "failed", reason: "region_out_of_bounds" },
-      failure: createScreenshotFailure({
-        code: "region_proof_invalid",
-        message: "Region exceeds source dimensions.",
-      }),
-    };
-  }
-  return {
-    decision: { status: "passed", reason: null },
-    failure: null,
-  };
+  return resolveRegionProofGate(input);
 }

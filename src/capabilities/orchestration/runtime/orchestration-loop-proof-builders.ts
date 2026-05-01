@@ -41,21 +41,21 @@ function buildProofBase(input: OrchestrationLoopProofContext, currentStepId: str
   };
 }
 
-function buildFailureProof(
-  input: OrchestrationLoopProofContext,
-  timing: ProofTiming,
-  stateRevisionBefore: number,
-  stateRevisionAfter: number,
-  stateHashBefore: string | null,
-  stateHashAfter: string | null,
-  currentStepId: string,
-  childCapabilityId: string,
-  failureReason: string,
-  loopDecision: LoopDecisionState["loopDecision"],
-  stateDecision: LoopDecisionState["stateDecision"],
-  dataQualityFlags: string[],
-  extra: Record<string, unknown>,
-) {
+function buildFailureProof(input: OrchestrationLoopProofContext, details: {
+  timing: ProofTiming;
+  stateRevisionBefore: number;
+  stateRevisionAfter: number;
+  stateHashBefore: string | null;
+  stateHashAfter: string | null;
+  currentStepId: string;
+  childCapabilityId: string;
+  failureReason: string;
+  loopDecision: LoopDecisionState["loopDecision"];
+  stateDecision: LoopDecisionState["stateDecision"];
+  dataQualityFlags: string[];
+  extra: Record<string, unknown>;
+}) {
+  const { timing, stateRevisionBefore, stateRevisionAfter, stateHashBefore, stateHashAfter, currentStepId, childCapabilityId, failureReason, loopDecision, stateDecision, dataQualityFlags, extra } = details;
   return buildOrchestrationRuntimeProof({
     ...buildProofBase(input, currentStepId),
     childCapabilityId,
@@ -93,23 +93,7 @@ export function buildDispatchGateFailureProof(input: {
 }) {
   return buildFailureProof(
     input.context,
-    { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 },
-    input.stateRevisionBefore,
-    input.stateRevisionAfter,
-    input.stateHashBefore,
-    input.stateHashAfter,
-    input.currentStepId,
-    "dispatch-gate",
-    input.failureReason,
-    "stop_failed",
-    "updated",
-    ["state_machine_violation"],
-    {
-      sequenceNo: input.state.sequenceNo,
-      status: "failed",
-      emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none",
-      transitionDecision: "failed",
-    },
+    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: "dispatch-gate", failureReason: input.failureReason, loopDecision: "stop_failed", stateDecision: "updated", dataQualityFlags: ["state_machine_violation"], extra: { sequenceNo: input.state.sequenceNo, status: "failed", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none", transitionDecision: "failed" } },
   );
 }
 
@@ -129,24 +113,7 @@ export function buildLoopGuardFailureProof(input: {
 }) {
   return buildFailureProof(
     input.context,
-    { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 },
-    input.stateRevisionBefore,
-    input.stateRevisionAfter,
-    input.stateHashBefore,
-    input.stateHashAfter,
-    input.currentStepId,
-    "loop-guard",
-    input.failureReason ?? "loop_guard_triggered",
-    input.loopDecision,
-    "finalized",
-    input.loopDecision === "stop_completed" ? [] : ["loop_guard_triggered"],
-    {
-      sequenceNo: input.state.sequenceNo,
-      status: toRuntimeProofStatus(input.state.status),
-      reviewRequiredReason: input.reviewRequiredReason,
-      transitionDecision: input.state.status === "failed" ? "failed" : input.state.status === "review_required" ? "review_required" : "finalize",
-      emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none",
-    },
+    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: "loop-guard", failureReason: input.failureReason ?? "loop_guard_triggered", loopDecision: input.loopDecision, stateDecision: "finalized", dataQualityFlags: input.loopDecision === "stop_completed" ? [] : ["loop_guard_triggered"], extra: { sequenceNo: input.state.sequenceNo, status: toRuntimeProofStatus(input.state.status), reviewRequiredReason: input.reviewRequiredReason, transitionDecision: input.state.status === "failed" ? "failed" : input.state.status === "review_required" ? "review_required" : "finalize", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none" } },
   );
 }
 
@@ -165,24 +132,7 @@ export function buildStepDispatchFailureProof(input: {
 }) {
   return buildFailureProof(
     input.context,
-    { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 },
-    input.stateRevisionBefore,
-    input.stateRevisionAfter,
-    input.stateHashBefore,
-    input.stateHashAfter,
-    input.currentStepId,
-    input.currentStepId,
-    input.failureReason,
-    "stop_failed",
-    "updated",
-    ["step_dispatch_failure"],
-    {
-      sequenceNo: input.state.sequenceNo,
-      stepDispatchCallId: input.stepDispatchCallId,
-      status: "failed",
-      transitionDecision: "failed",
-      emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none",
-    },
+    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: input.currentStepId, failureReason: input.failureReason, loopDecision: "stop_failed", stateDecision: "updated", dataQualityFlags: ["step_dispatch_failure"], extra: { sequenceNo: input.state.sequenceNo, stepDispatchCallId: input.stepDispatchCallId, status: "failed", transitionDecision: "failed", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none" } },
   );
 }
 
@@ -203,25 +153,6 @@ export function buildTransitionFailureProof(input: {
 }) {
   return buildFailureProof(
     input.context,
-    { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: Math.max(0, new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime()) },
-    input.stateRevisionBefore,
-    input.stateRevisionAfter,
-    input.stateHashBefore,
-    input.stateHashAfter,
-    input.currentStepId,
-    input.currentStepId,
-    input.failureReason,
-    "stop_failed",
-    "updated",
-    ["transition_evaluation_failure"],
-    {
-      sequenceNo: input.state.sequenceNo + 1,
-      stepDispatchCallId: input.stepDispatchCallId,
-      nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-      transitionEvaluationDecision: input.transitionEvaluationDecision,
-      status: "failed",
-      transitionDecision: "failed",
-      emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none",
-    },
+    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: Math.max(0, new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime()) }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: input.currentStepId, failureReason: input.failureReason, loopDecision: "stop_failed", stateDecision: "updated", dataQualityFlags: ["transition_evaluation_failure"], extra: { sequenceNo: input.state.sequenceNo + 1, stepDispatchCallId: input.stepDispatchCallId, nerveBusEnvelopeId: input.nerveBusEnvelopeId, transitionEvaluationDecision: input.transitionEvaluationDecision, status: "failed", transitionDecision: "failed", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none" } },
   );
 }

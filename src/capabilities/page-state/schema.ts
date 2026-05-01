@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { BrowserLoginStateSchema } from "../../types/local-browser-session.js";
+import { validatePageStateAbilityResult, validatePageStateRuntimeProof } from "./page-state-schema-validation.js";
 
 const MAX_OBSERVATIONS = 50;
 const MAX_EVIDENCE_REFS = 50;
@@ -10,9 +11,9 @@ const MAX_SUMMARY_LENGTH = 1000;
 const MAX_SUPPORTING_REASONS = 20;
 const MAX_DATA_QUALITY_FLAGS = 20;
 
-export const PAGE_STATE_ABILITY_GROUP_ID = "page-state";
+const PAGE_STATE_ABILITY_GROUP_ID = "page-state";
 
-export const PAGE_STATE_CHILD_CAPABILITY_IDS = [
+const PAGE_STATE_CHILD_CAPABILITY_IDS = [
   "detect-login-state",
   "detect-safety-page",
   "detect-feed-ready",
@@ -23,10 +24,10 @@ export const PAGE_STATE_CHILD_CAPABILITY_IDS = [
   "detect-platform-page-kind",
 ] as const;
 
-export const PageStateChildCapabilityIdSchema = z.enum(PAGE_STATE_CHILD_CAPABILITY_IDS);
-export const PageStateStatusSchema = z.enum(["success", "failed", "review_required"]);
-export const PageStateDecisionSchema = z.enum(["proceed", "block", "review_required", "fail"]);
-export const PageStateTypeSchema = z.enum([
+const PageStateChildCapabilityIdSchema = z.enum(PAGE_STATE_CHILD_CAPABILITY_IDS);
+const PageStateStatusSchema = z.enum(["success", "failed", "review_required"]);
+const PageStateDecisionSchema = z.enum(["proceed", "block", "review_required", "fail"]);
+const PageStateTypeSchema = z.enum([
   "unknown_page",
   "logged_in",
   "login_required",
@@ -48,7 +49,7 @@ export const PageStateTypeSchema = z.enum([
   "wrong_domain",
   "local_workbench",
 ]);
-export const PageStateFailureReasonSchema = z.enum([
+const PageStateFailureReasonSchema = z.enum([
   "invalid_input",
   "invalid_snapshot",
   "missing_snapshot_proof",
@@ -71,7 +72,7 @@ export const PageStateFailureReasonSchema = z.enum([
   "payload_budget_exceeded",
   "output_boundary_violation",
 ]);
-export const PageStateDataQualityFlagSchema = z.enum([
+const PageStateDataQualityFlagSchema = z.enum([
   "low_confidence",
   "missing_observation",
   "stale_snapshot",
@@ -84,7 +85,7 @@ export const PageStateDataQualityFlagSchema = z.enum([
   "payload_budget_exceeded",
   "output_boundary_violation",
 ]);
-export const PageStateSourceAbilityGroupIdSchema = z.enum([
+const PageStateSourceAbilityGroupIdSchema = z.enum([
   "open",
   "screenshot",
   "visual-target",
@@ -95,18 +96,18 @@ export const PageStateSourceAbilityGroupIdSchema = z.enum([
 const LimitedStringSchema = z.string().min(1).max(MAX_DETAIL_LENGTH);
 const OptionalLimitedStringSchema = z.string().min(1).max(MAX_DETAIL_LENGTH).nullable().default(null);
 
-export const PageStateViewportSchema = z.object({
+const PageStateViewportSchema = z.object({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   deviceScaleFactor: z.number().positive().default(1),
 });
 
-export const PageStateScrollOffsetSchema = z.object({
+const PageStateScrollOffsetSchema = z.object({
   x: z.number().finite(),
   y: z.number().finite(),
 });
 
-export const PageStateObservationSourceSchema = z.object({
+const PageStateObservationSourceSchema = z.object({
   sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema,
   sourceChildCapabilityId: z.string().min(1),
   sourceProofRef: z.string().min(1),
@@ -162,7 +163,7 @@ const PostActionVerificationObservationPayloadSchema = z.object({
   summary: LimitedStringSchema,
 });
 
-export const PageStateObservationSchema = z.discriminatedUnion("kind", [
+const PageStateObservationSchema = z.discriminatedUnion("kind", [
   z.object({
     observationId: z.string().min(1),
     kind: z.literal("runtime_signal"),
@@ -210,7 +211,7 @@ export const PageStateObservationSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const PageStateSnapshotSchema = z.object({
+const PageStateSnapshotSchema = z.object({
   snapshotId: z.string().min(1),
   currentUrl: z.string().url(),
   currentTitle: z.string().max(MAX_SUMMARY_LENGTH),
@@ -223,31 +224,31 @@ export const PageStateSnapshotSchema = z.object({
   sourceProofRef: z.string().min(1),
 });
 
-export const PageStateFreshnessPolicySchema = z.object({
+const PageStateFreshnessPolicySchema = z.object({
   maxSnapshotAgeMs: z.number().int().nonnegative(),
   maxObservationAgeMs: z.number().int().nonnegative(),
   maxObservationSkewMs: z.number().int().nonnegative(),
 });
 
-export const PageStateConfidencePolicySchema = z.object({
+const PageStateConfidencePolicySchema = z.object({
   minimumConfidence: z.number().min(0).max(1),
   allowReviewRequired: z.boolean().default(true),
 });
 
-export const PageStatePolicySchema = z.object({
+const PageStatePolicySchema = z.object({
   expectedPlatformHost: z.string().min(1).nullable().default(null),
   allowLocalWorkbench: z.boolean().default(false),
   allowModalOverlay: z.boolean().default(false),
   allowUnknownState: z.boolean().default(false),
 });
 
-export const PageStateOpenHandoffPolicySchema = z.object({
+const PageStateOpenHandoffPolicySchema = z.object({
   openProofRef: z.string().min(1),
   browserSessionRef: z.string().min(1),
   platformProfileId: z.string().min(1),
 });
 
-export const PageStateAbilityInputSchema = z.object({
+const PageStateAbilityInputSchema = z.object({
   childCapabilityId: PageStateChildCapabilityIdSchema,
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -265,7 +266,7 @@ export const PageStateAbilityInputSchema = z.object({
   previousPageStateFingerprint: z.string().min(1).nullable().default(null),
 });
 
-export const PageStateOutputSchema = z.object({
+const PageStateOutputSchema = z.object({
   pageStateType: PageStateTypeSchema,
   stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
   confidence: z.number().min(0).max(1),
@@ -274,7 +275,7 @@ export const PageStateOutputSchema = z.object({
   pageStateFingerprint: z.string().min(1),
 });
 
-export const PageStateRuntimeProofSchema = z.object({
+const PageStateRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
   runId: z.string().min(1).nullable(),
   missionId: z.string().min(1).nullable(),
@@ -325,49 +326,9 @@ export const PageStateRuntimeProofSchema = z.object({
   reviewRequiredReason: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
   dataQualityFlags: z.array(PageStateDataQualityFlagSchema).max(MAX_DATA_QUALITY_FLAGS),
   receivedShapeHash: z.string().min(1).nullable().default(null),
-}).superRefine((proof, ctx) => {
-  if (proof.status === "success" && proof.decision !== "proceed") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "success proof must proceed",
-      path: ["decision"],
-    });
-  }
+}).superRefine(validatePageStateRuntimeProof);
 
-  if (proof.status !== "success" && proof.decision === "proceed") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "failed or review_required proof cannot proceed",
-      path: ["decision"],
-    });
-  }
-
-  if (proof.status === "success" && !proof.outputRef) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "success proof must retain outputRef",
-      path: ["outputRef"],
-    });
-  }
-
-  if (proof.status !== "success" && proof.outputRef !== null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "failed or review_required proof must null outputRef",
-      path: ["outputRef"],
-    });
-  }
-
-  if (proof.status !== "success" && !proof.diagnosticPayloadRef) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "failed or review_required proof must retain diagnosticPayloadRef",
-      path: ["diagnosticPayloadRef"],
-    });
-  }
-});
-
-export const PageStateAbilityResultSchema = z.object({
+const PageStateAbilityResultSchema = z.object({
   status: PageStateStatusSchema,
   decision: PageStateDecisionSchema,
   abilityGroupId: z.literal(PAGE_STATE_ABILITY_GROUP_ID),
@@ -394,66 +355,9 @@ export const PageStateAbilityResultSchema = z.object({
   diagnosticPayloadRef: z.string().min(1).nullable(),
   receivedShapeHash: z.string().min(1).nullable().default(null),
   runtimeProof: PageStateRuntimeProofSchema,
-}).superRefine((result, ctx) => {
-  if (result.runtimeProof.status !== result.status) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "runtime proof status must match result status",
-      path: ["runtimeProof", "status"],
-    });
-  }
+}).superRefine(validatePageStateAbilityResult);
 
-  if (result.runtimeProof.decision !== result.decision) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "runtime proof decision must match result decision",
-      path: ["runtimeProof", "decision"],
-    });
-  }
-
-  if (result.status === "success") {
-    if (!result.output) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success result must include output",
-        path: ["output"],
-      });
-    }
-    if (result.decision !== "proceed") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success result must proceed",
-        path: ["decision"],
-      });
-    }
-  }
-
-  if (result.status !== "success") {
-    if (result.output !== null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "failed or review_required result must null output",
-        path: ["output"],
-      });
-    }
-    if (result.decision === "proceed") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "failed or review_required result cannot proceed",
-        path: ["decision"],
-      });
-    }
-    if (!result.diagnosticPayloadRef) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "failed or review_required result must retain diagnosticPayloadRef",
-        path: ["diagnosticPayloadRef"],
-      });
-    }
-  }
-});
-
-export const PageStateChildDetectionSchema = z.object({
+const PageStateChildDetectionSchema = z.object({
   childCapabilityId: PageStateChildCapabilityIdSchema,
   pageStateType: PageStateTypeSchema,
   stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
@@ -465,36 +369,39 @@ export const PageStateChildDetectionSchema = z.object({
   supportingReasons: z.array(z.string().min(1).max(MAX_DETAIL_LENGTH)).max(MAX_SUPPORTING_REASONS).default([]),
 });
 
-export function createPageStateChildInputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
+function createPageStateChildInputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
   return PageStateAbilityInputSchema.extend({
     childCapabilityId: z.literal(childCapabilityId),
   });
 }
 
-export function createPageStateChildOutputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
+function createPageStateChildOutputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
   return PageStateChildDetectionSchema.extend({
     childCapabilityId: z.literal(childCapabilityId),
   });
 }
 
-export type PageStateChildCapabilityId = z.infer<typeof PageStateChildCapabilityIdSchema>;
-export type PageStateStatus = z.infer<typeof PageStateStatusSchema>;
-export type PageStateDecision = z.infer<typeof PageStateDecisionSchema>;
-export type PageStateType = z.infer<typeof PageStateTypeSchema>;
-export type PageStateFailureReason = z.infer<typeof PageStateFailureReasonSchema>;
-export type PageStateDataQualityFlag = z.infer<typeof PageStateDataQualityFlagSchema>;
-export type PageStateSourceAbilityGroupId = z.infer<typeof PageStateSourceAbilityGroupIdSchema>;
-export type PageStateViewport = z.infer<typeof PageStateViewportSchema>;
-export type PageStateScrollOffset = z.infer<typeof PageStateScrollOffsetSchema>;
-export type PageStateObservationSource = z.infer<typeof PageStateObservationSourceSchema>;
-export type PageStateObservation = z.infer<typeof PageStateObservationSchema>;
-export type PageStateSnapshot = z.infer<typeof PageStateSnapshotSchema>;
-export type PageStateFreshnessPolicy = z.infer<typeof PageStateFreshnessPolicySchema>;
-export type PageStateConfidencePolicy = z.infer<typeof PageStateConfidencePolicySchema>;
-export type PageStatePolicy = z.infer<typeof PageStatePolicySchema>;
-export type PageStateOpenHandoffPolicy = z.infer<typeof PageStateOpenHandoffPolicySchema>;
-export type PageStateAbilityInput = z.infer<typeof PageStateAbilityInputSchema>;
-export type PageStateOutput = z.infer<typeof PageStateOutputSchema>;
-export type PageStateRuntimeProof = z.infer<typeof PageStateRuntimeProofSchema>;
-export type PageStateAbilityResult = z.infer<typeof PageStateAbilityResultSchema>;
-export type PageStateChildDetection = z.infer<typeof PageStateChildDetectionSchema>;
+type PageStateChildCapabilityId = z.infer<typeof PageStateChildCapabilityIdSchema>;
+type PageStateStatus = z.infer<typeof PageStateStatusSchema>;
+type PageStateDecision = z.infer<typeof PageStateDecisionSchema>;
+type PageStateType = z.infer<typeof PageStateTypeSchema>;
+type PageStateFailureReason = z.infer<typeof PageStateFailureReasonSchema>;
+type PageStateDataQualityFlag = z.infer<typeof PageStateDataQualityFlagSchema>;
+type PageStateSourceAbilityGroupId = z.infer<typeof PageStateSourceAbilityGroupIdSchema>;
+type PageStateViewport = z.infer<typeof PageStateViewportSchema>;
+type PageStateScrollOffset = z.infer<typeof PageStateScrollOffsetSchema>;
+type PageStateObservationSource = z.infer<typeof PageStateObservationSourceSchema>;
+type PageStateObservation = z.infer<typeof PageStateObservationSchema>;
+type PageStateSnapshot = z.infer<typeof PageStateSnapshotSchema>;
+type PageStateFreshnessPolicy = z.infer<typeof PageStateFreshnessPolicySchema>;
+type PageStateConfidencePolicy = z.infer<typeof PageStateConfidencePolicySchema>;
+type PageStatePolicy = z.infer<typeof PageStatePolicySchema>;
+type PageStateOpenHandoffPolicy = z.infer<typeof PageStateOpenHandoffPolicySchema>;
+type PageStateAbilityInput = z.infer<typeof PageStateAbilityInputSchema>;
+type PageStateOutput = z.infer<typeof PageStateOutputSchema>;
+type PageStateRuntimeProof = z.infer<typeof PageStateRuntimeProofSchema>;
+type PageStateAbilityResult = z.infer<typeof PageStateAbilityResultSchema>;
+type PageStateChildDetection = z.infer<typeof PageStateChildDetectionSchema>;
+
+export { PAGE_STATE_ABILITY_GROUP_ID, PAGE_STATE_CHILD_CAPABILITY_IDS, PageStateChildCapabilityIdSchema, PageStateStatusSchema, PageStateDecisionSchema, PageStateTypeSchema, PageStateFailureReasonSchema, PageStateDataQualityFlagSchema, PageStateSourceAbilityGroupIdSchema, PageStateViewportSchema, PageStateScrollOffsetSchema, PageStateObservationSourceSchema, PageStateObservationSchema, PageStateSnapshotSchema, PageStateFreshnessPolicySchema, PageStateConfidencePolicySchema, PageStatePolicySchema, PageStateOpenHandoffPolicySchema, PageStateAbilityInputSchema, PageStateOutputSchema, PageStateRuntimeProofSchema, PageStateAbilityResultSchema, PageStateChildDetectionSchema, createPageStateChildInputSchema, createPageStateChildOutputSchema };
+export type { PageStateChildCapabilityId, PageStateStatus, PageStateDecision, PageStateType, PageStateFailureReason, PageStateDataQualityFlag, PageStateSourceAbilityGroupId, PageStateViewport, PageStateScrollOffset, PageStateObservationSource, PageStateObservation, PageStateSnapshot, PageStateFreshnessPolicy, PageStateConfidencePolicy, PageStatePolicy, PageStateOpenHandoffPolicy, PageStateAbilityInput, PageStateOutput, PageStateRuntimeProof, PageStateAbilityResult, PageStateChildDetection };

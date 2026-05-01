@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { MissionExecutionResult, MissionState, OperationalMap } from "../contract.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
 import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
@@ -16,6 +17,36 @@ type OrchestrationLoopInput = {
   idempotencyKey: string;
   selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
 };
+
+function buildMissionLoopFallbackProof(input: OrchestrationLoopInput, state: MissionState) {
+  const now = input.context.clock.now().isoTimestamp;
+  return buildOrchestrationRuntimeProof({
+    missionId: state.missionId ?? "unknown-mission",
+    mapId: state.mapId ?? input.map.mapId,
+    ...toMapProofMetadata(input.mapRecord),
+    selectedMapSource: input.selectedMapSource,
+    stepId: state.currentStepId ?? "finalize-mission",
+    childCapabilityId: "finalize-mission",
+    commandKind: input.commandKind,
+    caller: input.caller,
+    idempotencyKey: input.idempotencyKey,
+    sequenceNo: state.sequenceNo,
+    abilityResultRef: state.lastResultRef ?? null,
+    previousStepId: state.previousStepId ?? null,
+    startedAt: now,
+    endedAt: now,
+    durationMs: 0,
+    status: toRuntimeProofStatus(state.status),
+    failureReason: state.failureReason,
+    reviewRequiredReason: state.reviewRequiredReason,
+    mapDecision: "selected",
+    transitionDecision: "finalize",
+    loopDecision: "continue",
+    stateDecision: "finalized",
+    emergencyDecision: state.emergencyStopLatched ? "latched" : "none",
+    dataQualityFlags: [],
+  });
+}
 
 function createLoopProofContext(input: OrchestrationLoopInput) {
   return {
@@ -47,6 +78,7 @@ export async function runMissionLoop(input: OrchestrationLoopInput): Promise<Mis
       selectedMapSource: input.selectedMapSource,
       proofContext,
       lastResult,
+      stepDispatchCallId: randomUUID(),
     });
     state = outcome.state;
     lastResult = outcome.lastResult;
@@ -57,33 +89,7 @@ export async function runMissionLoop(input: OrchestrationLoopInput): Promise<Mis
   }
 
   if (!lastProof) {
-    const now = input.context.clock.now().isoTimestamp;
-    lastProof = buildOrchestrationRuntimeProof({
-      missionId: state.missionId ?? "unknown-mission",
-      mapId: state.mapId ?? input.map.mapId,
-      ...toMapProofMetadata(input.mapRecord),
-      selectedMapSource: input.selectedMapSource,
-      stepId: state.currentStepId ?? "finalize-mission",
-      childCapabilityId: "finalize-mission",
-      commandKind: input.commandKind,
-      caller: input.caller,
-      idempotencyKey: input.idempotencyKey,
-      sequenceNo: state.sequenceNo,
-      abilityResultRef: state.lastResultRef ?? null,
-      previousStepId: state.previousStepId ?? null,
-      startedAt: now,
-      endedAt: now,
-      durationMs: 0,
-      status: toRuntimeProofStatus(state.status),
-      failureReason: state.failureReason,
-      reviewRequiredReason: state.reviewRequiredReason,
-      mapDecision: "selected",
-      transitionDecision: "finalize",
-      loopDecision: "continue",
-      stateDecision: "finalized",
-      emergencyDecision: state.emergencyStopLatched ? "latched" : "none",
-      dataQualityFlags: [],
-    });
+    lastProof = buildMissionLoopFallbackProof(input, state);
   }
 
   return buildMissionExecutionResult({ missionState: state, currentStepResult: lastResult, runtimeProof: lastProof });

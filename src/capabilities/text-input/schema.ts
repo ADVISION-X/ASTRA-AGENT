@@ -47,42 +47,42 @@ function buildDefaultTextInputPolicy() {
   };
 }
 
-export const TextInputChildCapabilityIdSchema = z.enum(TEXT_INPUT_CHILD_CAPABILITY_IDS);
-export const TextInputTargetKindSchema = z.enum(TEXT_INPUT_TARGET_KINDS);
-export const TextInputKeySchema = z.enum(TEXT_INPUT_KEYS);
-export const TextInputCommitKeySchema = z.enum(TEXT_INPUT_COMMIT_KEYS);
-export const TextInputFailureReasonSchema = z.enum(TEXT_INPUT_FAILURE_REASONS);
-export const TextInputStatusSchema = z.enum(TEXT_INPUT_STATUSES);
-export const TextInputPolicyDecisionSchema = z.enum(TEXT_INPUT_POLICY_DECISIONS);
-export const TextInputPrimitiveDecisionSchema = z.enum(TEXT_INPUT_PRIMITIVE_DECISIONS);
-export const TextInputClipboardDecisionSchema = z.enum(TEXT_INPUT_CLIPBOARD_DECISIONS);
-export const TextInputSensitiveTextDecisionSchema = z.enum(TEXT_INPUT_SENSITIVE_TEXT_DECISIONS);
-export const TextInputRedactionDecisionSchema = z.enum(TEXT_INPUT_REDACTION_DECISIONS);
-export const TextInputKeyPolicyDecisionSchema = z.enum(TEXT_INPUT_KEY_POLICY_DECISIONS);
-export const TextInputOutputBoundaryDecisionSchema = z.enum(TEXT_INPUT_OUTPUT_BOUNDARY_DECISIONS);
-export const TextInputSourceOwnerSchema = z.enum(TEXT_INPUT_SOURCE_OWNERS);
-export const TextInputTargetProofOwnerSchema = z.enum(TEXT_INPUT_TARGET_PROOF_OWNERS);
-export const TextInputFocusProofOwnerSchema = z.enum(TEXT_INPUT_FOCUS_PROOF_OWNERS);
+const TextInputChildCapabilityIdSchema = z.enum(TEXT_INPUT_CHILD_CAPABILITY_IDS);
+const TextInputTargetKindSchema = z.enum(TEXT_INPUT_TARGET_KINDS);
+const TextInputKeySchema = z.enum(TEXT_INPUT_KEYS);
+const TextInputCommitKeySchema = z.enum(TEXT_INPUT_COMMIT_KEYS);
+const TextInputFailureReasonSchema = z.enum(TEXT_INPUT_FAILURE_REASONS);
+const TextInputStatusSchema = z.enum(TEXT_INPUT_STATUSES);
+const TextInputPolicyDecisionSchema = z.enum(TEXT_INPUT_POLICY_DECISIONS);
+const TextInputPrimitiveDecisionSchema = z.enum(TEXT_INPUT_PRIMITIVE_DECISIONS);
+const TextInputClipboardDecisionSchema = z.enum(TEXT_INPUT_CLIPBOARD_DECISIONS);
+const TextInputSensitiveTextDecisionSchema = z.enum(TEXT_INPUT_SENSITIVE_TEXT_DECISIONS);
+const TextInputRedactionDecisionSchema = z.enum(TEXT_INPUT_REDACTION_DECISIONS);
+const TextInputKeyPolicyDecisionSchema = z.enum(TEXT_INPUT_KEY_POLICY_DECISIONS);
+const TextInputOutputBoundaryDecisionSchema = z.enum(TEXT_INPUT_OUTPUT_BOUNDARY_DECISIONS);
+const TextInputSourceOwnerSchema = z.enum(TEXT_INPUT_SOURCE_OWNERS);
+const TextInputTargetProofOwnerSchema = z.enum(TEXT_INPUT_TARGET_PROOF_OWNERS);
+const TextInputFocusProofOwnerSchema = z.enum(TEXT_INPUT_FOCUS_PROOF_OWNERS);
 
-export const TextInputMaxLengthPolicySchema = z.object({
+const TextInputMaxLengthPolicySchema = z.object({
   maxLength: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.maxLengthPolicy.maxLength),
   failureStatus: z.enum(["failed", "review_required"]).default(DEFAULT_TEXT_INPUT_POLICY.maxLengthPolicy.failureStatus),
 }).strict();
 
-export const TextInputSensitiveTextPolicySchema = z.object({
+const TextInputSensitiveTextPolicySchema = z.object({
   classification: z.enum(["public", "internal", "sensitive", "restricted"]).default(DEFAULT_TEXT_INPUT_POLICY.sensitiveTextPolicy.classification),
   allowSensitiveWrite: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.sensitiveTextPolicy.allowSensitiveWrite),
   requiresHumanApproval: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.sensitiveTextPolicy.requiresHumanApproval),
   requiresMapPolicyApproval: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.sensitiveTextPolicy.requiresMapPolicyApproval),
 }).strict();
 
-export const TextInputRedactionPolicySchema = z.object({
+const TextInputRedactionPolicySchema = z.object({
   mode: z.enum(["masked", "hash_only", "none"]).default(DEFAULT_TEXT_INPUT_POLICY.redactionPolicy.mode),
   maxPreviewChars: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.redactionPolicy.maxPreviewChars),
   keepFullTextInFullDebugOnly: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.redactionPolicy.keepFullTextInFullDebugOnly),
 }).strict();
 
-export const TextInputClipboardPolicySchema = z.object({
+const TextInputClipboardPolicySchema = z.object({
   allowPaste: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.clipboardPolicy.allowPaste),
   requiredForPaste: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.clipboardPolicy.requiredForPaste),
   restoreStrategy: z.enum(["restore_original", "clear_after_operation"]).default(DEFAULT_TEXT_INPUT_POLICY.clipboardPolicy.restoreStrategy),
@@ -91,7 +91,7 @@ export const TextInputClipboardPolicySchema = z.object({
   allowPlaintextPersistence: z.literal(false).default(DEFAULT_TEXT_INPUT_POLICY.clipboardPolicy.allowPlaintextPersistence),
 }).strict();
 
-export const TextInputCommitPolicySchema = z.object({
+const TextInputCommitPolicySchema = z.object({
   allowCommit: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.commitPolicy.allowCommit),
   requireApprovedCommitRef: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.commitPolicy.requireApprovedCommitRef),
   requireHumanApproval: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.commitPolicy.requireHumanApproval),
@@ -99,18 +99,18 @@ export const TextInputCommitPolicySchema = z.object({
   allowedCommitKeys: z.array(TextInputCommitKeySchema).min(1).default((): Array<"Enter"> => ["Enter"]),
 }).strict();
 
-export const TextInputKeyPolicySchema = z.object({
+const TextInputKeyPolicySchema = z.object({
   allowEnterInPressKey: z.literal(false).default(DEFAULT_TEXT_INPUT_POLICY.keyPolicy.allowEnterInPressKey),
   allowArrowNavigation: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.keyPolicy.allowArrowNavigation),
 }).strict();
 
-export const TextInputReplacePolicySchema = z.object({
+const TextInputReplacePolicySchema = z.object({
   allowReplace: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.replacePolicy.allowReplace),
   requireClearBeforeWrite: z.boolean().default(DEFAULT_TEXT_INPUT_POLICY.replacePolicy.requireClearBeforeWrite),
   writeMode: z.enum(["type-text", "paste-text"]).default(DEFAULT_TEXT_INPUT_POLICY.replacePolicy.writeMode),
 }).strict();
 
-export const TextInputPolicySchema = z.object({
+const TextInputPolicySchema = z.object({
   primitiveTimeoutMs: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.primitiveTimeoutMs),
   maxDurationMs: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.maxDurationMs),
   maxLengthPolicy: TextInputMaxLengthPolicySchema.default(DEFAULT_TEXT_INPUT_POLICY.maxLengthPolicy),
@@ -164,15 +164,15 @@ const GovernedWriteFieldsSchema = z.object({
   key: z.null().optional().default(null),
 }).strict();
 
-export const TypeTextAbilityInputSchema = TextInputBaseSchema.extend({
+const TypeTextAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("type-text"),
 }).merge(GovernedWriteFieldsSchema).strict();
 
-export const PasteTextAbilityInputSchema = TextInputBaseSchema.extend({
+const PasteTextAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("paste-text"),
 }).merge(GovernedWriteFieldsSchema).strict();
 
-export const ClearInputAbilityInputSchema = TextInputBaseSchema.extend({
+const ClearInputAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("clear-input"),
   inputText: z.null().optional().default(null),
   inputTextRef: z.null().optional().default(null),
@@ -184,11 +184,11 @@ export const ClearInputAbilityInputSchema = TextInputBaseSchema.extend({
   key: z.null().optional().default(null),
 }).strict();
 
-export const ReplaceInputAbilityInputSchema = TextInputBaseSchema.extend({
+const ReplaceInputAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("replace-input"),
 }).merge(GovernedWriteFieldsSchema).strict();
 
-export const PressKeyAbilityInputSchema = TextInputBaseSchema.extend({
+const PressKeyAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("press-key"),
   inputText: z.null().optional().default(null),
   inputTextRef: z.null().optional().default(null),
@@ -200,7 +200,7 @@ export const PressKeyAbilityInputSchema = TextInputBaseSchema.extend({
   key: TextInputKeySchema,
 }).strict();
 
-export const CommitInputAbilityInputSchema = TextInputBaseSchema.extend({
+const CommitInputAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("commit-input"),
   inputText: z.null().optional().default(null),
   inputTextRef: z.null().optional().default(null),
@@ -212,7 +212,7 @@ export const CommitInputAbilityInputSchema = TextInputBaseSchema.extend({
   key: TextInputCommitKeySchema,
 }).strict();
 
-export const TextInputAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
+const TextInputAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   TypeTextAbilityInputSchema,
   PasteTextAbilityInputSchema,
   ClearInputAbilityInputSchema,
@@ -221,13 +221,13 @@ export const TextInputAbilityInputSchema = z.discriminatedUnion("childCapability
   CommitInputAbilityInputSchema,
 ]);
 
-export const TextInputClockSchema = z.object({
+const TextInputClockSchema = z.object({
   portKind: z.literal(TEXT_INPUT_CLOCK_KIND),
   startedMonotonicMs: z.number().finite(),
   endedMonotonicMs: z.number().finite(),
 }).strict();
 
-export const TextInputRuntimeProofSchema = z.object({
+const TextInputRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
   runId: z.string().min(1),
   sessionId: z.string().min(1).nullable().default(null),
@@ -326,7 +326,7 @@ export const TextInputRuntimeProofSchema = z.object({
   }
 });
 
-export const TextInputSuccessOutputSchema = z.object({
+const TextInputSuccessOutputSchema = z.object({
   attemptRef: z.string().min(1),
   actionExecutionRef: z.string().min(1),
   primitiveExecutionRef: z.string().min(1),
@@ -345,7 +345,7 @@ export const TextInputSuccessOutputSchema = z.object({
   postActionVerificationHandoffRef: z.string().min(1),
 }).strict();
 
-export const TextInputAbilityResultSchema = z.object({
+const TextInputAbilityResultSchema = z.object({
   abilityGroupId: z.literal(TEXT_INPUT_ABILITY_GROUP_ID),
   childCapabilityId: TextInputChildCapabilityIdSchema.nullable().default(null),
   status: TextInputStatusSchema,
@@ -383,3 +383,5 @@ export const TextInputAbilityResultSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.diagnosticPayloadRef must equal result.diagnosticPayloadRef", path: ["runtimeProof", "diagnosticPayloadRef"] });
   }
 });
+
+export { TextInputChildCapabilityIdSchema, TextInputTargetKindSchema, TextInputKeySchema, TextInputCommitKeySchema, TextInputFailureReasonSchema, TextInputStatusSchema, TextInputPolicyDecisionSchema, TextInputPrimitiveDecisionSchema, TextInputClipboardDecisionSchema, TextInputSensitiveTextDecisionSchema, TextInputRedactionDecisionSchema, TextInputKeyPolicyDecisionSchema, TextInputOutputBoundaryDecisionSchema, TextInputSourceOwnerSchema, TextInputTargetProofOwnerSchema, TextInputFocusProofOwnerSchema, TextInputMaxLengthPolicySchema, TextInputSensitiveTextPolicySchema, TextInputRedactionPolicySchema, TextInputClipboardPolicySchema, TextInputCommitPolicySchema, TextInputKeyPolicySchema, TextInputReplacePolicySchema, TextInputPolicySchema, TypeTextAbilityInputSchema, PasteTextAbilityInputSchema, ClearInputAbilityInputSchema, ReplaceInputAbilityInputSchema, PressKeyAbilityInputSchema, CommitInputAbilityInputSchema, TextInputAbilityInputSchema, TextInputClockSchema, TextInputRuntimeProofSchema, TextInputSuccessOutputSchema, TextInputAbilityResultSchema };

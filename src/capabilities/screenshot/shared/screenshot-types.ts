@@ -1,6 +1,6 @@
-export const SCREENSHOT_ABILITY_GROUP_ID = "screenshot" as const;
+const SCREENSHOT_ABILITY_GROUP_ID = "screenshot" as const;
 
-export const SCREENSHOT_CHILD_CAPABILITY_IDS = [
+const SCREENSHOT_CHILD_CAPABILITY_IDS = [
   "capture-browser-viewport",
   "capture-desktop-screen",
   "capture-region",
@@ -8,39 +8,39 @@ export const SCREENSHOT_CHILD_CAPABILITY_IDS = [
   "prepare-ai-input",
 ] as const;
 
-export const SCREENSHOT_RESULT_STATUSES = [
+const SCREENSHOT_RESULT_STATUSES = [
   "success",
   "failed",
   "review_required",
 ] as const;
 
-export const SCREENSHOT_SOURCE_KINDS = [
+const SCREENSHOT_SOURCE_KINDS = [
   "browser_viewport",
   "desktop_screen",
   "stored_image",
 ] as const;
 
-export const SCREENSHOT_COORDINATE_SPACES = [
+const SCREENSHOT_COORDINATE_SPACES = [
   "browser_viewport_pixels",
   "desktop_screen_pixels",
   "source_image_pixels",
   "ai_input_pixels",
 ] as const;
 
-export const SCREENSHOT_IMAGE_KINDS = [
+const SCREENSHOT_IMAGE_KINDS = [
   "evidence_original",
   "evidence_optimized",
   "ai_input",
 ] as const;
 
-export const SCREENSHOT_EVIDENCE_POLICIES = [
+const SCREENSHOT_EVIDENCE_POLICIES = [
   "evidence_original",
   "evidence_optimized",
   "ai_input",
   "all",
 ] as const;
 
-export const SCREENSHOT_FAILURE_CODES = [
+const SCREENSHOT_FAILURE_CODES = [
   "unknown_child",
   "input_schema_invalid",
   "output_schema_invalid",
@@ -60,7 +60,7 @@ export const SCREENSHOT_FAILURE_CODES = [
   "dispatch_failure",
 ] as const;
 
-export const SCREENSHOT_DATA_QUALITY_FLAGS = [
+const SCREENSHOT_DATA_QUALITY_FLAGS = [
   "browser_session_verified",
   "page_state_unverified",
   "page_state_verified",
@@ -74,7 +74,7 @@ export const SCREENSHOT_DATA_QUALITY_FLAGS = [
   "capture_fresh",
 ] as const;
 
-export const SCREENSHOT_DECISION_STATUSES = [
+const SCREENSHOT_DECISION_STATUSES = [
   "passed",
   "failed",
   "review_required",
@@ -82,7 +82,7 @@ export const SCREENSHOT_DECISION_STATUSES = [
   "not_applicable",
 ] as const;
 
-export const SCREENSHOT_PAGE_STATE_STATUSES = [
+const SCREENSHOT_PAGE_STATE_STATUSES = [
   "approved",
   "stale",
   "login_wall",
@@ -91,9 +91,12 @@ export const SCREENSHOT_PAGE_STATE_STATUSES = [
   "unknown",
 ] as const;
 
-export const SCREENSHOT_SENSITIVE_SCREEN_STATUSES = [
+const SCREENSHOT_SENSITIVE_SCREEN_STATUSES = [
   "approved",
   "review_required",
   "blocked",
   "unknown",
 ] as const;
+
+
+export { SCREENSHOT_ABILITY_GROUP_ID, SCREENSHOT_CHILD_CAPABILITY_IDS, SCREENSHOT_RESULT_STATUSES, SCREENSHOT_SOURCE_KINDS, SCREENSHOT_COORDINATE_SPACES, SCREENSHOT_IMAGE_KINDS, SCREENSHOT_EVIDENCE_POLICIES, SCREENSHOT_FAILURE_CODES, SCREENSHOT_DATA_QUALITY_FLAGS, SCREENSHOT_DECISION_STATUSES, SCREENSHOT_PAGE_STATE_STATUSES, SCREENSHOT_SENSITIVE_SCREEN_STATUSES };

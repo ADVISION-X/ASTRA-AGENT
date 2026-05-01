@@ -43,7 +43,7 @@ type ExecutionTimingFields = {
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
 };
 
-export type TextInputRuntimeDecisionState = {
+type TextInputRuntimeDecisionState = {
   policyDecision: PolicyDecision;
   sensitiveTextDecision: SensitiveTextDecision;
   redactionDecision: RedactionDecision;
@@ -60,7 +60,7 @@ export type TextInputRuntimeDecisionState = {
   dataQualityFlags: string[];
 };
 
-export type TextInputExecutionResultDraft = {
+type TextInputExecutionResultDraft = {
   seed: TextInputResultSeed;
   refs: ExecutionRefs;
   status: ExecutionStatusFields;
@@ -125,7 +125,7 @@ function buildExecutionTiming(input: ExecutionTimingFields) {
   };
 }
 
-export function buildTextInputExecutionResult(input: TextInputExecutionResultDraft) {
+function buildTextInputExecutionResult(input: TextInputExecutionResultDraft) {
   return buildTextInputResult({
     seed: input.seed,
     ...buildExecutionRefs(input.refs),
@@ -136,7 +136,7 @@ export function buildTextInputExecutionResult(input: TextInputExecutionResultDra
   });
 }
 
-export function createInitialDecisionState(request: ParsedTextInputAbilityInput): TextInputRuntimeDecisionState {
+function createInitialDecisionState(request: ParsedTextInputAbilityInput): TextInputRuntimeDecisionState {
   return {
     policyDecision: "allow",
     sensitiveTextDecision: "allowed",
@@ -159,15 +159,15 @@ export function createInitialDecisionState(request: ParsedTextInputAbilityInput)
   };
 }
 
-export function mergeFlags(...groups: string[][]): string[] {
+function mergeFlags(...groups: string[][]): string[] {
   return [...new Set(groups.flat().filter((value) => value.length > 0))];
 }
 
-export function createTextInputActionExecutionRef(seed: TextInputResultSeed) {
+function createTextInputActionExecutionRef(seed: TextInputResultSeed) {
   return buildStableTextInputRef("text-input-action", [seed.attemptRef, seed.childCapabilityId]);
 }
 
-export function buildRejectedTextInputResult(input: {
+function buildRejectedTextInputResult(input: {
   seed: TextInputResultSeed;
   context: TextInputRuntimeContext;
   state: TextInputRuntimeDecisionState;
@@ -217,7 +217,7 @@ export function buildRejectedTextInputResult(input: {
   });
 }
 
-export function buildClipboardUnavailableFailureResult(input: {
+function buildClipboardUnavailableFailureResult(input: {
   seed: TextInputResultSeed;
   context: TextInputRuntimeContext;
   state: TextInputRuntimeDecisionState;
@@ -266,3 +266,7 @@ export async function restoreClipboardAfterOperation(input: {
     input.state.dataQualityFlags = mergeFlags(input.state.dataQualityFlags, ["clipboard_restore_failed"]);
   }
 }
+
+
+export { buildTextInputExecutionResult, createInitialDecisionState, mergeFlags, createTextInputActionExecutionRef, buildRejectedTextInputResult, buildClipboardUnavailableFailureResult };
+export type { TextInputRuntimeDecisionState, TextInputExecutionResultDraft };

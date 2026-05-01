@@ -8,7 +8,7 @@ import {
 } from "./multi-frame-evidence.js";
 import { VisionProductPresenceFrameObservationSchema } from "./vision-product-presence.js";
 
-export const EvidencePacketRoundOutcomeSchema = z.enum([
+const EvidencePacketRoundOutcomeSchema = z.enum([
   "candidate_created",
   "video_only_candidate_created",
   "comments_unavailable_candidate_created",
@@ -28,7 +28,7 @@ export const EvidencePacketRoundOutcomeSchema = z.enum([
   "failed_with_reason",
 ]);
 
-export const BrowseLedgerOutcomeSchema = z.enum([
+const BrowseLedgerOutcomeSchema = z.enum([
   "product_no_high_confidence",
   "skipped_uncertain",
   "skipped_duplicate",
@@ -37,7 +37,7 @@ export const BrowseLedgerOutcomeSchema = z.enum([
   "blocked",
 ]);
 
-export const BrowseLedgerProductPresenceDecisionSchema = z.enum([
+const BrowseLedgerProductPresenceDecisionSchema = z.enum([
   "product_yes_high_confidence",
   "product_no_high_confidence",
   "product_uncertain",
@@ -45,7 +45,7 @@ export const BrowseLedgerProductPresenceDecisionSchema = z.enum([
   "not_asked",
 ]);
 
-export const RoundStructuralDecisionSchema = z.enum([
+const RoundStructuralDecisionSchema = z.enum([
   "product_yes_high_confidence",
   "product_no_high_confidence",
   "product_uncertain",
@@ -60,13 +60,13 @@ export const RoundStructuralDecisionSchema = z.enum([
   "not_asked",
 ]);
 
-export const RoundArtifactKindSchema = z.enum([
+const RoundArtifactKindSchema = z.enum([
   "evidence_packet",
   "browse_ledger",
   "failed_packet",
 ]);
 
-export const RoundLifecycleStepSchema = z.enum([
+const RoundLifecycleStepSchema = z.enum([
   "task_start",
   "open_target_page",
   "detect_login_or_safety",
@@ -100,14 +100,14 @@ export const RoundLifecycleStepSchema = z.enum([
   "stop",
 ]);
 
-export const RoundLifecycleEventStatusSchema = z.enum([
+const RoundLifecycleEventStatusSchema = z.enum([
   "entered",
   "completed",
   "skipped",
   "failed",
 ]);
 
-export const EvidencePacketActionPurposeSchema = z.enum([
+const EvidencePacketActionPurposeSchema = z.enum([
   "initialize_discovery",
   "detect_page_safety",
   "wait_for_feed",
@@ -128,7 +128,7 @@ export const EvidencePacketActionPurposeSchema = z.enum([
   "runtime_support",
 ]);
 
-export const EvidencePacketActionTriggerSourceSchema = z.enum([
+const EvidencePacketActionTriggerSourceSchema = z.enum([
   "local_ai_output",
   "runtime_policy",
   "operator_instruction",
@@ -136,7 +136,7 @@ export const EvidencePacketActionTriggerSourceSchema = z.enum([
   "review_gate",
 ]);
 
-export const EvidencePacketDataQualityFlagSchema = z.enum([
+const EvidencePacketDataQualityFlagSchema = z.enum([
   "video_screenshot_ok",
   "video_screenshot_missing",
   "comment_screenshot_ok",
@@ -157,7 +157,7 @@ export const EvidencePacketDataQualityFlagSchema = z.enum([
   "richer_candidate",
 ]);
 
-export const EvidencePacketPageStateSchema = z.object({
+const EvidencePacketPageStateSchema = z.object({
   currentUrl: z.string().min(1),
   loginState: z.string().min(1),
   safetyState: z.string().min(1),
@@ -167,7 +167,7 @@ export const EvidencePacketPageStateSchema = z.object({
   reviewRequiredReason: z.string().min(1).nullable().default(null),
 });
 
-export const EvidencePacketVideoEvidenceSchema = z.object({
+const EvidencePacketVideoEvidenceSchema = z.object({
   multiFrameEvidenceSetId: z.string().min(1),
   frames: z.array(VideoFrameSamplePointSchema).min(1),
   contactSheetEvidenceId: z.string().min(1).nullable().default(null),
@@ -175,7 +175,7 @@ export const EvidencePacketVideoEvidenceSchema = z.object({
   validFrameCount: z.number().int().nonnegative(),
 });
 
-export const EvidencePacketProductPresenceAISchema = z.object({
+const EvidencePacketProductPresenceAISchema = z.object({
   promptId: z.string().min(1),
   promptVersion: z.string().min(1),
   schemaVersion: z.string().min(1),
@@ -195,7 +195,7 @@ export const EvidencePacketProductPresenceAISchema = z.object({
   mustReview: z.boolean(),
 });
 
-export const EvidencePacketPreActionMetricsSchema = z.object({
+const EvidencePacketPreActionMetricsSchema = z.object({
   likeCount: z.number().int().nonnegative().nullable().default(null),
   commentCount: z.number().int().nonnegative().nullable().default(null),
   shareCount: z.number().int().nonnegative().nullable().default(null),
@@ -204,7 +204,7 @@ export const EvidencePacketPreActionMetricsSchema = z.object({
   unavailableReasons: z.array(z.string().min(1)).default([]),
 });
 
-export const EvidencePacketActionSchema = z.object({
+const EvidencePacketActionSchema = z.object({
   actionLogId: z.string().min(1),
   actionType: z.string().min(1),
   actionPurpose: EvidencePacketActionPurposeSchema,
@@ -216,7 +216,7 @@ export const EvidencePacketActionSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const EvidencePacketCommentEvidenceSchema = z.object({
+const EvidencePacketCommentEvidenceSchema = z.object({
   commentPanelOpened: z.boolean(),
   commentScreenshotEvidenceIds: z.array(z.string().min(1)).default([]),
   ocrTextRecordIds: z.array(z.string().min(1)).default([]),
@@ -225,7 +225,7 @@ export const EvidencePacketCommentEvidenceSchema = z.object({
   failureReason: z.string().min(1).nullable().default(null),
 });
 
-export const EvidencePacketCommentSignalsSchema = z.object({
+const EvidencePacketCommentSignalsSchema = z.object({
   whereToBuyQuestions: z.array(z.string().min(1)).default([]),
   priceQuestions: z.array(z.string().min(1)).default([]),
   purchaseIntent: z.array(z.string().min(1)).default([]),
@@ -236,21 +236,21 @@ export const EvidencePacketCommentSignalsSchema = z.object({
   uncertainty: z.array(z.string().min(1)).default([]),
 });
 
-export const EvidencePacketCandidateRefSchema = z.object({
+const EvidencePacketCandidateRefSchema = z.object({
   candidateId: z.string().min(1).nullable().default(null),
   status: z.literal("pending_analysis"),
   candidateType: z.enum(["video_only", "richer_candidate", "none"]),
   evidenceRefs: z.array(EvidenceRefSchema).default([]),
 });
 
-export const EvidencePacketAdvancedAIExportBoundarySchema = z.object({
+const EvidencePacketAdvancedAIExportBoundarySchema = z.object({
   included: z.boolean(),
   exportVersion: z.string().min(1),
   allowedUse: z.array(z.string().min(1)).default([]),
   forbiddenUse: z.array(z.string().min(1)).default([]),
 });
 
-export const BrowseLedgerEntrySchema = z.object({
+const BrowseLedgerEntrySchema = z.object({
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1),
@@ -263,7 +263,7 @@ export const BrowseLedgerEntrySchema = z.object({
   lightweightOnly: z.literal(true),
 });
 
-export const RoundStructuralLogSchema = z.object({
+const RoundStructuralLogSchema = z.object({
   logId: z.string().min(1),
   sessionId: z.string().min(1),
   taskRunId: z.string().min(1),
@@ -287,7 +287,7 @@ export const RoundStructuralLogSchema = z.object({
   lightweightOnly: z.boolean(),
 });
 
-export const RoundLifecycleEventSchema = z.object({
+const RoundLifecycleEventSchema = z.object({
   eventId: z.string().min(1),
   sessionId: z.string().min(1),
   taskRunId: z.string().min(1),
@@ -299,7 +299,7 @@ export const RoundLifecycleEventSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const BrowseSummarySchema = z.object({
+const BrowseSummarySchema = z.object({
   sessionId: z.string().min(1),
   totalSeenCount: z.number().int().nonnegative(),
   productYesCount: z.number().int().nonnegative(),
@@ -314,7 +314,7 @@ export const BrowseSummarySchema = z.object({
   endedAt: z.string().datetime(),
 });
 
-export const AdvancedAIExportSetSchema = z.object({
+const AdvancedAIExportSetSchema = z.object({
   exportId: z.string().min(1),
   exportVersion: z.string().min(1),
   sessionId: z.string().min(1),
@@ -324,7 +324,7 @@ export const AdvancedAIExportSetSchema = z.object({
   excludedBrowseLedgerByDefault: z.literal(true),
 });
 
-export const ProductDiscoveryEvidencePacketSchema = z.object({
+const ProductDiscoveryEvidencePacketSchema = z.object({
   packetId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1),
@@ -348,29 +348,32 @@ export const ProductDiscoveryEvidencePacketSchema = z.object({
   exportForAdvancedAI: EvidencePacketAdvancedAIExportBoundarySchema,
 });
 
-export type EvidencePacketPageState = z.infer<typeof EvidencePacketPageStateSchema>;
-export type EvidencePacketVideoEvidence = z.infer<typeof EvidencePacketVideoEvidenceSchema>;
-export type EvidencePacketProductPresenceAI = z.infer<typeof EvidencePacketProductPresenceAISchema>;
-export type EvidencePacketPreActionMetrics = z.infer<typeof EvidencePacketPreActionMetricsSchema>;
-export type EvidencePacketAction = z.infer<typeof EvidencePacketActionSchema>;
-export type EvidencePacketCommentEvidence = z.infer<typeof EvidencePacketCommentEvidenceSchema>;
-export type EvidencePacketCommentSignals = z.infer<typeof EvidencePacketCommentSignalsSchema>;
-export type EvidencePacketCandidateRef = z.infer<typeof EvidencePacketCandidateRefSchema>;
-export type EvidencePacketDataQualityFlag = z.infer<typeof EvidencePacketDataQualityFlagSchema>;
-export type EvidencePacketRoundOutcome = z.infer<typeof EvidencePacketRoundOutcomeSchema>;
-export type EvidencePacketActionPurpose = z.infer<typeof EvidencePacketActionPurposeSchema>;
-export type EvidencePacketActionTriggerSource = z.infer<typeof EvidencePacketActionTriggerSourceSchema>;
-export type EvidencePacketAdvancedAIExportBoundary = z.infer<typeof EvidencePacketAdvancedAIExportBoundarySchema>;
-export type BrowseLedgerOutcome = z.infer<typeof BrowseLedgerOutcomeSchema>;
-export type BrowseLedgerProductPresenceDecision = z.infer<typeof BrowseLedgerProductPresenceDecisionSchema>;
-export type RoundStructuralDecision = z.infer<typeof RoundStructuralDecisionSchema>;
-export type RoundArtifactKind = z.infer<typeof RoundArtifactKindSchema>;
-export type BrowseLedgerEntry = z.infer<typeof BrowseLedgerEntrySchema>;
-export type RoundStructuralLog = z.infer<typeof RoundStructuralLogSchema>;
-export type RoundLifecycleStep = z.infer<typeof RoundLifecycleStepSchema>;
-export type BrowseRoundStep = RoundLifecycleStep;
-export type RoundLifecycleEventStatus = z.infer<typeof RoundLifecycleEventStatusSchema>;
-export type RoundLifecycleEvent = z.infer<typeof RoundLifecycleEventSchema>;
-export type BrowseSessionSummary = z.infer<typeof BrowseSummarySchema>;
-export type AdvancedAIExportSet = z.infer<typeof AdvancedAIExportSetSchema>;
-export type ProductDiscoveryEvidencePacket = z.infer<typeof ProductDiscoveryEvidencePacketSchema>;
+type EvidencePacketPageState = z.infer<typeof EvidencePacketPageStateSchema>;
+type EvidencePacketVideoEvidence = z.infer<typeof EvidencePacketVideoEvidenceSchema>;
+type EvidencePacketProductPresenceAI = z.infer<typeof EvidencePacketProductPresenceAISchema>;
+type EvidencePacketPreActionMetrics = z.infer<typeof EvidencePacketPreActionMetricsSchema>;
+type EvidencePacketAction = z.infer<typeof EvidencePacketActionSchema>;
+type EvidencePacketCommentEvidence = z.infer<typeof EvidencePacketCommentEvidenceSchema>;
+type EvidencePacketCommentSignals = z.infer<typeof EvidencePacketCommentSignalsSchema>;
+type EvidencePacketCandidateRef = z.infer<typeof EvidencePacketCandidateRefSchema>;
+type EvidencePacketDataQualityFlag = z.infer<typeof EvidencePacketDataQualityFlagSchema>;
+type EvidencePacketRoundOutcome = z.infer<typeof EvidencePacketRoundOutcomeSchema>;
+type EvidencePacketActionPurpose = z.infer<typeof EvidencePacketActionPurposeSchema>;
+type EvidencePacketActionTriggerSource = z.infer<typeof EvidencePacketActionTriggerSourceSchema>;
+type EvidencePacketAdvancedAIExportBoundary = z.infer<typeof EvidencePacketAdvancedAIExportBoundarySchema>;
+type BrowseLedgerOutcome = z.infer<typeof BrowseLedgerOutcomeSchema>;
+type BrowseLedgerProductPresenceDecision = z.infer<typeof BrowseLedgerProductPresenceDecisionSchema>;
+type RoundStructuralDecision = z.infer<typeof RoundStructuralDecisionSchema>;
+type RoundArtifactKind = z.infer<typeof RoundArtifactKindSchema>;
+type BrowseLedgerEntry = z.infer<typeof BrowseLedgerEntrySchema>;
+type RoundStructuralLog = z.infer<typeof RoundStructuralLogSchema>;
+type RoundLifecycleStep = z.infer<typeof RoundLifecycleStepSchema>;
+type BrowseRoundStep = RoundLifecycleStep;
+type RoundLifecycleEventStatus = z.infer<typeof RoundLifecycleEventStatusSchema>;
+type RoundLifecycleEvent = z.infer<typeof RoundLifecycleEventSchema>;
+type BrowseSessionSummary = z.infer<typeof BrowseSummarySchema>;
+type AdvancedAIExportSet = z.infer<typeof AdvancedAIExportSetSchema>;
+type ProductDiscoveryEvidencePacket = z.infer<typeof ProductDiscoveryEvidencePacketSchema>;
+
+export { EvidencePacketRoundOutcomeSchema, BrowseLedgerOutcomeSchema, BrowseLedgerProductPresenceDecisionSchema, RoundStructuralDecisionSchema, RoundArtifactKindSchema, RoundLifecycleStepSchema, RoundLifecycleEventStatusSchema, EvidencePacketActionPurposeSchema, EvidencePacketActionTriggerSourceSchema, EvidencePacketDataQualityFlagSchema, EvidencePacketPageStateSchema, EvidencePacketVideoEvidenceSchema, EvidencePacketProductPresenceAISchema, EvidencePacketPreActionMetricsSchema, EvidencePacketActionSchema, EvidencePacketCommentEvidenceSchema, EvidencePacketCommentSignalsSchema, EvidencePacketCandidateRefSchema, EvidencePacketAdvancedAIExportBoundarySchema, BrowseLedgerEntrySchema, RoundStructuralLogSchema, RoundLifecycleEventSchema, BrowseSummarySchema, AdvancedAIExportSetSchema, ProductDiscoveryEvidencePacketSchema };
+export type { EvidencePacketPageState, EvidencePacketVideoEvidence, EvidencePacketProductPresenceAI, EvidencePacketPreActionMetrics, EvidencePacketAction, EvidencePacketCommentEvidence, EvidencePacketCommentSignals, EvidencePacketCandidateRef, EvidencePacketDataQualityFlag, EvidencePacketRoundOutcome, EvidencePacketActionPurpose, EvidencePacketActionTriggerSource, EvidencePacketAdvancedAIExportBoundary, BrowseLedgerOutcome, BrowseLedgerProductPresenceDecision, RoundStructuralDecision, RoundArtifactKind, BrowseLedgerEntry, RoundStructuralLog, RoundLifecycleStep, BrowseRoundStep, RoundLifecycleEventStatus, RoundLifecycleEvent, BrowseSessionSummary, AdvancedAIExportSet, ProductDiscoveryEvidencePacket };

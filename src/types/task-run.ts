@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { EvidencePacketRoundOutcomeSchema } from "./evidence-packet.js";
 
-export const RuntimeStatusSchema = z.enum([
+const RuntimeStatusSchema = z.enum([
   "idle",
   "running",
   "paused",
@@ -12,9 +12,9 @@ export const RuntimeStatusSchema = z.enum([
   "review_required"
 ]);
 
-export const ReviewDispositionSchema = z.enum(["pending", "approve", "reject", "hold"]);
+const ReviewDispositionSchema = z.enum(["pending", "approve", "reject", "hold"]);
 
-export const TaskRunSchema = z.object({
+const TaskRunSchema = z.object({
   id: z.string().min(1),
   platformId: z.string().min(1),
   status: RuntimeStatusSchema,
@@ -25,7 +25,7 @@ export const TaskRunSchema = z.object({
   note: z.string().min(1).optional()
 });
 
-export const AgentRoundStatusSchema = z.enum([
+const AgentRoundStatusSchema = z.enum([
   "pending",
   "observed",
   "classified",
@@ -37,7 +37,7 @@ export const AgentRoundStatusSchema = z.enum([
   "failed"
 ]);
 
-export const AgentRoundSchema = z.object({
+const AgentRoundSchema = z.object({
   id: z.string().min(1),
   taskRunId: z.string().min(1),
   index: z.number().int().nonnegative(),
@@ -55,8 +55,11 @@ export const AgentRoundSchema = z.object({
   actionLogIds: z.array(z.string().min(1)).default([])
 });
 
-export type RuntimeStatus = z.infer<typeof RuntimeStatusSchema>;
-export type ReviewDisposition = z.infer<typeof ReviewDispositionSchema>;
-export type TaskRun = z.infer<typeof TaskRunSchema>;
-export type AgentRoundStatus = z.infer<typeof AgentRoundStatusSchema>;
-export type AgentRound = z.infer<typeof AgentRoundSchema>;
+type RuntimeStatus = z.infer<typeof RuntimeStatusSchema>;
+type ReviewDisposition = z.infer<typeof ReviewDispositionSchema>;
+type TaskRun = z.infer<typeof TaskRunSchema>;
+type AgentRoundStatus = z.infer<typeof AgentRoundStatusSchema>;
+type AgentRound = z.infer<typeof AgentRoundSchema>;
+
+export { RuntimeStatusSchema, ReviewDispositionSchema, TaskRunSchema, AgentRoundStatusSchema, AgentRoundSchema };
+export type { RuntimeStatus, ReviewDisposition, TaskRun, AgentRoundStatus, AgentRound };

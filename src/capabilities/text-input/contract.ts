@@ -35,27 +35,29 @@ export {
   TEXT_INPUT_TARGET_KINDS,
 };
 
-export type TextInputChildCapabilityId = (typeof TEXT_INPUT_CHILD_CAPABILITY_IDS)[number];
-export type TextInputTargetKind = z.output<typeof TextInputTargetKindSchema>;
-export type TextInputKey = z.output<typeof TextInputKeySchema>;
-export type TextInputCommitKey = z.output<typeof TextInputCommitKeySchema>;
-export type TextInputSourceOwner = z.output<typeof TextInputSourceOwnerSchema>;
-export type TextInputFailureReason = z.output<typeof TextInputFailureReasonSchema>;
-export type TextInputStatus = z.output<typeof TextInputStatusSchema>;
-export type TextInputPolicy = z.output<typeof TextInputPolicySchema>;
-export type TextInputRuntimeProof = z.output<typeof TextInputRuntimeProofSchema>;
-export type TextInputAbilityInput = z.input<typeof TextInputAbilityInputSchema>;
-export type ParsedTextInputAbilityInput = z.output<typeof TextInputAbilityInputSchema>;
-export type TextInputSuccessOutput = z.output<typeof TextInputSuccessOutputSchema>;
-export type TypeTextAbilityInput = z.output<typeof TypeTextAbilityInputSchema>;
-export type PasteTextAbilityInput = z.output<typeof PasteTextAbilityInputSchema>;
-export type ClearInputAbilityInput = z.output<typeof ClearInputAbilityInputSchema>;
-export type ReplaceInputAbilityInput = z.output<typeof ReplaceInputAbilityInputSchema>;
-export type PressKeyAbilityInput = z.output<typeof PressKeyAbilityInputSchema>;
-export type CommitInputAbilityInput = z.output<typeof CommitInputAbilityInputSchema>;
-export type TextInputAbilityResult = z.output<typeof TextInputAbilityResultSchema>;
+type TextInputChildCapabilityId = (typeof TEXT_INPUT_CHILD_CAPABILITY_IDS)[number];
+type TextInputTargetKind = z.output<typeof TextInputTargetKindSchema>;
+type TextInputKey = z.output<typeof TextInputKeySchema>;
+type TextInputCommitKey = z.output<typeof TextInputCommitKeySchema>;
+type TextInputSourceOwner = z.output<typeof TextInputSourceOwnerSchema>;
+type TextInputFailureReason = z.output<typeof TextInputFailureReasonSchema>;
+type TextInputStatus = z.output<typeof TextInputStatusSchema>;
+type TextInputPolicy = z.output<typeof TextInputPolicySchema>;
+type TextInputRuntimeProof = z.output<typeof TextInputRuntimeProofSchema>;
+type TextInputAbilityInput = z.input<typeof TextInputAbilityInputSchema>;
+type ParsedTextInputAbilityInput = z.output<typeof TextInputAbilityInputSchema>;
+type TextInputSuccessOutput = z.output<typeof TextInputSuccessOutputSchema>;
+type TypeTextAbilityInput = z.output<typeof TypeTextAbilityInputSchema>;
+type PasteTextAbilityInput = z.output<typeof PasteTextAbilityInputSchema>;
+type ClearInputAbilityInput = z.output<typeof ClearInputAbilityInputSchema>;
+type ReplaceInputAbilityInput = z.output<typeof ReplaceInputAbilityInputSchema>;
+type PressKeyAbilityInput = z.output<typeof PressKeyAbilityInputSchema>;
+type CommitInputAbilityInput = z.output<typeof CommitInputAbilityInputSchema>;
+type TextInputAbilityResult = z.output<typeof TextInputAbilityResultSchema>;
 
-export interface TextInputAbilityGroup {
+interface TextInputAbilityGroup {
   listChildCapabilityIds(): TextInputChildCapabilityId[];
   execute(input: TextInputAbilityInput): Promise<TextInputAbilityResult>;
 }
+
+export type { TextInputChildCapabilityId, TextInputTargetKind, TextInputKey, TextInputCommitKey, TextInputSourceOwner, TextInputFailureReason, TextInputStatus, TextInputPolicy, TextInputRuntimeProof, TextInputAbilityInput, ParsedTextInputAbilityInput, TextInputSuccessOutput, TypeTextAbilityInput, PasteTextAbilityInput, ClearInputAbilityInput, ReplaceInputAbilityInput, PressKeyAbilityInput, CommitInputAbilityInput, TextInputAbilityResult, TextInputAbilityGroup };

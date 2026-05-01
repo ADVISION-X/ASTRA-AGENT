@@ -17,9 +17,9 @@ import {
   OrchestrationTransitionStatusSchemaSource,
 } from "../../map-plugins/schema/orchestration-consumer.schema.js";
 
-export const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";
+const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";
 
-export const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
+const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "start-mission",
   "pause-mission",
   "resume-mission",
@@ -31,7 +31,7 @@ export const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "finalize-mission",
 ] as const;
 
-export const ORCHESTRATION_HUMAN_COMMAND_KINDS = [
+const ORCHESTRATION_HUMAN_COMMAND_KINDS = [
   "start-mission",
   "pause-mission",
   "resume-mission",
@@ -40,7 +40,7 @@ export const ORCHESTRATION_HUMAN_COMMAND_KINDS = [
   "submit-review-decision",
 ] as const;
 
-export const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
+const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
   "execute-map-step",
   "evaluate-step-transition",
   "request-human-review",
@@ -48,16 +48,16 @@ export const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
   "loop-guard",
 ] as const;
 
-export const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
-export const MissionConfiguredMaxRoundsSchema = z.number().int().min(1).max(9);
-export const MissionConfiguredMaxMinutesSchema = z.number().int().min(1).max(180);
-export const OrchestrationChildCapabilityIdSchema = z.enum(ORCHESTRATION_CHILD_CAPABILITY_IDS);
-export const OperationalMapIdSchema = z.string().min(1);
-export const AllowedAbilityGroupIdSchema = OrchestrationAllowedAbilityGroupIdSchemaSource;
-export const MissionHumanCommandKindSchema = z.enum(ORCHESTRATION_HUMAN_COMMAND_KINDS);
-export const MissionInternalOperationKindSchema = z.enum(ORCHESTRATION_INTERNAL_OPERATION_KINDS);
-export const SelectedMapSourceSchema = z.enum(["preferred_map_id", "initial_payload_map_id", "task_template_id", "activation_id", "rejected_missing"]);
-export const MissionStatusSchema = z.enum([
+const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
+const MissionConfiguredMaxRoundsSchema = z.number().int().min(1).max(9);
+const MissionConfiguredMaxMinutesSchema = z.number().int().min(1).max(180);
+const OrchestrationChildCapabilityIdSchema = z.enum(ORCHESTRATION_CHILD_CAPABILITY_IDS);
+const OperationalMapIdSchema = z.string().min(1);
+const AllowedAbilityGroupIdSchema = OrchestrationAllowedAbilityGroupIdSchemaSource;
+const MissionHumanCommandKindSchema = z.enum(ORCHESTRATION_HUMAN_COMMAND_KINDS);
+const MissionInternalOperationKindSchema = z.enum(ORCHESTRATION_INTERNAL_OPERATION_KINDS);
+const SelectedMapSourceSchema = z.enum(["preferred_map_id", "initial_payload_map_id", "task_template_id", "activation_id", "rejected_missing"]);
+const MissionStatusSchema = z.enum([
   "idle",
   "pending",
   "running",
@@ -67,22 +67,22 @@ export const MissionStatusSchema = z.enum([
   "review_required",
   "stopped",
 ]);
-export const StepKindSchema = OrchestrationStepKindSchemaSource;
-export const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
-export const TransitionConditionSourceSchema = OrchestrationTransitionConditionSourceSchemaSource;
-export const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
-export const MapDecisionSchema = z.enum(["selected", "rejected"]);
-export const TransitionDecisionSchema = z.enum(["continue", "finalize", "review_required", "failed"]);
-export const StateDecisionSchema = z.enum(["created", "updated", "paused", "resumed", "stopped", "emergency_stopped", "finalized"]);
-export const EmergencyDecisionSchema = z.enum(["none", "latched", "executed"]);
-export const AbortDecisionSchema = z.enum(["none", "timed_out", "emergency_stopped"]);
-export const StepDispatchDecisionSchema = z.enum(["dispatched", "timeout_before_dispatch", "step_not_found", "missing_target", "missing_prompt_contract"]);
-export const TransitionEvaluationDecisionSchema = z.enum(["matched", "no_valid_transition", "ambiguous_transition", "invalid_decision"]);
-export const NerveBusDispatchDecisionSchema = z.enum(["dispatched", "pending_commander_channel", "dispatch_failed"]);
+const StepKindSchema = OrchestrationStepKindSchemaSource;
+const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
+const TransitionConditionSourceSchema = OrchestrationTransitionConditionSourceSchemaSource;
+const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
+const MapDecisionSchema = z.enum(["selected", "rejected"]);
+const TransitionDecisionSchema = z.enum(["continue", "finalize", "review_required", "failed"]);
+const StateDecisionSchema = z.enum(["created", "updated", "paused", "resumed", "stopped", "emergency_stopped", "finalized"]);
+const EmergencyDecisionSchema = z.enum(["none", "latched", "executed"]);
+const AbortDecisionSchema = z.enum(["none", "timed_out", "emergency_stopped"]);
+const StepDispatchDecisionSchema = z.enum(["dispatched", "timeout_before_dispatch", "step_not_found", "missing_target", "missing_prompt_contract"]);
+const TransitionEvaluationDecisionSchema = z.enum(["matched", "no_valid_transition", "ambiguous_transition", "invalid_decision"]);
+const NerveBusDispatchDecisionSchema = z.enum(["dispatched", "pending_commander_channel", "dispatch_failed"]);
 
-export const PayloadRefKeySchema = OrchestrationPayloadRefKeySchemaSource;
+const PayloadRefKeySchema = OrchestrationPayloadRefKeySchemaSource;
 
-export const PayloadRefBundleSchema = z.object({
+const PayloadRefBundleSchema = z.object({
   requestedPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
   selectedMapId: OperationalMapIdSchema.nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
@@ -103,7 +103,7 @@ export const PayloadRefBundleSchema = z.object({
   runtimeLogRef: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-export const MissionInitialPayloadSchema = z.object({
+const MissionInitialPayloadSchema = z.object({
   requestedBy: z.string().min(1),
   selectedMapId: OperationalMapIdSchema.nullable().optional().default(null),
   maxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
@@ -117,7 +117,7 @@ export const MissionInitialPayloadSchema = z.object({
   commandInputRef: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-export const MissionCommandSchema = z.object({
+const MissionCommandSchema = z.object({
   missionId: z.string().min(1),
   humanGoal: z.string().min(1),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource,
@@ -129,27 +129,27 @@ export const MissionCommandSchema = z.object({
   initialPayload: MissionInitialPayloadSchema,
 }).strict();
 
-export const MissionReviewDecisionInputSchema = z.object({
+const MissionReviewDecisionInputSchema = z.object({
   missionId: z.string().min(1),
   decision: z.enum(["resume", "stop", "hold"]),
   note: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-export const MissionControlCommandSchema = z.object({
+const MissionControlCommandSchema = z.object({
   missionId: z.string().min(1),
   reason: z.string().min(1).nullable().optional().default(null),
   note: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-export const TransitionConditionSchema = OrchestrationTransitionConditionSchemaSource;
-export const OrchestrationSequencePolicySchema = OrchestrationSequencePolicySchemaSource;
-export const TimeoutPolicySchema = OrchestrationTimeoutPolicySchemaSource;
-export const ProofPolicySchema = OrchestrationProofPolicySchemaSource;
-export const OperationalMapStepSchema = OrchestrationOperationalMapStepSchemaSource;
-export const TransitionSchema = OrchestrationTransitionSchemaSource;
-export const OperationalMapSchema = OrchestrationOperationalMapSchemaSource;
+const TransitionConditionSchema = OrchestrationTransitionConditionSchemaSource;
+const OrchestrationSequencePolicySchema = OrchestrationSequencePolicySchemaSource;
+const TimeoutPolicySchema = OrchestrationTimeoutPolicySchemaSource;
+const ProofPolicySchema = OrchestrationProofPolicySchemaSource;
+const OperationalMapStepSchema = OrchestrationOperationalMapStepSchemaSource;
+const TransitionSchema = OrchestrationTransitionSchemaSource;
+const OperationalMapSchema = OrchestrationOperationalMapSchemaSource;
 
-export const MissionStepResultSchema = z.object({
+const MissionStepResultSchema = z.object({
   status: TransitionStatusSchema,
   missionId: z.string().min(1),
   mapId: OperationalMapIdSchema,
@@ -167,7 +167,7 @@ export const MissionStepResultSchema = z.object({
   payloadRefs: PayloadRefBundleSchema,
 }).strict();
 
-export const RuntimeProofSchema = z.object({
+const RuntimeProofSchema = z.object({
   proofId: z.string().min(1),
   missionId: z.string().min(1),
   mapId: OperationalMapIdSchema,
@@ -227,7 +227,7 @@ export const RuntimeProofSchema = z.object({
   }
 });
 
-export const MissionStateSchema = z.object({
+const MissionStateSchema = z.object({
   missionId: z.string().min(1).nullable().optional().default(null),
   mapId: OperationalMapIdSchema.nullable().optional().default(null),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
@@ -258,7 +258,7 @@ export const MissionStateSchema = z.object({
   endedAt: z.string().datetime().nullable().optional().default(null),
 }).strict();
 
-export const MissionExecutionResultSchema = z.object({
+const MissionExecutionResultSchema = z.object({
   status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]),
   output: z.object({
     missionState: MissionStateSchema,
@@ -272,22 +272,86 @@ export const MissionExecutionResultSchema = z.object({
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 }).strict();
 
-export const StartMissionChildInputSchema = MissionCommandSchema;
-export const PauseMissionChildInputSchema = MissionControlCommandSchema;
-export const ResumeMissionChildInputSchema = MissionControlCommandSchema;
-export const StopMissionChildInputSchema = MissionControlCommandSchema;
-export const EmergencyStopChildInputSchema = MissionControlCommandSchema;
-export const ExecuteMapStepChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
-export const EvaluateStepTransitionChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
-export const RequestHumanReviewChildInputSchema = z.object({ missionId: z.string().min(1), reason: z.string().min(1) }).strict();
-export const FinalizeMissionChildInputSchema = z.object({ missionId: z.string().min(1), status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]) }).strict();
+const StartMissionChildInputSchema = MissionCommandSchema;
+const PauseMissionChildInputSchema = MissionControlCommandSchema;
+const ResumeMissionChildInputSchema = MissionControlCommandSchema;
+const StopMissionChildInputSchema = MissionControlCommandSchema;
+const EmergencyStopChildInputSchema = MissionControlCommandSchema;
+const ExecuteMapStepChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
+const EvaluateStepTransitionChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
+const RequestHumanReviewChildInputSchema = z.object({ missionId: z.string().min(1), reason: z.string().min(1) }).strict();
+const FinalizeMissionChildInputSchema = z.object({ missionId: z.string().min(1), status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]) }).strict();
 
-export const StartMissionChildOutputSchema = MissionStateSchema;
-export const PauseMissionChildOutputSchema = MissionStateSchema;
-export const ResumeMissionChildOutputSchema = MissionStateSchema;
-export const StopMissionChildOutputSchema = MissionStateSchema;
-export const EmergencyStopChildOutputSchema = MissionStateSchema;
-export const ExecuteMapStepChildOutputSchema = MissionExecutionResultSchema;
-export const EvaluateStepTransitionChildOutputSchema = MissionStepResultSchema;
-export const RequestHumanReviewChildOutputSchema = MissionStateSchema;
-export const FinalizeMissionChildOutputSchema = MissionStateSchema;
+const StartMissionChildOutputSchema = MissionStateSchema;
+const PauseMissionChildOutputSchema = MissionStateSchema;
+const ResumeMissionChildOutputSchema = MissionStateSchema;
+const StopMissionChildOutputSchema = MissionStateSchema;
+const EmergencyStopChildOutputSchema = MissionStateSchema;
+const ExecuteMapStepChildOutputSchema = MissionExecutionResultSchema;
+const EvaluateStepTransitionChildOutputSchema = MissionStepResultSchema;
+const RequestHumanReviewChildOutputSchema = MissionStateSchema;
+const FinalizeMissionChildOutputSchema = MissionStateSchema;
+
+export {
+  ORCHESTRATION_ABILITY_GROUP_ID,
+  ORCHESTRATION_CHILD_CAPABILITY_IDS,
+  ORCHESTRATION_HUMAN_COMMAND_KINDS,
+  ORCHESTRATION_INTERNAL_OPERATION_KINDS,
+  ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS,
+  MissionConfiguredMaxRoundsSchema,
+  MissionConfiguredMaxMinutesSchema,
+  OrchestrationChildCapabilityIdSchema,
+  OperationalMapIdSchema,
+  AllowedAbilityGroupIdSchema,
+  MissionHumanCommandKindSchema,
+  MissionInternalOperationKindSchema,
+  SelectedMapSourceSchema,
+  MissionStatusSchema,
+  StepKindSchema,
+  TransitionStatusSchema,
+  TransitionConditionSourceSchema,
+  LoopDecisionSchema,
+  MapDecisionSchema,
+  TransitionDecisionSchema,
+  StateDecisionSchema,
+  EmergencyDecisionSchema,
+  AbortDecisionSchema,
+  StepDispatchDecisionSchema,
+  TransitionEvaluationDecisionSchema,
+  NerveBusDispatchDecisionSchema,
+  PayloadRefKeySchema,
+  PayloadRefBundleSchema,
+  MissionInitialPayloadSchema,
+  MissionCommandSchema,
+  MissionReviewDecisionInputSchema,
+  MissionControlCommandSchema,
+  TransitionConditionSchema,
+  OrchestrationSequencePolicySchema,
+  TimeoutPolicySchema,
+  ProofPolicySchema,
+  OperationalMapStepSchema,
+  TransitionSchema,
+  OperationalMapSchema,
+  MissionStepResultSchema,
+  RuntimeProofSchema,
+  MissionStateSchema,
+  MissionExecutionResultSchema,
+  StartMissionChildInputSchema,
+  PauseMissionChildInputSchema,
+  ResumeMissionChildInputSchema,
+  StopMissionChildInputSchema,
+  EmergencyStopChildInputSchema,
+  ExecuteMapStepChildInputSchema,
+  EvaluateStepTransitionChildInputSchema,
+  RequestHumanReviewChildInputSchema,
+  FinalizeMissionChildInputSchema,
+  StartMissionChildOutputSchema,
+  PauseMissionChildOutputSchema,
+  ResumeMissionChildOutputSchema,
+  StopMissionChildOutputSchema,
+  EmergencyStopChildOutputSchema,
+  ExecuteMapStepChildOutputSchema,
+  EvaluateStepTransitionChildOutputSchema,
+  RequestHumanReviewChildOutputSchema,
+  FinalizeMissionChildOutputSchema,
+};
