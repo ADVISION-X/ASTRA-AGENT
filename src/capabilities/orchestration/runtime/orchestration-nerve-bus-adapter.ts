@@ -4,6 +4,8 @@ import { performance } from "node:perf_hooks";
 import type { NerveBusAbilityGroup } from "../../nerve-bus/index.js";
 import type { OrchestrationNerveBusPort } from "../ports/orchestration-nerve-bus-port.js";
 
+export type OrchestrationNerveBusTransportSurface = Pick<NerveBusAbilityGroup, "dispatchAbilityCommand" | "requestAi">;
+
 type SendAbilityInput = Parameters<OrchestrationNerveBusPort["sendCommandToAbility"]>[0];
 type SendAiInput = Parameters<OrchestrationNerveBusPort["sendRequestToAi"]>[0];
 type SendReviewInput = Parameters<OrchestrationNerveBusPort["sendReviewRequestToCommander"]>[0];
@@ -97,7 +99,7 @@ function buildAiDispatchDocument(input: SendAiInput) {
   };
 }
 
-function createAbilityCommandDispatcher(nerveBus: NerveBusAbilityGroup, clock: { now: () => { isoTimestamp: string; monotonicMs: number } }) {
+function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransportSurface, clock: { now: () => { isoTimestamp: string; monotonicMs: number } }) {
   return async (input: SendAbilityInput) => {
     const envelopeId = randomUUID();
     const createdAt = clock.now().isoTimestamp;
@@ -120,7 +122,7 @@ function createAbilityCommandDispatcher(nerveBus: NerveBusAbilityGroup, clock: {
   };
 }
 
-function createAiRequestDispatcher(nerveBus: NerveBusAbilityGroup, clock: { now: () => { isoTimestamp: string; monotonicMs: number } }) {
+function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurface, clock: { now: () => { isoTimestamp: string; monotonicMs: number } }) {
   return async (input: SendAiInput) => {
     const envelopeId = randomUUID();
     const createdAt = clock.now().isoTimestamp;
@@ -158,7 +160,7 @@ function createCommanderReviewDispatcher() {
   };
 }
 
-export function createOrchestrationNerveBusAdapter(nerveBus: NerveBusAbilityGroup): OrchestrationNerveBusPort {
+export function createOrchestrationNerveBusAdapter(nerveBus: OrchestrationNerveBusTransportSurface): OrchestrationNerveBusPort {
   const clock = { now: () => ({ isoTimestamp: new Date().toISOString(), monotonicMs: performance.now() }) };
 
   return {

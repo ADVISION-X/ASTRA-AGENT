@@ -10,7 +10,7 @@ import { SHOW_OPERATIONAL_MAP_PROGRESS_CHILD } from "./show-operational-map-prog
 import { SHOW_REVIEW_QUEUE_CHILD } from "./show-review-queue/implementation.js";
 import { SHOW_RUNTIME_PROOF_TIMELINE_CHILD } from "./show-runtime-proof-timeline/implementation.js";
 
-const COMMANDER_READ_CHILDREN = [
+export const COMMANDER_READ_CHILDREN = [
   SHOW_MISSION_DASHBOARD_CHILD,
   SHOW_CAPABILITY_ROSTER_CHILD,
   SHOW_CAPABILITY_HEALTH_CHILD,
@@ -23,5 +23,3 @@ const COMMANDER_READ_CHILDREN = [
   SHOW_AUDIT_SUMMARY_CHILD,
   INSPECT_RECORD_DETAIL_CHILD,
 ] as const;
-
-export { COMMANDER_READ_CHILDREN };

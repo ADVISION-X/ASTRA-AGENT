@@ -59,30 +59,50 @@ const buildStartMissionPayload = (commandInput: CommanderHumanCommandInput) => S
   },
 );
 
-const buildMissionTransportPayload = (
-  schema:
-    | typeof PauseMissionTransportPayloadSchema
-    | typeof ResumeMissionTransportPayloadSchema
-    | typeof StopMissionTransportPayloadSchema
-    | typeof EmergencyStopTransportPayloadSchema,
-  kind: "pause-mission" | "resume-mission" | "stop-mission" | "emergency-stop",
-  commandInput: CommanderHumanCommandInput,
-) => schema.parse({
-  kind,
+const buildPauseMissionPayload = (commandInput: CommanderHumanCommandInput) => PauseMissionTransportPayloadSchema.parse({
+  kind: "pause-mission",
   requestedBy: "commander-console",
   targetMissionId: commandInput.targetMissionId ?? null,
   operatorNote: commandInput.operatorNote ?? null,
 });
 
-const buildCandidateTransportPayload = (
-  schema:
-    | typeof ApproveCandidateTransportPayloadSchema
-    | typeof RejectCandidateTransportPayloadSchema
-    | typeof MarkReviewRequiredTransportPayloadSchema,
-  kind: "approve-candidate" | "reject-candidate" | "mark-review-required",
-  commandInput: CommanderHumanCommandInput,
-) => schema.parse({
-  kind,
+const buildResumeMissionPayload = (commandInput: CommanderHumanCommandInput) => ResumeMissionTransportPayloadSchema.parse({
+  kind: "resume-mission",
+  requestedBy: "commander-console",
+  targetMissionId: commandInput.targetMissionId ?? null,
+  operatorNote: commandInput.operatorNote ?? null,
+});
+
+const buildStopMissionPayload = (commandInput: CommanderHumanCommandInput) => StopMissionTransportPayloadSchema.parse({
+  kind: "stop-mission",
+  requestedBy: "commander-console",
+  targetMissionId: commandInput.targetMissionId ?? null,
+  operatorNote: commandInput.operatorNote ?? null,
+});
+
+const buildEmergencyStopPayload = (commandInput: CommanderHumanCommandInput) => EmergencyStopTransportPayloadSchema.parse({
+  kind: "emergency-stop",
+  requestedBy: "commander-console",
+  targetMissionId: commandInput.targetMissionId ?? null,
+  operatorNote: commandInput.operatorNote ?? null,
+});
+
+const buildApproveCandidatePayload = (commandInput: CommanderHumanCommandInput) => ApproveCandidateTransportPayloadSchema.parse({
+  kind: "approve-candidate",
+  requestedBy: "commander-console",
+  candidateId: commandInput.targetRecordRef!.recordId,
+  operatorNote: commandInput.operatorNote ?? null,
+});
+
+const buildRejectCandidatePayload = (commandInput: CommanderHumanCommandInput) => RejectCandidateTransportPayloadSchema.parse({
+  kind: "reject-candidate",
+  requestedBy: "commander-console",
+  candidateId: commandInput.targetRecordRef!.recordId,
+  operatorNote: commandInput.operatorNote ?? null,
+});
+
+const buildMarkReviewRequiredPayload = (commandInput: CommanderHumanCommandInput) => MarkReviewRequiredTransportPayloadSchema.parse({
+  kind: "mark-review-required",
   requestedBy: "commander-console",
   candidateId: commandInput.targetRecordRef!.recordId,
   operatorNote: commandInput.operatorNote ?? null,
@@ -90,13 +110,13 @@ const buildCandidateTransportPayload = (
 
 const TRANSPORT_PAYLOAD_BUILDERS: Record<CommanderCommandType, (commandInput: CommanderHumanCommandInput) => CommanderHumanCommand["payload"]> = {
   "start-mission": buildStartMissionPayload,
-  "pause-mission": (commandInput) => buildMissionTransportPayload(PauseMissionTransportPayloadSchema, "pause-mission", commandInput),
-  "resume-mission": (commandInput) => buildMissionTransportPayload(ResumeMissionTransportPayloadSchema, "resume-mission", commandInput),
-  "stop-mission": (commandInput) => buildMissionTransportPayload(StopMissionTransportPayloadSchema, "stop-mission", commandInput),
-  "emergency-stop": (commandInput) => buildMissionTransportPayload(EmergencyStopTransportPayloadSchema, "emergency-stop", commandInput),
-  "approve-candidate": (commandInput) => buildCandidateTransportPayload(ApproveCandidateTransportPayloadSchema, "approve-candidate", commandInput),
-  "reject-candidate": (commandInput) => buildCandidateTransportPayload(RejectCandidateTransportPayloadSchema, "reject-candidate", commandInput),
-  "mark-review-required": (commandInput) => buildCandidateTransportPayload(MarkReviewRequiredTransportPayloadSchema, "mark-review-required", commandInput),
+  "pause-mission": buildPauseMissionPayload,
+  "resume-mission": buildResumeMissionPayload,
+  "stop-mission": buildStopMissionPayload,
+  "emergency-stop": buildEmergencyStopPayload,
+  "approve-candidate": buildApproveCandidatePayload,
+  "reject-candidate": buildRejectCandidatePayload,
+  "mark-review-required": buildMarkReviewRequiredPayload,
 };
 
 function buildTransportPayload(commandInput: CommanderHumanCommandInput): CommanderHumanCommand["payload"] {
@@ -171,6 +191,7 @@ const parseCommandGateInput = (input: {
     });
   }
 
+  const expectedCommandType = input.expectedCommandType;
   if (parsed.data.commandType !== input.expectedCommandType) {
     return createCommandGateFailure({
       inputRef: input.inputRef,
@@ -178,7 +199,7 @@ const parseCommandGateInput = (input: {
       commandType: parsed.data.commandType,
       targetMissionId: parsed.data.targetMissionId ?? null,
       targetRecordRef: parsed.data.targetRecordRef ?? null,
-      reason: `Child ${input.childCapabilityId} only owns ${input.expectedCommandType}.`,
+      reason: `Child ${input.childCapabilityId} only owns ${expectedCommandType}.`,
     });
   }
 

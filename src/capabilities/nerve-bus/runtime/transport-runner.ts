@@ -82,7 +82,7 @@ const buildRunnerTiming = (
 });
 
 const buildHandlerFailureOutcome = <TResult extends SupportedResultEnvelope>(input: {
-  decision: NerveBusRunnerOutcome<TResult> extends infer T
+  handlerDecision: NerveBusRunnerOutcome<TResult> extends infer T
     ? T extends { kind: "handler_failed"; handlerDecision: infer U }
       ? U
       : never
@@ -95,7 +95,7 @@ const buildHandlerFailureOutcome = <TResult extends SupportedResultEnvelope>(inp
 }): NerveBusRunnerOutcome<TResult> => ({
   kind: "handler_failed",
   outputPayload: null,
-  handlerDecision: input.decision,
+  handlerDecision: input.handlerDecision,
   failureReason: input.failureReason,
   reviewRequiredReason: null,
   timeoutDecision: input.timeoutDecision,
@@ -122,7 +122,7 @@ const buildHandledOutcome = <TResult extends SupportedResultEnvelope>(input: {
   const parsedEnvelope = parseHandledEnvelope(input.resultSchema, input.handled.envelope);
   if (!parsedEnvelope.ok) {
     return buildHandlerFailureOutcome({
-      decision: "invalid_result",
+      handlerDecision: "invalid_result",
       failureReason: parsedEnvelope.failureReason,
       timeoutDecision: "within_timeout",
       handlerCallId: input.handlerCallId,
@@ -154,7 +154,7 @@ const resolveRaceFailure = <TResult extends SupportedResultEnvelope>(input: {
 }): NerveBusRunnerOutcome<TResult> | null => {
   if (input.raceResult.kind === "timed_out") {
     return buildHandlerFailureOutcome({
-      decision: "timed_out",
+      handlerDecision: "timed_out",
       failureReason: `Transport timed out after ${input.timeoutMs}ms.`,
       timeoutDecision: "timed_out",
       handlerCallId: input.handlerCallId,
@@ -165,7 +165,7 @@ const resolveRaceFailure = <TResult extends SupportedResultEnvelope>(input: {
 
   if (input.raceResult.kind === "threw") {
     return buildHandlerFailureOutcome({
-      decision: input.controller.signal.aborted ? "aborted" : "threw",
+      handlerDecision: input.controller.signal.aborted ? "aborted" : "threw",
       failureReason: input.raceResult.error instanceof Error ? input.raceResult.error.message : "unknown transport runner failure",
       timeoutDecision: input.controller.signal.aborted ? "timed_out" : "within_timeout",
       handlerCallId: input.handlerCallId,
@@ -176,7 +176,7 @@ const resolveRaceFailure = <TResult extends SupportedResultEnvelope>(input: {
 
   if (!input.raceResult.value) {
     return buildHandlerFailureOutcome({
-      decision: "missing_handler",
+      handlerDecision: "missing_handler",
       failureReason: `No handler is registered for ${input.envelope.channelId}.`,
       timeoutDecision: "within_timeout",
       handlerCallId: input.handlerCallId,
@@ -198,7 +198,7 @@ const buildResolvedRaceOutcome = <TResult extends SupportedResultEnvelope>(input
 }): NerveBusRunnerOutcome<TResult> => {
   if (input.raceResult.kind !== "resolved" || input.raceResult.value === null) {
     return buildHandlerFailureOutcome({
-      decision: "missing_handler",
+      handlerDecision: "missing_handler",
       failureReason: `No handler is registered for ${input.envelope.channelId}.`,
       timeoutDecision: "within_timeout",
       handlerCallId: input.handlerCallId,

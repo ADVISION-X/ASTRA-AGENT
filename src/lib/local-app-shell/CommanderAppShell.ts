@@ -1,33 +1,31 @@
-import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/index.js";
-import type { Locale } from "../../lib/localization/dictionaries.js";
-import { escapeHtml, safeJsonScript } from "../../lib/local-app-shell/render-helpers.js";
+import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
-import { buildCommanderConsoleShellCopy } from "./commander-console.copy.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
-import { renderMacShellFrame } from "./layout/MacShellFrame.js";
-import { renderRightInspector } from "./layout/RightInspector.js";
+import { renderAppFrame } from "./layout/AppFrame.js";
+import { renderBottomNav } from "./layout/BottomNav.js";
+import { renderCompactStatusBar } from "./layout/CompactStatusBar.js";
+import { renderInspectModal } from "./layout/InspectModal.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
 
-function renderCommanderMacShell(dashboard: CommanderMissionDashboardView, options: {
-  locale: Locale;
+type CommanderAppShellInput = Parameters<typeof buildCommanderShellRenderState>[0];
+type CommanderAppShellDashboard = CommanderAppShellInput["dashboard"];
+type CommanderAppShellLocale = CommanderAppShellInput["locale"];
+
+function renderCommanderAppShell(dashboard: CommanderAppShellDashboard, options: {
+  locale: CommanderAppShellLocale;
   requestUrl: URL;
 }): string {
   const { viewModel, appViewModel, pageHtmlMap, inspectHtmlMap } = buildCommanderShellRenderState({
     dashboard,
     locale: options.locale,
-    initialPageId: options.requestUrl.searchParams.get("page"),
   });
-  const copy = buildCommanderConsoleShellCopy(options.locale);
 
-  const router = renderCommanderAppRouter(appViewModel, pageHtmlMap[appViewModel.initialPageId]);
-  const macShell = renderMacShellFrame({
-    viewModel,
-    appViewModel,
-    copy,
-    locale: options.locale,
-    routerHtml: router,
+  const appFrame = renderAppFrame({
+    statusBar: renderCompactStatusBar(viewModel, appViewModel),
+    router: renderCommanderAppRouter(appViewModel, pageHtmlMap[appViewModel.initialPageId]),
+    bottomNav: renderBottomNav(appViewModel, viewModel),
   });
 
   return `<!doctype html>
@@ -38,9 +36,9 @@ function renderCommanderMacShell(dashboard: CommanderMissionDashboardView, optio
     <title>${escapeHtml(viewModel.appTitle)}</title>
     <style>${commanderConsoleStyles}</style>
   </head>
-  <body class="cc-theme-mac-shell">
-    ${macShell}
-    ${renderRightInspector(viewModel)}
+  <body class="cc-theme-compact-app">
+    ${appFrame}
+    ${renderInspectModal(viewModel)}
     <div class="cc-toast" data-cc-toast></div>
     <script>window.__grasseyeCommanderConsoleViewModel = ${safeJsonScript(viewModel)};</script>
     <script>window.__grasseyeCommanderAppViewModel = ${safeJsonScript(appViewModel)};</script>
@@ -51,4 +49,4 @@ function renderCommanderMacShell(dashboard: CommanderMissionDashboardView, optio
 </html>`;
 }
 
-export { renderCommanderMacShell };
+export { renderCommanderAppShell };

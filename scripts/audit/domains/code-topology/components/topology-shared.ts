@@ -10,8 +10,8 @@ const LAW_ID_002 = "GRASSEYE-CODE-TOPOLOGY-002-V1";
 const LAW_ID_003 = "GRASSEYE-CODE-TOPOLOGY-003-V1";
 
 const REQUIRED_DOC_PATHS = ["docs/阶段目标", "docs/TODO", "docs/Codex提示词", "docs/验收报告", "docs/归档", "docs/法案辅助文件"] as const;
-const ALLOWED_DOC_DIRS = new Set(["Codex提示词", "TODO", "归档", "法案辅助文件", "阶段目标", "项目方案", "验收报告"]);
-const ALLOWED_SRC_DIRS = new Set(["app", "capabilities", "features", "lib", "types"]);
+const ALLOWED_DOC_DIRS = new Set(["Codex提示词", "TODO", "audit", "归档", "法案辅助文件", "阶段目标", "项目方案", "why", "验收报告"]);
+const ALLOWED_SRC_DIRS = new Set(["app", "capabilities", "features", "lib", "map-plugins", "types"]);
 const ALLOWED_FEATURE_DIRS = new Set(["comments", "product-signal", "vision"]);
 const ALLOWED_LIB_DIRS = new Set(["browser", "local-ai", "local-app-shell", "local-runtime", "localization", "storage"]);
 const FORBIDDEN_PLATFORM_ROOTS = new Set(["facebook", "tiktok", "social"]);

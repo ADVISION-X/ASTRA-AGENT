@@ -96,7 +96,7 @@ const collectContractAndRegistryFindings = (project: import("ts-morph").Project)
     findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console public surface must expose only listChildAbilityIds and execute." }));
   }
 
-  const registryChildIds = getRegistryImplementationChildIds(registrySource).sort().join(",");
+  const registryChildIds = getRegistryImplementationChildIds(project, registrySource).sort().join(",");
   if (registryChildIds !== [...CHILD_IDS].sort().join(",") || !hasRegistryMetadata(registrySource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "registry.ts must register every Commander child implementation with full metadata." }));
   }

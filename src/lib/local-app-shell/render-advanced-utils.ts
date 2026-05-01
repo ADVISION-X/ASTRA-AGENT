@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../lib/local-app-shell/render-helpers.js";
+import { escapeHtml } from "./render-helpers.js";
 
 import type { CommanderConsoleInspectKind } from "./types.js";
 

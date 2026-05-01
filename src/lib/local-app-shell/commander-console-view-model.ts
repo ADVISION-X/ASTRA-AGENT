@@ -1,5 +1,5 @@
 import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
-import type { Locale } from "../../lib/localization/dictionaries.js";
+import type { Locale } from "../localization/dictionaries.js";
 
 import { buildCommanderTaskTemplates } from "./task-template-registry.js";
 import { buildInspectItems } from "./view-model/inspect-items.js";

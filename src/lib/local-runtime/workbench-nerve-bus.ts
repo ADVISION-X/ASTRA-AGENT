@@ -1,4 +1,4 @@
-import { createNerveBusAbilityGroup } from "../../capabilities/nerve-bus/ability-group.js";
+import { createNerveBusAbilityGroup } from "../../capabilities/nerve-bus/index.js";
 import { handleWorkbenchNerveBusAiRequest } from "./workbench-nerve-bus-ai-request.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { executeAbilityCommand } from "./workbench-ability-command-executor.js";

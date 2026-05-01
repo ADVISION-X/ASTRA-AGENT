@@ -1,9 +1,9 @@
 import type { AiRuntimeExecutionOutput } from "../contract.js";
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
+import { executeWithTimeout, isLocalAiRuntimeError, LocalAiGateway, type ProtectedGatewayResult } from "./local-ai-gateway.js";
 import * as runtimeContext from "./local-ai-runtime-context-support.js";
 import * as runtimeDebug from "./local-ai-runtime-debug.js";
 import { hashValue } from "./local-ai-runtime-debug-state.js";
-import { executeWithTimeout, isLocalAiRuntimeError, LocalAiGateway, type ProtectedGatewayResult } from "./local-ai-runtime-gateway.js";
 import * as runtimeMapper from "./local-ai-runtime-mapper.js";
 import * as runtimeOutput from "./local-ai-runtime-output.js";
 

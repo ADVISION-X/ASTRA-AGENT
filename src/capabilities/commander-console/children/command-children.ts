@@ -7,7 +7,7 @@ import { REJECT_CANDIDATE_CHILD } from "./reject-candidate/implementation.js";
 import { RESUME_MISSION_CHILD } from "./resume-mission/implementation.js";
 import { STOP_MISSION_CHILD } from "./stop-mission/implementation.js";
 
-const COMMANDER_COMMAND_CHILDREN = [
+export const COMMANDER_COMMAND_CHILDREN = [
   ISSUE_HUMAN_COMMAND_CHILD,
   PAUSE_MISSION_CHILD,
   RESUME_MISSION_CHILD,
@@ -17,5 +17,3 @@ const COMMANDER_COMMAND_CHILDREN = [
   REJECT_CANDIDATE_CHILD,
   MARK_REVIEW_REQUIRED_CHILD,
 ] as const;
-
-export { COMMANDER_COMMAND_CHILDREN };

@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-01T20:16:20.727Z",
+  "generatedAt": "2026-05-01T21:14:25.233Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
-    "inspectors": 3,
-    "passed": 2,
-    "failed": 1,
+    "inspectors": 10,
+    "passed": 8,
+    "failed": 2,
     "blocking": 1
   },
   "results": [
@@ -252,76 +252,7 @@
       "inspector": "GrassEye Capability Group Governance Owner Inspector",
       "inspectorId": "capability-group-governance-owner",
       "capabilityDomain": "capability-group-governance",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/ai/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "AiBaseRuntimeProofSchema: runId, missionId, abilityGroupId, childCapabilityId, status, startedAt, endedAt, durationMs, runLockId, cancellationTokenRef, resumeCheckpointRef, timeoutMs, retryCount, maxRetry"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/geometry-guard/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "GeometryGuardRuntimeProofSchema: runId, missionId, abilityGroupId, childCapabilityId, status, startedAt, endedAt, durationMs, runLockId, cancellationTokenRef, resumeCheckpointRef, timeoutMs, retryCount, maxRetry"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/mouse-click/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "MouseClickRuntimeProofSchema: runLockId, cancellationTokenRef, resumeCheckpointRef, timeoutMs, retryCount, maxRetry"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/mouse-scroll/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "MouseScrollRuntimeProofSchema: runLockId, cancellationTokenRef, resumeCheckpointRef, timeoutMs, retryCount, maxRetry"
-        },
-        {
-          "lawId": "GRASSEYE-CAPABILITY-GROUP-004-V1",
-          "file": "src/capabilities/forensics-persistence/schema.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Runtime proof type is missing one or more constitutional minimum fields.",
-          "detail": "ForensicsRuntimeProofSchema: runId, missionId, abilityGroupId, childCapabilityId, status, startedAt, endedAt, durationMs, runLockId, cancellationTokenRef, resumeCheckpointRef, timeoutMs, retryCount, maxRetry"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-TOPOLOGY-002-V1",
-          "file": "docs/audit",
-          "line": 1,
-          "severity": "error",
-          "message": "Non-canonical documentation bucket found under docs."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-TOPOLOGY-002-V1",
-          "file": "docs/why",
-          "line": 1,
-          "severity": "error",
-          "message": "Non-canonical documentation bucket found under docs."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
-          "file": "src/map-plugins",
-          "line": 1,
-          "severity": "error",
-          "message": "Unexpected top-level src directory violates canonical ownership."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
-          "file": "src/features/commander-console",
-          "line": 1,
-          "severity": "error",
-          "message": "Unexpected feature domain folder found under src/features."
-        }
-      ],
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
@@ -367,15 +298,15 @@
         },
         {
           "name": "runtime-proof-minimums",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Runtime proof types are missing shared constitutional fields."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime proof types carry the shared minimum constitutional fields."
         },
         {
           "name": "canonical-doc-paths",
-          "classification": "ENFORCEMENT GAP",
-          "passed": false,
-          "summary": "Canonical documentation paths are missing or drifted."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical phase-document directories exist."
         },
         {
           "name": "root-and-runtime-hygiene",
@@ -385,9 +316,9 @@
         },
         {
           "name": "source-topology",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Canonical src, docs, or startup directory topology drift was found."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical src, docs, and startup directories stay within the governed topology."
         },
         {
           "name": "route-boundary",
@@ -420,10 +351,413 @@
           "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
         }
       ],
-      "classification": "CODE VIOLATION",
-      "summary": "Runtime proof types are missing shared constitutional fields.",
+      "classification": "PASS",
+      "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Type Safety Owner Inspector",
+      "inspectorId": "type-safety-owner",
+      "capabilityDomain": "type-safety",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "typescript-strictness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "tsconfig strict mode is enabled and explicit any was not found."
+        }
+      ],
+      "summary": "strict tsconfig and explicit-any scan are clean",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Security Privacy Owner Inspector",
+      "inspectorId": "security-privacy-owner",
+      "capabilityDomain": "security-privacy",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "security and privacy boundaries are enforced across local host binding, local data, and no secret export paths"
+        },
+        {
+          "name": "local-security-boundary",
+          "classification": "LAW-SCRIPT DRIFT",
+          "passed": false,
+          "summary": "Security boundary drifted away from local-only host or storage posture."
+        },
+        {
+          "name": "sensitive-surface-scan",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No obvious sensitive export or public exposure pattern was found in source files."
+        }
+      ],
+      "classification": "LAW-SCRIPT DRIFT",
+      "summary": "Security boundary drifted away from local-only host or storage posture.",
       "passed": false,
-      "violationCount": 9
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye AI Capability Owner Inspector",
+      "inspectorId": "ai-capability-owner",
+      "capabilityDomain": "ai-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates"
+        }
+      ],
+      "classification": "PASS",
+      "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Orchestration Capability Owner Inspector",
+      "inspectorId": "orchestration-capability-owner",
+      "capabilityDomain": "orchestration-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch"
+        },
+        {
+          "name": "orchestration-standard-package-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration root matches the standard package shape and old runtime files are gone."
+        },
+        {
+          "name": "orchestration-schema-registry-truth",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Schema ids and runtime wiring match the canonical orchestration child set plus governed map package registry truth."
+        },
+        {
+          "name": "orchestration-nerve-bus-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Ability-group dispatches through Nerve Bus only and orchestration root avoids forbidden owners."
+        },
+        {
+          "name": "orchestration-private-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "External code does not reach into orchestration private internals."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "External code does not reach into orchestration private internals.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Commander Console Capability Owner Inspector",
+      "inspectorId": "commander-console-capability-owner",
+      "capabilityDomain": "commander-console-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner"
+        },
+        {
+          "name": "commander-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Required Commander production shape passed: package, child modules, strict gates, proof, and harness all exist."
+        },
+        {
+          "name": "commander-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forbidden residue checks passed."
+        },
+        {
+          "name": "commander-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Boundary checks passed: shell stays render-only and startup stays bootstrap-only."
+        },
+        {
+          "name": "commander-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Anti-escape checks passed."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Anti-escape checks passed.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Nerve Bus Capability Owner Inspector",
+      "inspectorId": "nerve-bus-capability-owner",
+      "capabilityDomain": "nerve-bus-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "nerve-bus-capability is implemented as a schema-first governed transport spine with AST-backed enforcement"
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus required package, thin entry, executor chain, and governed builders are present."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus avoids export laundering, token escapes, wall-clock drift, and forbidden imports."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus runtime, child, and port internals stay behind the owning public boundary."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus resists gate bypass, proof dropping, timeout relabeling, and handler-access laundering."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Page State Capability Owner Inspector",
+      "inspectorId": "page-state-capability-owner",
+      "capabilityDomain": "page-state-capability",
+      "findings": [
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gatePageStateInput."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gatePageStatePayloadBudget."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gateObservationSources."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gateObservationProofBinding."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gateSnapshotFreshness."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through gatePlatformProfile."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through classifyPageState."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through decideProceed."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through createPageStateFingerprint."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through buildPageStateRuntimeProof."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must route through buildPageStateResult."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1",
+          "file": "src/capabilities/page-state/schema.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State schema must forbid non-null output or outputRef on non-success results."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V1",
+          "file": "src/lib/local-runtime/workbench-page-state-runtime.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "External code must not import page-state runtime or child internals."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must not bypass gatePageStatePayloadBudget."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must not bypass gateObservationProofBinding."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must not bypass buildPageStateRuntimeProof."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V1",
+          "file": "src/capabilities/page-state/runtime/page-state-executor.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Page State executor must not bypass buildPageStateResult."
+        },
+        {
+          "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V1",
+          "file": "src/capabilities/page-state/schema.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Schema anti-escape rules for output/outputRef are missing."
+        }
+      ],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "page-state-required-shape",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Page State canonical package shape is incomplete."
+        },
+        {
+          "name": "page-state-forbidden-shape",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Page State still contains forbidden shapes or escape hatches."
+        },
+        {
+          "name": "page-state-boundary-attack",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Page State owner boundary still leaks private or forbidden paths."
+        },
+        {
+          "name": "page-state-anti-escape",
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Page State still allows one or more anti-escape bypasses."
+        }
+      ],
+      "summary": "page-state owner inspector found capability-boundary or governance violations",
+      "passed": false,
+      "classification": "CODE VIOLATION",
+      "violationCount": 18
     }
   ]
 }

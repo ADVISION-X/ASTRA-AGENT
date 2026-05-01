@@ -18,7 +18,7 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGAT
 const MUTATIONS: Mutation[] = [
   {
     name: "ordinary-feed regression mutation",
-    file: "src/features/commander-console/task-template-registry.ts",
+    file: "src/lib/local-app-shell/task-template-registry.ts",
     search: "listOrdinaryTaskTemplates()",
     replace: "listApprovedTaskTemplates()",
   },

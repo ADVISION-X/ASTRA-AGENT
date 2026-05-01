@@ -14,7 +14,9 @@ import {
 } from "./schema-foundation.js";
 import { nullableString, positiveFiniteNumber } from "./schema-internal.js";
 
-const GeometryGuardRuntimeProofSchema = z.object({
+const nonNegativeInt = z.number().int().nonnegative();
+
+const GeometryGuardRuntimeProofFieldSchemas = {
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -41,6 +43,12 @@ const GeometryGuardRuntimeProofSchema = z.object({
   clickPointAfter: GeometryGuardPointSchema.nullable().default(null),
   scaleMappingRef: nullableString,
   deviceScaleFactor: positiveFiniteNumber.nullable().default(null),
+  runLockId: nullableString,
+  cancellationTokenRef: nullableString,
+  resumeCheckpointRef: nullableString,
+  timeoutMs: nonNegativeInt.nullable().default(null),
+  retryCount: nonNegativeInt.default(0),
+  maxRetry: nonNegativeInt.default(0),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative(),
@@ -53,6 +61,8 @@ const GeometryGuardRuntimeProofSchema = z.object({
   scaleDecision: GeometryGuardCheckDecisionSchema,
   transformDecision: GeometryGuardCheckDecisionSchema,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
-});
+};
 
-export { GeometryGuardRuntimeProofSchema };
+const GeometryGuardRuntimeProofSchema = z.object(GeometryGuardRuntimeProofFieldSchemas);
+
+export { GeometryGuardRuntimeProofFieldSchemas, GeometryGuardRuntimeProofSchema };

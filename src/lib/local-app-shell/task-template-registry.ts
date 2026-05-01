@@ -1,4 +1,4 @@
-import type { Locale } from "../../lib/localization/dictionaries.js";
+import type { Locale } from "../localization/dictionaries.js";
 import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import { localizeCommanderText } from "./locale.js";

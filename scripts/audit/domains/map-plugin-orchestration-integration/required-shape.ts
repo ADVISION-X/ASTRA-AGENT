@@ -23,7 +23,7 @@ const TASK_TEMPLATE_PACKAGE_SCHEMA = "src/map-plugins/schema/task-template-packa
 const ACTIVE_MAP_REGISTRY = "src/map-plugins/registry/active-map-registry.ts";
 const MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
 const ORCHESTRATION_SCHEMA = "src/capabilities/orchestration/schema.ts";
-const TASK_TEMPLATE_REGISTRY = "src/features/commander-console/task-template-registry.ts";
+const TASK_TEMPLATE_REGISTRY = "src/lib/local-app-shell/task-template-registry.ts";
 const inspectMissingIntegrationFiles = async (): Promise<Finding[]> => {
   const missing = await missingFiles([...REQUIRED_SOURCE_FILES, ...REQUIRED_AUDIT_FILES]);
   return missing.map((filePath) => createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1", file: filePath, line: 1, severity: "fatal", message: "Map-plugin orchestration integration required file is missing." }));

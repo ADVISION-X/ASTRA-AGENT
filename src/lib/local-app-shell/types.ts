@@ -4,7 +4,7 @@ import type {
   CommanderRecordSummaryView,
   CommanderRuntimeProofTimelineEntry,
 } from "../../capabilities/commander-console/shared/commander-view-types.js";
-import type { Locale } from "../../lib/localization/dictionaries.js";
+import type { Locale } from "../localization/dictionaries.js";
 
 type CommanderConsolePrimaryPageId =
   | "command-center"

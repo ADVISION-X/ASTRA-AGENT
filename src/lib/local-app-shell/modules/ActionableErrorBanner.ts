@@ -1,7 +1,7 @@
 import { localizeCommanderText } from "../locale.js";
 import { escapeHtml } from "../render-utils.js";
 import type { ActionableErrorView } from "../view-helpers.js";
-import type { Locale } from "../../../lib/localization/dictionaries.js";
+import type { Locale } from "../../localization/dictionaries.js";
 
 export function renderActionableErrorBanner(locale: Locale, errors: ActionableErrorView[]): string {
   const t = (zh: string, en: string) => localizeCommanderText(locale, zh, en);

@@ -5,6 +5,8 @@ const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
 const REGISTRY_PATH = `${ROOT}/registry.ts`;
+const COMMAND_CHILDREN_PATH = `${CHILDREN_ROOT}/command-children.ts`;
+const READ_CHILDREN_PATH = `${CHILDREN_ROOT}/read-children.ts`;
 const INDEX_PATH = `${ROOT}/index.ts`;
 const COMMAND_GATE_PATH = `${ROOT}/runtime/commander-command-gate.ts`;
 const READ_GATE_PATH = `${ROOT}/runtime/commander-read-gate.ts`;
@@ -64,6 +66,8 @@ const REQUIRED_FILES = [
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
   REGISTRY_PATH,
+  COMMAND_CHILDREN_PATH,
+  READ_CHILDREN_PATH,
   INDEX_PATH,
   COMMAND_GATE_PATH,
   READ_GATE_PATH,
@@ -109,6 +113,8 @@ export const commanderConsoleInspectionConstants = {
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
   REGISTRY_PATH,
+  COMMAND_CHILDREN_PATH,
+  READ_CHILDREN_PATH,
   INDEX_PATH,
   COMMAND_GATE_PATH,
   READ_GATE_PATH,

@@ -1,4 +1,4 @@
-import type { Locale } from "../../../lib/localization/dictionaries.js";
+import type { Locale } from "../../localization/dictionaries.js";
 
 import { localizeCommanderText } from "../locale.js";
 import { escapeHtml } from "../render-utils.js";

@@ -10,8 +10,8 @@ import { LEGACY_STATIC_MAP_FILES } from "./file-lists.js";
 const OPERATIONAL_MAP_PACKAGE_SCHEMA = "src/map-plugins/schema/operational-map-package.schema.ts";
 const TASK_TEMPLATE_PACKAGE_SCHEMA = "src/map-plugins/schema/task-template-package.schema.ts";
 const MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
-const COMMANDER_TYPES = "src/features/commander-console/types.ts";
-const COMMANDER_SHELL = "src/features/commander-console/commander-console-shell-client.ts";
+const COMMANDER_TYPES = "src/lib/local-app-shell/types.ts";
+const COMMANDER_SHELL = "src/lib/local-app-shell/commander-console-shell-client.ts";
 
 const inspectPackageSchemaImports = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];

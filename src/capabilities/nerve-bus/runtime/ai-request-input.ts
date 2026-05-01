@@ -1,5 +1,4 @@
 import type { AiRequestEnvelope, NerveBusPayloadDocument } from "../index.js";
-import { AiVisionRequestInputSchema } from "../../ai/contract.js";
 
 const payloadDocumentToObject = (
   payload: NerveBusPayloadDocument,
@@ -10,7 +9,6 @@ export const buildAiAbilityRequest = (
   envelope: AiRequestEnvelope,
   inputPayload: NerveBusPayloadDocument,
 ) => {
-  const input = AiVisionRequestInputSchema.parse(payloadDocumentToObject(inputPayload));
   return {
     abilityGroupId: "ai" as const,
     missionId: envelope.missionId,
@@ -29,6 +27,6 @@ export const buildAiAbilityRequest = (
     costPolicy: { maxEstimatedCost: 0 },
     dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
     safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
-    input,
+    input: payloadDocumentToObject(inputPayload),
   };
 };

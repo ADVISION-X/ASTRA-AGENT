@@ -51,8 +51,18 @@ const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
 const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
 const MissionConfiguredMaxRoundsSchema = z.number().int().min(1).max(9);
 const MissionConfiguredMaxMinutesSchema = z.number().int().min(1).max(180);
-const OrchestrationChildCapabilityIdSchema = z.enum(ORCHESTRATION_CHILD_CAPABILITY_IDS);
-const OperationalMapIdSchema = z.string().min(1);
+const OrchestrationChildCapabilityIdSchema = z.enum([
+  "start-mission",
+  "pause-mission",
+  "resume-mission",
+  "stop-mission",
+  "emergency-stop",
+  "execute-map-step",
+  "evaluate-step-transition",
+  "request-human-review",
+  "finalize-mission",
+]);
+export const OperationalMapIdSchema = z.string().min(1);
 const AllowedAbilityGroupIdSchema = OrchestrationAllowedAbilityGroupIdSchemaSource;
 const MissionHumanCommandKindSchema = z.enum(ORCHESTRATION_HUMAN_COMMAND_KINDS);
 const MissionInternalOperationKindSchema = z.enum(ORCHESTRATION_INTERNAL_OPERATION_KINDS);
@@ -176,6 +186,10 @@ const RuntimeProofSchema = z.object({
   mapPackageId: z.string().min(1).nullable().optional().default(null),
   mapPackageVersion: z.string().min(1).nullable().optional().default(null),
   mapVersion: z.string().min(1).nullable().optional().default(null),
+  selectedMapVersion: z.string().min(1).nullable().optional().default(null),
+  activationSnapshotRef: z.string().min(1).nullable().optional().default(null),
+  promptContractVersion: z.string().min(1).nullable().optional().default(null),
+  capabilityCatalogVersion: z.string().min(1).nullable().optional().default(null),
   selectedMapSource: SelectedMapSourceSchema.nullable().optional().default(null),
   stepId: z.string().min(1),
   targetAbilityGroupId: AllowedAbilityGroupIdSchema.nullable().optional().default(null),
@@ -301,7 +315,6 @@ export {
   MissionConfiguredMaxRoundsSchema,
   MissionConfiguredMaxMinutesSchema,
   OrchestrationChildCapabilityIdSchema,
-  OperationalMapIdSchema,
   AllowedAbilityGroupIdSchema,
   MissionHumanCommandKindSchema,
   MissionInternalOperationKindSchema,

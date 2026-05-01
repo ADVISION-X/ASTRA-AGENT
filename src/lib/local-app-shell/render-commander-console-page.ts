@@ -1,4 +1,4 @@
-import { renderCommanderMacShell } from "../../features/commander-console/CommanderMacShell.js";
+import { renderCommanderMacShell } from "./CommanderMacShell.js";
 import { getLocaleFromRequestUrl } from "../localization/locale.js";
 
 export function renderCommanderConsolePage(dashboard: Parameters<typeof renderCommanderMacShell>[0], requestUrl: URL): string {

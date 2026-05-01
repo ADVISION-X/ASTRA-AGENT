@@ -73,7 +73,7 @@ type EvaluateStepTransitionChildOutput = z.output<typeof EvaluateStepTransitionC
 type RequestHumanReviewChildOutput = z.output<typeof RequestHumanReviewChildOutputSchema>;
 type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSchema>;
 
-type OrchestrationAbilityGroup = {
+interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];
   listMapIds(): OperationalMapId[];
   execute(input: { childCapabilityId: OrchestrationChildCapabilityId; payload: unknown }): Promise<unknown>;
@@ -85,7 +85,7 @@ type OrchestrationAbilityGroup = {
   getMissionState(missionId?: string | null): Promise<MissionControlState>;
   executeMission(command: MissionCommand): Promise<MissionExecutionResult>;
   submitReviewDecision(input: MissionReviewDecisionInput): Promise<MissionControlState>;
-};
+}
 
 export type {
   EmergencyStopChildInput,

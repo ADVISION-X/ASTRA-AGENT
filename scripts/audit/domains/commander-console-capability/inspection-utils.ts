@@ -8,6 +8,10 @@ import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 
 const { CHILDREN_ROOT, CLOCK_PATH, REGISTRY_PATH, REQUIRED_FILES, ROOT } = commanderConsoleInspectionConstants;
+const REGISTRY_HELPER_PATHS: ReadonlySet<string> = new Set([
+  commanderConsoleInspectionConstants.COMMAND_CHILDREN_PATH,
+  commanderConsoleInspectionConstants.READ_CHILDREN_PATH,
+]);
 
 function childDirectoryFiles(childId: string): string[] {
   return [
@@ -134,7 +138,8 @@ function referenceLeaksOutsideRegistry(definition: VariableDeclaration): string[
   const references = nameNode.findReferencesAsNodes();
   return [...new Set(references.map((reference) => toRepoRelativePath(reference.getSourceFile().getFilePath())))]
     .filter((filePath) => filePath !== toRepoRelativePath(definition.getSourceFile().getFilePath()))
-    .filter((filePath) => filePath !== REGISTRY_PATH);
+    .filter((filePath) => filePath !== REGISTRY_PATH)
+    .filter((filePath) => !REGISTRY_HELPER_PATHS.has(filePath));
 }
 
 function hasRegistryMetadata(sourceFile: SourceFile): boolean {
@@ -153,11 +158,33 @@ function hasRegistryMetadata(sourceFile: SourceFile): boolean {
   return requiredFragments.every((fragment) => sourceFile.getFullText().includes(fragment));
 }
 
-function getRegistryImplementationChildIds(sourceFile: SourceFile): string[] {
+function collectImplementationChildIds(sourceFile: SourceFile): string[] {
   return sourceFile.getImportDeclarations()
     .map((declaration) => declaration.getModuleSpecifierValue() ?? "")
-    .filter((specifier) => specifier.includes("/children/") && specifier.endsWith("/implementation.js"))
+    .filter((specifier) => specifier.endsWith("/implementation.js"))
     .map((specifier) => path.posix.basename(path.posix.dirname(specifier)));
+}
+
+function resolveRepoRelativeImportPath(sourceFile: SourceFile, specifier: string): string | null {
+  if (!specifier.startsWith(".")) {
+    return null;
+  }
+
+  const importerDir = path.posix.dirname(toRepoRelativePath(sourceFile.getFilePath()));
+  const resolved = path.posix.normalize(path.posix.join(importerDir, specifier));
+  return resolved.endsWith(".js") ? `${resolved.slice(0, -3)}.ts` : resolved;
+}
+
+function getRegistryImplementationChildIds(project: Project, sourceFile: SourceFile): string[] {
+  const directIds = collectImplementationChildIds(sourceFile);
+  const helperIds = sourceFile.getImportDeclarations()
+    .map((declaration) => resolveRepoRelativeImportPath(sourceFile, declaration.getModuleSpecifierValue() ?? ""))
+    .filter((helperPath): helperPath is string => Boolean(helperPath))
+    .filter((helperPath) => REGISTRY_HELPER_PATHS.has(helperPath))
+    .map((helperPath) => project.getSourceFile(pathFromRepoRoot(helperPath)))
+    .filter((helperSource): helperSource is SourceFile => Boolean(helperSource))
+    .flatMap((helperSource) => collectImplementationChildIds(helperSource));
+  return [...new Set([...directIds, ...helperIds])];
 }
 
 function functionContainsThrow(sourceFile: SourceFile, functionName: string): boolean {

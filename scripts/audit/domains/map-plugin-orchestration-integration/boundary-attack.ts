@@ -13,7 +13,7 @@ import {
 
 const ACTIVE_MAP_REGISTRY = "src/map-plugins/registry/active-map-registry.ts";
 const MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
-const TASK_TEMPLATE_REGISTRY = "src/features/commander-console/task-template-registry.ts";
+const TASK_TEMPLATE_REGISTRY = "src/lib/local-app-shell/task-template-registry.ts";
 const inspectActiveRegistry = (project: Project): Finding[] => {
   const registrySource = getSource(project, ACTIVE_MAP_REGISTRY);
   return hasCallExpression(registrySource, "toDeveloperBinding") && hasCallExpression(registrySource, "toActiveOperationalMapRecord")

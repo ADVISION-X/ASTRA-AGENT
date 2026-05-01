@@ -32,7 +32,7 @@ const nonNegativeNumber = z.number().finite().nonnegative();
 const nonNegativeInteger = z.number().int().nonnegative();
 const CircuitBreakerStateSchema = z.enum(["closed", "open", "half_open", "not_applicable"]);
 
-const AiBaseRuntimeProofSchema = z.object({
+const AiBaseRuntimeProofFieldSchemas = {
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1).nullable(),
@@ -59,9 +59,13 @@ const AiBaseRuntimeProofSchema = z.object({
   evidenceRefs: z.array(z.string().min(1)),
   rawOutputRef: nullableString,
   rawOutputHash: nullableString,
+  runLockId: nullableString,
+  cancellationTokenRef: nullableString,
+  resumeCheckpointRef: nullableString,
   timeoutMs: nonNegativeNumber.nullable(),
   attemptIndex: nonNegativeInteger,
   retryCount: nonNegativeInteger,
+  maxRetry: nonNegativeInteger.default(0),
   circuitBreakerState: CircuitBreakerStateSchema,
   gatewayDurationMs: nonNegativeNumber.nullable(),
   startedAt: z.string().datetime(),
@@ -83,7 +87,9 @@ const AiBaseRuntimeProofSchema = z.object({
   qualityDecisionReason: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   clockPortKind: z.literal("system-monotonic-clock"),
-}).strict();
+};
+
+const AiBaseRuntimeProofSchema = z.object(AiBaseRuntimeProofFieldSchemas).strict();
 
 const validateAiRuntimeProofOrder = (
   value: z.infer<typeof AiBaseRuntimeProofSchema>,
@@ -460,6 +466,7 @@ const AiHealthReportSchema = z.object({
 }).strict();
 
 export {
+  AiBaseRuntimeProofFieldSchemas,
   AiRuntimeProofSchema,
   AiRuntimeExecutionOutputSchema,
   AiForbiddenActionOutputFieldSchema,

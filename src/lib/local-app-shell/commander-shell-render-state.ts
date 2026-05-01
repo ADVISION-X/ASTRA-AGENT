@@ -1,15 +1,15 @@
-import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/index.js";
-import type { Locale } from "../../lib/localization/dictionaries.js";
-
 import { buildCommanderAppPageHtmlMap } from "./CommanderAppRouter.js";
 import { buildCommanderAppViewModel } from "./commander-app.view-model.js";
 import { buildCommanderConsoleViewModel } from "./commander-console-view-model.js";
 import { renderInspectError } from "./inspect/InspectError.js";
 import { renderInspectItemHtml } from "./inspect/renderInspectItemHtml.js";
 
+type CommanderShellDashboard = Parameters<typeof buildCommanderConsoleViewModel>[0];
+type CommanderShellLocale = Parameters<typeof buildCommanderConsoleViewModel>[1];
+
 export function buildCommanderShellRenderState(input: {
-  dashboard: CommanderMissionDashboardView;
-  locale: Locale;
+  dashboard: CommanderShellDashboard;
+  locale: CommanderShellLocale;
   initialPageId?: string | null;
 }) {
   const viewModel = buildCommanderConsoleViewModel(input.dashboard, input.locale);

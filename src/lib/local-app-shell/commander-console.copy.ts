@@ -1,4 +1,4 @@
-import type { Locale } from "../../lib/localization/dictionaries.js";
+import type { Locale } from "../localization/dictionaries.js";
 
 import type { CommanderAppPageId } from "./commander-app.types.js";
 import { localizeCommanderText } from "./locale.js";

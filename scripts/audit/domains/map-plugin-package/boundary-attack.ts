@@ -9,8 +9,8 @@ import { LEGACY_MAP_IDS } from "./file-lists.js";
 const ORCHESTRATION_RUNTIME_CONTEXT = "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts";
 const ORCHESTRATION_MAP_SELECTION_GATE = "src/capabilities/orchestration/runtime/map-selection-gate.ts";
 const ORCHESTRATION_ABILITY_GROUP = "src/capabilities/orchestration/ability-group.ts";
-const COMMANDER_TASK_TEMPLATE_REGISTRY = "src/features/commander-console/task-template-registry.ts";
-const COMMANDER_VIEW_MODEL = "src/features/commander-console/commander-console-view-model.ts";
+const COMMANDER_TASK_TEMPLATE_REGISTRY = "src/lib/local-app-shell/task-template-registry.ts";
+const COMMANDER_VIEW_MODEL = "src/lib/local-app-shell/commander-console-view-model.ts";
 
 const inspectMapSelectionGate = (project: Project): Finding[] => {
   const findings: Finding[] = [];

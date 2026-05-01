@@ -19,9 +19,9 @@ const INSPECTOR_ENTRY = "scripts/audit/domains/commander-console-mac-app-shell/i
 
 const MUTATIONS: Mutation[] = [
   { name: "legacy render entry mutation", file: "src/lib/local-app-shell/render-commander-console-page.ts", search: "renderCommanderMacShell", replace: "renderCommanderAppShell" },
-  { name: "bottom nav selector mutation", file: "src/features/commander-console/commander-console-shell-client.ts", search: "[data-primary-nav]", replace: "[data-bottom-nav]" },
-  { name: "phone shell style mutation", file: "src/features/commander-console/styles/commander-console-styles.ts", search: ".cc-mac-shell", replace: ".cc-phone-shell" },
-  { name: "raw task category mutation", file: "src/features/commander-console/modules/TaskTemplateLauncher.ts", search: "template.safetyLevel", replace: "template.taskCategory" },
+  { name: "bottom nav selector mutation", file: "src/lib/local-app-shell/commander-console-shell-client.ts", search: "[data-primary-nav]", replace: "[data-bottom-nav]" },
+  { name: "phone shell style mutation", file: "src/lib/local-app-shell/styles/commander-console-styles.ts", search: ".cc-mac-shell", replace: ".cc-phone-shell" },
+  { name: "raw task category mutation", file: "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts", search: "template.safetyLevel", replace: "template.taskCategory" },
   { name: "desktop proof inflation mutation", file: "docs/audit/commander-console-mac-app-shell-scorecard.md", search: '"score": 93', replace: '"score": 96' }
 ];
 

@@ -1,4 +1,5 @@
 import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup } from "./contract.js";
+import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
 import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
 import {
@@ -10,11 +11,13 @@ import {
   submitMissionReviewDecision,
 } from "./runtime/orchestration-executor.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
-import { listActiveOrchestrationMapIds } from "./runtime/orchestration-map-id-list.js";
-import { createOrchestrationNerveBusPort, type CreateOrchestrationAbilityGroupInput } from "./runtime/orchestration-nerve-bus-port-factory.js";
+import { getDefaultMapPluginRegistry, listActivePackages } from "./runtime/orchestration-map-id-list.js";
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
+
+export type CreateOrchestrationAbilityGroupInput = {
+  nerveBus: NerveBusAbilityGroup;
+};
 
 function createMissionEntryMethods(context: ReturnType<typeof createOrchestrationRuntimeContext>) {
   return {
@@ -69,7 +72,7 @@ function createMissionStateMethods(context: ReturnType<typeof createOrchestratio
 export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
   const context = createOrchestrationRuntimeContext({
     mapStore: createDefaultOrchestrationMapStore(),
-    nerveBus: createOrchestrationNerveBusPort(input),
+    nerveBus: input.nerveBus,
   });
   const children = createOrchestrationChildren();
   const missionEntry = createMissionEntryMethods(context);
@@ -82,10 +85,8 @@ export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilit
     },
 
     listMapIds() {
-      return getDefaultMapPluginRegistry()
-        .active
-        .listActivePackages()
-        .map((mapPackage) => mapPackage.manifest.mapId);
+      const registry = getDefaultMapPluginRegistry();
+      return listActivePackages(registry.active).map((mapPackage) => mapPackage.manifest.mapId);
     },
 
     async execute(inputValue) {

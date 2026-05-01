@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 const FORENSICS_PERSISTENCE_ABILITY_GROUP_ID = "forensics-persistence" as const;
+const nullableString = z.string().min(1).nullable().default(null);
+const nonNegativeInt = z.number().int().nonnegative();
 
 const ForensicsChildCapabilityIdSchema = z.enum([
   "write-structured-runtime-event",
@@ -126,7 +128,7 @@ const ForensicsPersistedOutputSchema = z.object({
   idempotencyKey: z.string().min(1),
 });
 
-const ForensicsRuntimeProofSchema = z.object({
+const ForensicsRuntimeProofFieldSchemas = {
   proofId: z.string().min(1),
   runId: z.string().min(1),
   missionId: z.string().min(1),
@@ -141,6 +143,12 @@ const ForensicsRuntimeProofSchema = z.object({
   recordType: ForensicsRecordTypeSchema,
   recordId: z.string().min(1),
   idempotencyKey: z.string().min(1),
+  runLockId: nullableString,
+  cancellationTokenRef: nullableString,
+  resumeCheckpointRef: nullableString,
+  timeoutMs: nonNegativeInt.nullable().default(null),
+  retryCount: nonNegativeInt.default(0),
+  maxRetry: nonNegativeInt.default(0),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: z.number().int().nonnegative(),
@@ -155,7 +163,9 @@ const ForensicsRuntimeProofSchema = z.object({
   integrityDecision: ForensicsIntegrityDecisionSchema,
   failureReason: ForensicsFailureSchema.nullable().default(null),
   dataQualityFlags: z.array(z.string().min(1)).default([]),
-});
+};
+
+const ForensicsRuntimeProofSchema = z.object(ForensicsRuntimeProofFieldSchemas);
 
 const ForensicsResultSchema = z.object({
   abilityGroupId: z.literal(FORENSICS_PERSISTENCE_ABILITY_GROUP_ID),
@@ -259,6 +269,7 @@ export {
   ForensicsIntegrityDecisionSchema,
   ImageEvidenceInputSchema,
   ForensicsPersistedOutputSchema,
+  ForensicsRuntimeProofFieldSchemas,
   ForensicsRuntimeProofSchema,
   ForensicsResultSchema,
   ForensicsRecordEnvelopeSchema,
