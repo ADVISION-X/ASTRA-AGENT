@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 
 import type { AiTaskType } from "../contract.js";
-import type { LocalAiTaskType } from "../../../types/local-ai.js";
 import { PromptContractCatalogEntrySchema, type PromptContractCatalogEntry } from "./schema.js";
 
 const BUILTIN_PROMPT_CONTRACT_FILES = [
@@ -21,7 +20,6 @@ type PromptContractCatalog =
       contracts: PromptContractCatalogEntry[];
       byId: Map<string, PromptContractCatalogEntry>;
       byTaskType: Map<AiTaskType, PromptContractCatalogEntry>;
-      byLegacyTaskType: Map<LocalAiTaskType, PromptContractCatalogEntry>;
     }
   | {
       ok: false;
@@ -65,9 +63,6 @@ function buildPromptContractCatalog(): PromptContractCatalog {
     contracts,
     byId: new Map(contracts.map((contract) => [contract.promptContractId, contract])),
     byTaskType: new Map(contracts.map((contract) => [contract.taskType, contract])),
-    byLegacyTaskType: new Map(
-      contracts.flatMap((contract) => contract.legacyTaskType ? [[contract.legacyTaskType, contract] as const] : []),
-    ),
   };
 }
 
@@ -106,14 +101,6 @@ export function getPromptContractCatalogEntryByTaskType(taskType: AiTaskType): P
   const contract = requirePromptContractCatalog().byTaskType.get(taskType);
   if (!contract) {
     throw new Error(`No prompt contract registered for AI taskType: ${taskType}`);
-  }
-  return contract;
-}
-
-export function getPromptContractCatalogEntryByLegacyTaskType(taskType: LocalAiTaskType): PromptContractCatalogEntry {
-  const contract = requirePromptContractCatalog().byLegacyTaskType.get(taskType);
-  if (!contract) {
-    throw new Error(`No prompt contract registered for legacy LocalAi taskType: ${taskType}`);
   }
   return contract;
 }

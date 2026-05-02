@@ -1,4 +1,14 @@
 import type { EvidenceStoreService } from "./evidence-store-service.js";
+import { OcrTextResultSchema } from "../../../types/evidence.js";
+import {
+  BrowseLedgerEntrySchema,
+  ProductDiscoveryEvidencePacketSchema,
+  RoundLifecycleEventSchema,
+  RoundStructuralLogSchema,
+} from "../../../types/evidence-packet.js";
+import { ActionLogSchema } from "../../../types/platform-action.js";
+import { StoredAiResultSchema } from "../../../types/stored-ai-result.js";
+import { StructuredActionLogSchema, StructuredRuntimeEventSchema } from "../../../types/structured-log.js";
 import {
   ForensicsAiResultRecordPayloadSchema,
   ForensicsArtifactRefSchema,
@@ -41,9 +51,9 @@ function toStoredRecord(input: {
 
 async function persistStructuredRuntimeEvent(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsStructuredRuntimeEventPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveStructuredRuntimeEvent(payload.structuredRuntimeEvent);
+  await evidenceStore.saveStructuredRuntimeEvent(StructuredRuntimeEventSchema.parse(payload.structuredRuntimeEvent));
   if (payload.roundLifecycleEvent) {
-    await evidenceStore.saveRoundLifecycleEvent(payload.roundLifecycleEvent);
+    await evidenceStore.saveRoundLifecycleEvent(RoundLifecycleEventSchema.parse(payload.roundLifecycleEvent));
   }
   return toStoredRecord({ envelope, storageRef: null });
 }
@@ -51,9 +61,9 @@ async function persistStructuredRuntimeEvent(evidenceStore: EvidenceStoreService
 async function persistStructuredActionLog(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsStructuredActionLogPayloadSchema.parse(envelope.payload);
   if (payload.actionLog) {
-    await evidenceStore.saveActionLog(payload.actionLog);
+    await evidenceStore.saveActionLog(ActionLogSchema.parse(payload.actionLog));
   }
-  await evidenceStore.saveStructuredActionLog(payload.structuredActionLog);
+  await evidenceStore.saveStructuredActionLog(StructuredActionLogSchema.parse(payload.structuredActionLog));
   return toStoredRecord({ envelope, storageRef: null });
 }
 
@@ -90,20 +100,20 @@ async function persistEvidenceRecord(evidenceStore: EvidenceStoreService, envelo
     });
   }
 
-  await evidenceStore.saveOcrResult(payload.ocrTextResult);
+  await evidenceStore.saveOcrResult(OcrTextResultSchema.parse(payload.ocrTextResult));
   return toStoredRecord({ envelope, storageRef: null });
 }
 
 async function persistAiResultRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsAiResultRecordPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveAiResult(payload.aiResult);
+  await evidenceStore.saveAiResult(StoredAiResultSchema.parse(payload.aiResult));
   return toStoredRecord({ envelope, storageRef: null });
 }
 
 async function persistBrowseLedgerRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsBrowseLedgerPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry);
-  await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+  await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry));
+  await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   if (payload.rebuildSessionId) {
     await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
   }
@@ -112,8 +122,8 @@ async function persistBrowseLedgerRecord(evidenceStore: EvidenceStoreService, en
 
 async function persistEvidencePacketRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsEvidencePacketPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveEvidencePacket(payload.evidencePacket);
-  await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+  await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket));
+  await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   if (payload.rebuildSessionId) {
     await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
   }
@@ -123,12 +133,12 @@ async function persistEvidencePacketRecord(evidenceStore: EvidenceStoreService, 
 async function persistFailedRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsFailedRecordPayloadSchema.parse(envelope.payload);
   if (payload.evidencePacket) {
-    await evidenceStore.saveEvidencePacket(payload.evidencePacket);
+    await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket));
   }
   if (payload.browseLedgerEntry) {
-    await evidenceStore.saveBrowseLedgerEntry(payload.browseLedgerEntry);
+    await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry));
   }
-  await evidenceStore.saveRoundStructuralLog(payload.roundStructuralLog);
+  await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   if (payload.rebuildSessionId) {
     await evidenceStore.rebuildAdvancedAiExportSet(payload.rebuildSessionId);
   }
@@ -137,7 +147,7 @@ async function persistFailedRecord(evidenceStore: EvidenceStoreService, envelope
 
 async function persistRuntimeSnapshot(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsRuntimeSnapshotPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveStructuredRuntimeEvent(payload.snapshotEvent);
+  await evidenceStore.saveStructuredRuntimeEvent(StructuredRuntimeEventSchema.parse(payload.snapshotEvent));
   return toStoredRecord({ envelope, storageRef: null });
 }
 
@@ -159,9 +169,9 @@ async function persistEnvelope(evidenceStore: EvidenceStoreService, envelope: Fo
 export function createEvidenceStoreForensicsRecordStoragePort(evidenceStore: EvidenceStoreService): ForensicsStoragePort {
   const persist = (envelope: ForensicsRecordEnvelope) => persistEnvelope(evidenceStore, envelope);
   return {
-    appendRecord: persist,
-    replaceRecordByRound: persist,
-    replaceRecordBySession: persist,
+    async writeRecord(input) {
+      return persist(input.envelope);
+    },
     updateRuntimeSnapshot: persist,
     async readRecord(_ref) {
       return null;

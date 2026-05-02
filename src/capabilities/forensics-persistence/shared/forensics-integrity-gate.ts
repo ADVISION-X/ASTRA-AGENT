@@ -26,6 +26,29 @@ type IntegrityFailureInput = {
   policyDecision: ForensicsPolicyDecision;
 };
 
+const CORE_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationSnapshotRef",
+  "capabilityCallId",
+] as const;
+
+const resolveCoreChainFailure = (input: IntegrityFailureInput) => {
+  for (const fieldName of CORE_CHAIN_FIELDS) {
+    const value = input.request[fieldName];
+    if (!value) {
+      return `${fieldName} is required.`;
+    }
+  }
+
+  return null;
+};
+
 const resolveSourceRecordRefsFailure = (input: IntegrityFailureInput) => (
   input.mergedPolicy.requireSourceRecordRefs && input.request.sourceRecordRefs.length === 0
     ? "sourceRecordRefs are required."
@@ -56,12 +79,39 @@ const resolveParentStorageFailure = (input: IntegrityFailureInput) => (
     : null
 );
 
+const resolvePromptRefFailure = (input: IntegrityFailureInput) => (
+  input.request.recordType === "ai_result_record"
+  && (!input.request.promptContractId || !input.request.promptContractVersion || !input.request.promptCatalogVersion)
+    ? "AI records require promptContractId, promptContractVersion, and promptCatalogVersion."
+    : null
+);
+
+const resolveActionVerificationFailure = (input: IntegrityFailureInput) => (
+  input.request.recordType === "structured_action_log"
+  && (!input.request.actionRef || !input.request.postActionVerificationRef)
+    ? "Action records require actionRef and postActionVerificationRef."
+    : null
+);
+
+const resolveDecisionRefFailure = (input: IntegrityFailureInput) => (
+  (input.request.recordType === "browse_ledger_entry"
+    || input.request.recordType === "evidence_packet"
+    || input.request.recordType === "failed_record")
+  && !input.request.decisionRef
+    ? "Finalization records require decisionRef."
+    : null
+);
+
 const INTEGRITY_FAILURE_RESOLVERS = [
+  resolveCoreChainFailure,
   resolveSourceRecordRefsFailure,
   resolveParentRefsFailure,
   resolveArtifactRefsFailure,
   resolveExternalArtifactFailure,
   resolveParentStorageFailure,
+  resolvePromptRefFailure,
+  resolveActionVerificationFailure,
+  resolveDecisionRefFailure,
 ] as const;
 
 const resolveIntegrityFailureReason = (input: {

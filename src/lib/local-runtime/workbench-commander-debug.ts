@@ -1,6 +1,26 @@
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
+
+const buildCommanderMapChain = (mapId: string | null | undefined) => {
+  if (!mapId) {
+    return {
+      mapPackageId: null,
+      mapPackageVersion: null,
+      selectedMapVersion: null,
+      activationSnapshotRef: null,
+    };
+  }
+
+  const record = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+  return {
+    mapPackageId: record?.packageId ?? null,
+    mapPackageVersion: record?.packageVersion ?? null,
+    selectedMapVersion: record?.mapVersion ?? null,
+    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+  };
+};
 
 const buildCommanderDebugIdentity = (input: {
   eventType: string;
@@ -119,6 +139,7 @@ export const recordCommanderDebugEvent = async (
   },
 ): Promise<void> => {
   const structuredRuntimeEvent = buildCommanderDebugStructuredRuntimeEvent(runtime, input);
+  const mapChain = buildCommanderMapChain(input.mapId);
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
@@ -126,9 +147,20 @@ export const recordCommanderDebugEvent = async (
     requestedBy: "commander-console",
     sourceAbilityGroupId: "commander-console",
     sourceChildCapabilityId: "issue-human-command-debug",
+    missionId: input.missionId ?? input.traceId,
+    runId: input.traceId,
     sessionId: input.traceId,
     roundId: input.attemptId,
     videoVisitId: null,
+    stepId: "task_start",
+    mapPackageId: mapChain.mapPackageId,
+    mapPackageVersion: mapChain.mapPackageVersion,
+    selectedMapId: input.mapId ?? null,
+    selectedMapVersion: mapChain.selectedMapVersion,
+    activationSnapshotRef: mapChain.activationSnapshotRef,
+    capabilityCallId: input.spanId,
+    inputRefs: [],
+    outputRefs: [],
     sourceRecordRefs: [],
     parentRefs: [],
     artifactRefs: [],

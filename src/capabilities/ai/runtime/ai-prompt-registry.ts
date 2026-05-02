@@ -30,10 +30,10 @@ function toAiPromptContract(taskType: AiTaskType, promptContractId: string): Res
     forbiddenOutputs: [...contract.forbiddenOutputs, "platform_action"],
     prohibitedActions: [...contract.prohibitedActions],
     restrictedDataAccess: [...contract.restrictedDataAccess],
-    confidencePolicy: contract.confidencePolicy,
-    reviewPolicy: contract.reviewPolicy,
-    failurePolicy: contract.failurePolicy,
-    debugPolicy: contract.debugPolicy,
+    confidencePolicy: { ...contract.confidencePolicy },
+    reviewPolicy: { requiredWhen: [...contract.reviewPolicy.requiredWhen] },
+    failurePolicy: { ...contract.failurePolicy },
+    debugPolicy: { ...contract.debugPolicy },
     promptHash: contract.promptHash,
   };
 }

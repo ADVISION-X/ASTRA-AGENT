@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { BrowseLedgerEntrySchema, RoundStructuralLogSchema } from "../../../../types/evidence-packet.js";
-import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema } from "../../shared/forensics-base-schema.js";
+import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from "../../shared/forensics-base-schema.js";
 
 export const ForensicsBrowseLedgerPayloadSchema = z.object({
-  browseLedgerEntry: BrowseLedgerEntrySchema,
-  roundStructuralLog: RoundStructuralLogSchema,
+  browseLedgerEntry: ForensicsPlainObjectSchema,
+  roundStructuralLog: ForensicsPlainObjectSchema,
   rebuildSessionId: z.string().min(1).optional(),
 });
 
 export const FinalizeBrowseLedgerInputSchema = ForensicsAbilityInputBaseSchema.extend({
   childCapabilityId: z.literal("finalize-browse-ledger"),
   recordType: z.literal("browse_ledger_entry"),
+  decisionRef: z.string().min(1),
   payload: ForensicsBrowseLedgerPayloadSchema,
 });
 

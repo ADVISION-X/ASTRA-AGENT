@@ -16,10 +16,23 @@
   "forbiddenOutputs": ["platform_action", "schema_bypass"],
   "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
   "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
-  "confidencePolicy": "strict-schema-only",
-  "reviewPolicy": "review-required",
-  "failurePolicy": "schema-block",
-  "debugPolicy": "developer-inspect only",
+  "confidencePolicy": {
+    "minConfidence": 1,
+    "belowMin": "failed"
+  },
+  "reviewPolicy": {
+    "requiredWhen": ["schema_mismatch"]
+  },
+  "failurePolicy": {
+    "badJson": "failed",
+    "schemaMismatch": "failed",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
   "promptHash": "sha256:schema-validation-only",
   "sensitiveOperation": false
 }

@@ -24,6 +24,15 @@ const AI_FORBIDDEN_ACTION_TERMS = [
   "forensics",
   "press key",
   "type text",
+  "paste",
+  "hover",
+  "drag",
+  "navigate",
+  "open url",
+  "open page",
+  "dispatch envelope",
+  "nerve bus",
+  "persist evidence",
   "platform action",
 ];
 

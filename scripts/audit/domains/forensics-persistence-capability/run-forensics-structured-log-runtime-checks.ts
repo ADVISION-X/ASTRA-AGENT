@@ -1,6 +1,5 @@
-import { Node, SyntaxKind } from "ts-morph";
-
 import { pathFromRepoRoot } from "../../core/paths.js";
+
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { hasStringLiteral } from "../_shared/ast-literal-queries.js";
@@ -18,7 +17,6 @@ const {
   LAW_STRUCTURED_LOGGING_DISCIPLINE,
   LAW_STRUCTURED_LOGGING_EXIT,
   LAW_STRUCTURED_LOGGING_HEALTH,
-  RUNTIME_AI_DEBUG_RECORDER_PATH,
   STARTUP_ENTRYPOINT_PATH,
   STATUS_PATH,
 } = forensicsPersistenceInspectionConstants;
@@ -28,25 +26,17 @@ const getStartupSource = (project: import("ts-morph").Project) => {
   return project.addSourceFileAtPathIfExists(startupPath) ?? project.addSourceFileAtPath(startupPath);
 };
 
-const hasRecordAiDebugEventCall = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "recordAiDebugEvent";
-  });
-};
-
 const collectAiRuntimeWiringFindings = (project: import("ts-morph").Project): Finding[] => {
   const aiDebugRecorderSource = getSourceFileOrThrow(project, AI_DEBUG_RECORDER_PATH);
   const aiRuntimeDebugSource = getSourceFileOrThrow(project, AI_RUNTIME_ADAPTER_PATH);
-  const runtimeAiDebugRecorderSource = getSourceFileOrThrow(project, RUNTIME_AI_DEBUG_RECORDER_PATH);
   const commanderDebugSource = getSourceFileOrThrow(project, COMMANDER_DEBUG_PATH);
   const findings: Finding[] = [];
 
-  if (!hasStringLiteral(aiRuntimeDebugSource, "AI_REQUEST_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_RESPONSE_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_ERROR_DEBUG") || !hasRecordAiDebugEventCall(aiDebugRecorderSource)) {
+  if (!hasStringLiteral(aiRuntimeDebugSource, "AI_REQUEST_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_RESPONSE_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_ERROR_DEBUG")) {
     findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: AI_RUNTIME_ADAPTER_PATH, line: 1, severity: "fatal", message: "Structured logging discipline is not wired through the AI runtime and Forensics write path." }));
   }
-  if (!hasPropertyAccessPath(runtimeAiDebugRecorderSource, ["runtime", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
-    findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: RUNTIME_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "AI debug event persistence must flow through Forensics Persistence structured runtime events." }));
+  if (!hasPropertyAccessPath(aiDebugRecorderSource, ["runtime", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
+    findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "AI debug event persistence must flow through Forensics Persistence structured runtime events." }));
   }
   if (!hasPropertyAccessPath(commanderDebugSource, ["runtime", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
     findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: COMMANDER_DEBUG_PATH, line: 1, severity: "fatal", message: "Workbench debug event relays must persist structured runtime events through Forensics Persistence." }));
@@ -100,7 +90,7 @@ const collectHealthFinding = (project: import("ts-morph").Project): Finding[] =>
 
 const collectExitFinding = (project: import("ts-morph").Project): Finding[] => {
   const startupSource = getStartupSource(project);
-  const exitWired = hasStringLiteral(startupSource, "SERVICE_SHUTDOWN_REQUESTED")
+  const exitWired = hasStringLiteral(startupSource, "SERVICE_STOP_REQUESTED")
     && hasStringLiteral(startupSource, "SERVICE_SHUTDOWN_COMPLETED")
     && hasStringLiteral(startupSource, "SERVICE_UNEXPECTED_EXIT")
     && hasStringLiteral(startupSource, "SERVICE_EXIT_CLASSIFICATION");

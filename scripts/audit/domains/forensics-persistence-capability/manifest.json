@@ -6,11 +6,11 @@
   "engine": "hybrid",
   "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
   "allowedLawIds": [
-    "GRASSEYE-FORENSICS-PERSISTENCE-001-V1",
-    "GRASSEYE-FORENSICS-PERSISTENCE-002-V1",
-    "GRASSEYE-FORENSICS-PERSISTENCE-003-V1",
-    "GRASSEYE-FORENSICS-PERSISTENCE-004-V1",
-    "GRASSEYE-FORENSICS-PERSISTENCE-005-V1",
+    "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
+    "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
+    "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
+    "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
+    "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
@@ -27,12 +27,12 @@
     "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2"
   ],
   "readsLawFiles": [
-    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
     ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
     ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md"
   ],
   "readsBlueprintFiles": [
-    "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图.md",
+    "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md",
     "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md",
     "docs/法案辅助文件/GrassEye 本地取证存储结构施工图.md",
     "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"

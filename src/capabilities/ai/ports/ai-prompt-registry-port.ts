@@ -1,4 +1,10 @@
 import type { AiPromptContract, AiTaskType } from "../contract.js";
+import type {
+  PromptContractConfidencePolicy,
+  PromptContractDebugPolicy,
+  PromptContractFailurePolicy,
+  PromptContractReviewPolicy,
+} from "../prompt-contracts/policy-schema.js";
 
 export type ResolvedAiPromptContract = AiPromptContract & {
   promptContractId: string;
@@ -8,10 +14,10 @@ export type ResolvedAiPromptContract = AiPromptContract & {
   allowedBranchFields: string[];
   prohibitedActions: string[];
   restrictedDataAccess: string[];
-  confidencePolicy: string;
-  reviewPolicy: string;
-  failurePolicy: string;
-  debugPolicy: string;
+  confidencePolicy: PromptContractConfidencePolicy;
+  reviewPolicy: PromptContractReviewPolicy;
+  failurePolicy: PromptContractFailurePolicy;
+  debugPolicy: PromptContractDebugPolicy;
   promptHash: string;
 };
 

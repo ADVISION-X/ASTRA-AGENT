@@ -1,66 +1,20 @@
 import { createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createAuditProject } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
-import { runForensicsBoundaryChecks } from "./run-forensics-boundary-checks.js";
-import { runForensicsRequiredShapeChecks } from "./run-forensics-required-shape-checks.js";
-import { runForensicsRuntimeChecks } from "./run-forensics-runtime-checks.js";
+import { runForensicsP0Checks } from "./run-forensics-p0-checks.js";
 import { runForensicsStructuredLoggingChecks } from "./run-forensics-structured-logging-checks.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 
 const {
   INSPECTOR_PATH,
-  LAW_BOUNDARY,
-  LAW_CHILDREN,
-  LAW_CONTRACT,
   LAW_ENFORCEMENT,
-  LAW_OWNER,
-  LAW_RETIRED_ROOT,
-  LAW_RUNTIME,
-  LAW_STORAGE,
   ROOT,
   SKIP_NEGATIVE_PROOF_ENV,
   STORAGE_ADAPTER_PATH,
   STRUCTURED_LOGGING_LAW_IDS,
 } = forensicsPersistenceInspectionConstants;
-
-const createRequiredPhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.every((finding) => finding.lawId !== LAW_OWNER && finding.lawId !== LAW_CHILDREN && finding.lawId !== LAW_CONTRACT);
-  return createPhase(
-    "required-shape",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Forensics Persistence exposes the required root, runtime modules, schemas, ports, and child topology."
-      : "Forensics Persistence is missing required root, runtime modules, schemas, ports, or child topology.",
-  );
-};
-
-const createForbiddenPhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.every((finding) => finding.lawId !== LAW_RETIRED_ROOT && finding.lawId !== LAW_STORAGE && finding.lawId !== LAW_RUNTIME);
-  return createPhase(
-    "forbidden-shape",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Legacy roots, direct hash shortcuts, public barrel leaks, and wrong snapshot paths are absent."
-      : "Legacy roots, direct hash shortcuts, public barrel leaks, or wrong snapshot paths still survive.",
-  );
-};
-
-const createBoundaryPhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.every((finding) => finding.lawId !== LAW_BOUNDARY);
-  return createPhase(
-    "boundary-attack",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Forensics stays inside its persistence boundary and upstream wiring goes through governed ports."
-      : "Forensics still crosses capability boundaries or upstream wiring bypasses governed ports.",
-  );
-};
 
 const createAntiEscapePhase = (findings: Finding[]): InspectorPhase => {
   const passed = findings.every((finding) => finding.lawId !== LAW_ENFORCEMENT);
@@ -86,11 +40,9 @@ const createStructuredLoggingPhase = (findings: Finding[]): InspectorPhase => {
   );
 };
 
-const createForensicsPhases = (findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => {
+const createForensicsPhases = (p0Phases: InspectorPhase[], findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => {
   return [
-    createRequiredPhase(findings),
-    createForbiddenPhase(findings),
-    createBoundaryPhase(findings),
+    ...p0Phases,
     createAntiEscapePhase(findings),
     createStructuredLoggingPhase(findings),
     negativeProofPhase,
@@ -106,20 +58,19 @@ const runConfiguredNegativeProof = async (): Promise<{ findings: Finding[]; phas
     : runNegativeProofHarness();
 };
 
-const runForensicsExtraChecks = async () => {
-  const project = createAuditProject();
+const runForensicsExtraChecks = async (context: import("../../core/schema.js").InspectorContext) => {
+  const p0Checks = await runForensicsP0Checks(context);
+  const project = p0Checks.project;
   const negativeProof = await runConfiguredNegativeProof();
   const findings = [
-    ...(await runForensicsRequiredShapeChecks(project)),
-    ...(await runForensicsRuntimeChecks(project)),
+    ...p0Checks.findings,
     ...runForensicsStructuredLoggingChecks(project),
-    ...runForensicsBoundaryChecks(project),
     ...negativeProof.findings,
   ];
 
   return {
     findings,
-    phases: createForensicsPhases(findings, negativeProof.phase),
+    phases: createForensicsPhases(p0Checks.phases, findings, negativeProof.phase),
   };
 };
 

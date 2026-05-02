@@ -1,12 +1,10 @@
 import { z } from "zod";
 
-import { RoundLifecycleEventSchema } from "../../../../types/evidence-packet.js";
-import { StructuredRuntimeEventSchema } from "../../../../types/structured-log.js";
-import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema } from "../../shared/forensics-base-schema.js";
+import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from "../../shared/forensics-base-schema.js";
 
 export const ForensicsStructuredRuntimeEventPayloadSchema = z.object({
-  structuredRuntimeEvent: StructuredRuntimeEventSchema,
-  roundLifecycleEvent: RoundLifecycleEventSchema.optional(),
+  structuredRuntimeEvent: ForensicsPlainObjectSchema,
+  roundLifecycleEvent: ForensicsPlainObjectSchema.optional(),
 });
 
 export const WriteStructuredRuntimeEventInputSchema = ForensicsAbilityInputBaseSchema.extend({

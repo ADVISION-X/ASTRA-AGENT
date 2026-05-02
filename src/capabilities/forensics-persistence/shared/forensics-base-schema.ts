@@ -2,7 +2,53 @@ import { z } from "zod";
 
 const FORENSICS_PERSISTENCE_ABILITY_GROUP_ID = "forensics-persistence" as const;
 const nullableString = z.string().min(1).nullable().default(null);
+const nullableOptionalString = z.string().min(1).nullable().optional().default(null);
 const nonNegativeInt = z.number().int().nonnegative();
+const stringRefListSchema = z.array(z.string().min(1)).default([]);
+const ForensicsPlainObjectSchema = z.record(z.string(), z.unknown());
+
+const requiresPromptRefs = (recordType: string): boolean => recordType === "ai_result_record";
+const requiresActionVerificationRefs = (recordType: string): boolean => recordType === "structured_action_log";
+const requiresDecisionRef = (recordType: string): boolean => (
+  recordType === "browse_ledger_entry"
+  || recordType === "evidence_packet"
+  || recordType === "failed_record"
+);
+
+function addConditionalChainRefIssues(input: {
+  recordType: string;
+  promptContractId?: string | null;
+  promptContractVersion?: string | null;
+  promptCatalogVersion?: string | null;
+  actionRef?: string | null;
+  postActionVerificationRef?: string | null;
+  decisionRef?: string | null;
+}, ctx: z.RefinementCtx): void {
+  if (requiresPromptRefs(input.recordType)) {
+    if (!input.promptContractId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptContractId"], message: "AI records require promptContractId." });
+    }
+    if (!input.promptContractVersion) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptContractVersion"], message: "AI records require promptContractVersion." });
+    }
+    if (!input.promptCatalogVersion) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptCatalogVersion"], message: "AI records require promptCatalogVersion." });
+    }
+  }
+
+  if (requiresActionVerificationRefs(input.recordType)) {
+    if (!input.actionRef) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["actionRef"], message: "Action records require actionRef." });
+    }
+    if (!input.postActionVerificationRef) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["postActionVerificationRef"], message: "Action records require postActionVerificationRef." });
+    }
+  }
+
+  if (requiresDecisionRef(input.recordType) && !input.decisionRef) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["decisionRef"], message: "Finalization records require decisionRef." });
+  }
+}
 
 const ForensicsChildCapabilityIdSchema = z.enum([
   "write-structured-runtime-event",
@@ -135,6 +181,13 @@ const ForensicsRuntimeProofFieldSchemas = {
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1).nullable().default(null),
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
   abilityGroupId: z.literal(FORENSICS_PERSISTENCE_ABILITY_GROUP_ID),
   childCapabilityId: ForensicsChildCapabilityIdSchema,
   sourceAbilityGroupId: z.string().min(1),
@@ -154,18 +207,36 @@ const ForensicsRuntimeProofFieldSchemas = {
   durationMs: z.number().int().nonnegative(),
   status: z.enum(["success", "failed", "review_required"]),
   storageOperation: ForensicsStorageOperationSchema,
+  inputRefs: stringRefListSchema,
+  outputRefs: stringRefListSchema,
   inputRecordRefs: z.array(ForensicsRecordRefSchema).default([]),
   outputRecordRefs: z.array(ForensicsRecordRefSchema).default([]),
+  parentRefs: z.array(ForensicsRecordRefSchema).default([]),
   artifactRefs: z.array(ForensicsArtifactRefSchema).default([]),
   storageRef: z.string().min(1).nullable().default(null),
   integrityHash: z.string().min(1).nullable().default(null),
+  promptContractId: nullableString,
+  promptContractVersion: nullableString,
+  promptCatalogVersion: nullableString,
+  actionRef: nullableString,
+  postActionVerificationRef: nullableString,
+  decisionRef: nullableString,
   policyDecision: ForensicsPolicyDecisionSchema,
   integrityDecision: ForensicsIntegrityDecisionSchema,
   failureReason: ForensicsFailureSchema.nullable().default(null),
+  reviewRequiredReason: z.string().min(1).nullable().default(null),
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 };
 
-const ForensicsRuntimeProofSchema = z.object(ForensicsRuntimeProofFieldSchemas);
+const ForensicsRuntimeProofSchema = z.object(ForensicsRuntimeProofFieldSchemas).superRefine((value, ctx) => {
+  addConditionalChainRefIssues(value, ctx);
+  if (value.status === "success" && !value.integrityHash) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["integrityHash"], message: "Successful proofs require integrityHash." });
+  }
+  if (value.status === "review_required" && !value.reviewRequiredReason) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reviewRequiredReason"], message: "Review-required proofs require reviewRequiredReason." });
+  }
+});
 
 const ForensicsResultSchema = z.object({
   abilityGroupId: z.literal(FORENSICS_PERSISTENCE_ABILITY_GROUP_ID),
@@ -186,20 +257,39 @@ const ForensicsResultSchema = z.object({
 const ForensicsRecordEnvelopeSchema = z.object({
   recordId: z.string().min(1),
   recordType: ForensicsRecordTypeSchema,
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1).nullable().default(null),
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
   sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: z.string().min(1),
   createdAt: z.string().datetime(),
   payload: z.unknown(),
+  inputRefs: stringRefListSchema,
+  outputRefs: stringRefListSchema,
   sourceRecordRefs: z.array(ForensicsRecordRefSchema).default([]),
   parentRefs: z.array(ForensicsRecordRefSchema).default([]),
   artifactRefs: z.array(ForensicsArtifactRefSchema).default([]),
+  promptContractId: nullableString,
+  promptContractVersion: nullableString,
+  promptCatalogVersion: nullableString,
+  actionRef: nullableString,
+  postActionVerificationRef: nullableString,
+  decisionRef: nullableString,
   schemaVersion: z.string().min(1),
   integrityHash: z.string().min(1),
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   idempotencyKey: z.string().min(1),
+}).superRefine((value, ctx) => {
+  addConditionalChainRefIssues(value, ctx);
 });
 
 const StoredForensicsRecordSchema = z.object({
@@ -222,12 +312,29 @@ const ForensicsAbilityInputBaseSchema = z.object({
   requestedBy: z.string().min(1),
   sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: z.string().min(1),
+  missionId: nullableOptionalString,
+  runId: nullableOptionalString,
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1).nullable().default(null),
+  stepId: nullableOptionalString,
+  mapPackageId: nullableOptionalString,
+  mapPackageVersion: nullableOptionalString,
+  selectedMapId: nullableOptionalString,
+  selectedMapVersion: nullableOptionalString,
+  activationSnapshotRef: nullableOptionalString,
+  capabilityCallId: nullableOptionalString,
+  inputRefs: stringRefListSchema,
+  outputRefs: stringRefListSchema,
   sourceRecordRefs: z.array(ForensicsRecordRefSchema).default([]),
   parentRefs: z.array(ForensicsRecordRefSchema).default([]),
   artifactRefs: z.array(ForensicsArtifactRefSchema).default([]),
+  promptContractId: nullableOptionalString,
+  promptContractVersion: nullableOptionalString,
+  promptCatalogVersion: nullableOptionalString,
+  actionRef: nullableOptionalString,
+  postActionVerificationRef: nullableOptionalString,
+  decisionRef: nullableOptionalString,
   persistencePolicy: ForensicsPersistencePolicySchema,
   integrityPolicy: ForensicsIntegrityPolicySchema.partial().optional(),
   dataQualityFlags: z.array(z.string().min(1)).default([]),
@@ -250,6 +357,7 @@ type ForensicsRecordQuery = z.infer<typeof ForensicsRecordQuerySchema>;
 type ForensicsRecordRef = z.infer<typeof ForensicsRecordRefSchema>;
 type ForensicsRecordType = z.infer<typeof ForensicsRecordTypeSchema>;
 type ForensicsResult = z.infer<typeof ForensicsResultSchema>;
+type ForensicsStorageOperation = z.infer<typeof ForensicsStorageOperationSchema>;
 type ForensicsRuntimeProof = z.infer<typeof ForensicsRuntimeProofSchema>;
 type StoredForensicsRecord = z.infer<typeof StoredForensicsRecordSchema>;
 
@@ -269,6 +377,7 @@ export {
   ForensicsIntegrityDecisionSchema,
   ImageEvidenceInputSchema,
   ForensicsPersistedOutputSchema,
+  ForensicsPlainObjectSchema,
   ForensicsRuntimeProofFieldSchemas,
   ForensicsRuntimeProofSchema,
   ForensicsResultSchema,
@@ -293,6 +402,7 @@ export type {
   ForensicsRecordRef,
   ForensicsRecordType,
   ForensicsResult,
+  ForensicsStorageOperation,
   ForensicsRuntimeProof,
   StoredForensicsRecord,
 };

@@ -16,10 +16,23 @@
   "forbiddenOutputs": ["采购决定", "广告决定", "上架决定"],
   "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
   "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
-  "confidencePolicy": "review-on-low-confidence",
-  "reviewPolicy": "handoff",
-  "failurePolicy": "return-review-required",
-  "debugPolicy": "developer-inspect only",
+  "confidencePolicy": {
+    "minConfidence": 0.6,
+    "belowMin": "review_required"
+  },
+  "reviewPolicy": {
+    "requiredWhen": ["low_confidence"]
+  },
+  "failurePolicy": {
+    "badJson": "review_required",
+    "schemaMismatch": "review_required",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
   "promptHash": "sha256:product-signal-summary-v1",
   "sensitiveOperation": false
 }

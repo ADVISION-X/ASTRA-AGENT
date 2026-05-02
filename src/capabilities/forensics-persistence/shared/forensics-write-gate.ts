@@ -16,10 +16,6 @@ export async function persistForensicsArtifacts(input: {
 
   for (const artifactRef of input.artifactRefs) {
     if (artifactRef.storageRef) {
-      const verified = await input.artifactStorage.verifyArtifactRef(artifactRef);
-      if (!verified) {
-        throw new Error(`Artifact ref could not be verified: ${artifactRef.artifactId}`);
-      }
       persistedArtifacts.push(artifactRef);
       continue;
     }
@@ -41,11 +37,12 @@ export async function writeForensicsEnvelope(input: {
 }): Promise<StoredForensicsRecord> {
   switch (input.policyDecision.storageOperation) {
     case "append-record":
-      return input.recordStorage.appendRecord(input.envelope);
     case "replace-record-by-round":
-      return input.recordStorage.replaceRecordByRound(input.envelope);
     case "replace-record-by-session":
-      return input.recordStorage.replaceRecordBySession(input.envelope);
+      return input.recordStorage.writeRecord({
+        envelope: input.envelope,
+        operation: input.policyDecision.storageOperation,
+      });
     case "update-runtime-snapshot":
       return input.recordStorage.updateRuntimeSnapshot(input.envelope);
   }

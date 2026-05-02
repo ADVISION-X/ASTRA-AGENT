@@ -114,7 +114,7 @@ const ROUTED_CHILD_IDS = [
 
 const REQUIRED_ADAPTER_TOKENS = [
   "AbortController",
-  "MAX_CONCURRENT_RUNS",
+  "AI_LOCAL_RUNTIME_POLICY",
   "circuitBreaker",
   "rawOutputRef",
   "rawOutputHash",

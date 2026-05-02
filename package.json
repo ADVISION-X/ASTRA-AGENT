@@ -27,6 +27,7 @@
     "audit:commander-console-user-love": "tsx scripts/audit/domains/commander-console-user-love/run-inspector.ts",
     "audit:agent-mechanical-skills": "tsx scripts/audit/domains/agent-mechanical-skills/run-inspector.ts",
     "audit:local-ai-runtime": "tsx scripts/audit/domains/local-ai-runtime/run-inspector.ts",
+    "audit:forensics-persistence": "tsx scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
     "acceptance:local-ai-health": "npm run build && node scripts/acceptance/local-ai-health.mjs",
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",

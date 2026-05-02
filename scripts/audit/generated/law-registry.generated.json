@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T07:48:19.722Z",
+  "generatedAt": "2026-05-02T09:47:05.009Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -552,92 +552,92 @@
       "line": 217
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V1",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics Persistence is the only evidence-ledger owner, not a local-data helper.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 16
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Forensics Persistence is the only final evidence-ledger owner and must not be bypassed by local-data, runtime, workbench, Commander, AI, or action abilities.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 80
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-002-V1",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics Persistence child abilities are persistence behaviors, not business domains.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 53
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "child abilities must be persistence behaviors and every child must write exactly one governed Forensics record type.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 132
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-003-V1",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics Persistence writes and links records; it does not judge or act.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 87
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Forensics writes and links records only; it must not reason, verify, decide, act, or reconstruct business truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 194
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-004-V1",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "local-data folder identity is retired; only internal storage-port materials may survive under Forensics Persistence.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 130
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Forensics public contract must be Forensics-native and must not leak legacy business or runtime type sovereignty.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 248
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-005-V1",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics Persistence enforcement must use inspector law, not verify scripts.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 166
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "every Forensics record and result must preserve the full execution chain and must be replayable.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 332
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics public contract must be Forensics-native and must not leak legacy type sovereignty.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 200
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "storage must be a generic record-store port and old store ownership must stay outside the canonical Forensics root.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 418
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics storage port must be a generic record store and old store ownership must stay outside the canonical root.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 232
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Forensics writes must be policy-gated, integrity-gated, idempotent, and append-safe.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 482
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "manual-first",
-      "evidenceMode": "law",
-      "summary": "Forensics must write envelopes only and may not host round finalizers or legacy runtime closures.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 265
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Forensics enforcement must be AST/symbol/import-graph based and connected to runner and negative proof.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+      "line": 545
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",

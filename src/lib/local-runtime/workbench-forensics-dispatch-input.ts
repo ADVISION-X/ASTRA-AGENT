@@ -1,6 +1,17 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
+
+const buildMapChain = (mapId: string) => {
+  const record = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+  return {
+    mapPackageId: record?.packageId ?? null,
+    mapPackageVersion: record?.packageVersion ?? null,
+    selectedMapVersion: record?.mapVersion ?? null,
+    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+  };
+};
 
 const buildForensicsStructuredRuntimeEvent = (envelope: AbilityCommandEnvelope) =>
   StructuredRuntimeEventSchema.parse({
@@ -36,22 +47,36 @@ const buildForensicsStructuredRuntimeEvent = (envelope: AbilityCommandEnvelope) 
 
 export const buildForensicsRuntimeEventInput = (
   envelope: AbilityCommandEnvelope,
-) => JSON.parse(JSON.stringify({
-  abilityGroupId: "forensics-persistence",
-  childCapabilityId: "write-structured-runtime-event",
-  recordType: "structured_runtime_event",
-  requestedBy: "orchestration",
-  sourceAbilityGroupId: "orchestration",
-  sourceChildCapabilityId: envelope.commandName,
-  sessionId: envelope.missionId,
-  roundId: envelope.stepId,
-  videoVisitId: null,
-  sourceRecordRefs: [],
-  parentRefs: [],
-  artifactRefs: [],
-  persistencePolicy: { mode: "append", allowPartialRefs: true },
-  dataQualityFlags: [],
-  payload: {
-    structuredRuntimeEvent: buildForensicsStructuredRuntimeEvent(envelope),
-  },
-}));
+) => {
+  const mapChain = buildMapChain(envelope.mapId);
+  return JSON.parse(JSON.stringify({
+    abilityGroupId: "forensics-persistence",
+    childCapabilityId: "write-structured-runtime-event",
+    recordType: "structured_runtime_event",
+    requestedBy: "orchestration",
+    sourceAbilityGroupId: "orchestration",
+    sourceChildCapabilityId: envelope.commandName,
+    missionId: envelope.missionId,
+    runId: envelope.transportId,
+    sessionId: envelope.missionId,
+    roundId: envelope.stepId,
+    videoVisitId: null,
+    stepId: envelope.stepId,
+    mapPackageId: mapChain.mapPackageId,
+    mapPackageVersion: mapChain.mapPackageVersion,
+    selectedMapId: envelope.mapId,
+    selectedMapVersion: mapChain.selectedMapVersion,
+    activationSnapshotRef: mapChain.activationSnapshotRef,
+    capabilityCallId: envelope.commandId,
+    inputRefs: [envelope.inputRef],
+    outputRefs: envelope.payloadRef,
+    sourceRecordRefs: [],
+    parentRefs: [],
+    artifactRefs: [],
+    persistencePolicy: { mode: "append", allowPartialRefs: true },
+    dataQualityFlags: [],
+    payload: {
+      structuredRuntimeEvent: buildForensicsStructuredRuntimeEvent(envelope),
+    },
+  }));
+};

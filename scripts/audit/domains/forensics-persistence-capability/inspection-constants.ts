@@ -3,16 +3,19 @@ const CHILDREN_ROOT = `${ROOT}/children`;
 const RUNTIME_ROOT = `${ROOT}/shared`;
 const PORTS_ROOT = `${ROOT}/ports`;
 const SHARED_ROOT = `${ROOT}/shared`;
+const ROOT_RUNTIME_DIR = `${ROOT}/runtime`;
+const ROOT_MOCK_DIR = `${ROOT}/mock`;
+const SHARED_STORE_ROOT = `${ROOT}/shared/store`;
 
 export const forensicsPersistenceInspectionConstants = {
-  LAW_OWNER: "GRASSEYE-FORENSICS-PERSISTENCE-001-V1",
-  LAW_CHILDREN: "GRASSEYE-FORENSICS-PERSISTENCE-002-V1",
-  LAW_BOUNDARY: "GRASSEYE-FORENSICS-PERSISTENCE-003-V1",
-  LAW_RETIRED_ROOT: "GRASSEYE-FORENSICS-PERSISTENCE-004-V1",
-  LAW_ENFORCEMENT: "GRASSEYE-FORENSICS-PERSISTENCE-005-V1",
-  LAW_CONTRACT: "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
-  LAW_STORAGE: "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
-  LAW_RUNTIME: "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
+  LAW_OWNER: "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
+  LAW_CHILDREN: "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
+  LAW_BOUNDARY: "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
+  LAW_CONTRACT: "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
+  LAW_CHAIN: "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
+  LAW_STORAGE: "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
+  LAW_RUNTIME: "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
+  LAW_ENFORCEMENT: "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
   LAW_STRUCTURED_LOGGING_DISCIPLINE: "GRASSEYE-STRUCTURED-LOGGING-001-V1",
   LAW_STRUCTURED_LOGGING_REFS: "GRASSEYE-STRUCTURED-LOGGING-002-V2",
   LAW_STRUCTURED_LOGGING_DEBUG: "GRASSEYE-STRUCTURED-LOGGING-003-V1",
@@ -25,6 +28,9 @@ export const forensicsPersistenceInspectionConstants = {
   ROOT,
   CHILDREN_ROOT,
   RUNTIME_ROOT,
+  ROOT_RUNTIME_DIR,
+  ROOT_MOCK_DIR,
+  SHARED_STORE_ROOT,
   PORTS_ROOT,
   SHARED_ROOT,
   SCHEMA_PATH: `${ROOT}/schema.ts`,
@@ -38,7 +44,6 @@ export const forensicsPersistenceInspectionConstants = {
   AI_DEBUG_RECORDER_PATH: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
   COMMANDER_DEBUG_PATH: "src/lib/local-runtime/workbench-commander-debug.ts",
   STATUS_PATH: "src/lib/local-runtime/workbench-status.ts",
-  RUNTIME_AI_DEBUG_RECORDER_PATH: `${ROOT}/runtime/ai-debug-event-recorder.ts`,
   STRUCTURED_LOG_PATH: "src/types/structured-log.ts",
   AI_RUNTIME_ADAPTER_PATH: "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug.ts",
   COMMAND_HANDLER_PATH: "src/lib/local-app-shell/task-start-support.ts",
@@ -97,14 +102,16 @@ export const forensicsPersistenceInspectionConstants = {
   FORBIDDEN_IMPORT_ROOTS: [
     "src/capabilities/ai/",
     "src/capabilities/open/",
+    "src/capabilities/orchestration/",
     "src/capabilities/screenshot/",
     "src/capabilities/mouse-click/",
     "src/capabilities/mouse-scroll/",
     "src/capabilities/page-state/",
     "src/capabilities/geometry-guard/",
+    "src/lib/browser/",
   ],
   FORBIDDEN_PATH_SEGMENTS: new Set(["mock", "fake", "fixture", "demo"]),
-  FORBIDDEN_STORAGE_METHODS: new Set(["appendRecord", "replaceRecordByRound", "replaceRecordBySession", "updateRuntimeSnapshot"]),
+  FORBIDDEN_STORAGE_METHODS: new Set(["appendRecord", "replaceRecordByRound", "replaceRecordBySession", "writeRecord", "updateRuntimeSnapshot"]),
   COMMENT_DIRECTIVES: new Set(["@ts-ignore", "@ts-expect-error", "eslint-disable"]),
   STRUCTURED_LOGGING_LAW_IDS: new Set([
     "GRASSEYE-STRUCTURED-LOGGING-001-V1",

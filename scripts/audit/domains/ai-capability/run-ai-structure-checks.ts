@@ -109,11 +109,35 @@ const findRegistryAlignmentViolations = (project: Project): Finding[] => {
   return findings;
 };
 
+const findPublicIndexViolations = (project: Project): Finding[] => {
+  const indexSource = getSourceOrThrow(project, `${AI_ROOT}/index.ts`);
+  const forbiddenExports = [
+    "createAiExecutionContext",
+    "getLocalAiRoleControls",
+    "setLocalAiRoleStartupState",
+    "tryGetPromptContractCatalogEntry",
+    "listAiChildren",
+  ] as const;
+
+  return forbiddenExports
+    .filter((exportName) => indexSource.getExportedDeclarations().has(exportName))
+    .map((exportName) =>
+      createFinding({
+        lawId: "GRASSEYE-AI-CAPABILITY-001-V1",
+        file: `${AI_ROOT}/index.ts`,
+        line: 1,
+        severity: "fatal",
+        message: `AI public index must not export ${exportName}.`,
+      }),
+    );
+};
+
 export async function runAiStructureChecks(project: Project): Promise<Finding[]> {
   return [
     ...await findMissingRequiredFiles(),
     ...await findChildPackageViolations(project),
     ...await findForbiddenFileResidue(),
     ...findRegistryAlignmentViolations(project),
+    ...findPublicIndexViolations(project),
   ];
 }

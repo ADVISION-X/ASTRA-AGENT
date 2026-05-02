@@ -1,15 +1,12 @@
 import type { AiRuntimeExecutionOutput } from "../contract.js";
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
+import { AI_LOCAL_RUNTIME_POLICY } from "../runtime/local-ai-runtime-policy.js";
 import { executeWithTimeout, isLocalAiRuntimeError, LocalAiGateway, type ProtectedGatewayResult } from "./local-ai-gateway.js";
 import * as runtimeContext from "./local-ai-runtime-context-support.js";
 import * as runtimeDebug from "./local-ai-runtime-debug.js";
 import { hashValue } from "./local-ai-runtime-debug-state.js";
 import * as runtimeMapper from "./local-ai-runtime-mapper.js";
 import * as runtimeOutput from "./local-ai-runtime-output.js";
-
-const MAX_CONCURRENT_RUNS = 1;
-const CIRCUIT_FAILURE_THRESHOLD = 3;
-const CIRCUIT_OPEN_MS = 60_000;
 
 type CircuitBreaker = {
   failureCount: number;
@@ -58,7 +55,7 @@ function getCircuitBreakerState(state: LocalAiRuntimeState, nowMs: number): runt
   if (state.circuitBreaker.openedAtMs === null) {
     return "closed";
   }
-  if (nowMs - state.circuitBreaker.openedAtMs >= CIRCUIT_OPEN_MS) {
+  if (nowMs - state.circuitBreaker.openedAtMs >= AI_LOCAL_RUNTIME_POLICY.circuitOpenMs) {
     return "half_open";
   }
   return "open";
@@ -71,7 +68,7 @@ function recordCircuitSuccess(state: LocalAiRuntimeState) {
 
 function recordCircuitFailure(state: LocalAiRuntimeState, nowMs: number) {
   state.circuitBreaker.failureCount += 1;
-  if (state.circuitBreaker.failureCount >= CIRCUIT_FAILURE_THRESHOLD) {
+  if (state.circuitBreaker.failureCount >= AI_LOCAL_RUNTIME_POLICY.circuitFailureThreshold) {
     state.circuitBreaker.openedAtMs = nowMs;
   }
 }
@@ -134,7 +131,7 @@ function buildImmediateExecutionFailure(state: LocalAiRuntimeState, context: Loc
       errorKind: "circuit_breaker_open",
     };
   }
-  if (state.activeRuns >= MAX_CONCURRENT_RUNS) {
+  if (state.activeRuns >= AI_LOCAL_RUNTIME_POLICY.maxConcurrentRuns) {
     return {
       implementationStatus: "concurrency_limited",
       message: "Local AI runtime concurrency limit reached.",
@@ -258,9 +255,9 @@ async function executeLocalAiRuntimeRequest(input: LocalAiRuntimeExecutionInput)
   const converted = runtimeMapper.toLocalAiTaskRequest(request);
   if (converted.ok === false) {
     return rejectExecution(state, context, {
-      implementationStatus: "task_type_mismatch",
+      implementationStatus: converted.implementationStatus,
       message: converted.message,
-      errorKind: "task_type_mismatch",
+      errorKind: converted.failureReason,
       gatewayDurationMs: 0,
       modelHealthAfter: context.modelHealthBefore,
     });

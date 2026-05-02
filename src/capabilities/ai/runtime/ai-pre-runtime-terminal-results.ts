@@ -22,10 +22,15 @@ function buildRejectedPromptContract(input: {
     allowedBranchFields: [],
     prohibitedActions: ["click", "scroll", "type", "open_page", "dispatch_action"],
     restrictedDataAccess: ["cookies", "credentials", "hidden_token"],
-    confidencePolicy: "review-on-prompt-contract-failure",
-    reviewPolicy: "handoff",
-    failurePolicy: input.reason,
-    debugPolicy: "developer-inspect only",
+    confidencePolicy: { minConfidence: 0.6, belowMin: "review_required" },
+    reviewPolicy: { requiredWhen: ["prompt_contract_failure"] },
+    failurePolicy: {
+      badJson: "review_required",
+      schemaMismatch: "review_required",
+      timeout: "failed",
+      modelUnavailable: "failed",
+    },
+    debugPolicy: { rawOutputRetention: "ref", includePromptHash: true },
     promptHash: `unresolved:${input.request.promptContractId}:${input.reason}`,
   };
 }

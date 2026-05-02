@@ -1,3 +1,3 @@
-import { listAiChildren } from "../../../../capabilities/ai/index.js";
+import { AI_CHILD_CAPABILITY_IDS } from "../../../../capabilities/ai/index.js";
 
-export const listMapPluginAiChildren = () => listAiChildren();
+export const listMapPluginAiChildren = () => [...AI_CHILD_CAPABILITY_IDS];

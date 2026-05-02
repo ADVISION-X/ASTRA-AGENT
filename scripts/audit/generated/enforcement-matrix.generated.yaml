@@ -1,4 +1,4 @@
-generatedAt: 2026-05-02T07:48:19.722Z
+generatedAt: 2026-05-02T09:47:05.009Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -151,11 +151,11 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-FORENSICS-PERSISTENCE-001-V1
-      - GRASSEYE-FORENSICS-PERSISTENCE-002-V1
-      - GRASSEYE-FORENSICS-PERSISTENCE-003-V1
-      - GRASSEYE-FORENSICS-PERSISTENCE-004-V1
-      - GRASSEYE-FORENSICS-PERSISTENCE-005-V1
+      - GRASSEYE-FORENSICS-PERSISTENCE-001-V2
+      - GRASSEYE-FORENSICS-PERSISTENCE-002-V2
+      - GRASSEYE-FORENSICS-PERSISTENCE-003-V2
+      - GRASSEYE-FORENSICS-PERSISTENCE-004-V2
+      - GRASSEYE-FORENSICS-PERSISTENCE-005-V2
       - GRASSEYE-FORENSICS-PERSISTENCE-006-V2
       - GRASSEYE-FORENSICS-PERSISTENCE-007-V2
       - GRASSEYE-FORENSICS-PERSISTENCE-008-V2
@@ -171,7 +171,7 @@ owners:
       - GRASSEYE-STRUCTURED-LOGGING-008-V1
       - GRASSEYE-STRUCTURED-LOGGING-009-V1
     readsLawFiles:
-      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md
+      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md
       - .github/instructions/cursor-rules/modules/module-structured-logging.instructions.md
       - .github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md
     readsBlueprintFiles:

@@ -78,6 +78,18 @@ const MUTATIONS: Mutation[] = [
     replace: "input.context.runtime.execute(input.request)",
   },
   {
+    name: "hard timeout mutation",
+    file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-gateway.ts",
+    search: "const outcome = await Promise.race([executionPromise, waitForAbort(runtimeSignal.signal)]);",
+    replace: "const outcome = await executionPromise;",
+  },
+  {
+    name: "runtime policy literal mutation",
+    file: "src/capabilities/ai/runtime/ai-timeout-policy-gate.ts",
+    search: "timeoutMs: resolveAiRuntimeTimeoutMs(request.taskType),",
+    replace: "timeoutMs: 45_000,",
+  },
+  {
     name: "output boundary mutation",
     file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
     search: "const boundaryDecision = evaluateAiOutputBoundary(runtimeResult.output);",
@@ -88,6 +100,12 @@ const MUTATIONS: Mutation[] = [
     file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
     search: 'status: input.qualityDecision.decision === "review_required" ? "review_required" : "failed"',
     replace: 'status: "success"',
+  },
+  {
+    name: "success raw output mutation",
+    file: "src/capabilities/ai/schema-runtime-success-invariants.ts",
+    search: 'if (input.createdAt !== null && input.rawOutputRef === null) {',
+    replace: 'if (input.createdAt === null && input.rawOutputRef === null) {',
   },
   {
     name: "child-schema-shell mutation",
@@ -132,10 +150,16 @@ const MUTATIONS: Mutation[] = [
     replace: 'import { executeAiChild } from "../../runtime/ai-executor.js";\nimport { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";',
   },
   {
+    name: "public index helper mutation",
+    file: "src/capabilities/ai/index.ts",
+    search: 'export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";',
+    replace: 'export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";\nexport { createAiExecutionContext } from "./runtime/ai-execution-context.js";',
+  },
+  {
     name: "export star mutation",
     file: "src/capabilities/ai/index.ts",
-    search: 'export { listAiChildren } from "./registry.js";',
-    replace: `export { listAiChildren } from "./registry.js";\n${EXPORT_STAR_MUTATION}`,
+    search: 'export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";',
+    replace: `export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";\n${EXPORT_STAR_MUTATION}`,
   },
   {
     name: "forbidden import mutation",
@@ -158,14 +182,14 @@ const MUTATIONS: Mutation[] = [
   {
     name: "dynamic import mutation",
     file: "src/capabilities/ai/index.ts",
-    search: 'export { listAiChildren } from "./registry.js";',
-    replace: `export { listAiChildren } from "./registry.js";\n${DYNAMIC_IMPORT_MUTATION}`,
+    search: 'export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";',
+    replace: `export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";\n${DYNAMIC_IMPORT_MUTATION}`,
   },
   {
     name: "require mutation",
     file: "src/capabilities/ai/index.ts",
-    search: 'export { listAiChildren } from "./registry.js";',
-    replace: `export { listAiChildren } from "./registry.js";\n${REQUIRE_MUTATION}`,
+    search: 'export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";',
+    replace: `export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";\n${REQUIRE_MUTATION}`,
   },
   {
     name: "ability-group adapter import mutation",
@@ -186,10 +210,22 @@ const MUTATIONS: Mutation[] = [
     replace: 'if (!contract) {\n    throw new Error(`Unknown prompt contract: ${input.promptContractId}`);\n  }',
   },
   {
+    name: "prompt policy string mutation",
+    file: "src/capabilities/ai/prompt-contracts/schema.ts",
+    search: "confidencePolicy: PromptContractConfidencePolicySchema,",
+    replace: "confidencePolicy: z.string().min(1),",
+  },
+  {
+    name: "runtime mapper throw helper mutation",
+    file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts",
+    search: 'return resolvePromptContractCatalogEntryByLocalTaskType(taskType);',
+    replace: 'return { ok: true, contract: getPromptContractCatalogEntryByLocalTaskType(taskType) };',
+  },
+  {
     name: "second prompt truth mutation",
     file: "src/lib/local-ai/prompt-registry.ts",
-    search: "export type PromptContract = {",
-    replace: 'const LOCAL_PROMPT_CONTRACTS = [];\n\nexport type PromptContract = {',
+    search: 'export type { PromptContract } from "../../capabilities/ai/prompt-contracts/local-ai-task-contracts.js";',
+    replace: 'const LOCAL_PROMPT_CONTRACTS = [];\n\nexport type { PromptContract } from "../../capabilities/ai/prompt-contracts/local-ai-task-contracts.js";',
   },
   {
     name: "proof chain mutation",

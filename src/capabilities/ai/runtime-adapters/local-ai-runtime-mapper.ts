@@ -15,7 +15,10 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
-import { getPromptContractCatalogEntryByLegacyTaskType } from "../prompt-contracts/registry.js";
+import {
+  resolvePromptContractCatalogEntryByLocalTaskType,
+} from "../prompt-contracts/local-ai-task-contracts.js";
+import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
 import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 
@@ -35,12 +38,26 @@ type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
 type ProductSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_signal_summary" }>;
 
-function getLegacyPromptContract(taskType: LocalAiTaskType) {
-  return getPromptContractCatalogEntryByLegacyTaskType(taskType);
+type LocalAiTaskRequestResolution =
+  | { ok: true; request: LocalAiTaskRequest }
+  | {
+      ok: false;
+      implementationStatus: "prompt_contract_rejected" | "task_type_mismatch";
+      failureReason: "legacy_task_mapping_missing" | "prompt_catalog_integrity_failed" | "task_type_mismatch";
+      message: string;
+    };
+
+function rejectLocalAiTaskRequest(
+  input: LocalAiTaskRequestResolution & { ok: false },
+): LocalAiTaskRequestResolution {
+  return input;
 }
 
-function buildVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequest {
-  const promptContract = getLegacyPromptContract("vision.productPresence");
+function resolveLegacyPromptContract(taskType: LocalAiTaskType) {
+  return resolvePromptContractCatalogEntryByLocalTaskType(taskType);
+}
+
+function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: PromptContractCatalogEntry): LocalAiTaskRequest {
   return VisionTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "vision.productPresence",
@@ -52,8 +69,7 @@ function buildVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequest {
   });
 }
 
-function buildOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequest {
-  const promptContract = getLegacyPromptContract("comments.ocr_cleanup");
+function buildOcrTaskRequest(input: OcrBridgeInput, promptContract: PromptContractCatalogEntry): LocalAiTaskRequest {
   return OcrTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.ocr_cleanup",
@@ -65,8 +81,10 @@ function buildOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequest {
   });
 }
 
-function buildCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAiTaskRequest {
-  const promptContract = getLegacyPromptContract("comments.intent_analysis");
+function buildCommentSignalTaskRequest(
+  input: CommentSignalBridgeInput,
+  promptContract: PromptContractCatalogEntry,
+): LocalAiTaskRequest {
   return CommentSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.intent_analysis",
@@ -78,10 +96,12 @@ function buildCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAi
   });
 }
 
-function buildProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTaskRequest {
+function buildProductSignalTaskRequest(
+  input: ProductSignalBridgeInput,
+  promptContract: PromptContractCatalogEntry,
+  productPresencePromptContract: PromptContractCatalogEntry,
+): LocalAiTaskRequest {
   const typedInput = AiProductSignalSummaryInputSchema.parse(input.input);
-  const promptContract = getLegacyPromptContract("product.signal_summary");
-  const productPresencePromptContract = getLegacyPromptContract("vision.productPresence");
   return ProductSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "product.signal_summary",
@@ -141,24 +161,82 @@ function coerceRuntimeOutput(value: unknown): unknown {
   return parsed.ok ? parsed.value : value;
 }
 
-function toLocalAiTaskRequest(input: ParsedAiAbilityInput): { ok: true; request: LocalAiTaskRequest } | { ok: false; message: string } {
+function resolveLocalAiPromptRequest(
+  taskType: LocalAiTaskType,
+  buildRequest: (promptContract: PromptContractCatalogEntry) => LocalAiTaskRequest,
+): LocalAiTaskRequestResolution {
+  const promptContract = resolveLegacyPromptContract(taskType);
+  if (!promptContract.ok) {
+    return rejectLocalAiTaskRequest({
+      ok: false,
+      implementationStatus: "prompt_contract_rejected",
+      failureReason: promptContract.failureReason,
+      message: promptContract.message,
+    });
+  }
+
+  return { ok: true, request: buildRequest(promptContract.contract) };
+}
+
+function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("vision.productPresence", (promptContract) => buildVisionTaskRequest(input, promptContract));
+}
+
+function toOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("comments.ocr_cleanup", (promptContract) => buildOcrTaskRequest(input, promptContract));
+}
+
+function toCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("comments.intent_analysis", (promptContract) => buildCommentSignalTaskRequest(input, promptContract));
+}
+
+function toProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTaskRequestResolution {
+  const promptContract = resolveLegacyPromptContract("product.signal_summary");
+  if (!promptContract.ok) {
+    return rejectLocalAiTaskRequest({
+      ok: false,
+      implementationStatus: "prompt_contract_rejected",
+      failureReason: promptContract.failureReason,
+      message: promptContract.message,
+    });
+  }
+
+  const productPresencePromptContract = resolveLegacyPromptContract("vision.productPresence");
+  if (!productPresencePromptContract.ok) {
+    return rejectLocalAiTaskRequest({
+      ok: false,
+      implementationStatus: "prompt_contract_rejected",
+      failureReason: productPresencePromptContract.failureReason,
+      message: productPresencePromptContract.message,
+    });
+  }
+
+  return {
+    ok: true,
+    request: buildProductSignalTaskRequest(input, promptContract.contract, productPresencePromptContract.contract),
+  };
+}
+
+function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution {
   switch (input.taskType) {
     case "product_presence_judgment":
     case "visual_observation":
     case "visual_target_candidate_analysis":
-      return { ok: true, request: buildVisionTaskRequest(input) };
+      return toVisionTaskRequest(input);
     case "ocr_cleanup":
-      return { ok: true, request: buildOcrTaskRequest(input) };
+      return toOcrTaskRequest(input);
     case "comment_signal_summary":
-      return { ok: true, request: buildCommentSignalTaskRequest(input) };
+      return toCommentSignalTaskRequest(input);
     case "product_signal_summary":
-      return { ok: true, request: buildProductSignalTaskRequest(input) };
+      return toProductSignalTaskRequest(input);
   }
 
-  return {
+  return rejectLocalAiTaskRequest({
     ok: false,
+    implementationStatus: "task_type_mismatch",
+    failureReason: "task_type_mismatch",
     message: `Local AI runtime adapter is not authorized to execute ${input.taskType}.`,
-  };
+  });
 }
 
 export {

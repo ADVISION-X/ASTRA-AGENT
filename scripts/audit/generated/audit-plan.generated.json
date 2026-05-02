@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-02T07:48:19.722Z",
+  "generatedAt": "2026-05-02T09:47:05.009Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -268,11 +268,11 @@
       "inspectorId": "forensics-persistence-owner",
       "entry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
       "lawIds": [
-        "GRASSEYE-FORENSICS-PERSISTENCE-001-V1",
-        "GRASSEYE-FORENSICS-PERSISTENCE-002-V1",
-        "GRASSEYE-FORENSICS-PERSISTENCE-003-V1",
-        "GRASSEYE-FORENSICS-PERSISTENCE-004-V1",
-        "GRASSEYE-FORENSICS-PERSISTENCE-005-V1",
+        "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
+        "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
+        "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
+        "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
+        "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",

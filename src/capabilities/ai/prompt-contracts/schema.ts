@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  PromptContractConfidencePolicySchema,
+  PromptContractDebugPolicySchema,
+  PromptContractFailurePolicySchema,
+  PromptContractReviewPolicySchema,
+} from "./policy-schema.js";
+
 export const PromptContractCatalogTaskTypeSchema = z.enum([
   "product_presence_judgment",
   "visual_observation",
@@ -46,10 +53,10 @@ export const PromptContractCatalogEntrySchema = z.object({
   forbiddenOutputs: z.array(z.string().min(1)).default([]),
   prohibitedActions: z.array(z.string().min(1)).default([]),
   restrictedDataAccess: z.array(z.string().min(1)).default([]),
-  confidencePolicy: z.string().min(1),
-  reviewPolicy: z.string().min(1),
-  failurePolicy: z.string().min(1),
-  debugPolicy: z.string().min(1),
+  confidencePolicy: PromptContractConfidencePolicySchema,
+  reviewPolicy: PromptContractReviewPolicySchema,
+  failurePolicy: PromptContractFailurePolicySchema,
+  debugPolicy: PromptContractDebugPolicySchema,
   promptHash: z.string().min(1),
   sensitiveOperation: z.boolean().default(false),
 }).strict();

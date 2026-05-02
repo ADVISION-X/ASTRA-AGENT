@@ -206,7 +206,10 @@ const validateDecisionBranch = (state: ResolvedPromptStepState): MapPackageValid
 };
 
 const validateReviewPolicy = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
-  const declaredPolicies = [state.binding.reviewPolicy.toLowerCase(), state.promptContract.reviewPolicy.toLowerCase()];
+  const declaredPolicies = [
+    state.binding.reviewPolicy.toLowerCase(),
+    state.promptContract.reviewPolicy.requiredWhen.length === 0 ? "none" : "review_required",
+  ];
   if (!state.promptContract.sensitiveOperation || !declaredPolicies.includes("none")) {
     return [];
   }

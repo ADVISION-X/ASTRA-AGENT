@@ -24,11 +24,49 @@ const FORBIDDEN_ACTION_ALIASES = [
   "open_command",
   "mouse_click",
   "browser_open",
+  "text_input",
+  "input_text",
+  "type_command",
+  "paste_command",
+  "press_key",
+  "keyboard_action",
+  "hover_command",
+  "drag_command",
+  "navigate_command",
+  "navigation_command",
+  "open_url",
+  "open_page",
+  "screenshot_command",
+  "persist_evidence",
+  "forensics_write",
+  "dispatch_envelope",
+  "nerve_bus_dispatch",
+] as const;
+
+const FORBIDDEN_ACTION_EXTENDED_FIELDS = [
+  "textInput",
+  "inputText",
+  "typeCommand",
+  "pasteCommand",
+  "pressKey",
+  "keyboardAction",
+  "hoverCommand",
+  "dragCommand",
+  "navigateCommand",
+  "navigationCommand",
+  "openUrl",
+  "openPage",
+  "screenshotCommand",
+  "persistEvidence",
+  "forensicsWrite",
+  "dispatchEnvelope",
+  "nerveBusDispatch",
 ] as const;
 
 const FORBIDDEN_OUTPUT_KEYS = new Set<string>([
   ...FORBIDDEN_ACTION_FIELDS,
   ...FORBIDDEN_ACTION_ALIASES,
+  ...FORBIDDEN_ACTION_EXTENDED_FIELDS,
 ]);
 
 function collectForbiddenFields(value: unknown, path: string[]): string[] {

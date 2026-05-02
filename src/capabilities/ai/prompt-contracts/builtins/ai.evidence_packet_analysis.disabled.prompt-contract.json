@@ -16,10 +16,23 @@
   "forbiddenOutputs": ["platform_action", "paid_fallback_to_local"],
   "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
   "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
-  "confidencePolicy": "disabled-by-policy",
-  "reviewPolicy": "review-required",
-  "failurePolicy": "disabled-by-policy",
-  "debugPolicy": "developer-inspect only",
+  "confidencePolicy": {
+    "minConfidence": 1,
+    "belowMin": "failed"
+  },
+  "reviewPolicy": {
+    "requiredWhen": ["disabled_by_policy"]
+  },
+  "failurePolicy": {
+    "badJson": "failed",
+    "schemaMismatch": "failed",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
   "promptHash": "sha256:evidence-packet-analysis-disabled",
   "sensitiveOperation": false
 }

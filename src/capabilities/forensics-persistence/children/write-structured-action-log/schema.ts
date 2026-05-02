@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { ActionLogSchema } from "../../../../types/platform-action.js";
-import { StructuredActionLogSchema } from "../../../../types/structured-log.js";
-import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema } from "../../shared/forensics-base-schema.js";
+import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from "../../shared/forensics-base-schema.js";
 
 export const ForensicsStructuredActionLogPayloadSchema = z.object({
-  actionLog: ActionLogSchema.optional(),
-  structuredActionLog: StructuredActionLogSchema,
+  actionLog: ForensicsPlainObjectSchema.optional(),
+  structuredActionLog: ForensicsPlainObjectSchema,
 });
 
 export const WriteStructuredActionLogInputSchema = ForensicsAbilityInputBaseSchema.extend({
   childCapabilityId: z.literal("write-structured-action-log"),
   recordType: z.literal("structured_action_log"),
+  actionRef: z.string().min(1),
+  postActionVerificationRef: z.string().min(1),
   payload: ForensicsStructuredActionLogPayloadSchema,
 });
 

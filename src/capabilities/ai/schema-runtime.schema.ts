@@ -26,6 +26,12 @@ import {
   AiTaskTypeSchema,
   AiVisualOutputSchema,
 } from "./schema-core.schema.js";
+import { AiForbiddenActionOutputFieldSchema } from "./schema-runtime-output-boundary.schema.js";
+import {
+  validateAiResultSuccessInvariants,
+  validateAiRuntimeExecutionOutputSuccessInvariants,
+  validateAiRuntimeProofSuccessInvariants,
+} from "./schema-runtime-success-invariants.js";
 import { AiRuntimeProofChainFieldSchemas } from "./schema-chain-fields.js";
 
 const nullableString = z.string().min(1).nullable().default(null);
@@ -115,6 +121,7 @@ const validateAiRuntimeProofStatus = (
   if (value.status === "review_required" && value.reviewRequiredReason === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required proof requires reviewRequiredReason", path: ["reviewRequiredReason"] });
   }
+  validateAiRuntimeProofSuccessInvariants(value, context);
 };
 
 const AiRuntimeProofSchema = AiBaseRuntimeProofSchema.superRefine((value, context) => {
@@ -142,58 +149,8 @@ const AiRuntimeExecutionOutputSchema = z.object({
   gatewayDurationMs: nonNegativeNumber.nullable().default(null),
   modelHealthBefore: nullableString,
   modelHealthAfter: nullableString,
-}).strict();
-
-const forbiddenActionKeys = [
-  "actionIntent",
-  "action_intent",
-  "platformAction",
-  "platform_action",
-  "executableCoordinate",
-  "executable_coordinate",
-  "clickCommand",
-  "click_command",
-  "scrollCommand",
-  "scroll_command",
-  "openCommand",
-  "open_command",
-  "forensicsWriteCommand",
-  "mouseAction",
-  "mouse_click",
-  "browserAction",
-  "browser_open",
-  "pageAction",
-  "commandToExecute",
-  "coordinateToClick",
-] as const;
-
-const AiForbiddenActionOutputFieldSchema = z.object({
-  actionIntent: z.never().optional(),
-  action_intent: z.never().optional(),
-  platformAction: z.never().optional(),
-  platform_action: z.never().optional(),
-  executableCoordinate: z.never().optional(),
-  executable_coordinate: z.never().optional(),
-  clickCommand: z.never().optional(),
-  click_command: z.never().optional(),
-  scrollCommand: z.never().optional(),
-  scroll_command: z.never().optional(),
-  openCommand: z.never().optional(),
-  open_command: z.never().optional(),
-  forensicsWriteCommand: z.never().optional(),
-  mouseAction: z.never().optional(),
-  mouse_click: z.never().optional(),
-  browserAction: z.never().optional(),
-  browser_open: z.never().optional(),
-  pageAction: z.never().optional(),
-  commandToExecute: z.never().optional(),
-  coordinateToClick: z.never().optional(),
-}).catchall(z.unknown()).superRefine((value, context) => {
-  for (const key of forbiddenActionKeys) {
-    if (Object.prototype.hasOwnProperty.call(value, key)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `forbidden action output field: ${key}`, path: [key] });
-    }
-  }
+}).strict().superRefine((value, context) => {
+  validateAiRuntimeExecutionOutputSuccessInvariants(value, context);
 });
 
 const AiBaseResultSchema = z.object({
@@ -332,6 +289,7 @@ const validateAiResultOutput = (
   if (value.status === "success" && value.confidence === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires confidence", path: ["confidence"] });
   }
+  validateAiResultSuccessInvariants(value, context);
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must match result.status", path: ["runtimeProof", "status"] });
   }
