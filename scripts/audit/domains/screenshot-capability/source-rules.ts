@@ -32,7 +32,8 @@ export function hasForbiddenEscape(sourceFile: SourceFile): boolean {
 }
 
 export function hasDateOutsideClock(sourceFile: SourceFile): boolean {
-  if (getRepoPath(sourceFile) === `${PATHS.ROOT}/ports/screenshot-clock-port.ts`) {
+  const repoPath = getRepoPath(sourceFile);
+  if (repoPath === `${PATHS.ROOT}/ports/screenshot-clock-port.ts` || repoPath === `${PATHS.ROOT}/runtime/system-screenshot-clock-port.ts`) {
     return false;
   }
   return sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => expression.getExpression().getText() === "Date")

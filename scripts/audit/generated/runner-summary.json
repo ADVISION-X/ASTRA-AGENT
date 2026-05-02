@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-01T22:33:26.913Z",
+  "generatedAt": "2026-05-02T01:23:30.211Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
-    "inspectors": 13,
-    "passed": 12,
+    "inspectors": 6,
+    "passed": 5,
     "failed": 1,
     "blocking": 1
   },
@@ -72,7 +72,7 @@
           "name": "negative-proof-harness",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map package negative-proof harness rejects executable payload, hardcoded fallback, and AI draft activation mutations."
+          "summary": "Map package negative-proof harness rejects executable payload, legacy branch DSL, missing action verification policy, activation snapshot drift, generated catalog drift, and AI draft activation mutations."
         }
       ],
       "summary": "Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.",
@@ -150,7 +150,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1607 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1615 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -420,7 +420,15 @@
       "inspector": "GrassEye AI Capability Owner Inspector",
       "inspectorId": "ai-capability-owner",
       "capabilityDomain": "ai-capability",
-      "findings": [],
+      "findings": [
+        {
+          "lawId": "GRASSEYE-AI-CAPABILITY-007-V1",
+          "file": "scripts/audit/domains/ai-capability/inspector.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "AI inspector baseline must pass before negative-proof mutation checks."
+        }
+      ],
       "phases": [
         {
           "name": "owner-foundation",
@@ -433,528 +441,18 @@
           "classification": "PASS",
           "passed": true,
           "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates"
-        }
-      ],
-      "classification": "PASS",
-      "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Orchestration Capability Owner Inspector",
-      "inspectorId": "orchestration-capability-owner",
-      "capabilityDomain": "orchestration-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch"
-        },
-        {
-          "name": "orchestration-standard-package-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration root matches the standard package shape and old runtime files are gone."
-        },
-        {
-          "name": "orchestration-schema-registry-truth",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Schema ids and runtime wiring match the canonical orchestration child set plus governed map package registry truth."
-        },
-        {
-          "name": "orchestration-nerve-bus-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Ability-group dispatches through Nerve Bus only and orchestration root avoids forbidden owners."
-        },
-        {
-          "name": "orchestration-private-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "External code does not reach into orchestration private internals."
-        },
-        {
-          "name": "governed-public-surface",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration public execute surface is typed and the ability-group no longer bypasses the governed execute pipeline."
-        },
-        {
-          "name": "frozen-activation-snapshot",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Mission state and runtime proof both freeze activation snapshot state, and resume avoids floating active-map lookup."
-        },
-        {
-          "name": "unified-child-envelope",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "All orchestration children share one governed output envelope."
-        },
-        {
-          "name": "typed-failure-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration public and child boundaries convert failures into typed results without naked throws."
-        },
-        {
-          "name": "post-action-verification-chain",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration validates and dispatches post-action verification for state-changing action steps."
-        },
-        {
-          "name": "negative-proof-readiness",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration owner-local negative-proof harness exists and can be executed by the inspector."
-        },
-        {
-          "name": "negative-proof-harness",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, unknown-child proof drop, and post-action verification bypass mutations."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, unknown-child proof drop, and post-action verification bypass mutations.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Commander Console Capability Owner Inspector",
-      "inspectorId": "commander-console-capability-owner",
-      "capabilityDomain": "commander-console-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner"
-        },
-        {
-          "name": "commander-required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Required Commander production shape passed: package, child modules, strict gates, proof, and harness all exist."
-        },
-        {
-          "name": "commander-forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Forbidden residue checks passed."
-        },
-        {
-          "name": "commander-boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Boundary checks passed: shell stays render-only and startup stays bootstrap-only."
-        },
-        {
-          "name": "commander-anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Anti-escape checks passed."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Anti-escape checks passed.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Nerve Bus Capability Owner Inspector",
-      "inspectorId": "nerve-bus-capability-owner",
-      "capabilityDomain": "nerve-bus-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "nerve-bus-capability is implemented as a schema-first governed transport spine with AST-backed enforcement"
-        },
-        {
-          "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Nerve Bus required package, thin entry, executor chain, and governed builders are present."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Nerve Bus avoids export laundering, token escapes, wall-clock drift, and forbidden imports."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Nerve Bus runtime, child, and port internals stay behind the owning public boundary."
-        },
-        {
-          "name": "anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Nerve Bus resists gate bypass, proof dropping, timeout relabeling, and handler-access laundering."
-        },
-        {
-          "name": "negative-proof-harness",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Page State Capability Owner Inspector",
-      "inspectorId": "page-state-capability-owner",
-      "capabilityDomain": "page-state-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "page-state-required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Page State canonical package shape is present."
-        },
-        {
-          "name": "page-state-forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Page State forbidden shapes are absent."
-        },
-        {
-          "name": "page-state-boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Page State owner boundary is isolated."
-        },
-        {
-          "name": "page-state-anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Page State anti-escape checks are closed."
-        }
-      ],
-      "summary": "page-state owner inspector passed required, forbidden, boundary, and anti-escape phases",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Post-action Verification Capability Owner Inspector",
-      "inspectorId": "post-action-verification-capability-owner",
-      "capabilityDomain": "post-action-verification-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Post Action Verification canonical package shape is present."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Post Action Verification forbidden shapes are absent."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Post Action Verification owner boundary is isolated."
-        },
-        {
-          "name": "anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Post Action Verification anti-escape checks are closed."
-        }
-      ],
-      "summary": "post-action-verification owner inspector passed required, forbidden, boundary, and anti-escape phases",
-      "passed": true,
-      "classification": "PASS",
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Open Capability Owner Inspector",
-      "inspectorId": "open-capability-owner",
-      "capabilityDomain": "open-capability",
-      "findings": [],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "open-capability exposes one governed package with metadata registry, runtime gates, child-local contracts, and negative proof enforcement"
-        },
-        {
-          "name": "open-required-shape-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Open standard package shape, metadata registry, child-local contracts, and negative proof harness are present."
-        },
-        {
-          "name": "open-forbidden-shape-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Open forbids fake allow decisions, fake target profiles, export-star barrels, forbidden imports, and cookie access."
-        },
-        {
-          "name": "open-boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Open child implementations stay private and workbench wiring stays on the public surface."
-        },
-        {
-          "name": "open-anti-escape-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Open avoids any, unknown-as, comment directives, dynamic import, require, and unmanaged time APIs."
-        },
-        {
-          "name": "platform-profile-root-removal",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Retained platform material no longer depends on a surviving platform-action root."
-        },
-        {
-          "name": "platform-profile-forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Platform action ownership methods are absent from the old boundary."
-        },
-        {
-          "name": "platform-profile-boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Action execution no longer routes through the retired platform-action import graph."
-        },
-        {
-          "name": "platform-profile-anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "No verify-script escape hatch is present for platform-action retirement."
-        },
-        {
-          "name": "local-browser-session-law",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Local browser session law defines persistent-profile and cookie privacy boundaries."
-        },
-        {
-          "name": "local-browser-session-blueprint",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Blueprint defines current-Chrome handoff, persistent-profile proof, and anti-regression boundaries for the removed downgrade path."
-        },
-        {
-          "name": "local-browser-session-type-contract",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Browser and runtime types expose governed profile metadata without raw cookie fields."
-        },
-        {
-          "name": "local-browser-session-runtime-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Runtime uses CurrentChromeBrowserController, browserProfileDirectory, and current-browser fixed-page handoff only."
-        },
-        {
-          "name": "local-browser-session-exclusionary-ast-guard",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Governed browser session code blocks Playwright downgrade paths, cookie persistence APIs, and forbidden env threading through AST-level checks."
-        },
-        {
-          "name": "local-browser-session-repo-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file."
-        }
-      ],
-      "classification": "PASS",
-      "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file.",
-      "passed": true,
-      "violationCount": 0
-    },
-    {
-      "inspector": "GrassEye Screenshot Capability Owner Inspector",
-      "inspectorId": "screenshot-capability-owner",
-      "capabilityDomain": "screenshot-capability",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must route through runRegionProofGate."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must route through runArtifactStorageGate."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must route through runScreenshotOutputBoundaryGate."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must route through buildScreenshotRuntimeProof."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must route through buildScreenshotResult."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V1",
-          "file": "src/capabilities/screenshot/index.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot public index must not leak adapters, ports, runtime, or child internals."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          "file": "src/capabilities/screenshot/runtime/system-screenshot-clock-port.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot root must stay closed to any-casts, suppression comments, dynamic import, require, and scattered time sources."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must not bypass runScreenshotOutputBoundaryGate."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must not bypass buildScreenshotRuntimeProof."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          "file": "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot executor must not bypass buildScreenshotResult."
-        },
-        {
-          "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
-          "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Screenshot inspector baseline must pass before negative-proof mutation checks."
-        }
-      ],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
-        },
-        {
-          "name": "implementation-window",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "screenshot-capability is implemented as a governed runtime package with layered AST-backed enforcement"
-        },
-        {
-          "name": "required-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Screenshot canonical package or governed runtime chain is incomplete."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Screenshot still exposes one or more forbidden public or primitive shapes."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Screenshot owner boundary is isolated to the public execute surface and composition-root adapters."
-        },
-        {
-          "name": "anti-escape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Screenshot still allows one or more anti-escape bypasses."
         },
         {
           "name": "negative-proof-harness",
           "classification": "FAKE ENFORCEMENT",
           "passed": false,
-          "summary": "Screenshot negative-proof harness cannot start because the baseline inspector is not passing."
+          "summary": "AI negative-proof harness cannot start because the baseline inspector is not passing."
         }
       ],
       "classification": "FAKE ENFORCEMENT",
-      "summary": "Screenshot canonical package or governed runtime chain is incomplete.",
+      "summary": "AI negative-proof harness cannot start because the baseline inspector is not passing.",
       "passed": false,
-      "violationCount": 11
+      "violationCount": 1
     }
   ]
 }

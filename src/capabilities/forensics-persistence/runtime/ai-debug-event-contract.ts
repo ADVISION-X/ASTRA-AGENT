@@ -6,7 +6,7 @@ export type AiDebugTaskType =
   | "schema_validation_only"
   | string;
 
-export type AiDebugEventType = "AI_REQUEST_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_FAILURE_DEBUG";
+export type AiDebugEventType = "AI_REQUEST_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_FAILURE_DEBUG" | "AI_ERROR_DEBUG";
 
 export type AiDebugLogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
@@ -35,6 +35,7 @@ export type AiRuntimeStructuredDebugEventInput = {
   level: AiDebugLogLevel;
   status: AiDebugStatus;
   failureReason: string | null;
+  errorKind: string | null;
   actionableMessage: string | null;
   ownerResponsible: string | null;
   parsedDecision: string | null;

@@ -9,8 +9,11 @@ export function createInMemoryNerveBusIdempotencyPort(): NerveBusIdempotencyPort
       return results.get(key) ?? null;
     },
     async reserve(key) {
-      if (results.has(key) || inFlight.has(key)) {
-        return "duplicate";
+      if (results.has(key)) {
+        return "duplicate_cached";
+      }
+      if (inFlight.has(key)) {
+        return "duplicate_in_flight";
       }
       inFlight.add(key);
       return "reserved";

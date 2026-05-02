@@ -12,6 +12,12 @@ type HumanCommandHandledResult = {
 
 type HumanCommandPayloadDocument = ReturnType<typeof buildPayloadDocument>;
 
+const throwIfAborted = (signal: AbortSignal) => {
+  if (signal.aborted) {
+    throw new Error(typeof signal.reason === "string" ? signal.reason : "Transport aborted before human command completion.");
+  }
+};
+
 const buildHumanCommandResultEnvelope = (input: {
   envelope: HumanCommandEnvelope;
   status: HumanCommandStatus;
@@ -207,10 +213,14 @@ export const handleHumanCommandEnvelope = async (
   runtime: WorkbenchRuntime,
   envelope: HumanCommandEnvelope,
   inputPayload: HumanCommandPayloadDocument,
+  signal: AbortSignal,
 ): Promise<NerveBusHandledResult<HumanCommandResultEnvelope>> => {
   try {
+    throwIfAborted(signal);
     const payload = payloadDocumentToObject(inputPayload);
-    return await routeHumanCommand(runtime, envelope, payload);
+    const result = await routeHumanCommand(runtime, envelope, payload);
+    throwIfAborted(signal);
+    return result;
   } catch (error) {
     return buildHumanCommandResultEnvelope({
       envelope,

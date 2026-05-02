@@ -28,8 +28,9 @@ type MatchedTransitionRecord = {
   finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed";
   toStepId: string | null;
   condition: {
-    source: "status" | "decision";
-    equals: string | boolean | null;
+    leftRef: "status" | "decision";
+    operator: "equals" | "notEquals" | "exists" | "notExists" | "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow" | "statusIs" | "reviewRequired";
+    rightValue: string | number | boolean | null;
   };
 };
 
@@ -90,12 +91,13 @@ function buildTransitionSuccessEnvelopeFields(input: TransitionSuccessProofInput
 }
 
 function buildTransitionSuccessRoutingFields(details: TransitionSuccessProofDetails) {
+  const conditionSource = details.transition.condition.leftRef;
   return {
     transitionId: details.transition.transitionId,
     transitionEvaluationDecision: details.transitionEvaluationDecision,
-    transitionConditionSource: details.transition.condition.source,
-    transitionConditionExpected: details.transition.condition.equals,
-    transitionConditionActual: details.transition.condition.source === "status" ? details.lastResult.status : (details.lastResult.decision ?? null),
+    transitionConditionSource: conditionSource,
+    transitionConditionExpected: details.transition.condition.rightValue,
+    transitionConditionActual: conditionSource === "status" ? details.lastResult.status : (details.lastResult.decision ?? null),
   };
 }
 

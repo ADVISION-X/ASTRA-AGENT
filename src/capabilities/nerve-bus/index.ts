@@ -37,6 +37,7 @@ export type {
   NerveBusIdempotencyPort,
   NerveBusPayloadDocument,
   NerveBusQueuePort,
+  NerveBusSequencePort,
   NerveBusTransportPort,
 } from "./contract.js";
 export type {

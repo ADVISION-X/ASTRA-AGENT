@@ -1,5 +1,6 @@
 export {
   buildCapabilityCatalog,
+  CAPABILITY_CATALOG_GENERATED_FROM,
   CAPABILITY_CATALOG_VERSION,
   writeCapabilityCatalogGeneratedFile,
 } from "./build-capability-catalog.js";

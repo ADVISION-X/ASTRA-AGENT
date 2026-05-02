@@ -17,8 +17,8 @@ export function rollbackMapPackage(input: {
   const rollbackRecord = {
     rollbackId: randomUUID(),
     activationId: registration.activationRecord.activationId,
-    packageId: registration.mapPackage.manifest.packageId,
-    packageVersion: registration.mapPackage.manifest.packageVersion,
+    mapPackageId: registration.mapPackage.manifest.packageId,
+    mapPackageVersion: registration.mapPackage.manifest.packageVersion,
     mapId: registration.mapPackage.manifest.mapId,
     rolledBackBy: input.rolledBackBy,
     rolledBackAt: new Date().toISOString(),

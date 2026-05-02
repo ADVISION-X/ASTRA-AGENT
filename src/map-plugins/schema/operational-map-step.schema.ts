@@ -7,6 +7,23 @@ import { validateMapPluginOperationalMapStep } from "./operational-map-step-vali
 
 const MAP_PLUGIN_CAPABILITY_ID = "orchestration";
 
+export const MapPluginPostActionVerificationPolicySchema = z.object({
+  required: z.literal(true),
+  verificationKind: z.enum([
+    "page-state",
+    "panel-open",
+    "viewport-change",
+    "input-commit",
+    "url-change",
+    "result-signal",
+  ]),
+  expectedSignal: z.string().min(1),
+  timeoutMs: z.number().int().positive(),
+  onPassTransitionId: z.string().min(1),
+  onFailTransitionId: z.string().min(1),
+  onAmbiguousTransitionId: z.string().min(1),
+}).strict();
+
 export const MapPluginOperationalMapStepSchema = z.object({
   stepId: z.string().min(1),
   capabilityId: z.literal(MAP_PLUGIN_CAPABILITY_ID),
@@ -21,6 +38,7 @@ export const MapPluginOperationalMapStepSchema = z.object({
   successCondition: MapPluginTransitionConditionSchema,
   failureBranch: z.string().min(1),
   reviewBranch: z.string().min(1),
+  postActionVerification: MapPluginPostActionVerificationPolicySchema.nullable().optional().default(null),
   timeoutPolicy: MapPluginTimeoutPolicySchema,
   proofPolicy: MapPluginProofPolicySchema,
 }).strict().superRefine((value, context) => {

@@ -1,4 +1,5 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { makeProject } from "./audit-project.js";
 import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
@@ -17,10 +18,11 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
   pendingSummary: "mouse-click-capability law exists but production-grade click execution boundaries are not fully enforced yet",
   implementedSummary: "mouse-click-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement",
   extraChecks: async () => {
-    const required = await runRequiredShapeAttack();
-    const forbidden = runForbiddenShapeAttack();
-    const boundary = runBoundaryAttack();
-    const antiEscape = runAntiEscapeAttack();
+    const project = makeProject();
+    const required = await runRequiredShapeAttack(project);
+    const forbidden = runForbiddenShapeAttack(project);
+    const boundary = runBoundaryAttack(project);
+    const antiEscape = runAntiEscapeAttack(project);
     const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
       ? {
           findings: [],

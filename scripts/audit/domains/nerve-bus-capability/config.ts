@@ -16,6 +16,9 @@ export const PATHS = {
   POLICY_GATE: "src/capabilities/nerve-bus/runtime/channel-policy-gate.ts",
   INTEGRITY_GATE: "src/capabilities/nerve-bus/runtime/envelope-integrity-gate.ts",
   IDEMPOTENCY_GATE: "src/capabilities/nerve-bus/runtime/transport-idempotency-gate.ts",
+  SEQUENCE_POLICY: "src/capabilities/nerve-bus/runtime/transport-sequence-policy.ts",
+  SEQUENCE_STORE: "src/capabilities/nerve-bus/runtime/transport-sequence-store.ts",
+  SEMANTIC_GATE: "src/capabilities/nerve-bus/runtime/transport-result-semantic-gate.ts",
   TIMEOUT_GATE: "src/capabilities/nerve-bus/runtime/transport-timeout-gate.ts",
   RUNNER: "src/capabilities/nerve-bus/runtime/transport-runner.ts",
   RESULT_BUILDER: "src/capabilities/nerve-bus/runtime/transport-result-builder.ts",
@@ -26,6 +29,7 @@ export const PATHS = {
   HANDLER_PORT: "src/capabilities/nerve-bus/ports/nerve-bus-handler-port.ts",
   IDEMPOTENCY_PORT: "src/capabilities/nerve-bus/ports/nerve-bus-idempotency-port.ts",
   QUEUE_PORT: "src/capabilities/nerve-bus/ports/nerve-bus-queue-port.ts",
+  SEQUENCE_PORT: "src/capabilities/nerve-bus/ports/nerve-bus-sequence-port.ts",
   TRANSPORT_PORT: "src/capabilities/nerve-bus/ports/nerve-bus-transport-port.ts",
   WORKBENCH: "src/lib/local-runtime/workbench-nerve-bus.ts",
   ORCHESTRATION: "src/capabilities/orchestration/ability-group.ts",
@@ -52,6 +56,9 @@ export const REQUIRED_FILES = [
   PATHS.POLICY_GATE,
   PATHS.INTEGRITY_GATE,
   PATHS.IDEMPOTENCY_GATE,
+  PATHS.SEQUENCE_POLICY,
+  PATHS.SEQUENCE_STORE,
+  PATHS.SEMANTIC_GATE,
   PATHS.TIMEOUT_GATE,
   PATHS.RUNNER,
   PATHS.RESULT_BUILDER,
@@ -62,6 +69,7 @@ export const REQUIRED_FILES = [
   PATHS.HANDLER_PORT,
   PATHS.IDEMPOTENCY_PORT,
   PATHS.QUEUE_PORT,
+  PATHS.SEQUENCE_PORT,
   PATHS.TRANSPORT_PORT,
   `${PATHS.ROOT}/shared/nerve-bus-channel.ts`,
   `${PATHS.ROOT}/shared/nerve-bus-envelope.ts`,
@@ -100,4 +108,14 @@ export const FORBIDDEN_IMPORT_PREFIXES = [
   "src/lib/local-ai/",
 ] as const;
 
-export const FORBIDDEN_TEXT_TOKENS = ["as any", "as unknown as", "@ts-ignore", "@ts-expect-error", "eslint-disable", "null as never"] as const;
+export const FORBIDDEN_TEXT_TOKENS = [
+  "as any",
+  "as unknown as",
+  "@ts-ignore",
+  "@ts-expect-error",
+  "eslint-disable",
+  "null as never",
+  "WorkbenchRuntime",
+  "promptContractId",
+  "providerPolicy",
+] as const;

@@ -44,7 +44,7 @@ export {
   type ForensicsRuntimeProof,
   type StoredForensicsRecord,
 } from "./schema.js";
-export { recordAiDebugEvent } from "./runtime/ai-debug-event-recorder.js";
+export { recordAiDebugEvent } from "./record-ai-debug-event.js";
 export type { ForensicsStoragePort } from "./ports/forensics-storage-port.js";
 export type { ForensicsArtifactStoragePort } from "./ports/forensics-artifact-storage-port.js";
 export type { ForensicsClockPort } from "./ports/forensics-clock-port.js";

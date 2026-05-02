@@ -184,9 +184,13 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
   return issues;
 };
 
+const branchesOnDecision = (leftRef: string): boolean => leftRef === "decision";
+
 const usesDecisionBranch = (state: ResolvedPromptStepState): boolean =>
-  state.step.successCondition.source === "decision"
-  || state.transitions.some((transition) => transition.fromStepId === state.step.stepId && transition.condition.source === "decision");
+  branchesOnDecision(state.step.successCondition.leftRef)
+  || state.transitions.some(
+    (transition) => transition.fromStepId === state.step.stepId && branchesOnDecision(transition.condition.leftRef),
+  );
 
 const validateDecisionBranch = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
   if (!usesDecisionBranch(state) || state.promptContract.allowedBranchFields.includes("decision")) {

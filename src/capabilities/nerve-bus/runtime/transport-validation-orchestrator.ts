@@ -6,7 +6,8 @@ import { resolveTransportTimeoutGate } from "./transport-timeout-gate.js";
 import type { NerveBusChildDefinition, SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve-bus-channel.js";
 import type { NerveBusChannelRegistryEntry } from "../shared/nerve-bus-policy.js";
 import type { NerveBusRuntimeContext } from "./transport-context.js";
-import { buildGuardFailureDetails, type ExecutionClockSnapshot, type ExecutionFailureDetails } from "./transport-failure-details-builders.js";
+import { buildGuardFailureDetails } from "./transport-failure-details-builders.js";
+import type { ExecutionClockSnapshot, ExecutionFailureDetails } from "./transport-failure-types.js";
 
 const resolveEnvelopeInputGateFailure = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   child: NerveBusChildDefinition<TEnvelope, TResult>;
@@ -126,18 +127,18 @@ export const runPostIdempotencyValidationGates = async <TEnvelope extends Suppor
   }
 
   const sequenceGate = enforceTransportSequencePolicy({
+    sequence: input.context.sequence,
     missionId: input.envelope.missionId,
     mapId: input.envelope.mapId,
-    stepId: input.envelope.stepId,
     channelId: input.envelope.channelId,
     sequenceNo: input.envelope.sequenceNo,
   });
   if (!sequenceGate.ok) {
     return buildGuardFailureDetails(input, started, {
       failureReason: sequenceGate.reason,
-      integrityDecision: "valid",
-      idempotencyDecision: "executed",
-      sequenceDecision: sequenceGate.integrityDecision === "out_of_order" ? "out_of_order" : "duplicate",
+      integrityDecision: "out_of_order",
+      idempotencyDecision: "replay_rejected",
+      sequenceDecision: sequenceGate.sequenceDecision,
       queueDecision: "not_started",
       timeoutDecision: "not_started",
       policyDecision: "allowed",

@@ -1,4 +1,5 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { makeProject } from "./project-access.js";
 import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
@@ -17,10 +18,11 @@ export const textInputCapabilityInspector = createPendingDomainInspector({
   pendingSummary: "text-input-capability law exists but production-grade writing execution boundaries are not fully enforced yet",
   implementedSummary: "text-input-capability is implemented as a governed schema-first writing execution owner with AST-backed enforcement",
   extraChecks: async () => {
-    const required = await runRequiredShapeAttack();
-    const forbidden = runForbiddenShapeAttack();
-    const boundary = runBoundaryAttack();
-    const antiEscape = runAntiEscapeAttack();
+    const project = makeProject();
+    const required = await runRequiredShapeAttack(project);
+    const forbidden = runForbiddenShapeAttack(project);
+    const boundary = runBoundaryAttack(project);
+    const antiEscape = runAntiEscapeAttack(project);
     const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
       ? {
           findings: [],

@@ -58,8 +58,17 @@ function collectExecutorFindings(project: ReturnType<typeof makeProject>): Findi
   if (!executorSource) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor file is missing." }));
   } else {
+    const routeSources = [
+      executorSource,
+      getSourceFile(project, PATHS.EXECUTION_GATES),
+      getSourceFile(project, PATHS.EXECUTOR_FLOW),
+      getSourceFile(project, PATHS.EXECUTOR_PLAN),
+      getSourceFile(project, PATHS.EXECUTOR_SINGLE),
+      getSourceFile(project, PATHS.EXECUTOR_REPLACE),
+      getSourceFile(project, PATHS.EXECUTION_SUPPORT),
+    ].filter((sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null);
     for (const calleeName of ["validateInputTargetProof", "validateFocusProof", "validateTextSourceProof", "validateApprovedText", "validateTextPolicy", "validateSensitiveText", "validateKeyPolicy", "validateCommitPolicy", "validateClipboardPolicy", "runPrimitiveTextInput", "buildTextInputResult"]) {
-      if (!hasCallExpression(executorSource, calleeName)) {
+      if (!routeSources.some((sourceFile) => hasCallExpression(sourceFile, calleeName))) {
         findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Text Input executor must call ${calleeName}.` }));
       }
     }
@@ -143,8 +152,7 @@ function collectInputGateFindings(project: ReturnType<typeof makeProject>): Find
     : findings;
 }
 
-export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const project = makeProject();
+export async function runRequiredShapeAttack(project: ReturnType<typeof makeProject> = makeProject()): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
   await collectMissingFileFindings(findings);
   findings.push(...collectContractFindings(project));

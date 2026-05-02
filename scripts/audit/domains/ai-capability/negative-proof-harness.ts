@@ -1,6 +1,8 @@
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
+import { createFinding, createPhase } from "../../core/result.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
+import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
 type Mutation = {
@@ -13,6 +15,7 @@ type Mutation = {
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_AI_NEGATIVE_PROOF";
 const EXPORT_STAR_MUTATION = `export ${"*"} from "./schema.js";`;
 const AS_ANY_MUTATION = `const mutatedEscape = runtimeResult as ${"any"};`;
 const DYNAMIC_IMPORT_MUTATION = `void ${"import"}("./schema.js");`;
@@ -166,16 +169,30 @@ const MUTATIONS: Mutation[] = [
   },
 ];
 
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+async function createInspectorRunner(): Promise<() => Promise<{ passed: boolean; violationCount: number }>> {
   await buildAuditArtifacts();
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector(INSPECTOR_ENTRY);
-  const result = await inspector(context);
-  return { passed: result.passed, violationCount: result.violationCount };
+
+  return async () => {
+    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
+    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+
+    try {
+      const result = await inspector(context);
+      return { passed: result.passed, violationCount: result.violationCount };
+    } finally {
+      if (previous === undefined) {
+        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
+      } else {
+        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
+      }
+    }
+  };
 }
 
-async function mutateAndVerify(mutation: Mutation): Promise<void> {
+async function mutateAndVerify(runInspector: () => Promise<{ passed: boolean; violationCount: number }>, mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
   await applyAuditMutation(filePath, state.original, mutation);
@@ -195,16 +212,55 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
-  const baseline = await runInspector();
-  if (!baseline.passed) {
-    throw new Error("Baseline ai-capability inspector must pass before negative proof.");
-  }
+function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [],
+    phase: createPhase("negative-proof-harness", "PASS", true, summary),
+  };
+}
 
+function createFatalResult(message: string, summary: string): { findings: Finding[]; phase: InspectorPhase } {
+  return {
+    findings: [
+      createFinding({
+        lawId: "GRASSEYE-AI-CAPABILITY-007-V1",
+        file: INSPECTOR_ENTRY,
+        line: 1,
+        severity: "fatal",
+        message,
+      }),
+    ],
+    phase: createPhase("negative-proof-harness", "FAKE ENFORCEMENT", false, summary),
+  };
+}
+
+async function runMutations(runInspector: () => Promise<{ passed: boolean; violationCount: number }>): Promise<void> {
   for (const mutation of MUTATIONS) {
-    await mutateAndVerify(mutation);
+    await mutateAndVerify(runInspector, mutation);
     process.stdout.write(`[NEGATIVE-PROOF] PASS ${mutation.name}\n`);
   }
 }
 
-void main();
+export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  try {
+    const runInspector = await createInspectorRunner();
+    const baseline = await runInspector();
+    if (!baseline.passed) {
+      return createFatalResult(
+        "AI inspector baseline must pass before negative-proof mutation checks.",
+        "AI negative-proof harness cannot start because the baseline inspector is not passing.",
+      );
+    }
+
+    await runMutations(runInspector);
+
+    return createPassResult(
+      "AI negative-proof harness rejects gate bypass, proof drop, output-boundary escape, disabled-child execute, internal gateway import, adapter import laundering, and type-escape mutations.",
+    );
+  } catch (error) {
+    return createFatalResult(
+      error instanceof Error ? error.message : "AI negative-proof harness failed.",
+      "AI negative-proof harness failed to prove mutation rejection and rollback recovery.",
+    );
+  }
+}

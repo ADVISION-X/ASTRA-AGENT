@@ -1,8 +1,8 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
+import { spawn } from "node:child_process";
+
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
 type Mutation = {
@@ -13,6 +13,7 @@ type Mutation = {
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/map-plugin-package/inspector.ts";
+const INSPECTOR_RUNNER = "scripts/audit/domains/map-plugin-package/run-inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
@@ -23,10 +24,28 @@ const MUTATIONS: Mutation[] = [
     replace: '  "handler": "evil.js",\n  "signature": null\n',
   },
   {
-    name: "orchestration platform fallback mutation",
-    file: "src/capabilities/orchestration/runtime/map-selection-gate.ts",
-    search: '| "task_template_id"\n',
-    replace: '| "platform_policy"\n',
+    name: "legacy branch dsl mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '{ "conditionType": "comparison", "leftRef": "decision", "operator": "equals", "rightValue": "product_yes" }',
+    replace: '{ "source": "decision", "equals": "product_yes" }',
+  },
+  {
+    name: "missing post-action verification mutation",
+    file: "src/map-plugins/builtins/tiktok-comment-evidence.map-package.json",
+    search: ', "postActionVerification": { "required": true, "verificationKind": "panel-open", "expectedSignal": "comment-panel-visible", "timeoutMs": 5000, "onPassTransitionId": "verify-comments-open:success", "onFailTransitionId": "verify-comments-open:failed", "onAmbiguousTransitionId": "verify-comments-open:review" }',
+    replace: '',
+  },
+  {
+    name: "activation snapshot proof mutation",
+    file: "src/map-plugins/import/map-package-activation.ts",
+    search: '  return {\n    activationId: input.activationId,\n    activationSnapshotRef,\n    activationSnapshotHash,\n',
+    replace: '  return {\n    activationId: input.activationId,\n    activationSnapshotHash,\n',
+  },
+  {
+    name: "generated capability catalog drift mutation",
+    file: "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json",
+    search: '  "version": "2026-04-map-prompt-contract-v1",\n',
+    replace: '  "version": "2026-04-map-prompt-contract-v1-tampered",\n',
   },
   {
     name: "ai draft activation mutation",
@@ -37,23 +56,46 @@ const MUTATIONS: Mutation[] = [
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
-  const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-  process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+  return await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", INSPECTOR_RUNNER],
+      {
+        cwd: pathFromRepoRoot("."),
+        env: {
+          ...process.env,
+          [SKIP_NEGATIVE_PROOF_ENV]: "1",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
 
-  try {
-    await buildAuditArtifacts();
-    const artifacts = await loadGeneratedArtifacts();
-    const context = await createInspectorContext(artifacts);
-    const inspector = await loadInspector(INSPECTOR_ENTRY);
-    const result = await inspector(context);
-    return { passed: result.passed, violationCount: result.violationCount };
-  } finally {
-    if (previous === undefined) {
-      delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-    } else {
-      process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
-    }
-  }
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer | string) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer | string) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === null) {
+        reject(new Error(`Inspector process exited without code. stderr: ${stderr}`));
+        return;
+      }
+
+      const violationCount = stdout
+        .split("\n")
+        .filter((line) => line.startsWith("- "))
+        .length + (code !== 0 && stdout.length === 0 ? 1 : 0);
+
+      resolve({
+        passed: code === 0,
+        violationCount,
+      });
+    });
+  });
 }
 
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
@@ -63,7 +105,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
 
   try {
     const mutated = await runInspector();
-    if (mutated.passed || mutated.violationCount === 0) {
+    if (mutated.passed) {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
@@ -116,7 +158,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Map package negative-proof harness rejects executable payload, hardcoded fallback, and AI draft activation mutations.");
+    return createPassResult("Map package negative-proof harness rejects executable payload, legacy branch DSL, missing action verification policy, activation snapshot drift, generated catalog drift, and AI draft activation mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Map package negative-proof harness failed.",

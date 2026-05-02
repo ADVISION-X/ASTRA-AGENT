@@ -14,12 +14,19 @@ export type GeometryPresenceState = {
 export type GeometrySourceState = {
   contractSource: SourceFile | null;
   schemaSource: SourceFile | null;
+  schemaFoundationSource: SourceFile | null;
+  schemaInputSource: SourceFile | null;
+  schemaResultSource: SourceFile | null;
+  schemaRuntimeProofSource: SourceFile | null;
   abilityGroupSource: SourceFile | null;
   registrySource: SourceFile | null;
   indexSource: SourceFile | null;
   typesSource: SourceFile | null;
   childFactorySource: SourceFile | null;
   executorSource: SourceFile | null;
+  executionPlanSource: SourceFile | null;
+  inputStagesSource: SourceFile | null;
+  transformStageSource: SourceFile | null;
   resultBuilderSource: SourceFile | null;
   proofBuilderSource: SourceFile | null;
   coordinateGateSource: SourceFile | null;

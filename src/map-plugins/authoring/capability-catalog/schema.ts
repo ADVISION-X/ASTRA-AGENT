@@ -17,6 +17,7 @@ export const CapabilityCatalogEntrySchema = z.object({
 
 export const CapabilityCatalogDocumentSchema = z.object({
   version: z.string().min(1),
+  generatedFrom: z.string().min(1),
   entries: z.array(CapabilityCatalogEntrySchema),
 }).strict();
 

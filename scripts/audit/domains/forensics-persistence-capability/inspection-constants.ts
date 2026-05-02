@@ -1,6 +1,6 @@
 const ROOT = "src/capabilities/forensics-persistence";
 const CHILDREN_ROOT = `${ROOT}/children`;
-const RUNTIME_ROOT = `${ROOT}/runtime`;
+const RUNTIME_ROOT = `${ROOT}/shared`;
 const PORTS_ROOT = `${ROOT}/ports`;
 const SHARED_ROOT = `${ROOT}/shared`;
 
@@ -33,11 +33,16 @@ export const forensicsPersistenceInspectionConstants = {
   REGISTRY_PATH: `${ROOT}/registry.ts`,
   INDEX_PATH: `${ROOT}/index.ts`,
   RECORD_ID_PATH: `${ROOT}/record-id.ts`,
-  STORAGE_ADAPTER_PATH: "src/lib/storage/evidence-store/forensics-storage-adapter.ts",
-  WORKBENCH_PATH: "src/lib/local-runtime/workbench.ts",
+  STORAGE_ADAPTER_PATH: "src/lib/storage/evidence-store/create-forensics-persistence-storage.ts",
+  WORKBENCH_PATH: "src/lib/local-runtime/workbench-persistence-runtime.ts",
+  AI_DEBUG_RECORDER_PATH: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
+  COMMANDER_DEBUG_PATH: "src/lib/local-runtime/workbench-commander-debug.ts",
+  STATUS_PATH: "src/lib/local-runtime/workbench-status.ts",
+  RUNTIME_AI_DEBUG_RECORDER_PATH: `${ROOT}/runtime/ai-debug-event-recorder.ts`,
   STRUCTURED_LOG_PATH: "src/types/structured-log.ts",
-  AI_RUNTIME_ADAPTER_PATH: "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-  COMMAND_HANDLER_PATH: "src/app/task-api-handlers.ts",
+  AI_RUNTIME_ADAPTER_PATH: "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug.ts",
+  COMMAND_HANDLER_PATH: "src/lib/local-app-shell/task-start-support.ts",
+  COMMAND_FLOW_RESULT_PATH: "src/lib/local-app-shell/task-start-flow.ts",
   STARTUP_ENTRYPOINT_PATH: "scripts/startup/launch-grasseye.mjs",
   INSPECTOR_PATH: "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
   SKIP_NEGATIVE_PROOF_ENV: "GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF",

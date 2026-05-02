@@ -5,9 +5,11 @@ export type NerveBusStoredTransportResult =
   | AiTransportResult
   | HumanCommandTransportResult;
 
+export type NerveBusIdempotencyReservation = "reserved" | "duplicate_cached" | "duplicate_in_flight";
+
 export interface NerveBusIdempotencyPort {
   get(key: string): Promise<NerveBusStoredTransportResult | null>;
-  reserve(key: string): Promise<"reserved" | "duplicate">;
+  reserve(key: string): Promise<NerveBusIdempotencyReservation>;
   commit(key: string, result: NerveBusStoredTransportResult): Promise<void>;
   release(key: string): Promise<void>;
 }

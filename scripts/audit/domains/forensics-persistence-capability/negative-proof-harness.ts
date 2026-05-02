@@ -37,9 +37,9 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "commander drafted event mutation",
-    file: "src/app/task-api-handlers.ts",
-    search: "      eventType: \"HUMAN_COMMAND_DRAFTED\",",
-    replace: "      eventType: \"HUMAN_COMMAND_STARTED\",",
+    file: "src/lib/local-app-shell/task-start-support.ts",
+    search: "    eventType: \"HUMAN_COMMAND_DRAFTED\",",
+    replace: "    eventType: \"HUMAN_COMMAND_STARTED\",",
   },
   {
     name: "service shutdown event mutation",
@@ -49,9 +49,9 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "workbench ai relay mutation",
-    file: "src/lib/local-runtime/workbench.ts",
-    search: "  async recordAiDebugEvent(input: AiRuntimeStructuredDebugEvent): Promise<void> {",
-    replace: "  async recordAiEvent(input: AiRuntimeStructuredDebugEvent): Promise<void> {",
+    file: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
+    search: ") => recordAiDebugEvent(...input);",
+    replace: ") => recordAiRuntimeEvent(...input);",
   },
 ];
 

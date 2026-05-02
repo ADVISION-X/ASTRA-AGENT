@@ -1,10 +1,11 @@
 {
   "version": "2026-04-map-prompt-contract-v1",
+  "generatedFrom": "src/map-plugins/authoring/capability-catalog/build-capability-catalog.ts",
   "entries": [
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "future-api-ai",
-      "description": "Execute governed AI child future api ai for task types: .",
+      "description": "Execute governed AI child future api ai for governed tasks.",
       "inputSchemaRef": "ai.future-api-ai.input",
       "outputSchemaRef": "ai.future-api-ai.output",
       "supportedTargets": [],
@@ -22,7 +23,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "internal-schema-validator",
-      "description": "Execute governed AI child internal schema validator for task types: schema_validation_only.",
+      "description": "Execute governed AI child internal schema validator for governed tasks.",
       "inputSchemaRef": "ai.internal-schema-validator.input",
       "outputSchemaRef": "ai.internal-schema-validator.output",
       "supportedTargets": [],
@@ -40,7 +41,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "local-ocr-ai",
-      "description": "Execute governed AI child local ocr ai for task types: ocr_cleanup.",
+      "description": "Execute governed AI child local ocr ai for governed tasks.",
       "inputSchemaRef": "ai.local-ocr-ai.input",
       "outputSchemaRef": "ai.local-ocr-ai.output",
       "supportedTargets": [],
@@ -58,7 +59,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "local-text-ai",
-      "description": "Execute governed AI child local text ai for task types: comment_signal_summary, product_signal_summary.",
+      "description": "Execute governed AI child local text ai for governed tasks.",
       "inputSchemaRef": "ai.local-text-ai.input",
       "outputSchemaRef": "ai.local-text-ai.output",
       "supportedTargets": [],
@@ -76,7 +77,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "local-vision-ai",
-      "description": "Execute governed AI child local vision ai for task types: product_presence_judgment, visual_observation, visual_target_candidate_analysis.",
+      "description": "Execute governed AI child local vision ai for governed tasks.",
       "inputSchemaRef": "ai.local-vision-ai.input",
       "outputSchemaRef": "ai.local-vision-ai.output",
       "supportedTargets": [],
@@ -94,7 +95,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "paid-analysis-ai",
-      "description": "Execute governed AI child paid analysis ai for task types: evidence_packet_analysis.",
+      "description": "Execute governed AI child paid analysis ai for governed tasks.",
       "inputSchemaRef": "ai.paid-analysis-ai.input",
       "outputSchemaRef": "ai.paid-analysis-ai.output",
       "supportedTargets": [],
@@ -112,7 +113,7 @@
     {
       "abilityGroupId": "ai",
       "childCapabilityId": "paid-vision-ai",
-      "description": "Execute governed AI child paid vision ai for task types: visual_observation, visual_target_candidate_analysis.",
+      "description": "Execute governed AI child paid vision ai for governed tasks.",
       "inputSchemaRef": "ai.paid-vision-ai.input",
       "outputSchemaRef": "ai.paid-vision-ai.output",
       "supportedTargets": [],

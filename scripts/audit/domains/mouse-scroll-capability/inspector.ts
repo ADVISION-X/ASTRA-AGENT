@@ -6,6 +6,8 @@ import { runForbiddenShapeAttack } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
 
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF";
+
 export const mouseScrollCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Mouse Scroll Capability Owner Inspector",
   inspectorId: "mouse-scroll-capability-owner",
@@ -19,7 +21,17 @@ export const mouseScrollCapabilityInspector = createPendingDomainInspector({
     const forbidden = runForbiddenShapeAttack();
     const boundary = runBoundaryAttack();
     const antiEscape = runAntiEscapeAttack();
-    const negativeProof = await runNegativeProofHarness();
+    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+      ? {
+          findings: [],
+          phase: {
+            name: "negative-proof-harness",
+            classification: "PASS" as const,
+            passed: true,
+            summary: "Mouse Scroll negative-proof harness was skipped for nested inspector execution.",
+          },
+        }
+      : await runNegativeProofHarness();
 
     return {
       findings: [

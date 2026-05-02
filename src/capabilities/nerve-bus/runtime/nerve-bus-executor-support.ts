@@ -1,49 +1,9 @@
 import { buildTransportProof } from "./transport-proof-builder.js";
 import { buildSuccessTransportResult } from "./transport-success-result.js";
-import { buildGuardFailureDetails, type ExecutionClockSnapshot, type ExecutionFailureDetails } from "./transport-failure-details-builders.js";
+import { buildGuardFailureDetails } from "./transport-failure-details-builders.js";
+import type { ExecutionClockSnapshot, ExecutionFailureDetails } from "./transport-failure-types.js";
 import type { NerveBusRuntimeContext } from "./transport-context.js";
-import type { NerveBusChannelRegistryEntry } from "../shared/nerve-bus-policy.js";
 import type { SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve-bus-channel.js";
-
-const buildFailureCheckpointProof = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
-  envelope: TEnvelope;
-  context: NerveBusRuntimeContext;
-}, started: ExecutionClockSnapshot, details: ExecutionFailureDetails) => {
-  const ended = input.context.clock.now();
-  return buildTransportProof({
-    envelope: input.envelope,
-    resultEnvelope: {
-      ...input.envelope,
-      envelopeKind: input.envelope.envelopeKind,
-      status: details.status,
-      failureReason: details.failureReason,
-      reviewRequiredReason: details.reviewRequiredReason,
-      outputRef: null,
-      diagnosticPayloadRef: input.envelope.inputRef,
-    } as never,
-    startedAt: started.iso,
-    endedAt: ended.iso,
-    durationMs: ended.monotonicMs - started.monotonicMs,
-    policyDecision: details.policyDecision,
-    integrityDecision: details.integrityDecision,
-    idempotencyDecision: details.idempotencyDecision,
-    sequenceDecision: details.sequenceDecision,
-    queueDecision: details.queueDecision,
-    timeoutDecision: details.timeoutDecision,
-    handlerDecision: details.handlerDecision,
-    handlerCallId: details.handlerCallId,
-    handlerStartedAt: details.handlerStartedAt,
-    handlerEndedAt: details.handlerEndedAt,
-    handlerDurationMs: details.handlerDurationMs,
-    circuitBreakerState: "closed",
-    outputRef: null,
-    diagnosticPayloadRef: input.envelope.inputRef,
-    status: details.status,
-    failureReason: details.failureReason,
-    reviewRequiredReason: details.reviewRequiredReason,
-    dataQualityFlags: ["transport_governed_failure"],
-  });
-};
 
 const buildSuccessfulExecutionProof = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   envelope: TEnvelope;
@@ -93,11 +53,6 @@ const buildSuccessfulExecutionProof = <TEnvelope extends SupportedEnvelope, TRes
 const buildSuccessfulTransportResult = (input: Parameters<typeof buildSuccessTransportResult>[0]) => {
   return buildSuccessTransportResult(input);
 };
-
-const createFailureCheckpointDiagnosticPayloadRef = <TEnvelope extends SupportedEnvelope>(envelope: TEnvelope) => ({
-  outputRef: envelope.inputRef,
-  payloadRefs: envelope.payloadRef,
-});
 
 const buildInputGateFailureDetails = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   envelope: TEnvelope;
@@ -153,7 +108,7 @@ const buildTimeoutGateFailureDetails = <TEnvelope extends SupportedEnvelope, TRe
   return buildGuardFailureDetails(input, started, {
     failureReason: timeoutGate.reason,
     integrityDecision: "valid",
-    idempotencyDecision: "executed",
+    idempotencyDecision: "replay_rejected",
     sequenceDecision: "not_started",
     queueDecision: "not_started",
     timeoutDecision: "not_started",
@@ -164,12 +119,12 @@ const buildTimeoutGateFailureDetails = <TEnvelope extends SupportedEnvelope, TRe
 
 const buildSequenceGateFailureDetails = <TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(input: {
   envelope: TEnvelope;
-}, started: ExecutionClockSnapshot, sequenceGate: { reason: string; integrityDecision: "out_of_order" }) => {
+}, started: ExecutionClockSnapshot, sequenceGate: { reason: string; sequenceDecision: "duplicate" | "out_of_order" }) => {
   return buildGuardFailureDetails(input, started, {
     failureReason: sequenceGate.reason,
-    integrityDecision: "valid",
-    idempotencyDecision: "executed",
-    sequenceDecision: sequenceGate.integrityDecision === "out_of_order" ? "out_of_order" : "duplicate",
+    integrityDecision: "out_of_order",
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: sequenceGate.sequenceDecision,
     queueDecision: "not_started",
     timeoutDecision: "not_started",
     policyDecision: "allowed",
@@ -178,10 +133,8 @@ const buildSequenceGateFailureDetails = <TEnvelope extends SupportedEnvelope, TR
 };
 
 export const nerveBusExecutorSupport = {
-  buildFailureCheckpointProof,
   buildSuccessfulExecutionProof,
   buildSuccessfulTransportResult,
-  createFailureCheckpointDiagnosticPayloadRef,
   buildInputGateFailureDetails,
   buildPolicyGateFailureDetails,
   buildIntegrityGateFailureDetails,

@@ -13,6 +13,10 @@ type Mutation = {
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/mouse-scroll-capability/inspector.ts";
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF";
+
+type InspectorRunResult = { passed: boolean; violationCount: number };
+type InspectorRunner = () => Promise<InspectorRunResult>;
 
 const MUTATIONS: Mutation[] = [
   {
@@ -23,52 +27,86 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "policy gate bypass mutation",
-    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
-    search: "const policyGate = validateScrollPolicy({ request: input.request, expectedCoordinateSpace: input.expectedCoordinateSpace, nowIsoTimestamp: policySnapshot.isoTimestamp });",
-    replace: "const policyDecision = validateScrollPolicy({ request: input.request, expectedCoordinateSpace: input.expectedCoordinateSpace, nowIsoTimestamp: policySnapshot.isoTimestamp });",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-execution-validator.ts",
+    search: "  const policyGate = validatePolicyGate(input, seed);",
+    replace: "  const policyDecision = validatePolicyGate(input, seed);",
   },
   {
     name: "proof drop mutation",
     file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
-    search: "const runtimeProof = buildMouseScrollRuntimeProof({",
-    replace: "const proofRemoved = buildMouseScrollRuntimeProof({",
+    search: "  const runtimeProof = buildMouseScrollRuntimeProofForResult(input, outputRef, postActionVerificationHandoffRef);",
+    replace: "  const proofRemoved = buildMouseScrollRuntimeProofForResult(input, outputRef, postActionVerificationHandoffRef);",
   },
   {
-    name: "timeout race removal mutation",
-    file: "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
-    search: "const primitiveResult = await Promise.race([",
-    replace: "const primitiveResult = await Promise.all([",
+    name: "timeout abort removal mutation",
+    file: "src/capabilities/mouse-scroll/runtime/primitive-scroll-port-call.ts",
+    search: "    input.abortController.abort(new Error(`Mouse Scroll primitive timed out after ${input.input.timeoutMs}ms.`));",
+    replace: "    void input.input.timeoutMs;",
   },
   {
     name: "computed scroll escape mutation",
-    file: "src/capabilities/mouse-scroll/runtime/primitive-scroll-runner.ts",
-    search: "input.context.primitivePort.scroll({",
-    replace: 'input.context.primitivePort["scroll"]({',
+    file: "src/capabilities/mouse-scroll/runtime/primitive-scroll-port-call.ts",
+    search: "  return input.input.context.primitivePort.scroll({",
+    replace: '  return input.input.context.primitivePort["scroll"]({',
   },
   {
     name: "workbench composition drift mutation",
-    file: "src/lib/local-runtime/workbench.ts",
-    search: 'import { createMouseScrollExecutionContext } from "../../capabilities/mouse-scroll/runtime/mouse-scroll-execution-context.js";',
-    replace: 'import { createSystemMouseScrollClock } from "../../capabilities/mouse-scroll/runtime/mouse-scroll-clock.js";',
+    file: "src/lib/local-runtime/workbench-mouse-scroll-ability-group.ts",
+    search: ") => createMouseScrollAbilityGroupWithPrimitivePort(...input);",
+    replace: ") => input[0] as never;",
   },
 ];
 
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+async function createInspectorRunner(): Promise<InspectorRunner> {
   await buildAuditArtifacts();
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector(INSPECTOR_ENTRY);
-  const result = await inspector(context);
-  return { passed: result.passed, violationCount: result.violationCount };
+
+  return async () => {
+    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
+    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+
+    try {
+      const result = await inspector(context);
+      return { passed: result.passed, violationCount: result.violationCount };
+    } finally {
+      if (previous === undefined) {
+        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
+      } else {
+        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
+      }
+    }
+  };
 }
 
-async function mutateAndVerify(mutation: Mutation): Promise<void> {
+async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+  const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
+  process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+
+  try {
+    await buildAuditArtifacts();
+    const artifacts = await loadGeneratedArtifacts();
+    const context = await createInspectorContext(artifacts);
+    const inspector = await loadInspector(INSPECTOR_ENTRY);
+    const result = await inspector(context);
+    return { passed: result.passed, violationCount: result.violationCount };
+  } finally {
+    if (previous === undefined) {
+      delete process.env[SKIP_NEGATIVE_PROOF_ENV];
+    } else {
+      process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
+    }
+  }
+}
+
+async function mutateAndVerify(runInspectorOnce: InspectorRunner, mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
   await applyAuditMutation(filePath, state.original, mutation);
 
   try {
-    const result = await runInspector();
+    const result = await runInspectorOnce();
     if (result.passed || result.violationCount === 0) {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
@@ -76,7 +114,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
     await restoreAuditFileState(filePath, state);
   }
 
-  const restored = await runInspector();
+  const restored = await runInspectorOnce();
   if (!restored.passed) {
     throw new Error(`Rollback verification failed for ${mutation.name}`);
   }
@@ -104,15 +142,16 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   };
 }
 
-async function runMutations(): Promise<void> {
+async function runMutations(runInspectorOnce: InspectorRunner): Promise<void> {
   for (const mutation of MUTATIONS) {
-    await mutateAndVerify(mutation);
+    await mutateAndVerify(runInspectorOnce, mutation);
   }
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const baseline = await runInspector();
+    const runInspectorOnce = await createInspectorRunner();
+    const baseline = await runInspectorOnce();
     if (!baseline.passed) {
       return createFatalResult(
         "Mouse Scroll inspector baseline must pass before negative-proof mutation checks.",
@@ -120,9 +159,9 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
       );
     }
 
-    await runMutations();
+    await runMutations(runInspectorOnce);
 
-    return createPassResult("Mouse Scroll negative-proof harness rejects gate bypass, proof drop, timeout escape, computed scroll, and composition drift mutations.");
+    return createPassResult("Mouse Scroll negative-proof harness rejects gate bypass, proof drop, timeout abort escape, computed scroll, and composition drift mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Mouse Scroll negative-proof harness failed.",

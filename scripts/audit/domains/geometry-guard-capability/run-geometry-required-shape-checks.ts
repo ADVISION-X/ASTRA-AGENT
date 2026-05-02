@@ -1,3 +1,5 @@
+import { Node, SyntaxKind } from "ts-morph";
+
 import { geometryGuardInspectionCallQueries as callQueries } from "./inspection-call-queries.js";
 import { geometryGuardInspectionConfig as config } from "./inspection-constants.js";
 import { geometryGuardInspectionModuleQueries as moduleQueries } from "./inspection-module-queries.js";
@@ -18,8 +20,40 @@ const getStringSet = (sourceFile: GeometrySourceState["schemaSource"]): Set<stri
   return sourceFile ? support.getStringLiterals(sourceFile) : emptySet();
 };
 
+const getObjectLiteralPropertyNames = (sourceFile: GeometrySourceState["schemaSource"], declarationName: string): Set<string> => {
+  const declaration = sourceFile?.getVariableDeclaration(declarationName);
+  const initializer = declaration?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
+  if (!initializer) {
+    return emptySet();
+  }
+
+  return new Set(
+    initializer.getProperties().flatMap((property) => {
+      return Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+        ? [property.getName()]
+        : [];
+    }),
+  );
+};
+
 const hasEveryValue = (values: Set<string>, requiredValues: readonly string[]): boolean => {
   return requiredValues.every((value) => values.has(value));
+};
+
+const hasSchemaExportSurface = (state: GeometrySourceState): boolean => {
+  if (!state.schemaSource) {
+    return false;
+  }
+
+  const exported = state.schemaSource.getExportedDeclarations();
+  return [
+    "GeometryGuardAbilityInputSchema",
+    "GeometryGuardSafetyPolicySchema",
+    "GeometryGuardAbilityResultSchema",
+    "GeometryGuardRuntimeProofSchema",
+    "GeometryGuardChildCapabilityIdSchema",
+    "GeometryGuardFailureReasonSchema",
+  ].every((name) => exported.has(name));
 };
 
 const hasSchemaFieldCoverage = (state: GeometrySourceState): boolean => {
@@ -38,6 +72,11 @@ const hasSchemaLiteralCoverage = (state: GeometrySourceState): boolean => {
 
 const hasSchemaSurface = (state: GeometrySourceState): boolean => {
   return Boolean(state.schemaSource)
+    && Boolean(state.schemaFoundationSource)
+    && Boolean(state.schemaInputSource)
+    && Boolean(state.schemaResultSource)
+    && Boolean(state.schemaRuntimeProofSource)
+    && hasSchemaExportSurface(state)
     && hasSchemaFieldCoverage(state)
     && hasSchemaLiteralCoverage(state);
 };
@@ -75,30 +114,63 @@ const hasResultProofWiring = (state: GeometrySourceState): boolean => {
     && callQueries.hasCallExpressionPath(state.proofBuilderSource, ["GeometryGuardRuntimeProofSchema", "parse"]);
 };
 
+const getExecutorRouteSources = (state: GeometrySourceState) => {
+  return [state.executorSource, state.executionPlanSource, state.inputStagesSource, state.transformStageSource].filter(
+    (sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null,
+  );
+};
+
+const hasRouteCall = (state: GeometrySourceState, calleeName: string): boolean => {
+  return getExecutorRouteSources(state).some((sourceFile) => callQueries.hasCallExpression(sourceFile, calleeName));
+};
+
+const hasExecutorEntry = (state: GeometrySourceState): boolean => {
+  return state.executorSource !== null
+    && callQueries.hasCallExpression(state.executorSource, "runGeometryExecutionPlan")
+    && callQueries.hasCallExpression(state.executorSource, "dispatchGeometryGuardFailure");
+};
+
 const hasExecutorPolicyCalls = (state: GeometrySourceState): boolean => {
-  return callQueries.hasCallExpression(state.executorSource!, "evaluateGeometryInputPolicy")
-    && callQueries.hasCallExpression(state.executorSource!, "evaluateCoordinateSpace")
-    && callQueries.hasCallExpression(state.executorSource!, "evaluateBounds")
-    && callQueries.hasCallExpression(state.executorSource!, "evaluateScaleMapping");
+  return [
+    "evaluateGeometryInputPolicy",
+    "evaluateCoordinateSpace",
+    "evaluateBounds",
+    "evaluateScaleMapping",
+    "evaluateClickSafety",
+  ].every((calleeName) => hasRouteCall(state, calleeName));
 };
 
 const hasExecutorResultCalls = (state: GeometrySourceState): boolean => {
-  return callQueries.hasCallExpression(state.executorSource!, "evaluateClickSafety")
-    && callQueries.hasCallExpression(state.executorSource!, "transformGeometry")
-    && callQueries.hasCallExpression(state.executorSource!, "buildGeometryGuardResult")
-    && callQueries.hasCallExpression(state.executorSource!, "dispatchGeometryGuardFailure");
+  return [
+    "runGeometryInputStages",
+    "runGeometryTransformStage",
+    "buildGeometrySuccessResult",
+    "transformGeometry",
+    "buildGeometryGuardResult",
+  ].every((calleeName) => hasRouteCall(state, calleeName));
 };
 
 const hasExecutorWiring = (state: GeometrySourceState): boolean => {
   return state.executorSource !== null
+    && state.executionPlanSource !== null
+    && state.inputStagesSource !== null
+    && state.transformStageSource !== null
+    && hasExecutorEntry(state)
     && hasExecutorPolicyCalls(state)
     && hasExecutorResultCalls(state);
 };
 
+const getCoordinateGateStrings = (state: GeometrySourceState): Set<string> => {
+  return state.coordinateGateSource ? support.getStringLiterals(state.coordinateGateSource) : emptySet();
+};
+
 const hasCoordinateGateWiring = (state: GeometrySourceState): boolean => {
   return state.coordinateGateSource !== null
-    && state.coordinateGateSource.getFullText().includes('input.sourceCoordinateSpace === "contactSheet"')
-    && state.coordinateGateSource.getFullText().includes("device_scale_factor_missing");
+    && hasEveryValue(getCoordinateGateStrings(state), [
+      "contactSheet",
+      "contact_sheet_coordinate_not_executable",
+      "device_scale_factor_missing",
+    ]);
 };
 
 const hasDispatchFailureWiring = (state: GeometrySourceState): boolean => {
@@ -170,28 +242,39 @@ const getChildImplementationViolation = (
 export function createGeometrySourceState(project: Parameters<typeof support.getSourceFile>[0]): GeometrySourceState {
   const getSource = (filePath: string) => support.getSourceFile(project, filePath);
   const schemaSource = getSource(config.SCHEMA_PATH);
+  const schemaFoundationSource = getSource(config.SCHEMA_FOUNDATION_PATH);
+  const schemaInputSource = getSource(config.SCHEMA_INPUT_PATH);
+  const schemaResultSource = getSource(config.SCHEMA_RESULT_PATH);
+  const schemaRuntimeProofSource = getSource(config.SCHEMA_RUNTIME_PROOF_PATH);
   const registrySource = getSource(config.REGISTRY_PATH);
   const typesSource = getSource(config.TYPES_PATH);
 
   return {
     contractSource: getSource(config.CONTRACT_PATH),
     schemaSource,
+    schemaFoundationSource,
+    schemaInputSource,
+    schemaResultSource,
+    schemaRuntimeProofSource,
     abilityGroupSource: getSource(config.ABILITY_GROUP_PATH),
     registrySource,
     indexSource: getSource(config.INDEX_PATH),
     typesSource,
     childFactorySource: getSource(config.CHILD_FACTORY_PATH),
     executorSource: getSource(config.EXECUTOR_PATH),
+    executionPlanSource: getSource(config.EXECUTION_PLAN_PATH),
+    inputStagesSource: getSource(config.INPUT_STAGES_PATH),
+    transformStageSource: getSource(config.TRANSFORM_STAGE_PATH),
     resultBuilderSource: getSource(config.RESULT_BUILDER_PATH),
     proofBuilderSource: getSource(config.PROOF_BUILDER_PATH),
     coordinateGateSource: getSource(`${config.ROOT}/runtime/coordinate-space-gate.ts`),
     dispatchFailureSource: getSource(`${config.ROOT}/runtime/geometry-dispatch-failure.ts`),
     clockSource: getSource(config.CLOCK_PATH),
-    inputFields: getSchemaPropertyNames(schemaSource, "GeometryGuardBaseInputSchema"),
-    safetyPolicyFields: getSchemaPropertyNames(schemaSource, "GeometryGuardSafetyPolicySchema"),
-    resultFields: getSchemaPropertyNames(schemaSource, "GeometryGuardBaseResultSchema"),
-    runtimeProofFields: getSchemaPropertyNames(schemaSource, "GeometryGuardRuntimeProofSchema"),
-    schemaStrings: getStringSet(schemaSource),
+    inputFields: getSchemaPropertyNames(schemaInputSource, "GeometryGuardBaseInputSchema"),
+    safetyPolicyFields: getSchemaPropertyNames(schemaFoundationSource, "GeometryGuardSafetyPolicySchema"),
+    resultFields: getSchemaPropertyNames(schemaResultSource, "GeometryGuardBaseResultSchema"),
+    runtimeProofFields: getObjectLiteralPropertyNames(schemaRuntimeProofSource, "GeometryGuardRuntimeProofFieldSchemas"),
+    schemaStrings: getStringSet(schemaInputSource),
     typeStrings: getStringSet(typesSource),
     registryStrings: getStringSet(registrySource),
   };

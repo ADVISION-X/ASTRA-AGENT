@@ -14,6 +14,12 @@ import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
 import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
 import { buildPostActionVerificationInput } from "./workbench-post-action-dispatch-input.js";
 
+const throwIfAborted = (signal: AbortSignal) => {
+  if (signal.aborted) {
+    throw new Error(typeof signal.reason === "string" ? signal.reason : "Transport aborted before ability execution completed.");
+  }
+};
+
 const executeVisualAbilityCommand = (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -84,4 +90,10 @@ export const executeAbilityCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
-): Promise<WorkbenchAbilityExecutionResult> => ABILITY_COMMAND_EXECUTORS[envelope.to](runtime, envelope, inputPayload);
+  signal: AbortSignal,
+): Promise<WorkbenchAbilityExecutionResult> => {
+  throwIfAborted(signal);
+  const result = await ABILITY_COMMAND_EXECUTORS[envelope.to](runtime, envelope, inputPayload);
+  throwIfAborted(signal);
+  return result;
+};

@@ -50,8 +50,9 @@ type MatchedTransitionRecord = {
   finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed";
   toStepId: string | null;
   condition: {
-    source: "status" | "decision";
-    equals: string | boolean | null;
+    leftRef: "status" | "decision";
+    operator: "equals" | "notEquals" | "exists" | "notExists" | "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow" | "statusIs" | "reviewRequired";
+    rightValue: string | number | boolean | null;
   };
 };
 
@@ -61,8 +62,9 @@ function normalizeMatchedTransition(transition: Extract<ReturnType<typeof evalua
     finalStatus: transition.finalStatus ?? "running",
     toStepId: transition.toStepId,
     condition: {
-      source: transition.condition.source,
-      equals: transition.condition.equals,
+      leftRef: transition.condition.leftRef,
+      operator: transition.condition.operator,
+      rightValue: transition.condition.rightValue,
     },
   };
 }

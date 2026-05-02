@@ -1,16 +1,15 @@
 import type { Project } from "ts-morph";
 
-import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
-import { createMapPluginRegistry } from "../../../../src/map-plugins/registry/map-plugin-registry.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
-import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
+import { getTypeAliasPropertyNames, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { ROOT } from "./constants.js";
 import { BUILTIN_PACKAGE_FILES, REQUIRED_SOURCE_FILES } from "./file-lists.js";
+import { inspectCapabilityCatalogGeneratedTruth, inspectRegistryBootstrap } from "./required-shape-runtime.js";
 
 const inspectMissingRequiredFiles = async (): Promise<Finding[]> => {
   const missing = await missingFiles(REQUIRED_SOURCE_FILES);
@@ -81,9 +80,64 @@ const inspectTransitionConditionDslSource = (project: Project): Finding[] => {
   const propertyNames = getZodObjectPropertyNames(schemaSource, "MapPluginTransitionConditionSchema");
   const requiredFields = ["conditionType", "leftRef", "operator", "rightValue", "onTrue", "onFalse"] as const;
   const missingFields = requiredFields.filter((fieldName) => !propertyNames.has(fieldName));
-  return missingFields.length === 0
+  const forbiddenFields = ["source", "equals"].filter((fieldName) => propertyNames.has(fieldName));
+  const findings: Finding[] = [];
+  if (missingFields.length > 0) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-001-V1", file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Map transition condition schema must use governed branch DSL fields.", detail: missingFields.join(", ") }));
+  }
+  if (forbiddenFields.length > 0) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-001-V1", file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Legacy source/equals branch DSL must not remain active truth.", detail: forbiddenFields.join(", ") }));
+  }
+  return findings;
+};
+
+const inspectStepSchemaSource = (project: Project): Finding[] => {
+  const schemaSource = getSource(project, `${ROOT}/schema/operational-map-step.schema.ts`);
+  const propertyNames = getZodObjectPropertyNames(schemaSource, "MapPluginOperationalMapStepSchema");
+  return propertyNames.has("postActionVerification")
     ? []
-    : [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-001-V1", file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Map transition condition schema must use governed branch DSL fields.", detail: missingFields.join(", ") })];
+    : [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-003-V1", file: `${ROOT}/schema/operational-map-step.schema.ts`, line: 1, severity: "fatal", message: "Map step schema must declare postActionVerification as schema-level action policy." })];
+};
+
+const inspectActivationTypes = (project: Project): Finding[] => {
+  const activationProofSource = getSource(project, `${ROOT}/shared/map-package-proof.ts`);
+  const activationRecordFields = getTypeAliasPropertyNames(activationProofSource, "MapActivationRecord");
+  const activeRecordSource = getSource(project, `${ROOT}/shared/map-package-registry-types.ts`);
+  const activeRecordFields = getTypeAliasPropertyNames(activeRecordSource, "ActiveOperationalMapRecord");
+  const activationRequiredFields = [
+    "activationSnapshotRef",
+    "activationSnapshotHash",
+    "mapPackageId",
+    "mapPackageVersion",
+    "mapVersion",
+    "taskTemplateId",
+    "requestedPlatformId",
+    "validationReportRef",
+    "operationalMapHash",
+    "mapPackageHash",
+  ] as const;
+  const activeRequiredFields = [
+    "activationSnapshotRef",
+    "activationSnapshotHash",
+    "mapPackageHash",
+    "operationalMapHash",
+    "capabilityCatalogVersion",
+    "promptCatalogVersion",
+    "proofPolicy",
+  ] as const;
+
+  const findings: Finding[] = [];
+  const missingActivationFields = activationRequiredFields.filter((fieldName) => !activationRecordFields.has(fieldName));
+  if (missingActivationFields.length > 0) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/shared/map-package-proof.ts`, line: 1, severity: "fatal", message: "Activation record must capture immutable frozen snapshot proof fields.", detail: missingActivationFields.join(", ") }));
+  }
+
+  const missingActiveFields = activeRequiredFields.filter((fieldName) => !activeRecordFields.has(fieldName));
+  if (missingActiveFields.length > 0) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/shared/map-package-registry-types.ts`, line: 1, severity: "fatal", message: "Active operational map record must expose frozen activation metadata and governance fields.", detail: missingActiveFields.join(", ") }));
+  }
+
+  return findings;
 };
 
 const inspectLifecycleSources = (project: Project): Finding[] => {
@@ -93,57 +147,16 @@ const inspectLifecycleSources = (project: Project): Finding[] => {
     ...inspectActivationSource(project),
     ...inspectRollbackSource(project),
     ...inspectTransitionConditionDslSource(project),
+    ...inspectStepSchemaSource(project),
+    ...inspectActivationTypes(project),
   ];
-};
-
-const collectRegistryBootstrapFindings = (registry: ReturnType<typeof createMapPluginRegistry>): Finding[] => {
-  const findings: Finding[] = [];
-  const activePackages = registry.active.listActivePackages();
-  const ordinaryTemplates = registry.active.listOrdinaryTaskTemplates();
-
-  if (activePackages.length < 2) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: "Approved builtin map packages must bootstrap into the active registry." }));
-  }
-  if (ordinaryTemplates.some((item) => item.taskTemplateId === "ai-generated-map-placeholder")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-006-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "AI draft placeholder must never appear in the approved active task-template feed." }));
-  }
-  if (ordinaryTemplates.some((item) => "mapId" in (item as object) || "requestedPlatformId" in (item as object))) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Ordinary task-template feed must not expose internal map binding fields." }));
-  }
-  if (activePackages.some((mapPackage) => mapPackage.manifest.aiGenerated)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-006-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "AI-generated map packages must not enter the active registry." }));
-  }
-  if (!registry.active.getTaskTemplateDeveloperBinding("tiktok-product-discovery")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Active registry must resolve a developer binding for an approved task template." }));
-  }
-
-  return findings;
-};
-
-const bootstrapRegistry = (): ReturnType<typeof createMapPluginRegistry> => {
-  const registry = createMapPluginRegistry();
-  for (const builtinPackage of loadBuiltinMapPackages()) {
-    registry.importPackage(builtinPackage, "audit-required-shape");
-    if (builtinPackage.manifest.approvalStatus === "approved" && builtinPackage.taskTemplate.availabilityPolicy === "active") {
-      registry.activatePackage(builtinPackage.manifest.packageId, builtinPackage.manifest.packageVersion, "audit-required-shape", "audit bootstrap");
-    }
-  }
-
-  return registry;
-};
-
-const inspectRegistryBootstrap = (): Finding[] => {
-  try {
-    return collectRegistryBootstrapFindings(bootstrapRegistry());
-  } catch (error) {
-    return [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-003-V1", file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Map registry bootstrap failed during audit." })];
-  }
 };
 
 export async function runRequiredShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings = [
     ...(await inspectMissingRequiredFiles()),
     ...(await inspectBuiltinRecords()),
+    ...(await inspectCapabilityCatalogGeneratedTruth()),
     ...inspectLifecycleSources(project),
     ...inspectRegistryBootstrap(),
   ];

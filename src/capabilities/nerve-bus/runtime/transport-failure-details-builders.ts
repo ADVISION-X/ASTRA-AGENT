@@ -1,31 +1,7 @@
 import type { NerveBusRuntimeContext } from "./transport-context.js";
+import type { ExecutionClockSnapshot, ExecutionFailureDetails, NerveBusChildOutcome } from "./transport-failure-types.js";
 import { finalizeFailure } from "./transport-failure-finalizer.js";
 import type { SupportedEnvelope, SupportedResultEnvelope, NerveBusChildDefinition } from "../shared/nerve-bus-channel.js";
-
-export type ExecutionClockSnapshot = {
-  iso: string;
-  monotonicMs: number;
-};
-
-export type NerveBusChildOutcome<TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope> = Awaited<ReturnType<NerveBusChildDefinition<TEnvelope, TResult>["execute"]>>;
-
-export type ExecutionFailureDetails = {
-  failureReason: string;
-  integrityDecision: "valid" | "missing_payload_ref" | "missing_input_ref" | "stale" | "expired" | "out_of_order" | "payload_ref_policy_failed";
-  idempotencyDecision: "executed" | "duplicate_skipped" | "replay_rejected";
-  sequenceDecision: "accepted" | "out_of_order" | "duplicate" | "not_started";
-  queueDecision: "acquired" | "queue_rejected" | "not_started";
-  timeoutDecision: "within_timeout" | "timed_out" | "not_started";
-  handlerDecision: "executed" | "missing_handler" | "threw" | "invalid_result" | "timed_out" | "aborted" | "not_invoked";
-  policyDecision: "allowed" | "forbidden_route";
-  status: "failed" | "review_required";
-  reviewRequiredReason: string | null;
-  transportDecision?: "executed" | "duplicate_skipped" | "replay_rejected" | "queue_rejected";
-  handlerCallId: string;
-  handlerStartedAt: string;
-  handlerEndedAt: string;
-  handlerDurationMs: number;
-};
 
 export function buildGuardFailureDetails(
   input: { envelope: SupportedEnvelope },
@@ -49,7 +25,7 @@ export function buildHandlerFailureDetails<TEnvelope extends SupportedEnvelope, 
   return {
     failureReason: outcome.failureReason,
     integrityDecision: "valid",
-    idempotencyDecision: "executed",
+    idempotencyDecision: "replay_rejected",
     sequenceDecision: "accepted",
     queueDecision: "acquired",
     timeoutDecision: outcome.timeoutDecision,
@@ -74,7 +50,7 @@ export function buildUnexpectedFailureDetails(
   return {
     failureReason: error instanceof Error ? error.message : "Nerve Bus child execution failed.",
     integrityDecision: "valid",
-    idempotencyDecision: "executed",
+    idempotencyDecision: "replay_rejected",
     sequenceDecision: "accepted",
     queueDecision: "acquired",
     timeoutDecision: "within_timeout",
@@ -97,7 +73,7 @@ export function buildQueueRejectedFailureDetails(
   return {
     failureReason: "Transport queue is saturated.",
     integrityDecision: "valid",
-    idempotencyDecision: "executed",
+    idempotencyDecision: "replay_rejected",
     sequenceDecision: "accepted",
     queueDecision: "queue_rejected",
     timeoutDecision: "not_started",
@@ -110,6 +86,53 @@ export function buildQueueRejectedFailureDetails(
     handlerStartedAt: started.iso,
     handlerEndedAt: started.iso,
     handlerDurationMs: 0,
+  };
+}
+
+export function buildDuplicateInFlightFailureDetails(
+  input: { envelope: SupportedEnvelope },
+  started: ExecutionClockSnapshot,
+  failureReason: string,
+): ExecutionFailureDetails {
+  return {
+    failureReason,
+    integrityDecision: "valid",
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: "not_started",
+    queueDecision: "not_started",
+    timeoutDecision: "not_started",
+    handlerDecision: "not_invoked",
+    policyDecision: "allowed",
+    status: "review_required",
+    reviewRequiredReason: "Transport replay was rejected because the idempotency key is already in flight.",
+    transportDecision: "replay_rejected",
+    handlerCallId: input.envelope.envelopeId,
+    handlerStartedAt: started.iso,
+    handlerEndedAt: started.iso,
+    handlerDurationMs: 0,
+  };
+}
+
+export function buildSemanticGateFailureDetails<TEnvelope extends SupportedEnvelope, TResult extends SupportedResultEnvelope>(
+  outcome: Exclude<NerveBusChildOutcome<TEnvelope, TResult>, { kind: "handler_failed" }>,
+  failureReason: string,
+): ExecutionFailureDetails {
+  return {
+    failureReason,
+    integrityDecision: "mismatched_result",
+    idempotencyDecision: "replay_rejected",
+    sequenceDecision: "accepted",
+    queueDecision: "acquired",
+    timeoutDecision: outcome.timeoutDecision,
+    handlerDecision: "invalid_result",
+    policyDecision: "allowed",
+    status: "failed",
+    reviewRequiredReason: null,
+    transportDecision: "executed",
+    handlerCallId: outcome.handlerCallId,
+    handlerStartedAt: outcome.handlerStartedAt,
+    handlerEndedAt: outcome.handlerEndedAt,
+    handlerDurationMs: outcome.handlerDurationMs,
   };
 }
 

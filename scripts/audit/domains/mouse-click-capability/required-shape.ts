@@ -57,8 +57,14 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
   if (!executorSource) {
     return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Click executor file is missing." })];
   }
+  const project = makeProject();
+  const routeSources = [
+    executorSource,
+    getSourceFile(project, PATHS.PREFLIGHT_STAGES),
+    getSourceFile(project, PATHS.PRIMITIVE_STAGE),
+  ].filter((sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null);
   return ["validateGeometryProof", "validateClickPolicy", "validateMouseClickBoundary", "validatePreClickSafety", "runPrimitiveClick", "buildMouseClickResult"]
-    .filter((calleeName) => !hasCallExpression(executorSource, calleeName))
+    .filter((calleeName) => !routeSources.some((sourceFile) => hasCallExpression(sourceFile, calleeName)))
     .map((calleeName) => createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1", file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Mouse Click executor must call ${calleeName}.` }));
 }
 
@@ -82,8 +88,7 @@ function collectChildImplementationFindings(project: ReturnType<typeof makeProje
   });
 }
 
-export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const project = makeProject();
+export async function runRequiredShapeAttack(project: ReturnType<typeof makeProject> = makeProject()): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings = collectMissingRequiredFileFindings(await missingRequiredFiles());
 
   const abilityGroupSource = getSourceFile(project, PATHS.ABILITY_GROUP);

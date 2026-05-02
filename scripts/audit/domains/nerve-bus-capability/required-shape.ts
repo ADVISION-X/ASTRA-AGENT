@@ -22,6 +22,19 @@ function collectContractFindings(project: ReturnType<typeof makeProject>): Findi
   return findings;
 }
 
+function interfaceMethodCarriesSignal(project: ReturnType<typeof makeProject>, path: string, interfaceName: string, methodName: string): boolean {
+  const source = getSourceFile(project, path);
+  const method = source?.getInterface(interfaceName)?.getMethod(methodName);
+  const firstParameter = method?.getParameters()[0]?.getTypeNode()?.getText() ?? "";
+  return firstParameter.includes("signal: AbortSignal");
+}
+
+function collectHandlerPortFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  return ["dispatchAbilityCommand", "dispatchHumanCommand", "requestAi"]
+    .filter((methodName) => !interfaceMethodCarriesSignal(project, PATHS.HANDLER_PORT, "NerveBusHandlerPort", methodName))
+    .map((methodName) => createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.HANDLER_PORT, line: 1, severity: "fatal", message: `Nerve Bus handler port method ${methodName} must carry AbortSignal.` }));
+}
+
 function collectAbilityGroupFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const abilityGroupSource = getSourceFile(project, PATHS.ABILITY_GROUP);
@@ -40,10 +53,15 @@ function collectAbilityGroupFactoryFindings(abilityGroupSource: NonNullable<Retu
 function collectContextFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const contextSource = getSourceFile(project, PATHS.CONTEXT);
-  if (!contextSource || !hasCallExpression(contextSource, "createSystemNerveBusClockPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusTransportPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusIdempotencyPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusQueuePort")) {
+  if (!contextSource || !hasCallExpression(contextSource, "createSystemNerveBusClockPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusTransportPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusIdempotencyPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusQueuePort") || !hasCallExpression(contextSource, "createInMemoryNerveBusSequencePort")) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.CONTEXT, line: 1, severity: "fatal", message: "Nerve Bus runtime context must own default transport composition." }));
   }
   return findings;
+}
+
+function getFirstCallPosition(sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>, callName: string): number {
+  const match = sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === callName);
+  return match?.getStart() ?? -1;
 }
 
 function collectSchemaDeclarationFindings(project: ReturnType<typeof makeProject>): Finding[] {
@@ -86,10 +104,15 @@ function collectExecutorAndBuilderFindings(project: ReturnType<typeof makeProjec
   if (!executorSource) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus executor file is missing." }));
   } else {
-    for (const callee of ["enforceEnvelopeInputGate", "enforceChannelPolicyGate", "enforceEnvelopeIntegrityGate", "enforceTransportIdempotencyGate", "resolveTransportTimeoutGate", "enforceTransportSequencePolicy", "buildTransportProof", "buildGovernedFailureResult", "buildSuccessTransportResult"]) {
+    for (const callee of ["enforceEnvelopeInputGate", "enforceChannelPolicyGate", "enforceEnvelopeIntegrityGate", "enforceTransportIdempotencyGate", "resolveTransportTimeoutGate", "enforceTransportSequencePolicy", "enforceTransportResultSemanticGate", "buildTransportProof", "buildDuplicateInFlightFailureDetails", "buildSuccessTransportResult"]) {
       if (!hasCallExpression(executorSource, callee)) {
         findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Nerve Bus executor must call ${callee}.` }));
       }
+    }
+    const bindInputPayloadPosition = getFirstCallPosition(executorSource, "input.context.transport.bindInputPayload");
+    const postReservationPosition = getFirstCallPosition(executorSource, "resolvePostReservationFailure");
+    if (bindInputPayloadPosition !== -1 && postReservationPosition !== -1 && bindInputPayloadPosition < postReservationPosition) {
+      findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus must bind input payload only after post-idempotency transport gates pass." }));
     }
     const executeBranch = executorSource.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => statement.getExpression().getText().includes('outcome.kind === "handler_failed"'));
     if (!executeBranch) {
@@ -142,6 +165,7 @@ export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; p
   const findings: Finding[] = [];
   await collectMissingFileFindings(findings);
   findings.push(...collectContractFindings(project));
+  findings.push(...collectHandlerPortFindings(project));
   findings.push(...collectAbilityGroupFindings(project));
   findings.push(...collectContextFindings(project));
   findings.push(...collectSchemaDeclarationFindings(project));

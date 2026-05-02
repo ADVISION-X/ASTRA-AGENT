@@ -15,7 +15,7 @@
     "authoringPromptRef": "audit://map-authoring/draft-placeholder",
     "authoringModelRef": "local-map-authoring-simulator",
     "capabilityCatalogVersion": "2026-04-map-prompt-contract-v1",
-    "promptCatalogVersion": "2025-04-30-v1",
+    "promptCatalogVersion": "map-prompt-contract-catalog.v1",
     "validationReportRef": null,
     "humanApprovalRef": null
   },
@@ -43,16 +43,16 @@
     "allowedAbilityGroups": ["forensics-persistence"],
     "initialStepId": "persist-draft-marker",
     "steps": [
-      { "stepId": "persist-draft-marker", "capabilityId": "orchestration", "childCapabilityId": "write-structured-runtime-event", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["operatorNote"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "persist-draft-marker:failed", "reviewBranch": "persist-draft-marker:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } },
-      { "stepId": "finalize-mission", "capabilityId": "orchestration", "childCapabilityId": "finalize-mission", "stepKind": "finalize", "targetAbilityGroupId": null, "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": [] }, "promptContractId": null, "successCondition": { "source": "status", "equals": "success" }, "failureBranch": "finalize-mission:failed", "reviewBranch": "finalize-mission:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } }
+      { "stepId": "persist-draft-marker", "capabilityId": "orchestration", "childCapabilityId": "write-structured-runtime-event", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["operatorNote"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "persist-draft-marker:failed", "reviewBranch": "persist-draft-marker:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "finalize-mission", "capabilityId": "orchestration", "childCapabilityId": "finalize-mission", "stepKind": "finalize", "targetAbilityGroupId": null, "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": [] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "finalize-mission:failed", "reviewBranch": "finalize-mission:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } }
     ],
     "transitions": [
-      { "transitionId": "persist-draft-marker:success", "fromStepId": "persist-draft-marker", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": "finalize-mission", "finalStatus": null },
-      { "transitionId": "persist-draft-marker:failed", "fromStepId": "persist-draft-marker", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
-      { "transitionId": "persist-draft-marker:review", "fromStepId": "persist-draft-marker", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
-      { "transitionId": "finalize-mission:success", "fromStepId": "finalize-mission", "onStatus": "success", "condition": { "source": "status", "equals": "success" }, "toStepId": null, "finalStatus": "completed" },
-      { "transitionId": "finalize-mission:failed", "fromStepId": "finalize-mission", "onStatus": "failed", "condition": { "source": "status", "equals": "failed" }, "toStepId": null, "finalStatus": "failed" },
-      { "transitionId": "finalize-mission:review", "fromStepId": "finalize-mission", "onStatus": "review_required", "condition": { "source": "status", "equals": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
+      { "transitionId": "persist-draft-marker:success", "fromStepId": "persist-draft-marker", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-draft-marker:failed", "fromStepId": "persist-draft-marker", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "persist-draft-marker:review", "fromStepId": "persist-draft-marker", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "finalize-mission", "finalStatus": null },
+      { "transitionId": "finalize-mission:success", "fromStepId": "finalize-mission", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": null, "finalStatus": "completed" },
+      { "transitionId": "finalize-mission:failed", "fromStepId": "finalize-mission", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "finalize-mission:review", "fromStepId": "finalize-mission", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
     ],
     "failureBranches": ["persist-draft-marker:failed", "finalize-mission:failed"],
     "reviewBranches": ["persist-draft-marker:review", "finalize-mission:review"],

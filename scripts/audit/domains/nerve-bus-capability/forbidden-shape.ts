@@ -4,6 +4,11 @@ import { FORBIDDEN_TEXT_TOKENS, LAW_IDS, PATHS } from "./config.js";
 import { getNerveBusSourceFiles, makeProject, toRepoPath } from "./project-access.js";
 import { sourceHasDynamicImport, sourceHasExportStar, sourceHasForbiddenImport, sourceHasNewDateOutsideClock, sourceHasRequire } from "./source-rules.js";
 
+function sourceHasModuleLevelSequenceMap(relativePath: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): boolean {
+  return relativePath === PATHS.SEQUENCE_POLICY
+    && sourceFile.getVariableDeclarations().some((declaration) => declaration.getName() === "lastSequenceByScope");
+}
+
 function collectStructuralFindings(relativePath: string, sourceText: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
   const findings: Finding[] = [];
   if (sourceHasExportStar(sourceFile)) {
@@ -30,6 +35,9 @@ function collectBoundaryFindings(relativePath: string, sourceText: string, sourc
   }
   if (sourceHasForbiddenImport(sourceFile)) {
     findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: relativePath, line: 1, severity: "fatal", message: "Nerve Bus must not import forbidden capability internals." }));
+  }
+  if (sourceHasModuleLevelSequenceMap(relativePath, sourceFile)) {
+    findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: relativePath, line: 1, severity: "fatal", message: "Nerve Bus sequence policy must not use module-level mutable state." }));
   }
   return sourceText.includes('startsWith("Transport timed out")') && sourceText.includes('"missing_handler"')
     ? findings.concat(createFinding({ lawId: LAW_IDS.SHAPE, file: relativePath, line: 1, severity: "fatal", message: "Nerve Bus must not classify timeout as missing_handler." }))

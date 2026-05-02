@@ -88,23 +88,18 @@ const collectStorageFindings = (project: import("ts-morph").Project): Finding[] 
   const writeGateSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-write-gate.ts`);
   const adapterSource = getSourceFileOrThrow(project, STORAGE_ADAPTER_PATH);
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-  const workbenchHasSplitPorts = workbenchSource.getImportDeclarations().some((declaration) => {
-    const target = declaration.getModuleSpecifierSourceFile();
-    if (!target || toRepoRelativePath(target.getFilePath()) !== STORAGE_ADAPTER_PATH) {
-      return false;
-    }
+  const adapterHasSplitPorts = sourceHasCallPath(adapterSource, ["createEvidenceStoreForensicsRecordStoragePort"])
+    && sourceHasCallPath(adapterSource, ["createEvidenceStoreForensicsArtifactStoragePort"]);
+  const workbenchComposesForensics = sourceHasCallPath(workbenchSource, ["createForensicsPersistenceStorage"])
+    && sourceHasCallPath(workbenchSource, ["createForensicsPersistenceAbilityGroup"]);
 
-    return declaration.getNamedImports().some((namedImport) => {
-      const importName = namedImport.getName();
-      return importName === "createEvidenceStoreForensicsRecordStoragePort"
-        || importName === "createEvidenceStoreForensicsArtifactStoragePort";
-    });
-  });
-
-  if (!hasWriteGateSnapshotPath(writeGateSource) || !sourceHasCallPath(adapterSource, ["evidenceStore", "saveStructuredRuntimeEvent"])) {
+  if (!hasWriteGateSnapshotPath(writeGateSource)) {
     findings.push(createFinding({ lawId: LAW_STORAGE, file: `${RUNTIME_ROOT}/forensics-write-gate.ts`, line: 1, severity: "error", message: "Runtime snapshot persistence is not isolated behind the dedicated snapshot write path." }));
   }
-  if (!workbenchHasSplitPorts) {
+  if (!adapterHasSplitPorts) {
+    findings.push(createFinding({ lawId: LAW_STORAGE, file: STORAGE_ADAPTER_PATH, line: 1, severity: "error", message: "Forensics storage composition must create dedicated record and artifact storage ports." }));
+  }
+  if (!workbenchComposesForensics) {
     findings.push(createFinding({ lawId: LAW_STORAGE, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must compose Forensics through the dedicated record and artifact storage ports." }));
   }
 

@@ -72,7 +72,8 @@ const collectMissingFileFindings = async (): Promise<Finding[]> => {
 const collectSchemaFindings = (project: import("ts-morph").Project): Finding[] => {
   const findings: Finding[] = [];
   const schemaSource = getSourceFileOrThrow(project, SCHEMA_PATH);
-  const childIds = new Set(getZodEnumValues(schemaSource, "ForensicsChildCapabilityIdSchema"));
+  const childIdSource = getSourceFileOrThrow(project, `${SHARED_ROOT}/forensics-base-schema.ts`);
+  const childIds = new Set(getZodEnumValues(childIdSource, "ForensicsChildCapabilityIdSchema"));
   const missingChildIds = REQUIRED_SCHEMA_ENUM_VALUES.filter((childId) => !childIds.has(childId));
 
   if (missingChildIds.length > 0) {

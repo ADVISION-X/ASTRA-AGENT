@@ -12,6 +12,9 @@ type Mutation = {
   replace: string;
 };
 
+type InspectorRunResult = { passed: boolean; violationCount: number };
+type InspectorRunner = () => Promise<InspectorRunResult>;
+
 const INSPECTOR_ENTRY = "scripts/audit/domains/mouse-click-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF";
 
@@ -24,21 +27,21 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "policy gate bypass mutation",
-    file: "src/capabilities/mouse-click/runtime/mouse-click-executor.ts",
+    file: "src/capabilities/mouse-click/runtime/mouse-click-preflight-stages.ts",
     search: "const policyGate = validateClickPolicy({ request: input.request, nowIsoTimestamp: input.context.clock.now().isoTimestamp });",
     replace: "const policyDecision = validateClickPolicy({ request: input.request, nowIsoTimestamp: input.context.clock.now().isoTimestamp });",
   },
   {
     name: "proof drop mutation",
     file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-    search: "const runtimeProof = buildMouseClickRuntimeProof({",
-    replace: "const proofRemoved = buildMouseClickRuntimeProof({",
+    search: "const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));",
+    replace: "const proofRemoved = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));",
   },
   {
     name: "timeout race removal mutation",
     file: "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-    search: "const primitiveResult = await Promise.race([",
-    replace: "const primitiveResult = await Promise.all([",
+    search: "return Promise.race([",
+    replace: "return Promise.all([",
   },
   {
     name: "computed click escape mutation",
@@ -48,33 +51,36 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "workbench composition drift mutation",
-    file: "src/lib/local-runtime/workbench.ts",
-    search: 'import { createSystemMouseClickClock } from "../../capabilities/mouse-click/runtime/mouse-click-clock.js";',
-    replace: 'import { createSystemMouseClickClock } from "../../capabilities/mouse-click/runtime/system-clock.js";',
+    file: "src/lib/local-runtime/workbench-mouse-click-runtime.ts",
+    search: "mouseClickAbilityGroup: createWorkbenchMouseClickAbilityGroup({",
+    replace: "mouseClickAbilityGroup: createMouseClickAbilityGroupWithPrimitivePort({",
   },
 ];
 
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
-  const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-  process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+async function createInspectorRunner(): Promise<InspectorRunner> {
+  await buildAuditArtifacts();
+  const artifacts = await loadGeneratedArtifacts();
+  const context = await createInspectorContext(artifacts);
+  const inspector = await loadInspector(INSPECTOR_ENTRY);
 
-  try {
-    await buildAuditArtifacts();
-    const artifacts = await loadGeneratedArtifacts();
-    const context = await createInspectorContext(artifacts);
-    const inspector = await loadInspector(INSPECTOR_ENTRY);
-    const result = await inspector(context);
-    return { passed: result.passed, violationCount: result.violationCount };
-  } finally {
-    if (previous === undefined) {
-      delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-    } else {
-      process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
+  return async () => {
+    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
+    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
+
+    try {
+      const result = await inspector(context);
+      return { passed: result.passed, violationCount: result.violationCount };
+    } finally {
+      if (previous === undefined) {
+        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
+      } else {
+        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
+      }
     }
-  }
+  };
 }
 
-async function mutateAndVerify(mutation: Mutation): Promise<void> {
+async function mutateAndVerify(runInspector: InspectorRunner, mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
   await applyAuditMutation(filePath, state.original, mutation);
@@ -116,14 +122,15 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   };
 }
 
-async function runMutations(): Promise<void> {
+async function runMutations(runInspector: InspectorRunner): Promise<void> {
   for (const mutation of MUTATIONS) {
-    await mutateAndVerify(mutation);
+    await mutateAndVerify(runInspector, mutation);
   }
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
+    const runInspector = await createInspectorRunner();
     const baseline = await runInspector();
     if (!baseline.passed) {
       return createFatalResult(
@@ -132,7 +139,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
       );
     }
 
-    await runMutations();
+    await runMutations(runInspector);
 
     return createPassResult("Mouse Click negative-proof harness rejects gate bypass, proof drop, timeout escape, computed click, and composition drift mutations.");
   } catch (error) {

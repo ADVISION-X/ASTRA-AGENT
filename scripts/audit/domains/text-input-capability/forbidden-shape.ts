@@ -36,8 +36,7 @@ function collectExecutionFindings(relativePath: string, sourceFile: Parameters<t
     : findings;
 }
 
-export function runForbiddenShapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const project = makeProject();
+export function runForbiddenShapeAttack(project: ReturnType<typeof makeProject> = makeProject()): { findings: Finding[]; phase: InspectorPhase } {
   const findings: Finding[] = [];
   for (const sourceFile of getTextInputSourceFiles(project)) {
     const relativePath = toRepoPath(sourceFile);

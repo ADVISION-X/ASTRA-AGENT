@@ -25,26 +25,37 @@ const collectMissingRequiredFiles = async (): Promise<string[]> => {
 };
 
 const collectSchemaFieldFindings = (schemaSource: import("ts-morph").SourceFile) => {
-  const findings = [];
   const inputFields = getZodShapePropertyNames(schemaSource, "VisualTargetAbilityInputSchema");
   const baseResultFields = getZodShapePropertyNames(schemaSource, "VisualTargetBaseResultSchema");
   const runtimeProofFields = getZodShapePropertyNames(schemaSource, "VisualTargetRuntimeProofSchema");
-  for (const field of config.REQUIRED_INPUT_FIELDS) {
-    if (!inputFields.has(field)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `VisualTargetAbilityInputSchema is missing ${field}.` }));
-    }
-  }
-  for (const field of config.REQUIRED_BASE_RESULT_FIELDS) {
-    if (!baseResultFields.has(field)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `VisualTargetBaseResultSchema is missing ${field}.` }));
-    }
-  }
-  for (const field of config.REQUIRED_RUNTIME_PROOF_FIELDS) {
-    if (!runtimeProofFields.has(field)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `VisualTargetRuntimeProofSchema is missing ${field}.` }));
-    }
-  }
-  return findings;
+  return [
+    ...collectMissingSchemaFields("VisualTargetAbilityInputSchema", inputFields, config.REQUIRED_INPUT_FIELDS),
+    ...collectMissingSchemaFields("VisualTargetBaseResultSchema", baseResultFields, config.REQUIRED_BASE_RESULT_FIELDS),
+    ...collectOutputSchemaFieldFindings(schemaSource, "VisualTargetActionOutputSchema", [...config.REQUIRED_OUTPUT_COMMON_FIELDS, ...config.REQUIRED_ACTION_OUTPUT_FIELDS]),
+    ...collectOutputSchemaFieldFindings(schemaSource, "VisualTargetRegionOutputSchema", [...config.REQUIRED_OUTPUT_COMMON_FIELDS, ...config.REQUIRED_REGION_OUTPUT_FIELDS]),
+    ...collectOutputSchemaFieldFindings(schemaSource, "VisualTargetMetricOutputSchema", [...config.REQUIRED_OUTPUT_COMMON_FIELDS, ...config.REQUIRED_METRIC_OUTPUT_FIELDS]),
+    ...collectMissingSchemaFields("VisualTargetRuntimeProofSchema", runtimeProofFields, config.REQUIRED_RUNTIME_PROOF_FIELDS),
+  ];
+};
+
+const collectMissingSchemaFields = (
+  schemaName: string,
+  actualFields: Set<string>,
+  requiredFields: readonly string[],
+) => {
+  return requiredFields.flatMap((field) => {
+    return actualFields.has(field)
+      ? []
+      : [createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `${schemaName} is missing ${field}.` })];
+  });
+};
+
+const collectOutputSchemaFieldFindings = (
+  schemaSource: import("ts-morph").SourceFile,
+  schemaName: string,
+  requiredFields: readonly string[],
+) => {
+  return collectMissingSchemaFields(schemaName, getZodShapePropertyNames(schemaSource, schemaName), requiredFields);
 };
 
 const collectContractAndRegistryFindings = (input: {
@@ -139,13 +150,13 @@ const collectChildRegistryFindings = (project: Project, registrySource: import("
 
 const collectCoordinateExclusionFindings = (schemaSource: import("ts-morph").SourceFile) => {
   const findings = [];
-  for (const schemaName of ["VisualTargetActionSuccessResultSchema", "VisualTargetRegionSuccessResultSchema", "VisualTargetMetricSuccessResultSchema"] as const) {
+  for (const schemaName of ["VisualTargetActionOutputSchema", "VisualTargetRegionOutputSchema", "VisualTargetMetricOutputSchema"] as const) {
     if (!hasCoordinateSpaceExclusion(schemaSource, schemaName, ["contact_sheet"])) {
       findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: `${schemaName} must exclude contact_sheet from success coordinateSpace.` }));
     }
   }
-  if (!hasCoordinateSpaceExclusion(schemaSource, "VisualTargetActionSuccessResultSchema", ["ai_input"])) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: "VisualTargetActionSuccessResultSchema must exclude ai_input from actionable success coordinateSpace." }));
+  if (!hasCoordinateSpaceExclusion(schemaSource, "VisualTargetActionOutputSchema", ["ai_input"])) {
+    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1", file: config.SCHEMA_PATH, message: "VisualTargetActionOutputSchema must exclude ai_input from actionable success coordinateSpace." }));
   }
   return findings;
 };

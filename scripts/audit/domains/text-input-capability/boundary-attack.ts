@@ -1,11 +1,12 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { LAW_IDS, PATHS } from "./config.js";
 import { getExternalImportsWithPrefix, getSourceFile, makeProject } from "./project-access.js";
 
 function collectLeakFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
-  const runtimeLeaks = getExternalImportsWithPrefix(project, `${PATHS.ROOT}/runtime/`).filter((importerPath) => importerPath !== PATHS.WORKBENCH);
+  const runtimeLeaks = getExternalImportsWithPrefix(project, `${PATHS.ROOT}/runtime/`).filter((importerPath) => importerPath !== PATHS.WORKBENCH_RUNTIME);
   for (const importerPath of runtimeLeaks) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: importerPath, line: 1, severity: "fatal", message: "External code must not import text-input runtime internals." }));
   }
@@ -17,19 +18,12 @@ function collectLeakFindings(project: ReturnType<typeof makeProject>): Finding[]
 
 function collectWorkbenchFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
-  const workbenchSource = getSourceFile(project, PATHS.WORKBENCH);
+  const workbenchSource = getSourceFile(project, PATHS.WORKBENCH_RUNTIME);
   if (!workbenchSource) {
-    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH, line: 1, severity: "fatal", message: "Workbench must compose text-input clock at the composition root." })];
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_RUNTIME, line: 1, severity: "fatal", message: "Workbench text-input runtime must compose the governed ability group with runtime ports at the composition root." })];
   }
-  const runtimeImports = workbenchSource.getImportDeclarations().filter((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("text-input/runtime/"));
-  const hasClockImport = runtimeImports.some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("text-input/runtime/text-input-clock"));
-  if (!hasClockImport) {
-    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH, line: 1, severity: "fatal", message: "Workbench must compose text-input clock at the composition root." }));
-  }
-  for (const declaration of runtimeImports) {
-    if (!(declaration.getModuleSpecifierValue() ?? "").includes("text-input/runtime/text-input-clock")) {
-      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.WORKBENCH, line: 1, severity: "fatal", message: "Workbench must not import text-input runtime internals beyond clock composition." }));
-    }
+  if (!hasCallExpression(workbenchSource, "createWorkbenchTextInputAbilityGroup") || !hasCallExpression(workbenchSource, "createBrowserControllerTextInputRuntimePorts")) {
+    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_RUNTIME, line: 1, severity: "fatal", message: "Workbench text-input runtime must compose the governed ability group with runtime ports at the composition root." }));
   }
   return findings;
 }
@@ -40,8 +34,7 @@ function collectAdapterFindings(project: ReturnType<typeof makeProject>): Findin
     : [];
 }
 
-export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const project = makeProject();
+export function runBoundaryAttack(project: ReturnType<typeof makeProject> = makeProject()): { findings: Finding[]; phase: InspectorPhase } {
   const findings = [
     ...collectLeakFindings(project),
     ...collectWorkbenchFindings(project),

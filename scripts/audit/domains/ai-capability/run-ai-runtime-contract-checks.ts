@@ -178,6 +178,9 @@ const findReferenceIntegrityViolations = (project: Project): Finding[] => {
   const resultBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-result-builder.ts`);
   const findings: Finding[] = [];
 
+  if (!hasCallExpression(resultBuilderSource, "buildAiRuntimeProof")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-result-builder.ts`, line: 1, severity: "fatal", message: "AI result builder must construct runtimeProof through buildAiRuntimeProof." }));
+  }
   if (getReferencesCount(proofBuilderSource, "buildAiRuntimeProof") < 2) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-proof-builder.ts`, line: 1, severity: "fatal", message: "AI proof builder must be referenced by the governed result path." }));
   }

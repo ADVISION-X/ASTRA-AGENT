@@ -7,7 +7,7 @@ export type NerveBusHandledResult<TEnvelope> = {
 };
 
 export interface NerveBusHandlerPort {
-  dispatchAbilityCommand(input: { envelope: AbilityCommandEnvelope; inputPayload: NerveBusPayloadDocument }): Promise<NerveBusHandledResult<AbilityResultEnvelope> | null>;
-  requestAi(input: { envelope: AiRequestEnvelope; inputPayload: NerveBusPayloadDocument }): Promise<NerveBusHandledResult<AiResponseEnvelope> | null>;
-  dispatchHumanCommand(input: { envelope: HumanCommandEnvelope; inputPayload: NerveBusPayloadDocument }): Promise<NerveBusHandledResult<HumanCommandResultEnvelope> | null>;
+  dispatchAbilityCommand(input: { envelope: AbilityCommandEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal }): Promise<NerveBusHandledResult<AbilityResultEnvelope> | null>;
+  requestAi(input: { envelope: AiRequestEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal }): Promise<NerveBusHandledResult<AiResponseEnvelope> | null>;
+  dispatchHumanCommand(input: { envelope: HumanCommandEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal }): Promise<NerveBusHandledResult<HumanCommandResultEnvelope> | null>;
 }

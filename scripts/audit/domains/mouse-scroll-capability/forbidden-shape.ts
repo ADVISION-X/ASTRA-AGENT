@@ -4,6 +4,8 @@ import { LAW_IDS, FORBIDDEN_TEXT_TOKENS, PATHS } from "./config.js";
 import { getMouseScrollSourceFiles, makeProject, toMouseScrollRelativePath } from "./project-access.js";
 import { sourceHasDynamicImport, sourceHasExportStar, sourceHasForbiddenImport, sourceHasNewDateOutsideClock, sourceHasPrimitiveScrollCall, sourceHasRequire } from "./source-rules.js";
 
+const ALLOWED_PRIMITIVE_SCROLL_CALL_FILES = new Set([PATHS.RUNNER_PORT_CALL]);
+
 function collectStructuralFindings(relativePath: string, sourceText: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
   const findings: Finding[] = [];
   if (sourceHasExportStar(sourceFile)) {
@@ -28,7 +30,7 @@ function collectExecutionFindings(relativePath: string, sourceFile: Parameters<t
   if (relativePath !== PATHS.CLOCK && sourceHasNewDateOutsideClock(sourceFile)) {
     findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: relativePath, line: 1, severity: "fatal", message: "Mouse Scroll must source time from the clock port only." }));
   }
-  if (relativePath !== PATHS.RUNNER && sourceHasPrimitiveScrollCall(sourceFile)) {
+  if (!ALLOWED_PRIMITIVE_SCROLL_CALL_FILES.has(relativePath) && sourceHasPrimitiveScrollCall(sourceFile)) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: relativePath, line: 1, severity: "fatal", message: "primitivePort.scroll must not appear outside primitive-scroll-runner." }));
   }
   if (sourceHasForbiddenImport(sourceFile)) {

@@ -56,8 +56,7 @@ function collectForbiddenTokenFindings(fullText: string, relativePath: string): 
   );
 }
 
-export function runForbiddenShapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const project = makeProject();
+export function runForbiddenShapeAttack(project: ReturnType<typeof makeProject> = makeProject()): { findings: Finding[]; phase: InspectorPhase } {
   const findings = getMouseClickSourceFiles(project).flatMap((sourceFile) => collectForbiddenShapeFindings(project, sourceFile));
 
   const phasePassed = findings.length === 0;

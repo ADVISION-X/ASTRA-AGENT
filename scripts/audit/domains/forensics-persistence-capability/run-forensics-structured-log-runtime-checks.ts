@@ -1,20 +1,26 @@
+import { Node, SyntaxKind } from "ts-morph";
+
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { hasMethodNamed, hasStringLiteral } from "../_shared/ast-literal-queries.js";
+import { hasStringLiteral } from "../_shared/ast-literal-queries.js";
 import { getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
 
 const {
+  AI_DEBUG_RECORDER_PATH,
   AI_RUNTIME_ADAPTER_PATH,
   COMMAND_HANDLER_PATH,
+  COMMAND_FLOW_RESULT_PATH,
+  COMMANDER_DEBUG_PATH,
   LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
   LAW_STRUCTURED_LOGGING_DISCIPLINE,
   LAW_STRUCTURED_LOGGING_EXIT,
   LAW_STRUCTURED_LOGGING_HEALTH,
+  RUNTIME_AI_DEBUG_RECORDER_PATH,
   STARTUP_ENTRYPOINT_PATH,
-  WORKBENCH_PATH,
+  STATUS_PATH,
 } = forensicsPersistenceInspectionConstants;
 
 const getStartupSource = (project: import("ts-morph").Project) => {
@@ -22,23 +28,38 @@ const getStartupSource = (project: import("ts-morph").Project) => {
   return project.addSourceFileAtPathIfExists(startupPath) ?? project.addSourceFileAtPath(startupPath);
 };
 
+const hasRecordAiDebugEventCall = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "recordAiDebugEvent";
+  });
+};
+
 const collectAiRuntimeWiringFindings = (project: import("ts-morph").Project): Finding[] => {
-  const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-  const aiRuntimeAdapterSource = getSourceFileOrThrow(project, AI_RUNTIME_ADAPTER_PATH);
+  const aiDebugRecorderSource = getSourceFileOrThrow(project, AI_DEBUG_RECORDER_PATH);
+  const aiRuntimeDebugSource = getSourceFileOrThrow(project, AI_RUNTIME_ADAPTER_PATH);
+  const runtimeAiDebugRecorderSource = getSourceFileOrThrow(project, RUNTIME_AI_DEBUG_RECORDER_PATH);
+  const commanderDebugSource = getSourceFileOrThrow(project, COMMANDER_DEBUG_PATH);
   const findings: Finding[] = [];
 
-  if (!hasStringLiteral(aiRuntimeAdapterSource, "AI_REQUEST_DEBUG") || !hasStringLiteral(aiRuntimeAdapterSource, "AI_RESPONSE_DEBUG") || !hasStringLiteral(aiRuntimeAdapterSource, "AI_ERROR_DEBUG") || !hasMethodNamed(workbenchSource, "recordAiDebugEvent")) {
+  if (!hasStringLiteral(aiRuntimeDebugSource, "AI_REQUEST_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_RESPONSE_DEBUG") || !hasStringLiteral(aiRuntimeDebugSource, "AI_ERROR_DEBUG") || !hasRecordAiDebugEventCall(aiDebugRecorderSource)) {
     findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: AI_RUNTIME_ADAPTER_PATH, line: 1, severity: "fatal", message: "Structured logging discipline is not wired through the AI runtime and Forensics write path." }));
   }
-  if (!hasPropertyAccessPath(workbenchSource, ["this", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
-    findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench debug event relays must persist structured runtime events through Forensics Persistence." }));
+  if (!hasPropertyAccessPath(runtimeAiDebugRecorderSource, ["runtime", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
+    findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: RUNTIME_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "AI debug event persistence must flow through Forensics Persistence structured runtime events." }));
+  }
+  if (!hasPropertyAccessPath(commanderDebugSource, ["runtime", "forensicsPersistenceAbilityGroup", "writeStructuredRuntimeEvent"])) {
+    findings.push(createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: COMMANDER_DEBUG_PATH, line: 1, severity: "fatal", message: "Workbench debug event relays must persist structured runtime events through Forensics Persistence." }));
   }
 
   return findings;
 };
 
 const collectCommandFlowFinding = (project: import("ts-morph").Project): Finding[] => {
-  const commandHandlerSource = getSourceFileOrThrow(project, COMMAND_HANDLER_PATH);
+  const commandFlowSources = [
+    getSourceFileOrThrow(project, COMMAND_HANDLER_PATH),
+    getSourceFileOrThrow(project, COMMAND_FLOW_RESULT_PATH),
+  ];
   const missingCommandFlowEvents = [
     "HUMAN_COMMAND_DRAFTED",
     "HUMAN_COMMAND_RECEIVED",
@@ -48,7 +69,7 @@ const collectCommandFlowFinding = (project: import("ts-morph").Project): Finding
     "MISSION_PREFLIGHT_FAILED",
     "COMMAND_ACCEPTED",
     "COMMAND_REJECTED",
-  ].filter((eventType) => !hasStringLiteral(commandHandlerSource, eventType));
+  ].filter((eventType) => !commandFlowSources.some((source) => hasStringLiteral(source, eventType)));
 
   return missingCommandFlowEvents.length > 0
     ? [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: COMMAND_HANDLER_PATH, line: 1, severity: "error", message: "Commander command flow is missing required structured debug events.", detail: missingCommandFlowEvents.join(", ") })]
@@ -64,13 +85,13 @@ const hasStartupHealthSignals = (startupSource: import("ts-morph").SourceFile): 
 };
 
 const collectHealthFinding = (project: import("ts-morph").Project): Finding[] => {
-  const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-  const commandHandlerSource = getSourceFileOrThrow(project, COMMAND_HANDLER_PATH);
+  const statusSource = getSourceFileOrThrow(project, STATUS_PATH);
+  const commandFlowSource = getSourceFileOrThrow(project, COMMAND_HANDLER_PATH);
   const startupSource = getStartupSource(project);
-  const healthWired = hasStringLiteral(workbenchSource, "app-shell-health")
-    && hasStringLiteral(workbenchSource, "mission-readiness")
+  const healthWired = hasStringLiteral(statusSource, "app-shell-health")
+    && hasStringLiteral(statusSource, "mission-readiness")
     && hasStartupHealthSignals(startupSource)
-    && hasStringLiteral(commandHandlerSource, "LOCAL_AI_READINESS_DEGRADED");
+    && hasStringLiteral(commandFlowSource, "LOCAL_AI_READINESS_DEGRADED");
 
   return healthWired
     ? []

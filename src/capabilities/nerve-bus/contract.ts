@@ -15,6 +15,7 @@ import type { NerveBusHandlerPort } from "./ports/nerve-bus-handler-port.js";
 import type { NerveBusHandledResult } from "./ports/nerve-bus-handler-port.js";
 import type { NerveBusIdempotencyPort } from "./ports/nerve-bus-idempotency-port.js";
 import type { NerveBusQueuePort } from "./ports/nerve-bus-queue-port.js";
+import type { NerveBusSequencePort } from "./ports/nerve-bus-sequence-port.js";
 import type { NerveBusPayloadDocument, NerveBusTransportPort } from "./ports/nerve-bus-transport-port.js";
 
 export { NERVE_BUS_ABILITY_GROUP_ID };
@@ -25,6 +26,11 @@ export type HumanCommandDispatchInput = z.infer<typeof HumanCommandDispatchInput
 
 export type CreateNerveBusAbilityGroupInput = {
   handlerPort: NerveBusHandlerPort;
+  clockPort?: NerveBusClockPort;
+  transportPort?: NerveBusTransportPort;
+  idempotencyPort?: NerveBusIdempotencyPort;
+  queuePort?: NerveBusQueuePort;
+  sequencePort?: NerveBusSequencePort;
 };
 
 export interface NerveBusAbilityGroup {
@@ -41,6 +47,6 @@ export type {
   NerveBusIdempotencyPort,
   NerveBusPayloadDocument,
   NerveBusQueuePort,
+  NerveBusSequencePort,
   NerveBusTransportPort,
 };
-export { handleNerveBusAiRequest } from "./runtime/ai-request-handler.js";

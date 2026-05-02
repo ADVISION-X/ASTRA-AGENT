@@ -13,7 +13,12 @@ export const PATHS = {
   SCHEMA: "src/capabilities/screenshot/schema.ts",
   REGISTRY: "src/capabilities/screenshot/registry.ts",
   INDEX: "src/capabilities/screenshot/index.ts",
+  WORKBENCH_ABILITY_GROUP: "src/capabilities/screenshot/workbench-screenshot-ability-group.ts",
   EXECUTOR: "src/capabilities/screenshot/runtime/screenshot-executor.ts",
+  EXECUTION_FLOW: "src/capabilities/screenshot/runtime/screenshot-execution-flow.ts",
+  EXECUTION_PHASES: "src/capabilities/screenshot/runtime/screenshot-execution-phases.ts",
+  EXECUTION_SUCCESS: "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
+  EXECUTION_SUCCESS_RESULT: "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
   CAPTURE_RUNNER: "src/capabilities/screenshot/runtime/capture-runner.ts",
   OUTPUT_BOUNDARY_GATE: "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
   PROOF_BUILDER: "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
@@ -35,8 +40,13 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/schema.ts`,
   `${PATHS.ROOT}/registry.ts`,
   `${PATHS.ROOT}/index.ts`,
+  `${PATHS.ROOT}/workbench-screenshot-ability-group.ts`,
   `${PATHS.ROOT}/adapters/index.ts`,
   `${PATHS.ROOT}/runtime/screenshot-executor.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-execution-flow.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-execution-phases.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-execution-success.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-execution-success-result.ts`,
   `${PATHS.ROOT}/runtime/screenshot-runtime-context.ts`,
   `${PATHS.ROOT}/runtime/screenshot-child-contract.ts`,
   `${PATHS.ROOT}/runtime/screenshot-input-gate.ts`,
@@ -55,6 +65,7 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/runtime/screenshot-dispatch-failure.ts`,
   `${PATHS.ROOT}/runtime/screenshot-idempotency.ts`,
   `${PATHS.ROOT}/runtime/screenshot-clock.ts`,
+  `${PATHS.ROOT}/runtime/system-screenshot-clock-port.ts`,
   `${PATHS.ROOT}/ports/screenshot-capture-port.ts`,
   `${PATHS.ROOT}/ports/screenshot-artifact-port.ts`,
   `${PATHS.ROOT}/ports/screenshot-clock-port.ts`,
@@ -68,7 +79,7 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/shared/screenshot-scale-mapping.ts`,
 ] as const;
 
-export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js"] as const;
+export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js", "./workbench-screenshot-ability-group.js"] as const;
 
 export const FORBIDDEN_CAPABILITY_MARKERS = [
   "/capabilities/ai/",

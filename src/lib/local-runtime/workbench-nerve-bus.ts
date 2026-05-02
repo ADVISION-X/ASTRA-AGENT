@@ -9,15 +9,17 @@ type NerveBusHandlerPort = Parameters<typeof createNerveBusAbilityGroup>[0]["han
 type AbilityDispatchInput = Parameters<NerveBusHandlerPort["dispatchAbilityCommand"]>[0];
 type AbilityDispatchEnvelope = AbilityDispatchInput["envelope"];
 type AbilityDispatchPayload = AbilityDispatchInput["inputPayload"];
+type AbilityDispatchSignal = AbilityDispatchInput["signal"];
 type AbilityDispatchResult = Awaited<ReturnType<NerveBusHandlerPort["dispatchAbilityCommand"]>>;
 
 async function dispatchAbilityCommandEnvelope(
   runtime: WorkbenchRuntime,
   envelope: AbilityDispatchEnvelope,
   inputPayload: AbilityDispatchPayload,
+  signal: AbilityDispatchSignal,
 ): Promise<AbilityDispatchResult> {
   try {
-    const result = await executeAbilityCommand(runtime, envelope, inputPayload);
+    const result = await executeAbilityCommand(runtime, envelope, inputPayload, signal);
     return buildAbilityCommandResultEnvelope({ envelope, result });
   } catch (error) {
     return buildAbilityCommandResultEnvelope({
@@ -36,8 +38,8 @@ async function dispatchAbilityCommandEnvelope(
 export const createWorkbenchNerveBus = (runtime: WorkbenchRuntime) =>
   createNerveBusAbilityGroup({
     handlerPort: {
-      dispatchAbilityCommand: ({ envelope, inputPayload }) => dispatchAbilityCommandEnvelope(runtime, envelope, inputPayload),
-      dispatchHumanCommand: ({ envelope, inputPayload }) => handleHumanCommandEnvelope(runtime, envelope, inputPayload),
-      requestAi: ({ envelope, inputPayload }) => handleWorkbenchNerveBusAiRequest(runtime, envelope, inputPayload),
+      dispatchAbilityCommand: ({ envelope, inputPayload, signal }) => dispatchAbilityCommandEnvelope(runtime, envelope, inputPayload, signal),
+      dispatchHumanCommand: ({ envelope, inputPayload, signal }) => handleHumanCommandEnvelope(runtime, envelope, inputPayload, signal),
+      requestAi: ({ envelope, inputPayload, signal }) => handleWorkbenchNerveBusAiRequest(runtime, envelope, inputPayload, signal),
     },
   });

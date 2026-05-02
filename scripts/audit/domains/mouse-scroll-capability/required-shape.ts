@@ -55,18 +55,22 @@ function collectSchemaAndRegistryFindings(project: ReturnType<typeof makeProject
 }
 
 function collectExecutorFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings: Finding[] = [];
   const executorSource = getSourceFile(project, PATHS.EXECUTOR);
   if (!executorSource) {
-    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Scroll executor file is missing." }));
-  } else {
-    for (const calleeName of ["validateGeometryScrollProof", "validateScrollPolicy", "validatePreScrollSafety", "resolveScrollDelta", "runPrimitiveScroll", "buildMouseScrollResult"]) {
-      if (!hasCallExpression(executorSource, calleeName)) {
-        findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Mouse Scroll executor must call ${calleeName}.` }));
-      }
-    }
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Mouse Scroll executor file is missing." })];
   }
-  return findings;
+
+  const routeSources = [
+    executorSource,
+    getSourceFile(project, PATHS.EXECUTION_VALIDATOR),
+    getSourceFile(project, PATHS.EXECUTION_RESERVATION),
+    getSourceFile(project, PATHS.BLOCKED_RESULT_BUILDER),
+    getSourceFile(project, PATHS.PRIMITIVE_RESULT_BUILDER),
+  ].filter((sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null);
+
+  return ["validateGeometryScrollProof", "validateScrollPolicy", "validatePreScrollSafety", "resolveScrollDelta", "runPrimitiveScroll", "buildMouseScrollResult"]
+    .filter((calleeName) => !routeSources.some((sourceFile) => hasCallExpression(sourceFile, calleeName)))
+    .map((calleeName) => createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Mouse Scroll executor must call ${calleeName}.` }));
 }
 
 function collectBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {

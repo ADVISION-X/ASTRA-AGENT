@@ -48,8 +48,8 @@ export type BuildProofInput = {
   transitionId?: string | null;
   transitionEvaluationDecision?: z.output<typeof TransitionEvaluationDecisionSchema> | null;
   transitionConditionSource?: z.output<typeof TransitionConditionSourceSchema> | null;
-  transitionConditionExpected?: string | boolean | null;
-  transitionConditionActual?: string | boolean | null;
+  transitionConditionExpected?: string | number | boolean | null;
+  transitionConditionActual?: string | number | boolean | null;
   inputRef?: string | null;
   outputRef?: string | null;
   abilityResultRef?: string | null;

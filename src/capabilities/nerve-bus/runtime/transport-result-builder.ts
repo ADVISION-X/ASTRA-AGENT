@@ -65,8 +65,8 @@ const buildGovernedFailureCommon = (input: GovernedFailureInput, status: "failed
   status,
 } as const);
 
-const buildAbilityFailureResult = (input: GovernedFailureInput & { envelope: AbilityCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
-  const resultEnvelope = AbilityResultEnvelopeSchema.parse({
+const buildAbilityFailureEnvelope = (input: GovernedFailureInput & { envelope: AbilityCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+  return AbilityResultEnvelopeSchema.parse({
     ...common,
     envelopeKind: "ability_result",
     channelId: "ability-to-orchestration",
@@ -75,11 +75,13 @@ const buildAbilityFailureResult = (input: GovernedFailureInput & { envelope: Abi
     from: input.envelope.to,
     to: "orchestration",
   });
+};
 
+const buildAbilityFailureResult = (input: GovernedFailureInput & { envelope: AbilityCommandEnvelope }, resultEnvelope: ReturnType<typeof buildAbilityFailureEnvelope>) => {
   return AbilityTransportResultSchema.parse({
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
     channelId: input.envelope.channelId,
-    status: common.status,
+    status: resultEnvelope.status,
     transportDecision: input.transportDecision ?? "executed",
     commandEnvelope: input.envelope,
     resultEnvelope,
@@ -89,8 +91,8 @@ const buildAbilityFailureResult = (input: GovernedFailureInput & { envelope: Abi
   });
 };
 
-const buildAiFailureResult = (input: GovernedFailureInput & { envelope: AiRequestEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
-  const responseEnvelope = AiResponseEnvelopeSchema.parse({
+const buildAiFailureEnvelope = (input: GovernedFailureInput & { envelope: AiRequestEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+  return AiResponseEnvelopeSchema.parse({
     ...common,
     envelopeKind: "ai_response",
     channelId: "ai-to-orchestration",
@@ -101,11 +103,13 @@ const buildAiFailureResult = (input: GovernedFailureInput & { envelope: AiReques
     decision: "transport_failed",
     confidence: null,
   });
+};
 
+const buildAiFailureResult = (input: GovernedFailureInput & { envelope: AiRequestEnvelope }, responseEnvelope: ReturnType<typeof buildAiFailureEnvelope>) => {
   return AiTransportResultSchema.parse({
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
     channelId: input.envelope.channelId,
-    status: common.status,
+    status: responseEnvelope.status,
     transportDecision: input.transportDecision ?? "executed",
     requestEnvelope: input.envelope,
     responseEnvelope,
@@ -115,8 +119,8 @@ const buildAiFailureResult = (input: GovernedFailureInput & { envelope: AiReques
   });
 };
 
-const buildHumanFailureResult = (input: GovernedFailureInput & { envelope: HumanCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
-  const resultEnvelope = HumanCommandResultEnvelopeSchema.parse({
+const buildHumanFailureEnvelope = (input: GovernedFailureInput & { envelope: HumanCommandEnvelope }, common: ReturnType<typeof buildGovernedFailureCommon>) => {
+  return HumanCommandResultEnvelopeSchema.parse({
     ...common,
     envelopeKind: "human_command_result",
     channelId: "orchestration-to-commander",
@@ -125,11 +129,13 @@ const buildHumanFailureResult = (input: GovernedFailureInput & { envelope: Human
     from: "orchestration",
     to: "commander-console",
   });
+};
 
+const buildHumanFailureResult = (input: GovernedFailureInput & { envelope: HumanCommandEnvelope }, resultEnvelope: ReturnType<typeof buildHumanFailureEnvelope>) => {
   return HumanCommandTransportResultSchema.parse({
     abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
     channelId: input.envelope.channelId,
-    status: common.status,
+    status: resultEnvelope.status,
     transportDecision: input.transportDecision ?? "executed",
     commandEnvelope: input.envelope,
     resultEnvelope,
@@ -139,19 +145,33 @@ const buildHumanFailureResult = (input: GovernedFailureInput & { envelope: Human
   });
 };
 
-export async function buildGovernedFailureResult(input: GovernedFailureInput) {
+export function buildGovernedFailureEnvelope(input: GovernedFailureInput): SupportedResultEnvelope {
   const status = input.status ?? "failed";
   const common = buildGovernedFailureCommon(input, status);
 
   if (input.envelope.envelopeKind === "ability_command") {
-    return buildAbilityFailureResult({ ...input, envelope: input.envelope }, common);
+    return buildAbilityFailureEnvelope({ ...input, envelope: input.envelope }, common);
   }
 
   if (input.envelope.envelopeKind === "ai_request") {
-    return buildAiFailureResult({ ...input, envelope: input.envelope }, common);
+    return buildAiFailureEnvelope({ ...input, envelope: input.envelope }, common);
   }
 
-  return buildHumanFailureResult({ ...input, envelope: input.envelope }, common);
+  return buildHumanFailureEnvelope({ ...input, envelope: input.envelope }, common);
+}
+
+export async function buildGovernedFailureResult(input: GovernedFailureInput) {
+  const resultEnvelope = buildGovernedFailureEnvelope(input);
+
+  if (input.envelope.envelopeKind === "ability_command") {
+    return buildAbilityFailureResult({ ...input, envelope: input.envelope }, resultEnvelope as ReturnType<typeof buildAbilityFailureEnvelope>);
+  }
+
+  if (input.envelope.envelopeKind === "ai_request") {
+    return buildAiFailureResult({ ...input, envelope: input.envelope }, resultEnvelope as ReturnType<typeof buildAiFailureEnvelope>);
+  }
+
+  return buildHumanFailureResult({ ...input, envelope: input.envelope }, resultEnvelope as ReturnType<typeof buildHumanFailureEnvelope>);
 }
 
 export { buildFailurePayloadDocument };

@@ -26,15 +26,57 @@ export const MapPluginTransitionStatusSchema = z.enum(["success", "failed", "rev
 export const MapPluginTransitionConditionSourceSchema = z.enum(["status", "decision"]);
 export const MapPluginMissionTerminalStatusSchema = z.enum(["completed", "failed", "review_required", "stopped"]);
 export const MapPluginTransitionConditionTypeSchema = z.enum(["comparison"]);
-export const MapPluginTransitionOperatorSchema = z.enum(["equals"]);
+export const MapPluginTransitionOperatorSchema = z.enum([
+  "equals",
+  "notEquals",
+  "exists",
+  "notExists",
+  "greaterThan",
+  "lessThan",
+  "confidenceAbove",
+  "confidenceBelow",
+  "statusIs",
+  "reviewRequired",
+]);
 
 export const MapPluginTransitionConditionSchema = z.object({
-  conditionType: MapPluginTransitionConditionTypeSchema.optional().default("comparison"),
-  leftRef: MapPluginPayloadRefKeySchema.nullable().optional().default(null),
-  operator: MapPluginTransitionOperatorSchema.optional().default("equals"),
-  rightValue: z.union([z.string(), z.boolean(), z.null()]).optional().default(null),
+  conditionType: MapPluginTransitionConditionTypeSchema,
+  leftRef: MapPluginTransitionConditionSourceSchema,
+  operator: MapPluginTransitionOperatorSchema,
+  rightValue: z.union([z.string(), z.number(), z.boolean(), z.null()]),
   onTrue: z.string().min(1).nullable().optional().default(null),
   onFalse: z.string().min(1).nullable().optional().default(null),
-  source: MapPluginTransitionConditionSourceSchema,
-  equals: z.union([z.string(), z.boolean(), z.null()]),
-}).strict();
+}).strict().superRefine((condition, context) => {
+  if (
+    ["greaterThan", "lessThan", "confidenceAbove", "confidenceBelow"].includes(condition.operator)
+    && typeof condition.rightValue !== "number"
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["rightValue"],
+      message: `Operator ${condition.operator} requires numeric rightValue.`,
+    });
+  }
+
+  if (
+    (condition.operator === "statusIs" || condition.operator === "reviewRequired")
+    && condition.leftRef !== "status"
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["leftRef"],
+      message: `Operator ${condition.operator} requires leftRef=status.`,
+    });
+  }
+
+  if (
+    ["exists", "notExists", "reviewRequired"].includes(condition.operator)
+    && condition.rightValue !== null
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["rightValue"],
+      message: `Operator ${condition.operator} requires rightValue=null.`,
+    });
+  }
+});

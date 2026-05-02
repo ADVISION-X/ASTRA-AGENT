@@ -14,6 +14,7 @@ export type ActiveRegistration = {
 };
 
 type RegistrationMap = Map<string, ActiveRegistration>;
+type ActivationRegistrationMap = Map<string, ActiveRegistration>;
 
 function toOperationalMap(mapPackage: MapPackage): OperationalMap {
   const { mapVersion: _mapVersion, proofPolicy: _proofPolicy, ...operationalMap } = mapPackage.operationalMap;
@@ -37,6 +38,15 @@ function toDeveloperBinding(registration: ActiveRegistration): TaskTemplateDevel
 function toActiveOperationalMapRecord(registration: ActiveRegistration): ActiveOperationalMapRecord {
   return {
     ...toDeveloperBinding(registration),
+    activationSnapshotRef: registration.activationRecord.activationSnapshotRef,
+    activationSnapshotHash: registration.activationRecord.activationSnapshotHash,
+    mapPackageHash: registration.activationRecord.mapPackageHash,
+    operationalMapHash: registration.activationRecord.operationalMapHash,
+    capabilityCatalogVersion: registration.activationRecord.capabilityCatalogVersion,
+    promptCatalogVersion: registration.activationRecord.promptCatalogVersion,
+    validationReportRef: registration.activationRecord.validationReportRef,
+    humanApprovalRef: registration.activationRecord.humanApprovalRef,
+    proofPolicy: registration.mapPackage.operationalMap.proofPolicy,
     operationalMap: toOperationalMap(registration.mapPackage),
   };
 }
@@ -87,9 +97,14 @@ const findRegistration = (registrations: Iterable<ActiveRegistration>, predicate
 
 const listRegistrations = (activeByMapId: RegistrationMap): ActiveRegistration[] => [...activeByMapId.values()];
 
-const createActiveWriteApi = (activeByMapId: RegistrationMap): Pick<ActiveMapRegistry, "activate" | "deactivate" | "getRegistration" | "listActivePackages"> => ({
+const createActiveWriteApi = (
+  activeByMapId: RegistrationMap,
+  snapshotByActivationId: ActivationRegistrationMap,
+): Pick<ActiveMapRegistry, "activate" | "deactivate" | "getRegistration" | "listActivePackages"> => ({
   activate(mapPackage, activationRecord) {
-    activeByMapId.set(mapPackage.manifest.mapId, { mapPackage, activationRecord });
+    const registration = { mapPackage, activationRecord };
+    activeByMapId.set(mapPackage.manifest.mapId, registration);
+    snapshotByActivationId.set(activationRecord.activationId, registration);
   },
   deactivate(mapId) {
     activeByMapId.delete(mapId);
@@ -104,6 +119,7 @@ const createActiveWriteApi = (activeByMapId: RegistrationMap): Pick<ActiveMapReg
 
 const createActiveLookupApi = (
   activeByMapId: RegistrationMap,
+  snapshotByActivationId: ActivationRegistrationMap,
 ): Pick<
   ActiveMapRegistry,
   | "getOperationalMap"
@@ -125,7 +141,7 @@ const createActiveLookupApi = (
     return registration ? toActiveOperationalMapRecord(registration) : null;
   },
   getActiveOperationalMapRecordByActivationId(activationId) {
-    const registration = findRegistration(listRegistrations(activeByMapId), (entry) => entry.activationRecord.activationId === activationId);
+    const registration = snapshotByActivationId.get(activationId) ?? null;
     return registration ? toActiveOperationalMapRecord(registration) : null;
   },
   getTaskTemplateDeveloperBinding(taskTemplateId) {
@@ -165,9 +181,10 @@ export type ActiveMapRegistry = {
 
 export const createActiveMapRegistry = (): ActiveMapRegistry => {
   const activeByMapId = new Map<string, ActiveRegistration>();
+  const snapshotByActivationId = new Map<string, ActiveRegistration>();
   return {
-    ...createActiveWriteApi(activeByMapId),
-    ...createActiveLookupApi(activeByMapId),
+    ...createActiveWriteApi(activeByMapId, snapshotByActivationId),
+    ...createActiveLookupApi(activeByMapId, snapshotByActivationId),
     ...createActiveFeedApi(activeByMapId),
   };
 };

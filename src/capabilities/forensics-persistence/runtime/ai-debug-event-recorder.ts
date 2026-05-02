@@ -1,5 +1,3 @@
-import type { ForensicsPersistenceAbilityGroup } from "../index.js";
-import type { AiRuntimeStructuredDebugEvent } from "../../ai/contract.js";
 import type { AiRuntimeStructuredDebugEventInput } from "./ai-debug-event-contract.js";
 import { buildAiDebugArtifactRefs, buildAiDebugDataQualityFlags, buildAiStructuredRuntimeEvent } from "./ai-debug-event-payload.js";
 
@@ -19,7 +17,7 @@ type AiDebugRecorderRuntime = {
 
 export const recordAiDebugEvent = async (
   runtime: AiDebugRecorderRuntime,
-  input: AiRuntimeStructuredDebugEventInput | AiRuntimeStructuredDebugEvent,
+  input: AiRuntimeStructuredDebugEventInput,
 ): Promise<void> => {
   const normalizedInput: AiRuntimeStructuredDebugEventInput = {
     ...input,

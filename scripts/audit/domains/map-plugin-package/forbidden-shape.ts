@@ -7,7 +7,21 @@ import { getSource, listMapPluginFiles } from "./audit-project.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { BUILTINS_ROOT, ROOT } from "./constants.js";
 
-const FORBIDDEN_TEXT_FRAGMENTS = ["import(", "child_process", "npm run", "eval(", "function ", "=>", "node:"] as const;
+const FORBIDDEN_TEXT_FRAGMENTS = [
+  "import(",
+  "child_process",
+  "npm run",
+  "eval(",
+  "function ",
+  "=>",
+  "node:",
+  "new function",
+  "javascript:",
+  "require(",
+  "system prompt",
+  "user prompt",
+  "raw prompt",
+] as const;
 const FORBIDDEN_IMPORT_MARKERS = [
   "/capabilities/orchestration/runtime/",
   "/capabilities/orchestration/maps/",
@@ -33,7 +47,7 @@ const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
       findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}` }));
     }
 
-    const forbiddenFragment = FORBIDDEN_TEXT_FRAGMENTS.find((fragment) => record.text.includes(fragment));
+    const forbiddenFragment = FORBIDDEN_TEXT_FRAGMENTS.find((fragment) => record.text.toLowerCase().includes(fragment));
     if (forbiddenFragment) {
       findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package must not contain executable-like fragment ${forbiddenFragment}.` }));
     }

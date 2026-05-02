@@ -9,6 +9,13 @@ import { LAW_IDS, PATHS } from "./config.js";
 import { getRepoPath, getScreenshotSources, getSource } from "./project-access.js";
 import { hasDateOutsideClock, hasForbiddenEscape } from "./source-rules.js";
 
+const EXECUTOR_ROUTE_SOURCES = [
+  PATHS.EXECUTOR,
+  PATHS.EXECUTION_FLOW,
+  PATHS.EXECUTION_SUCCESS,
+  PATHS.EXECUTION_SUCCESS_RESULT,
+] as const;
+
 function collectRootEscapeFindings(project: Project): Finding[] {
   const escapeFile = getScreenshotSources(project).find((sourceFile) => hasForbiddenEscape(sourceFile) || hasDateOutsideClock(sourceFile));
   return escapeFile
@@ -18,9 +25,9 @@ function collectRootEscapeFindings(project: Project): Finding[] {
 
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-  const executorSource = getSource(project, PATHS.EXECUTOR);
+  const routeSources = EXECUTOR_ROUTE_SOURCES.map((path) => getSource(project, path));
   for (const calleeName of ["runScreenshotPayloadBudgetGate", "runScreenshotOutputBoundaryGate", "buildScreenshotRuntimeProof", "buildScreenshotResult"]) {
-    if (!hasCallExpression(executorSource, calleeName)) {
+    if (!routeSources.some((sourceFile) => hasCallExpression(sourceFile, calleeName))) {
       findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Screenshot executor must not bypass ${calleeName}.` }));
     }
   }

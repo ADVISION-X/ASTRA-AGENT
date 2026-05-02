@@ -51,7 +51,14 @@ const createAiDispatcher = (context: ReturnType<typeof createNerveBusRuntimeCont
 };
 
 export function createNerveBusAbilityGroup(input: CreateNerveBusAbilityGroupInput): NerveBusAbilityGroup {
-  const context = createNerveBusRuntimeContext({ handlerPort: input.handlerPort });
+  const context = createNerveBusRuntimeContext({
+    handlerPort: input.handlerPort,
+    ...(input.clockPort ? { clockPort: input.clockPort } : {}),
+    ...(input.transportPort ? { transportPort: input.transportPort } : {}),
+    ...(input.idempotencyPort ? { idempotencyPort: input.idempotencyPort } : {}),
+    ...(input.queuePort ? { queuePort: input.queuePort } : {}),
+    ...(input.sequencePort ? { sequencePort: input.sequencePort } : {}),
+  });
 
   return {
     listChannelIds() {

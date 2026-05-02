@@ -10,6 +10,7 @@ import { buildVisualCaptureEntries } from "./builders/build-visual-capture-entri
 import { CapabilityCatalogDocumentSchema, type CapabilityCatalogDocument, type CapabilityCatalogEntry } from "./schema.js";
 
 export const CAPABILITY_CATALOG_VERSION = "2026-04-map-prompt-contract-v1";
+export const CAPABILITY_CATALOG_GENERATED_FROM = "src/map-plugins/authoring/capability-catalog/build-capability-catalog.ts";
 
 const collectCapabilityEntries = (): CapabilityCatalogEntry[] => [
   ...buildAiOpenEntries(),
@@ -31,6 +32,7 @@ const sortEntries = (entries: CapabilityCatalogEntry[]): CapabilityCatalogEntry[
 export const buildCapabilityCatalog = (): CapabilityCatalogDocument => {
   return CapabilityCatalogDocumentSchema.parse({
     version: CAPABILITY_CATALOG_VERSION,
+    generatedFrom: CAPABILITY_CATALOG_GENERATED_FROM,
     entries: sortEntries(collectCapabilityEntries()),
   });
 };

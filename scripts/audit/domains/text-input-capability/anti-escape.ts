@@ -9,32 +9,79 @@ function hasVariableDeclaration(sourceFile: ReturnType<typeof getSourceFile>, va
   return sourceFile?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).some((declaration) => declaration.getName() === variableName) ?? false;
 }
 
-function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile>): Finding[] {
-  if (!executorSource) {
-    return [createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor is missing for anti-escape checks." })];
-  }
+function hasIdentifier(sourceFile: ReturnType<typeof getSourceFile>, identifierName: string): boolean {
+  return sourceFile?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === identifierName) ?? false;
+}
 
+function getExecutorRouteSources(project: ReturnType<typeof makeProject>) {
+  return [
+    getSourceFile(project, PATHS.EXECUTOR),
+    getSourceFile(project, PATHS.EXECUTION_GATES),
+    getSourceFile(project, PATHS.EXECUTOR_FLOW),
+    getSourceFile(project, PATHS.EXECUTOR_PLAN),
+    getSourceFile(project, PATHS.EXECUTOR_FINALIZE),
+    getSourceFile(project, PATHS.EXECUTION_SUPPORT),
+  ].filter((sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null);
+}
+
+function collectVariableCheckpointFindings(routeSources: ReturnType<typeof getExecutorRouteSources>): Finding[] {
   const findings: Finding[] = [];
-  const gateVariables = ["targetGate", "focusGate", "sourceGate", "approvedTextGate", "textPolicyGate", "sensitiveGate", "keyGate", "commitGate", "clipboardGate", "actionExecutionRef", "finalResultInput"];
+  const gateVariables = ["targetGate", "focusGate", "sourceGate", "approvedTextGate", "sensitiveGate", "keyGate", "commitGate", "clipboardGate", "executionResult"];
   for (const variableName of gateVariables) {
-    if (!hasVariableDeclaration(executorSource, variableName)) {
+    if (!routeSources.some((sourceFile) => hasVariableDeclaration(sourceFile, variableName))) {
       findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Text Input executor must keep ${variableName} as a governed checkpoint.` }));
     }
   }
 
-  const returnsResultBuilder = executorSource.getDescendantsOfKind(SyntaxKind.ReturnStatement).some((statement) => {
-    const expression = statement.getExpression();
-    return expression !== undefined && Node.isCallExpression(expression) && expression.getExpression().getText() === "buildTextInputResult";
-  });
-  if (!returnsResultBuilder) {
-    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor must return buildTextInputResult directly." }));
+  return findings;
+}
+
+function collectPolicyAndActionRefFindings(routeSources: ReturnType<typeof getExecutorRouteSources>): Finding[] {
+  const findings: Finding[] = [];
+  if (!routeSources.some((sourceFile) => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "validateTextPolicy"))) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor must keep textPolicyGate as a governed checkpoint." }));
   }
 
-  const executorText = executorSource.getFullText();
-  if (!executorText.includes("finalResultInput.clipboardDecision = state.clipboardDecision;")
-    || !executorText.includes("finalResultInput.restoredClipboardHash = state.restoredClipboardHash;")
-    || !executorText.includes("finalResultInput.dataQualityFlags = mergeFlags(finalResultInput.dataQualityFlags, state.dataQualityFlags);")) {
+  if (!routeSources.some((sourceFile) => hasIdentifier(sourceFile, "actionExecutionRef"))) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor must keep actionExecutionRef as a governed checkpoint." }));
+  }
+
+  return findings;
+}
+
+function hasGovernedResultBuilderCall(routeSources: ReturnType<typeof getExecutorRouteSources>): boolean {
+  return routeSources.some((sourceFile) => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const calleeText = callExpression.getExpression().getText();
+    return calleeText === "buildTextInputExecutionResult" || calleeText === "buildTextInputResult";
+  }));
+}
+
+function collectFinalizeMergeFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const findings: Finding[] = [];
+  const finalizeSource = getSourceFile(project, PATHS.EXECUTOR_FINALIZE);
+  const finalizeText = finalizeSource?.getFullText() ?? "";
+  if (!finalizeText.includes("input.executionResult.state.clipboardDecision = input.state.clipboardDecision;")
+    || !finalizeText.includes("input.executionResult.state.restoredClipboardHash = input.state.restoredClipboardHash;")
+    || !finalizeText.includes("input.executionResult.state.dataQualityFlags = mergeFlags(input.executionResult.state.dataQualityFlags, input.state.dataQualityFlags);")) {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor must merge clipboard restore outcome and state flags into the final governed result envelope." }));
+  }
+
+  return findings;
+}
+
+function collectExecutorFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const routeSources = getExecutorRouteSources(project);
+  if (routeSources.length === 0) {
+    return [createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor is missing for anti-escape checks." })];
+  }
+
+  const findings = [
+    ...collectVariableCheckpointFindings(routeSources),
+    ...collectPolicyAndActionRefFindings(routeSources),
+    ...collectFinalizeMergeFindings(project),
+  ];
+  if (!hasGovernedResultBuilderCall(routeSources)) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Text Input executor must terminate through the governed result builder chain." }));
   }
 
   return findings;
@@ -77,10 +124,9 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
   return findings;
 }
 
-export function runAntiEscapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
-  const project = makeProject();
+export function runAntiEscapeAttack(project: ReturnType<typeof makeProject> = makeProject()): { findings: Finding[]; phase: InspectorPhase } {
   const findings = [
-    ...collectExecutorFindings(getSourceFile(project, PATHS.EXECUTOR)),
+    ...collectExecutorFindings(project),
     ...collectResultBuilderFindings(getSourceFile(project, PATHS.RESULT_BUILDER)),
     ...collectRunnerFindings(getSourceFile(project, PATHS.RUNNER)),
   ];

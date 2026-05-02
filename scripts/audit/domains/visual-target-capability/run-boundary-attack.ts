@@ -46,15 +46,23 @@ const collectDuplicateSchemaFindings = (project: Project) => {
 
 const collectWorkbenchAndLegacyFindings = async (project: Project) => {
   const findings = [];
-  const workbenchSource = getSourceFileOrThrow(project, config.WORKBENCH_PATH);
+  const workbenchAbilityGroupSource = getSourceFileOrThrow(project, config.WORKBENCH_ABILITY_GROUP_PATH);
+  const workbenchRuntimeSource = getSourceFileOrThrow(project, config.WORKBENCH_RUNTIME_PATH);
   const legacyPlatformAdapterExists = await fileExists(pathFromRepoRoot(config.PLATFORM_ADAPTER_PATH));
-  const workbenchImport = workbenchSource.getImportDeclarations().find((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("capabilities/visual-target/index.js"));
-  const workbenchCreatesAbilityGroup = workbenchSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+  const workbenchImport = workbenchAbilityGroupSource.getImportDeclarations().find((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("capabilities/visual-target/index.js"));
+  const workbenchCreatesAbilityGroup = workbenchAbilityGroupSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const path = flattenPropertyAccess(callExpression.getExpression());
-    return path.length === 1 && path[0] === "createVisualTargetAbilityGroup";
+    return path.length === 1 && path[0] === "createVisualTargetAbilityGroupWithSystemClock";
+  });
+  const workbenchRuntimeCreatesWrapper = workbenchRuntimeSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const path = flattenPropertyAccess(callExpression.getExpression());
+    return path.length === 1 && path[0] === "createWorkbenchVisualTargetAbilityGroup";
   });
   if (!workbenchImport || !workbenchCreatesAbilityGroup) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: config.WORKBENCH_PATH, message: "Workbench must wire Visual Target through createVisualTargetAbilityGroup() from the public index surface." }));
+    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: config.WORKBENCH_ABILITY_GROUP_PATH, message: "Workbench must wire Visual Target through createVisualTargetAbilityGroupWithSystemClock() from the public index surface." }));
+  }
+  if (!workbenchRuntimeCreatesWrapper) {
+    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: config.WORKBENCH_RUNTIME_PATH, message: "Workbench visual runtime must compose Visual Target through createWorkbenchVisualTargetAbilityGroup()." }));
   }
   if (legacyPlatformAdapterExists) {
     findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1", file: config.PLATFORM_ADAPTER_PATH, message: "Retired TikTok visual-target adapter chain must be physically removed instead of kept as a second consumer path." }));

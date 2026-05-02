@@ -9,6 +9,14 @@ import { CHILDREN, LAW_IDS, PATHS } from "./config.js";
 import { getRegistryChildIds, getSource, missingCanonicalFiles } from "./project-access.js";
 import { isThinAbilityGroup } from "./source-rules.js";
 
+const EXECUTOR_ROUTE_SOURCES = [
+  PATHS.EXECUTOR,
+  PATHS.EXECUTION_FLOW,
+  PATHS.EXECUTION_PHASES,
+  PATHS.EXECUTION_SUCCESS,
+  PATHS.EXECUTION_SUCCESS_RESULT,
+] as const;
+
 async function collectMissingFileFindings(findings: Finding[]): Promise<void> {
   for (const filePath of await missingCanonicalFiles()) {
     findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: filePath, line: 1, severity: "fatal", message: "Screenshot required canonical file is missing." }));
@@ -42,9 +50,9 @@ function collectSchemaAndRegistryFindings(project: Project): Finding[] {
 
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-  const executorSource = getSource(project, PATHS.EXECUTOR);
+  const routeSources = EXECUTOR_ROUTE_SOURCES.map((path) => getSource(project, path));
   for (const calleeName of ["runScreenshotInputGate", "runScreenshotPayloadBudgetGate", "runScreenshotSourceGate", "runBrowserSessionGate", "runPageStateHandoffGate", "runPrivacyPolicyGate", "runRegionProofGate", "runArtifactStorageGate", "runScreenshotOutputBoundaryGate", "buildScreenshotRuntimeProof", "buildScreenshotResult"]) {
-    if (!hasCallExpression(executorSource, calleeName)) {
+    if (!routeSources.some((sourceFile) => hasCallExpression(sourceFile, calleeName))) {
       findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Screenshot executor must route through ${calleeName}.` }));
     }
   }

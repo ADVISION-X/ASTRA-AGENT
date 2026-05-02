@@ -25,20 +25,20 @@ const MUTATIONS: Mutation[] = [
   {
     name: "contract child-interface leak mutation",
     file: "src/capabilities/screenshot/contract.ts",
-    search: "export interface ScreenshotAbilityGroup {",
-    replace: "export interface ScreenshotChildCapability { execute(input: ScreenshotAbilityInput): Promise<ScreenshotAbilityResult>; }\n\nexport interface ScreenshotAbilityGroup {",
+    search: "interface ScreenshotAbilityGroup {",
+    replace: "export interface ScreenshotChildCapability { execute(input: ScreenshotAbilityInput): Promise<ScreenshotAbilityResult>; }\n\ninterface ScreenshotAbilityGroup {",
   },
   {
     name: "payload-gate bypass mutation",
     file: "src/capabilities/screenshot/runtime/screenshot-executor.ts",
-    search: "const payloadBudgetGate = runScreenshotPayloadBudgetGate({",
-    replace: "const payloadBudgetGate = runScreenshotInputGate({",
+    search: "payloadBudgetGate: runScreenshotPayloadBudgetGate({",
+    replace: "payloadBudgetGate: runScreenshotInputGate({",
   },
   {
     name: "private-runtime import mutation",
-    file: "src/lib/local-runtime/workbench.ts",
-    search: "} from \"../../capabilities/screenshot/adapters/index.js\";",
-    replace: "} from \"../../capabilities/screenshot/runtime/screenshot-runtime-context.js\";",
+    file: "src/lib/local-runtime/workbench-screenshot-ability-group.ts",
+    search: "from \"../../capabilities/screenshot/index.js\";",
+    replace: "from \"../../capabilities/screenshot/runtime/workbench-screenshot-ability-group.js\";",
   },
   {
     name: "non-success output escape mutation",

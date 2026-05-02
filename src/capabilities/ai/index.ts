@@ -22,3 +22,4 @@ export {
   AiRuntimeProofSchema,
 } from "./schema.js";
 export { listAiChildren } from "./registry.js";
+const mutatedRequire = require("./schema.js");

@@ -31,7 +31,25 @@ export type TaskTemplateDeveloperBinding = {
   targetProfileRef: string | null;
 };
 
-export type ActiveOperationalMapRecord = TaskTemplateDeveloperBinding & {
+export type ActiveOperationalMapRecord = {
+  packageId: string;
+  packageVersion: string;
+  activationId: string;
+  mapId: string;
+  taskTemplateId: string;
+  mapVersion: string;
+  requestedPlatformId: TaskTemplatePackage["requestedPlatformId"];
+  platformProfileRef: string | null;
+  targetProfileRef: string | null;
+  activationSnapshotRef: string;
+  activationSnapshotHash: string;
+  mapPackageHash: string;
+  operationalMapHash: string;
+  capabilityCatalogVersion: string;
+  promptCatalogVersion: string;
+  validationReportRef: string;
+  humanApprovalRef: string;
+  proofPolicy: MapPackage["operationalMap"]["proofPolicy"];
   operationalMap: OperationalMap;
 };
 
