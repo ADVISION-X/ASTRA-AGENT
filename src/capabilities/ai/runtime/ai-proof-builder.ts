@@ -14,9 +14,18 @@ function buildAiRequestHash(request: ParsedAiAbilityInput): string {
   return hashValue({
     sessionId: request.sessionId,
     roundId: request.roundId,
+    stepId: request.stepId,
     videoVisitId: request.videoVisitId,
     taskType: request.taskType,
+    capabilityCallId: request.capabilityCallId,
+    nerveBusEnvelopeId: request.nerveBusEnvelopeId,
     promptContractId: request.promptContractId,
+    mapPackageId: request.mapPackageId,
+    mapPackageVersion: request.mapPackageVersion,
+    selectedMapId: request.selectedMapId,
+    selectedMapVersion: request.selectedMapVersion,
+    activationSnapshotRef: request.activationSnapshotRef,
+    promptCatalogVersion: request.promptCatalogVersion,
   });
 }
 
@@ -37,74 +46,12 @@ function buildAiProofIds(input: {
   childContract: AiChildContract;
 }) {
   return {
-    proofId: buildStableAiRef("ai-proof", [input.request.missionId, input.request.sessionId, input.childContract.childCapabilityId, input.request.taskType, input.request.roundId, input.request.videoVisitId]),
-    runId: buildStableAiRef("ai-run", [input.request.sessionId, input.request.taskType, input.request.roundId, input.request.videoVisitId]),
+    proofId: buildStableAiRef("ai-proof", [input.request.missionId, input.request.selectedMapId, input.request.stepId, input.childContract.childCapabilityId, input.request.capabilityCallId]),
+    runId: buildStableAiRef("ai-run", [input.request.sessionId, input.request.stepId, input.request.capabilityCallId]),
   };
 }
 
-function buildAiRuntimeProofPayload(input: Parameters<typeof buildAiRuntimeProof>[0]) {
-  const proofIds = buildAiProofIds(input);
-  return {
-    proofId: proofIds.proofId,
-    runId: proofIds.runId,
-    missionId: input.request.missionId,
-    missionIdSource: input.request.missionId === null ? "unavailable" : "explicit",
-    sessionId: input.request.sessionId,
-    roundId: input.request.roundId,
-    videoVisitId: input.request.videoVisitId,
-    abilityGroupId: "ai",
-    childCapabilityId: input.childContract.childCapabilityId,
-    taskType: input.request.taskType,
-    promptContractId: input.request.promptContractId,
-    expectedOutputSchema: input.request.expectedOutputSchema,
-    modelProvider: input.result.modelProvider,
-    modelName: input.result.modelName,
-    modelRole: input.result.modelRole,
-    runtime: input.result.runtime,
-    requestHash: buildAiRequestHash(input.request),
-    inputPayloadHash: hashValue(input.request.input),
-    promptContractHash: input.promptContract.promptHash,
-    modelConfigHash: buildAiModelConfigHash({ childContract: input.childContract, result: input.result }),
-    runtimeCallId: input.runtimeCallId,
-    inputRefs: input.request.inputRefs.map((item) => item.id),
-    outputRefs: input.outputRef ? [input.outputRef] : [],
-    evidenceRefs: input.request.inputRefs.map((item) => item.id),
-    rawOutputRef: input.rawOutputRef,
-    rawOutputHash: input.rawOutputHash,
-    timeoutMs: input.timeoutMs,
-    attemptIndex: input.attemptIndex,
-    retryCount: input.retryCount,
-    circuitBreakerState: input.circuitBreakerState,
-    gatewayDurationMs: input.gatewayDurationMs,
-    startedAt: input.started.startedAt,
-    endedAt: input.ended.endedAt,
-    durationMs: input.ended.durationMs,
-    ...buildAiRuntimeProofOutcome(input),
-    clockPortKind: input.ended.portKind,
-  };
-}
-
-function buildAiRuntimeProofOutcome(input: Parameters<typeof buildAiRuntimeProof>[0]) {
-  return {
-    status: input.result.status,
-    failureReason: input.result.failureReason,
-    reviewRequiredReason: input.result.reviewRequiredReason,
-    providerDecision: input.providerDecision,
-    dataPolicyDecision: input.dataPolicyDecision,
-    costPolicyDecision: input.costPolicyDecision,
-    safetyPolicyDecision: input.safetyPolicyDecision,
-    schemaDecision: input.schemaDecision,
-    qualityDecision: input.qualityDecision,
-    outputBoundaryDecision: input.outputBoundaryDecision,
-    disabledProviderDecision: input.disabledProviderDecision,
-    schemaIssueCount: input.schemaIssueCount,
-    boundaryViolationCount: input.boundaryViolationCount,
-    qualityDecisionReason: input.qualityDecisionReason,
-    dataQualityFlags: input.dataQualityFlags,
-  };
-}
-
-export function buildAiRuntimeProof(input: {
+type AiRuntimeProofInput = {
   request: ParsedAiAbilityInput;
   childContract: AiChildContract;
   promptContract: ResolvedAiPromptContract;
@@ -132,6 +79,104 @@ export function buildAiRuntimeProof(input: {
   boundaryViolationCount: number;
   qualityDecisionReason: string | null;
   dataQualityFlags: string[];
-}) {
+};
+
+function buildAiRuntimeProofIdentityFields(input: AiRuntimeProofInput, proofIds: ReturnType<typeof buildAiProofIds>) {
+  return {
+    proofId: proofIds.proofId,
+    runId: proofIds.runId,
+    missionId: input.request.missionId,
+    missionIdSource: input.request.missionId === null ? "unavailable" : "explicit",
+    sessionId: input.request.sessionId,
+    roundId: input.request.roundId,
+    videoVisitId: input.request.videoVisitId,
+    stepId: input.request.stepId,
+    capabilityCallId: input.request.capabilityCallId,
+  };
+}
+
+function buildAiRuntimeProofChainFields(input: AiRuntimeProofInput) {
+  return {
+    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
+    mapPackageId: input.request.mapPackageId,
+    mapPackageVersion: input.request.mapPackageVersion,
+    selectedMapId: input.request.selectedMapId,
+    selectedMapVersion: input.request.selectedMapVersion,
+    activationSnapshotRef: input.request.activationSnapshotRef,
+    promptContractVersion: input.promptContract.promptVersion,
+    promptCatalogVersion: input.request.promptCatalogVersion,
+    abilityGroupId: "ai",
+    childCapabilityId: input.childContract.childCapabilityId,
+    taskType: input.request.taskType,
+    promptContractId: input.request.promptContractId,
+    expectedOutputSchema: input.request.expectedOutputSchema,
+  };
+}
+
+function buildAiRuntimeProofRuntimeFields(input: AiRuntimeProofInput) {
+  return {
+    modelProvider: input.result.modelProvider,
+    modelName: input.result.modelName,
+    modelRole: input.result.modelRole,
+    runtime: input.result.runtime,
+    requestHash: buildAiRequestHash(input.request),
+    inputPayloadHash: hashValue(input.request.input),
+    promptContractHash: input.promptContract.promptHash,
+    modelConfigHash: buildAiModelConfigHash({ childContract: input.childContract, result: input.result }),
+    runtimeCallId: input.runtimeCallId,
+    inputRefs: input.request.inputRefs.map((item) => item.id),
+    outputRefs: input.outputRef ? [input.outputRef] : [],
+    evidenceRefs: input.request.inputRefs.map((item) => item.id),
+    rawOutputRef: input.rawOutputRef,
+    rawOutputHash: input.rawOutputHash,
+    timeoutMs: input.timeoutMs,
+    attemptIndex: input.attemptIndex,
+    retryCount: input.retryCount,
+    circuitBreakerState: input.circuitBreakerState,
+    gatewayDurationMs: input.gatewayDurationMs,
+  };
+}
+
+function buildAiRuntimeProofTimingFields(input: AiRuntimeProofInput) {
+  return {
+    startedAt: input.started.startedAt,
+    endedAt: input.ended.endedAt,
+    durationMs: input.ended.durationMs,
+    clockPortKind: input.ended.portKind,
+  };
+}
+
+function buildAiRuntimeProofPayload(input: AiRuntimeProofInput) {
+  const proofIds = buildAiProofIds(input);
+  return {
+    ...buildAiRuntimeProofIdentityFields(input, proofIds),
+    ...buildAiRuntimeProofChainFields(input),
+    ...buildAiRuntimeProofRuntimeFields(input),
+    ...buildAiRuntimeProofTimingFields(input),
+    ...buildAiRuntimeProofOutcome(input),
+  };
+}
+
+function buildAiRuntimeProofOutcome(input: AiRuntimeProofInput) {
+  return {
+    status: input.result.status,
+    failureReason: input.result.failureReason,
+    reviewRequiredReason: input.result.reviewRequiredReason,
+    providerDecision: input.providerDecision,
+    dataPolicyDecision: input.dataPolicyDecision,
+    costPolicyDecision: input.costPolicyDecision,
+    safetyPolicyDecision: input.safetyPolicyDecision,
+    schemaDecision: input.schemaDecision,
+    qualityDecision: input.qualityDecision,
+    outputBoundaryDecision: input.outputBoundaryDecision,
+    disabledProviderDecision: input.disabledProviderDecision,
+    schemaIssueCount: input.schemaIssueCount,
+    boundaryViolationCount: input.boundaryViolationCount,
+    qualityDecisionReason: input.qualityDecisionReason,
+    dataQualityFlags: input.dataQualityFlags,
+  };
+}
+
+export function buildAiRuntimeProof(input: AiRuntimeProofInput) {
   return AiRuntimeProofSchema.parse(buildAiRuntimeProofPayload(input));
 }

@@ -10,7 +10,7 @@ function timeoutMessage(timeoutMs: number): string {
 }
 
 function resolveRuntimeSignal(input: {
-  signal?: AbortSignal;
+  signal: AbortSignal | undefined;
   timeoutMs: number;
 }): { signal: AbortSignal; timeoutHandle: ReturnType<typeof setTimeout> | null } {
   if (input.signal) {
@@ -34,7 +34,7 @@ function resolveAbortMessage(signal: AbortSignal, timeoutMs: number): string {
 async function executeWithTimeout<TResult>(input: {
   execute: (signal: AbortSignal) => Promise<TResult>;
   timeoutMs: number;
-  signal?: AbortSignal;
+  signal: AbortSignal | undefined;
 }): Promise<ProtectedGatewayResult<TResult>> {
   const startedAtMs = performance.now();
   const runtimeSignal = resolveRuntimeSignal({ signal: input.signal, timeoutMs: input.timeoutMs });

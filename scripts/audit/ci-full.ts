@@ -5,7 +5,12 @@ type CiStep = {
   args: string[];
 };
 
-const CI_STEP_TIMEOUT_MS = 120_000;
+const DEFAULT_CI_STEP_TIMEOUT_MS = 120_000;
+const CI_STEP_TIMEOUT_MS_BY_LABEL: Record<string, number> = {
+  audit: 600_000,
+};
+
+const resolveCiStepTimeoutMs = (label: string): number => CI_STEP_TIMEOUT_MS_BY_LABEL[label] ?? DEFAULT_CI_STEP_TIMEOUT_MS;
 
 const steps: CiStep[] = [
   { label: "typecheck", args: ["run", "typecheck"] },
@@ -19,11 +24,12 @@ const exitNow = (code: number): never => {
 
 for (const [index, step] of steps.entries()) {
   process.stdout.write(`[CI FULL] ${index + 1}/${steps.length} starting ${step.label}...\n`);
+  const timeoutMs = resolveCiStepTimeoutMs(step.label);
 
   const result = spawnSync("npm", step.args, {
     stdio: "inherit",
     shell: process.platform === "win32",
-    timeout: CI_STEP_TIMEOUT_MS,
+    timeout: timeoutMs,
   });
 
   if (result.error) {
@@ -33,7 +39,7 @@ for (const [index, step] of steps.entries()) {
 
   if (result.status !== 0) {
     const status = result.status ?? 1;
-    const timeoutDetail = result.signal === "SIGTERM" ? ` after ${CI_STEP_TIMEOUT_MS}ms` : "";
+    const timeoutDetail = result.signal === "SIGTERM" ? ` after ${timeoutMs}ms` : "";
     process.stderr.write(`[CI FULL FAIL-FAST] stopped at ${step.label}${timeoutDetail} with exit code ${status}.\n`);
     exitNow(status);
   }

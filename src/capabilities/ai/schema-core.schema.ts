@@ -33,6 +33,7 @@ import {
   AI_SCHEMA_VALIDATION_STATUSES,
   AI_TASK_TYPES,
 } from "./shared/ai-types.js";
+import { AiChainFieldSchemas } from "./schema-chain-fields.js";
 
 const nullableString = z.string().min(1).nullable().default(null);
 const nonNegativeNumber = z.number().finite().nonnegative();
@@ -204,6 +205,7 @@ const AiBaseInputSchema = z.object({
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
+  ...AiChainFieldSchemas,
   qualityPolicy: AiQualityPolicySchema.default(() => ({ ...DEFAULT_AI_QUALITY_POLICY })),
   providerPolicy: AiProviderPolicySchema.default(() => ({
     requireLocalOnly: DEFAULT_AI_PROVIDER_POLICY.requireLocalOnly,

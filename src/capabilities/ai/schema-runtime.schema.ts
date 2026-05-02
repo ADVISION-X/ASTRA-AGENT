@@ -26,6 +26,7 @@ import {
   AiTaskTypeSchema,
   AiVisualOutputSchema,
 } from "./schema-core.schema.js";
+import { AiRuntimeProofChainFieldSchemas } from "./schema-chain-fields.js";
 
 const nullableString = z.string().min(1).nullable().default(null);
 const nonNegativeNumber = z.number().finite().nonnegative();
@@ -40,6 +41,7 @@ const AiBaseRuntimeProofFieldSchemas = {
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
+  ...AiRuntimeProofChainFieldSchemas,
   abilityGroupId: AiAbilityGroupIdSchema,
   childCapabilityId: AiChildCapabilityIdSchema,
   taskType: AiTaskTypeSchema,

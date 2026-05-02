@@ -67,40 +67,6 @@ const buildUnavailableTerminalResult = (
     ...(input.qualityDecisionReason === undefined ? {} : { qualityDecisionReason: input.qualityDecisionReason }),
   });
 
-export const buildAiInputGateFailureResult = (input: {
-  request: ParsedAiAbilityInput;
-  childContract: AiChildContract;
-  context: AiExecutionContext;
-  promptContract: ResolvedAiPromptContract;
-  reason: string;
-}) =>
-  finalizeTerminalResult({
-    request: input.request,
-    childContract: input.childContract,
-    context: input.context,
-    promptContract: input.promptContract,
-    status: "failed",
-    failureReason: input.reason,
-    reviewRequiredReason: null,
-    implementationStatus: "input_gate_blocked",
-    modelProvider: input.childContract.providerKind,
-    runtime: "ai-executor",
-    modelName: "unavailable",
-    confidence: null,
-    costEstimate: null,
-    schemaValidationStatus: "invalid",
-    providerDecision: "blocked",
-    dataPolicyDecision: "not_applicable",
-    costPolicyDecision: "not_applicable",
-    safetyPolicyDecision: "allow",
-    schemaDecision: "blocked",
-    qualityDecision: "blocked",
-    outputBoundaryDecision: "allow",
-    disabledProviderDecision: "not_applicable",
-    dataQualityFlags: [input.reason],
-    output: null,
-  });
-
 const buildAiDisabledProviderResult = (plan: AiExecutionPlan) => {
   const disabledOutput = buildAiDisabledProviderOutput(plan.request, plan.childContract, plan.promptContract);
   return finalizeTerminalResult({
@@ -261,7 +227,7 @@ export const buildAiExecutionPlan = (input: AiExecutionSeed): AiExecutionPlan =>
   dataDecision: evaluateAiDataPolicy(input.request, input.childContract),
   costDecision: evaluateAiCostPolicy(input.request, input.childContract),
   payloadBudgetDecision: evaluateAiPayloadBudgetGate(input.request),
-  resolvedSchema: ({ decision: "resolved", reason: null, schemaId: "mutated", outputSchema: null }),
+  resolvedSchema: resolveAiSchemaContract(input.request, input.promptContract),
 });
 
 export async function resolveAiPreRuntimeResult(plan: AiExecutionPlan): Promise<AiAbilityResult | null> {

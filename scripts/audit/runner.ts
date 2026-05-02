@@ -4,7 +4,12 @@ import { createInspectorContext, loadGeneratedArtifacts, loadInspector, writeRun
 import type { RunnerSummary } from "./core/schema-runner.js";
 import type { InspectorResult } from "./core/schema.js";
 
-const STEP_TIMEOUT_MS = 60_000;
+const DEFAULT_STEP_TIMEOUT_MS = 60_000;
+const STEP_TIMEOUT_MS_BY_DOMAIN: Record<string, number> = {
+	"ai-capability": 120_000,
+};
+
+const resolveStepTimeoutMs = (label: string): number => STEP_TIMEOUT_MS_BY_DOMAIN[label] ?? DEFAULT_STEP_TIMEOUT_MS;
 
 const buildSummary = (input: {
 	phase: string;
@@ -27,11 +32,12 @@ const exitNow = (code: number): never => {
 };
 
 const runWithTimeout = async <T>(label: string, task: Promise<T>): Promise<T> => {
+	const timeoutMs = resolveStepTimeoutMs(label);
 	let timeoutHandle: NodeJS.Timeout | undefined;
 	const timeout = new Promise<never>((_, reject) => {
 		timeoutHandle = setTimeout(() => {
-			reject(new Error(`${label} exceeded ${STEP_TIMEOUT_MS}ms`));
-		}, STEP_TIMEOUT_MS);
+			reject(new Error(`${label} exceeded ${timeoutMs}ms`));
+		}, timeoutMs);
 	});
 
 	try {
@@ -92,7 +98,7 @@ const main = async (): Promise<void> => {
 
 main().catch((error: unknown) => {
 	const message = error instanceof Error ? error.stack ?? error.message : String(error);
-	const prefix = message.includes(`exceeded ${STEP_TIMEOUT_MS}ms`) ? "AUDIT FAIL-FAST" : "AUDIT ERROR";
+	const prefix = message.includes("exceeded ") ? "AUDIT FAIL-FAST" : "AUDIT ERROR";
 	process.stderr.write(`[${prefix}] ${message}\n`);
 	exitNow(1);
 });

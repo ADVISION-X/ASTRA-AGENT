@@ -1,27 +1,35 @@
 import type { AiAbilityResult, AiChildContract, AiExecutionContext, ParsedAiAbilityInput } from "../contract.js";
 import {
   buildAiExecutionPlan,
-  buildAiInputGateFailureResult,
   resolveAiPreRuntimeResult,
   runAiExecutorInputGate,
 } from "./ai-pre-runtime.js";
+import { buildAiInputGateFailureResult, buildAiPromptGateFailureResult } from "./ai-pre-runtime-terminal-results.js";
 import { runAiRuntimeCall } from "./ai-runtime-call-runner.js";
 import { resolveAiRuntimeResult } from "./ai-runtime-result.js";
 
 export async function executeAiChild(input: { request: ParsedAiAbilityInput; childContract: AiChildContract; context: AiExecutionContext }): Promise<AiAbilityResult> {
-  const promptContract = input.context.promptRegistry.resolvePromptContract({
-    promptContractId: input.request.promptContractId,
-    taskType: input.request.taskType,
-  });
-
   const inputGate = runAiExecutorInputGate(input.request, input.childContract.childCapabilityId);
   if (inputGate.ok === false) {
     return buildAiInputGateFailureResult({
       request: input.request,
       childContract: input.childContract,
       context: input.context,
-      promptContract,
       reason: inputGate.reason,
+    });
+  }
+
+  const promptResolution = input.context.promptRegistry.resolvePromptContract({
+    promptContractId: input.request.promptContractId,
+    taskType: input.request.taskType,
+  });
+  if (promptResolution.ok === false) {
+    return buildAiPromptGateFailureResult({
+      request: input.request,
+      childContract: input.childContract,
+      context: input.context,
+      failureReason: promptResolution.failureReason,
+      statusMessage: promptResolution.message,
     });
   }
 
@@ -29,7 +37,7 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
     request: inputGate.request,
     childContract: input.childContract,
     context: input.context,
-    promptContract,
+    promptContract: promptResolution.contract,
   });
   const preRuntimeResult = await resolveAiPreRuntimeResult(plan);
   if (preRuntimeResult) {

@@ -15,6 +15,7 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
+import { getPromptContractCatalogEntryByLegacyTaskType } from "../prompt-contracts/registry.js";
 import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 
@@ -34,37 +35,44 @@ type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
 type ProductSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_signal_summary" }>;
 
+function getLegacyPromptContract(taskType: LocalAiTaskType) {
+  return getPromptContractCatalogEntryByLegacyTaskType(taskType);
+}
+
 function buildVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequest {
+  const promptContract = getLegacyPromptContract("vision.productPresence");
   return VisionTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "vision.productPresence",
-    modelRole: "vision",
-    promptVersion: "v1",
-    schemaVersion: "vision.productPresence.schema.v1",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
   });
 }
 
 function buildOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequest {
+  const promptContract = getLegacyPromptContract("comments.ocr_cleanup");
   return OcrTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.ocr_cleanup",
-    modelRole: "ocr",
-    promptVersion: "comments.ocr_cleanup.v1",
-    schemaVersion: "ocr-text.v1",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: AiOcrCleanupInputSchema.parse(input.input),
   });
 }
 
 function buildCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAiTaskRequest {
+  const promptContract = getLegacyPromptContract("comments.intent_analysis");
   return CommentSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "comments.intent_analysis",
-    modelRole: "commentUnderstanding",
-    promptVersion: "comments.intent_analysis.v1",
-    schemaVersion: "comment-signal.v1",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: AiCommentSignalSummaryInputSchema.parse(input.input),
   });
@@ -72,20 +80,22 @@ function buildCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAi
 
 function buildProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTaskRequest {
   const typedInput = AiProductSignalSummaryInputSchema.parse(input.input);
+  const promptContract = getLegacyPromptContract("product.signal_summary");
+  const productPresencePromptContract = getLegacyPromptContract("vision.productPresence");
   return ProductSignalTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
     taskType: "product.signal_summary",
-    modelRole: "productSignal",
-    promptVersion: "product.signal_summary.v1",
-    schemaVersion: "product-opportunity-candidate.v1",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: {
       videoSummary: typedInput.videoSummary,
       productPresence: {
         taskType: "vision.productPresence",
-        promptId: "vision.productPresence.v1",
-        promptVersion: "v1",
-        schemaVersion: "vision.productPresence.schema.v1",
+        promptId: productPresencePromptContract.promptId,
+        promptVersion: productPresencePromptContract.promptVersion,
+        schemaVersion: productPresencePromptContract.schemaVersion,
         ...typedInput.productPresence,
       },
       commentSignals: typedInput.commentSignals,

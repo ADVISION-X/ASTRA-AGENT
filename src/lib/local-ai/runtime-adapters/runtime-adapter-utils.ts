@@ -1,9 +1,16 @@
 import { readFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { LocalAiRuntimeError } from "../local-ai-runtime-error.js";
 
 type JsonInit = RequestInit & { timeoutMs?: number };
+type ExecFileError = Error & {
+  code?: string | number;
+  killed?: boolean;
+  signal?: NodeJS.Signals | null;
+  stderr?: string | Buffer;
+};
 
 type JsonScannerState = {
   startIndex: number;
@@ -62,44 +69,68 @@ const debugRuntimeAdapterUtil = (message: string): void => {
   }
 };
 
+const execFileAsync = promisify(execFile);
+
+function createFetchTimeoutContext(timeoutMs: number, signal?: AbortSignal | null) {
+  if (signal) {
+    return {
+      requestSignal: signal,
+      clear: () => undefined,
+    };
+  }
+
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(`Local AI runtime timed out after ${timeoutMs}ms.`), timeoutMs);
+  return {
+    requestSignal: controller.signal,
+    clear: () => clearTimeout(timeoutHandle),
+  };
+}
+
+function buildJsonRequestInit(init: JsonInit, requestSignal: AbortSignal): RequestInit {
+  const { timeoutMs: _timeoutMs, ...requestInit } = init;
+  return {
+    ...requestInit,
+    signal: requestSignal,
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      ...(requestInit.headers ?? {}),
+    },
+  };
+}
+
+async function parseJsonResponse(response: Response): Promise<unknown> {
+  if (!response.ok) {
+    throw new LocalAiRuntimeError(
+      "service_unreachable",
+      `Local AI runtime request failed with HTTP ${response.status}.`,
+      await response.text(),
+    );
+  }
+
+  return response.json();
+}
+
+function toServiceUnreachableError(error: unknown): LocalAiRuntimeError {
+  const message = error instanceof Error ? error.message : String(error);
+  return new LocalAiRuntimeError("service_unreachable", `Local AI runtime is unreachable: ${message}`);
+}
+
 export async function fetchJsonWithTimeout(url: string, init: JsonInit = {}): Promise<unknown> {
   const timeoutMs = init.timeoutMs ?? 10_000;
-  const controller = init.signal ? null : new AbortController();
-  const timeoutHandle = controller
-    ? setTimeout(() => controller.abort(`Local AI runtime timed out after ${timeoutMs}ms.`), timeoutMs)
-    : null;
-  const { timeoutMs: _timeoutMs, ...requestInit } = init;
+  const timeoutContext = createFetchTimeoutContext(timeoutMs, init.signal);
 
   try {
-    const response = await fetch(url, {
-      ...requestInit,
-      signal: init.signal ?? controller?.signal,
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-        ...(requestInit.headers ?? {}),
-      },
-    });
-    if (!response.ok) {
-      throw new LocalAiRuntimeError(
-        "service_unreachable",
-        `Local AI runtime request failed with HTTP ${response.status}.`,
-        await response.text(),
-      );
-    }
-
-    return response.json();
+    const response = await fetch(url, buildJsonRequestInit(init, timeoutContext.requestSignal));
+    return await parseJsonResponse(response);
   } catch (error) {
     if (error instanceof LocalAiRuntimeError) {
       throw error;
     }
-
-    const message = error instanceof Error ? error.message : String(error);
-    throw new LocalAiRuntimeError("service_unreachable", `Local AI runtime is unreachable: ${message}`);
+    throw toServiceUnreachableError(error);
   } finally {
-    if (timeoutHandle !== null) {
-      clearTimeout(timeoutHandle);
-    }
+    timeoutContext.clear();
   }
 }
 
@@ -129,75 +160,55 @@ export function extractFirstJsonObject(text: string): string {
   throw new LocalAiRuntimeError("invalid_output", "Local AI runtime did not return a JSON object.", text);
 }
 
+function getExecFileStderr(error: ExecFileError): string {
+  if (typeof error.stderr === "string") {
+    return error.stderr.trim();
+  }
+  if (error.stderr instanceof Buffer) {
+    return error.stderr.toString("utf8").trim();
+  }
+  return "";
+}
+
+function getAbortCommandMessage(command: string, signal: AbortSignal | undefined): string {
+  return typeof signal?.reason === "string" ? signal.reason : `${command} aborted.`;
+}
+
+function isCommandTimeoutError(error: ExecFileError): boolean {
+  return error.killed === true || error.signal === "SIGTERM" || error.code === "ETIMEDOUT";
+}
+
+function getRunCommandFailureMessage(error: unknown): string {
+  const execError = error as ExecFileError;
+  return getExecFileStderr(execError) || (error instanceof Error ? error.message : String(error));
+}
+
+function toRunCommandError(input: {
+  command: string;
+  timeoutMs: number;
+  signal: AbortSignal | undefined;
+  error: unknown;
+}): LocalAiRuntimeError {
+  if (input.error instanceof Error && input.error.name === "AbortError") {
+    return new LocalAiRuntimeError("service_unreachable", getAbortCommandMessage(input.command, input.signal));
+  }
+  if (isCommandTimeoutError(input.error as ExecFileError)) {
+    return new LocalAiRuntimeError("service_unreachable", `${input.command} timed out after ${input.timeoutMs}ms.`);
+  }
+  return new LocalAiRuntimeError("engine_missing", getRunCommandFailureMessage(input.error));
+}
+
 export async function runCommand(command: string, args: string[], timeoutMs = 10_000, signal?: AbortSignal): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-    const timer = signal ? null : setTimeout(() => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      child.kill("SIGTERM");
-      reject(new LocalAiRuntimeError("service_unreachable", `${command} timed out after ${timeoutMs}ms.`));
-    }, timeoutMs);
-
-    const cleanup = () => {
-      if (timer !== null) {
-        clearTimeout(timer);
-      }
-      signal?.removeEventListener("abort", handleAbort);
-    };
-
-    const resolveOnce = (value: string) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      resolve(value);
-    };
-
-    const rejectOnce = (error: LocalAiRuntimeError) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      reject(error);
-    };
-
-    const handleAbort = () => {
-      child.kill("SIGTERM");
-      rejectOnce(new LocalAiRuntimeError("service_unreachable", typeof signal?.reason === "string" ? signal.reason : `${command} aborted.`));
-    };
-
-    if (signal?.aborted) {
-      handleAbort();
-      return;
-    }
-
-    signal?.addEventListener("abort", handleAbort, { once: true });
-
-    child.stdout.on("data", (chunk) => {
-      stdout += String(chunk);
+  try {
+    const { stdout } = await execFileAsync(command, args, {
+      encoding: "utf8",
+      timeout: timeoutMs,
+      ...(signal ? { signal } : {}),
     });
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
-    child.once("error", (error) => {
-      rejectOnce(new LocalAiRuntimeError("engine_missing", error.message));
-    });
-    child.once("exit", (code) => {
-      if (code === 0) {
-        resolveOnce(stdout.trim());
-        return;
-      }
-      rejectOnce(new LocalAiRuntimeError("engine_missing", stderr.trim() || `${command} exited with code ${code ?? "unknown"}.`));
-    });
-  });
+    return stdout.trim();
+  } catch (error) {
+    throw toRunCommandError({ command, timeoutMs, signal, error });
+  }
 }
 
 export async function commandExists(command: string): Promise<boolean> {

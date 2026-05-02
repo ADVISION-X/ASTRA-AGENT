@@ -129,11 +129,27 @@ const importsAiPrivatePath = (sourceFile: SourceFile): boolean => {
   });
 };
 
+const findModelConfigBoundaryViolations = (project: Project): Finding[] => {
+  const modelRosterSource = getSourceOrThrow(project, `${AI_ROOT}/model-roster.ts`);
+  const roleControlsSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/role-controls.ts`);
+  const findings: Finding[] = [];
+
+  if (hasImportModuleSpecifier(modelRosterSource, "lib/local-ai/model-config") || !hasImportModuleSpecifier(modelRosterSource, "local-ai-model-config")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-004-V1", file: `${AI_ROOT}/model-roster.ts`, line: 1, severity: "fatal", message: "AI model roster must read local model config only through the AI-owned model-config adapter." }));
+  }
+  if (hasImportModuleSpecifier(roleControlsSource, "lib/local-ai/model-config") || !hasImportModuleSpecifier(roleControlsSource, "local-ai-model-config")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-LOCAL-AI-RUNTIME-004-V1", file: `${AI_ROOT}/runtime/role-controls.ts`, line: 1, severity: "fatal", message: "AI role-controls must read local model config only through the AI-owned model-config adapter." }));
+  }
+
+  return findings;
+};
+
 export function runAiBoundaryChecks(project: Project): Finding[] {
   return [
     ...findAiSourceBoundaryViolations(project),
     ...findGatewayIsolationViolations(project),
     ...findAdapterBoundaryViolations(project),
+    ...findModelConfigBoundaryViolations(project),
     ...findExternalPrivateImportViolations(project),
   ];
 }

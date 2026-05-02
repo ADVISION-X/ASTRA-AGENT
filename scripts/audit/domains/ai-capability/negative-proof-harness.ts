@@ -179,6 +179,30 @@ const MUTATIONS: Mutation[] = [
     search: "type LocalAiRuntimeState = {",
     replace: 'let activeRuns = 0;\n\ntype LocalAiRuntimeState = {',
   },
+  {
+    name: "prompt registry throw mutation",
+    file: "src/capabilities/ai/runtime/ai-prompt-registry.ts",
+    search: 'if (!contract) {\n    return {\n      ok: false,\n      failureReason: "unknown_prompt_contract",\n      message: `Unknown prompt contract: ${input.promptContractId}`,\n    };\n  }',
+    replace: 'if (!contract) {\n    throw new Error(`Unknown prompt contract: ${input.promptContractId}`);\n  }',
+  },
+  {
+    name: "second prompt truth mutation",
+    file: "src/lib/local-ai/prompt-registry.ts",
+    search: "export type PromptContract = {",
+    replace: 'const LOCAL_PROMPT_CONTRACTS = [];\n\nexport type PromptContract = {',
+  },
+  {
+    name: "proof chain mutation",
+    file: "src/capabilities/ai/runtime/ai-proof-builder.ts",
+    search: "capabilityCallId: input.request.capabilityCallId,",
+    replace: "capabilityCallId: null,",
+  },
+  {
+    name: "model config boundary mutation",
+    file: "src/capabilities/ai/model-roster.ts",
+    search: 'from "./runtime/local-ai-model-config.js";',
+    replace: 'from "../../lib/local-ai/model-config.js";',
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {

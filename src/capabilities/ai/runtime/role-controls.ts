@@ -1,4 +1,4 @@
-import { loadLocalAiModelConfig, type LocalAiModelConfig, type LocalModelRole } from "../../../lib/local-ai/model-config.js";
+import { loadAiOwnedLocalModelConfig, type LocalAiModelConfig, type LocalModelRole } from "./local-ai-model-config.js";
 
 const buildLocalAiRoleControls = (config: LocalAiModelConfig) => ({
   phase: config.phase,
@@ -22,7 +22,7 @@ const buildLocalAiRoleControls = (config: LocalAiModelConfig) => ({
 });
 
 export const getLocalAiRoleControls = async (): Promise<unknown> =>
-  buildLocalAiRoleControls(await loadLocalAiModelConfig());
+  buildLocalAiRoleControls(await loadAiOwnedLocalModelConfig());
 
 export const setLocalAiRoleStartupState = async (input: {
   role: LocalModelRole;
@@ -32,7 +32,7 @@ export const setLocalAiRoleStartupState = async (input: {
     throw new Error(`Role ${input.role} cannot be disabled because phase-04 full-enforcement posture requires all configured local AI roles at startup.`);
   }
   return {
-    ...buildLocalAiRoleControls(await loadLocalAiModelConfig()),
+    ...buildLocalAiRoleControls(await loadAiOwnedLocalModelConfig()),
     mutation: {
       role: input.role,
       requestedEnabled: input.enabled,

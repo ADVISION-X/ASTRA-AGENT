@@ -1,10 +1,10 @@
-import { loadLocalAiModelConfig } from "../../lib/local-ai/model-config.js";
 import type { AiModelRoster, AiModelRosterEntry } from "./contract.js";
 import type { AiModelRosterPort } from "./ports/ai-model-roster-port.js";
 import type { AiClockPort } from "./ports/ai-clock-port.js";
 import { AiModelRosterSchema } from "./schema.js";
+import { loadAiOwnedLocalModelConfig } from "./runtime/local-ai-model-config.js";
 
-type LocalAiModelConfig = Awaited<ReturnType<typeof loadLocalAiModelConfig>>;
+type LocalAiModelConfig = Awaited<ReturnType<typeof loadAiOwnedLocalModelConfig>>;
 
 function buildConfiguredEntries(config: LocalAiModelConfig): AiModelRosterEntry[] {
   return [
@@ -94,7 +94,7 @@ export function createAiModelRosterPort(): AiModelRosterPort {
   return {
     async load(clock: AiClockPort): Promise<AiModelRoster> {
       const start = clock.startRun();
-      const config = await loadLocalAiModelConfig();
+      const config = await loadAiOwnedLocalModelConfig();
       const end = clock.finishRun(start);
       return AiModelRosterSchema.parse({
         generatedAt: end.endedAt,

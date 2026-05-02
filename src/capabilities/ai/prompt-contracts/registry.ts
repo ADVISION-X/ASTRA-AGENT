@@ -15,25 +15,83 @@ const BUILTIN_PROMPT_CONTRACT_FILES = [
 
 export const PROMPT_CONTRACT_CATALOG_VERSION = "map-prompt-contract-catalog.v1";
 
+type PromptContractCatalog =
+  | {
+      ok: true;
+      contracts: PromptContractCatalogEntry[];
+      byId: Map<string, PromptContractCatalogEntry>;
+      byTaskType: Map<AiTaskType, PromptContractCatalogEntry>;
+      byLegacyTaskType: Map<LocalAiTaskType, PromptContractCatalogEntry>;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 function readBuiltinPromptContract(fileName: string): PromptContractCatalogEntry {
   const content = readFileSync(new URL(`./builtins/${fileName}`, import.meta.url), "utf8");
   return PromptContractCatalogEntrySchema.parse(JSON.parse(content));
 }
 
-const BUILTIN_PROMPT_CONTRACTS = BUILTIN_PROMPT_CONTRACT_FILES.map((fileName) => readBuiltinPromptContract(fileName));
+function findDuplicate(values: string[], label: string): string | null {
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) {
+      return `Duplicate prompt contract ${label}: ${value}.`;
+    }
+    seen.add(value);
+  }
+  return null;
+}
 
-const CONTRACT_BY_ID = new Map(BUILTIN_PROMPT_CONTRACTS.map((contract) => [contract.promptContractId, contract]));
-const CONTRACT_BY_TASK_TYPE = new Map(BUILTIN_PROMPT_CONTRACTS.map((contract) => [contract.taskType, contract]));
-const CONTRACT_BY_LEGACY_TASK_TYPE = new Map(
-  BUILTIN_PROMPT_CONTRACTS.flatMap((contract) => contract.legacyTaskType ? [[contract.legacyTaskType, contract] as const] : []),
-);
+function buildPromptContractCatalog(): PromptContractCatalog {
+  const contracts = BUILTIN_PROMPT_CONTRACT_FILES.map((fileName) => readBuiltinPromptContract(fileName));
+  const duplicateMessage = findDuplicate(contracts.map((contract) => contract.promptContractId), "promptContractId")
+    ?? findDuplicate(contracts.map((contract) => contract.taskType), "taskType")
+    ?? findDuplicate(
+      contracts.flatMap((contract) => contract.legacyTaskType ? [contract.legacyTaskType] : []),
+      "legacyTaskType",
+    );
+
+  if (duplicateMessage) {
+    return {
+      ok: false,
+      message: duplicateMessage,
+    };
+  }
+
+  return {
+    ok: true,
+    contracts,
+    byId: new Map(contracts.map((contract) => [contract.promptContractId, contract])),
+    byTaskType: new Map(contracts.map((contract) => [contract.taskType, contract])),
+    byLegacyTaskType: new Map(
+      contracts.flatMap((contract) => contract.legacyTaskType ? [[contract.legacyTaskType, contract] as const] : []),
+    ),
+  };
+}
+
+const BUILTIN_PROMPT_CATALOG = buildPromptContractCatalog();
+
+function requirePromptContractCatalog() {
+  if (!BUILTIN_PROMPT_CATALOG.ok) {
+    throw new Error(`Prompt contract catalog is invalid: ${BUILTIN_PROMPT_CATALOG.message}`);
+  }
+  return BUILTIN_PROMPT_CATALOG;
+}
+
+export function getPromptContractCatalogIntegrity(): { ok: true } | { ok: false; message: string } {
+  return BUILTIN_PROMPT_CATALOG.ok
+    ? { ok: true }
+    : { ok: false, message: BUILTIN_PROMPT_CATALOG.message };
+}
 
 export function listPromptContractCatalogEntries(): PromptContractCatalogEntry[] {
-  return [...BUILTIN_PROMPT_CONTRACTS];
+  return BUILTIN_PROMPT_CATALOG.ok ? [...BUILTIN_PROMPT_CATALOG.contracts] : [];
 }
 
 export function getPromptContractCatalogEntry(promptContractId: string): PromptContractCatalogEntry {
-  const contract = CONTRACT_BY_ID.get(promptContractId);
+  const contract = requirePromptContractCatalog().byId.get(promptContractId);
   if (!contract) {
     throw new Error(`Unknown prompt contract: ${promptContractId}`);
   }
@@ -41,11 +99,11 @@ export function getPromptContractCatalogEntry(promptContractId: string): PromptC
 }
 
 export function tryGetPromptContractCatalogEntry(promptContractId: string): PromptContractCatalogEntry | null {
-  return CONTRACT_BY_ID.get(promptContractId) ?? null;
+  return BUILTIN_PROMPT_CATALOG.ok ? BUILTIN_PROMPT_CATALOG.byId.get(promptContractId) ?? null : null;
 }
 
 export function getPromptContractCatalogEntryByTaskType(taskType: AiTaskType): PromptContractCatalogEntry {
-  const contract = CONTRACT_BY_TASK_TYPE.get(taskType);
+  const contract = requirePromptContractCatalog().byTaskType.get(taskType);
   if (!contract) {
     throw new Error(`No prompt contract registered for AI taskType: ${taskType}`);
   }
@@ -53,7 +111,7 @@ export function getPromptContractCatalogEntryByTaskType(taskType: AiTaskType): P
 }
 
 export function getPromptContractCatalogEntryByLegacyTaskType(taskType: LocalAiTaskType): PromptContractCatalogEntry {
-  const contract = CONTRACT_BY_LEGACY_TASK_TYPE.get(taskType);
+  const contract = requirePromptContractCatalog().byLegacyTaskType.get(taskType);
   if (!contract) {
     throw new Error(`No prompt contract registered for legacy LocalAi taskType: ${taskType}`);
   }

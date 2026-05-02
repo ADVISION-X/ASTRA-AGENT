@@ -1,5 +1,6 @@
 export {
   PROMPT_CONTRACT_CATALOG_VERSION,
+  getPromptContractCatalogIntegrity,
   getPromptContractCatalogEntry,
   getPromptContractCatalogEntryByLegacyTaskType,
   getPromptContractCatalogEntryByTaskType,

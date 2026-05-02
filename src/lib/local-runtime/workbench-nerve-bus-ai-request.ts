@@ -2,6 +2,7 @@ import type {
   AiRequestDispatchInput,
   CreateNerveBusAbilityGroupInput,
 } from "../../capabilities/nerve-bus/contract.js";
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import {
@@ -13,6 +14,17 @@ import {
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiHandledResult = Awaited<ReturnType<CreateNerveBusAbilityGroupInput["handlerPort"]["requestAi"]>>;
+
+const requireChainField = (value: string | null | undefined): string => value ?? "";
+
+const buildWorkbenchAiInputRefs = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+) => ([{
+  id: envelope.inputRef,
+  kind: "evidence-packet" as const,
+  summary: inputPayload.summary,
+}]);
 
 const describeFailureReason = (
   failureReason: string | { code?: string; message?: string; detail?: string | null } | null | undefined,
@@ -37,26 +49,38 @@ const throwIfAborted = (signal: AbortSignal) => {
 const buildWorkbenchAiAbilityRequest = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
-) => ({
-  abilityGroupId: "ai" as const,
-  missionId: envelope.missionId,
-  taskType: envelope.taskType,
-  inputModality: "image_collection" as const,
-  inputRefs: [],
-  promptContractId: envelope.promptRef,
-  expectedOutputSchema: `${envelope.taskType}.result.v1`,
-  requestedBy: "orchestration" as const,
-  transportedBy: "nerve-bus" as const,
-  sessionId: envelope.missionId,
-  roundId: envelope.stepId,
-  videoVisitId: null,
-  qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
-  providerPolicy: { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null },
-  costPolicy: { maxEstimatedCost: 0 },
-  dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
-  safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
-  input: payloadDocumentToObject(inputPayload),
-});
+) => {
+  const mapRecord = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
+  return {
+    abilityGroupId: "ai" as const,
+    missionId: envelope.missionId,
+    taskType: envelope.taskType,
+    inputModality: "image_collection" as const,
+    inputRefs: buildWorkbenchAiInputRefs(envelope, inputPayload),
+    promptContractId: envelope.promptRef,
+    expectedOutputSchema: `${envelope.taskType}.result.v1`,
+    requestedBy: "orchestration" as const,
+    transportedBy: "nerve-bus" as const,
+    sessionId: envelope.missionId,
+    roundId: envelope.stepId,
+    videoVisitId: null,
+    stepId: envelope.stepId,
+    capabilityCallId: envelope.requestId,
+    nerveBusEnvelopeId: envelope.envelopeId,
+    mapPackageId: requireChainField(mapRecord?.packageId),
+    mapPackageVersion: requireChainField(mapRecord?.packageVersion),
+    selectedMapId: envelope.mapId,
+    selectedMapVersion: requireChainField(mapRecord?.mapVersion),
+    activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
+    promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
+    qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
+    providerPolicy: { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null },
+    costPolicy: { maxEstimatedCost: 0 },
+    dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
+    safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
+    input: payloadDocumentToObject(inputPayload),
+  };
+};
 
 const buildAiOutputPayload = (input: {
   envelope: WorkbenchAiRequestEnvelope;

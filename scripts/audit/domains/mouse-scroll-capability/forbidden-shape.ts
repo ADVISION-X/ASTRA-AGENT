@@ -4,7 +4,7 @@ import { LAW_IDS, FORBIDDEN_TEXT_TOKENS, PATHS } from "./config.js";
 import { getMouseScrollSourceFiles, makeProject, toMouseScrollRelativePath } from "./project-access.js";
 import { sourceHasDynamicImport, sourceHasExportStar, sourceHasForbiddenImport, sourceHasNewDateOutsideClock, sourceHasPrimitiveScrollCall, sourceHasRequire } from "./source-rules.js";
 
-const ALLOWED_PRIMITIVE_SCROLL_CALL_FILES = new Set([PATHS.RUNNER_PORT_CALL]);
+const ALLOWED_PRIMITIVE_SCROLL_CALL_FILES = new Set<string>([PATHS.RUNNER_PORT_CALL]);
 
 function collectStructuralFindings(relativePath: string, sourceText: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
   const findings: Finding[] = [];

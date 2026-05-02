@@ -8,6 +8,7 @@ import { hasCallExpression, hasCallExpressionPath, hasImportModuleSpecifier } fr
 
 import { aiInspectionConstants } from "./inspection-constants.js";
 import { aiInspectionUtils } from "./inspection-utils.js";
+import { findProofChainViolations } from "./run-ai-proof-chain-checks.js";
 import { hasGovernedFailureStatusBranch } from "./runtime-result-shape.js";
 
 const { AI_ROOT, DISABLED_EXECUTION_CHILD_IDS } = aiInspectionConstants;
@@ -247,6 +248,46 @@ const findTimeoutCancellationViolations = (project: Project): Finding[] => {
   return findings;
 };
 
+const hasPromptRegistryResolutionType = (sourceFile: SourceFile): boolean => {
+  const resolveMethod = sourceFile.getInterface("AiPromptRegistryPort")?.getMethod("resolvePromptContract");
+  return resolveMethod?.getReturnTypeNode()?.getText() === "AiPromptRegistryResolution"
+    && sourceFile.getTypeAlias("AiPromptRegistryResolution") !== undefined;
+};
+
+const hasThrowStatement = (sourceFile: SourceFile): boolean => sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement).length > 0;
+
+const importsPromptCatalogBridge = (sourceFile: SourceFile, moduleSpecifier: string): boolean =>
+  sourceFile.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue() === moduleSpecifier);
+
+const usesPromptBridgeCall = (sourceFile: SourceFile, functionName: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((expression) => expression.getExpression().getText() === functionName);
+
+const findPromptGovernanceViolations = (project: Project): Finding[] => {
+  const promptRegistryPortSource = getSourceOrThrow(project, `${AI_ROOT}/ports/ai-prompt-registry-port.ts`);
+  const promptRegistrySource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-prompt-registry.ts`);
+  const localPromptRegistrySource = getSourceOrThrow(project, "src/lib/local-ai/prompt-registry.ts");
+  const localRuntimeMapperSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-mapper.ts`);
+  const findings: Finding[] = [];
+
+  if (!hasPromptRegistryResolutionType(promptRegistryPortSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/ports/ai-prompt-registry-port.ts`, line: 1, severity: "fatal", message: "AI prompt registry port must expose a typed prompt resolution union." }));
+  }
+  if (hasThrowStatement(promptRegistrySource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/runtime/ai-prompt-registry.ts`, line: 1, severity: "fatal", message: "AI prompt registry must return governed typed failures instead of throwing." }));
+  }
+  if (
+    localPromptRegistrySource.getVariableDeclaration("LOCAL_PROMPT_CONTRACTS")
+    || !importsPromptCatalogBridge(localPromptRegistrySource, "../../capabilities/ai/prompt-contracts/registry.js")
+  ) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: "src/lib/local-ai/prompt-registry.ts", line: 1, severity: "fatal", message: "Local AI prompt registry must derive prompt metadata from the AI prompt contract catalog and must not keep a second local prompt catalog." }));
+  }
+  if (!importsPromptCatalogBridge(localRuntimeMapperSource, "../prompt-contracts/registry.js") || !usesPromptBridgeCall(localRuntimeMapperSource, "getPromptContractCatalogEntryByLegacyTaskType")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-mapper.ts`, line: 1, severity: "fatal", message: "Local AI runtime mapper must read prompt metadata from the governed AI prompt contract catalog without a second local truth." }));
+  }
+
+  return findings;
+};
+
 export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
@@ -256,5 +297,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findDisabledChildExecutionViolations(project),
     ...findReferenceIntegrityViolations(project),
     ...findTimeoutCancellationViolations(project),
+    ...findPromptGovernanceViolations(project),
+    ...findProofChainViolations(project),
   ];
 }
