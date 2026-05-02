@@ -62,6 +62,7 @@ export async function executeCommentSignalRuntimeTask(input: RuntimeExecutionInp
     modelName: input.roleConfig.model,
     prompt: promptParts.fullPrompt,
     timeoutMs: 30_000,
+    ...(input.signal ? { signal: input.signal } : {}),
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const payload = toJsonPayload(responseText, CommentSignalPayloadSchema, input.request.taskType);

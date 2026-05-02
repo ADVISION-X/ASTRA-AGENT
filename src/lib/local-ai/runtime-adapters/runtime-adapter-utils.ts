@@ -63,18 +63,21 @@ const debugRuntimeAdapterUtil = (message: string): void => {
 };
 
 export async function fetchJsonWithTimeout(url: string, init: JsonInit = {}): Promise<unknown> {
-  const controller = new AbortController();
   const timeoutMs = init.timeoutMs ?? 10_000;
-  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+  const controller = init.signal ? null : new AbortController();
+  const timeoutHandle = controller
+    ? setTimeout(() => controller.abort(`Local AI runtime timed out after ${timeoutMs}ms.`), timeoutMs)
+    : null;
+  const { timeoutMs: _timeoutMs, ...requestInit } = init;
 
   try {
     const response = await fetch(url, {
-      ...init,
-      signal: controller.signal,
+      ...requestInit,
+      signal: init.signal ?? controller?.signal,
       headers: {
         "content-type": "application/json",
         accept: "application/json",
-        ...(init.headers ?? {}),
+        ...(requestInit.headers ?? {}),
       },
     });
     if (!response.ok) {
@@ -94,7 +97,9 @@ export async function fetchJsonWithTimeout(url: string, init: JsonInit = {}): Pr
     const message = error instanceof Error ? error.message : String(error);
     throw new LocalAiRuntimeError("service_unreachable", `Local AI runtime is unreachable: ${message}`);
   } finally {
-    clearTimeout(timeoutHandle);
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
   }
 }
 
@@ -124,15 +129,57 @@ export function extractFirstJsonObject(text: string): string {
   throw new LocalAiRuntimeError("invalid_output", "Local AI runtime did not return a JSON object.", text);
 }
 
-export async function runCommand(command: string, args: string[], timeoutMs = 10_000): Promise<string> {
+export async function runCommand(command: string, args: string[], timeoutMs = 10_000, signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
-    const timer = setTimeout(() => {
+    let settled = false;
+    const timer = signal ? null : setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       child.kill("SIGTERM");
       reject(new LocalAiRuntimeError("service_unreachable", `${command} timed out after ${timeoutMs}ms.`));
     }, timeoutMs);
+
+    const cleanup = () => {
+      if (timer !== null) {
+        clearTimeout(timer);
+      }
+      signal?.removeEventListener("abort", handleAbort);
+    };
+
+    const resolveOnce = (value: string) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const rejectOnce = (error: LocalAiRuntimeError) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const handleAbort = () => {
+      child.kill("SIGTERM");
+      rejectOnce(new LocalAiRuntimeError("service_unreachable", typeof signal?.reason === "string" ? signal.reason : `${command} aborted.`));
+    };
+
+    if (signal?.aborted) {
+      handleAbort();
+      return;
+    }
+
+    signal?.addEventListener("abort", handleAbort, { once: true });
 
     child.stdout.on("data", (chunk) => {
       stdout += String(chunk);
@@ -141,16 +188,14 @@ export async function runCommand(command: string, args: string[], timeoutMs = 10
       stderr += String(chunk);
     });
     child.once("error", (error) => {
-      clearTimeout(timer);
-      reject(new LocalAiRuntimeError("engine_missing", error.message));
+      rejectOnce(new LocalAiRuntimeError("engine_missing", error.message));
     });
     child.once("exit", (code) => {
-      clearTimeout(timer);
       if (code === 0) {
-        resolve(stdout.trim());
+        resolveOnce(stdout.trim());
         return;
       }
-      reject(new LocalAiRuntimeError("engine_missing", stderr.trim() || `${command} exited with code ${code ?? "unknown"}.`));
+      rejectOnce(new LocalAiRuntimeError("engine_missing", stderr.trim() || `${command} exited with code ${code ?? "unknown"}.`));
     });
   });
 }

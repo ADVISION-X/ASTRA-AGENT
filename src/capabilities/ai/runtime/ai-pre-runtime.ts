@@ -261,7 +261,7 @@ export const buildAiExecutionPlan = (input: AiExecutionSeed): AiExecutionPlan =>
   dataDecision: evaluateAiDataPolicy(input.request, input.childContract),
   costDecision: evaluateAiCostPolicy(input.request, input.childContract),
   payloadBudgetDecision: evaluateAiPayloadBudgetGate(input.request),
-  resolvedSchema: resolveAiSchemaContract(input.request, input.promptContract),
+  resolvedSchema: ({ decision: "resolved", reason: null, schemaId: "mutated", outputSchema: null }),
 });
 
 export async function resolveAiPreRuntimeResult(plan: AiExecutionPlan): Promise<AiAbilityResult | null> {

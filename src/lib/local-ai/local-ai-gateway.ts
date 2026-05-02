@@ -92,7 +92,7 @@ export class LocalAiGateway {
     return roleConfig;
   }
 
-  async execute(requestInput: LocalAiTaskRequest, options?: { executionMode?: LocalAiExecutionMode; debugHook?: LocalAiDebugHook }): Promise<LocalAiTaskResult> {
+  async execute(requestInput: LocalAiTaskRequest, options?: { executionMode?: LocalAiExecutionMode; debugHook?: LocalAiDebugHook; signal?: AbortSignal }): Promise<LocalAiTaskResult> {
     const request = LocalAiTaskRequestSchema.parse(requestInput);
     const roleConfig = await this.resolveGovernedRoleConfig(request);
     this.lastTaskType = request.taskType;
@@ -109,6 +109,7 @@ export class LocalAiGateway {
         roleConfig,
         ollamaAdapter: this.ollamaAdapter,
         ocrAdapter: this.ocrAdapter,
+        ...(options?.signal ? { signal: options.signal } : {}),
         ...(options?.debugHook ? { debugHook: options.debugHook } : {}),
       });
       this.lastInvocationStatus = "success";

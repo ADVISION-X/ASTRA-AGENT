@@ -65,12 +65,14 @@ export async function invokeOllamaGenerate(input: {
   prompt: string;
   images?: string[];
   timeoutMs: number;
+  signal?: AbortSignal;
   debugHook?: LocalAiDebugHook;
 }): Promise<string> {
   const startedAt = Date.now();
   const response = await fetchJsonWithTimeout(`${input.baseUrl}/api/generate`, {
     method: "POST",
     timeoutMs: input.timeoutMs,
+    ...(input.signal ? { signal: input.signal } : {}),
     body: JSON.stringify({
       model: input.model,
       prompt: input.prompt,

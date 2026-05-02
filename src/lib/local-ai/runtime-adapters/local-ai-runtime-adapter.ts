@@ -57,6 +57,7 @@ export type VisionInvocationInput = {
   prompt: string;
   imagePaths: string[];
   timeoutMs: number;
+  signal?: AbortSignal;
   debugHook?: LocalAiDebugHook;
 };
 
@@ -64,6 +65,7 @@ export type TextInvocationInput = {
   modelName: string;
   prompt: string;
   timeoutMs: number;
+  signal?: AbortSignal;
   debugHook?: LocalAiDebugHook;
 };
 
@@ -71,6 +73,7 @@ export type OcrInvocationInput = {
   toolName: string;
   imagePath: string;
   timeoutMs: number;
+  signal?: AbortSignal;
   debugHook?: LocalAiDebugHook;
 };
 

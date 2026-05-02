@@ -9,39 +9,55 @@ function timeoutMessage(timeoutMs: number): string {
   return `Local AI runtime timed out after ${timeoutMs}ms.`;
 }
 
-async function executeWithTimeout<TResult>(input: {
-  execute: () => Promise<TResult>;
+function resolveRuntimeSignal(input: {
+  signal?: AbortSignal;
   timeoutMs: number;
-}): Promise<ProtectedGatewayResult<TResult>> {
+}): { signal: AbortSignal; timeoutHandle: ReturnType<typeof setTimeout> | null } {
+  if (input.signal) {
+    return { signal: input.signal, timeoutHandle: null };
+  }
+
   const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => {
+    controller.abort(timeoutMessage(input.timeoutMs));
+  }, input.timeoutMs);
+
+  return { signal: controller.signal, timeoutHandle };
+}
+
+function resolveAbortMessage(signal: AbortSignal, timeoutMs: number): string {
+  return typeof signal.reason === "string" && signal.reason.length > 0
+    ? signal.reason
+    : timeoutMessage(timeoutMs);
+}
+
+async function executeWithTimeout<TResult>(input: {
+  execute: (signal: AbortSignal) => Promise<TResult>;
+  timeoutMs: number;
+  signal?: AbortSignal;
+}): Promise<ProtectedGatewayResult<TResult>> {
   const startedAtMs = performance.now();
-  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const runtimeSignal = resolveRuntimeSignal({ signal: input.signal, timeoutMs: input.timeoutMs });
 
   try {
-    const gatewayPromise = input.execute();
-    const timeoutPromise = new Promise<ProtectedGatewayResult<TResult>>((resolve) => {
-      timeoutHandle = setTimeout(() => {
-        controller.abort();
-        resolve({
-          ok: false,
-          message: timeoutMessage(input.timeoutMs),
-          implementationStatus: "runtime_timeout",
-          gatewayDurationMs: Math.max(0, performance.now() - startedAtMs),
-          errorKind: "runtime_timeout",
-          errorDetail: null,
-        });
-      }, input.timeoutMs);
-    });
-
-    return await Promise.race([
-      gatewayPromise.then((value): ProtectedGatewayResult<TResult> => ({
-        ok: true,
-        result: value,
-        gatewayDurationMs: Math.max(0, performance.now() - startedAtMs),
-      })),
-      timeoutPromise,
-    ]);
+    const value = await input.execute(runtimeSignal.signal);
+    return {
+      ok: true,
+      result: value,
+      gatewayDurationMs: Math.max(0, performance.now() - startedAtMs),
+    };
   } catch (error) {
+    if (runtimeSignal.signal.aborted) {
+      return {
+        ok: false,
+        message: resolveAbortMessage(runtimeSignal.signal, input.timeoutMs),
+        implementationStatus: "runtime_timeout",
+        gatewayDurationMs: Math.max(0, performance.now() - startedAtMs),
+        errorKind: "runtime_timeout",
+        errorDetail: null,
+      };
+    }
+
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Local AI runtime failed.",
@@ -51,8 +67,8 @@ async function executeWithTimeout<TResult>(input: {
       errorDetail: isLocalAiRuntimeError(error) ? (error.detail ?? null) : null,
     };
   } finally {
-    if (timeoutHandle !== null) {
-      clearTimeout(timeoutHandle);
+    if (runtimeSignal.timeoutHandle !== null) {
+      clearTimeout(runtimeSignal.timeoutHandle);
     }
   }
 }

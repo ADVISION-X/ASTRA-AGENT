@@ -72,6 +72,12 @@ const MUTATIONS: Mutation[] = [
     replace: "runAiRuntimeCallRemoved({",
   },
   {
+    name: "runtime signal mutation",
+    file: "src/capabilities/ai/runtime/ai-runtime-call-runner.ts",
+    search: "input.context.runtime.execute(input.request, { signal: controller.signal })",
+    replace: "input.context.runtime.execute(input.request)",
+  },
+  {
     name: "output boundary mutation",
     file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
     search: "const boundaryDecision = evaluateAiOutputBoundary(runtimeResult.output);",
@@ -167,32 +173,35 @@ const MUTATIONS: Mutation[] = [
     search: 'import { routeAiTaskToChild } from "./task-router.js";',
     replace: 'import { routeAiTaskToChild } from "./task-router.js";\nimport { createLocalAiRuntimePort } from "./runtime-adapters/local-ai-runtime-adapter.js";',
   },
+  {
+    name: "module state mutation",
+    file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
+    search: "type LocalAiRuntimeState = {",
+    replace: 'let activeRuns = 0;\n\ntype LocalAiRuntimeState = {',
+  },
 ];
 
-async function createInspectorRunner(): Promise<() => Promise<{ passed: boolean; violationCount: number }>> {
-  await buildAuditArtifacts();
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  const inspector = await loadInspector(INSPECTOR_ENTRY);
+async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+  const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
+  process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
 
-  return async () => {
-    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
-
-    try {
-      const result = await inspector(context);
-      return { passed: result.passed, violationCount: result.violationCount };
-    } finally {
-      if (previous === undefined) {
-        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-      } else {
-        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
-      }
+  try {
+    await buildAuditArtifacts();
+    const artifacts = await loadGeneratedArtifacts();
+    const context = await createInspectorContext(artifacts);
+    const inspector = await loadInspector(INSPECTOR_ENTRY);
+    const result = await inspector(context);
+    return { passed: result.passed, violationCount: result.violationCount };
+  } finally {
+    if (previous === undefined) {
+      delete process.env[SKIP_NEGATIVE_PROOF_ENV];
+    } else {
+      process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
     }
-  };
+  }
 }
 
-async function mutateAndVerify(runInspector: () => Promise<{ passed: boolean; violationCount: number }>, mutation: Mutation): Promise<void> {
+async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
   await applyAuditMutation(filePath, state.original, mutation);
@@ -236,14 +245,13 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 
 async function runMutations(runInspector: () => Promise<{ passed: boolean; violationCount: number }>): Promise<void> {
   for (const mutation of MUTATIONS) {
-    await mutateAndVerify(runInspector, mutation);
+    await mutateAndVerify(mutation);
     process.stdout.write(`[NEGATIVE-PROOF] PASS ${mutation.name}\n`);
   }
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const runInspector = await createInspectorRunner();
     const baseline = await runInspector();
     if (!baseline.passed) {
       return createFatalResult(

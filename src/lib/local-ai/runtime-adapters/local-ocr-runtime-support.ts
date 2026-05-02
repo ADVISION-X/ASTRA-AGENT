@@ -53,8 +53,8 @@ export async function invokeLocalOcrTask(runtime: "local-ocr", input: OcrInvocat
   });
 
   const ocrText = engine === "tesseract"
-    ? await runCommand("tesseract", [input.imagePath, "stdout", "--psm", "6"], input.timeoutMs)
-    : await runCommand("paddleocr", ["--image_dir", input.imagePath, "--type", "ocr"], input.timeoutMs);
+    ? await runCommand("tesseract", [input.imagePath, "stdout", "--psm", "6"], input.timeoutMs, input.signal)
+    : await runCommand("paddleocr", ["--image_dir", input.imagePath, "--type", "ocr"], input.timeoutMs, input.signal);
 
   await input.debugHook?.({
     eventType: "local_ai_adapter_response_received",

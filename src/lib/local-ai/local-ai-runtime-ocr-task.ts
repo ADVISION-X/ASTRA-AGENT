@@ -60,6 +60,7 @@ export async function executeOcrCleanupRuntimeTask(input: RuntimeExecutionInput,
     toolName: input.roleConfig.model,
     imagePath,
     timeoutMs: MODEL_TIMEOUT_MS.ocr,
+    ...(input.signal ? { signal: input.signal } : {}),
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const payload = normalizeOcrText(ocrText);

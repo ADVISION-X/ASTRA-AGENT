@@ -22,6 +22,7 @@ type RuntimeExecutionInput = {
   roleConfig: LocalModelRoleConfig;
   ollamaAdapter: LocalAiRuntimeAdapter;
   ocrAdapter: LocalAiRuntimeAdapter;
+  signal?: AbortSignal;
   debugHook?: LocalAiDebugHook;
 };
 

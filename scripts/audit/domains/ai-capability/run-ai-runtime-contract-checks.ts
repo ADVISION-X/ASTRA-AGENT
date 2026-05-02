@@ -191,6 +191,62 @@ const findReferenceIntegrityViolations = (project: Project): Finding[] => {
   return findings;
 };
 
+const hasExecuteSignalOption = (sourceFile: SourceFile): boolean => {
+  const executeMethod = sourceFile.getInterface("AiRuntimePort")?.getMethod("execute");
+  const optionTypeText = executeMethod?.getParameters()[1]?.getTypeNode()?.getText() ?? "";
+  if (optionTypeText.includes("signal")) {
+    return true;
+  }
+
+  const executeOptions = sourceFile.getTypeAlias("AiRuntimeExecuteOptions");
+  return executeOptions?.getTypeNode()?.getText().includes("signal") === true;
+};
+
+const hasRuntimeSignalPropagation = (sourceFile: SourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((expression) => {
+    if (expression.getExpression().getText() !== "input.context.runtime.execute") {
+      return false;
+    }
+
+    const signalArgument = expression.getArguments()[1];
+    return Node.isObjectLiteralExpression(signalArgument)
+      && signalArgument.getProperty("signal")?.getText().includes("controller.signal") === true;
+  });
+};
+
+const hasAbortControllerTimeout = (sourceFile: SourceFile): boolean => {
+  const hasAbortController = sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => expression.getExpression().getText() === "AbortController");
+  return hasAbortController && hasCallExpressionPath(sourceFile, ["controller", "abort"]);
+};
+
+const hasPromiseRaceTimeout = (sourceFile: SourceFile): boolean => hasCallExpressionPath(sourceFile, ["Promise", "race"]);
+
+const hasForbiddenModuleState = (sourceFile: SourceFile, variableName: string): boolean =>
+  sourceFile.getVariableDeclaration(variableName)?.getFirstAncestorByKind(SyntaxKind.SourceFile) === sourceFile;
+
+const findTimeoutCancellationViolations = (project: Project): Finding[] => {
+  const runtimePortSource = getSourceOrThrow(project, `${AI_ROOT}/ports/ai-runtime-port.ts`);
+  const runtimeCallRunnerSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-call-runner.ts`);
+  const localGatewaySource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-gateway.ts`);
+  const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
+  const findings: Finding[] = [];
+
+  if (!hasExecuteSignalOption(runtimePortSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005A-V1", file: `${AI_ROOT}/ports/ai-runtime-port.ts`, line: 1, severity: "fatal", message: "AI runtime port execute must accept a governed signal option." }));
+  }
+  if (!hasAbortControllerTimeout(runtimeCallRunnerSource) || !hasRuntimeSignalPropagation(runtimeCallRunnerSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005A-V1", file: `${AI_ROOT}/runtime/ai-runtime-call-runner.ts`, line: 1, severity: "fatal", message: "AI runtime call runner must create AbortController timeout and pass controller.signal into runtime.execute." }));
+  }
+  if (hasPromiseRaceTimeout(localGatewaySource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-gateway.ts`, line: 1, severity: "fatal", message: "Local AI timeout guard must not rely on Promise.race for timeout success handling." }));
+  }
+  if (hasForbiddenModuleState(localAdapterSource, "activeRuns") || hasForbiddenModuleState(localAdapterSource, "circuitBreaker")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: "Local AI runtime adapter must not keep activeRuns or circuitBreaker as module-level mutable state." }));
+  }
+
+  return findings;
+};
+
 export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
@@ -199,5 +255,6 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findFakeLiteralViolations(project),
     ...findDisabledChildExecutionViolations(project),
     ...findReferenceIntegrityViolations(project),
+    ...findTimeoutCancellationViolations(project),
   ];
 }

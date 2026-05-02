@@ -16,11 +16,18 @@ type CircuitBreaker = {
   openedAtMs: number | null;
 };
 
+type LocalAiRuntimeState = {
+  circuitBreaker: CircuitBreaker;
+  activeRuns: number;
+};
+
 type ExecuteRequest = Parameters<AiRuntimePort["execute"]>[0];
+type ExecuteOptions = Parameters<AiRuntimePort["execute"]>[1];
 type LocalAiTaskRequest = Parameters<LocalAiGateway["execute"]>[0];
 type LocalAiTaskResult = Awaited<ReturnType<LocalAiGateway["execute"]>>;
 type LocalAiExecutionContext = {
   request: ExecuteRequest;
+  signal?: AbortSignal;
   identity: ReturnType<typeof runtimeContext.buildAiRuntimeCallIdentity>;
   timeoutMs: number;
   rawOutputRef: string;
@@ -29,39 +36,43 @@ type LocalAiExecutionContext = {
   debugSession: ReturnType<typeof runtimeDebug.createLocalAiDebugSession>;
 };
 
-const circuitBreaker: CircuitBreaker = {
-  failureCount: 0,
-  openedAtMs: null,
-};
+function createLocalAiRuntimeState(): LocalAiRuntimeState {
+  return {
+    circuitBreaker: {
+      failureCount: 0,
+      openedAtMs: null,
+    },
+    activeRuns: 0,
+  };
+}
 
-let activeRuns = 0;
-
-function getCircuitBreakerState(nowMs: number): runtimeOutput.LocalAiCircuitBreakerState {
-  if (circuitBreaker.openedAtMs === null) {
+function getCircuitBreakerState(state: LocalAiRuntimeState, nowMs: number): runtimeOutput.LocalAiCircuitBreakerState {
+  if (state.circuitBreaker.openedAtMs === null) {
     return "closed";
   }
-  if (nowMs - circuitBreaker.openedAtMs >= CIRCUIT_OPEN_MS) {
+  if (nowMs - state.circuitBreaker.openedAtMs >= CIRCUIT_OPEN_MS) {
     return "half_open";
   }
   return "open";
 }
 
-function recordCircuitSuccess() {
-  circuitBreaker.failureCount = 0;
-  circuitBreaker.openedAtMs = null;
+function recordCircuitSuccess(state: LocalAiRuntimeState) {
+  state.circuitBreaker.failureCount = 0;
+  state.circuitBreaker.openedAtMs = null;
 }
 
-function recordCircuitFailure(nowMs: number) {
-  circuitBreaker.failureCount += 1;
-  if (circuitBreaker.failureCount >= CIRCUIT_FAILURE_THRESHOLD) {
-    circuitBreaker.openedAtMs = nowMs;
+function recordCircuitFailure(state: LocalAiRuntimeState, nowMs: number) {
+  state.circuitBreaker.failureCount += 1;
+  if (state.circuitBreaker.failureCount >= CIRCUIT_FAILURE_THRESHOLD) {
+    state.circuitBreaker.openedAtMs = nowMs;
   }
 }
 
 export function createLocalAiRuntimePort(options: runtimeDebug.LocalAiRuntimePortOptions = {}): AiRuntimePort {
   const gateway = new LocalAiGateway();
+  const state = createLocalAiRuntimeState();
   return {
-    execute: (request) => executeLocalAiRuntimeRequest(gateway, request, options),
+    execute: (request, executeOptions) => executeLocalAiRuntimeRequest(gateway, state, request, options, executeOptions),
     async getHealth() {
       const report = await gateway.getHealth();
       return {
@@ -78,19 +89,22 @@ export function createLocalAiRuntimePort(options: runtimeDebug.LocalAiRuntimePor
 
 async function createExecutionContext(
   gateway: LocalAiGateway,
+  state: LocalAiRuntimeState,
   request: ExecuteRequest,
   options: runtimeDebug.LocalAiRuntimePortOptions,
+  executeOptions?: ExecuteOptions,
 ): Promise<LocalAiExecutionContext> {
   const identity = runtimeContext.buildAiRuntimeCallIdentity(request);
   const rawOutputRef = runtimeContext.buildStableAiRef("ai-raw-output", [request.sessionId, request.taskType, request.roundId, identity.requestHash.slice(0, 16)]);
   const promptDebugRef = runtimeContext.buildStableAiRef("ai-prompt-debug", [request.sessionId, request.taskType, request.roundId, identity.requestHash.slice(0, 16)]);
   return {
     request,
+    signal: executeOptions?.signal,
     identity,
     timeoutMs: runtimeContext.resolveAiTimeoutPolicy(request).timeoutMs,
     rawOutputRef,
     modelHealthBefore: runtimeMapper.describeHealth(runtimeMapper.toAiRuntimeHealth(await gateway.getRuntimeHealth())),
-    circuitBreakerState: getCircuitBreakerState(performance.now()),
+    circuitBreakerState: getCircuitBreakerState(state, performance.now()),
     debugSession: runtimeDebug.createLocalAiDebugSession({
       request,
       rawOutputRef,
@@ -124,20 +138,22 @@ async function rejectExecution(
 
 async function runConvertedRequest(
   gateway: LocalAiGateway,
+  state: LocalAiRuntimeState,
   context: LocalAiExecutionContext,
   localRequest: LocalAiTaskRequest,
 ): Promise<AiRuntimeExecutionOutput> {
   try {
     const protectedResult = await executeWithTimeout<LocalAiTaskResult>({
-      execute: async () => gateway.execute(localRequest),
+      execute: async (signal) => gateway.execute(localRequest, { signal }),
       timeoutMs: context.timeoutMs,
+      signal: context.signal,
     });
     if (protectedResult.ok === false) {
-      return handleProtectedFailure(gateway, context, protectedResult);
+      return handleProtectedFailure(gateway, state, context, protectedResult);
     }
-    return handleProtectedSuccess(gateway, context, protectedResult);
+    return handleProtectedSuccess(gateway, state, context, protectedResult);
   } catch (error) {
-    recordCircuitFailure(performance.now());
+    recordCircuitFailure(state, performance.now());
     return rejectExecution(context, {
       implementationStatus: "runtime_threw",
       message: error instanceof Error ? error.message : "Local AI runtime failed.",
@@ -150,10 +166,11 @@ async function runConvertedRequest(
 
 async function handleProtectedFailure(
   gateway: LocalAiGateway,
+  state: LocalAiRuntimeState,
   context: LocalAiExecutionContext,
   protectedResult: ProtectedGatewayResult<LocalAiTaskResult> & { ok: false },
 ): Promise<AiRuntimeExecutionOutput> {
-  recordCircuitFailure(performance.now());
+  recordCircuitFailure(state, performance.now());
   if (protectedResult.errorKind === "invalid_output" && protectedResult.errorDetail) {
     context.debugSession.state.parserErrors = [protectedResult.message];
     context.debugSession.state.rawResponseText = context.debugSession.state.rawResponseText ?? protectedResult.errorDetail;
@@ -170,10 +187,11 @@ async function handleProtectedFailure(
 
 async function handleProtectedSuccess(
   gateway: LocalAiGateway,
+  state: LocalAiRuntimeState,
   context: LocalAiExecutionContext,
   protectedResult: ProtectedGatewayResult<LocalAiTaskResult> & { ok: true },
 ): Promise<AiRuntimeExecutionOutput> {
-  recordCircuitSuccess();
+  recordCircuitSuccess(state);
   const runtimeOutputValue = runtimeMapper.coerceRuntimeOutput(protectedResult.result.result);
   const modelHealthAfter = runtimeMapper.describeHealth(runtimeMapper.toAiRuntimeHealth(await gateway.getRuntimeHealth()));
   await context.debugSession.emitRuntimeSuccess(runtimeOutputValue, protectedResult.gatewayDurationMs);
@@ -190,7 +208,7 @@ async function handleProtectedSuccess(
     rawOutputHash,
     runtimeCallId: context.identity.runtimeCallId,
     timeoutMs: context.timeoutMs,
-    circuitBreakerState: getCircuitBreakerState(performance.now()),
+    circuitBreakerState: getCircuitBreakerState(state, performance.now()),
     gatewayDurationMs: protectedResult.gatewayDurationMs,
     modelHealthBefore: context.modelHealthBefore,
     modelHealthAfter,
@@ -199,10 +217,12 @@ async function handleProtectedSuccess(
 
 async function executeLocalAiRuntimeRequest(
   gateway: LocalAiGateway,
+  state: LocalAiRuntimeState,
   request: ExecuteRequest,
   options: runtimeDebug.LocalAiRuntimePortOptions,
+  executeOptions?: ExecuteOptions,
 ): Promise<AiRuntimeExecutionOutput> {
-  const context = await createExecutionContext(gateway, request, options);
+  const context = await createExecutionContext(gateway, state, request, options, executeOptions);
   if (context.circuitBreakerState === "open") {
     return rejectExecution(context, {
       implementationStatus: "circuit_breaker_open",
@@ -212,7 +232,7 @@ async function executeLocalAiRuntimeRequest(
       modelHealthAfter: context.modelHealthBefore,
     });
   }
-  if (activeRuns >= MAX_CONCURRENT_RUNS) {
+  if (state.activeRuns >= MAX_CONCURRENT_RUNS) {
     return rejectExecution(context, {
       implementationStatus: "concurrency_limited",
       message: "Local AI runtime concurrency limit reached.",
@@ -232,11 +252,11 @@ async function executeLocalAiRuntimeRequest(
     });
   }
 
-  activeRuns += 1;
+  state.activeRuns += 1;
   try {
-    return await runConvertedRequest(gateway, context, converted.request);
+    return await runConvertedRequest(gateway, state, context, converted.request);
   } finally {
-    activeRuns = Math.max(0, activeRuns - 1);
+    state.activeRuns = Math.max(0, state.activeRuns - 1);
   }
 }
 

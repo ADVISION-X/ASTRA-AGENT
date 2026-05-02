@@ -78,6 +78,7 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     prompt: artifacts.prompt,
     imagePaths: artifacts.imagePaths,
     timeoutMs: 60_000,
+    ...(input.signal ? { signal: input.signal } : {}),
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const visionOutput = parseVisionRuntimeOutput(responseText, request);
