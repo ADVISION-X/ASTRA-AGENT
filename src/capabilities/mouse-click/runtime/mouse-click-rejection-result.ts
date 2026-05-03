@@ -70,7 +70,7 @@ export function buildRejectedMouseClickResult(input: MouseClickRejectionInput) {
     idempotencyDecision: input.idempotencyDecision,
     actionExecutionRef: input.actionExecutionRef,
     rejectionRef: input.rejectionRef,
-    primitiveTimeoutMs: input.seed.safetyPolicy.primitiveTimeoutMs,
+    primitiveTimeoutMs: input.seed.timeoutMs,
     maxDurationMs: input.seed.safetyPolicy.maxDurationMs,
     timeoutDecision: "within_limit",
     abortDecision: "not_requested",

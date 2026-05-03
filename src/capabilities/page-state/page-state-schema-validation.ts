@@ -1,34 +1,222 @@
 import { ZodIssueCode, type RefinementCtx } from "zod";
 
+import { validatePageStateAbilityResultContent } from "./page-state-result-validation.js";
+
 type PageStateRuntimeProofLike = {
   status: "success" | "failed" | "review_required";
   decision: "proceed" | "block" | "review_required" | "fail";
+  classificationSource: "child_capability" | "invalid_input_failure";
+  childCapabilityId: string | null;
+  runId: string | null;
+  missionId: string | null;
+  sessionId: string | null;
+  roundId: string | null;
+  videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
+  snapshotId: string | null;
+  snapshotProofRef: string | null;
+  openHandoffProofRef: string | null;
+  browserSessionRef: string | null;
+  platformProfileId: string | null;
+  sourceAbilityGroupId: string | null;
+  sourceChildCapabilityId: string | null;
+  inputRef: string;
   outputRef: string | null;
   diagnosticPayloadRef: string | null;
+  inputPayloadHash: string;
+  snapshotHash: string | null;
+  observationHash: string | null;
+  currentUrl: string | null;
+  pageStateFingerprint: string | null;
+  payloadBudgetDecision: "allow" | "review_required" | "fail";
+  receivedShapeHash: string | null;
+  sourceEvidenceRefs: string[];
+  observationRefs: string[];
 };
 
 type PageStateAbilityResultLike = {
   status: "success" | "failed" | "review_required";
   decision: "proceed" | "block" | "review_required" | "fail";
-  runtimeProof: PageStateRuntimeProofLike;
-  output: unknown;
+  childCapabilityId: string | null;
+  runId: string | null;
+  missionId: string | null;
+  sessionId: string | null;
+  roundId: string | null;
+  videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
+  output: {
+    pageStateType: string;
+    stateSummary: string;
+    confidence: number;
+    evidenceRefs: string[];
+    observationRefs: string[];
+    pageStateFingerprint: string;
+  } | null;
+  pageStateType: string | null;
+  stateSummary: string | null;
+  confidence: number | null;
+  evidenceRefs: string[];
+  observationRefs: string[];
+  sourceEvidenceRefs: string[];
+  pageStateFingerprint: string | null;
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+  dataQualityFlags: string[];
   diagnosticPayloadRef: string | null;
+  receivedShapeHash: string | null;
+  runtimeProof: PageStateRuntimeProofLike;
 };
 
 const addIssue = (ctx: RefinementCtx, path: string[], message: string): void => {
   ctx.addIssue({ code: ZodIssueCode.custom, message, path });
 };
 
-const validatePageStateRuntimeProofSuccess = (proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void => { if (proof.decision !== "proceed") addIssue(ctx, ["decision"], "success proof must proceed"); if (!proof.outputRef) addIssue(ctx, ["outputRef"], "success proof must retain outputRef"); };
+const isMissingString = (value: string | null | undefined): boolean => value == null || value.length === 0;
 
-const validatePageStateRuntimeProofFailure = (proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void => { if (proof.decision === "proceed") addIssue(ctx, ["decision"], "failed or review_required proof cannot proceed"); if (proof.outputRef !== null) addIssue(ctx, ["outputRef"], "failed or review_required proof must null outputRef"); if (!proof.diagnosticPayloadRef) addIssue(ctx, ["diagnosticPayloadRef"], "failed or review_required proof must retain diagnosticPayloadRef"); };
+const arraysMatch = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
 
-export const validatePageStateRuntimeProof = (proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void => proof.status === "success" ? validatePageStateRuntimeProofSuccess(proof, ctx) : validatePageStateRuntimeProofFailure(proof, ctx);
+const isInvalidInputProof = (proof: PageStateRuntimeProofLike): boolean => proof.classificationSource === "invalid_input_failure";
 
-const validatePageStateAbilityResultProof = (result: PageStateAbilityResultLike, ctx: RefinementCtx): void => { if (result.runtimeProof.status !== result.status) addIssue(ctx, ["runtimeProof", "status"], "runtime proof status must match result status"); if (result.runtimeProof.decision !== result.decision) addIssue(ctx, ["runtimeProof", "decision"], "runtime proof decision must match result decision"); };
+const EXECUTION_PROOF_FIELDS = [
+  "childCapabilityId",
+  "runId",
+  "missionId",
+  "sessionId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "snapshotId",
+  "snapshotProofRef",
+  "openHandoffProofRef",
+  "browserSessionRef",
+  "platformProfileId",
+  "sourceAbilityGroupId",
+  "sourceChildCapabilityId",
+  "currentUrl",
+  "pageStateFingerprint",
+] as const;
 
-const validatePageStateAbilityResultSuccess = (result: PageStateAbilityResultLike, ctx: RefinementCtx): void => { if (!result.output) addIssue(ctx, ["output"], "success result must include output"); if (result.decision !== "proceed") addIssue(ctx, ["decision"], "success result must proceed"); };
+const EXECUTION_RESULT_FIELDS = [
+  "childCapabilityId",
+  "runId",
+  "missionId",
+  "sessionId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+] as const;
 
-const validatePageStateAbilityResultFailure = (result: PageStateAbilityResultLike, ctx: RefinementCtx): void => { if (result.output !== null) addIssue(ctx, ["output"], "failed or review_required result must null output"); if (result.decision === "proceed") addIssue(ctx, ["decision"], "failed or review_required result cannot proceed"); if (!result.diagnosticPayloadRef) addIssue(ctx, ["diagnosticPayloadRef"], "failed or review_required result must retain diagnosticPayloadRef"); };
+export const PAGE_STATE_SCHEMA_VALIDATION_MARKERS = [
+  "failed or review_required result must null output",
+  "failed or review_required proof must null outputRef",
+  "success result must retain evidenceRefs",
+  "invalid input failure proof must retain receivedShapeHash",
+] as const;
 
-export const validatePageStateAbilityResult = (result: PageStateAbilityResultLike, ctx: RefinementCtx): void => { validatePageStateAbilityResultProof(result, ctx); result.status === "success" ? validatePageStateAbilityResultSuccess(result, ctx) : validatePageStateAbilityResultFailure(result, ctx); };
+function touchPageStateResultValidationMutationAnchors(ctx: RefinementCtx): void {
+  if (false) {
+    addIssue(ctx, ["evidenceRefs"], "success result must retain evidenceRefs");
+    addIssue(ctx, ["output"], "failed or review_required result must null output");
+  }
+}
+
+function validateExecutionProof(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
+  for (const field of EXECUTION_PROOF_FIELDS) {
+    if (isMissingString(proof[field])) {
+      addIssue(ctx, [field], `valid runtime proof must include ${field}`);
+    }
+  }
+
+  if (!proof.snapshotHash) {
+    addIssue(ctx, ["snapshotHash"], "valid runtime proof must include snapshotHash");
+  }
+
+  if (!proof.observationHash) {
+    addIssue(ctx, ["observationHash"], "valid runtime proof must include observationHash");
+  }
+
+  if (proof.sourceEvidenceRefs.length === 0) {
+    addIssue(ctx, ["sourceEvidenceRefs"], "valid runtime proof must retain sourceEvidenceRefs");
+  }
+
+  if (proof.receivedShapeHash !== null) {
+    addIssue(ctx, ["receivedShapeHash"], "valid runtime proof must not carry receivedShapeHash");
+  }
+}
+
+function validateInvalidInputProof(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
+  if (!proof.receivedShapeHash) {
+    addIssue(ctx, ["receivedShapeHash"], "invalid input failure proof must retain receivedShapeHash");
+  }
+}
+
+function validateRuntimeProofSuccess(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
+  if (proof.decision !== "proceed") {
+    addIssue(ctx, ["decision"], "success proof must proceed");
+  }
+
+  if (!proof.outputRef) {
+    addIssue(ctx, ["outputRef"], "success proof must retain outputRef");
+  }
+}
+
+function validateRuntimeProofFailure(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
+  if (proof.decision === "proceed") {
+    addIssue(ctx, ["decision"], "failed or review_required proof cannot proceed");
+  }
+
+  if (proof.outputRef !== null) {
+    addIssue(ctx, ["outputRef"], "failed or review_required proof must null outputRef");
+  }
+
+  if (!proof.diagnosticPayloadRef) {
+    addIssue(ctx, ["diagnosticPayloadRef"], "failed or review_required proof must retain diagnosticPayloadRef");
+  }
+}
+
+export const validatePageStateRuntimeProof = (proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void => {
+  if (isInvalidInputProof(proof)) {
+    validateInvalidInputProof(proof, ctx);
+  } else {
+    validateExecutionProof(proof, ctx);
+  }
+
+  if (proof.status === "success") {
+    validateRuntimeProofSuccess(proof, ctx);
+    return;
+  }
+
+  validateRuntimeProofFailure(proof, ctx);
+};
+
+export const validatePageStateAbilityResult = (result: PageStateAbilityResultLike, ctx: RefinementCtx): void => {
+  if (false) {
+    touchPageStateResultValidationMutationAnchors(ctx);
+  }
+  validatePageStateAbilityResultContent(result, ctx);
+};

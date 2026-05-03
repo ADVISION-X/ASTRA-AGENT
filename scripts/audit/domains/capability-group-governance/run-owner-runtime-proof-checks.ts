@@ -1,4 +1,4 @@
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
@@ -51,6 +51,33 @@ const inspectForbiddenOwnerLiterals = (project: ReturnType<typeof getAuditProjec
   };
 };
 
+const getRuntimeProofProperties = (sourceFile: SourceFile, schemaName: string): Set<string> => {
+  const directProperties = getZodObjectPropertyNames(sourceFile, schemaName);
+  if (directProperties.size > 0) {
+    return directProperties;
+  }
+
+  const initializer = sourceFile.getVariableDeclaration(schemaName)?.getInitializer();
+  if (!initializer || !Node.isIdentifier(initializer)) {
+    return directProperties;
+  }
+
+  const symbol = initializer.getSymbol();
+  const targetSymbol = symbol?.getAliasedSymbol() ?? symbol;
+  for (const declaration of targetSymbol?.getDeclarations() ?? []) {
+    if (!Node.isVariableDeclaration(declaration)) {
+      continue;
+    }
+
+    const resolvedProperties = getZodObjectPropertyNames(declaration.getSourceFile(), declaration.getName());
+    if (resolvedProperties.size > 0) {
+      return resolvedProperties;
+    }
+  }
+
+  return directProperties;
+};
+
 const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>): { findings: Finding[]; phases: InspectorPhase[] } => {
   const findings: Finding[] = [];
 
@@ -61,7 +88,7 @@ const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>
       continue;
     }
 
-    const properties = getZodObjectPropertyNames(sourceFile, target.schemaName);
+    const properties = getRuntimeProofProperties(sourceFile, target.schemaName);
     const missingProperties = REQUIRED_RUNTIME_PROOF_FIELDS.filter((propertyName) => !properties.has(propertyName));
     if (missingProperties.length === 0) {
       continue;

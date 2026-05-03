@@ -16,6 +16,8 @@ export const REQUIRED_SOURCE_FILES = [
   `${ROOT}/registry/quarantined-map-registry.ts`,
   `${ROOT}/registry/map-version-store.ts`,
   `${ROOT}/schema/map-plugin-package.schema.ts`,
+  `${ROOT}/shared/map-plugin-ai-child-capability-ids.ts`,
+  `${ROOT}/validation/map-capability-registry-validator.ts`,
   `${ROOT}/validation/map-package-validator.ts`,
   `${ROOT}/validation/map-security-validator.ts`,
   ...BUILTIN_PACKAGE_FILES,

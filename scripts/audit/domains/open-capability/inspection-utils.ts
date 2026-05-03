@@ -38,6 +38,81 @@ const getRegistryEntries = (sourceFile: SourceFile): ObjectLiteralExpression[] =
     : [];
 };
 
+const getObjectLiteralPropertyNames = (sourceFile: SourceFile, declarationName: string): Set<string> => {
+  const declaration = sourceFile.getVariableDeclaration(declarationName);
+  const initializer = unwrapExpression(declaration?.getInitializer());
+  if (!initializer || !Node.isObjectLiteralExpression(initializer)) {
+    return new Set();
+  }
+
+  return new Set(
+    initializer.getProperties()
+      .filter((property) => Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property))
+      .map((property) => property.getName()),
+  );
+};
+
+type NamedFunctionLike = import("ts-morph").ArrowFunction | import("ts-morph").FunctionDeclaration | import("ts-morph").FunctionExpression;
+
+const resolveReturnedObjectLiteral = (expression: Node | undefined): ObjectLiteralExpression | null => {
+  const unwrappedExpression = unwrapExpression(expression);
+  if (!unwrappedExpression) {
+    return null;
+  }
+
+  if (Node.isObjectLiteralExpression(unwrappedExpression)) {
+    return unwrappedExpression;
+  }
+
+  if (!Node.isCallExpression(unwrappedExpression)) {
+    return null;
+  }
+
+  const firstArgument = unwrapExpression(unwrappedExpression.getArguments()[0]);
+  return firstArgument && Node.isObjectLiteralExpression(firstArgument) ? firstArgument : null;
+};
+
+const getNamedFunctionLike = (sourceFile: SourceFile, functionName: string): NamedFunctionLike | null => {
+  const functionDeclaration = sourceFile.getFunction(functionName);
+  if (functionDeclaration) {
+    return functionDeclaration;
+  }
+
+  const variableInitializer = sourceFile.getVariableDeclaration(functionName)?.getInitializer();
+  return variableInitializer && (Node.isArrowFunction(variableInitializer) || Node.isFunctionExpression(variableInitializer)) ? variableInitializer : null;
+};
+
+const addObjectLiteralPropertyNames = (propertyNames: Set<string>, objectLiteral: ObjectLiteralExpression): void => {
+  for (const property of objectLiteral.getProperties()) {
+    if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
+      propertyNames.add(property.getName());
+    }
+  }
+};
+
+const addReturnedObjectPropertyNames = (propertyNames: Set<string>, expression: Node | undefined): void => {
+  const objectLiteral = resolveReturnedObjectLiteral(expression);
+  if (objectLiteral) {
+    addObjectLiteralPropertyNames(propertyNames, objectLiteral);
+  }
+};
+
+const getReturnedObjectPropertyNames = (sourceFile: SourceFile, functionName: string): Set<string> => {
+  const propertyNames = new Set<string>();
+  const functionLike = getNamedFunctionLike(sourceFile, functionName);
+  if (!functionLike) {
+    return propertyNames;
+  }
+
+  addReturnedObjectPropertyNames(propertyNames, functionLike.getBody());
+
+  for (const returnStatement of functionLike.getDescendantsOfKind(SyntaxKind.ReturnStatement)) {
+    addReturnedObjectPropertyNames(propertyNames, returnStatement.getExpression());
+  }
+
+  return propertyNames;
+};
+
 const hasStrictSuccessStatusCheck = (sourceFile: SourceFile): boolean => {
   return sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => {
     if (expression.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken) {
@@ -54,17 +129,10 @@ const hasStrictSuccessStatusCheck = (sourceFile: SourceFile): boolean => {
 };
 
 const hasReturnedObjectProperty = (sourceFile: SourceFile, propertyName: string): boolean => {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.ReturnStatement).some((returnStatement) => {
-    const expression = returnStatement.getExpression();
-    if (!expression || !Node.isCallExpression(expression)) {
-      return false;
-    }
-
-    const argument = expression.getArguments()[0];
-    return Node.isObjectLiteralExpression(argument)
-      && argument.getProperties().some((property) => {
-        return (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) && property.getName() === propertyName;
-      });
+  return sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((objectLiteral) => {
+    return objectLiteral.getProperties().some((property) => {
+      return (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) && property.getName() === propertyName;
+    });
   });
 };
 
@@ -149,12 +217,12 @@ const hasUnknownAsChain = (sourceFile: SourceFile): boolean => {
 };
 
 const propertyFabricatesAllowDecision = (property: import("ts-morph").PropertyAssignment): boolean => {
-  const initializer = property.getInitializer();
+  const initializer = unwrapExpression(property.getInitializer());
   return property.getName() === "status" && Node.isStringLiteral(initializer) && initializer.getLiteralText() === "allow";
 };
 
 const propertyFabricatesTargetProfile = (property: import("ts-morph").PropertyAssignment): boolean => {
-  const initializer = property.getInitializer();
+  const initializer = unwrapExpression(property.getInitializer());
   if (property.getName() !== "targetProfileRef" || !initializer) {
     return false;
   }
@@ -201,10 +269,12 @@ const hasForbiddenResolvedImport = (sourceFile: SourceFile): boolean => {
 
 export const openInspectionUtils = {
   getFunctionIdentifier,
+  getObjectLiteralPropertyNames,
   getObjectPropertyNames,
   getOpenSourceOrThrow,
   getOpenSources,
   getRegistryEntries,
+  getReturnedObjectPropertyNames,
   hasCommentDirective,
   hasCookieRead,
   hasDateUsageOutsideClock,

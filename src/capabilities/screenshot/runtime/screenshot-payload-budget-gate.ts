@@ -1,5 +1,6 @@
 import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import { evaluateScreenshotArtifactBudget, resolveScreenshotRetentionClass } from "./screenshot-artifact-lifecycle.js";
 
 export function runScreenshotPayloadBudgetGate(input: {
   request: ScreenshotAbilityInput;
@@ -26,6 +27,21 @@ export function runScreenshotPayloadBudgetGate(input: {
       failure: createScreenshotFailure({
         code: "input_schema_invalid",
         message: "Screenshot contentLines contains a line that exceeded capturePolicy.contentLineMaxLength.",
+      }),
+    };
+  }
+
+  const artifactBudgetFailure = evaluateScreenshotArtifactBudget({
+    request,
+    byteSize: 0,
+    retentionClass: resolveScreenshotRetentionClass(request.childCapabilityId),
+  });
+  if (artifactBudgetFailure) {
+    return {
+      decision: { status: "failed", reason: artifactBudgetFailure.reason },
+      failure: createScreenshotFailure({
+        code: "artifact_budget_exceeded",
+        message: artifactBudgetFailure.message,
       }),
     };
   }

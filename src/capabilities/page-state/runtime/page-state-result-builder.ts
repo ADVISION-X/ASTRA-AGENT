@@ -2,14 +2,12 @@ import { PAGE_STATE_ABILITY_GROUP_ID, PageStateAbilityResultSchema } from "../sc
 import type { PageStateAbilityInput, PageStateAbilityResult, PageStateRuntimeProof } from "../schema.js";
 import type { PageStateClassificationOutcome } from "../shared/page-state-types.js";
 
-export function buildPageStateResult(input: {
-  request: PageStateAbilityInput;
+function buildPageStateOutput(input: {
   outcome: PageStateClassificationOutcome;
-  runtimeProof: PageStateRuntimeProof;
   observationRefs: readonly string[];
   pageStateFingerprint: string;
-}): PageStateAbilityResult {
-  const output = input.outcome.status === "success"
+}) {
+  return input.outcome.status === "success"
     ? {
         pageStateType: input.outcome.pageStateType,
         stateSummary: input.outcome.stateSummary,
@@ -19,7 +17,14 @@ export function buildPageStateResult(input: {
         pageStateFingerprint: input.pageStateFingerprint,
       }
     : null;
+}
 
+function buildPageStateResultEnvelope(input: {
+  request: PageStateAbilityInput;
+  outcome: PageStateClassificationOutcome;
+  runtimeProof: PageStateRuntimeProof;
+  output: ReturnType<typeof buildPageStateOutput>;
+}): PageStateAbilityResult {
   return PageStateAbilityResultSchema.parse({
     status: input.outcome.status,
     decision: input.outcome.decision,
@@ -30,14 +35,22 @@ export function buildPageStateResult(input: {
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
-    output,
-    pageStateType: output?.pageStateType ?? null,
-    stateSummary: output?.stateSummary ?? null,
-    confidence: output?.confidence ?? null,
-    evidenceRefs: output?.evidenceRefs ?? [],
-    observationRefs: output?.observationRefs ?? [],
+    stepId: input.request.stepId,
+    mapPackageId: input.request.mapPackageId,
+    mapPackageVersion: input.request.mapPackageVersion,
+    selectedMapId: input.request.selectedMapId,
+    selectedMapVersion: input.request.selectedMapVersion,
+    activationSnapshotRef: input.request.activationSnapshotRef,
+    capabilityCallId: input.request.capabilityCallId,
+    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
+    output: input.output,
+    pageStateType: input.output?.pageStateType ?? null,
+    stateSummary: input.output?.stateSummary ?? null,
+    confidence: input.output?.confidence ?? null,
+    evidenceRefs: input.output?.evidenceRefs ?? [],
+    observationRefs: input.output?.observationRefs ?? [],
     sourceEvidenceRefs: [...input.request.sourceEvidenceRefs],
-    pageStateFingerprint: output?.pageStateFingerprint ?? null,
+    pageStateFingerprint: input.output?.pageStateFingerprint ?? null,
     previousPageStateFingerprint: input.request.previousPageStateFingerprint,
     failureReason: input.outcome.failureReason,
     reviewRequiredReason: input.outcome.reviewRequiredReason,
@@ -46,5 +59,20 @@ export function buildPageStateResult(input: {
     structuredRuntimeEventRef: input.runtimeProof.structuredRuntimeEventRef,
     diagnosticPayloadRef: input.runtimeProof.diagnosticPayloadRef,
     runtimeProof: input.runtimeProof,
+  });
+}
+
+export function buildPageStateResult(input: {
+  request: PageStateAbilityInput;
+  outcome: PageStateClassificationOutcome;
+  runtimeProof: PageStateRuntimeProof;
+  observationRefs: readonly string[];
+  pageStateFingerprint: string;
+}): PageStateAbilityResult {
+  return buildPageStateResultEnvelope({
+    request: input.request,
+    outcome: input.outcome,
+    runtimeProof: input.runtimeProof,
+    output: buildPageStateOutput(input),
   });
 }

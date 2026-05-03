@@ -4,6 +4,7 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { MAP_PLUGIN_LAW_FILE, MAP_PLUGIN_LAWS } from "./constants.js";
 
 type Mutation = {
   name: string;
@@ -18,10 +19,34 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
   {
-    name: "builtin executable handler mutation",
+    name: "manual-first law regression mutation",
+    file: MAP_PLUGIN_LAW_FILE,
+    search: "## Law GRASSEYE-MAP-PLUGIN-001-V2\n\nstatus: active  \ntier: P0  \ncapabilityDomain: map-plugin-package  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
+    replace: "## Law GRASSEYE-MAP-PLUGIN-001-V2\n\nstatus: active  \ntier: P1  \ncapabilityDomain: map-plugin-package  \nenforcementMode: manual-first  \nevidenceMode: law",
+  },
+  {
+    name: "map package modeled as child ability mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '    "packageKind": "operational-map-package",\n',
+    replace: '    "packageKind": "child-capability-package",\n',
+  },
+  {
+    name: "map package raw prompt mutation",
     file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
     search: '  "signature": null\n',
-    replace: '  "handler": "evil.js",\n  "signature": null\n',
+    replace: '  "rawPrompt": "Do the platform action directly.",\n  "signature": null\n',
+  },
+  {
+    name: "map package functionBody mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '  "signature": null\n',
+    replace: '  "functionBody": "return \"mutated\";",\n  "signature": null\n',
+  },
+  {
+    name: "map package eval string mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '  "changelog": "Initial built-in product discovery map package.",\n',
+    replace: '  "changelog": "eval(1)",\n',
   },
   {
     name: "legacy branch dsl mutation",
@@ -30,10 +55,46 @@ const MUTATIONS: Mutation[] = [
     replace: '{ "source": "decision", "equals": "product_yes" }',
   },
   {
+    name: "branch undeclared field mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '{ "conditionType": "comparison", "leftRef": "decision", "operator": "equals", "rightValue": "product_yes" }',
+    replace: '{ "conditionType": "comparison", "leftRef": "decisionDetail", "operator": "equals", "rightValue": "product_yes" }',
+  },
+  {
+    name: "delete promptContractId mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: ', "promptContractId": "vision.productPresence.v1"',
+    replace: '',
+  },
+  {
+    name: "delete prompt binding mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }\n',
+    replace: '',
+  },
+  {
+    name: "unknown promptContractId mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
+    replace: '      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.unknown", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
+  },
+  {
+    name: "prompt outputSchemaRef mismatch mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
+    replace: '      { "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.mismatched_schema.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
+  },
+  {
     name: "missing post-action verification mutation",
     file: "src/map-plugins/builtins/tiktok-comment-evidence.map-package.json",
     search: ', "postActionVerification": { "required": true, "verificationKind": "panel-open", "expectedSignal": "comment-panel-visible", "timeoutMs": 5000, "onPassTransitionId": "verify-comments-open:success", "onFailTransitionId": "verify-comments-open:failed", "onAmbiguousTransitionId": "verify-comments-open:review" }',
     replace: '',
+  },
+  {
+    name: "missing geometry proof mutation",
+    file: "src/map-plugins/builtins/tiktok-comment-evidence.map-package.json",
+    search: '"inputRefs": ["visualTargetRef", "geometryProofRef"]',
+    replace: '"inputRefs": ["visualTargetRef"]',
   },
   {
     name: "activation snapshot proof mutation",
@@ -48,10 +109,70 @@ const MUTATIONS: Mutation[] = [
     replace: '  "version": "2026-04-map-prompt-contract-v1-tampered",\n',
   },
   {
+    name: "routableByMap false mutation",
+    file: "src/map-plugins/authoring/capability-catalog/policies.ts",
+    search: '  "page-state": {\n    supportedTargets: ["browser-page"],\n    routableByMap: true,\n',
+    replace: '  "page-state": {\n    supportedTargets: ["browser-page"],\n    routableByMap: false,\n',
+  },
+  {
+    name: "missing capability child mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '"childCapabilityId": "detect-feed-ready"',
+    replace: '"childCapabilityId": "missing-capability-child"',
+  },
+  {
+    name: "approved manifest without validationReportRef mutation",
+    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    search: '    "validationReportRef": "audit://map-plugin-package/builtin.tiktok-product-discovery/validation/v1",\n',
+    replace: '    "validationReportRef": null,\n',
+  },
+  {
+    name: "aiGenerated spoof mutation",
+    file: "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
+    search: '    "aiGenerated": true,\n',
+    replace: '    "aiGenerated": false,\n',
+  },
+  {
     name: "ai draft activation mutation",
     file: "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
     search: '    "approvalStatus": "draft",\n',
     replace: '    "approvalStatus": "approved",\n',
+  },
+  {
+    name: "ai draft active immediately mutation",
+    file: "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
+    search: '    "availabilityPolicy": "draft",\n',
+    replace: '    "availabilityPolicy": "active",\n',
+  },
+  {
+    name: "ai draft missing authoringPromptRef mutation",
+    file: "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
+    search: '    "authoringPromptRef": "audit://map-authoring/draft-placeholder",\n',
+    replace: '',
+  },
+  {
+    name: "ordinary feed exposes mapId mutation",
+    file: "src/map-plugins/registry/active-map-registry.ts",
+    search: '  availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",\n  defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,\n',
+    replace: '  availability: registration.mapPackage.taskTemplate.availabilityPolicy === "active" ? "ready" : "disabled",\n  mapId: registration.mapPackage.manifest.mapId,\n  defaultHumanGoal: registration.mapPackage.taskTemplate.defaultHumanGoal,\n',
+  },
+  {
+    name: "commander direct registry write mutation",
+    file: "src/lib/local-app-shell/task-template-registry.ts",
+    search: '  const activeRegistry = getDefaultMapPluginRegistry().active;\n',
+    replace: '  const activeRegistry = getDefaultMapPluginRegistry().active;\n  getDefaultMapPluginRegistry().active.activate({} as never, {} as never);\n',
+  },
+  {
+    name: "forensics proof missing activationId mutation",
+    file: "src/map-plugins/shared/map-package-proof.ts",
+    search: '  activationId: string;\n',
+    replace: '',
+  },
+  {
+    name: "remove negative proof invocation mutation",
+    file: "scripts/audit/domains/map-plugin-package/inspector.ts",
+    search: '    : runNegativeProofHarness();\n',
+    replace: '    : Promise.resolve({\n        findings: [],\n        phase: createPhase("negative-proof-harness", "PASS", true, "mutated bypass"),\n      });\n',
   },
 ];
 
@@ -129,7 +250,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-MAP-PLUGIN-007-V1",
+        lawId: MAP_PLUGIN_LAWS.ENFORCEMENT,
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",
@@ -158,7 +279,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Map package negative-proof harness rejects executable payload, legacy branch DSL, missing action verification policy, activation snapshot drift, generated catalog drift, and AI draft activation mutations.");
+    return createPassResult("Map package negative-proof harness rejects law-strength regressions, child-ability reintroduction, raw prompt/code payloads, prompt binding drift, lifecycle proof gaps, AI draft spoofing, catalog misuse, ordinary-feed leaks, Commander registry bypass, and negative-proof bypass mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Map package negative-proof harness failed.",

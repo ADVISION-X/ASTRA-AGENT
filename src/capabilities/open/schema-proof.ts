@@ -29,22 +29,18 @@ import {
   OpenUrlSafetyDecisionSchema,
   PostOpenStateDecisionSchema,
 } from "./schema-runtime.js";
+import { validateOpenResult, validateOpenRuntimeProof } from "./schema-proof-refinements.js";
 import { OPEN_ABILITY_GROUP_ID, OPEN_POST_OPEN_CLASSIFICATIONS } from "./shared/open-target-profile.js";
 import { OPEN_CLOCK_KIND } from "./shared/open-proof.js";
 
-type OpenRuntimeProofValidationValue = {
-  clock: {
-    startedMonotonicMs: number;
-    endedMonotonicMs: number;
-  };
-  status: z.infer<typeof OpenStatusSchema>;
-  postOpenDecision: {
-    status: z.infer<typeof PostOpenStateDecisionSchema>["status"];
-  };
-  outputRef: string | null;
-  pageStateHandoffRequired: boolean;
-  pageStateHandoffRef: string | null;
-};
+export const OPEN_SCHEMA_VALIDATION_MARKERS = [
+  "parsed runtime proof requires browserSessionRef",
+  "fallback_trace_only runtime proof requires receivedShapeHash",
+  "success proof requires page-state handoff",
+  "failed and review_required proof must expose diagnosticPayloadRef",
+  "failed and review_required result must expose diagnosticPayloadRef",
+  "success result must not expose diagnosticPayloadRef",
+] as const;
 
 const openRuntimeProofIdentityShape = {
   proofId: z.string().min(1),
@@ -53,6 +49,14 @@ const openRuntimeProofIdentityShape = {
   sessionId: nullableString,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),
   childCapabilityId: OpenChildCapabilityIdSchema.nullable().default(null),
   platformId: OpenPlatformIdSchema.nullable().default(null),
@@ -78,6 +82,7 @@ const openRuntimeProofSourceShape = {
   browserProfileRef: nullableString,
   browserMode: BrowserModeSchema,
   profileVerificationStatus: BrowserProfileVerificationStatusSchema,
+  browserSessionRef: nullableString,
   loginStateBefore: BrowserLoginStateSchema,
   loginStateAfter: BrowserLoginStateSchema,
   pageTitleAfter: nullableString,
@@ -113,6 +118,7 @@ const openRuntimeProofClockShape = {
   failureReason: OpenFailureSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
   dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),
+  receivedShapeHash: nullableString,
   clock: z.object({
     portKind: z.literal(OPEN_CLOCK_KIND),
     startedMonotonicMs: z.number().finite(),
@@ -127,61 +133,6 @@ const OpenRuntimeProofBaseSchema = z.object({
   ...openRuntimeProofClockShape,
 }).strict();
 
-type OpenRuntimeProofBaseValue = z.output<typeof OpenRuntimeProofBaseSchema>;
-
-const validateOpenRuntimeProofTiming = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx) => {
-  if (value.clock.startedMonotonicMs > value.clock.endedMonotonicMs) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "startedMonotonicMs must not be after endedMonotonicMs",
-      path: ["clock", "startedMonotonicMs"],
-    });
-  }
-};
-
-const validateOpenRuntimeProofStatus = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx) => {
-  if (value.status !== value.postOpenDecision.status) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "proof status must equal postOpenDecision.status",
-      path: ["postOpenDecision", "status"],
-    });
-  }
-};
-
-const validateOpenRuntimeProofOutput = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx) => {
-  if (value.status === "success") {
-    if (value.outputRef === null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success proof requires outputRef",
-        path: ["outputRef"],
-      });
-    }
-    if (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success proof requires page-state handoff",
-        path: ["pageStateHandoffRef"],
-      });
-    }
-  }
-  if (value.status !== "success" && value.outputRef !== null) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "failed and review_required proof must not expose outputRef",
-      path: ["outputRef"],
-    });
-  }
-};
-
-const validateOpenRuntimeProof = (value: OpenRuntimeProofBaseValue, context: z.RefinementCtx) => {
-  const proof = value as OpenRuntimeProofValidationValue;
-  validateOpenRuntimeProofTiming(proof, context);
-  validateOpenRuntimeProofStatus(proof, context);
-  validateOpenRuntimeProofOutput(proof, context);
-};
-
 export const OpenRuntimeProofSchema = OpenRuntimeProofBaseSchema.superRefine(validateOpenRuntimeProof);
 
 export const OpenResultSchema = z.object({
@@ -190,6 +141,19 @@ export const OpenResultSchema = z.object({
   platformId: OpenPlatformIdSchema.nullable().default(null),
   targetKind: OpenTargetKindSchema.nullable().default(null),
   status: OpenStatusSchema,
+  missionId: nullableString,
+  runId: nullableString,
+  sessionId: nullableString,
+  roundId: nullableString,
+  videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   message: z.string().min(1),
   targetUrl: nullableUrl,
   openedUrl: nullableUrl,
@@ -199,36 +163,7 @@ export const OpenResultSchema = z.object({
   output: OpenOutputSchema.nullable().default(null),
   failureReason: OpenFailureSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
+  diagnosticPayloadRef: nullableString,
+  dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),
   runtimeProof: OpenRuntimeProofSchema,
-}).strict().superRefine((value, context) => {
-  if (value.runtimeProof.status !== value.status) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "runtimeProof.status must equal result.status",
-      path: ["runtimeProof", "status"],
-    });
-  }
-  if (value.status === "success") {
-    if (value.output === null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success result requires output",
-        path: ["output"],
-      });
-    }
-    if (!value.pageStateHandoffRequired) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "success result requires pageStateHandoffRequired=true",
-        path: ["pageStateHandoffRequired"],
-      });
-    }
-  }
-  if (value.status !== "success" && value.output !== null) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "failed and review_required result must not expose output",
-      path: ["output"],
-    });
-  }
-});
+}).strict().superRefine(validateOpenResult);

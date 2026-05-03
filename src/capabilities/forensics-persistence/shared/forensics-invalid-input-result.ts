@@ -37,13 +37,14 @@ const buildInvalidInputFailureReason = (detail: string) => ({
   detail,
 } as const);
 
-const buildInvalidInputRuntimeProof = (input: {
+const getInvalidInputDurationMs = (startedAt: string, endedAt: string): number => {
+  return Math.max(0, new Date(endedAt).getTime() - new Date(startedAt).getTime());
+};
+
+const buildInvalidInputProofChain = (input: {
   child: ForensicsInvalidInputChild;
   startedAt: string;
   endedAt: string;
-  detail: string;
-  policyDecision: ForensicsPolicyDecision;
-  integrityDecision: ForensicsIntegrityDecision;
 }) => ({
   proofId: `forensics-proof:invalid-input:${input.child.childCapabilityId}`,
   runId: `invalid-input:${input.child.childCapabilityId}`,
@@ -68,7 +69,18 @@ const buildInvalidInputRuntimeProof = (input: {
   idempotencyKey: "invalid-input",
   startedAt: input.startedAt,
   endedAt: input.endedAt,
-  durationMs: Math.max(0, new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime()),
+  durationMs: getInvalidInputDurationMs(input.startedAt, input.endedAt),
+});
+
+const buildInvalidInputRuntimeProof = (input: {
+  child: ForensicsInvalidInputChild;
+  startedAt: string;
+  endedAt: string;
+  detail: string;
+  policyDecision: ForensicsPolicyDecision;
+  integrityDecision: ForensicsIntegrityDecision;
+}) => ({
+  ...buildInvalidInputProofChain(input),
   status: "failed",
   storageOperation: input.policyDecision.storageOperation,
   inputRefs: [],

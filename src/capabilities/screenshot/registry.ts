@@ -42,8 +42,8 @@ const REGISTRY_ENTRIES = [
     requiresArtifactStorage: true,
     maxDurationMs: 8_000,
     idempotencyPolicy: "content-addressed",
-    outputImageKind: "evidence_original",
-    coordinateSpacePolicy: "source_image_pixels",
+    outputImageKind: "region_crop",
+    coordinateSpacePolicy: "region_crop_pixels",
   },
   {
     childCapabilityId: "optimize-lossless",
@@ -57,7 +57,7 @@ const REGISTRY_ENTRIES = [
     maxDurationMs: 8_000,
     idempotencyPolicy: "content-addressed",
     outputImageKind: "evidence_optimized",
-    coordinateSpacePolicy: "source_image_pixels",
+    coordinateSpacePolicy: "derived",
   },
   {
     childCapabilityId: "prepare-ai-input",

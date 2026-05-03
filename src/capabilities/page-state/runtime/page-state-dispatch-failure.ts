@@ -54,6 +54,8 @@ export function dispatchInvalidPageStateInput(input: {
   const runtimeProof = PageStateRuntimeProofSchema.parse({
     proofId: `page-state-proof:invalid-input:${receivedShapeHash.slice(0, 24)}`,
     runId: null, missionId: null, sessionId: null, roundId: null, videoVisitId: null,
+    stepId: null, mapPackageId: null, mapPackageVersion: null, selectedMapId: null, selectedMapVersion: null,
+    activationSnapshotRef: null, capabilityCallId: null, nerveBusEnvelopeId: null,
     abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID, childCapabilityId: null,
     inputRef: `page-state-input:invalid:${receivedShapeHash.slice(0, 16)}`,
     outputRef: null, diagnosticPayloadRef, debugLogRef: `page-state-debug:invalid-input:${receivedShapeHash.slice(0, 24)}`,
@@ -62,7 +64,7 @@ export function dispatchInvalidPageStateInput(input: {
     sourceAbilityGroupId: null, sourceChildCapabilityId: null, observationRefs: [], sourceEvidenceRefs: [],
     inputPayloadHash: receivedShapeHash, snapshotHash: null, observationHash: null, pageStateFingerprint: null,
     previousPageStateFingerprint: null, currentUrl: null, currentTitle: null, classificationSource: "invalid_input_failure",
-    inputDecision: "fail", sourceBindingDecision: "fail", observationBindingDecision: "fail", freshnessDecision: "fail",
+    inputDecision: "fail", payloadBudgetDecision: "fail", sourceBindingDecision: "fail", observationBindingDecision: "fail", freshnessDecision: "fail",
     platformDecision: "fail", classificationDecision: "fail", outputBoundaryDecision: "fail", criticalDataQualityDecision: "fail",
     proceedDecision: "fail", startedAt: startedAt.isoTimestamp, endedAt: endedAt.isoTimestamp,
     durationMs: endedAt.epochMs - startedAt.epochMs, status: "failed", decision: "fail", failureReason: "invalid_input",
@@ -72,6 +74,8 @@ export function dispatchInvalidPageStateInput(input: {
   return PageStateAbilityResultSchema.parse({
     status: "failed", decision: "fail", abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID, childCapabilityId: null,
     runId: null, missionId: null, sessionId: null, roundId: null, videoVisitId: null,
+    stepId: null, mapPackageId: null, mapPackageVersion: null, selectedMapId: null, selectedMapVersion: null,
+    activationSnapshotRef: null, capabilityCallId: null, nerveBusEnvelopeId: null,
     output: null, pageStateType: null, stateSummary: null, confidence: null,
     evidenceRefs: [], observationRefs: [], sourceEvidenceRefs: [], pageStateFingerprint: null, previousPageStateFingerprint: null,
     failureReason: "invalid_input", reviewRequiredReason: null, dataQualityFlags: ["insufficient_signal"],

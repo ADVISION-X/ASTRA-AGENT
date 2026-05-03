@@ -1,4 +1,3 @@
-import { createId } from "./ids.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
 import type { HumanCommandDispatchInput } from "../../capabilities/nerve-bus/contract.js";
 
@@ -7,6 +6,9 @@ type HumanCommandDispatchTargetRecordRef = {
 };
 
 type HumanCommandDispatchCommand = {
+  commandId: string;
+  idempotencyKey: string;
+  timeoutMs: number;
   commandType: string;
   targetMissionId: string | null;
   selectedMapId: string | null;
@@ -24,45 +26,57 @@ type HumanCommandTransportResultEnvelope = {
   reviewRequiredReason: string | null;
 };
 
+const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => ({
+  commandId: command.commandId,
+  commandType: command.commandType,
+  idempotencyKey: command.idempotencyKey,
+  timeoutMs: command.timeoutMs,
+  targetMissionId: command.targetMissionId ?? null,
+  selectedMapId: command.selectedMapId ?? null,
+  requestedPlatformId: command.requestedPlatformId ?? null,
+  humanGoal: command.humanGoal ?? null,
+  maxRounds: command.maxRounds ?? null,
+  maxMinutes: command.maxMinutes ?? null,
+  operatorNote: command.operatorNote ?? null,
+  targetRecordId: command.targetRecordRef?.recordId ?? null,
+});
+
+const buildHumanCommandInputPayload = (command: HumanCommandDispatchCommand) => {
+  return buildPayloadDocument({
+    documentType: "human.command",
+    documentRef: `commander-console:${command.commandId}:input`,
+    summary: `Commander command ${command.commandType}`,
+    content: buildHumanCommandInputContent(command),
+  });
+};
+
+const buildHumanCommandEnvelope = (command: HumanCommandDispatchCommand, inputPayload: ReturnType<typeof buildHumanCommandInputPayload>) => ({
+  ...buildTransportEnvelopeBase({
+    channelId: "commander-to-orchestration",
+    envelopeId: `commander-console:${command.commandId}`,
+    missionId: command.targetMissionId ?? "human-command",
+    mapId: command.selectedMapId ?? "human-command",
+    stepId: command.commandType,
+    inputRef: inputPayload.documentRef,
+    payloadRefs: { input: inputPayload.documentRef },
+    summary: inputPayload.summary,
+    tags: ["commander-console", command.commandType],
+    idempotencyKey: command.idempotencyKey,
+    expiresAt: new Date(Date.now() + command.timeoutMs).toISOString(),
+  }),
+  commandId: command.commandId,
+  envelopeKind: "human_command" as const,
+  from: "commander-console" as const,
+  to: "orchestration" as const,
+  commandType: command.commandType,
+});
+
 export const buildHumanCommandDispatchInput = (
   command: HumanCommandDispatchCommand,
 ): HumanCommandDispatchInput => {
-  const commandId = createId("commander_command");
-  const inputPayload = buildPayloadDocument({
-    documentType: "human.command",
-    documentRef: `commander-console:${commandId}:input`,
-    summary: `Commander command ${command.commandType}`,
-    content: {
-      commandType: command.commandType,
-      targetMissionId: command.targetMissionId ?? null,
-      selectedMapId: command.selectedMapId ?? null,
-      requestedPlatformId: command.requestedPlatformId ?? null,
-      humanGoal: command.humanGoal ?? null,
-      maxRounds: command.maxRounds ?? null,
-      maxMinutes: command.maxMinutes ?? null,
-      operatorNote: command.operatorNote ?? null,
-      targetRecordId: command.targetRecordRef?.recordId ?? null,
-    },
-  });
+  const inputPayload = buildHumanCommandInputPayload(command);
   return {
-    envelope: {
-      ...buildTransportEnvelopeBase({
-        channelId: "commander-to-orchestration",
-        envelopeId: `commander-console:${commandId}`,
-        missionId: command.targetMissionId ?? "human-command",
-        mapId: command.selectedMapId ?? "human-command",
-        stepId: command.commandType,
-        inputRef: inputPayload.documentRef,
-        payloadRefs: { input: inputPayload.documentRef },
-        summary: inputPayload.summary,
-        tags: ["commander-console", command.commandType],
-      }),
-      commandId,
-      envelopeKind: "human_command",
-      from: "commander-console",
-      to: "orchestration",
-      commandType: command.commandType,
-    },
+    envelope: buildHumanCommandEnvelope(command, inputPayload),
     inputPayload,
   };
 };

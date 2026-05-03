@@ -1,5 +1,6 @@
 import type { CommanderConsoleChildDefinition } from "../../runtime/commander-console-executor.js";
 import { executeCommanderReadChild } from "../../runtime/commander-child-executors.js";
+import { buildCommanderEvidenceRef } from "../../runtime/commander-boundary-policy.js";
 import { SHOW_AUDIT_SUMMARY_CONTRACT, type ShowAuditSummaryInput, type ShowAuditSummaryOutput } from "./contract.js";
 import { ShowAuditSummaryInputSchema, ShowAuditSummaryOutputSchema } from "./schema.js";
 
@@ -15,7 +16,12 @@ export const SHOW_AUDIT_SUMMARY_CHILD: CommanderConsoleChildDefinition<ShowAudit
       inputSchema: ShowAuditSummaryInputSchema,
       context,
       read: async () => context.auditReadModel.readAuditSummary(),
-      buildEvidenceRefs: () => [],
+      buildEvidenceRefs: (summary) => [buildCommanderEvidenceRef({
+        recordType: "runtime-event",
+        recordId: `audit-summary:${summary.phase}:${summary.lastRunGeneratedAt ?? summary.lastGeneratedAt ?? "latest"}`,
+        sourceAbility: "audit-read-model",
+        proofRef: summary.lastRunGeneratedAt ?? summary.lastGeneratedAt ?? null,
+      })],
     });
   },
 };

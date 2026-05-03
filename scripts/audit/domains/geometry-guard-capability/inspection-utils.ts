@@ -39,9 +39,11 @@ const hasVerifySymbol = (sourceFile: SourceFile): boolean => {
 };
 
 const hasClampEscape = (sourceFile: SourceFile): boolean => {
+  const text = sourceFile.getFullText();
   return sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((node) => node.getText().toLowerCase().includes("clamp"))
     || hasStringLiteral(sourceFile, "clamp")
-    || hasStringLiteral(sourceFile, "clamped");
+    || hasStringLiteral(sourceFile, "clamped")
+    || /Math\.(max|min)\(\s*1\s*,\s*roundValue/.test(text);
 };
 
 const hasDateEscape = (sourceFile: SourceFile): boolean => {

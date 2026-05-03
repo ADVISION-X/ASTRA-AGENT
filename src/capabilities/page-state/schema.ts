@@ -25,6 +25,7 @@ const PAGE_STATE_CHILD_CAPABILITY_IDS = [
 ] as const;
 
 const PageStateChildCapabilityIdSchema = z.enum(PAGE_STATE_CHILD_CAPABILITY_IDS);
+const PageStateRequestedBySchema = z.enum(["orchestration", "post-action-verification", "commander-read-model"]);
 const PageStateStatusSchema = z.enum(["success", "failed", "review_required"]);
 const PageStateDecisionSchema = z.enum(["proceed", "block", "review_required", "fail"]);
 const PageStateTypeSchema = z.enum([
@@ -249,13 +250,22 @@ const PageStateOpenHandoffPolicySchema = z.object({
 });
 
 const PageStateAbilityInputSchema = z.object({
+  abilityGroupId: z.literal(PAGE_STATE_ABILITY_GROUP_ID),
   childCapabilityId: PageStateChildCapabilityIdSchema,
+  requestedBy: PageStateRequestedBySchema,
   runId: z.string().min(1),
   missionId: z.string().min(1),
   sessionId: z.string().min(1),
-  roundId: z.string().min(1),
-  videoVisitId: z.string().min(1),
-  requestedBy: z.string().min(1),
+  roundId: z.string().min(1).nullable().default(null),
+  videoVisitId: z.string().min(1).nullable().default(null),
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
   snapshot: PageStateSnapshotSchema,
   observations: z.array(PageStateObservationSchema).max(MAX_OBSERVATIONS),
   sourceEvidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_EVIDENCE_REFS),
@@ -264,7 +274,9 @@ const PageStateAbilityInputSchema = z.object({
   statePolicy: PageStatePolicySchema,
   openHandoff: PageStateOpenHandoffPolicySchema,
   previousPageStateFingerprint: z.string().min(1).nullable().default(null),
-});
+  inputRef: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+}).strict();
 
 const PageStateOutputSchema = z.object({
   pageStateType: PageStateTypeSchema,
@@ -273,7 +285,7 @@ const PageStateOutputSchema = z.object({
   evidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS),
   observationRefs: z.array(z.string().min(1)).max(MAX_OBSERVATIONS),
   pageStateFingerprint: z.string().min(1),
-});
+}).strict();
 
 const PageStateRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
@@ -282,6 +294,14 @@ const PageStateRuntimeProofSchema = z.object({
   sessionId: z.string().min(1).nullable(),
   roundId: z.string().min(1).nullable(),
   videoVisitId: z.string().min(1).nullable(),
+  stepId: z.string().min(1).nullable(),
+  mapPackageId: z.string().min(1).nullable(),
+  mapPackageVersion: z.string().min(1).nullable(),
+  selectedMapId: z.string().min(1).nullable(),
+  selectedMapVersion: z.string().min(1).nullable(),
+  activationSnapshotRef: z.string().min(1).nullable(),
+  capabilityCallId: z.string().min(1).nullable(),
+  nerveBusEnvelopeId: z.string().min(1).nullable(),
   abilityGroupId: z.literal(PAGE_STATE_ABILITY_GROUP_ID),
   childCapabilityId: PageStateChildCapabilityIdSchema.nullable(),
   inputRef: z.string().min(1),
@@ -309,6 +329,7 @@ const PageStateRuntimeProofSchema = z.object({
   currentTitle: z.string().max(MAX_SUMMARY_LENGTH).nullable(),
   classificationSource: z.enum(["child_capability", "invalid_input_failure"]),
   inputDecision: z.enum(["allow", "fail"]),
+  payloadBudgetDecision: z.enum(["allow", "review_required", "fail"]),
   sourceBindingDecision: z.enum(["allow", "review_required", "fail"]),
   observationBindingDecision: z.enum(["bound", "review_required", "fail"]),
   freshnessDecision: z.enum(["fresh", "review_required", "fail"]),
@@ -326,7 +347,7 @@ const PageStateRuntimeProofSchema = z.object({
   reviewRequiredReason: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
   dataQualityFlags: z.array(PageStateDataQualityFlagSchema).max(MAX_DATA_QUALITY_FLAGS),
   receivedShapeHash: z.string().min(1).nullable().default(null),
-}).superRefine(validatePageStateRuntimeProof);
+}).strict().superRefine(validatePageStateRuntimeProof);
 
 const PageStateAbilityResultSchema = z.object({
   status: PageStateStatusSchema,
@@ -338,6 +359,14 @@ const PageStateAbilityResultSchema = z.object({
   sessionId: z.string().min(1).nullable(),
   roundId: z.string().min(1).nullable(),
   videoVisitId: z.string().min(1).nullable(),
+  stepId: z.string().min(1).nullable(),
+  mapPackageId: z.string().min(1).nullable(),
+  mapPackageVersion: z.string().min(1).nullable(),
+  selectedMapId: z.string().min(1).nullable(),
+  selectedMapVersion: z.string().min(1).nullable(),
+  activationSnapshotRef: z.string().min(1).nullable(),
+  capabilityCallId: z.string().min(1).nullable(),
+  nerveBusEnvelopeId: z.string().min(1).nullable(),
   output: PageStateOutputSchema.nullable(),
   pageStateType: PageStateTypeSchema.nullable(),
   stateSummary: z.string().min(1).max(MAX_SUMMARY_LENGTH).nullable(),
@@ -355,7 +384,7 @@ const PageStateAbilityResultSchema = z.object({
   diagnosticPayloadRef: z.string().min(1).nullable(),
   receivedShapeHash: z.string().min(1).nullable().default(null),
   runtimeProof: PageStateRuntimeProofSchema,
-}).superRefine(validatePageStateAbilityResult);
+}).strict().superRefine(validatePageStateAbilityResult);
 
 const PageStateChildDetectionSchema = z.object({
   childCapabilityId: PageStateChildCapabilityIdSchema,
@@ -367,7 +396,7 @@ const PageStateChildDetectionSchema = z.object({
   matchedObservationIds: z.array(z.string().min(1)).max(MAX_OBSERVATIONS).default([]),
   supportingEvidenceRefs: z.array(z.string().min(1)).max(MAX_EVIDENCE_REFS).default([]),
   supportingReasons: z.array(z.string().min(1).max(MAX_DETAIL_LENGTH)).max(MAX_SUPPORTING_REASONS).default([]),
-});
+}).strict();
 
 function createPageStateChildInputSchema<TChildId extends PageStateChildCapabilityId>(childCapabilityId: TChildId) {
   return PageStateAbilityInputSchema.extend({
@@ -382,6 +411,7 @@ function createPageStateChildOutputSchema<TChildId extends PageStateChildCapabil
 }
 
 type PageStateChildCapabilityId = z.infer<typeof PageStateChildCapabilityIdSchema>;
+type PageStateRequestedBy = z.infer<typeof PageStateRequestedBySchema>;
 type PageStateStatus = z.infer<typeof PageStateStatusSchema>;
 type PageStateDecision = z.infer<typeof PageStateDecisionSchema>;
 type PageStateType = z.infer<typeof PageStateTypeSchema>;
@@ -404,4 +434,4 @@ type PageStateAbilityResult = z.infer<typeof PageStateAbilityResultSchema>;
 type PageStateChildDetection = z.infer<typeof PageStateChildDetectionSchema>;
 
 export { PAGE_STATE_ABILITY_GROUP_ID, PAGE_STATE_CHILD_CAPABILITY_IDS, PageStateChildCapabilityIdSchema, PageStateStatusSchema, PageStateDecisionSchema, PageStateTypeSchema, PageStateFailureReasonSchema, PageStateDataQualityFlagSchema, PageStateSourceAbilityGroupIdSchema, PageStateViewportSchema, PageStateScrollOffsetSchema, PageStateObservationSourceSchema, PageStateObservationSchema, PageStateSnapshotSchema, PageStateFreshnessPolicySchema, PageStateConfidencePolicySchema, PageStatePolicySchema, PageStateOpenHandoffPolicySchema, PageStateAbilityInputSchema, PageStateOutputSchema, PageStateRuntimeProofSchema, PageStateAbilityResultSchema, PageStateChildDetectionSchema, createPageStateChildInputSchema, createPageStateChildOutputSchema };
-export type { PageStateChildCapabilityId, PageStateStatus, PageStateDecision, PageStateType, PageStateFailureReason, PageStateDataQualityFlag, PageStateSourceAbilityGroupId, PageStateViewport, PageStateScrollOffset, PageStateObservationSource, PageStateObservation, PageStateSnapshot, PageStateFreshnessPolicy, PageStateConfidencePolicy, PageStatePolicy, PageStateOpenHandoffPolicy, PageStateAbilityInput, PageStateOutput, PageStateRuntimeProof, PageStateAbilityResult, PageStateChildDetection };
+export type { PageStateChildCapabilityId, PageStateRequestedBy, PageStateStatus, PageStateDecision, PageStateType, PageStateFailureReason, PageStateDataQualityFlag, PageStateSourceAbilityGroupId, PageStateViewport, PageStateScrollOffset, PageStateObservationSource, PageStateObservation, PageStateSnapshot, PageStateFreshnessPolicy, PageStateConfidencePolicy, PageStatePolicy, PageStateOpenHandoffPolicy, PageStateAbilityInput, PageStateOutput, PageStateRuntimeProof, PageStateAbilityResult, PageStateChildDetection };

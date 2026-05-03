@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Forensics Persistence Capability"
 description: "Use when governing the Forensics Persistence Ability Group, append-only evidence ledger, record-envelope write authority, chain-proof persistence, artifact refs, runtime snapshot updates, and storage-port boundaries."
-applyTo: ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md, src/capabilities/forensics-persistence/**, scripts/audit/domains/forensics-persistence-capability/**, docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图.md"
+applyTo: ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md, src/capabilities/forensics-persistence/**, scripts/audit/domains/forensics-persistence-capability/**, docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md"
 ---
 
 # GrassEye Forensics Persistence Capability FINAL
@@ -590,6 +590,67 @@ Required negative proof:
 - Convert P0 to warning-only → FAIL.
 - Use regex-only final check → FAIL.
 - Add `capability-check.ts` → FAIL.
+
+---
+
+## Law GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1
+
+status: active
+tier: P0
+capabilityDomain: forensics-persistence-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Forensics is the only owner allowed to promote transient screenshot artifacts into retained evidence or legal hold, and it owns cleanup-ledger truth.
+
+### 主题
+
+Artifact Promotion / Final Retention Sovereignty
+
+### 法条
+
+Forensics Persistence is the only owner allowed to turn transient screenshot artifacts into retained evidence.
+
+Required:
+- Screenshot, AI, Visual Target, Post-action Verification, and Orchestration may pass `artifactLifecycleManifestRef`, `artifactHash`, and cleaned artifact refs, but they must not self-promote artifacts.
+- `ForensicsArtifactRef` must preserve:
+	- `artifactLifecycleManifestRef`
+	- `retentionClass`
+	- `promotionStatus`
+	- `artifactHash`
+	- `byteSize`
+	- `promotedByRecordRef`
+	- `pinnedByRecordRefs`
+	- `legalHoldReason`
+	- `cleanupLedgerRef`
+	- `refCount`
+	- `cleanupEligible`
+- Only Forensics may transition retained state to `promoted-evidence` or `legal-hold-evidence`.
+- Only Forensics may record artifact pin/unpin, legal hold, cleanup ledger, and final retention truth.
+- Cleanup execution must stay blocked unless all of the following are true:
+	- lifecycle manifest exists
+	- class is transient or diagnostic
+	- artifact is expired
+	- mission is not active
+	- AI / Visual Target / PAV are not pending
+	- artifact is not promoted
+	- artifact is not pinned
+	- no legal hold exists
+	- `refCount = 0`
+
+Forbidden:
+- Screenshot, AI, Visual Target, PAV, or Orchestration marking artifacts as `promoted-evidence` or `legal-hold-evidence` directly.
+- Final retention truth outside Forensics.
+- Cleanup execution outside Forensics-owned cleanup ledger.
+
+Required inspector:
+- `ForensicsArtifactRef` lifecycle/promotion field presence.
+- Manifest active-law coverage.
+- Negative proof for lifecycle field regression.
+
+Required negative proof:
+- Remove `promotionStatus` from `ForensicsArtifactRef` → FAIL.
+- Remove `refCount` from `ForensicsArtifactRef` → FAIL.
 
 ---
 

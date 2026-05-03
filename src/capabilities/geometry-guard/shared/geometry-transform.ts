@@ -74,8 +74,8 @@ function applyRoundingToBoundingBox(bbox: GeometryGuardBoundingBox, policy: Geom
   return {
     x: roundValue(bbox.x, policy),
     y: roundValue(bbox.y, policy),
-    width: Math.max(1, roundValue(bbox.width, policy)),
-    height: Math.max(1, roundValue(bbox.height, policy)),
+    width: roundValue(bbox.width, policy),
+    height: roundValue(bbox.height, policy),
   };
 }
 

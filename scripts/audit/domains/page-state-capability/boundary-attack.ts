@@ -12,7 +12,7 @@ export async function runBoundaryAttack(project: Project): Promise<{ findings: F
   for (const sourceFile of allSources) {
     if (leaksPrivatePageStatePath(sourceFile)) {
       const repoPath = sourceFile.getFilePath().split("/Users/nexgen/Documents/GrassEye -AI-AGENT/").pop() ?? sourceFile.getBaseName();
-      findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-001-V1", file: repoPath, line: 1, severity: "fatal", message: "External code must not import page-state runtime or child internals." }));
+      findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file: repoPath, line: 1, severity: "fatal", message: "External code must not import page-state runtime or child internals." }));
     }
   }
 
@@ -21,21 +21,26 @@ export async function runBoundaryAttack(project: Project): Promise<{ findings: F
     const repoPath = sourceFile.getFilePath().split("/Users/nexgen/Documents/GrassEye -AI-AGENT/").pop() ?? sourceFile.getBaseName();
     const forbiddenMarkers = [
       "capabilities/ai",
+      "capabilities/open",
       "capabilities/screenshot",
+      "/screenshot/",
       "capabilities/visual-target",
       "capabilities/mouse-click",
       "capabilities/mouse-scroll",
       "capabilities/post-action-verification",
       "capabilities/forensics-persistence",
+      "capabilities/orchestration",
+      "capabilities/nerve-bus",
+      "lib/browser",
     ];
     if (sourceFile.getImportDeclarations().some((declaration) => forbiddenMarkers.some((marker) => declaration.getModuleSpecifierValue().includes(marker)))) {
-      findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-002-V1", file: repoPath, line: 1, severity: "fatal", message: "Page State boundary must not import action, screenshot, AI, or forensics owners." }));
+      findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2", file: repoPath, line: 1, severity: "fatal", message: "Page State boundary must not import foreign action, screenshot, AI, browser, or orchestration owners." }));
     }
   }
 
   const contractSource = getSource(project, `${ROOT}/contract.ts`);
   if (!contractSource.getInterface("PageStateAbilityGroup")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-001-V1", file: `${ROOT}/contract.ts`, line: 1, severity: "fatal", message: "Page State public boundary must expose only the ability-group contract." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2", file: `${ROOT}/contract.ts`, line: 1, severity: "fatal", message: "Page State public boundary must expose only the ability-group contract." }));
   }
 
   const phasePassed = findings.length === 0;

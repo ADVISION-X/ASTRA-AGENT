@@ -31,6 +31,13 @@ function isPublicCapabilityEntry(relativePath: string): boolean {
   return isCapabilitySourcePath(relativePath) && (relativePath.endsWith(CONTRACT_SUFFIX) || relativePath.endsWith(INDEX_SUFFIX));
 }
 
+function isAllowedLocalRuntimeWorkbenchImport(importerPath: string, targetPath: string): boolean {
+  return (importerPath === "src/lib/local-runtime/workbench-page-state-runtime.ts"
+    && targetPath === "src/capabilities/page-state/workbench-ability-group.ts")
+    || (importerPath === "src/lib/local-runtime/workbench-screenshot-ability-group.ts"
+      && targetPath === "src/capabilities/screenshot/workbench-screenshot-ability-group.ts");
+}
+
 function createDefaultPublicEntries(capabilityRoot: string): Set<string> {
   return new Set<string>([`${capabilityRoot}/contract.ts`, `${capabilityRoot}/index.ts`]);
 }
@@ -114,6 +121,7 @@ export const capabilityGroupGovernanceUtils = {
   isCapabilitySourcePath,
   getCapabilityRoot,
   isPublicCapabilityEntry,
+  isAllowedLocalRuntimeWorkbenchImport,
   collectDeclaredPublicEntries,
   isGovernedSurface,
   getStringLiteralValue,

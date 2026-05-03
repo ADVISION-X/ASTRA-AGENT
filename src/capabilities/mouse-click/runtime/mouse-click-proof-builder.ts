@@ -6,17 +6,27 @@ import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 function buildProofIdentity(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
   return {
     proofId: buildStableMouseClickRef("mouse-click-proof", [input.attemptRef, input.status]),
-    runId: buildStableMouseClickRef("mouse-click-run", [input.attemptRef, input.childCapabilityId]),
-    missionId: input.sessionId ?? input.attemptRef,
+    runId: input.runId,
+    missionId: input.missionId,
     sessionId: input.sessionId,
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
+    stepId: input.stepId,
+    mapPackageId: input.mapPackageId,
+    mapPackageVersion: input.mapPackageVersion,
+    selectedMapId: input.selectedMapId,
+    selectedMapVersion: input.selectedMapVersion,
+    activationSnapshotRef: input.activationSnapshotRef,
+    capabilityCallId: input.capabilityCallId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     abilityGroupId: "mouse-click",
     childCapabilityId: input.childCapabilityId,
     sourceAbilityGroupId: input.sourceAbilityGroupId,
     sourceChildCapabilityId: input.sourceChildCapabilityId,
     inputRef: input.inputRef,
+    sourceRef: input.sourceRef,
     outputRef: input.outputRef,
+    diagnosticPayloadRef: input.diagnosticPayloadRef,
     attemptRef: input.attemptRef,
   };
 }
@@ -29,9 +39,12 @@ function buildProofGeometry(input: Parameters<typeof buildMouseClickRuntimeProof
     receivedShapeHash: input.receivedShapeHash,
     geometryGuardRef: input.geometryGuardRef,
     geometryGuardProofRef: input.geometryGuardProofRef,
+    geometryGuardOutputRef: input.geometryGuardOutputRef,
+    geometryGuardRuntimeProofRef: input.geometryGuardRuntimeProofRef,
     sourceCoordinateProofRef: input.sourceCoordinateProofRef,
     sourceTargetRef: input.sourceTargetRef,
     sourceEvidenceRef: input.sourceEvidenceRef,
+    sourceVisualTargetResultRef: input.sourceVisualTargetResultRef,
     coordinateSpace: input.coordinateSpace,
     sourceCoordinateSpace: input.sourceCoordinateSpace,
     requestedExecutionSpace: input.requestedExecutionSpace,
@@ -62,6 +75,7 @@ function buildProofPrimitive(input: Parameters<typeof buildMouseClickRuntimeProo
     primitiveDecision: input.primitiveDecision,
     primitiveCallId: input.primitiveCallId,
     primitiveExecutionRef: input.primitiveExecutionRef,
+    timeoutMs: input.timeoutMs,
     primitiveTimeoutMs: input.primitiveTimeoutMs,
     maxDurationMs: input.maxDurationMs,
     timeoutDecision: input.timeoutDecision,
@@ -97,20 +111,35 @@ function buildProofOutcome(input: Parameters<typeof buildMouseClickRuntimeProof>
 export function buildMouseClickRuntimeProof(input: {
   attemptRef: string;
   childCapabilityId: MouseClickChildCapabilityId;
+  missionId: string | null;
+  runId: string | null;
   sessionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;
   sourceChildCapabilityId: string | null;
   parseErrorRef: string | null;
   receivedShapeHash: string | null;
   geometryGuardRef: string | null;
   geometryGuardProofRef: string | null;
+  geometryGuardOutputRef: string | null;
+  geometryGuardRuntimeProofRef: string | null;
   sourceCoordinateProofRef: string | null;
   sourceTargetRef: string | null;
   sourceEvidenceRef: string | null;
+  sourceVisualTargetResultRef: string | null;
   inputRef: string;
+  sourceRef: string | null;
   outputRef: string;
+  diagnosticPayloadRef: string | null;
   coordinateSpace: MouseClickCoordinateSpace;
   sourceCoordinateSpace: MouseClickCoordinateSpace | null;
   requestedExecutionSpace: MouseClickCoordinateSpace;
@@ -131,6 +160,7 @@ export function buildMouseClickRuntimeProof(input: {
   idempotencyDecision: "reserved" | "duplicate_review_required" | "cooldown_blocked" | null;
   primitiveExecutionRef: string | null;
   primitiveCallId: string | null;
+  timeoutMs: number | null;
   primitiveTimeoutMs: number;
   maxDurationMs: number;
   timeoutDecision: "within_limit" | "timed_out";

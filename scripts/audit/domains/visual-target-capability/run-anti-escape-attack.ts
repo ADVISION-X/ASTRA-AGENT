@@ -1,6 +1,7 @@
 import type { Project } from "ts-morph";
 
 import { hasAnyKeyword } from "./inspection-ast-helpers.js";
+import { visualTargetInspectionConstants as config } from "./inspection-constants.js";
 import { createAttackPhase, createViolation, toLine, toRootRelative, type AttackOutcome } from "./inspection-helpers.js";
 import { canUseDateInFile, getCommentEscapeMarkers, getDynamicImportEscapes, getIllegalDateNodes, getRequireEscapes, getUnknownCastEscapes } from "./inspection-escape-helpers.js";
 import { getVisualTargetSourceFiles } from "./inspection-source-helpers.js";
@@ -9,23 +10,23 @@ const collectSourceEscapeFindings = (sourceFile: import("ts-morph").SourceFile) 
   const findings = [];
   const relativePath = toRootRelative(sourceFile);
   if (hasAnyKeyword(sourceFile)) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, severity: "fatal", message: "Visual Target must not use any." }));
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, severity: "fatal", message: "Visual Target must not use any." }));
   }
   for (const node of getUnknownCastEscapes(sourceFile)) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use as any or as unknown as escape casts." }));
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use as any or as unknown as escape casts." }));
   }
   for (const node of getDynamicImportEscapes(sourceFile)) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use dynamic import escapes." }));
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use dynamic import escapes." }));
   }
   for (const node of getRequireEscapes(sourceFile)) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use require escapes." }));
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not use require escapes." }));
   }
   for (const marker of getCommentEscapeMarkers(sourceFile)) {
-    findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, severity: "fatal", message: `Visual Target must not include ${marker}.` }));
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, severity: "fatal", message: `Visual Target must not include ${marker}.` }));
   }
   if (!canUseDateInFile(relativePath)) {
     for (const node of getIllegalDateNodes(sourceFile)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not scatter new Date or Date.parse outside the dedicated clock/time helpers." }));
+      findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: relativePath, line: toLine(node), severity: "fatal", message: "Visual Target must not scatter new Date or Date.parse outside the dedicated clock/time helpers." }));
     }
   }
   return findings;

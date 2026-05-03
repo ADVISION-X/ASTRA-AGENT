@@ -1,7 +1,12 @@
+import { access, readFile } from "node:fs/promises";
+
 import type { ScreenshotExecutionOutput, ScreenshotRuntimeProof } from "../contract.js";
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import { ScreenshotArtifactLifecycleManifestSchema } from "../schema.js";
+
+type ScreenshotArtifactLifecycleManifest = ReturnType<typeof ScreenshotArtifactLifecycleManifestSchema.parse>;
 
 function buildScreenshotOutputBoundaryFailure(reason: string, message: string) {
   return {
@@ -27,6 +32,32 @@ function resolveOutputHashMismatchFailure(input: { output: ScreenshotExecutionOu
   }
 
   return buildScreenshotOutputBoundaryFailure("output_hash_mismatch", "Screenshot outputHash must match artifactRef.sha256.");
+}
+
+function resolveOutputArtifactHashParityFailure(input: { output: ScreenshotExecutionOutput }) {
+  if (input.output.artifactHash === input.output.outputHash && input.output.artifactRef.sha256 === input.output.artifactHash) {
+    return null;
+  }
+
+  return buildScreenshotOutputBoundaryFailure("artifact_hash_mismatch", "Screenshot artifactHash must match outputHash and artifactRef.sha256.");
+}
+
+function resolveOutputArtifactLifecycleSovereigntyFailure(input: { output: ScreenshotExecutionOutput }) {
+  if (input.output.promotionStatus === "not_promoted"
+    && input.output.retentionClass !== "promoted-evidence"
+    && input.output.retentionClass !== "legal-hold-evidence") {
+    return null;
+  }
+
+  return buildScreenshotOutputBoundaryFailure("self_promotion_forbidden", "Screenshot output must stay transient/diagnostic and must not self-promote evidence.");
+}
+
+function resolveOutputArtifactByteSizeFailure(input: { output: ScreenshotExecutionOutput }) {
+  if (input.output.byteSize > 0) {
+    return null;
+  }
+
+  return buildScreenshotOutputBoundaryFailure("artifact_byte_size_invalid", "Screenshot output byteSize must be a positive integer.");
 }
 
 function resolveOutputDimensionMismatchFailure(input: { output: ScreenshotExecutionOutput }) {
@@ -74,11 +105,48 @@ async function resolveArtifactFileHashFailure(input: {
   output: ScreenshotExecutionOutput;
 }) {
   const artifactHash = await input.context.imageProcessingPort.hashFile(input.output.artifactRef.storageRef);
-  if (artifactHash === input.output.outputHash) {
+  if (artifactHash === input.output.outputHash && artifactHash === input.output.artifactHash) {
     return null;
   }
 
   return buildScreenshotOutputBoundaryFailure("artifact_file_hash_mismatch", "Persisted screenshot artifact hash must match outputHash.");
+}
+
+async function readLifecycleManifest(artifactLifecycleManifestRef: string): Promise<ScreenshotArtifactLifecycleManifest> {
+  return ScreenshotArtifactLifecycleManifestSchema.parse(JSON.parse(await readFile(artifactLifecycleManifestRef, "utf8")));
+}
+
+function lifecycleManifestMatchesOutput(manifest: ScreenshotArtifactLifecycleManifest, output: ScreenshotExecutionOutput) {
+  return manifest.artifactLifecycleManifestRef === output.artifactLifecycleManifestRef
+    && manifest.evidenceId === output.evidenceId
+    && manifest.storageRef === output.artifactRef.storageRef
+    && manifest.artifactHash === output.artifactHash
+    && manifest.byteSize === output.byteSize
+    && manifest.retentionClass === output.retentionClass
+    && manifest.promotionStatus === output.promotionStatus
+    && manifest.cleanupEligible === output.cleanupEligible;
+}
+
+function buildLifecycleManifestReadFailure(error: unknown) {
+  return buildScreenshotOutputBoundaryFailure(
+    "artifact_lifecycle_manifest_invalid",
+    error instanceof Error ? error.message : "Screenshot artifact lifecycle manifest is missing or invalid.",
+  );
+}
+
+async function resolveLifecycleManifestFailure(input: {
+  context: ScreenshotRuntimeContext;
+  output: ScreenshotExecutionOutput;
+}) {
+  try {
+    await access(input.output.artifactLifecycleManifestRef);
+    const manifest = await readLifecycleManifest(input.output.artifactLifecycleManifestRef);
+    return lifecycleManifestMatchesOutput(manifest, input.output)
+      ? null
+      : buildScreenshotOutputBoundaryFailure("artifact_lifecycle_manifest_mismatch", "Screenshot output must match the persisted artifact lifecycle manifest.");
+  } catch (error) {
+    return buildLifecycleManifestReadFailure(error);
+  }
 }
 
 async function resolveScreenshotOutputBoundaryGate(input: {
@@ -89,11 +157,15 @@ async function resolveScreenshotOutputBoundaryGate(input: {
   return (
     resolveOutputEvidenceIdFailure(input)
     ?? resolveOutputHashMismatchFailure(input)
+    ?? resolveOutputArtifactHashParityFailure(input)
     ?? resolveOutputDimensionMismatchFailure(input)
     ?? resolveOutputImageKindFailure(input)
     ?? resolveOutputCoordinateSpaceFailure(input)
     ?? resolveOutputAiInputMappingFailure(input)
     ?? resolveTransformedOutputSourceEvidenceFailure(input)
+    ?? resolveOutputArtifactLifecycleSovereigntyFailure(input)
+    ?? resolveOutputArtifactByteSizeFailure(input)
+    ?? await resolveLifecycleManifestFailure(input)
     ?? await resolveArtifactFileHashFailure(input)
     ?? {
       decision: { status: "passed" as const, reason: null },

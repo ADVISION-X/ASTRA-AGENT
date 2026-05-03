@@ -1,6 +1,7 @@
 const ROOT = "src/capabilities/commander-console";
 const CHILDREN_ROOT = `${ROOT}/children`;
 const SHARED_SCHEMA_BASE_PATH = `${ROOT}/shared/commander-schema-base.ts`;
+const TRANSPORT_SCHEMA_PATH = `${ROOT}/shared/commander-transport-schema.ts`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
@@ -9,7 +10,15 @@ const COMMAND_CHILDREN_PATH = `${CHILDREN_ROOT}/command-children.ts`;
 const READ_CHILDREN_PATH = `${CHILDREN_ROOT}/read-children.ts`;
 const INDEX_PATH = `${ROOT}/index.ts`;
 const COMMAND_GATE_PATH = `${ROOT}/runtime/commander-command-gate.ts`;
+const COMMAND_PAYLOAD_PATH = `${ROOT}/runtime/commander-command-payload.ts`;
 const READ_GATE_PATH = `${ROOT}/runtime/commander-read-gate.ts`;
+const TIMEOUT_GATE_PATH = `${ROOT}/runtime/commander-timeout-gate.ts`;
+const IDEMPOTENCY_GATE_PATH = `${ROOT}/runtime/commander-idempotency-gate.ts`;
+const TRANSPORT_SEMANTIC_GATE_PATH = `${ROOT}/runtime/commander-transport-semantic-gate.ts`;
+const READ_PROOF_GATE_PATH = `${ROOT}/runtime/commander-read-proof-gate.ts`;
+const COMMAND_CHILD_EXECUTOR_PATH = `${ROOT}/runtime/commander-command-child-executor.ts`;
+const COMMAND_OUTCOMES_PATH = `${ROOT}/runtime/commander-command-outcomes.ts`;
+const READ_CHILD_EXECUTOR_PATH = `${ROOT}/runtime/commander-read-child-executor.ts`;
 const EXECUTOR_PATH = `${ROOT}/runtime/commander-console-executor.ts`;
 const RESULT_BUILDER_PATH = `${ROOT}/runtime/commander-result-builder.ts`;
 const PROOF_BUILDER_PATH = `${ROOT}/runtime/commander-proof-builder.ts`;
@@ -24,7 +33,7 @@ const TASK_HANDLER_PATH = "src/app/task-api-handlers.ts";
 const CANDIDATE_HANDLER_PATH = "src/app/candidate-api-handlers.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
 const SHELL_RENDER_PATH = "src/lib/local-app-shell/render-commander-console-page.ts";
-const SHELL_PAGE_CLIENT_PATH = "src/lib/local-app-shell/commander-console-page-client.ts";
+const SHELL_PAGE_CLIENT_PATH = "src/lib/local-app-shell/commander-console-shell-client.ts";
 const STARTUP_PATH = "scripts/startup/launch-grasseye.mjs";
 
 const CHILD_IDS = [
@@ -62,6 +71,7 @@ const COMMAND_CHILD_IDS = new Set([
 
 const REQUIRED_FILES = [
   SHARED_SCHEMA_BASE_PATH,
+  TRANSPORT_SCHEMA_PATH,
   CONTRACT_PATH,
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
@@ -70,7 +80,15 @@ const REQUIRED_FILES = [
   READ_CHILDREN_PATH,
   INDEX_PATH,
   COMMAND_GATE_PATH,
+  COMMAND_PAYLOAD_PATH,
   READ_GATE_PATH,
+  TIMEOUT_GATE_PATH,
+  IDEMPOTENCY_GATE_PATH,
+  TRANSPORT_SEMANTIC_GATE_PATH,
+  READ_PROOF_GATE_PATH,
+  COMMAND_CHILD_EXECUTOR_PATH,
+  COMMAND_OUTCOMES_PATH,
+  READ_CHILD_EXECUTOR_PATH,
   EXECUTOR_PATH,
   RESULT_BUILDER_PATH,
   PROOF_BUILDER_PATH,
@@ -80,6 +98,8 @@ const REQUIRED_FILES = [
   CLOCK_PORT_PATH,
   CLOCK_PATH,
   NEGATIVE_PROOF_HARNESS_PATH,
+  SHELL_RENDER_PATH,
+  SHELL_PAGE_CLIENT_PATH,
 ] as const;
 
 const FORBIDDEN_IMPORT_MARKERS = [
@@ -109,6 +129,7 @@ export const commanderConsoleInspectionConstants = {
   ROOT,
   CHILDREN_ROOT,
   SHARED_SCHEMA_BASE_PATH,
+  TRANSPORT_SCHEMA_PATH,
   CONTRACT_PATH,
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
@@ -117,7 +138,15 @@ export const commanderConsoleInspectionConstants = {
   READ_CHILDREN_PATH,
   INDEX_PATH,
   COMMAND_GATE_PATH,
+  COMMAND_PAYLOAD_PATH,
   READ_GATE_PATH,
+  TIMEOUT_GATE_PATH,
+  IDEMPOTENCY_GATE_PATH,
+  TRANSPORT_SEMANTIC_GATE_PATH,
+  READ_PROOF_GATE_PATH,
+  COMMAND_CHILD_EXECUTOR_PATH,
+  COMMAND_OUTCOMES_PATH,
+  READ_CHILD_EXECUTOR_PATH,
   EXECUTOR_PATH,
   RESULT_BUILDER_PATH,
   PROOF_BUILDER_PATH,

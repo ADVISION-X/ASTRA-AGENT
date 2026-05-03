@@ -2,12 +2,10 @@ import { Node, SyntaxKind, type MethodDeclaration, type SourceFile } from "ts-mo
 
 export function getZodObjectPropertyNames(sourceFile: SourceFile, declarationName: string): Set<string> {
   const declaration = sourceFile.getVariableDeclaration(declarationName);
-  const initializer = declaration?.getInitializer();
-  const objectCall = initializer && Node.isCallExpression(initializer) && isZodObjectCall(initializer)
-    ? initializer
-    : initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find(isZodObjectCall);
-  const firstArgument = objectCall?.getArguments()[0];
-  if (!firstArgument || !Node.isObjectLiteralExpression(firstArgument)) {
+  const initializer = unwrapExpression(declaration?.getInitializer());
+  const objectCall = resolveZodObjectCall(initializer);
+  const firstArgument = resolveObjectLiteralExpression(objectCall?.getArguments()[0]);
+  if (!firstArgument) {
     return new Set();
   }
 
@@ -17,6 +15,63 @@ export function getZodObjectPropertyNames(sourceFile: SourceFile, declarationNam
       .filter((property) => Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property))
       .map((property) => property.getName()),
   );
+}
+
+function resolveObjectLiteralExpression(node: Node | undefined): import("ts-morph").ObjectLiteralExpression | undefined {
+  const unwrappedNode = unwrapExpression(node);
+  if (!unwrappedNode) {
+    return undefined;
+  }
+
+  if (Node.isObjectLiteralExpression(unwrappedNode)) {
+    return unwrappedNode;
+  }
+
+  if (!Node.isIdentifier(unwrappedNode)) {
+    return undefined;
+  }
+
+  const symbol = unwrappedNode.getSymbol();
+  const targetSymbol = symbol?.getAliasedSymbol() ?? symbol;
+  for (const declaration of targetSymbol?.getDeclarations() ?? []) {
+    if (!Node.isVariableDeclaration(declaration)) {
+      continue;
+    }
+
+    const resolved = resolveObjectLiteralExpression(declaration.getInitializer());
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveZodObjectCall(node: Node | undefined): import("ts-morph").CallExpression | undefined {
+  if (!node) {
+    return undefined;
+  }
+
+  if (Node.isCallExpression(node) && isZodObjectCall(node)) {
+    return node;
+  }
+
+  if (Node.isIdentifier(node)) {
+    const symbol = node.getSymbol();
+    const targetSymbol = symbol?.getAliasedSymbol() ?? symbol;
+    for (const declaration of targetSymbol?.getDeclarations() ?? []) {
+      if (!Node.isVariableDeclaration(declaration)) {
+        continue;
+      }
+
+      const resolved = resolveZodObjectCall(unwrapExpression(declaration.getInitializer()));
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+
+  return node.getDescendantsOfKind(SyntaxKind.CallExpression).find(isZodObjectCall);
 }
 
 export function getZodEnumValues(sourceFile: SourceFile, declarationName: string): string[] {

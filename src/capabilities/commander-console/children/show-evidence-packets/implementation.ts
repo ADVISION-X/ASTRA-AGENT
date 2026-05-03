@@ -16,11 +16,17 @@ export const SHOW_EVIDENCE_PACKETS_CHILD: CommanderConsoleChildDefinition<ShowEv
       inputSchema: ShowEvidencePacketsInputSchema,
       context,
       read: async (readInput) => context.forensicsReadModel.listEvidencePackets(readInput.limit),
-      buildEvidenceRefs: (records) => records.map((record) => buildCommanderEvidenceRef({
-        recordType: "evidence-packet",
-        recordId: record.id,
-        sourceAbility: "forensics-read-model",
-      })),
+      buildEvidenceRefs: (records) => records.length > 0
+        ? records.map((record) => buildCommanderEvidenceRef({
+          recordType: "evidence-packet",
+          recordId: record.id,
+          sourceAbility: "forensics-read-model",
+        }))
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "evidence-packets:empty",
+          sourceAbility: "forensics-read-model",
+        })],
     });
   },
 };

@@ -17,8 +17,8 @@ import { buildScreenshotEvidenceId, buildScreenshotIdempotencyKey } from "./scre
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 export type ScreenshotExecutionScope = {
-  missionId: string;
-  runId: string;
+  missionId: string | null;
+  runId: string | null;
   inputRef: string;
   outputRef: string;
   idempotencyKey: string;
@@ -31,9 +31,9 @@ export function buildScreenshotExecutionScope(input: {
   request: ScreenshotAbilityInput;
   registryEntry: ScreenshotChildRegistryEntry;
 }): ScreenshotExecutionScope {
-  const missionId = input.request.missionId ?? input.request.sessionId;
-  const runId = input.request.runId ?? `${input.request.sessionId}:${input.request.childCapabilityId}`;
-  const inputRef = buildRef("screenshot-input", JSON.stringify(input.request));
+  const missionId = input.request.missionId;
+  const runId = input.request.runId;
+  const inputRef = input.request.inputRef ?? buildRef("screenshot-input", JSON.stringify(input.request));
   const outputRef = buildRef("screenshot-output", `${input.request.childCapabilityId}:${input.request.sessionId}:${input.request.purpose}`);
   const idempotencyKey = buildScreenshotIdempotencyKey({ request: input.request, registryEntry: input.registryEntry });
   const evidenceId = buildScreenshotEvidenceId({ childCapabilityId: input.request.childCapabilityId, idempotencyKey });

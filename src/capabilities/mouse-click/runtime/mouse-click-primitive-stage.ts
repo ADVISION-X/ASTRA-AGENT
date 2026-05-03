@@ -16,7 +16,7 @@ const buildPrimitiveBaseFields = (state: MouseClickPreflightState) => ({
   safetyDecision: "allow" as const,
   safetyDecisionReason: state.safetyGate.safetyDecisionReason,
   coordinateRoundingDecision: state.safetyGate.coordinateRoundingDecision,
-  primitiveTimeoutMs: state.seed.safetyPolicy.primitiveTimeoutMs,
+  primitiveTimeoutMs: state.seed.timeoutMs,
   maxDurationMs: state.seed.safetyPolicy.maxDurationMs,
 });
 
@@ -97,7 +97,7 @@ export async function runMouseClickPrimitiveStage(
     executableCoordinate: state.safetyGate.executableCoordinate,
     button: state.seed.button,
     clickCount: state.seed.clickCount,
-    timeoutMs: state.seed.safetyPolicy.primitiveTimeoutMs,
+    timeoutMs: state.seed.timeoutMs,
     maxDurationMs: state.seed.safetyPolicy.maxDurationMs,
   });
 

@@ -15,9 +15,19 @@ export type ResolvedVisualTargetProfile = ReturnType<typeof getVisualTargetChild
 
 export type VisualTargetFailureTrace = {
   childCapabilityId: VisualTargetChildCapabilityId | null;
+  missionId: string | null;
+  runId: string | null;
   sessionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;
   sourceChildCapabilityId: string | null;
   inputRef: string | null;
@@ -70,9 +80,19 @@ export function extractVisualTargetFailureTrace(input: unknown): VisualTargetFai
 
   return {
     childCapabilityId: readKnownEnum(raw.childCapabilityId, VISUAL_TARGET_CHILD_CAPABILITY_IDS),
+    missionId: readNullableString(raw.missionId),
+    runId: readNullableString(raw.runId),
     sessionId: readNullableString(raw.sessionId),
     roundId: readNullableString(raw.roundId),
     videoVisitId: readNullableString(raw.videoVisitId),
+    stepId: readNullableString(raw.stepId),
+    mapPackageId: readNullableString(raw.mapPackageId),
+    mapPackageVersion: readNullableString(raw.mapPackageVersion),
+    selectedMapId: readNullableString(raw.selectedMapId),
+    selectedMapVersion: readNullableString(raw.selectedMapVersion),
+    activationSnapshotRef: readNullableString(raw.activationSnapshotRef),
+    capabilityCallId: readNullableString(raw.capabilityCallId),
+    nerveBusEnvelopeId: readNullableString(raw.nerveBusEnvelopeId),
     sourceAbilityGroupId: readNullableString(raw.sourceAbilityGroupId),
     sourceChildCapabilityId: readNullableString(raw.sourceChildCapabilityId),
     inputRef: readNullableString(raw.inputRef),

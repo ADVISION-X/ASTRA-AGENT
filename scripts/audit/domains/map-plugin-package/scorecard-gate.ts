@@ -2,7 +2,7 @@ import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { SCORECARD_PATH } from "./constants.js";
+import { MAP_PLUGIN_LAWS, SCORECARD_PATH } from "./constants.js";
 
 export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
@@ -11,7 +11,7 @@ export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: 
   const scoreRows = text.split("\n").filter((line) => line.startsWith("| ") && !line.includes("---"));
   if (scoreRows.length < 12) {
     findings.push(createFinding({
-      lawId: "GRASSEYE-MAP-PLUGIN-007-V1",
+      lawId: MAP_PLUGIN_LAWS.ENFORCEMENT,
       file: SCORECARD_PATH,
       line: 1,
       severity: "fatal",
@@ -21,7 +21,7 @@ export async function runScorecardGate(): Promise<{ findings: Finding[]; phase: 
 
   if (!text.includes("MAP_PLUGIN_PACKAGE_NOT_READY")) {
     findings.push(createFinding({
-      lawId: "GRASSEYE-MAP-PLUGIN-007-V1",
+      lawId: MAP_PLUGIN_LAWS.ENFORCEMENT,
       file: SCORECARD_PATH,
       line: 1,
       severity: "fatal",

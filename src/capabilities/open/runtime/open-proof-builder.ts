@@ -21,6 +21,22 @@ function buildProofId(seed: string): string {
   return `open-proof:${createHash("sha256").update(seed).digest("hex").slice(0, 16)}`;
 }
 
+const buildOpenProofChainFields = (request: ParsedOpenRequest) => ({
+  runId: request.runId,
+  missionId: request.missionId,
+  sessionId: request.sessionId,
+  roundId: request.roundId,
+  videoVisitId: request.videoVisitId,
+  stepId: request.stepId,
+  mapPackageId: request.mapPackageId,
+  mapPackageVersion: request.mapPackageVersion,
+  selectedMapId: request.selectedMapId,
+  selectedMapVersion: request.selectedMapVersion,
+  activationSnapshotRef: request.activationSnapshotRef,
+  capabilityCallId: request.capabilityCallId,
+  nerveBusEnvelopeId: request.nerveBusEnvelopeId,
+});
+
 type OpenProofBuilderInput = {
   request: ParsedOpenRequest;
   profile: OpenTargetProfile;
@@ -48,12 +64,8 @@ type OpenProofBuilderInput = {
 };
 
 const buildOpenProofCoreFields = (input: OpenProofBuilderInput) => ({
-  proofId: buildProofId(`${input.request.runId}:${input.idempotencyKey}:${input.endedAt}`),
-  runId: input.request.runId,
-  missionId: input.request.missionId,
-  sessionId: input.request.sessionId,
-  roundId: input.request.roundId,
-  videoVisitId: input.request.videoVisitId,
+  proofId: buildProofId(`${input.request.runId}:${input.request.stepId}:${input.request.capabilityCallId}:${input.idempotencyKey}:${input.endedAt}`),
+  ...buildOpenProofChainFields(input.request),
   abilityGroupId: OPEN_ABILITY_GROUP_ID,
   childCapabilityId: input.request.childCapabilityId,
   platformId: input.request.platformId,
@@ -65,9 +77,9 @@ const buildOpenProofCoreFields = (input: OpenProofBuilderInput) => ({
   sessionIdSource: "provided" as const,
   childCapabilityIdSource: "provided" as const,
   failureInputParseDecision: "parsed" as const,
-  inputRef: `${input.request.runId}:input`,
-  outputRef: input.postOpenStateDecision.status === "success" ? `${input.request.runId}:output` : null,
-  diagnosticPayloadRef: input.postOpenStateDecision.status === "success" ? null : `${input.request.runId}:diagnostic`,
+  inputRef: input.request.inputRef,
+  outputRef: input.postOpenStateDecision.status === "success" ? `open-output:${input.request.capabilityCallId}` : null,
+  diagnosticPayloadRef: input.postOpenStateDecision.status === "success" ? null : `open-diagnostic:${input.request.capabilityCallId}`,
   targetProfileRef: input.targetPolicyDecision.targetProfileRef,
   targetUrl: input.targetPolicyDecision.resolvedTargetUrl,
   targetUrlSource: input.targetPolicyDecision.targetUrlSource,
@@ -76,6 +88,7 @@ const buildOpenProofCoreFields = (input: OpenProofBuilderInput) => ({
   browserProfileRef: input.afterSession.browserProfileRef,
   browserMode: input.afterSession.browserMode,
   profileVerificationStatus: input.afterSession.profileVerificationStatus,
+  browserSessionRef: `browser-session:${input.afterSession.browserProfileRef}`,
   loginStateBefore: input.beforeSession.loginState,
   loginStateAfter: input.afterSession.loginState,
   pageTitleAfter: input.afterSession.currentTitle,
@@ -111,6 +124,7 @@ const buildOpenProofTailFields = (input: OpenProofBuilderInput, durationMs: numb
   failureReason: input.failureReason,
   reviewRequiredReason: input.reviewRequiredReason,
   dataQualityFlags: input.dataQualityFlags,
+  receivedShapeHash: null,
   clock: {
     portKind: OPEN_CLOCK_KIND,
     startedMonotonicMs: input.startedMonotonicMs,

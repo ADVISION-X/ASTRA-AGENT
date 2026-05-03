@@ -11,6 +11,7 @@ import {
   MOUSE_CLICK_COORDINATE_SPACES,
   MOUSE_CLICK_COUNTS,
 } from "./shared/mouse-click-types.js";
+import { validateMouseClickAbilityResult, validateMouseClickInputBindings, validateMouseClickRuntimeProof } from "./mouse-click-schema-refinements.js";
 
 const finiteNumber = z.number().finite();
 const positiveFiniteNumber = z.number().finite().positive();
@@ -85,34 +86,69 @@ const MouseClickGeometryGuardProofSchema = z.object({
   childCapabilityId: z.string().min(1),
   sourceAbilityGroupId: z.string().min(1),
   sourceChildCapabilityId: nullableString,
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
   status: z.literal("success"),
   guardDecision: z.literal("allow"),
   normalizedCoordinateSpace: MouseClickCoordinateSpaceSchema,
   normalizedClickPoint: MouseClickPointSchema,
   sourceBounds: MouseClickBoundsSchema.nullable().optional().default(null),
   sourceScreenshotEvidenceRef: nullableString,
-  sourceTargetRef: nullableString,
-  inputRef: nullableString,
-  outputRef: nullableString,
+  sourceTargetRef: z.string().min(1),
+  sourceVisualTargetResultRef: nullableString,
+  inputRef: z.string().min(1),
+  outputRef: z.string().min(1),
+  runtimeProofRef: z.string().min(1),
 }).strict();
 
 const MouseClickBaseInputSchema = z.object({
   abilityGroupId: z.literal(MOUSE_CLICK_ABILITY_GROUP_ID).default(MOUSE_CLICK_ABILITY_GROUP_ID),
+  sourceAbilityGroupId: z.string().min(1),
+  sourceChildCapabilityId: nullableString,
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
   requestedBy: z.string().min(1),
   purpose: z.string().min(1),
+  inputRef: z.string().min(1),
+  sourceRef: z.string().min(1),
   sourceCoordinateProofRef: z.string().min(1),
   sourceEvidenceRef: nullableString,
   sourceTargetRef: z.string().min(1),
+  sourceVisualTargetResultRef: nullableString,
   geometryGuardProof: MouseClickGeometryGuardProofSchema,
+  geometryGuardRef: z.string().min(1),
+  guardDecision: z.literal("allow"),
+  geometryGuardOutputRef: z.string().min(1),
+  geometryGuardRuntimeProofRef: z.string().min(1),
+  geometryGuardNormalizedCoordinateSpace: MouseClickCoordinateSpaceSchema,
+  geometryGuardNormalizedClickPoint: MouseClickPointSchema,
   button: MouseClickButtonSchema.default("left"),
   clickCount: MouseClickCountSchema.default(1),
   bounds: MouseClickBoundsSchema,
+  idempotencyKey: z.string().min(1),
+  timeoutMs: positiveInt,
   safetyPolicy: MouseClickSafetyPolicySchema.default(DEFAULT_MOUSE_CLICK_SAFETY_POLICY),
 }).strict();
 
@@ -121,6 +157,7 @@ const ClickBrowserCoordinateInputSchema = MouseClickBaseInputSchema.extend({
   geometryGuardProof: MouseClickGeometryGuardProofSchema.extend({
     normalizedCoordinateSpace: z.literal("browserViewport"),
   }),
+  geometryGuardNormalizedCoordinateSpace: z.literal("browserViewport"),
 }).strict();
 
 const ClickDesktopCoordinateInputSchema = MouseClickBaseInputSchema.extend({
@@ -128,12 +165,20 @@ const ClickDesktopCoordinateInputSchema = MouseClickBaseInputSchema.extend({
   geometryGuardProof: MouseClickGeometryGuardProofSchema.extend({
     normalizedCoordinateSpace: z.literal("desktopScreen"),
   }),
+  geometryGuardNormalizedCoordinateSpace: z.literal("desktopScreen"),
 }).strict();
+
+export const MOUSE_CLICK_SCHEMA_VALIDATION_MARKERS = [
+  "success proof requires post-action verification handoff",
+  "retryCount must stay 0 for every Mouse Click attempt",
+  "maxRetry must stay 0 for every Mouse Click attempt",
+  "failed and review_required require output=null",
+] as const;
 
 const MouseClickAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   ClickBrowserCoordinateInputSchema,
   ClickDesktopCoordinateInputSchema,
-]);
+]).superRefine(validateMouseClickInputBindings);
 
 const MouseClickClockSchema = z.object({
   portKind: z.literal(MOUSE_CLICK_CLOCK_KIND),
@@ -141,61 +186,29 @@ const MouseClickClockSchema = z.object({
   endedMonotonicMs: finiteNumber,
 }).strict();
 
-type MouseClickRuntimeProofRefinement = {
-  startedAt: string;
-  endedAt: string;
-  status: string;
-  actionExecutionRef: string | null;
-  primitiveExecutionRef: string | null;
-  executableCoordinate: unknown | null;
-  postActionVerificationRequired: boolean;
-  postActionVerificationHandoffRef: string | null;
-};
-
-const addMouseClickRuntimeIssue = (context: z.RefinementCtx, message: string, path: (string | number)[]): void => {
-  context.addIssue({ code: z.ZodIssueCode.custom, message, path });
-};
-
-const validateMouseClickSuccessProof = (value: MouseClickRuntimeProofRefinement, context: z.RefinementCtx): void => {
-  if (value.actionExecutionRef === null) {
-    addMouseClickRuntimeIssue(context, "success proof requires actionExecutionRef", ["actionExecutionRef"]);
-  }
-  if (value.primitiveExecutionRef === null) {
-    addMouseClickRuntimeIssue(context, "success proof requires primitiveExecutionRef", ["primitiveExecutionRef"]);
-  }
-  if (value.executableCoordinate === null) {
-    addMouseClickRuntimeIssue(context, "success proof requires executableCoordinate", ["executableCoordinate"]);
-  }
-  if (!value.postActionVerificationRequired || value.postActionVerificationHandoffRef === null) {
-    addMouseClickRuntimeIssue(context, "success proof requires post-action verification handoff", ["postActionVerificationHandoffRef"]);
-  }
-};
-
-const validateMouseClickRuntimeProof = (value: MouseClickRuntimeProofRefinement, context: z.RefinementCtx): void => {
-  if (value.startedAt > value.endedAt) {
-    addMouseClickRuntimeIssue(context, "startedAt must not be after endedAt", ["startedAt"]);
-  }
-  if (value.status === "success") {
-    validateMouseClickSuccessProof(value, context);
-  }
-  if (value.status !== "success" && value.executableCoordinate !== null) {
-    addMouseClickRuntimeIssue(context, "non-success proof must not expose executableCoordinate", ["executableCoordinate"]);
-  }
-};
-
 const MouseClickRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
-  runId: z.string().min(1),
-  missionId: z.string().min(1),
+  runId: nullableString,
+  missionId: nullableString,
   sessionId: nullableSessionId,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   abilityGroupId: z.literal(MOUSE_CLICK_ABILITY_GROUP_ID),
   childCapabilityId: MouseClickChildCapabilityIdSchema,
   sourceAbilityGroupId: nullableString,
   sourceChildCapabilityId: nullableString,
   inputRef: z.string().min(1),
+  sourceRef: nullableString,
   outputRef: z.string().min(1),
+  diagnosticPayloadRef: nullableString,
   attemptRef: z.string().min(1),
   actionExecutionRef: nullableString,
   rejectionRef: nullableString,
@@ -203,9 +216,12 @@ const MouseClickRuntimeProofSchema = z.object({
   receivedShapeHash: nullableString,
   geometryGuardRef: nullableString,
   geometryGuardProofRef: nullableString,
+  geometryGuardOutputRef: nullableString,
+  geometryGuardRuntimeProofRef: nullableString,
   sourceCoordinateProofRef: nullableString,
   sourceTargetRef: nullableString,
   sourceEvidenceRef: nullableString,
+  sourceVisualTargetResultRef: nullableString,
   coordinateSpace: MouseClickCoordinateSpaceSchema,
   sourceCoordinateSpace: MouseClickCoordinateSpaceSchema.nullable().default(null),
   requestedExecutionSpace: MouseClickCoordinateSpaceSchema,
@@ -275,15 +291,35 @@ const MouseClickBaseResultSchema = z.object({
   abilityGroupId: z.literal(MOUSE_CLICK_ABILITY_GROUP_ID),
   childCapabilityId: MouseClickChildCapabilityIdSchema,
   status: MouseClickStatusSchema,
+  missionId: nullableString,
+  runId: nullableString,
   sessionId: nullableSessionId,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   attemptRef: z.string().min(1),
+  diagnosticPayloadRef: nullableString,
   output: MouseClickSuccessOutputSchema.nullable().default(null),
   failureReason: MouseClickFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableString,
   statusMessage: z.string().min(1),
   policyDecision: MouseClickPolicyDecisionSchema,
+  geometryGuardProofRef: nullableString,
+  sourceVisualTargetResultRef: nullableString,
+  geometryDecision: MouseClickGeometryDecisionSchema,
+  safetyDecision: MouseClickSafetyDecisionSchema,
+  primitiveDecision: MouseClickPrimitiveDecisionSchema,
+  timeoutDecision: MouseClickTimeoutDecisionSchema,
+  abortDecision: MouseClickAbortDecisionSchema,
+  idempotencyDecision: MouseClickIdempotencyDecisionSchema.nullable().default(null),
+  postActionVerificationHandoffRef: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   runtimeProof: MouseClickRuntimeProofSchema,
 }).strict();
@@ -299,20 +335,7 @@ const ClickDesktopCoordinateResultSchema = MouseClickBaseResultSchema.extend({
 const MouseClickAbilityResultSchema = z.discriminatedUnion("childCapabilityId", [
   ClickBrowserCoordinateResultSchema,
   ClickDesktopCoordinateResultSchema,
-]).superRefine((value, context) => {
-  if (value.status === "success" && value.output === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success requires output", path: ["output"] });
-  }
-  if (value.status !== "success" && value.output !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require output=null", path: ["output"] });
-  }
-  if (value.runtimeProof.status !== value.status) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
-  }
-  if (value.runtimeProof.attemptRef !== value.attemptRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.attemptRef must equal result.attemptRef", path: ["runtimeProof", "attemptRef"] });
-  }
-});
+]).superRefine(validateMouseClickAbilityResult);
 
 export {
   ClickBrowserCoordinateInputSchema,

@@ -24,13 +24,18 @@ const SCREENSHOT_COORDINATE_SPACES = [
   "browser_viewport_pixels",
   "desktop_screen_pixels",
   "source_image_pixels",
+  "region_crop_pixels",
+  "optimized_equivalent_pixels",
   "ai_input_pixels",
+  "contact_sheet_pixels",
 ] as const;
 
 const SCREENSHOT_IMAGE_KINDS = [
   "evidence_original",
   "evidence_optimized",
+  "region_crop",
   "ai_input",
+  "contact_sheet",
 ] as const;
 
 const SCREENSHOT_EVIDENCE_POLICIES = [
@@ -38,6 +43,23 @@ const SCREENSHOT_EVIDENCE_POLICIES = [
   "evidence_optimized",
   "ai_input",
   "all",
+] as const;
+
+const SCREENSHOT_RETENTION_CLASSES = [
+  "transient-capture",
+  "transient-region",
+  "transient-ai-input",
+  "transient-contact-sheet",
+  "diagnostic-debug",
+  "promoted-evidence",
+  "legal-hold-evidence",
+] as const;
+
+const SCREENSHOT_PROMOTION_STATUSES = [
+  "not_promoted",
+  "promotion_pending",
+  "promoted",
+  "legal_hold",
 ] as const;
 
 const SCREENSHOT_FAILURE_CODES = [
@@ -55,6 +77,8 @@ const SCREENSHOT_FAILURE_CODES = [
   "image_processing_failed",
   "image_processing_timeout",
   "artifact_write_failed",
+  "artifact_budget_exceeded",
+  "artifact_lifecycle_invalid",
   "artifact_path_invalid",
   "idempotency_conflict",
   "dispatch_failure",
@@ -72,6 +96,8 @@ const SCREENSHOT_DATA_QUALITY_FLAGS = [
   "desktop_full_screen_requested",
   "privacy_review_required",
   "capture_fresh",
+  "artifact_budget_verified",
+  "artifact_lifecycle_manifest_written",
 ] as const;
 
 const SCREENSHOT_DECISION_STATUSES = [
@@ -99,4 +125,4 @@ const SCREENSHOT_SENSITIVE_SCREEN_STATUSES = [
 ] as const;
 
 
-export { SCREENSHOT_ABILITY_GROUP_ID, SCREENSHOT_CHILD_CAPABILITY_IDS, SCREENSHOT_RESULT_STATUSES, SCREENSHOT_SOURCE_KINDS, SCREENSHOT_COORDINATE_SPACES, SCREENSHOT_IMAGE_KINDS, SCREENSHOT_EVIDENCE_POLICIES, SCREENSHOT_FAILURE_CODES, SCREENSHOT_DATA_QUALITY_FLAGS, SCREENSHOT_DECISION_STATUSES, SCREENSHOT_PAGE_STATE_STATUSES, SCREENSHOT_SENSITIVE_SCREEN_STATUSES };
+export { SCREENSHOT_ABILITY_GROUP_ID, SCREENSHOT_CHILD_CAPABILITY_IDS, SCREENSHOT_RESULT_STATUSES, SCREENSHOT_SOURCE_KINDS, SCREENSHOT_COORDINATE_SPACES, SCREENSHOT_IMAGE_KINDS, SCREENSHOT_EVIDENCE_POLICIES, SCREENSHOT_RETENTION_CLASSES, SCREENSHOT_PROMOTION_STATUSES, SCREENSHOT_FAILURE_CODES, SCREENSHOT_DATA_QUALITY_FLAGS, SCREENSHOT_DECISION_STATUSES, SCREENSHOT_PAGE_STATE_STATUSES, SCREENSHOT_SENSITIVE_SCREEN_STATUSES };

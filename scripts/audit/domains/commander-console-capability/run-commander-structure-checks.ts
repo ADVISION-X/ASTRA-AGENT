@@ -45,11 +45,14 @@ const REQUIRED_PUBLIC_SCHEMAS = [
 ] as const;
 
 const REQUIRED_LAW_IDS = [
-  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1",
-  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1",
-  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1",
-  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
   "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
+  "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
 ] as const;
 
 const collectCanonicalShapeFindings = async (project: import("ts-morph").Project): Promise<Finding[]> => {
@@ -59,7 +62,7 @@ const collectCanonicalShapeFindings = async (project: import("ts-morph").Project
   const sharedSchemaSource = getSourceFileOrThrow(project, SHARED_SCHEMA_BASE_PATH);
 
   if (!(await requiredFilesExist())) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: ROOT, line: 1, severity: "fatal", message: "Commander Console canonical production package is incomplete." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: ROOT, line: 1, severity: "fatal", message: "Commander Console canonical production package is incomplete." }));
   }
 
   const childFiles = await listFilesRecursive(pathFromRepoRoot(CHILDREN_ROOT), { extensions: [".ts"] });
@@ -67,18 +70,18 @@ const collectCanonicalShapeFindings = async (project: import("ts-morph").Project
   for (const childId of CHILD_IDS) {
     for (const childFile of childDirectoryFiles(childId)) {
       if (!childFileSet.has(childFile)) {
-        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: childFile, line: 1, severity: "fatal", message: "Commander Console child package must contain contract.ts, schema.ts, and implementation.ts." }));
+        findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: childFile, line: 1, severity: "fatal", message: "Commander Console child package must contain contract.ts, schema.ts, and implementation.ts." }));
       }
     }
   }
 
   if (countCommanderMissionDashboardDeclarations(commanderSources) !== 1) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: SHARED_SCHEMA_BASE_PATH, line: 1, severity: "fatal", message: "CommanderMissionDashboardViewSchema must be declared exactly once in the Commander root." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: SHARED_SCHEMA_BASE_PATH, line: 1, severity: "fatal", message: "CommanderMissionDashboardViewSchema must be declared exactly once in the Commander root." }));
   }
 
   const hasRequiredSchemas = REQUIRED_PUBLIC_SCHEMAS.every((name) => schemaSource.getFullText().includes(name) || sharedSchemaSource.getVariableDeclaration(name));
   if (!hasRequiredSchemas) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Commander schema surface is missing governed schema exports." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Commander schema surface is missing governed schema exports." }));
   }
 
   return findings;
@@ -93,22 +96,22 @@ const collectContractAndRegistryFindings = (project: import("ts-morph").Project)
   const abilityGroupInterface = contractSource.getInterface("CommanderConsoleAbilityGroup");
   const publicMethodNames = abilityGroupInterface?.getMethods().map((method) => method.getName()) ?? [];
   if (!abilityGroupInterface || publicMethodNames.join(",") !== "listChildAbilityIds,execute") {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console public surface must expose only listChildAbilityIds and execute." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2", file: CONTRACT_PATH, line: 1, severity: "fatal", message: "Commander Console public surface must expose only listChildAbilityIds and execute." }));
   }
 
   const registryChildIds = getRegistryImplementationChildIds(project, registrySource).sort().join(",");
   if (registryChildIds !== [...CHILD_IDS].sort().join(",") || !hasRegistryMetadata(registrySource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "registry.ts must register every Commander child implementation with full metadata." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "registry.ts must register every Commander child implementation with full metadata." }));
   }
 
   const registryThrows = functionContainsThrow(registrySource, "getCommanderConsoleChild");
   if (registryThrows) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "getCommanderConsoleChild must return null when a child is missing, not throw." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: REGISTRY_PATH, line: 1, severity: "fatal", message: "getCommanderConsoleChild must return null when a child is missing, not throw." }));
   }
 
   const exportStarPresent = hasExportStar(indexSource);
   if (exportStarPresent) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: INDEX_PATH, line: 1, severity: "fatal", message: "Commander index.ts must not use export-star barrels." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: INDEX_PATH, line: 1, severity: "fatal", message: "Commander index.ts must not use export-star barrels." }));
   }
 
   return { findings, exportStarPresent, registryThrows };
@@ -121,7 +124,7 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
     && REQUIRED_LAW_IDS.every((lawId) => manifest.allowedLawIds?.includes(lawId));
   return manifestValid
     ? []
-    : [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: MANIFEST_PATH, line: 1, severity: "fatal", message: "Commander manifest must point at this inspector and carry all active commander law IDs." })];
+    : [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2", file: MANIFEST_PATH, line: 1, severity: "fatal", message: "Commander manifest must point at this inspector and carry all active commander law IDs." })];
 };
 
 export async function runCommanderStructureChecks(project: import("ts-morph").Project): Promise<StructureCheckResult> {

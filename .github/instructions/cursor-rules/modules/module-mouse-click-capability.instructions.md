@@ -1,169 +1,822 @@
 ---
 name: "GrassEye Mouse Click Capability"
-description: "Use when defining the independent Mouse Click Ability Group, click contracts, click safety policy, click proof, or governed browser/screen click execution ownership."
-applyTo: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md, src/capabilities/mouse-click/**, docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md, scripts/audit/domains/mouse-click-capability/**"
+description: "Use when governing the independent Mouse Click Ability Group, governed browser/desktop click execution, Geometry Guard approved coordinate consumption, primitive click port boundary, click safety policy, idempotency, timeout/cancellation, post-action verification handoff, and the boundary that prevents Mouse Click from computing coordinates, remapping geometry, claiming action-result truth, or writing final action logs."
+applyTo: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md, src/capabilities/mouse-click/**, docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md, scripts/audit/domains/mouse-click-capability/**, src/lib/local-runtime/**, src/lib/browser/**, src/features/platform-action/**"
 ---
 
-# GrassEye Mouse Click Capability
+# GrassEye Mouse Click Capability FINAL
 
-Scope: governs the independent Mouse Click Ability Group, click contracts, click proof, and governed click ownership.
-Boundary: this module governs only click input validation, primitive click execution, proof emission, and result ownership.
-Excludes: screenshot capture, visual target detection, AI execution, comment capture, product classification, and outcome verification.
-Authority: this file is authoritative only for the mouse-click-capability domain.
+Scope: governs the independent Mouse Click Ability Group, governed click input, Geometry Guard approved executable coordinate consumption, primitive click execution through port, click safety policy, idempotency, timeout/cancellation, primitive execution proof, post-action verification handoff, and Mouse Click runtime proof.
 
-## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1
+Boundary: this module governs only primitive click execution after Geometry Guard has allowed executable geometry. It does not govern screenshot capture, target detection, coordinate mapping, scale mapping, AI execution, comment capture, product classification, page-state truth, post-action verification truth, Forensics final action-log persistence, map branching, browser controller ownership, or platform business verbs.
+
+Authority: this file is authoritative only for the `mouse-click-capability` domain.
+
+Architecture phase: `Static Capability Package Architecture`.
+
+Core doctrine:
+- Mouse Click is the finger.
+- Geometry Guard decides whether a coordinate is executable.
+- Mouse Click only consumes Geometry Guard `allow` with normalized executable coordinates.
+- Mouse Click executes one governed primitive click through `MouseClickPrimitivePort`.
+- Mouse Click success means primitive click accepted/executed only; it is not action-result truth.
+- Post-action Verification verifies what happened after the click.
+- Forensics persists final action logs; Mouse Click emits runtime proof and actionExecutionRef only.
+- No Geometry Guard allow, no click.
+- No primitive port, no click.
+- No post-action verification handoff, no success.
+- No chain fields, no production-ready click result.
+- No retry/fallback inside Mouse Click.
+- No active Mouse Click law without inspector + runner + negative proof.
+
+---
+
+## Global Mouse Click Baseline
+
+All active Mouse Click laws in this file are:
+
+```yaml
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+```
+
+Required package:
+
+```txt
+src/capabilities/mouse-click/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+├── shared/
+├── runtime/
+└── children/
+```
+
+Required children:
+
+```txt
+click-browser-coordinate
+click-desktop-coordinate
+```
+
+Required enforcement:
+
+```txt
+scripts/audit/domains/mouse-click-capability/
+├── manifest.json
+├── inspector.ts
+├── run-inspector.ts
+└── negative-proof-harness.ts
+```
+
+Forbidden:
+- `manual-first` as active enforcement for this domain.
+- `evidenceMode: law` as sufficient evidence.
+- verify scripts as release truth.
+- capability-check.ts under Mouse Click root.
+- detached inspector.
+- warning-only P0.
+- generated fake PASS.
+- empty/missing negative proof.
+- legacy visual-action click path.
+- platform-action click owner.
+- BrowserController in public contract.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2
 
 status: active
 tier: P0
 capabilityDomain: mouse-click-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-MOUSE-CLICK-001-V1
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Mouse Click Ability Group is the only owner of governed mouse click capability.
+summary: Mouse Click is the only owner of governed primitive click execution.
 
 ### 主题
 
-点击主权唯一
+点击执行主权唯一
 
 ### 法条
 
-Mouse Click Ability Group is the only owner of governed mouse click capability.
+Mouse Click Ability Group is the only owner of governed primitive click execution.
+
+Required:
+- All governed click execution must flow through `src/capabilities/mouse-click`.
+- Public entry is `MouseClickAbilityGroup.execute(input)`.
+- Orchestration, platform adapters, local runtime, workbench, Visual Target, AI, Geometry Guard, Screenshot, Page State, and PAV must not own click execution truth.
+- BrowserController may exist only behind `MouseClickPrimitivePort` adapter at composition boundary.
+- PlatformAction may request a click but may not own click strategy or primitive execution.
+- Mouse Click emits `actionExecutionRef`, `primitiveExecutionRef`, `postActionVerificationHandoffRef`, and runtime proof.
+- Forensics owns persisted final action-log truth.
 
 ### 禁止
 
 FORBIDDEN:
-- platform adapters, visual-target, or AI layers owning click truth.
-- agent-runtime or visual-action legacy paths owning click execution.
-- BrowserController appearing in the Mouse Click public contract.
-- BrowserActionResult appearing in the Mouse Click public contract.
+- platform adapter directly calling browser click primitive.
+- agent runtime directly calling browser click primitive.
+- Visual Target or AI layer owning click truth.
+- BrowserController in Mouse Click public contract.
+- BrowserActionResult / BrowserActionId in Mouse Click public contract or result.
+- final action-log write inside Mouse Click.
+- platform business verbs inside Mouse Click: `open_comments`, `click_not_interested`, `like_or_save_candidate`, `continue_next`.
 
-## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1
+Required inspector:
+- External click-owner scan.
+- BrowserController public contract ban.
+- Platform adapter direct primitive call ban.
+- Runtime/workbench composition boundary check.
+- Forensics action-log write ban.
+
+Required negative proof:
+- Add BrowserController to public contract → FAIL.
+- Platform adapter directly calls primitive click → FAIL.
+- Mouse Click writes final actionLogRef → FAIL.
+- Add platform business verb child → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2
 
 status: active
 tier: P0
 capabilityDomain: mouse-click-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-MOUSE-CLICK-002-V1
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Mouse Click boundary stays pure.
+summary: Mouse Click boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.
 
 ### 主题
 
-纯边界
+纯点击边界
 
 ### 法条
 
-Mouse Click only validates Geometry Guard-authorized click input, executes the primitive click through MouseClickPrimitivePort, records structured proof, and returns MouseClickResult.
+Mouse Click only validates Geometry Guard approved executable click input, applies click policy, executes through `MouseClickPrimitivePort`, records primitive proof, returns typed result, and creates PAV handoff.
 
-Required direction:
-- Mouse Click public entry accepts only browserViewport or desktopScreen execution coordinates.
-- Mouse Click public input must require geometryGuardRef and guardDecision = allow.
-- button and clickCount are governed input parameters rather than child-capability ids.
-- Mouse Click child capabilities are only click-browser-coordinate and click-desktop-coordinate.
-- Mouse Click public result returns actionExecutionRef, primitiveExecutionRef, debugLogRef, and runtimeProof.
+Allowed:
+- input schema gate.
+- Geometry Guard proof gate.
+- click policy gate.
+- pre-click safety gate.
+- idempotency gate.
+- primitive click through `MouseClickPrimitivePort`.
+- timeout/cancellation of primitive call.
+- post-action verification handoff builder.
+- runtime proof/result builder.
 
-### 禁止
-
-FORBIDDEN:
+Forbidden:
 - screenshot capture.
 - target detection.
+- AI execution.
+- DOM/BOM lookup.
+- page-state classification.
 - product classification.
-- post-action verification.
-- imageEvidence or aiInput coordinates as executable click truth.
-- scaleMapping or coordinate remapping inside Mouse Click.
-- fallbackUsed, browserAction, or BrowserActionId leaking through Mouse Click results.
-- final action-log writes inside Mouse Click.
+- post-action verification decision.
+- Forensics final write.
+- coordinate generation.
+- bbox computation.
+- scaleMapping.
+- imageEvidence remapping.
+- aiInput/contactSheet/regionCrop remapping.
+- retry/fallback.
+- BrowserController direct import.
+- browserAction / fallbackUsed result leakage.
 
-## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1
+Required inspector:
+- Forbidden import graph.
+- Forbidden symbol checks: screenshot, ai, visual-target, scaleMapping, imageEvidence, querySelector, document, window, cookie, localStorage, sessionStorage, BrowserController, writeActionLog, postActionVerification decision.
+- Retry/fallback ban.
+- BrowserAction result leakage ban.
 
-status: active
-tier: P0
-capabilityDomain: mouse-click-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-MOUSE-CLICK-003-V1
+Required negative proof:
+- Add scaleMapping in Mouse Click runtime → FAIL.
+- Add retry loop → FAIL.
+- Add BrowserActionId to result → FAIL.
+- Add post-action verification decision field → FAIL.
 
-summary: Mouse Click accepts only pre-validated coordinates.
+---
 
-### 主题
-
-受保护输入
-
-### 法条
-
-Mouse Click accepts only explicit, Geometry Guard-authorized coordinate inputs and does not claim action-result truth.
-
-Required direction:
-- geometryGuardRef is mandatory on every governed click input.
-- guardDecision must equal allow before the primitive may execute.
-- sourceEvidenceRef or sourceTargetRef is required unless operatorManualApprovalRef is present under an allowOperatorManual policy.
-- right click requires explicit allowRightClick = true.
-- double click requires explicit allowDoubleClick = true.
-- Mouse Click success means primitive execution success only and never means post-action verification success.
-- contactSheet, aiInput, imageEvidence, or regionCrop coordinates must not bypass Geometry Guard-approved mapping into executable spaces.
-
-### 禁止
-
-FORBIDDEN:
-- click policy hidden in browser primitives.
-- click helpers inferring coordinates on their own.
-- click execution claiming final success beyond its immediate result.
-- accepting imageEvidence with scaleMapping as a substitute for Geometry Guard approval.
-- retry or fallback paths without an explicit upstream policy owner.
-- direct execution of contactSheet or aiInput coordinates.
-
-## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2
 
 status: active
 tier: P0
 capabilityDomain: mouse-click-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-MOUSE-CLICK-004-V1
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Mouse Click is enforced by owner inspector and audit runner only.
+summary: Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency, and timeout policy.
 
 ### 主题
 
-执法链唯一
+点击输入链路与 Geometry Guard 授权完整性
 
 ### 法条
 
-Mouse Click enforcement closes through the owner inspector and audit runner only.
+Every `MouseClickAbilityInput` must be traceable to the mission/map/step/capability call that requested the click.
+
+Required input fields:
+
+```txt
+abilityGroupId = mouse-click
+childCapabilityId
+requestedBy
+sourceAbilityGroupId
+sourceChildCapabilityId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId where available
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+purpose
+inputRef
+sourceRef
+sourceCoordinateProofRef
+sourceEvidenceRef
+sourceTargetRef
+sourceVisualTargetResultRef
+geometryGuardProof
+geometryGuardRef
+guardDecision = allow
+geometryGuardOutputRef
+geometryGuardRuntimeProofRef
+geometryGuardNormalizedCoordinateSpace
+geometryGuardNormalizedClickPoint
+button
+clickCount
+bounds
+safetyPolicy
+idempotencyKey
+timeoutMs or safetyPolicy.primitiveTimeoutMs
+```
+
+Required:
+- Missing `stepId`, `capabilityCallId`, `activationSnapshotRef`, `nerveBusEnvelopeId`, `mapPackageVersion`, or `selectedMapVersion` must fail/review_required; never success.
+- Missing `inputRef`, `sourceRef`, `sourceCoordinateProofRef`, `sourceTargetRef`, `geometryGuardRef`, `geometryGuardProof`, or idempotencyKey must fail/review_required; never success.
+- `geometryGuardProof.abilityGroupId` must equal `geometry-guard`.
+- `geometryGuardProof.guardDecision` must equal `allow`.
+- `geometryGuardProof.status` must equal `success`.
+- `geometryGuardProof.normalizedCoordinateSpace` must match child capability.
+- `geometryGuardProof.normalizedClickPoint` must be finite and inside bounds.
+- `sourceEvidenceRef` is required unless operator manual policy explicitly allows and operatorManualApprovalRef is valid.
+- right click requires `allowRightClick = true`.
+- double click requires `allowDoubleClick = true`.
 
 ### 禁止
 
 FORBIDDEN:
-- scripts/verify, verify-* scripts, or ad-hoc quality scripts as mouse-click acceptance.
-- capability-check.ts under src/capabilities/mouse-click.
+- Success with missing chain fields.
+- Success with guardDecision other than allow.
+- Success with geometryGuardRef missing.
+- Success with raw Visual Target clickPoint.
+- Success with aiInput/contactSheet/imageEvidence/regionCrop coordinate.
+- Success without idempotencyKey.
+- Silent default button policy overriding explicit ban.
+- Desktop click without explicit policy approval.
 
-## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1
+Required inspector:
+- Schema field existence.
+- Geometry proof gate.
+- Chain field gate.
+- Manual approval gate.
+- Right/double click policy gate.
+- Desktop click policy gate.
+
+Required negative proof:
+- Remove activationSnapshotRef from input → FAIL.
+- Remove capabilityCallId from input → FAIL.
+- guardDecision=review_required returns success → FAIL.
+- Missing geometryGuardRef returns success → FAIL.
+- Double click without allowDoubleClick returns success → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2
 
 status: active
 tier: P0
 capabilityDomain: mouse-click-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Mouse Click canonical topology is one primitive-port root with two execution children.
+summary: Mouse Click must run one fixed gate pipeline and execute exactly one primitive click only after all gates pass.
 
 ### 主题
 
-固定拓扑
+单链门禁与单次 primitive click
 
 ### 法条
 
-Mouse Click canonical topology is contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/*, and children/*/implementation.ts.
+Mouse Click execution pipeline must be fixed:
 
-Required direction:
-- shared must include click-policy.ts, click-result.ts, click-failure.ts, runtime-proof.ts, and coordinate.ts.
-- children must contain only click-browser-coordinate/implementation.ts and click-desktop-coordinate/implementation.ts.
+```txt
+input schema gate
+→ child registry gate
+→ Geometry Guard proof gate
+→ click policy gate
+→ boundary gate
+→ pre-click safety gate
+→ idempotency gate
+→ timeout/cancellation gate
+→ primitive click through MouseClickPrimitivePort
+→ primitive result semantic gate
+→ PAV handoff builder
+→ output boundary gate
+→ proof builder
+→ result builder
+```
+
+Required:
+- Unknown child returns typed failure with proof.
+- Gate failure returns typed failed/review_required with proof.
+- Primitive port is called at most once per successful execution.
+- Primitive is never called when geometry/policy/safety/idempotency gates fail.
+- Primitive call must carry AbortSignal.
+- Primitive timeout must abort and return typed failure/review.
+- Late primitive success after timeout must not overwrite timeout result.
+- `postActionVerificationRequired = true` on success.
+- Success requires `postActionVerificationHandoffRef`.
+- Failure/review must not expose executableCoordinate.
 
 ### 禁止
 
 FORBIDDEN:
-- click-left-point, click-right-point, or double-click-left-point child roots.
-- compat, bridge, legacy, or v2 roots.
-- barrel exports of child implementations.
+- retry loop.
+- fallback click path.
+- primitive call before Geometry Guard gate.
+- primitive call after duplicate idempotency decision.
+- primitive success overriding timeout.
+- child direct primitive port call.
+- child direct final result/proof.
+- raw boolean child result.
+
+Required inspector:
+- Pipeline call-order check.
+- Primitive call count shape.
+- AbortSignal usage.
+- Retry/fallback ban.
+- Child unified runtime call.
+
+Required negative proof:
+- Remove geometry proof gate → FAIL.
+- Primitive call before preflight → FAIL.
+- Remove AbortSignal → FAIL.
+- Add retry loop → FAIL.
+- Child calls primitive port directly → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2
+
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Mouse Click result must mean primitive click only and must hand off to Post-action Verification.
+
+### 主题
+
+点击结果语义与 PAV handoff
+
+### 法条
+
+Mouse Click success means primitive execution success only.
+
+Required result semantics:
+- `status = success | failed | review_required`.
+- Success requires:
+  - output exists.
+  - outputRef exists.
+  - actionExecutionRef exists.
+  - primitiveExecutionRef exists.
+  - normalizedClickPoint exists.
+  - coordinateSpace is `browserViewport` or `desktopScreen`.
+  - postActionVerificationRequired = true.
+  - postActionVerificationHandoffRef exists.
+  - runtimeProof exists.
+- Failure/review requires:
+  - output = null.
+  - diagnosticPayloadRef exists.
+  - failureReason or reviewRequiredReason exists.
+  - runtimeProof exists.
+- Mouse Click may not claim PAV truth.
+- Mouse Click may not emit final actionLogRef.
+- Mouse Click may not treat primitiveExecutionRef as final Forensics actionLogRef.
+
+### 禁止
+
+FORBIDDEN result fields:
+- verificationDecision.
+- actionResultVerifiedRef.
+- pageStateVerified.
+- finalActionLogRef.
+- browserActionId.
+- browserActionResult.
+- fallbackUsed.
+- retryCount > 0.
+- maxRetry > 0 as executable policy.
+
+Required inspector:
+- Result schema superRefine.
+- Success handoff required.
+- PAV truth field ban.
+- Forensics final action log ban.
+- Retry/fallback field ban.
+
+Required negative proof:
+- Success without postActionVerificationHandoffRef → FAIL.
+- Add verificationDecision to result → FAIL.
+- Add finalActionLogRef to result → FAIL.
+- Set retryCount=1 in success proof → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2
+
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Mouse Click result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency, and PAV handoff.
+
+### 主题
+
+点击结果与运行证明完整性
+
+### 法条
+
+`MouseClickAbilityResult` and `MouseClickRuntimeProof` must preserve the same real upstream chain as input.
+
+Required result fields:
+
+```txt
+status = success | failed | review_required
+abilityGroupId = mouse-click
+childCapabilityId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+attemptRef
+actionExecutionRef
+primitiveExecutionRef
+geometryGuardRef
+geometryGuardProofRef
+sourceCoordinateProofRef
+sourceEvidenceRef
+sourceTargetRef
+sourceVisualTargetResultRef
+coordinateSpace
+button
+clickCount
+output
+failureReason
+reviewRequiredReason
+diagnosticPayloadRef
+debugLogRef
+policyDecision
+geometryDecision
+safetyDecision
+primitiveDecision
+timeoutDecision
+abortDecision
+idempotencyDecision
+postActionVerificationRequired
+postActionVerificationHandoffRef
+dataQualityFlags
+statusMessage
+startedAt
+endedAt
+durationMs
+runtimeProof
+```
+
+Required proof fields:
+
+```txt
+proofId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+abilityGroupId = mouse-click
+childCapabilityId
+sourceAbilityGroupId
+sourceChildCapabilityId
+inputRef
+sourceRef
+outputRef or diagnosticPayloadRef
+attemptRef
+actionExecutionRef
+rejectionRef
+parseErrorRef
+receivedShapeHash
+geometryGuardRef
+geometryGuardProofRef
+geometryGuardRuntimeProofRef
+geometryGuardOutputRef
+sourceCoordinateProofRef
+sourceEvidenceRef
+sourceTargetRef
+sourceVisualTargetResultRef
+coordinateSpace
+sourceCoordinateSpace
+requestedExecutionSpace
+normalizedCoordinateSpace
+requestedCoordinate
+executableCoordinate
+bounds
+sourceBounds
+targetBounds
+button
+clickCount
+idempotencyKey
+idempotencyDecision
+runLockId
+cancellationTokenRef
+resumeCheckpointRef
+primitiveCallId
+primitiveExecutionRef
+primitivePortKind
+primitiveStartedAt
+primitiveEndedAt
+timeoutMs
+primitiveTimeoutMs
+maxDurationMs
+timeoutDecision
+abortDecision
+circuitBreakerState
+clickSuppressedReason
+postActionVerificationRequired
+postActionVerificationHandoffRef
+verificationRefPolicy
+preActionDecision
+policyDecision
+policyDecisionReason
+geometryDecision
+safetyDecision
+safetyDecisionReason
+primitiveDecision
+startedAt
+endedAt
+durationMs
+status
+failureReason
+reviewRequiredReason
+dataQualityFlags
+clock
+```
+
+Required:
+- result/proof/input chain parity.
+- no nullable chain fields for valid execution.
+- success requires output + outputRef + actionExecutionRef + primitiveExecutionRef + PAV handoff.
+- failed/review_required requires output null + diagnosticPayloadRef.
+- `runtimeProof.status === result.status`.
+- invalid input failure may use receivedShapeHash and typed proof.
+- `runId`, `missionId`, `stepId` must come from input, not fabricated from attemptRef/sessionId/child.
+
+### 禁止
+
+FORBIDDEN:
+- runtimeProof:null.
+- status: ok.
+- status: persisted.
+- fabricated runId from attemptRef/child/fingerprint.
+- missionId = sessionId.
+- success without outputRef.
+- failed/review result with output.
+- proof/result chain mismatch.
+- executableCoordinate in non-success proof.
+- postActionVerificationRequired=false on success.
+
+Required inspector:
+- Schema field checks.
+- Result/proof/input parity.
+- No fabricated chain pattern.
+- Success/failure proof invariants.
+- Gate decision fields.
+
+Required negative proof:
+- Remove activationSnapshotRef from proof → FAIL.
+- Set runId from attemptRef + child → FAIL.
+- Success without primitiveExecutionRef → FAIL.
+- Success without PAV handoff → FAIL.
+- Failed with output → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2
+
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Mouse Click children are narrow primitive bindings and must use unified runtime.
+
+### 主题
+
+子能力窄职责与统一运行链
+
+### 法条
+
+Active child capabilities:
+
+```txt
+click-browser-coordinate
+click-desktop-coordinate
+```
+
+Required:
+- Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
+- Each child binds exactly one execution coordinate space.
+- `click-browser-coordinate` accepts only `browserViewport`.
+- `click-desktop-coordinate` accepts only `desktopScreen`.
+- Each child delegates through unified Mouse Click runtime.
+- Child implementation must not call primitive port directly.
+- Child implementation must not build final proof/result directly.
+- Child implementation must not import sibling child implementation.
+- Button and clickCount are input fields, not child IDs.
+
+### 禁止
+
+FORBIDDEN:
+- click-left-point child.
+- click-right-point child.
+- double-click-left-point child.
+- compat/bridge/legacy/v2 roots.
+- child direct primitive execution.
+- child returning boolean.
+- child importing BrowserController.
+- child importing Geometry Guard internals.
+- child importing Visual Target internals.
+- child exposing public barrel.
+
+Required inspector:
+- Child folder/registry/schema parity.
+- Child unified runtime call.
+- Forbidden child roots.
+- Sibling import ban.
+- Child direct primitive call ban.
+
+Required negative proof:
+- Add click-left-point child → FAIL.
+- Child calls primitive port directly → FAIL.
+- Child returns boolean → FAIL.
+- Child imports BrowserController → FAIL.
+
+---
+
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2
+
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+
+### 主题
+
+Mouse Click 执法唯一入口
+
+### 法条
+
+Mouse Click enforcement must close through:
+
+```txt
+scripts/audit/domains/mouse-click-capability/manifest.json
+scripts/audit/domains/mouse-click-capability/inspector.ts
+scripts/audit/domains/mouse-click-capability/run-inspector.ts
+scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts
+```
+
+Required:
+- Inspector must use ts-morph AST-level checks.
+- Inspector must use symbol and import-graph checks.
+- Inspector must use schema-level checks.
+- Inspector must include anti-escape checks.
+- Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
+- Negative proof must run and report fail → rollback → pass.
+- CI-FULL must be green for delivery.
+- No grep/regex/includes as final judgment.
+- No warning-only P0.
+- No detached inspector.
+- No empty/missing negative proof.
+- No generated fake PASS.
+- No capability-check.ts.
+- No verify script as release truth.
+
+Required inspector checks:
+```txt
+1. Law file is machine-blocking.
+2. Public contract is click-only and primitive-port based.
+3. Input schema includes full chain fields.
+4. Geometry Guard proof requires guardDecision=allow.
+5. Source coordinate proof/source target/source evidence policy enforced.
+6. Right/double/desktop click policy enforced.
+7. No coordinate generation/remapping/scaleMapping inside Mouse Click.
+8. Primitive click only through MouseClickPrimitivePort.
+9. AbortSignal/timeout gate enforced.
+10. Idempotency gate enforced.
+11. No retry/fallback path.
+12. Success requires PAV handoff.
+13. Result/proof/input chain parity.
+14. Children use unified runtime.
+15. No forbidden imports/symbols/business verbs.
+16. External platform/runtime cannot bypass Mouse Click.
+17. ALL active Mouse Click laws in registry/matrix/audit-plan/runner.
+18. negative-proof-harness executed.
+```
+
+Required negative proof:
+```txt
+manual-first enforcement reintroduced
+remove capabilityCallId from input
+remove activationSnapshotRef from input
+remove nerveBusEnvelopeId from input
+guardDecision=review_required returns success
+missing geometryGuardRef returns success
+double click without allowDoubleClick returns success
+right click without allowRightClick returns success
+desktop click without desktop approval returns success
+remove AbortSignal
+add retry loop
+add scaleMapping to Mouse Click runtime
+add browserActionId to result
+success without postActionVerificationHandoffRef
+proof runId from attemptRef/child
+proof missing activationSnapshotRef
+child calls primitive port directly
+child returns boolean
+platform adapter directly calls primitive click
+capability-check.ts added
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+---
+
+## Final Readiness Gate
+
+Mouse Click is READY only when:
+
+```txt
+law/blueprint/inspector/generated/runner agree
+all active Mouse Click laws are machine-blocking
+public contract is click-only and native
+input chain fields complete
+Geometry Guard allow proof required
+no coordinate remapping/generation inside Mouse Click
+right/double/desktop policies enforced
+primitive click only through MouseClickPrimitivePort
+AbortSignal/timeout/idempotency enforced
+success requires actionExecutionRef + primitiveExecutionRef + PAV handoff
+result/proof/input chain parity passes
+children are narrow primitive bindings
+external platform/runtime cannot bypass Mouse Click
+owner-local inspector PASS
+negative proof PASS
+ALL active law enforcement PASS
+CI-FULL PASS
+```

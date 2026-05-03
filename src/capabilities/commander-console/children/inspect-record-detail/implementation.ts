@@ -23,7 +23,11 @@ export const INSPECT_RECORD_DETAIL_CHILD: CommanderConsoleChildDefinition<Inspec
           recordId: detail.recordId,
           sourceAbility: "forensics-read-model",
         })]
-        : [],
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "inspect-record-detail:not-found",
+          sourceAbility: "forensics-read-model",
+        })],
       buildOutputPolicy: (detail) => detail.recordType === "not-found"
         ? {
           status: "review_required",

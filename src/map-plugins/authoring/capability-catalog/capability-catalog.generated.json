@@ -4,10 +4,10 @@
   "entries": [
     {
       "abilityGroupId": "ai",
-      "childCapabilityId": "future-api-ai",
-      "description": "Execute governed AI child future api ai for governed tasks.",
-      "inputSchemaRef": "ai.future-api-ai.input",
-      "outputSchemaRef": "ai.future-api-ai.output",
+      "childCapabilityId": "comment-intent-analysis",
+      "description": "Execute governed AI child comment intent analysis for governed tasks.",
+      "inputSchemaRef": "ai.comment-intent-analysis.input",
+      "outputSchemaRef": "ai.comment-intent-analysis.output",
       "supportedTargets": [],
       "routableByMap": true,
       "requiresGeometryProof": false,
@@ -22,10 +22,10 @@
     },
     {
       "abilityGroupId": "ai",
-      "childCapabilityId": "internal-schema-validator",
-      "description": "Execute governed AI child internal schema validator for governed tasks.",
-      "inputSchemaRef": "ai.internal-schema-validator.input",
-      "outputSchemaRef": "ai.internal-schema-validator.output",
+      "childCapabilityId": "comment-text-cleanup",
+      "description": "Execute governed AI child comment text cleanup for governed tasks.",
+      "inputSchemaRef": "ai.comment-text-cleanup.input",
+      "outputSchemaRef": "ai.comment-text-cleanup.output",
       "supportedTargets": [],
       "routableByMap": true,
       "requiresGeometryProof": false,
@@ -40,10 +40,10 @@
     },
     {
       "abilityGroupId": "ai",
-      "childCapabilityId": "local-ocr-ai",
-      "description": "Execute governed AI child local ocr ai for governed tasks.",
-      "inputSchemaRef": "ai.local-ocr-ai.input",
-      "outputSchemaRef": "ai.local-ocr-ai.output",
+      "childCapabilityId": "product-presence-judgment",
+      "description": "Execute governed AI child product presence judgment for governed tasks.",
+      "inputSchemaRef": "ai.product-presence-judgment.input",
+      "outputSchemaRef": "ai.product-presence-judgment.output",
       "supportedTargets": [],
       "routableByMap": true,
       "requiresGeometryProof": false,
@@ -58,64 +58,10 @@
     },
     {
       "abilityGroupId": "ai",
-      "childCapabilityId": "local-text-ai",
-      "description": "Execute governed AI child local text ai for governed tasks.",
-      "inputSchemaRef": "ai.local-text-ai.input",
-      "outputSchemaRef": "ai.local-text-ai.output",
-      "supportedTargets": [],
-      "routableByMap": true,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "invent prompt text",
-        "read credentials or cookies"
-      ]
-    },
-    {
-      "abilityGroupId": "ai",
-      "childCapabilityId": "local-vision-ai",
-      "description": "Execute governed AI child local vision ai for governed tasks.",
-      "inputSchemaRef": "ai.local-vision-ai.input",
-      "outputSchemaRef": "ai.local-vision-ai.output",
-      "supportedTargets": [],
-      "routableByMap": true,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "invent prompt text",
-        "read credentials or cookies"
-      ]
-    },
-    {
-      "abilityGroupId": "ai",
-      "childCapabilityId": "paid-analysis-ai",
-      "description": "Execute governed AI child paid analysis ai for governed tasks.",
-      "inputSchemaRef": "ai.paid-analysis-ai.input",
-      "outputSchemaRef": "ai.paid-analysis-ai.output",
-      "supportedTargets": [],
-      "routableByMap": true,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "invent prompt text",
-        "read credentials or cookies"
-      ]
-    },
-    {
-      "abilityGroupId": "ai",
-      "childCapabilityId": "paid-vision-ai",
-      "description": "Execute governed AI child paid vision ai for governed tasks.",
-      "inputSchemaRef": "ai.paid-vision-ai.input",
-      "outputSchemaRef": "ai.paid-vision-ai.output",
+      "childCapabilityId": "product-signal-summary",
+      "description": "Execute governed AI child product signal summary for governed tasks.",
+      "inputSchemaRef": "ai.product-signal-summary.input",
+      "outputSchemaRef": "ai.product-signal-summary.output",
       "supportedTargets": [],
       "routableByMap": true,
       "requiresGeometryProof": false,
@@ -332,6 +278,28 @@
       "description": "Normalize or validate governed geometry for map region to source.",
       "inputSchemaRef": "geometry-guard.map-region-to-source.input",
       "outputSchemaRef": "geometry-guard.map-region-to-source.output",
+      "supportedTargets": [
+        "browser-viewport",
+        "desktop-screen",
+        "source-image"
+      ],
+      "routableByMap": true,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresReviewGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute actions",
+        "capture screenshots",
+        "persist evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "geometry-guard",
+      "childCapabilityId": "normalize-coordinate-geometry",
+      "description": "Normalize governed coordinate geometry for map-routable action steps.",
+      "inputSchemaRef": "geometry-guard.normalize-coordinate-geometry.input",
+      "outputSchemaRef": "geometry-guard.normalize-coordinate-geometry.output",
       "supportedTargets": [
         "browser-viewport",
         "desktop-screen",
@@ -807,6 +775,28 @@
     },
     {
       "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "verify-action-result",
+      "description": "Verify governed post-action result for map-routable action steps.",
+      "inputSchemaRef": "post-action-verification.verify-action-result.input",
+      "outputSchemaRef": "post-action-verification.verify-action-result.output",
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresReviewGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
       "childCapabilityId": "verify-comments-panel-closed",
       "description": "Verify governed post-action outcome for verify comments panel closed.",
       "inputSchemaRef": "post-action-verification.verify-comments-panel-closed.input",
@@ -984,7 +974,7 @@
     {
       "abilityGroupId": "screenshot",
       "childCapabilityId": "capture-region",
-      "description": "Capture governed screenshot for evidence_original in source_image_pixels.",
+      "description": "Capture governed screenshot for region_crop in region_crop_pixels.",
       "inputSchemaRef": "screenshot.capture-region.input",
       "outputSchemaRef": "screenshot.capture-region.output",
       "supportedTargets": [
@@ -1006,7 +996,7 @@
     {
       "abilityGroupId": "screenshot",
       "childCapabilityId": "optimize-lossless",
-      "description": "Capture governed screenshot for evidence_optimized in source_image_pixels.",
+      "description": "Capture governed screenshot for evidence_optimized in derived.",
       "inputSchemaRef": "screenshot.optimize-lossless.input",
       "outputSchemaRef": "screenshot.optimize-lossless.output",
       "supportedTargets": [

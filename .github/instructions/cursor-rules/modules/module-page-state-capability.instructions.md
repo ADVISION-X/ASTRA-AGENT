@@ -1,201 +1,756 @@
 ---
 name: "GrassEye Page State Capability"
-description: "Use when defining the independent Page State Ability Group, current-page state classification, page readiness, login wall, safety page, modal overlay, comment panel state, platform page kind, or removing page-state truth from platform-action, agent runtime, and open flows."
+description: "Use when governing the independent Page State Ability Group, current-page state classification, page readiness, login wall, safety page, modal overlay, comment panel state, feed/video stability, platform page kind, and the boundary that prevents open/platform/runtime/PAV from claiming current-page state truth."
 applyTo: ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md, src/capabilities/page-state/**, docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md, scripts/audit/domains/page-state-capability/**"
 ---
 
-# GrassEye Page State Capability
+# GrassEye Page State Capability FINAL
 
-Scope: governs the independent Page State Ability Group, its contracts, current-page state classification, and runtime proof ownership.
-Boundary: this module governs only the question "what state is the current page in right now".
-Excludes: action execution, action-result verification, AI execution, screenshot capture, visual target detection, comment extraction, product classification, evidence finalization, and round branching.
-Authority: this file is authoritative only for the page-state-capability domain.
+Scope: governs the independent Page State Ability Group, current-page state classification, page readiness, login-state classification, safety-page detection, feed/video stability detection, modal/comment panel state classification, page abnormality classification, platform page-kind classification, evidence-backed state output, and page-state runtime proof.
+
+Boundary: this module governs only the question: **what state is the current page in right now**. It does not govern action execution, action-result verification, screenshot capture, AI execution, visual-target detection, comment extraction, product classification, evidence finalization, map branching, or mission progression.
+
+Authority: this file is authoritative only for the `page-state-capability` domain.
+
+Architecture phase: `Static Capability Package Architecture`.
+
+Core doctrine:
+- Page State is current-state perception, not action-result verification.
+- Page State consumes governed snapshots, observations, open handoff refs, and evidence refs.
+- Page State returns a structured current-page classification with proof.
+- Page State does not capture screenshots, call AI, run visual target detection, click, scroll, type, open pages, query DOM/BOM, write Forensics, or choose the next step.
+- Open/action abilities may say “I attempted/did an action”; Page State may say “the page now looks like X”; Post-action Verification decides whether the action achieved its expected result.
+- No observation support, no confident page-state success.
+- No source proof, no governed observation.
+- No chain fields, no production-ready Page State result.
+- No active Page State law without inspector + runner + negative proof.
 
 ---
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-001-V1
+## Global Page State Baseline
 
+All active Page State laws in this file are:
+
+```yaml
 status: active
 tier: P0
 capabilityDomain: page-state-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-PAGE-STATE-001-V1
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+```
 
-summary: Page State Ability Group is the only owner of governed current-page state classification.
+Required package:
+
+```txt
+src/capabilities/page-state/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+├── shared/
+├── runtime/
+└── children/
+```
+
+Required enforcement:
+
+```txt
+scripts/audit/domains/page-state-capability/
+├── manifest.json
+├── inspector.ts
+├── run-inspector.ts
+└── negative-proof-harness.ts
+```
+
+Forbidden:
+- `manual-first` as active enforcement for this domain.
+- `evidenceMode: law` as sufficient evidence.
+- verify scripts as release truth.
+- detached inspector.
+- warning-only P0.
+- generated fake PASS.
+- empty negative proof.
+
+---
+
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-001-V2
+
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Page State is the only owner of governed current-page state classification.
 
 ### 主题
 
-页面状态主权唯一归属
+当前页面状态主权唯一
 
 ### 法条
 
 Page State Ability Group is the only owner of governed current-page state classification.
 
-MUST:
-- all governed current-page state classification flows through Page State Ability Group interface.
-- platform adapters, agent runtime, and open flows may consume page-state result, but must not own final page-state truth.
-- page-state output must classify the current page as it exists now, not judge whether an action succeeded.
+Current-page state classifications include:
 
-FORBIDDEN:
-- open capability deciding feed ready or login wall truth by itself.
-- platform adapter owning login or safety or feed-ready summary helpers.
-- agent runtime owning current-page classification truth.
-- duplicate page-state helpers outside Page State Ability Group.
+```txt
+logged_in
+login_required
+safety_wall
+captcha_challenge
+feed_ready
+feed_not_ready
+video_stable
+video_unstable
+comments_panel_open
+comments_panel_closed
+modal_overlay_present
+modal_overlay_absent
+page_abnormal
+page_normal
+platform_feed
+platform_video_page
+platform_unknown
+wrong_domain
+unknown_page
+local_workbench
+```
+
+Required:
+- All governed current-page state classification flows through Page State public interface.
+- Open, platform adapters, local runtime, workbench, Orchestration, PAV, Screenshot, Visual Target, and AI may consume Page State result but must not own final page-state truth.
+- Page State classifies the current page as it exists now.
+- Page State must not judge whether an action succeeded.
+- Page State result may be consumed by Orchestration, PAV, Commander, and Forensics as a state observation/result.
+
+Forbidden:
+- Open deciding feed-ready/login-wall/safety-page truth by itself.
+- Platform adapter owning login/safety/feed-ready summary helpers.
+- Agent runtime owning current-page classification truth.
+- PAV replacing Page State current-state classification.
+- Action completion used as page-state proof.
+- Duplicate page-state helpers outside Page State Ability Group.
+
+Required inspector:
+- Search forbidden state-truth symbols outside Page State.
+- Import graph check for duplicate page-state helpers.
+- Open/platform/runtime state-truth ownership ban.
+- Action completion as page-state proof ban.
+
+Required negative proof:
+- Add feed-ready classifier in open ability → FAIL.
+- Add login-wall truth helper in platform adapter → FAIL.
+- Use actionCompletion as page-state evidence → FAIL.
 
 ---
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-002-V1
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-002-V2
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-PAGE-STATE-002-V1
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Page State boundary is pure.
+summary: Page State boundary is pure and may only classify from governed inputs.
 
 ### 主题
 
-页面状态边界纯度
+页面状态边界纯洁
 
 ### 法条
 
 Page State only classifies, summarizes, records proof, and returns current-page state.
 
-MUST:
-- Page State only classifies current-page state and returns a structured state result.
+Allowed:
+- Consume governed snapshot.
+- Consume governed observations.
+- Consume governed evidence refs.
+- Consume open handoff proof.
+- Resolve platform profile through injected profile port.
+- Check freshness.
+- Check source binding.
+- Classify current-page state.
+- Produce runtime proof and structured result.
 
-FORBIDDEN:
-- screenshot capture.
+Forbidden:
+- Screenshot capture.
 - AI runtime call.
-- visual target detection.
-- click execution.
-- scroll execution.
-- post-action verification.
+- Visual target detection execution.
+- Click execution.
+- Scroll execution.
+- Text input execution.
+- Open/navigation execution.
+- Post-action verification decision.
 - DOM/BOM lookup.
-- comment extraction.
-- product classification.
-- final evidence persistence.
-- round branch decision.
+- BrowserController use.
+- Comment extraction.
+- Product classification.
+- Final evidence persistence.
+- Round branch decision.
+- Nerve Bus dispatch.
+- Forensics write.
+
+Required inspector:
+- Forbidden imports under `src/capabilities/page-state/**`.
+- Forbidden symbol checks: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep, querySelector, document/window access.
+- External private path import ban.
+
+Required negative proof:
+- Page State imports screenshot implementation → FAIL.
+- Page State calls BrowserController → FAIL.
+- Page State calls AI runtime → FAIL.
+- Page State writes Forensics → FAIL.
 
 ---
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-003-V1
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-003-V2
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-PAGE-STATE-003-V1
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Page State output must be evidence-backed.
+summary: Page State input must carry full chain fields, snapshot proof, observations, evidence refs, policies, and open handoff.
 
 ### 主题
 
-页面状态输出必须有证据支撑
+输入链路与观察证据完整性
 
 ### 法条
 
-Page State output must be evidence-backed.
+Every `PageStateAbilityInput` must be traceable to the map step and capability call that requested the classification.
 
-MUST:
-- input must include currentUrl.
-- input must include statePolicy and confidencePolicy.
-- page-state result must include pageStateType.
-- page-state result must include stateSummary.
-- page-state result may include observation refs and evidence refs when available.
+Required input fields:
 
-FORBIDDEN:
+```txt
+abilityGroupId = page-state
+childCapabilityId
+requestedBy = orchestration or post-action-verification or commander-read-model if explicitly allowed
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId where available
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+snapshot
+observations
+sourceEvidenceRefs
+freshnessPolicy
+confidencePolicy
+statePolicy
+openHandoff
+inputRef
+idempotencyKey
+```
+
+Snapshot must include:
+
+```txt
+snapshotId
+currentUrl
+currentTitle
+browserLoginState
+viewport
+scrollOffset
+capturedAt
+sourceAbilityGroupId
+sourceChildCapabilityId
+sourceProofRef
+```
+
+Open handoff must include:
+
+```txt
+openProofRef
+browserSessionRef
+platformProfileId
+```
+
+Required:
+- Missing `currentUrl` must fail.
+- Missing `stepId/capabilityCallId/activationSnapshotRef/nerveBusEnvelopeId` must fail or review_required; never success.
+- Missing `sourceEvidenceRefs` must fail unless child law explicitly allows no-evidence unknown state.
+- Every observation must include `sourceProofRef`.
+- Snapshot must include `sourceProofRef`.
+- `currentUrl` must come from snapshot, not a separate mutable field.
+
+Forbidden:
+- Silent success without currentUrl.
+- Silent success without snapshot proof.
+- Silent success without observation/evidence support.
+- Fabricating mission/run/step ids in Page State.
+- Accepting raw browser state without source proof.
+
+Required inspector:
+- Schema field existence.
+- Required chain fields.
+- Snapshot proof field.
+- Open handoff field.
+- Input gate call order.
+
+Required negative proof:
+- Remove activationSnapshotRef from input → FAIL.
+- Remove capabilityCallId from input → FAIL.
+- Remove nerveBusEnvelopeId from input → FAIL.
+- Remove snapshot.sourceProofRef → FAIL.
+
+---
+
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-004-V2
+
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Observations and evidence must be source-bound, fresh, and from allowed owners.
+
+### 主题
+
+观察来源与证据绑定门禁
+
+### 法条
+
+Page State may consume only governed observation/evidence sources.
+
+Allowed observation source owners:
+
+```txt
+open
+screenshot
+visual-target
+post-action-verification
+runtime-signal
+```
+
+Every observation must include:
+
+```txt
+observationId
+kind
+capturedAt
+sourceAbilityGroupId
+sourceChildCapabilityId
+sourceProofRef
+payload
+```
+
+Required:
+- `sourceAbilityGroupId` must be in allowlist.
+- `sourceChildCapabilityId` must match allowed child list for that source owner.
+- `sourceProofRef` must bind to request evidence chain, open proof, or snapshot proof.
+- `capturedAt` must satisfy freshness policy.
+- Snapshot capturedAt must satisfy freshness policy.
+- Observation set must satisfy observation skew policy.
+- Missing observation support for observation-required children must review/fail.
+- Source mismatch must review/fail.
+
+Forbidden:
+- Observation without sourceProofRef.
+- Observation from AI if AI is not explicitly allowed by this law.
+- Observation from action ability as action-completion truth.
+- Page-state success with stale snapshot.
+- Page-state success with stale observation.
+- Page-state success with source mismatch.
+
+Required inspector:
+- Observation schema.
+- Source allowlist.
+- Freshness gate.
+- Observation proof binding gate.
+- Observation-required child policy.
+
+Required negative proof:
+- Add observation without sourceProofRef → FAIL.
+- Add stale observation and return success → FAIL.
+- Add forbidden source owner and return success → FAIL.
+
+---
+
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-005-V2
+
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Page State output must be evidence-backed and cannot claim action-result verification truth.
+
+### 主题
+
+输出证据支撑与非动作验证
+
+### 法条
+
+`PageStateAbilityResult` must return only current-page state.
+
+Result fields:
+
+```txt
+status = success | failed | review_required
+decision = proceed | block | review_required | fail
+abilityGroupId = page-state
+childCapabilityId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+output
+pageStateType
+stateSummary
+confidence
+evidenceRefs
+observationRefs
+sourceEvidenceRefs
+pageStateFingerprint
+previousPageStateFingerprint
+failureReason
+reviewRequiredReason
+dataQualityFlags
+diagnosticPayloadRef
+debugLogRef
+structuredRuntimeEventRef
+runtimeProof
+```
+
+Success requirements:
+- output exists.
+- pageStateType exists.
+- stateSummary exists.
+- confidence >= confidencePolicy.minimumConfidence.
+- evidenceRefs/sourceEvidenceRefs exist.
+- observationRefs exist when child requires observation support.
+- runtimeProof exists.
+- runtimeProof.status equals result.status.
+- runtimeProof.decision equals result.decision.
+- criticalDataQualityDecision = allow.
+- outputBoundaryDecision = allow.
+
+Failure/review requirements:
+- output = null.
+- diagnosticPayloadRef exists.
+- failureReason or reviewRequiredReason exists.
+- runtimeProof exists.
+
+Forbidden:
+- `verified`, `verificationDecision`, `actionResultVerifiedRef` in Page State output/result.
+- `status: ok`.
+- `status: persisted`.
 - silent page-state success.
-- page-state classification without currentUrl.
-- declaring feed ready or safety page without any supporting state signal.
-- using action completion as page-state proof.
+- success without evidence/source refs.
+- success with critical data quality flags.
+- failed/review_required with output.
+- action completion as proof.
+
+Required inspector:
+- Result schema superRefine.
+- Output-boundary gate.
+- Forbidden action-verification fields.
+- Success support refs.
+- Failure/review output null.
+
+Required negative proof:
+- Add verificationDecision to result → FAIL.
+- Return success without evidenceRefs → FAIL.
+- Return success with low_confidence flag → FAIL.
+- Return failed with output → FAIL.
 
 ---
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-004-V1
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-006-V2
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-PAGE-STATE-004-V1
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Page State must write runtime proof.
+summary: Page State runtime proof must preserve real chain, gate decisions, source refs, and state fingerprint.
 
 ### 主题
 
-页面状态必须写运行证明
+页面状态运行证明完整性
 
 ### 法条
 
-Page State must write runtime proof.
+`PageStateRuntimeProof` must preserve the same real upstream chain as input and result.
 
-MUST:
-- abilityGroupId
-- childCapabilityId
-- sessionId
-- roundId if available
-- videoVisitId if available
-- pageStateType
-- stateSummary
-- confidence
-- evidenceRefs
-- observationRefs
-- startedAt
-- endedAt
-- durationMs
-- status
-- failureReason
-- debugLogRef
+Required proof fields:
 
-FORBIDDEN:
-- silent classification.
-- failed classification without failureReason.
-- state result without proof trail.
+```txt
+proofId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+abilityGroupId = page-state
+childCapabilityId
+inputRef
+outputRef or diagnosticPayloadRef
+debugLogRef
+structuredRuntimeEventRef optional
+snapshotId
+snapshotProofRef
+openHandoffProofRef
+browserSessionRef
+platformProfileId
+resolvedPlatformProfileId
+matchedHost
+sourceAbilityGroupId
+sourceChildCapabilityId
+observationRefs
+sourceEvidenceRefs
+inputPayloadHash
+snapshotHash
+observationHash
+pageStateFingerprint
+previousPageStateFingerprint
+currentUrl
+currentTitle
+classificationSource
+inputDecision
+payloadBudgetDecision
+sourceBindingDecision
+observationBindingDecision
+freshnessDecision
+platformDecision
+classificationDecision
+outputBoundaryDecision
+criticalDataQualityDecision
+proceedDecision
+startedAt
+endedAt
+durationMs
+status
+decision
+failureReason
+reviewRequiredReason
+dataQualityFlags
+receivedShapeHash
+```
+
+Forbidden:
+- nullable missionId/runId/stepId/capabilityCallId/activationSnapshotRef/nerveBusEnvelopeId in valid runtime result proof.
+- runtimeProof chain different from result chain.
+- proofId generated without input/snapshot/observation hash.
+- success proof without outputRef.
+- failed/review proof without diagnosticPayloadRef.
+- fabricated missionId/runId from source names or fingerprint only.
+- invalid input failure without receivedShapeHash.
+
+Required inspector:
+- Proof schema fields.
+- Proof/result/input parity.
+- No fabricated id pattern.
+- Gate-decision fields.
+- Invalid input proof includes receivedShapeHash.
+
+Required negative proof:
+- Remove activationSnapshotRef from proof → FAIL.
+- Set runId from fingerprint only → FAIL.
+- Success without outputRef → FAIL.
+- Failed without diagnosticPayloadRef → FAIL.
 
 ---
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-005-V1
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-007-V2
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: manual-first
-evidenceMode: law
-legacyAlias: APEX-PAGE-STATE-005-V1
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Page State must not add dedicated verify script and is enforced by owner inspector only.
+summary: child capabilities are narrow state classifiers and must use unified runtime gates.
 
 ### 主题
 
-页面状态禁止独立 verify 脚本
+子能力窄职责与统一执行链
 
 ### 法条
 
-Page State is enforced by owner inspector and audit build. It must not add dedicated verify script.
+Active children:
 
-MUST:
-- page-state-capability enforcement must route through owner inspector.
-- verify-ban must be checked inside page-state owner inspector.
+```txt
+detect-login-state
+detect-safety-page
+detect-feed-ready
+detect-video-stable
+detect-comment-panel-state
+detect-modal-overlay-state
+detect-page-abnormality
+detect-platform-page-kind
+```
 
-FORBIDDEN:
-- scripts/verify/verify-page-state-capabilities.ts
-- capability-check files inside src/capabilities/page-state
-- any page-state verify-like enforcement entry outside owner inspector.
+Required:
+- Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
+- Each child returns `PageStateChildDetection`, not final `PageStateAbilityResult`.
+- Each child consumes only `PageStateAbilityInput` and resolved profile from context.
+- Each child cannot call screenshot, AI, visual-target, open, click, scroll, text-input, PAV, Forensics, Orchestration, Nerve Bus, BrowserController, DOM/BOM.
+- Each child cannot build runtimeProof.
+- Each child cannot use platform-specific hardcoded paths except through governed platform profile.
+- Each child must use observations and policies, not hidden runtime truth.
+- All final result/proof construction occurs in unified runtime path.
+
+Forbidden:
+- Child implementation building final result/proof.
+- Child direct foreign ability import.
+- Child returning boolean.
+- Child using URL string includes for platform identity.
+- Child hardcoding TikTok-only feed/video paths.
+- Child reading DOM/BOM.
+
+Required inspector:
+- Child folder/registry/schema parity.
+- Child return type.
+- Forbidden imports/symbols.
+- No platform path hardcode.
+
+Required negative proof:
+- Child imports screenshot implementation → FAIL.
+- Child returns boolean → FAIL.
+- Child hardcodes TikTok path → FAIL.
+- Child builds runtimeProof → FAIL.
 
 ---
 
-## 模块边界声明
+## Law GRASSEYE-PAGE-STATE-CAPABILITY-008-V2
 
-This law file does not govern:
-- How screenshots are captured.
-- How AI is executed.
-- How clicks or scrolls are executed.
-- How action-result verification is decided.
-- How evidence packets are finalized.
-- How orchestration decides the next branch.
+status: active  
+tier: P0  
+capabilityDomain: page-state-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Page State enforcement must close through owner-local AST/symbol inspector, runner, and negative proof.
+
+### 主题
+
+Page State 执法唯一入口
+
+### 法条
+
+Page State enforcement must close through:
+
+```txt
+scripts/audit/domains/page-state-capability/manifest.json
+scripts/audit/domains/page-state-capability/inspector.ts
+scripts/audit/domains/page-state-capability/run-inspector.ts
+scripts/audit/domains/page-state-capability/negative-proof-harness.ts
+```
+
+Required:
+- Inspector must use ts-morph AST-level checks.
+- Inspector must use symbol and import-graph checks.
+- Inspector must use schema-level checks.
+- Inspector must include anti-escape checks.
+- Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
+- Negative proof must run and report fail → rollback → pass.
+- CI-FULL must be green for delivery.
+- No grep/regex/includes as final judgment.
+- No warning-only P0.
+- No detached inspector.
+- No empty negative proof.
+- No generated fake PASS.
+- No verify script.
+- No capability-check.ts under Page State root.
+
+Required inspector checks:
+```txt
+1. Law file is machine-blocking.
+2. Page State public contract is current-state only.
+3. Input schema includes full chain fields.
+4. Observation source allowlist.
+5. Snapshot/open handoff proof required.
+6. Freshness gate invoked.
+7. Observation proof binding gate invoked.
+8. Platform profile gate invoked.
+9. Payload budget gate invoked.
+10. Output boundary gate invoked.
+11. Runtime proof chain fields and parity.
+12. Child registry parity and narrow child behavior.
+13. No forbidden foreign imports.
+14. No action-result verification fields.
+15. No verify scripts or capability-check files.
+16. ALL active Page State laws in registry/matrix/audit-plan/runner.
+17. negative-proof-harness executed.
+```
+
+Required negative proof:
+```txt
+manual-first enforcement reintroduced
+remove capabilityCallId from input
+remove activationSnapshotRef from input
+remove nerveBusEnvelopeId from input
+remove snapshot.sourceProofRef
+observation without sourceProofRef
+forbidden observation owner returns success
+stale snapshot returns success
+success without evidenceRefs
+success with low_confidence flag
+result adds verificationDecision
+failed result with output
+proof runId from fingerprint
+proof missing activationSnapshotRef
+child imports screenshot implementation
+child returns boolean
+child hardcodes TikTok feed path
+external import of child implementation
+add verify-page-state-capabilities.ts
+turn P0 into warning-only
+remove negative proof invocation
+```
+
+---
+
+## Final Readiness Gate
+
+Page State is READY only when:
+
+```txt
+law/blueprint/inspector/generated/runner agree
+all active Page State laws are machine-blocking
+Page State public contract is current-state only
+input chain fields complete
+snapshot/open handoff proof required
+observations source-bound and fresh
+output evidence-backed
+action-result verification fields absent
+runtimeProof preserves real chain and gate decisions
+children are narrow classifiers
+owner-local inspector PASS
+negative proof PASS
+ALL active law enforcement PASS
+CI-FULL PASS
+```

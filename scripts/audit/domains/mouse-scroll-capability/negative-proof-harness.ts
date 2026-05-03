@@ -131,7 +131,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1",
+        lawId: "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2",
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",

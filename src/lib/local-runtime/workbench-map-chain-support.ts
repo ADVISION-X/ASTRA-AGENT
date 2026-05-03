@@ -1,0 +1,27 @@
+import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+
+export type WorkbenchMapChain = {
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
+};
+
+export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
+  if (!mapId) {
+    return {
+      mapPackageId: null,
+      mapPackageVersion: null,
+      selectedMapVersion: null,
+      activationSnapshotRef: null,
+    };
+  }
+
+  const record = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+  return {
+    mapPackageId: record?.packageId ?? null,
+    mapPackageVersion: record?.packageVersion ?? null,
+    selectedMapVersion: record?.mapVersion ?? null,
+    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+  };
+};

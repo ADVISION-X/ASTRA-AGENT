@@ -18,7 +18,11 @@ export const SHOW_OPERATIONAL_MAP_PROGRESS_CHILD: CommanderConsoleChildDefinitio
       read: async () => context.missionReadModel.readMission(),
       buildEvidenceRefs: (mission) => mission.missionId
         ? [buildCommanderEvidenceRef({ recordType: "mission", recordId: mission.missionId, sourceAbility: "mission-read-model" })]
-        : [],
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "operational-map-progress:empty",
+          sourceAbility: "mission-read-model",
+        })],
       buildOutputPolicy: (mission) => ({ missionId: mission.missionId }),
     });
   },

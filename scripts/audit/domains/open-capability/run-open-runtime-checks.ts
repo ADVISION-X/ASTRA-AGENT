@@ -1,21 +1,27 @@
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { hasLiteralTextFragment, hasPropertyNamed } from "../_shared/ast-literal-queries.js";
-import { hasCallExpression } from "../_shared/ast-helpers.js";
 
 import { openInspectionConstants } from "./inspection-constants.js";
 import { openInspectionUtils } from "./inspection-utils.js";
+import { getTypeAliasPropertyNames, hasCallExpression, hasIdentifier, hasLiteralTextFragment, hasPropertyNamed } from "./open-ast-queries.js";
+import { collectChainBuilderFindings } from "./runtime-chain-findings.js";
 
 const {
   DISPATCH_FAILURE_PATH,
+  DISPATCH_FAILURE_BUILDERS_PATH,
   EXECUTOR_PATH,
   EXECUTOR_COMPLETION_PATH,
   EXECUTOR_FLOW_PATH,
   EXECUTOR_FLOW_SUPPORT_PATH,
   EXECUTOR_PREFLIGHT_PATH,
+  IDEMPOTENCY_PATH,
   INPUT_GATE_PATH,
+  LAW_INPUT_CHAIN,
+  LAW_PAGE_STATE_HANDOFF,
+  LAW_RESULT_PROOF,
   LAW_RUNTIME_GOVERNANCE,
   NAVIGATION_RUNNER_PATH,
+  NAVIGATION_RUNNER_SUPPORT_PATH,
   POST_OPEN_STATE_GATE_PATH,
   POST_OPEN_STATE_HELPERS_PATH,
   POST_OPEN_STATE_RESULT_BUILDERS_PATH,
@@ -31,7 +37,6 @@ const {
   hasCookieRead,
   hasDateUsageOutsideClock,
   hasDispatchFailureFabrication,
-  hasReturnedObjectProperty,
   hasStatusClassificationObject,
   hasStrictSuccessStatusCheck,
 } = openInspectionUtils;
@@ -82,9 +87,18 @@ const collectSessionGateFinding = (project: import("ts-morph").Project): Finding
 
 const collectNavigationRunnerFinding = (project: import("ts-morph").Project): Finding[] => {
   const navigationRunnerSource = getOpenSourceOrThrow(project, NAVIGATION_RUNNER_PATH);
-  return !hasCallExpression(navigationRunnerSource, "safeReadSessionSnapshot") || !hasCallExpression(navigationRunnerSource, "buildTimedOutNavigationResult")
-    ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: NAVIGATION_RUNNER_PATH, line: 1, severity: "fatal", message: "Navigation runner must govern browser.open and getSessionSnapshot failures without throwing through the child boundary." })]
-    : [];
+  const navigationRunnerSupportSource = getOpenSourceOrThrow(project, NAVIGATION_RUNNER_SUPPORT_PATH);
+  const findings: Finding[] = [];
+
+  if (!hasCallExpression(navigationRunnerSource, "safeReadSessionSnapshot") || !hasCallExpression(navigationRunnerSource, "buildTimedOutNavigationResult")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: NAVIGATION_RUNNER_PATH, line: 1, severity: "fatal", message: "Navigation runner must govern browser.open and getSessionSnapshot failures without throwing through the child boundary." }));
+  }
+
+  if (!hasIdentifier(navigationRunnerSource, "AbortController") || !hasCallExpression(navigationRunnerSupportSource, "runWithTimeout") || !hasPropertyNamed(navigationRunnerSupportSource, "abortSignal")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: NAVIGATION_RUNNER_SUPPORT_PATH, line: 1, severity: "fatal", message: "Navigation runner must propagate AbortSignal through runWithTimeout into OpenBrowserPort.open." }));
+  }
+
+  return findings;
 };
 
 const collectPolicyGateFindings = (project: import("ts-morph").Project): Finding[] => [
@@ -112,7 +126,7 @@ const collectPostOpenStateFindings = (project: import("ts-morph").Project): Find
 const collectResultBuilderFindings = (project: import("ts-morph").Project): Finding[] => {
   const resultBuilderSource = getOpenSourceOrThrow(project, RESULT_BUILDER_PATH);
   const proofBuilderSource = getOpenSourceOrThrow(project, PROOF_BUILDER_PATH);
-  const dispatchFailureSource = getOpenSourceOrThrow(project, DISPATCH_FAILURE_PATH);
+  const dispatchFailureSource = getOpenSourceOrThrow(project, DISPATCH_FAILURE_BUILDERS_PATH);
   const findings: Finding[] = [];
 
   if (!hasStrictSuccessStatusCheck(resultBuilderSource)) {
@@ -125,7 +139,7 @@ const collectResultBuilderFindings = (project: import("ts-morph").Project): Find
     findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: PROOF_BUILDER_PATH, line: 1, severity: "fatal", message: "Open proof builder must record trace-field provenance and parse decision data." }));
   }
   if (hasDispatchFailureFabrication(dispatchFailureSource)) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: DISPATCH_FAILURE_PATH, line: 1, severity: "fatal", message: "Dispatch failure envelope must not fabricate allow decisions or fake target profiles." }));
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: DISPATCH_FAILURE_BUILDERS_PATH, line: 1, severity: "fatal", message: "Dispatch failure envelope must not fabricate allow decisions or fake target profiles." }));
   }
 
   return findings;
@@ -133,9 +147,37 @@ const collectResultBuilderFindings = (project: import("ts-morph").Project): Find
 
 const collectInputGateFinding = (project: import("ts-morph").Project): Finding[] => {
   const inputGateSource = getOpenSourceOrThrow(project, INPUT_GATE_PATH);
-  return hasLiteralTextFragment(inputGateSource, "coerceOpenInputSeed") || !hasCallExpression(inputGateSource, "readOptionalString")
+  const traceFields = getTypeAliasPropertyNames(inputGateSource, "OpenDispatchFailureTrace");
+  const findings = hasLiteralTextFragment(inputGateSource, "coerceOpenInputSeed") || !hasCallExpression(inputGateSource, "readOptionalString")
     ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: INPUT_GATE_PATH, line: 1, severity: "fatal", message: "Open input gate must use one trace-only raw failure parser and must not coerce fake business requests." })]
     : [];
+
+  findings.push(...createMissingFieldFinding({
+    fields: traceFields,
+    requiredFields: [
+      "stepId",
+      "mapPackageId",
+      "mapPackageVersion",
+      "selectedMapId",
+      "selectedMapVersion",
+      "activationSnapshotRef",
+      "capabilityCallId",
+      "nerveBusEnvelopeId",
+      "inputRef",
+      "idempotencyKey",
+      "timeoutMs",
+      "receivedShapeHash",
+    ],
+    lawId: LAW_INPUT_CHAIN,
+    file: INPUT_GATE_PATH,
+    message: "Open dispatch-failure trace must retain the FINAL V2 chain fields and receivedShapeHash.",
+  }));
+
+  if (!hasCallExpression(inputGateSource, "hashInputShape")) {
+    findings.push(createFinding({ lawId: LAW_INPUT_CHAIN, file: INPUT_GATE_PATH, line: 1, severity: "fatal", message: "Open input gate must hash invalid-input shapes before dispatch-failure proof is built." }));
+  }
+
+  return findings;
 };
 
 const collectRuntimeDisciplineFindings = (project: import("ts-morph").Project): Finding[] => {
@@ -161,6 +203,7 @@ export function runOpenRuntimeChecks(project: import("ts-morph").Project): Findi
     ...collectPostOpenStateFindings(project),
     ...collectResultBuilderFindings(project),
     ...collectInputGateFinding(project),
+    ...collectChainBuilderFindings(project),
     ...collectRuntimeDisciplineFindings(project),
   ];
 }

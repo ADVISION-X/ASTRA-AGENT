@@ -12,56 +12,61 @@ type Mutation = {
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/open-capability/inspector.ts";
 const EXPORT_STAR_MUTATION = `export ${"*"} from "./schema.js";`;
-const AS_ANY_MUTATION = `const mutatedAny = navigation as ${"any"};`;
 
 const MUTATIONS: Mutation[] = [
   {
-    name: "url gate mutation",
-    file: "src/capabilities/open/runtime/open-executor.ts",
-    search: "const urlSafety = evaluateUrlSafety({",
-    replace: 'const urlSafety = { ok: true, failureCode: null, reason: null, normalizedUrl: "https://mutated.invalid", hostname: "www.tiktok.com", scheme: "https", decision: { status: "allow", reason: null, normalizedUrl: "https://mutated.invalid", hostname: "www.tiktok.com", scheme: "https" } };\n  // mutated gate removed\n  ({',
+    name: "request chain mutation",
+    file: "src/capabilities/open/schema-core.ts",
+    search: "  stepId: z.string().min(1),",
+    replace: "  // mutated stepId removed,",
   },
   {
-    name: "session gate mutation",
-    file: "src/capabilities/open/runtime/open-executor.ts",
-    search: "const sessionGate = await evaluateRealChromeSession({",
-    replace: 'const sessionGate = { ok: true, failureCode: null, status: "failed", reason: null, sessionSnapshot: createUnavailableSession("mutated session gate"), decision: { status: "allow", reason: null, browserMode: "real_chrome_persistent", profileStatus: "profile_ready", profileVerificationStatus: "operator_verified" } };\n  // mutated gate removed\n  ({',
+    name: "result diagnostic mutation",
+    file: "src/capabilities/open/schema-proof.ts",
+    search: "  diagnosticPayloadRef: nullableString,\n  dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),\n  runtimeProof: OpenRuntimeProofSchema,",
+    replace: "  // mutated diagnosticPayloadRef removed,\n  dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),\n  runtimeProof: OpenRuntimeProofSchema,",
   },
   {
-    name: "post-open gate mutation",
-    file: "src/capabilities/open/runtime/open-executor.ts",
-    search: "const postOpenState = evaluatePostOpenState({",
-    replace: 'const postOpenState = { status: "success", failureCode: null, reason: null, decision: { status: "success", classification: "platform_feed", reason: null, openedUrl: navigation.afterSession.currentUrl, pageTitleAfter: navigation.afterSession.currentTitle, pageStateHandoffRequired: true }, dataQualityFlags: [] };\n  // mutated post-open gate removed\n  ({',
+    name: "proof browser-session mutation",
+    file: "src/capabilities/open/schema-proof.ts",
+    search: "  browserSessionRef: nullableString,",
+    replace: "  // mutated browserSessionRef removed,",
   },
   {
-    name: "proof builder mutation",
+    name: "proof chain mutation",
+    file: "src/capabilities/open/runtime/open-proof-builder.ts",
+    search: "  capabilityCallId: request.capabilityCallId,",
+    replace: "  // mutated capabilityCallId removed,",
+  },
+  {
+    name: "dispatch shape-hash mutation",
+    file: "src/capabilities/open/runtime/open-dispatch-failure-builders.ts",
+    search: '  receivedShapeHash: input.trace.parseDecision === "fallback_trace_only" ? input.trace.receivedShapeHash : null,',
+    replace: "  receivedShapeHash: null,",
+  },
+  {
+    name: "success handoff mutation",
     file: "src/capabilities/open/runtime/open-result-builder.ts",
-    search: "runtimeProof: buildOpenProof({",
-    replace: "runtimeProof: buildOpenProofRemoved({",
+    search: "    pageStateHandoffRef,\n    pageStateHandoffRequired: true,",
+    replace: "    pageStateHandoffRequired: true,",
   },
   {
-    name: "fake dispatch mutation",
-    file: "src/capabilities/open/runtime/open-dispatch-failure.ts",
-    search: "targetProfileRef: null,",
-    replace: 'targetProfileRef: "open-target-profile:mutated",',
+    name: "timeout abort mutation",
+    file: "src/capabilities/open/runtime/navigation-runner-support.ts",
+    search: "      abortSignal: abortController.signal,",
+    replace: "      // mutated abortSignal removed,",
   },
   {
-    name: "fake allow decision mutation",
-    file: "src/capabilities/open/runtime/open-dispatch-failure.ts",
-    search: 'status: "block",\n      reason: input.reason,\n      targetProfileRef: null,',
-    replace: 'status: "allow",\n      reason: input.reason,\n      targetProfileRef: null,',
+    name: "idempotency fail-open mutation",
+    file: "src/capabilities/open/runtime/open-idempotency.ts",
+    search: "    return buildDuplicateReviewRequiredReservation(idempotencyKey);",
+    replace: "    return buildReservedReservation(idempotencyKey);",
   },
   {
-    name: "login success mutation",
-    file: "src/capabilities/open/runtime/post-open-state-gate.ts",
-    search: 'classification: "login_wall",',
-    replace: 'classification: "platform_feed",',
-  },
-  {
-    name: "wrong domain success mutation",
-    file: "src/capabilities/open/runtime/post-open-state-gate.ts",
-    search: 'classification: "wrong_domain",',
-    replace: 'classification: "platform_feed",',
+    name: "dispatch fake allow mutation",
+    file: "src/capabilities/open/runtime/open-dispatch-failure-builders.ts",
+    search: "const buildOpenDispatchFailureTargetPolicyDecision = (input: OpenDispatchFailureInput) => ({\n  status: \"block\" as const,",
+    replace: "const buildOpenDispatchFailureTargetPolicyDecision = (input: OpenDispatchFailureInput) => ({\n  status: \"allow\" as const,",
   },
   {
     name: "export star mutation",
@@ -72,20 +77,14 @@ const MUTATIONS: Mutation[] = [
   {
     name: "forbidden import mutation",
     file: "src/capabilities/open/runtime/open-executor.ts",
-    search: 'import { evaluateUrlSafety } from "./url-safety-gate.js";',
-    replace: 'import { evaluateUrlSafety } from "./url-safety-gate.js";\nimport type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";',
+    search: 'import { executeOpenChildFlow } from "./open-executor-flow.js";',
+    replace: 'import { executeOpenChildFlow } from "./open-executor-flow.js";\nimport type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";',
   },
   {
-    name: "cookie read mutation",
-    file: "src/capabilities/open/runtime/open-executor.ts",
-    search: "function makeDataFlag(code: string, severity: OpenDataQualityFlag[\"severity\"], reason: string): OpenDataQualityFlag {",
-    replace: 'function makeDataFlag(code: string, severity: OpenDataQualityFlag["severity"], reason: string): OpenDataQualityFlag {\n  const mutatedCookie = document.cookie;\n  void mutatedCookie;',
-  },
-  {
-    name: "as-any mutation",
-    file: "src/capabilities/open/runtime/open-executor.ts",
-    search: "  const postOpenState = evaluatePostOpenState({",
-    replace: `  ${AS_ANY_MUTATION}\n  const postOpenState = evaluatePostOpenState({`,
+    name: "external private-leak mutation",
+    file: "src/lib/local-runtime/workbench-open-runtime.ts",
+    search: 'import { createOpenAbilityGroup } from "../../capabilities/open/index.js";',
+    replace: 'import { createOpenAbilityGroup } from "../../capabilities/open/index.js";\nimport { executeOpenChild } from "../../capabilities/open/runtime/open-executor.js";\nvoid executeOpenChild;',
   },
 ];
 

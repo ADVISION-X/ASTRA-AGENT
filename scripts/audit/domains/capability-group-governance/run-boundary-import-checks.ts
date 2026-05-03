@@ -6,7 +6,7 @@ import { capabilityGroupGovernanceConstants } from "./inspection-constants.js";
 import { capabilityGroupGovernanceUtils } from "./inspection-utils.js";
 
 const { LAW_ID_003 } = capabilityGroupGovernanceConstants;
-const { collectDeclaredPublicEntries, getCapabilityRoot, isCapabilitySourcePath, isCrossBoundaryImport, isPublicCapabilityEntry, resolveImportTargetPath } = capabilityGroupGovernanceUtils;
+const { collectDeclaredPublicEntries, getCapabilityRoot, isAllowedLocalRuntimeWorkbenchImport, isCapabilitySourcePath, isCrossBoundaryImport, isPublicCapabilityEntry, resolveImportTargetPath } = capabilityGroupGovernanceUtils;
 
 const isAllowedBoundaryImport = (declaredPublicEntries: Map<string, Set<string>>, targetPath: string): boolean => {
   const targetRoot = getCapabilityRoot(targetPath);
@@ -22,7 +22,7 @@ const collectBoundaryImportFindingsForSource = (
 
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
     const targetPath = resolveImportTargetPath(importDeclaration);
-    if (!targetPath || !isCapabilitySourcePath(targetPath) || !isCrossBoundaryImport(relativePath, targetPath) || isAllowedBoundaryImport(declaredPublicEntries, targetPath)) {
+    if (!targetPath || !isCapabilitySourcePath(targetPath) || !isCrossBoundaryImport(relativePath, targetPath) || isAllowedBoundaryImport(declaredPublicEntries, targetPath) || isAllowedLocalRuntimeWorkbenchImport(relativePath, targetPath)) {
       continue;
     }
 

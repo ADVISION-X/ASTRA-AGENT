@@ -16,11 +16,17 @@ export const SHOW_FAILED_RECORDS_CHILD: CommanderConsoleChildDefinition<ShowFail
       inputSchema: ShowFailedRecordsInputSchema,
       context,
       read: async (readInput) => context.forensicsReadModel.listFailedRecords(readInput.limit),
-      buildEvidenceRefs: (records) => records.map((record) => buildCommanderEvidenceRef({
-        recordType: "failed-record",
-        recordId: record.id,
-        sourceAbility: "forensics-read-model",
-      })),
+      buildEvidenceRefs: (records) => records.length > 0
+        ? records.map((record) => buildCommanderEvidenceRef({
+          recordType: "failed-record",
+          recordId: record.id,
+          sourceAbility: "forensics-read-model",
+        }))
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "failed-records:empty",
+          sourceAbility: "forensics-read-model",
+        })],
     });
   },
 };

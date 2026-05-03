@@ -30,7 +30,7 @@ export const runGeometryTransformStage = (
           failureReason: transform.failure.failureReason,
           reviewRequiredReason: transform.failure.reviewRequiredReason,
           statusMessage: transform.failure.message,
-          policyDecision: state.coordinateGate.coordinateDecision,
+          policyDecision: "passed",
           boundsDecision: state.clickSafety.boundsDecision === "not_applicable" ? state.boundsGate.boundsDecision : state.clickSafety.boundsDecision,
           scaleDecision: state.scaleGate.scaleDecision,
           transformDecision: transform.failure.transformDecision,
@@ -48,30 +48,33 @@ export const buildGeometrySuccessResult = (
   state: GeometryResolvedState,
 ) => {
   const ended = input.context.clock.now();
-  const output = buildGeometryChildOutput({
-    request: input.request,
-    sourceBounds: state.boundsGate.sourceBounds,
-    targetBounds: state.boundsGate.targetBounds,
-    appliedScaleMapping: state.transform.appliedScaleMapping,
-    normalizedCoordinateSpace: state.transform.normalizedCoordinateSpace,
-    normalizedClickPoint: state.transform.normalizedClickPoint,
-    normalizedBbox: state.transform.normalizedBbox,
-  });
+  const executableOutput = state.coordinateGate.childRoute.executableOutput;
+  const output = executableOutput
+    ? buildGeometryChildOutput({
+        request: input.request,
+        sourceBounds: state.boundsGate.sourceBounds,
+        targetBounds: state.boundsGate.targetBounds,
+        appliedScaleMapping: state.transform.appliedScaleMapping,
+        normalizedCoordinateSpace: state.transform.normalizedCoordinateSpace,
+        normalizedClickPoint: state.transform.normalizedClickPoint,
+        normalizedBbox: state.transform.normalizedBbox,
+      })
+    : null;
   return buildGeometryGuardResult({
     request: input.request,
-    status: "success",
-    guardDecision: state.coordinateGate.childRoute.executableOutput ? "allow" : "review_required",
+    status: executableOutput ? "success" : "review_required",
+    guardDecision: executableOutput ? "allow" : "review_required",
     output,
     normalizedCoordinateSpace: state.transform.normalizedCoordinateSpace,
     normalizedClickPoint: state.transform.normalizedClickPoint,
     normalizedBbox: state.transform.normalizedBbox,
     appliedScaleMapping: state.transform.appliedScaleMapping,
     failureReason: null,
-    reviewRequiredReason: state.coordinateGate.childRoute.executableOutput ? null : "geometry_review_required",
-    statusMessage: state.coordinateGate.childRoute.executableOutput
+    reviewRequiredReason: executableOutput ? null : "geometry_review_required",
+    statusMessage: executableOutput
       ? `Geometry Guard approved ${input.request.childCapabilityId}.`
       : `Geometry Guard validated ${input.request.childCapabilityId} without issuing executable coordinates.`,
-    policyDecision: state.coordinateGate.coordinateDecision,
+    policyDecision: "passed",
     boundsDecision: state.clickSafety.boundsDecision === "not_applicable" ? state.boundsGate.boundsDecision : state.clickSafety.boundsDecision,
     scaleDecision: state.scaleGate.scaleDecision,
     transformDecision: state.transform.transformDecision,

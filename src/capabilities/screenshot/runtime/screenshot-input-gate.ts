@@ -1,5 +1,6 @@
 import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import { SCREENSHOT_REQUIRED_INPUT_FIELDS } from "../shared/screenshot-governance.js";
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 function buildScreenshotInputGateFailure(input: {
@@ -38,6 +39,24 @@ const resolveContentLinesLimitFailure = (input: {
   request: ScreenshotAbilityInput;
   defaultAiMaxWidth: number;
 }) => hasContentLinesLimitExceeded(input) ? buildContentLinesLimitExceededFailure(input) : null;
+
+function resolveMissingRequiredFieldFailure(input: {
+  request: ScreenshotAbilityInput;
+  defaultAiMaxWidth: number;
+}) {
+  for (const fieldName of SCREENSHOT_REQUIRED_INPUT_FIELDS) {
+    if (input.request[fieldName] === null) {
+      return buildScreenshotInputGateFailure({
+        request: input.request,
+        defaultAiMaxWidth: input.defaultAiMaxWidth,
+        reason: `${fieldName}_required`,
+        message: `Screenshot request requires ${fieldName}.`,
+      });
+    }
+  }
+
+  return null;
+}
 
 function resolveContentLineLengthFailure(input: {
   request: ScreenshotAbilityInput;
@@ -106,6 +125,24 @@ function resolveMaxAiWidthFailure(input: {
   };
 }
 
+function resolveTimeoutPolicyFailure(input: {
+  request: ScreenshotAbilityInput;
+  registryEntry: ScreenshotChildRegistryEntry;
+  defaultAiMaxWidth: number;
+}) {
+  const resolvedTimeoutMs = input.request.timeoutMs ?? input.request.capturePolicy.maxDurationMs ?? input.registryEntry.maxDurationMs;
+  if (resolvedTimeoutMs > 0 && Number.isFinite(resolvedTimeoutMs)) {
+    return null;
+  }
+
+  return buildScreenshotInputGateFailure({
+    request: input.request,
+    defaultAiMaxWidth: input.defaultAiMaxWidth,
+    reason: "timeout_policy_required",
+    message: "Screenshot request requires timeoutMs or capturePolicy.maxDurationMs.",
+  });
+}
+
 export function runScreenshotInputGate(input: {
   request: ScreenshotAbilityInput;
   registryEntry: ScreenshotChildRegistryEntry;
@@ -116,11 +153,13 @@ export function runScreenshotInputGate(input: {
   failure: ReturnType<typeof createScreenshotFailure> | null;
 } {
   return (
-    resolveContentLinesLimitFailure(input)
+    resolveMissingRequiredFieldFailure(input)
+    ?? resolveContentLinesLimitFailure(input)
     ?? resolveContentLineLengthFailure(input)
     ?? resolveRoundIdRequirementFailure(input)
     ?? resolveVideoVisitIdRequirementFailure(input)
     ?? resolveMaxAiWidthFailure(input)
+    ?? resolveTimeoutPolicyFailure(input)
     ?? {
       decision: { status: "passed" as const, reason: null },
       resolvedMaxAiWidth: input.request.maxAiWidth ?? input.request.capturePolicy.maxAiWidth ?? input.defaultAiMaxWidth,

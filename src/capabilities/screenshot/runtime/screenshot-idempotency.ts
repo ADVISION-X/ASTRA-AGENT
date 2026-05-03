@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { ScreenshotAbilityInput } from "../contract.js";
+import { resolveScreenshotChain } from "./screenshot-chain.js";
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 
 function stableRegionKey(request: ScreenshotAbilityInput): string {
@@ -27,13 +28,10 @@ export function buildScreenshotIdempotencyKey(input: {
     return input.request.idempotencyKey;
   }
 
+  const chain = resolveScreenshotChain(input.request);
   const base = JSON.stringify({
     childCapabilityId: input.request.childCapabilityId,
-    sessionId: input.request.sessionId,
-    roundId: input.request.roundId,
-    videoVisitId: input.request.videoVisitId,
-    missionId: input.request.missionId ?? input.request.sessionId,
-    runId: input.request.runId ?? input.request.sessionId,
+    ...chain,
     requestedBy: input.request.requestedBy,
     purpose: input.request.purpose,
     sourceKind: input.request.source.kind,
@@ -42,6 +40,8 @@ export function buildScreenshotIdempotencyKey(input: {
     sourceStorageRef: input.request.source.kind === "stored_image" ? input.request.source.sourceStorageRef : null,
     region: stableRegionKey(input.request),
     contentLines: input.request.contentLines,
+    inputRef: input.request.inputRef,
+    timeoutMs: input.request.timeoutMs ?? input.request.capturePolicy.maxDurationMs ?? input.registryEntry.maxDurationMs,
     idempotencyPolicy: input.registryEntry.idempotencyPolicy,
   });
 

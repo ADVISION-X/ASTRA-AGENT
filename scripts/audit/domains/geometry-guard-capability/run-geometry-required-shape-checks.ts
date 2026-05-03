@@ -106,12 +106,34 @@ const hasIndexSurface = (state: GeometrySourceState): boolean => {
     && !state.indexSource.getExportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("/children/"));
 };
 
-const hasResultProofWiring = (state: GeometrySourceState): boolean => {
+const hasProofBuilderSurface = (state: GeometrySourceState): boolean => {
+  return state.proofBuilderSource !== null
+    && callQueries.hasCallExpressionPath(state.proofBuilderSource, ["GeometryGuardRuntimeProofSchema", "parse"])
+    && state.proofBuilderSource.getFullText().includes("runId: input.request.runId")
+    && state.proofBuilderSource.getFullText().includes("missionId: input.request.missionId")
+    && state.proofBuilderSource.getFullText().includes("diagnosticPayloadRef: input.diagnosticPayloadRef");
+};
+
+const hasResultBuilderSurface = (state: GeometrySourceState): boolean => {
   return state.resultBuilderSource !== null
-    && state.proofBuilderSource !== null
     && callQueries.hasCallExpression(state.resultBuilderSource, "buildGeometryRuntimeProof")
     && callQueries.hasCallExpressionPath(state.resultBuilderSource, ["GeometryGuardAbilityResultSchema", "parse"])
-    && callQueries.hasCallExpressionPath(state.proofBuilderSource, ["GeometryGuardRuntimeProofSchema", "parse"]);
+    && state.resultBuilderSource.getFullText().includes("outputRef: allowSuccess ? buildStableGeometryRef([geometryGuardRef, \"output\", input.request.idempotencyKey]) : null")
+    && state.resultBuilderSource.getFullText().includes("outputRef: refs.outputRef")
+    && state.resultBuilderSource.getFullText().includes("diagnosticPayloadRef: refs.diagnosticPayloadRef");
+};
+
+const hasDecisionStateSurface = (state: GeometrySourceState): boolean => {
+  return state.resultBuilderSource !== null
+    && state.resultBuilderSource.getFullText().includes("output: decisionState.allowSuccess ? input.output : null")
+    && state.resultBuilderSource.getFullText().includes("sourceEvidenceDecision")
+    && state.resultBuilderSource.getFullText().includes("outputBoundaryDecision");
+};
+
+const hasResultProofWiring = (state: GeometrySourceState): boolean => {
+  return hasProofBuilderSurface(state)
+    && hasResultBuilderSurface(state)
+    && hasDecisionStateSurface(state);
 };
 
 const getExecutorRouteSources = (state: GeometrySourceState) => {

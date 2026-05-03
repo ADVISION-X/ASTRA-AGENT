@@ -17,6 +17,87 @@ const EXECUTOR_ROUTE_SOURCES = [
   PATHS.EXECUTION_SUCCESS_RESULT,
 ] as const;
 
+const STRICT_GOVERNANCE_SNIPPETS = [
+  "missionId: limitedString(200)",
+  "runId: limitedString(200)",
+  "stepId: limitedString(200)",
+  "mapPackageId: limitedString(200)",
+  "mapPackageVersion: limitedString(120)",
+  "selectedMapId: limitedString(200)",
+  "selectedMapVersion: limitedString(120)",
+  "activationSnapshotRef: limitedString(200)",
+  "capabilityCallId: limitedString(200)",
+  "nerveBusEnvelopeId: limitedString(200)",
+  "inputRef: limitedString(200)",
+  "idempotencyKey: limitedString(200)",
+] as const;
+
+const V2_SCHEMA_SNIPPETS = [
+  "ScreenshotInputGovernanceShape",
+  "ScreenshotProofGovernanceShape",
+  "ScreenshotResultGovernanceShape",
+  "timeoutDecision",
+  "abortDecision",
+  "regionDecision",
+  "scaleMappingDecision",
+  "diagnosticPayloadRef",
+  "dataQualityFlags",
+  "SCREENSHOT_PROOF_CHAIN_FIELD_NAMES",
+  "SCREENSHOT_RESULT_CHAIN_FIELD_NAMES",
+] as const;
+
+const LIFECYCLE_SCHEMA_SNIPPETS = [
+  "ScreenshotStoredArtifactSchema",
+  "artifactBudgetSnapshot",
+  "artifactLifecycleManifestRef",
+  "retentionClass",
+  "promotionStatus",
+  "artifactHash",
+  "byteSize",
+] as const;
+
+const LIFECYCLE_RUNTIME_SNIPPETS = [
+  "resolveScreenshotArtifactLifecyclePlan",
+  "evaluateScreenshotArtifactBudget",
+  "promotionStatus: \"not_promoted\"",
+  "maxPendingTransientBytes",
+] as const;
+
+const LIFECYCLE_GATE_SNIPPETS = [
+  "ScreenshotArtifactLifecycleManifestSchema.parse",
+  "self_promotion_forbidden",
+  "artifact_lifecycle_manifest_mismatch",
+] as const;
+
+const V2_TYPE_SNIPPETS = [
+  "\"region_crop_pixels\"",
+  "\"optimized_equivalent_pixels\"",
+  "\"contact_sheet_pixels\"",
+  "\"region_crop\"",
+  "\"contact_sheet\"",
+] as const;
+
+const TRANSFORM_REGISTRY_SNIPPETS = [
+  "childCapabilityId: \"capture-region\"",
+  "outputImageKind: \"region_crop\"",
+  "coordinateSpacePolicy: \"region_crop_pixels\"",
+  "childCapabilityId: \"optimize-lossless\"",
+  "coordinateSpacePolicy: \"derived\"",
+] as const;
+
+const TRANSFORM_SUCCESS_SNIPPETS = [
+  "resolveCaptureRegionScaleMapping",
+  "targetCoordinateSpace: \"region_crop_pixels\"",
+  "return \"region_crop_pixels\";",
+  "input.plan.sourceProof.coordinateSpace ?? \"source_image_pixels\"",
+] as const;
+
+const STRICT_GOVERNANCE_COUNT_RULES = [
+  { snippet: "activationSnapshotRef: limitedString(200),", expected: 3 },
+  { snippet: "capabilityCallId: limitedString(200),", expected: 3 },
+  { snippet: "nerveBusEnvelopeId: limitedString(200),", expected: 3 },
+] as const;
+
 async function collectMissingFileFindings(findings: Finding[]): Promise<void> {
   for (const filePath of await missingCanonicalFiles()) {
     findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: filePath, line: 1, severity: "fatal", message: "Screenshot required canonical file is missing." }));
@@ -74,6 +155,169 @@ function collectBuilderFindings(project: Project): Finding[] {
     : findings;
 }
 
+function collectGovernanceTruthFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.GOVERNANCE, project, STRICT_GOVERNANCE_SNIPPETS)
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.GOVERNANCE, line: 1, severity: "fatal", message: "Screenshot V2 chain fields must stay hard-required in governance shapes, not nullable-by-default." })];
+}
+
+function collectGovernanceCountFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+  for (const rule of STRICT_GOVERNANCE_COUNT_RULES) {
+    if (countSnippetOccurrences(PATHS.GOVERNANCE, project, rule.snippet) !== rule.expected) {
+      findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.GOVERNANCE, line: 1, severity: "fatal", message: `Screenshot governance must preserve all ${rule.expected} required occurrences of ${rule.snippet}.` }));
+    }
+  }
+  return findings;
+}
+
+function collectSchemaTruthFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.SCHEMA, project, V2_SCHEMA_SNIPPETS)
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot schema must enforce V2 chain fields, proof decisions, diagnostic payload ref, and result/proof parity." })];
+}
+
+function collectInputGateTruthFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.INPUT_GATE, project, [
+    "SCREENSHOT_REQUIRED_INPUT_FIELDS",
+    "timeout_policy_required",
+    "Screenshot request requires timeoutMs or capturePolicy.maxDurationMs.",
+  ])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.INPUT_GATE, line: 1, severity: "fatal", message: "Screenshot input gate must fail closed on missing V2 chain fields and missing timeout policy." })];
+}
+
+function collectChainHelperFindings(project: Project): Finding[] {
+  const hasChainHelper = sourceContainsAll(PATHS.CHAIN, project, [
+    "const resolveScreenshotChain",
+    "const resolveScreenshotTimeoutMs",
+  ]);
+  const proofBuilderUsesChain = hasCallExpression(getSource(project, PATHS.PROOF_BUILDER), "resolveScreenshotChain");
+  return hasChainHelper && proofBuilderUsesChain
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.CHAIN, line: 1, severity: "fatal", message: "Screenshot V2 chain truth must resolve through shared chain helpers." })];
+}
+
+function collectProofBuilderTruthFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.PROOF_BUILDER, project, [
+    "diagnosticPayloadRef",
+    "buildScreenshotTimeoutDecision",
+    "buildScreenshotAbortDecision",
+    "buildScreenshotRegionDecision",
+    "buildScreenshotScaleMappingDecision",
+  ])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Screenshot proof builder must emit diagnosticPayloadRef and the V2 timeout/abort/region/scaleMapping decisions." })];
+}
+
+function collectResultBuilderTruthFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.RESULT_BUILDER, project, [
+    "resolveScreenshotChain",
+    "artifactLifecycleManifestRef: input.artifactLifecycleManifestRef",
+    "diagnosticPayloadRef: input.runtimeProof.diagnosticPayloadRef",
+    "dataQualityFlags: input.runtimeProof.dataQualityFlags",
+  ])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Screenshot result builder must project chain truth, diagnostic payload ref, and dataQualityFlags from runtime proof." })];
+}
+
+function collectPhaseHelperFindings(project: Project): Finding[] {
+  return countSnippetOccurrences(PATHS.PHASE_HELPERS, project, "timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs)") === 2
+    ? []
+    : [createFinding({ lawId: LAW_IDS.TIMEOUT, file: PATHS.PHASE_HELPERS, line: 1, severity: "fatal", message: "Screenshot phase helpers must route runtime timeout through resolveScreenshotTimeoutMs." })];
+}
+
+function collectIdempotencyFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.IDEMPOTENCY, project, [
+    "resolveScreenshotChain",
+    "inputRef:",
+    "timeoutMs:",
+  ])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.TIMEOUT, file: PATHS.IDEMPOTENCY, line: 1, severity: "fatal", message: "Screenshot idempotency truth must include V2 chain, inputRef, and timeoutMs." })];
+}
+
+function collectTransformTruthFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+  if (!sourceContainsAll(PATHS.TYPES, project, V2_TYPE_SNIPPETS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.TYPES, line: 1, severity: "fatal", message: "Screenshot type truth must include region_crop/contact_sheet image kinds and region/optimized/contact-sheet coordinate spaces." }));
+  }
+  if (!sourceContainsAll(PATHS.REGISTRY, project, TRANSFORM_REGISTRY_SNIPPETS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: "Screenshot registry must keep capture-region as region_crop/region_crop_pixels and optimize-lossless as derived coordinate truth." }));
+  }
+  return sourceContainsAll(PATHS.SUCCESS_HELPERS, project, TRANSFORM_SUCCESS_SNIPPETS)
+    ? findings
+    : findings.concat(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.SUCCESS_HELPERS, line: 1, severity: "fatal", message: "Screenshot success helpers must preserve region-crop coordinate truth and transformed scaleMapping lineage." }));
+}
+
+function collectLifecycleTruthFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+
+  if (!sourceContainsAll(PATHS.LIFECYCLE_SCHEMA, project, [
+    "ScreenshotArtifactBudgetPolicySchema",
+    "ScreenshotArtifactBudgetSnapshotSchema",
+    "ScreenshotArtifactLifecycleManifestSchema",
+    "ScreenshotArtifactCleanupGateSchema",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_SCHEMA, line: 1, severity: "fatal", message: "Screenshot lifecycle schema must define budget policy, budget snapshot, cleanup gate, and lifecycle manifest truth." }));
+  }
+
+  if (!sourceContainsAll(PATHS.SCHEMA, project, LIFECYCLE_SCHEMA_SNIPPETS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot schema must project lifecycle manifest, retention, promotion, artifact hash, and byte-size truth." }));
+  }
+
+  if (!sourceContainsAll(PATHS.LIFECYCLE_RUNTIME, project, LIFECYCLE_RUNTIME_SNIPPETS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_RUNTIME, line: 1, severity: "fatal", message: "Screenshot lifecycle runtime must resolve retention, default non-promotion, TTL, and artifact budget checks." }));
+  }
+
+  if (!sourceContainsAll(PATHS.PAYLOAD_BUDGET_GATE, project, [
+    "artifact_budget_exceeded",
+    "evaluateScreenshotArtifactBudget",
+    "resolveScreenshotRetentionClass",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.PAYLOAD_BUDGET_GATE, line: 1, severity: "fatal", message: "Screenshot payload budget gate must enforce artifact quota/backpressure before execution." }));
+  }
+
+  if (!sourceContainsAll(PATHS.ARTIFACT_STORAGE_GATE, project, [
+    "artifact_budget_exceeded",
+    "resolveScreenshotArtifactLifecyclePlan",
+    "artifactLifecycleManifestRef",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.ARTIFACT_STORAGE_GATE, line: 1, severity: "fatal", message: "Screenshot artifact storage gate must write lifecycle metadata and fail closed on budget overflow." }));
+  }
+
+  if (!sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, LIFECYCLE_GATE_SNIPPETS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must verify lifecycle manifest parity and ban self-promotion." }));
+  }
+
+  return findings;
+}
+
+function sourceContainsAll(path: string, project: Project, snippets: readonly string[]): boolean {
+  const text = getSource(project, path).getFullText();
+  return snippets.every((snippet) => text.includes(snippet));
+}
+
+function countSnippetOccurrences(path: string, project: Project, snippet: string): number {
+  return getSource(project, path).getFullText().split(snippet).length - 1;
+}
+
+function collectV2ChainTruthFindings(project: Project): Finding[] {
+  return [
+    ...collectGovernanceTruthFindings(project),
+    ...collectGovernanceCountFindings(project),
+    ...collectSchemaTruthFindings(project),
+    ...collectInputGateTruthFindings(project),
+    ...collectChainHelperFindings(project),
+    ...collectProofBuilderTruthFindings(project),
+    ...collectResultBuilderTruthFindings(project),
+    ...collectPhaseHelperFindings(project),
+    ...collectIdempotencyFindings(project),
+    ...collectTransformTruthFindings(project),
+    ...collectLifecycleTruthFindings(project),
+  ];
+}
+
 export async function runRequiredShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
   await collectMissingFileFindings(findings);
@@ -81,6 +325,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
   findings.push(...collectSchemaAndRegistryFindings(project));
   findings.push(...collectExecutorFindings(project));
   findings.push(...collectBuilderFindings(project));
+  findings.push(...collectV2ChainTruthFindings(project));
 
   const passed = findings.length === 0;
   return {

@@ -124,8 +124,8 @@ const validateStartMissionCommand = (
   value: z.infer<typeof HumanCommandInputSchemaBase>,
   ctx: RefinementCtx,
 ) => {
-  if (!value.requestedPlatformId && !value.selectedMapId) {
-    addCommanderIssue(ctx, "start-mission requires requestedPlatformId or selectedMapId");
+  if (!value.requestedPlatformId || !value.selectedMapId) {
+    addCommanderIssue(ctx, "start-mission requires both requestedPlatformId and selectedMapId");
   }
   if (value.targetRecordRef) {
     addCommanderIssue(ctx, "start-mission must not carry targetRecordRef");

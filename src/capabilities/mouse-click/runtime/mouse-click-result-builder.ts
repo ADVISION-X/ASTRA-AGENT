@@ -27,36 +27,30 @@ function buildSuccessOutput(input: Parameters<typeof buildMouseClickResult>[0], 
     : null;
 }
 
-function buildRuntimeProofSeed(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string) {
+function buildDiagnosticPayloadRef(input: Parameters<typeof buildMouseClickResult>[0]) {
+  return input.status === "success"
+    ? null
+    : buildStableMouseClickRef("mouse-click-diagnostic-payload", [input.seed.attemptRef, input.status, input.failureReason, input.reviewRequiredReason]);
+}
+
+function buildRuntimeProofSeed(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string, diagnosticPayloadRef: string | null) {
   return {
-    attemptRef: input.seed.attemptRef,
-    childCapabilityId: input.seed.childCapabilityId,
-    sessionId: input.seed.sessionId,
-    roundId: input.seed.roundId,
-    videoVisitId: input.seed.videoVisitId,
-    sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
-    parseErrorRef: input.seed.parseErrorRef,
-    receivedShapeHash: input.seed.receivedShapeHash,
-    geometryGuardRef: input.seed.geometryGuardRef,
-    geometryGuardProofRef: input.seed.geometryGuardProofRef,
-    sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
-    sourceTargetRef: input.seed.sourceTargetRef,
-    sourceEvidenceRef: input.seed.sourceEvidenceRef,
-    inputRef: input.seed.inputRef,
-    outputRef,
-    coordinateSpace: input.seed.coordinateSpace,
-    sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
-    requestedExecutionSpace: input.seed.coordinateSpace,
-    normalizedCoordinateSpace: input.seed.coordinateSpace,
-    requestedCoordinate: input.requestedCoordinate,
-    executableCoordinate: input.status === "success" ? input.executableCoordinate : null,
-    bounds: input.seed.targetBounds,
-    sourceBounds: input.seed.sourceBounds,
-    targetBounds: input.seed.targetBounds,
-    coordinateRoundingDecision: input.coordinateRoundingDecision,
-    scaleDecision: "not_applicable",
-    transformDecision: "geometry_guard_normalized_coordinate_accepted",
+    attemptRef: input.seed.attemptRef, childCapabilityId: input.seed.childCapabilityId, missionId: input.seed.missionId, runId: input.seed.runId,
+    sessionId: input.seed.sessionId, roundId: input.seed.roundId, videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId,
+    mapPackageId: input.seed.mapPackageId, mapPackageVersion: input.seed.mapPackageVersion, selectedMapId: input.seed.selectedMapId,
+    selectedMapVersion: input.seed.selectedMapVersion, activationSnapshotRef: input.seed.activationSnapshotRef,
+    capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
+    sourceAbilityGroupId: input.seed.sourceAbilityGroupId, sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
+    parseErrorRef: input.seed.parseErrorRef, receivedShapeHash: input.seed.receivedShapeHash, geometryGuardRef: input.seed.geometryGuardRef,
+    geometryGuardProofRef: input.seed.geometryGuardProofRef, geometryGuardOutputRef: input.seed.geometryGuardOutputRef,
+    geometryGuardRuntimeProofRef: input.seed.geometryGuardRuntimeProofRef, sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
+    sourceTargetRef: input.seed.sourceTargetRef, sourceEvidenceRef: input.seed.sourceEvidenceRef, sourceVisualTargetResultRef: input.seed.sourceVisualTargetResultRef,
+    inputRef: input.seed.inputRef, sourceRef: input.seed.sourceRef, outputRef, diagnosticPayloadRef,
+    coordinateSpace: input.seed.coordinateSpace, sourceCoordinateSpace: input.seed.sourceCoordinateSpace,
+    requestedExecutionSpace: input.seed.coordinateSpace, normalizedCoordinateSpace: input.seed.coordinateSpace,
+    requestedCoordinate: input.requestedCoordinate, executableCoordinate: input.status === "success" ? input.executableCoordinate : null,
+    bounds: input.seed.targetBounds, sourceBounds: input.seed.sourceBounds, targetBounds: input.seed.targetBounds,
+    coordinateRoundingDecision: input.coordinateRoundingDecision, scaleDecision: "not_applicable", transformDecision: "geometry_guard_normalized_coordinate_accepted",
   };
 }
 
@@ -70,6 +64,7 @@ function buildRuntimeProofOutcome(input: Parameters<typeof buildMouseClickResult
     idempotencyDecision: input.idempotencyDecision,
     primitiveExecutionRef: input.primitiveExecutionRef,
     primitiveCallId: input.primitiveCallId,
+    timeoutMs: input.seed.timeoutMs,
     primitiveTimeoutMs: input.primitiveTimeoutMs,
     maxDurationMs: input.maxDurationMs,
     timeoutDecision: input.timeoutDecision,
@@ -99,9 +94,14 @@ function buildRuntimeProofOutcome(input: Parameters<typeof buildMouseClickResult
   };
 }
 
-function buildRuntimeProofInput(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string, verification: ReturnType<typeof buildVerificationState>) {
+function buildRuntimeProofInput(
+  input: Parameters<typeof buildMouseClickResult>[0],
+  outputRef: string,
+  diagnosticPayloadRef: string | null,
+  verification: ReturnType<typeof buildVerificationState>,
+) {
   return {
-    ...buildRuntimeProofSeed(input, outputRef),
+    ...buildRuntimeProofSeed(input, outputRef, diagnosticPayloadRef),
     ...buildRuntimeProofOutcome(input, verification),
   };
 }
@@ -144,23 +144,22 @@ export function buildMouseClickResult(input: {
   dataQualityFlags: string[];
 }) {
   const outputRef = buildStableMouseClickRef("mouse-click-output", [input.seed.attemptRef, input.status]);
-  const verification = buildVerificationState(input);
-  const output = buildSuccessOutput(input, verification);
-  const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));
+  const verification = buildVerificationState(input), output = buildSuccessOutput(input, verification);
+  const diagnosticPayloadRef = buildDiagnosticPayloadRef(input);
+  const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, diagnosticPayloadRef, verification));
 
   return MouseClickAbilityResultSchema.parse({
-    abilityGroupId: "mouse-click",
-    childCapabilityId: input.seed.childCapabilityId,
-    status: input.status,
-    sessionId: input.seed.sessionId,
-    roundId: input.seed.roundId,
-    videoVisitId: input.seed.videoVisitId,
-    attemptRef: input.seed.attemptRef,
-    output,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    statusMessage: input.statusMessage,
-    policyDecision: input.policyDecision,
+    abilityGroupId: "mouse-click", childCapabilityId: input.seed.childCapabilityId, status: input.status,
+    missionId: input.seed.missionId, runId: input.seed.runId, sessionId: input.seed.sessionId, roundId: input.seed.roundId,
+    videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId, mapPackageId: input.seed.mapPackageId,
+    mapPackageVersion: input.seed.mapPackageVersion, selectedMapId: input.seed.selectedMapId, selectedMapVersion: input.seed.selectedMapVersion,
+    activationSnapshotRef: input.seed.activationSnapshotRef, capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
+    attemptRef: input.seed.attemptRef, diagnosticPayloadRef, output, failureReason: input.failureReason, reviewRequiredReason: input.reviewRequiredReason,
+    statusMessage: input.statusMessage, policyDecision: input.policyDecision, geometryGuardProofRef: input.seed.geometryGuardProofRef,
+    sourceVisualTargetResultRef: input.seed.sourceVisualTargetResultRef, geometryDecision: input.geometryDecision, safetyDecision: input.safetyDecision,
+    primitiveDecision: input.primitiveDecision, timeoutDecision: input.timeoutDecision, abortDecision: input.abortDecision,
+    idempotencyDecision: input.idempotencyDecision,
+    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
     dataQualityFlags: input.dataQualityFlags,
     runtimeProof,
   });

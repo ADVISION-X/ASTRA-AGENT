@@ -41,18 +41,37 @@ function resolveMappedGeometry(input: GeometryTransformInput) {
   };
 }
 
+function createNotApplicableTransformResult(input: GeometryTransformInput): GeometryTransformResult {
+  return { transformDecision: "not_applicable", failure: null, normalizedCoordinateSpace: null, normalizedBbox: null, normalizedClickPoint: null, appliedScaleMapping: input.scaleMapping };
+}
+
+function hasTransformInputs(input: GeometryTransformInput): boolean {
+  return Boolean(input.bbox && input.clickPoint && input.targetBounds);
+}
+
+function hasValidMappedGeometry(input: GeometryTransformInput, normalizedBbox: GeometryGuardBoundingBox, normalizedClickPoint: GeometryGuardPoint): boolean {
+  return normalizedBbox.width > 0
+    && normalizedBbox.height > 0
+    && boxInsideBounds(normalizedBbox, input.targetBounds!)
+    && pointInsideBounds(normalizedClickPoint, input.targetBounds!);
+}
+
 export function transformGeometry(input: GeometryTransformInput): GeometryTransformResult {
   if (!input.requiresExecutableOutput) {
-    return { transformDecision: "not_applicable", failure: null, normalizedCoordinateSpace: null, normalizedBbox: null, normalizedClickPoint: null, appliedScaleMapping: input.scaleMapping };
+    return createNotApplicableTransformResult(input);
   }
 
-  if (!input.bbox || !input.clickPoint || !input.targetBounds) {
+  if (!hasTransformInputs(input)) {
     return createTransformFailure(input, "coordinate_transform_failed", "Geometry Guard requires bbox, clickPoint, and target bounds before transform.");
   }
 
   const { normalizedBbox, normalizedClickPoint } = resolveMappedGeometry(input);
 
-  if (!boxInsideBounds(normalizedBbox, input.targetBounds) || !pointInsideBounds(normalizedClickPoint, input.targetBounds)) {
+  if (!hasValidMappedGeometry(input, normalizedBbox, normalizedClickPoint)) {
+    if (normalizedBbox.width <= 0 || normalizedBbox.height <= 0) {
+      return createTransformFailure(input, "coordinate_transform_failed", "Geometry Guard blocked mapped geometry that collapsed after rounding.");
+    }
+
     return createTransformFailure(input, "bbox_out_of_bounds", "Geometry Guard blocked mapped geometry outside target bounds.");
   }
 

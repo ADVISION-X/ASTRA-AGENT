@@ -19,8 +19,8 @@ mustNotCreate:
   - storage public owner
 ```
 
-本施工图是 `module-forensics-persistence-capability.instructions.md` 的建设级落地映射。  
-本施工图不新增 lawId，不修改冻结法案，不重新分配主权。  
+本施工图是 `module-forensics-persistence-capability.instructions.md` 的建设级落地映射。
+本施工图不新增 lawId，不修改冻结法案，不重新分配主权。
 若本文档与 Forensics 法案冲突，以 Forensics 法案为最高权威。
 
 ---
@@ -372,6 +372,43 @@ updateRuntimeSnapshot(envelope): Promise<StoredForensicsRecord>
 writeArtifactRef(ref): Promise<ForensicsArtifactRef>
 ```
 
+Artifact promotion / retention 主权：
+
+```txt
+Screenshot artifacts 默认只是临时运行材料。
+只有 Forensics 可以把它们正式提升为 promoted-evidence / legal-hold-evidence。
+```
+
+`ForensicsArtifactRef` 必须额外保留：
+
+```txt
+artifactLifecycleManifestRef
+retentionClass
+promotionStatus
+artifactHash
+byteSize
+promotedByRecordRef
+pinnedByRecordRefs
+legalHoldReason
+cleanupLedgerRef
+refCount
+cleanupEligible
+```
+
+Cleanup / GC 只能由 Forensics cleanup ledger 裁决，并且必须同时满足：
+
+```txt
+manifest exists
+transient or diagnostic class only
+expired
+mission not active
+AI / Visual Target / PAV not pending
+not promoted
+not pinned
+no legal hold
+refCount = 0
+```
+
 禁止：
 
 ```txt
@@ -516,32 +553,32 @@ runtimeProof exists
 
 ### AI
 
-AI 返回 governed result。  
-Forensics 保存 cleaned plain payload。  
+AI 返回 governed result。
+Forensics 保存 cleaned plain payload。
 Forensics 不 import AI prompt contract 或 LocalAiTaskResult。
 
 ### Post-Action Verification
 
-PAV 判断动作后状态。  
-Forensics 只保存 PAV ref。  
+PAV 判断动作后状态。
+Forensics 只保存 PAV ref。
 Forensics 不验证动作是否真的成功。
 
 ### Orchestration
 
-Orchestration 决定流程。  
-Forensics 只保存 refs 与 snapshots。  
+Orchestration 决定流程。
+Forensics 只保存 refs 与 snapshots。
 Forensics 不推进 map step。
 
 ### Commander
 
-Commander 读 Forensics read model。  
-Commander 不 import storage internals。  
+Commander 读 Forensics read model。
+Commander 不 import storage internals。
 Commander 不修改 Forensics records。
 
 ### Nerve Bus
 
-Nerve Bus 传输。  
-Forensics 不发送 Nerve Bus envelope。  
+Nerve Bus 传输。
+Forensics 不发送 Nerve Bus envelope。
 Forensics 不替 Nerve Bus 做 command transport。
 
 ---

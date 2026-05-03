@@ -222,7 +222,7 @@ async function main() {
       return;
     }
     shuttingDown = true;
-    logEvent("SERVICE", "app_server", "SERVICE_SHUTDOWN_REQUESTED", "started", `stopping local service with ${signal}`);
+    logEvent("SERVICE", "app_server", "SERVICE_STOP_REQUESTED", "started", `stopping local service with ${signal}`);
     if (serviceHandle) {
       await stopLocalService(serviceHandle.child, signal);
     }

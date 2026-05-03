@@ -1,77 +1,251 @@
 ---
 name: "GrassEye Commander Console Capability"
-description: "Use when defining the Commander Console ability group, human command entry, mission dashboard, runtime proof timeline, review queue, or read-only operator console surfaces."
-applyTo: ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md, src/capabilities/commander-console/**, src/app/task-api-handlers.ts, src/app/candidate-api-handlers.ts, src/lib/local-runtime/workbench.ts, scripts/audit/domains/commander-console-capability/**, docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
+description: "Use when governing the Commander Console Ability Group, human command entry, governed HumanCommandEnvelope transport, mission dashboard read models, runtime proof timeline, review queue, task-template UX, map import UX, and the boundary that prevents Commander from becoming Orchestration, Forensics, AI, or browser/action owner."
+applyTo: ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md, src/capabilities/commander-console/**, src/app/task-api-handlers.ts, src/app/candidate-api-handlers.ts, src/lib/local-runtime/workbench.ts, src/lib/local-app-shell/**, scripts/audit/domains/commander-console-capability/**, docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
 ---
 
-# GrassEye Commander Console Capability
+# GrassEye Commander Console Capability FINAL
 
-Scope: governs human command entry, mission dashboard, audit-facing console reads, and candidate review surfaces.
-Boundary: this module governs the Commander Console Ability Group only.
-Excludes: mission map progression internals, platform action execution, AI runtime internals, and final evidence persistence ownership.
-Authority: this file is authoritative only for the commander-console-capability domain.
+Scope: governs the independent Commander Console Ability Group, human command entry, governed command envelope creation, read-only commander dashboards, review-disposition entry, task-template start UX, map-import UX, runtime proof timeline, evidence/browse/failed-record read models, and audit-facing console surfaces.
+
+Boundary: Commander Console governs only human entry and read-model presentation. It does not own mission truth, map progression, Nerve Bus delivery truth, AI runtime truth, browser/action execution, page-state truth, Forensics persistence truth, evidence packet truth, candidate mutation truth, or runtime snapshot truth.
+
+Authority: this file is authoritative only for the `commander-console-capability` domain.
+
+Architecture phase: `Static Capability Package Architecture`.
+
+Core doctrine:
+- Commander Console is the cockpit for humans, not the engine.
+- Commander receives human intent and emits governed command envelopes.
+- Commander reads governed truth and renders Commander-owned view records.
+- Commander does not execute maps, advance steps, call AI, write Forensics, touch browser/action primitives, or mutate candidates directly.
+- Human command entry has one owner: Commander Console.
+- Action and mission execution have other owners: Orchestration, Nerve Bus, action abilities, PAV, Forensics.
+- No silent map/platform default.
+- No raw runtime truth as Commander public contract.
+- No command or review path outside Commander.
+- No active Commander law without inspector + runner + negative proof.
 
 ---
 
-## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1
+## Global Commander Baseline
 
+All active Commander laws in this file are:
+
+```yaml
 status: active
 tier: P0
 capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+```
 
-summary: Commander Console is the only owner of human command entry, review disposition entry, and command-facing operator dashboard read models.
+Required package:
+
+```txt
+src/capabilities/commander-console/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+├── shared/
+├── runtime/
+└── children/
+```
+
+Required enforcement:
+
+```txt
+scripts/audit/domains/commander-console-capability/
+├── manifest.json
+├── inspector.ts
+├── run-inspector.ts
+└── negative-proof-harness.ts
+```
+
+Forbidden:
+- `manual-first` as active enforcement for this domain.
+- `evidenceMode: law` as sufficient evidence.
+- verify scripts as release truth.
+- detached inspector.
+- warning-only P0.
+- generated fake PASS.
+- empty negative proof.
+
+---
+
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2
+
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Commander Console is the only owner of human command entry and review-disposition entry.
 
 ### 主题
 
-总司令控制台主权
+人类命令入口主权唯一
 
 ### 法条
 
-Commander Console Ability Group is the only owner of human mission-command entry, review disposition entry, and command-facing operator dashboard read models.
+Human mission commands and human review decisions must enter through Commander Console.
 
-Required direction:
-- Human start, pause, resume, stop, and emergency-stop commands must enter through Commander Console.
-- Human approve, reject, hold, inspect-record, and review-required decisions must enter through Commander Console.
-- Commander Console must emit governed HumanCommandEnvelope traffic through Nerve Bus transport rather than holding a raw Orchestration ability object.
-- Commander Console command transport may target Orchestration for mission commands and the active governed review or persistence surface for review commands.
-- Commander Console mission-start input must preserve operator-selected requestedPlatformId or selectedMapId and must not silently inject a default platform on behalf of the operator.
-- Task API routes must call Commander Console public methods rather than workbench command proxies or agent runtime command methods.
-- Commander Console may expose mission dashboard, capability roster, capability health, runtime proof timeline, review queue, audit summary, evidence packets, browse ledger, and failed-record views as read-only console surfaces.
-- Commander Console read models must live under src/capabilities/commander-console and may be rendered only by src/lib/local-app-shell or src/app consumers.
-- Commander Console read models must enter only through Commander-facing public ports: OrchestrationMissionReadModel, ForensicsReadModelPort, CapabilityHealthReadModelPort, AuditReadModelPort, and RuntimeProofReadModelPort.
-- Commander Console public contracts must define Commander-owned view records and must not re-export raw runtime, evidence, AI, task-run, or operator-snapshot truth.
-- Commander Console public contracts may expose a Commander-owned mission-run reference only with Commander naming and must not preserve TaskRun or activeTaskRunId as Commander-facing truth.
-- Commander Console child abilities must live in real child folders under src/capabilities/commander-console/children.
+Allowed human command types:
 
-### 禁止
+```txt
+start-mission
+pause-mission
+resume-mission
+stop-mission
+emergency-stop
+approve-candidate
+reject-candidate
+mark-review-required
+inspect-record-detail
+```
 
-FORBIDDEN:
-- task-api-handlers directly calling workbench.startTask, workbench.pauseTask, workbench.stopTask, or agent-service command methods.
-- task-api-handlers, candidate-api-handlers, or create-workbench-server importing operator-control as a command or review owner.
-- operator-control, workbench, or startup code owning start, pause, resume, stop, emergency-stop, approve, reject, or mark-review-required truth.
-- local shell becoming a second command owner beside Commander Console.
-- UI calling Commander Console child abilities, AI runtime, BrowserController, or final evidence writers directly.
-- hidden human-command paths outside Commander Console.
-- Commander Console importing ../../features/local-data from its canonical root.
-- Commander Console importing ../../types/agent-skill, ../../types/evidence-packet as read-model truth, ../../types/local-ai, ../../types/runtime BrowseRuntimeSnapshot, or ../../types/task-run as public contract truth.
-- Commander Console exposing resetLocalStore or raw OrchestrationAbilityGroup on its public interface.
-- Commander Console using defaultRequestedPlatformId fallback, requestedPlatformId ?? "tiktok-web", or any other silent platform default as mission-command truth.
-- Commander Console preserving TaskRun or activeTaskRunId naming on Commander-facing contracts, page models, or dashboard labels.
-- Commander Console constructing ProductOpportunityCandidate or maintaining AgentMechanicalSkill catalog material.
+Required:
+- Task API routes call Commander public interface.
+- Candidate review API routes call Commander public interface.
+- Commander emits governed HumanCommandEnvelope through CommandTransportPort.
+- Commander never holds raw Orchestration ability object.
+- Commander never directly mutates candidate/review/storage.
+- Commander public root is `src/capabilities/commander-console`.
+
+Forbidden:
+- `task-api-handlers` calling workbench.startTask/pauseTask/stopTask or agent runtime command methods.
+- `candidate-api-handlers` calling setCandidateDisposition/resetLocalStore/deleteCandidate.
+- operator-control/workbench/startup owning command truth.
+- local shell becoming second command owner.
+- Commander exposing raw OrchestrationAbilityGroup.
+- hidden human-command paths outside Commander.
+
+Required inspector:
+- External command-entry call graph.
+- Forbidden direct command APIs.
+- Public surface check.
+- Commander transport-only command path.
+
+Required negative proof:
+- Task handler directly calls workbench.startTask → FAIL.
+- Candidate handler calls setCandidateDisposition → FAIL.
+- Commander public contract exposes raw OrchestrationAbilityGroup → FAIL.
 
 ---
 
-## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2
 
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Commander Console reads governed truth only and must not create a second runtime truth or preserve old workbench demo truth.
+summary: Commander command envelope must be explicit, map/platform-safe, idempotent, timeout-governed, and semantically validated.
+
+### 主题
+
+HumanCommandEnvelope 机器门禁
+
+### 法条
+
+Commander command path must be:
+
+```txt
+input schema gate
+→ child registry gate
+→ command policy gate
+→ explicit map/platform gate
+→ timeout gate
+→ idempotency gate
+→ command envelope builder
+→ command transport
+→ transport semantic gate
+→ proof builder
+→ result builder
+```
+
+Required command envelope fields:
+
+```txt
+commandId
+commandType
+priority
+operatorRef
+targetMissionId where applicable
+targetRecordRef where applicable
+requestedPlatformId for start-mission
+selectedMapId for start-mission
+taskTemplateId optional only before resolved start command
+activationId or activationSnapshotRef where available
+humanGoal
+maxRounds
+maxMinutes
+operatorNote
+payload
+idempotencyKey
+timeoutMs
+```
+
+Start mission:
+- Ordinary UX may select taskTemplateId.
+- Before emission, governed command envelope must resolve to requestedPlatformId + selectedMapId or fail/review_required.
+- If taskTemplateId cannot resolve to approved active map binding, command must fail/review_required.
+- No silent default platform.
+- No silent default map.
+- No `requestedPlatformId ?? "tiktok-web"`.
+- No `defaultRequestedPlatformId`.
+
+Review commands:
+- approve/reject/mark-review-required require candidate targetRecordRef.
+- Review command cannot carry targetMissionId as mutation truth unless law explicitly allows.
+
+Emergency stop:
+- priority must be `emergency`.
+- commandType must remain `emergency-stop`.
+- must not downgrade to `stop-mission`.
+- must not be deduped away.
+- failed dispatch must produce `hard-stop-dispatch-failed`.
+- review-required dispatch must produce `hard-stop-review-required`.
+
+Transport result semantic gate must check:
+- result.commandId equals input.commandId.
+- accepted requires envelopeRef.
+- accepted should have resultEnvelopeRef unless transport law explicitly allows pending result.
+- failed requires failureReason.
+- review_required requires reviewRequiredReason.
+- status must be accepted | failed | review_required.
+- unknown status fails.
+- schema-valid but semantically mismatched result fails.
+
+Required inspector:
+- Start command dual field gate.
+- No default platform pattern.
+- Transport semantic gate called.
+- Timeout/idempotency gates called.
+- Emergency hard-stop invariant.
+
+Required negative proof:
+- start-mission with only requestedPlatformId → FAIL.
+- `requestedPlatformId ?? "tiktok-web"` → FAIL.
+- transport accepted without envelopeRef → FAIL.
+- emergency-stop downgraded to stop-mission → FAIL.
+
+---
+
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2
+
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Commander read models are read-only Commander-owned view records sourced from governed read-model ports.
 
 ### 主题
 
@@ -79,161 +253,458 @@ summary: Commander Console reads governed truth only and must not create a secon
 
 ### 法条
 
-Commander Console must consume governed truth from Commander-facing public read-model ports only.
+Commander may display governed truth only through public read-model ports:
 
-Required direction:
-- mission dashboard must derive runtime proof timeline from RuntimeProofReadModelPort.
-- browse/evidence/review screens must read from ForensicsReadModelPort.
-- capability roster must consume ability-group truth rather than child implementation truth.
-- capability health must consume CapabilityHealthReadModelPort.
-- mission state must consume OrchestrationMissionReadModel.
-- audit summary must consume AuditReadModelPort rather than hand-maintained console-only summaries.
-- display fields sourced from governed mission/runtime state must be renamed into Commander-owned view records before they reach Commander-facing contracts or shell page models.
-- any retained UI copy, styles, or layout helpers from deleted operator-control paths must be rebuilt as Commander Console read models or Local App Shell rendering material only.
+```txt
+OrchestrationMissionReadModel
+ForensicsReadModelPort
+CapabilityHealthReadModelPort
+AuditReadModelPort
+RuntimeProofReadModelPort
+MapPackageReadModelPort if map UX is enabled
+```
 
-### 禁止
+Required:
+- Read child path uses strict schema gate.
+- Read child path uses read model source gate.
+- Read output is transformed to Commander-owned view record.
+- Read result includes source proof refs.
+- Read result includes readModelSource.
+- targetRecordRequired and proofRefRequired are enforced.
+- UI-only truth cannot become Commander truth.
 
-FORBIDDEN:
-- Commander Console writing final evidence packets, failed records, browse ledgers, or structured logs.
-- Commander Console inventing UI-only runtime truth that cannot be traced back to governed logs or records.
-- Commander Console advancing operational-map step state.
-- demo state, prototype data, placeholder action state, or skill-matrix-only snapshots acting as governed runtime truth.
-- Commander Console contract directly exposing OperatorSnapshotRecord, AgentSkillMatrixSnapshot, ProductDiscoveryEvidencePacket, BrowseRuntimeSnapshot, RuntimeDeliveryState, LocalAiTaskResult, TaskRun, or mutable ProductOpportunityCandidate domain objects.
+Forbidden public contract truth:
+- OperatorSnapshotRecord.
+- AgentSkillMatrixSnapshot.
+- ProductDiscoveryEvidencePacket.
+- BrowseRuntimeSnapshot.
+- RuntimeDeliveryState.
+- LocalAiTaskResult.
+- TaskRun.
+- activeTaskRunId.
+- ProductOpportunityCandidate mutable domain object.
 
----
+Forbidden:
+- Commander writing evidence packet/browse ledger/failed record/structured log.
+- Commander inventing runtime truth.
+- Commander advancing operational-map state.
+- demo/prototype/placeholder data as governed truth.
 
-## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1
+Required inspector:
+- Read-model port import boundary.
+- Legacy type ban.
+- Commander view record transformation.
+- Read proof/source enforcement.
 
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: Commander Console must keep hard boundaries away from browser, platform-action, AI runtime, and storage internals.
-
-### 主题
-
-控制台边界纯洁度
-
-### 法条
-
-Commander Console must stay as a console-facing ability group and must not import browser-controller, platform-adapter internals, or local AI runtime internals.
-
-Required direction:
-- Browser state, platform capability health, and local AI health may enter Commander Console only through injected read providers.
-- Commander Console may coordinate candidate disposition only by emitting governed human-review commands through its command transport seam.
-- Local App Shell may render Commander Console outputs, but it must stay render-only and must not own command truth or mission truth.
-- Startup may open Commander Console after health passes, but it must remain bootstrap-only and must not trigger governed mission start.
-
-### 禁止
-
-FORBIDDEN:
-- importing BrowserController or browser primitive owners inside src/capabilities/commander-console.
-- importing platform-action adapters or platform runtime implementations inside src/capabilities/commander-console.
-- importing LocalAiGateway or local-ai runtime internals inside src/capabilities/commander-console.
-- Commander Console directly calling agent runtime command methods.
-- Commander Console importing operator-control paths, workbench rendering payloads, or deleted historical console wrappers.
-- Commander Console importing storage-port implementations, reset-store helpers, or maintenance helpers from local-data or forensics storage internals.
-- Commander Console directly calling orchestration.startMission, orchestration.pauseMission, orchestration.resumeMission, orchestration.stopMission, orchestration.emergencyStop, or setCandidateDisposition-style review mutations.
-- Commander Console relying on browser-shell composition to choose a requestedPlatformId when the human command omitted it.
+Required negative proof:
+- Commander contract exports TaskRun → FAIL.
+- Read child returns UI-only summary without proofRef when required → FAIL.
+- Commander imports EvidenceStoreService → FAIL.
 
 ---
 
-## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2
 
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Commander Console may import governed map packages and expose task-template UX without becoming map execution or activation truth.
-
-### 主题
-
-地图包导入与任务模板用户界面边界
-
-### 法条
-
-Commander Console may import map packages and display validation status through governed public ports, but it must not execute maps, validate maps as final truth, mutate active registry directly, or expose internal map fields to ordinary users.
-
-Required direction:
-- ordinary users may see only taskTemplate displayName, description, availability, version, safetyLevel, run limits, and start action.
-- ordinary users may start from taskTemplateId-backed approved task templates without reading internal mapId or package binding fields.
-- developer or advanced mode may expose mapId, packageId, activationId, stepId, childCapabilityId, dependency list, validation findings, and compatibility matrix.
-- quarantined, disabled, or draft map packages must not appear as runnable tasks on the ordinary start surface.
-- ordinary-mode start flows must resolve approved active bindings through governed registry lookups rather than making the shell own map selection truth.
-- Commander Console may request import, approval, activation, disable, and rollback through governed map-package ports or APIs only.
-
-### 禁止
-
-FORBIDDEN:
-- ordinary mode exposing mapId, stepId, childCapabilityId, promptContractId, or package dependency graph.
-- ordinary mode requiring mapId or requestedPlatformId as the user-facing task launch key.
-- Commander Console directly writing active registry or approval records.
-- Commander Console treating its preflight summary as the final map validation truth.
-- Commander Console executing a draft-only AI map.
-
----
-
-## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1
-
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: Commander Console must own one canonical root, one child catalog, and zero compat bridges.
+summary: Commander must not become Orchestration, Nerve Bus, AI, Forensics, browser/action owner, or storage owner.
 
 ### 主题
 
-唯一 canonical root 与 child catalog
+总司令边界纯洁度
 
 ### 法条
 
-Commander Console must live under one canonical root with one internal child catalog and inspector-owned enforcement.
+Commander root must not import or execute foreign owners.
 
-Required direction:
-- canonical root is src/capabilities/commander-console.
-- the child catalog must include issue-human-command, dashboard, proof, review, mission-control, and inspect-record surfaces as real child folders.
-- the capability domain must ship one blueprint file, one manifest, one inspector, and one phase-gate entry.
-- any UI shell render helpers migrated from operator-control must live under src/lib/local-app-shell with Commander Console-owned read-model contracts.
-- commander-console-capability must be enforced by audit, not by verify-* scripts.
-- decisive enforcement for forbidden imports and owner cutover must use AST, symbol resolution, or import-graph analysis rather than grep-only checks.
+Forbidden imports/symbols under `src/capabilities/commander-console/**`:
+- BrowserController.
+- browser primitive owners.
+- platform action adapters/runtime.
+- local AI runtime / LocalAiGateway.
+- AI child/runtime implementations.
+- Orchestration implementation/raw ability object.
+- Nerve Bus dispatch internals unless a governed command transport port type explicitly permits.
+- Forensics storage internals / writer internals.
+- screenshot/open/click/scroll/text-input/visual-target/geometry-guard/page-state implementations.
+- `src/features/local-data`.
+- `src/features/operator-control`.
+- deleted workbench rendering payloads.
+- storage maintenance helpers.
 
-### 禁止
+Forbidden behavior:
+- direct `orchestration.startMission/pauseMission/resumeMission/stopMission/emergencyStop`.
+- direct map step advancement.
+- direct Forensics write.
+- direct browser action.
+- direct AI call.
+- direct candidate mutation.
+- direct runtime snapshot building.
 
-FORBIDDEN:
-- compat, legacy, bridge, or dual-root commander console paths.
-- src/features/operator-control as an active root, fallback root, render root, or compatibility root.
-- exporting child internals outside the canonical root.
-- scripts/verify/verify-commander-console-capabilities.ts as a release gate.
-- runtime-skill-catalog.ts, runtime-skill-resolution.ts, build-runtime-skill-matrix-snapshot.ts, build-browse-runtime-snapshot.ts, and build-pending-analysis-candidate.ts surviving as active Commander Console source truth.
+Required inspector:
+- Import graph check.
+- Symbol call check.
+- Browser/action/AI/Forensics/Orchestration boundary ban.
+- Local shell render-only check.
+- Startup bootstrap-only check.
+
+Required negative proof:
+- Commander imports BrowserController → FAIL.
+- Commander directly calls orchestration.startMission → FAIL.
+- Commander writes Forensics record → FAIL.
+- Startup triggers start mission → FAIL.
 
 ---
 
 ## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2
 
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
 
-summary: Commander Console may read Forensics truth only through governed read models and must not import store internals.
+summary: Commander package must have one canonical root, real child folders, one child registry, one runtime pipeline, and no compat bridge.
 
 ### 主题
 
-Commander 只读 Forensics 真相，不得直连旧 store 或维护方法。
+唯一 canonical root 与真实子能力
 
 ### 法条
 
-Commander Console may consume Forensics record summaries, review queues, and inspect-record views only through governed read-model ports.
+Commander root is:
 
-### 禁止
+```txt
+src/capabilities/commander-console
+```
 
-FORBIDDEN:
-- Importing EvidenceStoreService, src/capabilities/forensics-persistence/shared/store/**, getOperatorSnapshot, resetLocalStore, setCandidateDisposition, deleteCandidate, or advancedAiExports.
-- Using ProductDiscoveryEvidencePacket, LocalAiTaskResult, ActionLog, RuntimeDeliveryState, or ProductOpportunityCandidate as Commander public read-model contract truth.
+Required active children:
+
+```txt
+issue-human-command
+show-capability-roster
+show-capability-health
+show-mission-dashboard
+show-operational-map-progress
+show-runtime-proof-timeline
+show-evidence-packets
+show-browse-ledger
+show-failed-records
+show-review-queue
+show-audit-summary
+pause-mission
+resume-mission
+stop-mission
+emergency-stop
+approve-candidate
+reject-candidate
+mark-review-required
+inspect-record-detail
+```
+
+Required:
+- Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
+- Registry contains all children and only existing children.
+- Command children call unified command executor.
+- Read children call unified read executor.
+- `ability-group.ts` is thin.
+- `contract.ts` public interface exposes only `listChildAbilityIds()` and `execute(input)`.
+- `index.ts` has no export-star.
+- No dual-root / compat / legacy / bridge Commander paths.
+
+Forbidden active source:
+- `src/features/operator-control`.
+- runtime-skill-catalog.ts.
+- runtime-skill-resolution.ts.
+- build-runtime-skill-matrix-snapshot.ts.
+- build-browse-runtime-snapshot.ts.
+- build-pending-analysis-candidate.ts.
+- children.ts flat fake child table.
+- verify scripts as release gate.
+
+Required inspector:
+- Root structure.
+- Child registry parity.
+- Public surface.
+- No export-star.
+- No legacy file names.
+- No compat bridge.
+
+Required negative proof:
+- Add external import of child implementation → FAIL.
+- Add export * in index → FAIL.
+- Add flat children.ts → FAIL.
+
+---
+
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2
+
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Commander runtime result and proof must preserve command/read chain and must never use fake success, null proof, warning-only pass, or throw from public boundary.
+
+### 主题
+
+控制台 proof 与结果完整性
+
+### 法条
+
+Every Commander execution must return a governed result:
+
+```txt
+status: success | failed | review_required
+abilityGroupId = commander-console
+childCapabilityId
+operatorRef
+runtimeProof
+dataQualityFlags
+```
+
+Runtime proof must include:
+
+```txt
+proofId
+abilityGroupId
+childCapabilityId
+childKind
+operatorRef
+inputRef
+outputRef or diagnosticPayloadRef
+commandId or readRequestId
+commandEnvelopeRef if command dispatched
+resultEnvelopeRef if transport returned it
+readModelSource if read
+targetRecordRef where applicable
+evidenceRefs
+startedAt
+endedAt
+durationMs
+status
+failureReason if failed
+reviewRequiredReason if review_required
+boundaryDecision
+commandDecision or readDecision
+transportDecision if command
+hardStopDecision if emergency path
+policyDecision
+dataQualityFlags
+```
+
+Required:
+- public execute never throws.
+- unknown child returns typed failed result with proof.
+- invalid input returns typed failed result with proof.
+- command gate failure returns failed result with receipt and proof.
+- transport failure returns failed/review result with receipt and proof.
+- read model failure returns failed result with proof.
+- runtimeProof cannot be null.
+- fake/fallback/no-op success forbidden.
+
+Forbidden:
+- `runtimeProof: null`.
+- naked throw escaping `execute`.
+- `return null` as success.
+- `status: ok`.
+- `status: persisted`.
+- warning-only pass.
+- output without proof.
+- failure without reason.
+- review_required without reason.
+
+Required inspector:
+- Result/proof schema enforcement.
+- Unknown child proof.
+- Public boundary non-throw.
+- Fake success/escape detection.
+
+Required negative proof:
+- Remove RuntimeProofSchema.parse → FAIL.
+- return runtimeProof:null → FAIL.
+- make unknown child throw → FAIL.
+- convert failed to success without proof → FAIL.
+
+---
+
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2
+
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Commander task-template and map-import UX may display governed map lifecycle but must not become map execution, validation, activation, or runtime truth.
+
+### 主题
+
+地图包导入与任务模板 UX 边界
+
+### 法条
+
+Commander may expose task-template and map-import UX through governed map-package ports or APIs.
+
+Ordinary users may see:
+```txt
+displayName
+description
+version
+availability
+safetyLevel
+run limits
+start button
+```
+
+Developer/Map Manager may see:
+```txt
+packageId
+mapId
+activationId
+activationSnapshotRef
+stepId
+childCapabilityId
+dependency list
+validation findings
+compatibility matrix
+promptContractId
+```
+
+Required:
+- Ordinary start may use taskTemplateId.
+- Commander must resolve taskTemplateId through governed approved-active binding port/API.
+- Runtime command envelope must contain requestedPlatformId + selectedMapId or fail/review_required.
+- Quarantined/disabled/draft maps cannot appear as runnable ordinary tasks.
+- AI-generated maps must remain draft-only unless map-package law allows approved activation.
+- Commander may request import/approval/activation/disable/rollback through governed ports only.
+- Commander preflight summary is not final validation truth.
+
+Forbidden:
+- ordinary mode exposing internal mapId/stepId/childCapabilityId/promptContractId.
+- Commander directly writing active registry or approval records.
+- Commander executing draft AI map.
+- shell owning map selection truth.
+- Commander treating UI preflight as final map validation truth.
+
+Required inspector:
+- Ordinary vs developer field separation.
+- No direct active registry mutation.
+- Start command map/platform resolution.
+- Draft/quarantine runnable ban.
+
+Required negative proof:
+- Ordinary task list exposes mapId → FAIL.
+- Commander writes active registry → FAIL.
+- Draft map marked runnable → FAIL.
+
+---
+
+## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2
+
+status: active  
+tier: P0  
+capabilityDomain: commander-console-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner, and negative proof.
+
+### 主题
+
+Commander 执法唯一入口
+
+### 法条
+
+Commander enforcement must close through:
+
+```txt
+scripts/audit/domains/commander-console-capability/manifest.json
+scripts/audit/domains/commander-console-capability/inspector.ts
+scripts/audit/domains/commander-console-capability/run-inspector.ts
+scripts/audit/domains/commander-console-capability/negative-proof-harness.ts
+```
+
+Required:
+- Inspector uses ts-morph AST-level checks.
+- Inspector uses symbol and import-graph checks.
+- Inspector uses schema-level checks for command/result/proof.
+- Inspector verifies active law coverage in registry/matrix/audit-plan/runner.
+- Negative proof reports fail → rollback → pass.
+- CI-FULL must be green for delivery.
+- No grep/regex/includes as final judgment.
+- No warning-only P0.
+- No detached inspector.
+- No empty negative proof.
+- No generated fake PASS.
+
+Required inspector checks:
+```txt
+1. Law file is machine-blocking.
+2. Public interface only listChildAbilityIds + execute.
+3. Start-mission requires requestedPlatformId + selectedMapId after template resolution.
+4. No default platform.
+5. Transport semantic gate validates commandId/envelopeRef/failure/review.
+6. Timeout gate and idempotency gate exist and are invoked.
+7. Emergency stop cannot downgrade or dedupe away.
+8. Read models come through read-model ports only.
+9. No legacy public truth types.
+10. No forbidden foreign owner imports.
+11. Child registry parity.
+12. Runtime proof never null.
+13. Public execute never throws.
+14. External APIs route through Commander public interface.
+15. Local shell render-only.
+16. Startup bootstrap-only.
+17. ALL active Commander laws in registry/matrix/audit-plan/runner.
+18. negative-proof-harness executed.
+```
+
+Required negative proof:
+```txt
+manual-first enforcement reintroduced
+start-mission only requestedPlatformId
+requestedPlatformId ?? "tiktok-web"
+transport accepted without envelopeRef
+transport commandId mismatch
+emergency-stop downgraded
+read model returns UI-only truth
+Commander imports BrowserController
+Commander imports Forensics storage internals
+external imports Commander child
+runtimeProof:null
+public execute throw
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+---
+
+## Final Readiness Gate
+
+Commander Console is READY only when:
+
+```txt
+law/blueprint/inspector/generated/runner agree
+all active Commander laws are machine-blocking
+human command entry is Commander-only
+public surface is execute-only
+start command has explicit platform/map after template resolution
+no silent defaults
+transport semantic gate enforced
+timeout/idempotency gates enforced
+emergency stop hard path enforced
+read models are read-only and proof-backed
+no foreign owner imports
+no legacy truth types
+task-template UX does not own map truth
+owner-local inspector PASS
+negative proof PASS
+ALL active law enforcement PASS
+CI-FULL PASS
+```

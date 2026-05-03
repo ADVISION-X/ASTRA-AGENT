@@ -6,17 +6,17 @@
   "engine": "hybrid",
   "supportsEvidenceModes": ["law", "fs", "hybrid"],
   "allowedLawIds": [
-    "GRASSEYE-MAP-PLUGIN-001-V1",
-    "GRASSEYE-MAP-PLUGIN-002-V1",
-    "GRASSEYE-MAP-PLUGIN-003-V1",
-    "GRASSEYE-MAP-PLUGIN-004-V1",
-    "GRASSEYE-MAP-PLUGIN-005-V1",
-    "GRASSEYE-MAP-PLUGIN-006-V1",
-    "GRASSEYE-MAP-PLUGIN-007-V1",
-    "GRASSEYE-MAP-PLUGIN-008-V1",
-    "GRASSEYE-MAP-PLUGIN-009-V1",
-    "GRASSEYE-MAP-PLUGIN-010-V1",
-    "GRASSEYE-MAP-PLUGIN-011-V1"
+    "GRASSEYE-MAP-PLUGIN-001-V2",
+    "GRASSEYE-MAP-PLUGIN-002-V2",
+    "GRASSEYE-MAP-PLUGIN-003-V2",
+    "GRASSEYE-MAP-PLUGIN-004-V2",
+    "GRASSEYE-MAP-PLUGIN-005-V2",
+    "GRASSEYE-MAP-PLUGIN-006-V2",
+    "GRASSEYE-MAP-PLUGIN-007-V2",
+    "GRASSEYE-MAP-PLUGIN-008-V2",
+    "GRASSEYE-MAP-PLUGIN-009-V2",
+    "GRASSEYE-MAP-PLUGIN-010-V2",
+    "GRASSEYE-MAP-PLUGIN-011-V2"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",

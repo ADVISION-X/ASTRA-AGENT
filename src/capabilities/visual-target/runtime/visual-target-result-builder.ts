@@ -6,6 +6,7 @@ import type {
 } from "../contract.js";
 import { VisualTargetAbilityResultSchema } from "../schema.js";
 import { buildStableVisualTargetRef } from "../shared/visual-target-types.js";
+import { resolveVisualTargetChain } from "./visual-target-chain.js";
 import type { VisualTargetFailureTrace } from "./visual-target-input-gate.js";
 import { buildVisualTargetRuntimeProof, type VisualTargetRuntimeDecisionTrace, type VisualTargetRuntimeTelemetry } from "./visual-target-proof-builder.js";
 
@@ -50,6 +51,7 @@ function buildVisualTargetResultPayload(input: {
   refs: ReturnType<typeof resolveVisualTargetRefs>;
   runtimeProof: ReturnType<typeof buildVisualTargetRuntimeProof>;
 }) {
+  const chain = resolveVisualTargetChain(input.result.request, input.result.trace);
   return {
     abilityGroupId: "visual-target",
     childCapabilityId: input.result.trace.childCapabilityId,
@@ -57,6 +59,7 @@ function buildVisualTargetResultPayload(input: {
       ? input.result.output?.targetNature ?? input.result.trace.targetNature
       : input.result.trace.targetNature,
     status: input.result.status,
+    ...chain,
     sessionId: input.result.trace.sessionId,
     roundId: input.result.trace.roundId,
     videoVisitId: input.result.trace.videoVisitId,

@@ -6,6 +6,8 @@ import { createAuditProject, getSourceFileOrThrow, hasCallExpressionPath } from 
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
 
 const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts";
+const LAW_PATH = ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md";
+const BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md";
 const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-resume.ts";
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
@@ -233,14 +235,51 @@ async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
   };
 }
 
+async function inspectForensicsRetentionBoundary(): Promise<PhaseResult> {
+  const [lawText, blueprintText] = await Promise.all([
+    readTextFile(pathFromRepoRoot(LAW_PATH)),
+    readTextFile(pathFromRepoRoot(BLUEPRINT_PATH)),
+  ]);
+  const requiredLawSnippets = [
+    "artifactLifecycleManifestRef",
+    "artifactHash",
+    "promoted-evidence",
+    "quota/backpressure",
+  ];
+  const requiredBlueprintSnippets = [
+    "artifactLifecycleManifestRef / artifactHash",
+    "promotion / cleanup",
+    "quota/backpressure",
+  ];
+  const findings: Finding[] = [];
+
+  if (!requiredLawSnippets.every((snippet) => lawText.includes(snippet))) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3", file: LAW_PATH, line: 1, message: "Orchestration Forensics boundary law must encode screenshot retention, self-promotion ban, and quota/backpressure propagation." }));
+  }
+  if (!requiredBlueprintSnippets.every((snippet) => blueprintText.includes(snippet))) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3", file: BLUEPRINT_PATH, line: 1, message: "Orchestration blueprint must describe screenshot lifecycle refs, promotion/cleanup routing, and quota/backpressure handling." }));
+  }
+
+  return {
+    findings,
+    phase: createRuntimePhase(
+      "forensics-retention-boundary",
+      findings,
+      "Orchestration law and blueprint both describe screenshot retention refs, promotion routing, and quota/backpressure propagation at the Forensics boundary.",
+      "Orchestration law or blueprint still omits screenshot lifecycle refs, promotion routing, or quota/backpressure propagation at the Forensics boundary.",
+    ),
+  };
+}
+
 export async function runOrchestrationGovernedRuntimeChecks() {
   const project = createAuditProject();
-  const [publicSurface, frozenActivation, unifiedChildEnvelope, typedFailureBoundary, postActionVerification, negativeProof] = await Promise.all([
+  const [publicSurface, frozenActivation, unifiedChildEnvelope, typedFailureBoundary, postActionVerification, forensicsRetentionBoundary, negativeProof] = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
+    inspectForensicsRetentionBoundary(),
     inspectNegativeProofReadiness(),
   ]);
 
@@ -251,6 +290,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       ...unifiedChildEnvelope.findings,
       ...typedFailureBoundary.findings,
       ...postActionVerification.findings,
+      ...forensicsRetentionBoundary.findings,
       ...negativeProof.findings,
     ],
     phases: [
@@ -259,6 +299,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       unifiedChildEnvelope.phase,
       typedFailureBoundary.phase,
       postActionVerification.phase,
+      forensicsRetentionBoundary.phase,
       negativeProof.phase,
     ],
   };

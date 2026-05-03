@@ -1,6 +1,7 @@
 import type { CommanderConsoleAbilityGroup, CommanderConsoleInput, CreateCommanderConsoleAbilityGroupInput } from "./contract.js";
 import { createSystemCommanderClock } from "./runtime/commander-clock.js";
 import { executeCommanderConsoleChild, type CommanderConsoleChildContext } from "./runtime/commander-console-executor.js";
+import { createCommanderIdempotencyState } from "./runtime/commander-idempotency-gate.js";
 import { getCommanderConsoleChild, listCommanderConsoleChildMetadata } from "./registry.js";
 import { CommanderConsoleInputSchema } from "./schema.js";
 import { buildInvalidCommanderInputResult } from "./shared/commander-invalid-input-result.js";
@@ -9,6 +10,7 @@ export function createCommanderConsoleAbilityGroup(input: CreateCommanderConsole
   const context: CommanderConsoleChildContext = {
     ...input,
     clock: input.clock ?? createSystemCommanderClock(),
+    idempotencyState: createCommanderIdempotencyState(),
   };
 
   return {

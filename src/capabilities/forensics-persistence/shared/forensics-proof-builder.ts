@@ -25,6 +25,35 @@ function resolveProofChainValue(fieldName: string, value: string | null | undefi
   return `missing-${fieldName}`;
 }
 
+const buildProofChainFields = (request: ForensicsAbilityInput, status: "success" | "failed" | "review_required") => ({
+  runId: resolveProofChainValue("runId", request.runId, status),
+  missionId: resolveProofChainValue("missionId", request.missionId, status),
+  sessionId: request.sessionId,
+  roundId: request.roundId,
+  videoVisitId: request.videoVisitId ?? null,
+  stepId: resolveProofChainValue("stepId", request.stepId, status),
+  mapPackageId: resolveProofChainValue("mapPackageId", request.mapPackageId, status),
+  mapPackageVersion: resolveProofChainValue("mapPackageVersion", request.mapPackageVersion, status),
+  selectedMapId: resolveProofChainValue("selectedMapId", request.selectedMapId, status),
+  selectedMapVersion: resolveProofChainValue("selectedMapVersion", request.selectedMapVersion, status),
+  activationSnapshotRef: resolveProofChainValue("activationSnapshotRef", request.activationSnapshotRef, status),
+  capabilityCallId: resolveProofChainValue("capabilityCallId", request.capabilityCallId, status),
+});
+
+const buildProofReferenceFields = (input: {
+  request: ForensicsAbilityInput;
+  storedRecord: StoredForensicsRecord | null;
+}) => ({
+  inputRefs: input.request.inputRefs,
+  outputRefs: input.request.outputRefs,
+  inputRecordRefs: input.request.sourceRecordRefs,
+  outputRecordRefs: input.storedRecord ? [input.storedRecord.recordRef] : [],
+  parentRefs: input.request.parentRefs,
+  artifactRefs: input.storedRecord?.artifactRefs ?? input.request.artifactRefs,
+  storageRef: input.storedRecord?.storageRef ?? null,
+  integrityHash: input.storedRecord?.envelope.integrityHash ?? null,
+});
+
 export function buildForensicsProof(input: {
   request: ForensicsAbilityInput;
   policyDecision: ForensicsPolicyDecision;
@@ -46,18 +75,7 @@ export function buildForensicsProof(input: {
 
   return ForensicsRuntimeProofSchema.parse({
     proofId: buildProofId(`${recordId}:${input.endedAt}`),
-    runId: resolveProofChainValue("runId", input.request.runId, status),
-    missionId: resolveProofChainValue("missionId", input.request.missionId, status),
-    sessionId: input.request.sessionId,
-    roundId: input.request.roundId,
-    videoVisitId: input.request.videoVisitId ?? null,
-    stepId: resolveProofChainValue("stepId", input.request.stepId, status),
-    mapPackageId: resolveProofChainValue("mapPackageId", input.request.mapPackageId, status),
-    mapPackageVersion: resolveProofChainValue("mapPackageVersion", input.request.mapPackageVersion, status),
-    selectedMapId: resolveProofChainValue("selectedMapId", input.request.selectedMapId, status),
-    selectedMapVersion: resolveProofChainValue("selectedMapVersion", input.request.selectedMapVersion, status),
-    activationSnapshotRef: resolveProofChainValue("activationSnapshotRef", input.request.activationSnapshotRef, status),
-    capabilityCallId: resolveProofChainValue("capabilityCallId", input.request.capabilityCallId, status),
+    ...buildProofChainFields(input.request, status),
     abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
     childCapabilityId: input.request.childCapabilityId,
     sourceAbilityGroupId: input.request.sourceAbilityGroupId,
@@ -71,14 +89,7 @@ export function buildForensicsProof(input: {
     durationMs,
     status,
     storageOperation: input.policyDecision.storageOperation,
-    inputRefs: input.request.inputRefs,
-    outputRefs: input.request.outputRefs,
-    inputRecordRefs: input.request.sourceRecordRefs,
-    outputRecordRefs: input.storedRecord ? [input.storedRecord.recordRef] : [],
-    parentRefs: input.request.parentRefs,
-    artifactRefs: input.storedRecord?.artifactRefs ?? input.request.artifactRefs,
-    storageRef: input.storedRecord?.storageRef ?? null,
-    integrityHash: input.storedRecord?.envelope.integrityHash ?? null,
+    ...buildProofReferenceFields(input),
     promptContractId: input.request.promptContractId ?? null,
     promptContractVersion: input.request.promptContractVersion ?? null,
     promptCatalogVersion: input.request.promptCatalogVersion ?? null,

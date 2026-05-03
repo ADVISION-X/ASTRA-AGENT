@@ -34,8 +34,26 @@ const MUTATIONS: Mutation[] = [
   {
     name: "proof drop mutation",
     file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-    search: "const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));",
-    replace: "const proofRemoved = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, verification));",
+    search: "const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, diagnosticPayloadRef, verification));",
+    replace: "const proofRemoved = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, diagnosticPayloadRef, verification));",
+  },
+  {
+    name: "input capabilityCallId removal mutation",
+    file: "src/capabilities/mouse-click/schema.ts",
+    search: "  activationSnapshotRef: z.string().min(1),\n  capabilityCallId: z.string().min(1),\n  nerveBusEnvelopeId: z.string().min(1),\n  requestedBy: z.string().min(1),",
+    replace: "  activationSnapshotRef: z.string().min(1),\n  nerveBusEnvelopeId: z.string().min(1),\n  requestedBy: z.string().min(1),",
+  },
+  {
+    name: "proof fabricated runId mutation",
+    file: "src/capabilities/mouse-click/runtime/mouse-click-proof-builder.ts",
+    search: "    runId: input.runId,\n",
+    replace: "    runId: buildStableMouseClickRef(\"mouse-click-run\", [input.attemptRef, input.childCapabilityId]),\n",
+  },
+  {
+    name: "success without PAV handoff mutation",
+    file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
+    search: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
+    replace: "    postActionVerificationHandoffRef: null,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
   },
   {
     name: "timeout race removal mutation",
@@ -48,6 +66,12 @@ const MUTATIONS: Mutation[] = [
     file: "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
     search: "input.context.primitivePort.click({",
     replace: 'input.context.primitivePort["click"]({',
+  },
+  {
+    name: "abort signal removal mutation",
+    file: "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
+    search: "      abortSignal: abortController.signal,\n",
+    replace: "",
   },
   {
     name: "workbench composition drift mutation",
@@ -111,7 +135,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1",
+        lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2",
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",

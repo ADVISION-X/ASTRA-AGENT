@@ -1,36 +1,50 @@
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
-import { createFinding, createPhase } from "../../core/result.js";
+import { createFinding } from "../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
 import { getZodEnumValues, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createAuditProject, getSourceFileOrThrow, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 
+import {
+  countOccurrences,
+  createDomainPhase,
+  forensicsP0CheckConstants,
+  getForensicsSources,
+  getObjectLiteralPropertyNames,
+} from "./forensics-p0-check-support.js";
+import {
+  collectArtifactPromotionFindings,
+  collectLawCoverageFindings,
+  collectSchemaRefFindings,
+} from "./forensics-p0-checks-metadata.js";
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
 import { forensicsPersistenceInspectionUtils } from "./inspection-utils.js";
 
 const {
-  ABILITY_GROUP_PATH,
+  FORBIDDEN_LEGACY_IMPORT_MARKERS,
+  FORBIDDEN_ROOT_DIRS,
+  FORBIDDEN_ROOT_SYMBOLS,
+  REQUIRED_ENVELOPE_FIELDS,
+  REQUIRED_PROOF_FIELDS,
+} = forensicsP0CheckConstants;
+
+const {
   CHILDREN_ROOT,
-  CONTRACT_PATH,
   INDEX_PATH,
   LAW_BOUNDARY,
   LAW_CHAIN,
   LAW_CHILDREN,
   LAW_CONTRACT,
   LAW_ENFORCEMENT,
+  LAW_ARTIFACT_PROMOTION,
   LAW_OWNER,
   LAW_RUNTIME,
   LAW_STORAGE,
   PORTS_ROOT,
-  RECORD_ID_PATH,
   REGISTRY_PATH,
   REQUIRED_CHILDREN,
   ROOT,
-  ROOT_MOCK_DIR,
-  ROOT_RUNTIME_DIR,
-  SCHEMA_PATH,
   SHARED_ROOT,
-  SHARED_STORE_ROOT,
 } = forensicsPersistenceInspectionConstants;
 const {
   childImplementationBypassesExecutor,
@@ -38,55 +52,6 @@ const {
   indexLeaksInternals,
   sourceUsesForbiddenImports,
 } = forensicsPersistenceInspectionUtils;
-
-const FORBIDDEN_LEGACY_IMPORT_MARKERS = [
-  "/types/evidence-packet",
-  "/types/platform-action",
-  "/types/stored-ai-result",
-  "/types/local-ai",
-  "/types/task-run",
-  "/types/runtime",
-] as const;
-
-const FORBIDDEN_ROOT_SYMBOLS = [
-  "saveAiResult",
-  "saveActionLog",
-  "saveEvidencePacket",
-  "saveAgentRound",
-  "saveCandidate",
-  "resetLocalStore",
-  "getOperatorSnapshot",
-  "setCandidateDisposition",
-  "deleteCandidate",
-] as const;
-
-const REQUIRED_CHAIN_FIELDS = [
-  "missionId",
-  "runId",
-  "sessionId",
-  "roundId",
-  "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
-  "capabilityCallId",
-  "inputRefs",
-  "outputRefs",
-  "sourceRecordRefs",
-  "parentRefs",
-  "artifactRefs",
-  "schemaVersion",
-  "integrityHash",
-  "idempotencyKey",
-] as const;
-
-const FORBIDDEN_ROOT_DIRS = [ROOT_RUNTIME_DIR, ROOT_MOCK_DIR, SHARED_STORE_ROOT] as const;
-
-const getForensicsSources = (project: import("ts-morph").Project) => (
-  project.getSourceFiles(pathFromRepoRoot(`${ROOT}/**/*.ts`))
-);
 
 const collectForbiddenRootDirFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
@@ -165,11 +130,11 @@ const collectContractFindings = (project: import("ts-morph").Project): Finding[]
   const storagePortSource = getSourceFileOrThrow(project, `${PORTS_ROOT}/forensics-storage-port.ts`);
   const artifactPortSource = getSourceFileOrThrow(project, `${PORTS_ROOT}/forensics-artifact-storage-port.ts`);
   const envelopeFields = getZodObjectPropertyNames(baseSchemaSource, "ForensicsRecordEnvelopeSchema");
-  const proofFields = getZodObjectPropertyNames(baseSchemaSource, "ForensicsRuntimeProofSchema");
+  const proofFields = getObjectLiteralPropertyNames(baseSchemaSource, "ForensicsRuntimeProofFieldSchemas");
   const storageMethods = new Set(storagePortSource.getInterfaceOrThrow("ForensicsStoragePort").getMethods().map((method) => method.getName()));
   const artifactMethods = new Set(artifactPortSource.getInterfaceOrThrow("ForensicsArtifactStoragePort").getMethods().map((method) => method.getName()));
-  const missingEnvelopeFields = REQUIRED_CHAIN_FIELDS.filter((field) => !envelopeFields.has(field));
-  const missingProofFields = REQUIRED_CHAIN_FIELDS.filter((field) => !proofFields.has(field));
+  const missingEnvelopeFields = REQUIRED_ENVELOPE_FIELDS.filter((field) => !envelopeFields.has(field));
+  const missingProofFields = REQUIRED_PROOF_FIELDS.filter((field) => !proofFields.has(field));
   const expectedStorageMethods = ["writeRecord", "readRecord", "listRecords", "updateRuntimeSnapshot"];
   const expectedArtifactMethods = ["writeArtifactRef"];
 
@@ -194,36 +159,30 @@ const collectContractFindings = (project: import("ts-morph").Project): Finding[]
   return findings;
 };
 
-const collectSchemaRefFindings = (project: import("ts-morph").Project): Finding[] => {
-  const findings: Finding[] = [];
-  const aiSource = getSourceFileOrThrow(project, `${CHILDREN_ROOT}/write-ai-result-record/schema.ts`);
-  const actionSource = getSourceFileOrThrow(project, `${CHILDREN_ROOT}/write-structured-action-log/schema.ts`);
-  const browseSource = getSourceFileOrThrow(project, `${CHILDREN_ROOT}/finalize-browse-ledger/schema.ts`);
-  const evidencePacketSource = getSourceFileOrThrow(project, `${CHILDREN_ROOT}/finalize-evidence-packet/schema.ts`);
-  const failedRecordSource = getSourceFileOrThrow(project, `${CHILDREN_ROOT}/finalize-failed-record/schema.ts`);
-  const aiText = aiSource.getFullText();
-  const actionText = actionSource.getFullText();
-  const browseText = browseSource.getFullText();
-  const evidencePacketText = evidencePacketSource.getFullText();
-  const failedRecordText = failedRecordSource.getFullText();
+const isExecutorPipelineOkay = (
+  executorSource: import("ts-morph").SourceFile,
+  resultBuilderSource: import("ts-morph").SourceFile,
+): boolean => {
+  return hasCallExpressionPath(executorSource, ["evaluateForensicsPolicy"])
+    && hasCallExpressionPath(executorSource, ["evaluateForensicsIntegrity"])
+    && hasCallExpressionPath(executorSource, ["persistForensicsArtifacts"])
+    && hasCallExpressionPath(executorSource, ["buildForensicsEnvelope"])
+    && hasCallExpressionPath(executorSource, ["writeForensicsEnvelope"])
+    && hasCallExpressionPath(resultBuilderSource, ["buildForensicsProof"]);
+};
 
-  if (!aiText.includes("promptContractId: z.string().min(1)") || !aiText.includes("promptContractVersion: z.string().min(1)") || !aiText.includes("promptCatalogVersion: z.string().min(1)")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${CHILDREN_ROOT}/write-ai-result-record/schema.ts`, line: 1, severity: "fatal", message: "AI result record schema must require prompt contract refs." }));
-  }
-  if (!actionText.includes("actionRef: z.string().min(1)") || !actionText.includes("postActionVerificationRef: z.string().min(1)")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${CHILDREN_ROOT}/write-structured-action-log/schema.ts`, line: 1, severity: "fatal", message: "Action log schema must require actionRef and postActionVerificationRef." }));
-  }
-  if (!browseText.includes("decisionRef: z.string().min(1)")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${CHILDREN_ROOT}/finalize-browse-ledger/schema.ts`, line: 1, severity: "fatal", message: "Browse-ledger finalization schema must require decisionRef." }));
-  }
-  if (!evidencePacketText.includes("decisionRef: z.string().min(1)")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${CHILDREN_ROOT}/finalize-evidence-packet/schema.ts`, line: 1, severity: "fatal", message: "Evidence-packet finalization schema must require decisionRef." }));
-  }
-  if (!failedRecordText.includes("decisionRef: z.string().min(1)")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${CHILDREN_ROOT}/finalize-failed-record/schema.ts`, line: 1, severity: "fatal", message: "Failed-record finalization schema must require decisionRef." }));
-  }
+const collectBuilderParityDetail = (envelopeText: string, proofText: string): string[] => {
+  const missingEnvelopeBuilderFields = REQUIRED_ENVELOPE_FIELDS.filter((field) => !envelopeText.includes(`${field}:`));
+  const missingProofBuilderFields = REQUIRED_PROOF_FIELDS.filter((field) => !proofText.includes(`${field}:`));
+  const capabilityCallIdWriteCount = countOccurrences(envelopeText, 'capabilityCallId: requireChainValue("capabilityCallId", input.request.capabilityCallId)');
 
-  return findings;
+  return [
+    ...missingEnvelopeBuilderFields.map((field) => `envelope:${field}`),
+    ...missingProofBuilderFields.map((field) => `proof:${field}`),
+    ...(!proofText.includes("reviewRequiredReason:") ? ["proof:reviewRequiredReason"] : []),
+    ...(!proofText.includes("integrityHash: input.storedRecord?.envelope.integrityHash ?? null") ? ["proof:integrityHash"] : []),
+    ...(capabilityCallIdWriteCount < 2 ? ["envelope:capabilityCallId-hash-parity"] : []),
+  ];
 };
 
 const collectRuntimePipelineFindings = (project: import("ts-morph").Project): Finding[] => {
@@ -233,26 +192,26 @@ const collectRuntimePipelineFindings = (project: import("ts-morph").Project): Fi
   const envelopeBuilderSource = getSourceFileOrThrow(project, `${SHARED_ROOT}/forensics-envelope-builder.ts`);
   const proofBuilderSource = getSourceFileOrThrow(project, `${SHARED_ROOT}/forensics-proof-builder.ts`);
   const resultBuilderSource = getSourceFileOrThrow(project, `${SHARED_ROOT}/forensics-result-builder.ts`);
-
-  const executorOkay = hasCallExpressionPath(executorSource, ["evaluateForensicsPolicy"])
-    && hasCallExpressionPath(executorSource, ["evaluateForensicsIntegrity"])
-    && hasCallExpressionPath(executorSource, ["persistForensicsArtifacts"])
-    && hasCallExpressionPath(executorSource, ["buildForensicsEnvelope"])
-    && hasCallExpressionPath(executorSource, ["writeForensicsEnvelope"])
-    && hasCallExpressionPath(resultBuilderSource, ["buildForensicsProof"]);
   const writeGateText = writeGateSource.getFullText();
   const envelopeText = envelopeBuilderSource.getFullText();
   const proofText = proofBuilderSource.getFullText();
-  const missingBuilderFields = REQUIRED_CHAIN_FIELDS.filter((field) => !envelopeText.includes(`${field}:`) || !proofText.includes(`${field}:`));
+  const builderParityDetail = collectBuilderParityDetail(envelopeText, proofText);
 
-  if (!executorOkay) {
+  if (!isExecutorPipelineOkay(executorSource, resultBuilderSource)) {
     findings.push(createFinding({ lawId: LAW_RUNTIME, file: `${SHARED_ROOT}/forensics-executor.ts`, line: 1, severity: "fatal", message: "Forensics executor pipeline is missing one or more governed gates." }));
   }
   if (!writeGateText.includes("recordStorage.writeRecord") || !writeGateText.includes("recordStorage.updateRuntimeSnapshot") || writeGateText.includes("appendRecord") || writeGateText.includes("replaceRecordByRound") || writeGateText.includes("replaceRecordBySession")) {
     findings.push(createFinding({ lawId: LAW_STORAGE, file: `${SHARED_ROOT}/forensics-write-gate.ts`, line: 1, severity: "fatal", message: "Forensics write gate must use generic writeRecord/updateRuntimeSnapshot only." }));
   }
-  if (missingBuilderFields.length > 0 || !proofText.includes("reviewRequiredReason:") || !proofText.includes("integrityHash: input.storedRecord?.envelope.integrityHash ?? null")) {
-    findings.push(createFinding({ lawId: LAW_CHAIN, file: `${SHARED_ROOT}/forensics-proof-builder.ts`, line: 1, severity: "fatal", message: "Envelope/proof builders are missing required chain parity fields.", detail: missingBuilderFields.join(", ") || "reviewRequiredReason, integrityHash" }));
+  if (builderParityDetail.length > 0) {
+    findings.push(createFinding({
+      lawId: LAW_CHAIN,
+      file: `${SHARED_ROOT}/forensics-proof-builder.ts`,
+      line: 1,
+      severity: "fatal",
+      message: "Envelope/proof builders are missing required chain parity fields.",
+      detail: builderParityDetail.join(", "),
+    }));
   }
 
   return findings;
@@ -287,27 +246,6 @@ const collectExecutorBypassFindings = (project: import("ts-morph").Project): Fin
     : [];
 };
 
-const collectLawCoverageFindings = (context: InspectorContext): Finding[] => {
-  const domainLaws = context.lawRegistry.laws
-    .filter((law) => law.capabilityDomain === "forensics-persistence-capability" && law.lawId.startsWith("GRASSEYE-FORENSICS-PERSISTENCE-"))
-    .map((law) => law.lawId);
-  const manifest = context.manifestsByDomain.get("forensics-persistence-capability");
-
-  if (!manifest) {
-    return [];
-  }
-
-  const missingLawIds = domainLaws.filter((lawId) => !manifest.allowedLawIds.includes(lawId));
-  return missingLawIds.length > 0
-    ? [createFinding({ lawId: LAW_ENFORCEMENT, file: manifest.manifestPath, line: 1, severity: "fatal", message: "Forensics manifest does not cover all active Forensics laws.", detail: missingLawIds.join(", ") })]
-    : [];
-};
-
-const createDomainPhase = (name: string, lawIds: readonly string[], findings: Finding[], summary: { pass: string; fail: string }): InspectorPhase => {
-  const passed = findings.every((finding) => !lawIds.includes(finding.lawId));
-  return createPhase(name, passed ? "PASS" : "CODE VIOLATION", passed, passed ? summary.pass : summary.fail);
-};
-
 export async function runForensicsP0Checks(context: InspectorContext): Promise<{ findings: Finding[]; phases: InspectorPhase[]; project: import("ts-morph").Project }> {
   const project = createAuditProject();
   const findings = [
@@ -317,6 +255,7 @@ export async function runForensicsP0Checks(context: InspectorContext): Promise<{
     ...collectLegacyImportFindings(project),
     ...collectContractFindings(project),
     ...collectSchemaRefFindings(project),
+    ...collectArtifactPromotionFindings(project),
     ...collectRuntimePipelineFindings(project),
     ...collectBoundaryFindings(project),
     ...collectExecutorBypassFindings(project),
@@ -331,7 +270,7 @@ export async function runForensicsP0Checks(context: InspectorContext): Promise<{
         pass: "Forensics root shape, child parity, and forbidden directories are aligned with the final law.",
         fail: "Forensics root shape still contains forbidden directories or child topology drift.",
       }),
-      createDomainPhase("contract-native", [LAW_BOUNDARY, LAW_CONTRACT, LAW_CHAIN], findings, {
+      createDomainPhase("contract-native", [LAW_BOUNDARY, LAW_CONTRACT, LAW_CHAIN, LAW_ARTIFACT_PROMOTION], findings, {
         pass: "Forensics public contract is native, chain-complete, and free of legacy business type leakage.",
         fail: "Forensics contract still leaks legacy imports or misses required chain refs.",
       }),

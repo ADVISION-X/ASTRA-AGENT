@@ -5,12 +5,12 @@ import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { ROOT } from "./constants.js";
+import { MAP_PLUGIN_LAWS, ROOT } from "./constants.js";
 
 const CAPABILITY_CATALOG_GENERATED_PATH = "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json";
 
 const createRegistryBootstrapError = (message: string): Finding =>
-  createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message });
+  createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message });
 
 type ActiveRegistryRecord = NonNullable<ReturnType<ReturnType<typeof createMapPluginRegistry>["active"]["getActiveOperationalMapRecordByTaskTemplateId"]>>;
 
@@ -20,13 +20,13 @@ const collectRegistryFeedFindings = (registry: ReturnType<typeof createMapPlugin
   const findings: Finding[] = [];
 
   if (activePackages.length < 2) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-002-V1", file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: "Approved builtin map packages must bootstrap into the active registry." }));
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: "Approved builtin map packages must bootstrap into the active registry." }));
   }
   if (ordinaryTemplates.some((item) => item.taskTemplateId === "ai-generated-map-placeholder")) {
     findings.push(createRegistryBootstrapError("AI draft placeholder must never appear in the approved active task-template feed."));
   }
   if (ordinaryTemplates.some((item) => "mapId" in (item as object) || "requestedPlatformId" in (item as object))) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Ordinary task-template feed must not expose internal map binding fields." }));
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.FEED_BOUNDARY, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Ordinary task-template feed must not expose internal map binding fields." }));
   }
   if (activePackages.some((mapPackage) => mapPackage.manifest.aiGenerated)) {
     findings.push(createRegistryBootstrapError("AI-generated map packages must not enter the active registry."));
@@ -50,11 +50,21 @@ const resolveActiveRecord = (registry: ReturnType<typeof createMapPluginRegistry
 
 const collectActiveRecordMetadataFindings = (activeRecord: ActiveRegistryRecord): Finding[] => {
   const findings: Finding[] = [];
-  if (!activeRecord.activationSnapshotRef || !activeRecord.activationSnapshotHash || !activeRecord.capabilityCatalogVersion || !activeRecord.promptCatalogVersion) {
-    findings.push(createRegistryBootstrapError("Active registry records must expose activationSnapshotRef and locked catalog versions."));
+  if (
+    !activeRecord.activationId
+    || !activeRecord.activationSnapshotRef
+    || !activeRecord.activationSnapshotHash
+    || !activeRecord.mapPackageHash
+    || !activeRecord.operationalMapHash
+    || !activeRecord.capabilityCatalogVersion
+    || !activeRecord.promptCatalogVersion
+    || !activeRecord.validationReportRef
+    || !activeRecord.humanApprovalRef
+  ) {
+    findings.push(createRegistryBootstrapError("Active registry records must expose activationId, frozen hashes, and locked governance refs."));
   }
   if (!activeRecord.proofPolicy.recordPackageSelection) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-003-V1", file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Active registry records must preserve proofPolicy outside the stripped orchestration map payload." }));
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROOF, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Active registry records must preserve proofPolicy outside the stripped orchestration map payload." }));
   }
 
   return findings;
@@ -104,7 +114,7 @@ export const inspectRegistryBootstrap = (): Finding[] => {
       ...collectActiveRecordFindings(registry),
     ];
   } catch (error) {
-    return [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-003-V1", file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Map registry bootstrap failed during audit." })];
+    return [createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Map registry bootstrap failed during audit." })];
   }
 };
 
@@ -115,5 +125,5 @@ export const inspectCapabilityCatalogGeneratedTruth = async (): Promise<Finding[
 
   return JSON.stringify(generatedDocument) === JSON.stringify(rebuiltDocument)
     ? []
-    : [createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-009-V1", file: CAPABILITY_CATALOG_GENERATED_PATH, line: 1, severity: "fatal", message: "Generated capability catalog must match the governed build source exactly." })];
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG, file: CAPABILITY_CATALOG_GENERATED_PATH, line: 1, severity: "fatal", message: "Generated capability catalog must match the governed build source exactly." })];
 };

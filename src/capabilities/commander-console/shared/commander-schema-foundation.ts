@@ -69,6 +69,19 @@ const CommanderPolicyDecisionSchema = z.enum(["allowed", "blocked", "review_requ
 const CommanderCommandPrioritySchema = z.enum(["normal", "emergency"]);
 const CommanderAllowedCallerSchema = z.literal("commander-console");
 const CommanderIdempotencyPolicySchema = z.enum(["idempotent-read", "dedupe-command", "hard-stop-non-dedupe"]);
+const CommanderIdempotencyDecisionSchema = z.enum([
+  "not-applicable",
+  "first-execution",
+  "reused-inflight-result",
+  "reused-cached-result",
+  "emergency-bypass",
+]);
+const CommanderTimeoutDecisionSchema = z.enum([
+  "not-applicable",
+  "within-timeout",
+  "timed-out-failed",
+  "timed-out-review-required",
+]);
 const CommanderOperatorRefSchema = NonEmptyStringSchema.max(160);
 const RequestedPlatformIdSchema = z.enum(["facebook-web", "tiktok-web"]);
 const CommanderCommandTypeSchema = z.enum([
@@ -104,7 +117,11 @@ const CommanderDataQualityFlagCodeSchema = z.enum([
   "hard_stop",
   "hard_stop_gate_failed",
   "hard_stop_guarded",
+  "idempotency_guarded",
   "record_not_found",
+  "read_proof_guarded",
+  "timeout_guarded",
+  "transport_semantic_guarded",
   "execution_error",
   "dispatch_child_missing",
 ]);
@@ -219,6 +236,7 @@ export {
   CommanderEvidenceSourceSchema,
   CommanderGoalSchema,
   CommanderHardStopDecisionSchema,
+  CommanderIdempotencyDecisionSchema,
   CommanderIdempotencyPolicySchema,
   CommanderMaxMinutesSchema,
   CommanderMaxRoundsSchema,
@@ -234,6 +252,7 @@ export {
   CommanderRecordTypeSchema,
   CommanderReviewStatusSchema,
   CommanderTargetRecordRefSchema,
+  CommanderTimeoutDecisionSchema,
   CommanderTransportDecisionSchema,
   NonEmptyStringSchema,
   NullableCommanderGoalSchema,

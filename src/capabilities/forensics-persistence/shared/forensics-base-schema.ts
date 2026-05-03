@@ -15,6 +15,38 @@ const requiresDecisionRef = (recordType: string): boolean => (
   || recordType === "failed_record"
 );
 
+const addMissingChainIssue = (ctx: z.RefinementCtx, path: string, message: string): void => {
+  ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+};
+
+const addPromptRefIssues = (input: {
+  promptContractId?: string | null;
+  promptContractVersion?: string | null;
+  promptCatalogVersion?: string | null;
+}, ctx: z.RefinementCtx): void => {
+  if (!input.promptContractId) {
+    addMissingChainIssue(ctx, "promptContractId", "AI records require promptContractId.");
+  }
+  if (!input.promptContractVersion) {
+    addMissingChainIssue(ctx, "promptContractVersion", "AI records require promptContractVersion.");
+  }
+  if (!input.promptCatalogVersion) {
+    addMissingChainIssue(ctx, "promptCatalogVersion", "AI records require promptCatalogVersion.");
+  }
+};
+
+const addActionVerificationIssues = (input: {
+  actionRef?: string | null;
+  postActionVerificationRef?: string | null;
+}, ctx: z.RefinementCtx): void => {
+  if (!input.actionRef) {
+    addMissingChainIssue(ctx, "actionRef", "Action records require actionRef.");
+  }
+  if (!input.postActionVerificationRef) {
+    addMissingChainIssue(ctx, "postActionVerificationRef", "Action records require postActionVerificationRef.");
+  }
+};
+
 function addConditionalChainRefIssues(input: {
   recordType: string;
   promptContractId?: string | null;
@@ -25,28 +57,15 @@ function addConditionalChainRefIssues(input: {
   decisionRef?: string | null;
 }, ctx: z.RefinementCtx): void {
   if (requiresPromptRefs(input.recordType)) {
-    if (!input.promptContractId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptContractId"], message: "AI records require promptContractId." });
-    }
-    if (!input.promptContractVersion) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptContractVersion"], message: "AI records require promptContractVersion." });
-    }
-    if (!input.promptCatalogVersion) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["promptCatalogVersion"], message: "AI records require promptCatalogVersion." });
-    }
+    addPromptRefIssues(input, ctx);
   }
 
   if (requiresActionVerificationRefs(input.recordType)) {
-    if (!input.actionRef) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["actionRef"], message: "Action records require actionRef." });
-    }
-    if (!input.postActionVerificationRef) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["postActionVerificationRef"], message: "Action records require postActionVerificationRef." });
-    }
+    addActionVerificationIssues(input, ctx);
   }
 
   if (requiresDecisionRef(input.recordType) && !input.decisionRef) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["decisionRef"], message: "Finalization records require decisionRef." });
+    addMissingChainIssue(ctx, "decisionRef", "Finalization records require decisionRef.");
   }
 }
 
@@ -73,6 +92,21 @@ const ForensicsRecordTypeSchema = z.enum([
 ]);
 
 const ForensicsArtifactTypeSchema = z.enum(["image", "ocr_text", "json", "packet", "snapshot", "other"]);
+const ForensicsArtifactRetentionClassSchema = z.enum([
+  "transient-capture",
+  "transient-region",
+  "transient-ai-input",
+  "transient-contact-sheet",
+  "diagnostic-debug",
+  "promoted-evidence",
+  "legal-hold-evidence",
+]);
+const ForensicsArtifactPromotionStatusSchema = z.enum([
+  "not_promoted",
+  "promotion_requested",
+  "promoted",
+  "legal_hold",
+]);
 
 const ForensicsStorageOperationSchema = z.enum([
   "append-record",
@@ -112,6 +146,17 @@ const ForensicsArtifactRefSchema = z.object({
   artifactId: z.string().min(1),
   storageRef: z.string().min(1).nullable().default(null),
   sourceRecordRef: ForensicsRecordRefSchema.nullable().default(null),
+  artifactLifecycleManifestRef: nullableString,
+  retentionClass: ForensicsArtifactRetentionClassSchema.nullable().default(null),
+  promotionStatus: ForensicsArtifactPromotionStatusSchema.default("not_promoted"),
+  artifactHash: nullableString,
+  byteSize: nonNegativeInt.nullable().default(null),
+  promotedByRecordRef: ForensicsRecordRefSchema.nullable().default(null),
+  pinnedByRecordRefs: z.array(ForensicsRecordRefSchema).default([]),
+  legalHoldReason: nullableString,
+  cleanupLedgerRef: nullableString,
+  refCount: nonNegativeInt.default(0),
+  cleanupEligible: z.boolean().default(false),
 });
 
 const ForensicsPersistencePolicySchema = z.object({
@@ -344,6 +389,8 @@ const ForensicsAbilityInputBaseSchema = z.object({
 });
 
 type ForensicsArtifactRef = z.infer<typeof ForensicsArtifactRefSchema>;
+type ForensicsArtifactPromotionStatus = z.infer<typeof ForensicsArtifactPromotionStatusSchema>;
+type ForensicsArtifactRetentionClass = z.infer<typeof ForensicsArtifactRetentionClassSchema>;
 type ForensicsChildCapabilityId = z.infer<typeof ForensicsChildCapabilityIdSchema>;
 type ForensicsFailure = z.infer<typeof ForensicsFailureSchema>;
 type ForensicsIntegrityDecision = z.infer<typeof ForensicsIntegrityDecisionSchema>;
@@ -366,6 +413,8 @@ export {
   ForensicsChildCapabilityIdSchema,
   ForensicsRecordTypeSchema,
   ForensicsArtifactTypeSchema,
+  ForensicsArtifactRetentionClassSchema,
+  ForensicsArtifactPromotionStatusSchema,
   ForensicsStorageOperationSchema,
   ForensicsFailureCodeSchema,
   ForensicsFailureSchema,
@@ -389,6 +438,8 @@ export {
 
 export type {
   ForensicsArtifactRef,
+  ForensicsArtifactPromotionStatus,
+  ForensicsArtifactRetentionClass,
   ForensicsChildCapabilityId,
   ForensicsFailure,
   ForensicsIntegrityDecision,

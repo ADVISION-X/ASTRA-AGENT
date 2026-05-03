@@ -1,25 +1,102 @@
 ---
 name: "GrassEye Screenshot Capability"
-description: "Use when defining the independent GrassEye screenshot ability group, screenshot contracts, image kinds, coordinate mapping, screenshot artifacts, or screenshot audit ownership."
+description: "Use when governing the independent Screenshot Ability Group, governed screenshot capture, screenshot artifact truth, coordinate-space truth, scale mapping, AI-input preparation, privacy/session gates, artifact persistence handoff, and the boundary that prevents AI, Visual Target, Geometry Guard, Page State, PAV, browser helpers, or platform adapters from owning screenshot truth."
 applyTo: ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md, src/capabilities/screenshot/**, docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md, scripts/audit/domains/screenshot-capability/**"
 ---
 
-# GrassEye Screenshot Capability
+# GrassEye Screenshot Capability FINAL
 
-Scope: governs the independent screenshot ability group, screenshot contracts, screenshot artifact classes, and screenshot ownership boundaries.
-Boundary: this module governs screenshot truth only.
-Excludes: product classification, visual target detection, coordinate action, OCR semantics, and round branch decisions.
-Authority: this file is authoritative only for the screenshot-capability domain.
+Scope: governs the independent Screenshot Ability Group, screenshot capture and image-processing children, screenshot artifacts, image-kind taxonomy, coordinate-space taxonomy, scale mapping, source screenshot inheritance, screenshot runtime proof, artifact refs, browser/session/privacy gates, and Screenshot ownership boundaries.
 
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-001-V1
+Boundary: this module governs only screenshot/image artifact truth. It does not govern AI reasoning, OCR semantics, visual target detection, Geometry Guard decisions, click/scroll/text execution, Page State classification, Post-action Verification decisions, Forensics final persistence truth, Orchestration branching, product judgement, or comment extraction.
+
+Authority: this file is authoritative only for the `screenshot-capability` domain.
+
+Architecture phase: `Static Capability Package Architecture`.
+
+Core doctrine:
+- Screenshot is the eye-capture layer.
+- Screenshot captures and transforms governed image evidence.
+- Screenshot must preserve coordinate truth whenever pixels are cropped, resized, optimized, or prepared for AI.
+- Screenshot may prepare AI input but must never perform AI judgement.
+- Screenshot may output artifacts but must not decide targets, geometry safety, action success, page state, or business truth.
+- `ai_input`, contact sheet, crop, and resize outputs are non-executable evidence until Visual Target and Geometry Guard process them through their own laws.
+- No source proof, no transformed artifact success.
+- No scaleMapping, no AI-input/crop/resize success.
+- No chain fields, no production-ready screenshot result.
+- No active Screenshot law without inspector + runner + negative proof.
+
+---
+
+## Global Screenshot Baseline
+
+All active Screenshot laws in this file are:
+
+```yaml
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+```
+
+Required package:
+
+```txt
+src/capabilities/screenshot/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+├── adapters/
+├── shared/
+├── runtime/
+└── children/
+```
+
+Required children:
+
+```txt
+capture-browser-viewport
+capture-desktop-screen
+capture-region
+optimize-lossless
+prepare-ai-input
+```
+
+Required enforcement:
+
+```txt
+scripts/audit/domains/screenshot-capability/
+├── manifest.json
+├── inspector.ts
+├── run-inspector.ts
+└── negative-proof-harness.ts
+```
+
+Forbidden:
+- `manual-first` as active enforcement for this domain.
+- `evidenceMode: law` as sufficient evidence.
+- verify scripts as release truth.
+- detached inspector.
+- warning-only P0.
+- generated fake PASS.
+- empty or missing negative proof.
+- legacy screenshot drawer ownership.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-001-V2
 
 status: active
 tier: P0
 capabilityDomain: screenshot-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Screenshot Ability Group is the only owner of governed screenshot capability.
+summary: Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth, and scale mapping.
 
 ### 主题
 
@@ -27,94 +104,741 @@ summary: Screenshot Ability Group is the only owner of governed screenshot capab
 
 ### 法条
 
-Screenshot Ability Group is the only owner of governed screenshot capability.
+Screenshot Ability Group is the only owner of governed screenshot capture and screenshot artifact truth.
 
-Required direction:
-- all governed screenshot operations flow through the Screenshot Ability Group public interface.
-- screenshot truth includes image kind, coordinate space, and scale mapping.
-- ai_input and region crops must retain enough mapping metadata for Geometry Guard to reason about executable spaces.
+Required:
+- All governed screenshot operations must flow through `src/capabilities/screenshot` public interface.
+- Screenshot truth includes artifact kind, image kind, coordinate space, source screenshot inheritance, scale mapping, artifact refs, output hash, and runtime proof.
+- Browser helpers, platform adapters, local AI adapters, visual target, geometry guard, page state, PAV, orchestration, and Forensics must not own screenshot truth.
+- BrowserController may exist only behind `ScreenshotCapturePort` / screenshot adapter boundary.
+- `src/features/platform-action/screenshot-drawer` and any deleted historical screenshot drawer path must not survive as active owner.
 
-### 禁止
+Forbidden:
+- platform-action owning screenshot strategy.
+- browser helpers exposing governed screenshot result directly.
+- local-ai resizing/cropping screenshot artifacts independently.
+- visual-target producing screenshot artifacts.
+- geometry-guard modifying screenshot artifact truth.
+- hidden screenshot artifact universes outside Screenshot.
+- adapter-local `ScreenshotArtifact` contracts.
+- direct execution of contact sheet, crop, or AI-input coordinates.
 
-FORBIDDEN:
-- platform-action, browser helpers, or local-ai adapters owning screenshot truth.
-- direct execution of contactSheet or ai_input coordinates without Geometry Guard review.
+Required inspector:
+- Import graph check for second screenshot owners.
+- Forbidden historical path check.
+- Public contract ownership check.
+- BrowserController only behind ScreenshotCapturePort adapter.
 
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-002-V1
+Required negative proof:
+- Add platform-action screenshot drawer active path → FAIL.
+- Add local-ai resize/crop helper producing governed screenshot artifact → FAIL.
+- Add direct BrowserController capture outside screenshot adapter → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-002-V2
 
 status: active
 tier: P0
 capabilityDomain: screenshot-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Screenshot boundary stays pure.
+summary: Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs, and proof only.
 
 ### 主题
 
-纯边界
+纯截图边界
 
 ### 法条
 
-Screenshot group may capture viewport, screen, and region images, optimize lossless outputs, and prepare AI input, but it must stay pure.
+Screenshot may capture images, optimize lossless outputs, crop regions, prepare AI input, store artifact refs through screenshot artifact port, and return structured screenshot proof.
 
-### 禁止
+Allowed:
+- capture browser viewport through `ScreenshotCapturePort`.
+- capture desktop screen through governed capture adapter.
+- capture region from governed source image.
+- optimize lossless output.
+- prepare AI input by crop/resize with scaleMapping.
+- write screenshot artifact refs through `ScreenshotArtifactPort`.
+- produce screenshot runtime proof and structured result.
 
-FORBIDDEN:
+Forbidden:
+- AI judgement.
+- OCR semantics.
 - visual target detection.
-- geometry guard decisions.
-- click or scroll execution.
-- product classification or action-result verification.
+- coordinate action.
+- Geometry Guard decision.
+- click/scroll/text input.
+- Page State classification.
+- Post-action Verification decision.
+- product classification.
+- comment extraction.
+- Orchestration branch decision.
+- Forensics final evidence packet construction.
+- DOM/BOM query.
+- cookie/localStorage/sessionStorage reads.
 
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-003-V1
+Required inspector:
+- Forbidden imports/symbols under `src/capabilities/screenshot/**`.
+- DOM/BOM/cookie read ban.
+- Screenshot result field ban for AI/VisualTarget/PAV/PageState truth.
 
-status: active
-tier: P0
-capabilityDomain: screenshot-capability
-enforcementMode: manual-first
-evidenceMode: law
+Required negative proof:
+- Screenshot imports AI runtime → FAIL.
+- Screenshot imports visual-target implementation → FAIL.
+- Screenshot reads `document.cookie` → FAIL.
+- Screenshot result includes `targetCoordinates` or `verificationDecision` → FAIL.
 
-summary: Screenshot artifacts must stay structured and traceable.
+---
 
-### 主题
-
-证据结构化
-
-### 法条
-
-Screenshot results must remain structured, typed, and traceable to evidence refs and coordinate mapping.
-
-Required direction:
-- screenshot artifacts must distinguish evidence_original, evidence_optimized, and ai_input classes when applicable.
-- child capabilities stay inside the group registry.
-- contactSheet must remain a non-executable evidence representation.
-- scaleMapping and sourceScreenshotEvidenceId must survive every crop or resize operation that changes coordinate meaning.
-
-### 禁止
-
-FORBIDDEN:
-- adapter-local artifact universes.
-- hidden resizing or cropping policies outside the Screenshot Ability Group.
-
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-004-V1
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-003-V2
 
 status: active
 tier: P0
 capabilityDomain: screenshot-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
-summary: Screenshot capability is enforced by owner inspector and audit runner only.
+summary: Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency, and timeout.
 
 ### 主题
 
-执法链唯一
+截图输入链路完整性
 
 ### 法条
 
-Screenshot capability enforcement closes through the owner inspector and audit runner only.
+Every `ScreenshotAbilityInput` must be traceable to the mission/map/step/capability call that requested the screenshot or image transform.
 
-### 禁止
+Required input fields:
 
-FORBIDDEN:
-- scripts/verify, verify-* scripts, or ad-hoc quality scripts as screenshot-capability acceptance.
+```txt
+abilityGroupId = screenshot
+childCapabilityId
+requestedBy
+sourceAbilityGroupId
+sourceChildCapabilityId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId where available
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+purpose
+source
+sourceProof where source is stored_image / region / optimize / ai_input transform
+pageStateProof when browser/page source requires current-state support
+privacyPolicy
+capturePolicy
+inputRef
+idempotencyKey
+timeoutMs or capturePolicy.maxDurationMs
+```
+
+Source proof for transformed artifacts must include:
+
+```txt
+proofRef
+sourceKind
+sourceStorageRef or sourceArtifactRef
+sourceScreenshotEvidenceId
+sourceHash
+coordinateSpace
+sourceWidth
+sourceHeight
+sessionId
+roundId
+videoVisitId
+stepId
+capabilityCallId
+activationSnapshotRef
+pageStateProofRef where applicable
+browserSessionRef where applicable
+```
+
+Required:
+- Missing `stepId`, `capabilityCallId`, `activationSnapshotRef`, `nerveBusEnvelopeId`, `mapPackageVersion`, or `selectedMapVersion` must fail/review_required; never success.
+- Missing `inputRef` cannot success.
+- Missing `idempotencyKey` cannot success.
+- Missing timeout policy cannot success.
+- Stored image / crop / optimize / prepare-ai-input must have sourceProof.
+- Browser viewport capture must have browser session proof unless the child law explicitly allows desktop/local diagnostic mode.
+- Desktop capture must require privacy policy approval unless lawfully allowed as local diagnostic.
+
+Forbidden:
+- nullable mission/run/step fields in valid execution success.
+- sourceProof without sourceScreenshotEvidenceId for transformed artifacts.
+- fabricated mission/run/step ids.
+- silent first-capture without page-state/browser proof unless policy explicitly returns review_required.
+- success without idempotencyKey.
+
+Required inspector:
+- Schema field existence.
+- Input gate call order.
+- Source-proof requirement by child.
+- Privacy policy gate presence.
+- Timeout/idempotency field requirement.
+
+Required negative proof:
+- Remove `activationSnapshotRef` from input → FAIL.
+- Remove `capabilityCallId` from input → FAIL.
+- Remove `nerveBusEnvelopeId` from input → FAIL.
+- prepare-ai-input without sourceProof returns success → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-004-V2
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed, and non-executable until downstream governance.
+
+### 主题
+
+coordinateSpace 与 scaleMapping 硬门禁
+
+### 法条
+
+Screenshot artifacts must preserve coordinate meaning across every capture, crop, resize, optimization, and AI-input preparation.
+
+Allowed image kinds:
+
+```txt
+evidence_original
+evidence_optimized
+ai_input
+region_crop
+contact_sheet
+```
+
+Allowed coordinate spaces:
+
+```txt
+browser_viewport_pixels
+desktop_screen_pixels
+source_image_pixels
+region_crop_pixels
+ai_input_pixels
+optimized_equivalent_pixels
+contact_sheet_pixels
+```
+
+Required:
+- `evidence_original` preserves original coordinate space.
+- `evidence_optimized` must preserve pixel dimensions and coordinate space equivalent to source.
+- `optimize-lossless` must not change width/height/coordinate space.
+- `region_crop` must carry sourceScreenshotEvidenceId, crop offset, source dimensions, target dimensions, scaleX, scaleY.
+- `prepare-ai-input` must carry sourceScreenshotEvidenceId, scaleMapping, source dimensions, target dimensions, crop offset, scaleX, scaleY.
+- `ai_input_pixels` and `contact_sheet_pixels` are never executable coordinate truth.
+- Any resize/crop that changes coordinate meaning must produce scaleMapping.
+- Visual Target and Geometry Guard must use scaleMapping before executable coordinate reasoning.
+
+Forbidden:
+- `prepare-ai-input` success without scaleMapping.
+- crop/region success without sourceScreenshotEvidenceId.
+- lossless optimize changing dimensions.
+- contactSheet used as executable coordinate space.
+- ai_input used as executable coordinate space.
+- hidden resizing/cropping policies outside Screenshot.
+- scaleMapping with null sourceScreenshotEvidenceId for transformed artifacts.
+
+Required inspector:
+- Result schema superRefine for imageKind/coordinateSpace/scaleMapping.
+- Runtime proof scaleMapping checks.
+- Child-specific coordinate policy checks.
+- Forbidden executable coordinate field scan.
+
+Required negative proof:
+- prepare-ai-input success without scaleMapping → FAIL.
+- region crop success without sourceScreenshotEvidenceId → FAIL.
+- optimize-lossless changes dimensions → FAIL.
+- ai_input marked executable → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-005-V2
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact, and output-boundary violations.
+
+### 主题
+
+截图单链执行管线
+
+### 法条
+
+Screenshot execution pipeline must be fixed:
+
+```txt
+input schema gate
+→ child registry gate
+→ privacy policy gate
+→ source proof gate
+→ browser session gate where capture-browser-viewport
+→ page-state handoff/support gate where required
+→ region proof gate where region/crop
+→ payload budget gate
+→ timeout/cancellation gate
+→ capture runner or image-processing runner
+→ scale-mapping gate
+→ artifact storage gate
+→ output boundary gate
+→ proof builder
+→ result builder
+```
+
+Required:
+- Privacy policy gate runs before desktop/fullscreen capture.
+- Source proof gate runs before stored-image transform.
+- Browser session gate runs before browser viewport capture.
+- Region proof gate validates crop bounds and sourceScreenshotEvidenceId.
+- Timeout/cancellation gate must propagate AbortSignal where port supports it and enforce hard timeout.
+- Artifact storage gate must run before success result.
+- Output boundary gate must reject AI/VisualTarget/PAV/PageState truth fields.
+- Every gate failure returns typed failed/review result with proof.
+
+Forbidden:
+- child direct final result/proof.
+- capture without privacy gate.
+- browser capture without browser session gate.
+- image processing without source proof.
+- success without artifact storage.
+- timeout success race.
+- fake/fallback/no-op screenshot success.
+- runtimeProof null.
+
+Required inspector:
+- Pipeline call-order check.
+- Gate presence check.
+- Timeout/AbortSignal check.
+- Artifact storage proof check.
+- Fake success ban.
+
+Required negative proof:
+- Remove privacy gate → FAIL.
+- Remove source proof gate → FAIL.
+- Remove artifact storage gate → FAIL.
+- Timeout returns success → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-006-V2
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot result and runtime proof must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions, and parity.
+
+### 主题
+
+截图结果与运行证明完整性
+
+### 法条
+
+`ScreenshotResult` and `ScreenshotRuntimeProof` must preserve the same real upstream chain as input.
+
+Required result fields:
+
+```txt
+abilityGroupId
+childCapabilityId
+status = success | failed | review_required
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+output
+failureReason
+reviewRequiredReason
+diagnosticPayloadRef if failed/review
+runtimeProof
+dataQualityFlags
+```
+
+Required output fields:
+
+```txt
+artifactRef
+evidenceId
+pageUrl
+pageTitle
+width
+height
+originalWidth
+originalHeight
+imageKind
+coordinateSpace
+scaleMapping when transformed
+sourceScreenshotEvidenceId when transformed
+screenId
+sourceHash
+outputHash
+regionLabel
+regionType
+contentLines
+```
+
+Required proof fields:
+
+```txt
+proofId
+missionId
+runId
+sessionId
+roundId or visitId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+abilityGroupId = screenshot
+childCapabilityId
+sourceAbilityGroupId
+sourceChildCapabilityId
+inputRef
+outputRef or diagnosticPayloadRef
+sourceProofRef
+pageStateProofRef
+browserSessionRef
+screenshotEvidenceId
+artifactRef
+sourceArtifactRef
+sourceScreenshotEvidenceId
+sourceHash
+outputHash
+sourceWidth
+sourceHeight
+outputWidth
+outputHeight
+coordinateSpace
+sourceCoordinateSpace
+scaleMapping
+region
+idempotencyKey
+timeoutDecision
+abortDecision
+privacyDecision
+sourceDecision
+browserSessionDecision
+pageStateDecision
+regionDecision
+captureDecision
+imageProcessingDecision
+scaleMappingDecision
+artifactDecision
+outputBoundaryDecision
+startedAt
+endedAt
+durationMs
+status
+failureReason
+reviewRequiredReason
+dataQualityFlags
+clock
+receivedShapeHash if invalid input
+```
+
+Required:
+- result/proof/input chain parity.
+- success requires output + outputRef + artifactRef + screenshotEvidenceId + outputHash + dimensions.
+- failed/review_required requires output null + diagnosticPayloadRef.
+- runtimeProof.status equals result.status.
+- no nullable chain fields for valid execution.
+- invalid input failure may use receivedShapeHash and typed proof.
+
+Forbidden:
+- `runtimeProof: null`.
+- `status: ok`.
+- `status: persisted`.
+- fabricated runId/missionId/stepId from source names or fingerprints.
+- proof/result chain mismatch.
+- success without outputRef.
+- success without artifactRef.
+- failed/review_required with output.
+
+Required inspector:
+- Schema field checks.
+- Result/proof/input parity.
+- No fabricated id pattern.
+- Success/failure proof invariants.
+
+Required negative proof:
+- Remove `activationSnapshotRef` from proof → FAIL.
+- Set runId from sessionId + child → FAIL.
+- Success without artifactRef → FAIL.
+- Failed with output → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-007-V2
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.
+
+### 主题
+
+子能力窄职责与统一运行链
+
+### 法条
+
+Active child capabilities:
+
+```txt
+capture-browser-viewport
+capture-desktop-screen
+capture-region
+optimize-lossless
+prepare-ai-input
+```
+
+Required:
+- Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
+- Each child uses unified Screenshot executor/runtime.
+- Child implementation must not build final proof/result directly unless delegated to shared builder by the unified runtime.
+- Child must not import sibling child implementation.
+- Child must not import AI, Visual Target, Geometry Guard, Mouse, PAV, Forensics, Orchestration, or BrowserController directly.
+- `capture-browser-viewport` must use browser capture port only.
+- `capture-desktop-screen` must use governed capture port and privacy gate.
+- `capture-region`, `optimize-lossless`, and `prepare-ai-input` must use source proof and image-processing port.
+
+Forbidden:
+- child returning boolean.
+- child direct BrowserController import.
+- child direct filesystem artifact universe outside artifact port.
+- child hardcoded crop/resize without scaleMapping.
+- child direct final success without artifact storage.
+- child importing sibling implementation.
+
+Required inspector:
+- Child folder/registry/schema parity.
+- Child uses unified executor.
+- Forbidden imports/symbols.
+- Child-specific operation checks.
+
+Required negative proof:
+- Child returns boolean → FAIL.
+- Child imports BrowserController → FAIL.
+- Child imports sibling implementation → FAIL.
+- prepare-ai-input hardcodes resize without scaleMapping → FAIL.
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-008-V2
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+
+### 主题
+
+Screenshot 执法唯一入口
+
+### 法条
+
+Screenshot enforcement must close through:
+
+```txt
+scripts/audit/domains/screenshot-capability/manifest.json
+scripts/audit/domains/screenshot-capability/inspector.ts
+scripts/audit/domains/screenshot-capability/run-inspector.ts
+scripts/audit/domains/screenshot-capability/negative-proof-harness.ts
+```
+
+Required:
+- Inspector must use ts-morph AST-level checks.
+- Inspector must use symbol and import-graph checks.
+- Inspector must use schema-level checks.
+- Inspector must include anti-escape checks.
+- Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
+- Negative proof must run and report fail → rollback → pass.
+- CI-FULL must be green for delivery.
+- No grep/regex/includes as final judgment.
+- No warning-only P0.
+- No detached inspector.
+- No empty/missing negative proof.
+- No generated fake PASS.
+- No verify script.
+- No capability-check.ts under Screenshot root.
+
+Required inspector checks:
+```txt
+1. Law file is machine-blocking.
+2. Public contract is screenshot-only.
+3. Input schema includes full chain fields.
+4. Source proof required for transformed artifacts.
+5. Privacy gate invoked.
+6. Browser session gate invoked for browser capture.
+7. Source proof gate invoked for transforms.
+8. Region proof gate invoked for region/crop.
+9. Payload budget gate invoked.
+10. Timeout/AbortSignal/hard timeout gate invoked.
+11. Artifact storage gate invoked.
+12. Scale mapping enforced for prepare-ai-input/region/resize.
+13. Output boundary blocks AI/VisualTarget/PAV/PageState truth.
+14. Result/proof/input chain parity.
+15. Children use unified runtime.
+16. No forbidden imports/symbols/DOM/BOM/cookie reads.
+17. No second screenshot owner.
+18. ALL active Screenshot laws in registry/matrix/audit-plan/runner.
+19. negative-proof-harness executed.
+```
+
+Required negative proof:
+```txt
+manual-first enforcement reintroduced
+remove capabilityCallId from input
+remove activationSnapshotRef from input
+remove nerveBusEnvelopeId from input
+prepare-ai-input success without scaleMapping
+region crop success without sourceScreenshotEvidenceId
+optimize-lossless changes dimensions
+success without artifactRef
+success without outputHash
+failed result with output
+Screenshot imports AI runtime
+Screenshot imports Visual Target implementation
+Screenshot imports BrowserController directly
+Screenshot reads document.cookie
+platform-action screenshot drawer active path
+local-ai resize/crop helper produces artifact truth
+child returns boolean
+child imports sibling implementation
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+---
+
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1
+
+status: active
+tier: P0
+capabilityDomain: screenshot-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, and non-self-promotion truth.
+
+### 主题
+
+Artifact Lifecycle / Screenshot Retention 治理
+
+### 法条
+
+Screenshot artifacts are runtime materials by default, not permanent evidence.
+
+Required:
+- Every governed success output/proof must carry `artifactLifecycleManifestRef`, `retentionClass`, `expiresAt`, `deleteAfter`, `artifactHash`, `byteSize`, `promotionStatus`, and `cleanupEligible`.
+- Screenshot must persist a governed `ScreenshotArtifactLifecycleManifest` for every stored artifact.
+- Default retention classes are:
+	- browser/desktop capture and lossless optimize → `transient-capture`
+	- region crop → `transient-region`
+	- AI input prep → `transient-ai-input`
+	- diagnostic-only screenshot artifacts → `diagnostic-debug`
+- Default TTL is `24h` for transient classes and `7d` for `diagnostic-debug`.
+- Screenshot-emitted `promotionStatus` must start as `not_promoted`.
+- Screenshot success output must never emit `promoted-evidence` or `legal-hold-evidence` retention classes.
+- Artifact budget/backpressure gate must enforce:
+	- `maxArtifactsPerMission`
+	- `maxArtifactsPerRound`
+	- `maxArtifactsPerVideoVisit`
+	- `maxBytesPerMission`
+	- `maxBytesPerRound`
+	- `maxBytesPerVideoVisit`
+	- `maxPendingTransientBytes`
+	- `maxPendingTransientArtifacts`
+- Cleanup eligibility must stay false until all of the following are true:
+	- lifecycle manifest exists
+	- artifact class is transient or diagnostic
+	- artifact is expired
+	- mission is not active
+	- AI / Visual Target / PAV are not pending
+	- artifact is not promoted
+	- artifact is not pinned by Forensics
+	- artifact has no legal hold
+	- `refCount = 0`
+
+Forbidden:
+- treating Screenshot artifacts as permanent evidence by default.
+- success without lifecycle manifest ref.
+- success without `artifactHash` or `byteSize`.
+- success without `expiresAt` / `deleteAfter` for transient or diagnostic artifacts.
+- Screenshot self-promotion to `promoted-evidence` or `legal-hold-evidence`.
+- raw base64 as persisted artifact truth in output/proof.
+- returning success after artifact budget/backpressure is exceeded.
+
+Required inspector:
+- Lifecycle schema field presence.
+- Artifact budget/backpressure gate presence.
+- Artifact storage gate writes lifecycle manifest.
+- Output boundary gate validates manifest parity and self-promotion ban.
+
+Required negative proof:
+- Remove `artifactLifecycleManifestRef` from success output → FAIL.
+- Remove `artifactHash` from proof/output → FAIL.
+- Set Screenshot `promotionStatus` to `promoted` by default → FAIL.
+- Artifact budget exceeded but Screenshot still returns success → FAIL.
+
+---
+
+## Final Readiness Gate
+
+Screenshot is READY only when:
+
+```txt
+law/blueprint/inspector/generated/runner agree
+all active Screenshot laws are machine-blocking
+Screenshot public contract is screenshot-only
+input chain fields complete
+source proof and page-state/browser proof gates are enforced where required
+privacy/session/source/region/timeout/artifact pipeline enforced
+coordinate-space and scaleMapping policy blocks executable misuse
+prepare-ai-input always preserves scaleMapping
+result/proof/input chain parity passes
+children are narrow capture/transform bindings
+owner-local inspector PASS
+negative proof PASS
+ALL active law enforcement PASS
+CI-FULL PASS
+```

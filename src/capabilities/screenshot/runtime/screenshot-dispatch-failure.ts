@@ -13,8 +13,8 @@ import { buildScreenshotRuntimeProof } from "./screenshot-proof-builder.js";
 function buildScreenshotFailureRuntimeProof(input: {
   request: ScreenshotAbilityInput;
   proofId: string;
-  runId: string;
-  missionId: string;
+  runId: string | null;
+  missionId: string | null;
   inputRef: string;
   idempotencyKey: string;
   startedAt: string;
@@ -102,8 +102,8 @@ export function dispatchScreenshotFailure(input: {
   failureReason: ScreenshotFailure | null;
   reviewRequiredReason: string | null;
   proofId: string;
-  runId: string;
-  missionId: string;
+  runId: string | null;
+  missionId: string | null;
   inputRef: string;
   outputRef: string | null;
   idempotencyKey: string;

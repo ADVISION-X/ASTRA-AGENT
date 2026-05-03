@@ -11,9 +11,11 @@ import type { CommanderConsoleResult, CommanderExecutionOutcome } from "../share
 import { buildCommanderRuntimeProof } from "./commander-proof-builder.js";
 import { buildCommanderConsoleResult } from "./commander-result-builder.js";
 import { createMissingChildOutcome, describeCommanderUnhandledError } from "./commander-dispatch-failure.js";
+import type { CommanderIdempotencyState } from "./commander-idempotency-gate.js";
 
 export type CommanderConsoleChildContext = Omit<CreateCommanderConsoleAbilityGroupInput, "clock"> & {
   clock: NonNullable<CreateCommanderConsoleAbilityGroupInput["clock"]>;
+  idempotencyState: CommanderIdempotencyState;
 };
 
 export type CommanderConsoleChildDefinition<TInput, TOutput> = CommanderChildContract & {

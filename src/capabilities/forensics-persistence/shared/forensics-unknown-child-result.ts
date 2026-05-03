@@ -23,12 +23,14 @@ const createUnknownChildIntegrityDecision = () => ({
   requireStorageRef: false,
 } as const);
 
-const buildUnknownChildRuntimeProof = (input: {
+const getUnknownChildDurationMs = (startedAt: string, endedAt: string): number => {
+  return Math.max(0, new Date(endedAt).getTime() - new Date(startedAt).getTime());
+};
+
+const buildUnknownChildProofChain = (input: {
   request: ForensicsPersistenceAbilityInput;
   startedAt: string;
   endedAt: string;
-  policyDecision: ReturnType<typeof createUnknownChildPolicyDecision>;
-  integrityDecision: ReturnType<typeof createUnknownChildIntegrityDecision>;
 }) => ({
   proofId: `forensics-proof:unknown-child:${input.request.childCapabilityId}`,
   runId: input.request.runId ?? "missing-runId",
@@ -53,7 +55,17 @@ const buildUnknownChildRuntimeProof = (input: {
   idempotencyKey: `unknown-child:${input.request.childCapabilityId}`,
   startedAt: input.startedAt,
   endedAt: input.endedAt,
-  durationMs: Math.max(0, new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime()),
+  durationMs: getUnknownChildDurationMs(input.startedAt, input.endedAt),
+});
+
+const buildUnknownChildRuntimeProof = (input: {
+  request: ForensicsPersistenceAbilityInput;
+  startedAt: string;
+  endedAt: string;
+  policyDecision: ReturnType<typeof createUnknownChildPolicyDecision>;
+  integrityDecision: ReturnType<typeof createUnknownChildIntegrityDecision>;
+}) => ({
+  ...buildUnknownChildProofChain(input),
   status: "failed",
   storageOperation: "append-record",
   inputRefs: input.request.inputRefs ?? [],

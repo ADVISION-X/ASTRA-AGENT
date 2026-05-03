@@ -16,11 +16,17 @@ export const SHOW_BROWSE_LEDGER_CHILD: CommanderConsoleChildDefinition<ShowBrows
       inputSchema: ShowBrowseLedgerInputSchema,
       context,
       read: async (readInput) => context.forensicsReadModel.listBrowseLedger(readInput.limit),
-      buildEvidenceRefs: (records) => records.map((record) => buildCommanderEvidenceRef({
-        recordType: "browse-ledger",
-        recordId: record.id,
-        sourceAbility: "forensics-read-model",
-      })),
+      buildEvidenceRefs: (records) => records.length > 0
+        ? records.map((record) => buildCommanderEvidenceRef({
+          recordType: "browse-ledger",
+          recordId: record.id,
+          sourceAbility: "forensics-read-model",
+        }))
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "browse-ledger:empty",
+          sourceAbility: "forensics-read-model",
+        })],
     });
   },
 };

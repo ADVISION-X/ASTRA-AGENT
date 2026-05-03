@@ -5,16 +5,21 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { getSource, listMapPluginFiles } from "./audit-project.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
-import { BUILTINS_ROOT, ROOT } from "./constants.js";
+import { BUILTINS_ROOT, MAP_PLUGIN_LAWS, ROOT } from "./constants.js";
 
 const FORBIDDEN_TEXT_FRAGMENTS = [
   "import(",
   "child_process",
+  "functionbody",
   "npm run",
   "eval(",
   "function ",
   "=>",
+  "dynamicimport",
   "node:",
+  "onrun",
+  "onstep",
+  "ontransition",
   "new function",
   "javascript:",
   "require(",
@@ -27,6 +32,7 @@ const FORBIDDEN_IMPORT_MARKERS = [
   "/capabilities/orchestration/maps/",
   "/capabilities/ai/runtime/",
   "/capabilities/ai/children/",
+  "/capabilities/nerve-bus/",
   "/lib/browser/",
   "node:child_process",
 ] as const;
@@ -35,7 +41,7 @@ const inspectBuiltinFileSet = async (): Promise<Finding[]> => {
   const mapPluginFiles = await listMapPluginFiles();
   return mapPluginFiles
     .filter((filePath) => filePath.startsWith(`${BUILTINS_ROOT}/`) && filePath !== `${BUILTINS_ROOT}/index.ts` && !filePath.endsWith(".json"))
-    .map((file) => createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file, line: 1, severity: "fatal", message: "Builtin map packages must stay JSON data packages and must not ship executable source files." }));
+    .map((file) => createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file, line: 1, severity: "fatal", message: "Builtin map packages must stay JSON data packages and must not ship executable source files." }));
 };
 
 const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
@@ -44,12 +50,12 @@ const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
   for (const record of await loadBuiltinPackageRecords()) {
     const securityIssue = record.validationIssues.find((issue) => issue.code === "security_violation");
     if (securityIssue) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}` }));
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}` }));
     }
 
     const forbiddenFragment = FORBIDDEN_TEXT_FRAGMENTS.find((fragment) => record.text.toLowerCase().includes(fragment));
     if (forbiddenFragment) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: record.file, line: 1, severity: "fatal", message: `Builtin map package must not contain executable-like fragment ${forbiddenFragment}.` }));
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: `Builtin map package must not contain executable-like fragment ${forbiddenFragment}.` }));
     }
   }
 
@@ -64,11 +70,11 @@ const inspectSourceFileImports = async (project: Project): Promise<Finding[]> =>
     const source = getSource(project, filePath);
     const forbiddenImport = FORBIDDEN_IMPORT_MARKERS.find((marker) => hasImportModuleSpecifier(source, marker));
     if (forbiddenImport) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: filePath, line: 1, severity: "fatal", message: `Map package source must not depend on executable runtime internals through ${forbiddenImport}.` }));
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: filePath, line: 1, severity: "fatal", message: `Map package source must not depend on executable runtime internals through ${forbiddenImport}.` }));
     }
 
     if (hasCallExpression(source, "eval") || hasCallExpression(source, "Function") || hasCallExpression(source, "exec") || hasCallExpression(source, "spawn")) {
-      findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-004-V1", file: filePath, line: 1, severity: "fatal", message: "Map package source must not introduce executable payload helpers or shell escapes." }));
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: filePath, line: 1, severity: "fatal", message: "Map package source must not introduce executable payload helpers or shell escapes." }));
     }
   }
 

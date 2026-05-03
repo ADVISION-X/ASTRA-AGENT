@@ -88,12 +88,14 @@ async function executeScreenshotCaptureAndImagePhase(input: {
     plan: input.plan,
     context: input.context,
     scope: input.scope,
+    request: input.request,
     clockStart: input.clockStart,
     registryEntry: input.registryEntry,
   });
   const imageRun = await resolveScreenshotImageRun({
     plan: input.plan,
     context: input.context,
+    request: input.request,
     registryEntry: input.registryEntry,
   });
   const failure = await resolveScreenshotCaptureAndImagePhaseFailure({
@@ -138,45 +140,49 @@ function validateAndExtractScreenshotMetadata(input: {
   }).then((metadataResolution) => (metadataResolution.ok ? metadataResolution.metadata : metadataResolution.failure));
 }
 
-async function executeScreenshotArtifactStoragePhase(input: {
-  plan: ScreenshotExecutionPlan;
-  captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null;
-  imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null;
-  request: ScreenshotAbilityInput;
-  context: ScreenshotRuntimeContext;
-  scope: ScreenshotExecutionScope;
-  clockStart: ScreenshotClockStart;
-  gates: ScreenshotExecutionGates;
-  metadata: { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string };
-  registryEntry: ScreenshotChildRegistryEntry;
-}) {
-  const artifactGate = await runArtifactStorageGate({
-    context: input.context,
-    childCapabilityId: input.request.childCapabilityId,
-    evidenceId: input.scope.evidenceId,
-    outputFilePath: input.metadata.outputFilePath,
-    imageKind: input.registryEntry.outputImageKind,
-    width: input.metadata.outputWidth,
-    height: input.metadata.outputHeight,
-    mimeType: input.metadata.mimeType,
-    createdAt: input.metadata.createdAt,
-  });
-  if (artifactGate.failure || artifactGate.decision.status !== "passed" || !artifactGate.artifactRef || !artifactGate.outputHash) {
-    return await buildScreenshotArtifactStorageFailure({
-      request: input.request,
-      context: input.context,
-      scope: input.scope,
-      clockStart: input.clockStart,
-      sourceGate: input.gates.sourceGate,
-      browserSessionGate: input.gates.browserSessionGate,
-      pageStateGate: input.gates.pageStateGate,
-      privacyGate: input.gates.privacyGate,
-      captureRun: input.captureRun,
-      imageRun: input.imageRun,
-      artifactGate,
-    });
-  }
+function hasArtifactStorageGateRefs(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+  return !artifactGate.artifactRef
+    || !artifactGate.artifactLifecycleManifestRef
+    || !artifactGate.outputHash
+    || !artifactGate.artifactHash
+    || !artifactGate.retentionClass
+    || !artifactGate.promotionStatus;
+}
 
+function hasArtifactStorageGateMetrics(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+  return artifactGate.byteSize === null || artifactGate.cleanupEligible === null;
+}
+
+function hasArtifactStorageGateFailure(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+  return artifactGate.failure
+    || artifactGate.decision.status !== "passed"
+    || hasArtifactStorageGateRefs(artifactGate)
+    || hasArtifactStorageGateMetrics(artifactGate);
+}
+
+async function buildArtifactStorageFailureResult(
+  input: Parameters<typeof executeScreenshotArtifactStoragePhase>[0],
+  artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>,
+) {
+  return buildScreenshotArtifactStorageFailure({
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    clockStart: input.clockStart,
+    sourceGate: input.gates.sourceGate,
+    browserSessionGate: input.gates.browserSessionGate,
+    pageStateGate: input.gates.pageStateGate,
+    privacyGate: input.gates.privacyGate,
+    captureRun: input.captureRun,
+    imageRun: input.imageRun,
+    artifactGate,
+  });
+}
+
+function buildArtifactStorageSuccessResult(
+  input: Parameters<typeof executeScreenshotArtifactStoragePhase>[0],
+  artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>,
+) {
   return executeScreenshotExecutionSuccess({
     request: input.request,
     context: input.context,
@@ -190,6 +196,37 @@ async function executeScreenshotArtifactStoragePhase(input: {
     imageRun: input.imageRun,
     artifactGate,
   });
+}
+
+async function executeScreenshotArtifactStoragePhase(input: {
+  plan: ScreenshotExecutionPlan;
+  captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null;
+  imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null;
+  request: ScreenshotAbilityInput;
+  context: ScreenshotRuntimeContext;
+  scope: ScreenshotExecutionScope;
+  clockStart: ScreenshotClockStart;
+  gates: ScreenshotExecutionGates;
+  metadata: { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string };
+  registryEntry: ScreenshotChildRegistryEntry;
+}) {
+  const artifactGate = await runArtifactStorageGate({
+    request: input.request,
+    context: input.context,
+    childCapabilityId: input.request.childCapabilityId,
+    evidenceId: input.scope.evidenceId,
+    outputFilePath: input.metadata.outputFilePath,
+    imageKind: input.registryEntry.outputImageKind,
+    width: input.metadata.outputWidth,
+    height: input.metadata.outputHeight,
+    mimeType: input.metadata.mimeType,
+    createdAt: input.metadata.createdAt,
+  });
+  if (hasArtifactStorageGateFailure(artifactGate)) {
+    return await buildArtifactStorageFailureResult(input, artifactGate);
+  }
+
+  return buildArtifactStorageSuccessResult(input, artifactGate);
 }
 
 export async function executeScreenshotExecutionPhases(input: {

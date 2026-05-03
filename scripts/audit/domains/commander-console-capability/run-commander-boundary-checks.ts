@@ -33,13 +33,13 @@ const collectCommandEntryBoundaryFindings = (project: import("ts-morph").Project
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
 
   if (!hasCallExpressionPath(taskHandlerSource, ["activeWorkbench", "commanderConsole", "execute"]) || taskHandlerSource.getFullText().includes("issueHumanCommand(")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "task-api-handlers.ts must reach Commander only through commanderConsole.execute." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2", file: TASK_HANDLER_PATH, line: 1, severity: "fatal", message: "task-api-handlers.ts must reach Commander only through commanderConsole.execute." }));
   }
   if (!hasCallExpressionPath(candidateHandlerSource, ["activeWorkbench", "commanderConsole", "execute"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "candidate-api-handlers.ts must reach Commander only through commanderConsole.execute." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2", file: CANDIDATE_HANDLER_PATH, line: 1, severity: "fatal", message: "candidate-api-handlers.ts must reach Commander only through commanderConsole.execute." }));
   }
   if (!hasCallExpressionPath(workbenchSource, ["this", "nerveBusAbilityGroup", "dispatchHumanCommand"]) || !workbenchSource.getFullText().includes("createCommanderConsoleAbilityGroup") || workbenchSource.getFullText().includes("showMissionDashboard(")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "workbench.ts must compose Commander through execute-only API and governed Nerve Bus transport." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2", file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "workbench.ts must compose Commander through execute-only API and governed Nerve Bus transport." }));
   }
 
   return findings;
@@ -60,10 +60,10 @@ const collectShellAndStartupFindings = async (project: import("ts-morph").Projec
   const startupCommandLeak = startupText.includes("commanderConsole.execute(") || startupText.includes("dispatchHumanCommand(");
 
   if (shellTransportLeak) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: SHELL_PAGE_CLIENT_PATH, line: 1, severity: "fatal", message: "Local App Shell must not import Commander transport internals or dispatch commands directly." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: SHELL_PAGE_CLIENT_PATH, line: 1, severity: "fatal", message: "Local App Shell must not import Commander transport internals or dispatch commands directly." }));
   }
   if (startupCommandLeak) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: STARTUP_PATH, line: 1, severity: "fatal", message: "Startup must remain bootstrap-only and must not issue Commander commands." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: STARTUP_PATH, line: 1, severity: "fatal", message: "Startup must remain bootstrap-only and must not issue Commander commands." }));
   }
 
   return { findings, shellTransportLeak, startupCommandLeak };
@@ -91,17 +91,17 @@ export async function runCommanderBoundaryChecks(project: import("ts-morph").Pro
   const shellAndStartup = await collectShellAndStartupFindings(project);
   const forbiddenImportFile = findForbiddenImportFile(project);
   if (forbiddenImportFile) {
-    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: toRepoRelativePath(forbiddenImportFile.getFilePath()), line: 1, severity: "fatal", message: "Commander root must not import other ability implementations or browser/runtime internals." }));
+    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: toRepoRelativePath(forbiddenImportFile.getFilePath()), line: 1, severity: "fatal", message: "Commander root must not import other ability implementations or browser/runtime internals." }));
   }
 
   const antiEscapeFile = findAntiEscapeFile(project);
   if (antiEscapeFile) {
-    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: toRepoRelativePath(antiEscapeFile.getFilePath()), line: 1, severity: "fatal", message: "Commander anti-escape failed: any laundering, suppression, dynamic import, or scattered time allocation detected." }));
+    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: toRepoRelativePath(antiEscapeFile.getFilePath()), line: 1, severity: "fatal", message: "Commander anti-escape failed: any laundering, suppression, dynamic import, or scattered time allocation detected." }));
   }
 
   const externalLeakFile = findExternalLeakFile(project);
   if (externalLeakFile) {
-    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: toRepoRelativePath(externalLeakFile.getFilePath()), line: 1, severity: "fatal", message: "External modules must not import Commander children, runtime internals, registry, or transport port directly." }));
+    commandEntryFindings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: toRepoRelativePath(externalLeakFile.getFilePath()), line: 1, severity: "fatal", message: "External modules must not import Commander children, runtime internals, registry, or transport port directly." }));
   }
 
   return {

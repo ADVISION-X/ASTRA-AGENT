@@ -20,4 +20,3 @@ export {
 export {
   listScreenshotChildren,
 } from "./registry.js";
-export { createWorkbenchScreenshotAbilityGroup } from "./workbench-screenshot-ability-group.js";

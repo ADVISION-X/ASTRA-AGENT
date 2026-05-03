@@ -1,59 +1,105 @@
+import { mkdir, rm, writeFile } from "node:fs/promises";
+
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
-import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { applyAuditMutation, readAuditFileState, restoreAuditFileState, type AuditMutation, type AuditFileState } from "../_shared/read-audit-file-state.js";
 
-type Mutation = {
+type RuntimeDirMutation = {
+  kind: "runtime-dir";
   name: string;
   file: string;
-  search: string;
-  replace: string;
+  content: string;
+};
+
+type Mutation = AuditMutation | RuntimeDirMutation;
+
+const isRuntimeDirMutation = (mutation: Mutation): mutation is RuntimeDirMutation => {
+  return "kind" in mutation && mutation.kind === "runtime-dir";
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/forensics-persistence-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF";
-const LAW_ENFORCEMENT = "GRASSEYE-FORENSICS-PERSISTENCE-005-V1";
+const LAW_ENFORCEMENT = "GRASSEYE-FORENSICS-PERSISTENCE-008-V2";
 
 const MUTATIONS: Mutation[] = [
   {
-    name: "structured log level field mutation",
-    file: "src/types/structured-log.ts",
-    search: "  level: StructuredRuntimeLogLevelSchema.default(\"INFO\"),",
-    replace: "  severity: StructuredRuntimeLogLevelSchema.default(\"INFO\"),",
+    kind: "runtime-dir",
+    name: "forbidden runtime directory mutation",
+    file: "src/capabilities/forensics-persistence/runtime/negative-proof-runtime.ts",
+    content: "export const forbiddenRuntimeMutation = true;\n",
   },
   {
-    name: "structured log prompt debug ref mutation",
-    file: "src/types/structured-log.ts",
-    search: "  promptDebugRef: nullableString,",
-    replace: "  promptDiagnosticRef: nullableString,",
+    name: "legacy import mutation",
+    file: "src/capabilities/forensics-persistence/children/finalize-browse-ledger/schema.ts",
+    search: "import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from \"../../shared/forensics-base-schema.js\";",
+    replace: "import { BrowseLedgerEntrySchema } from \"../../../../types/evidence-packet.js\";\nimport { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from \"../../shared/forensics-base-schema.js\";",
   },
   {
-    name: "structured log raw response hash mutation",
-    file: "src/types/structured-log.ts",
-    search: "  rawResponseHash: nullableString,",
-    replace: "  rawResponseDigest: nullableString,",
+    name: "ai prompt contract mutation",
+    file: "src/capabilities/forensics-persistence/children/write-ai-result-record/schema.ts",
+    search: "  promptCatalogVersion: z.string().min(1),\n",
+    replace: "",
   },
   {
-    name: "commander drafted event mutation",
-    file: "src/lib/local-app-shell/task-start-support.ts",
-    search: "    eventType: \"HUMAN_COMMAND_DRAFTED\",",
-    replace: "    eventType: \"HUMAN_COMMAND_STARTED\",",
+    name: "action verification ref mutation",
+    file: "src/capabilities/forensics-persistence/children/write-structured-action-log/schema.ts",
+    search: "  postActionVerificationRef: z.string().min(1),\n",
+    replace: "",
   },
   {
-    name: "service shutdown event mutation",
-    file: "scripts/startup/launch-grasseye.mjs",
-    search: "SERVICE_SHUTDOWN_REQUESTED",
-    replace: "SERVICE_STOP_REQUESTED",
+    name: "envelope chain mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-envelope-builder.ts",
+    search: "  activationSnapshotRef: requireChainValue(\"activationSnapshotRef\", input.request.activationSnapshotRef),\n  capabilityCallId: requireChainValue(\"capabilityCallId\", input.request.capabilityCallId),\n  sourceAbilityGroupId: input.request.sourceAbilityGroupId,\n",
+    replace: "  activationSnapshotRef: requireChainValue(\"activationSnapshotRef\", input.request.activationSnapshotRef),\n  sourceAbilityGroupId: input.request.sourceAbilityGroupId,\n",
   },
   {
-    name: "workbench ai relay mutation",
-    file: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
-    search: ") => recordAiDebugEvent(...input);",
-    replace: ") => recordAiRuntimeEvent(...input);",
+    name: "proof activation snapshot mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-proof-builder.ts",
+    search: "  activationSnapshotRef: resolveProofChainValue(\"activationSnapshotRef\", request.activationSnapshotRef, status),\n",
+    replace: "",
+  },
+  {
+    name: "proof integrity hash mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-proof-builder.ts",
+    search: "  integrityHash: input.storedRecord?.envelope.integrityHash ?? null,\n",
+    replace: "  integrityHash: null,\n",
+  },
+  {
+    name: "runtime proof builder mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-result-builder.ts",
+    search: "  runtimeProof: buildForensicsProof({\n",
+    replace: "  runtimeProof: buildMissingProof({\n",
+  },
+  {
+    name: "generic storage port mutation",
+    file: "src/capabilities/forensics-persistence/ports/forensics-storage-port.ts",
+    search: "  writeRecord(input: ForensicsWriteRecordInput): Promise<StoredForensicsRecord>;\n",
+    replace: "  appendRecord(envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord>;\n",
+  },
+  {
+    name: "artifact promotion status mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-base-schema.ts",
+    search: "  promotionStatus: ForensicsArtifactPromotionStatusSchema.default(\"not_promoted\"),\n",
+    replace: "",
   },
 ];
+
+async function applyRuntimeDirMutation(mutation: RuntimeDirMutation): Promise<AuditFileState> {
+  const filePath = pathFromRepoRoot(mutation.file);
+  const state = await readAuditFileState(filePath);
+  await mkdir(pathFromRepoRoot("src/capabilities/forensics-persistence/runtime"), { recursive: true });
+  await writeFile(filePath, mutation.content, "utf8");
+  return state;
+}
+
+async function restoreRuntimeDirMutation(mutation: RuntimeDirMutation, state: AuditFileState): Promise<void> {
+  const filePath = pathFromRepoRoot(mutation.file);
+  await restoreAuditFileState(filePath, state);
+  await rm(pathFromRepoRoot("src/capabilities/forensics-persistence/runtime"), { recursive: true, force: true });
+}
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
   const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
@@ -77,8 +123,14 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
 
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const filePath = pathFromRepoRoot(mutation.file);
-  const state = await readAuditFileState(filePath);
-  await applyAuditMutation(filePath, state.original, mutation);
+  const runtimeDirMutation = isRuntimeDirMutation(mutation);
+  const state = runtimeDirMutation
+    ? await applyRuntimeDirMutation(mutation)
+    : await readAuditFileState(filePath);
+
+  if (!runtimeDirMutation) {
+    await applyAuditMutation(filePath, state.original, mutation);
+  }
 
   try {
     const mutated = await runInspector();
@@ -86,7 +138,11 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
-    await restoreAuditFileState(filePath, state);
+    if (runtimeDirMutation) {
+      await restoreRuntimeDirMutation(mutation, state);
+    } else {
+      await restoreAuditFileState(filePath, state);
+    }
   }
 
   const restored = await runInspector();
@@ -135,7 +191,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Forensics negative-proof harness rejects structured-log field deletion, AI debug event drift, commander flow drift, startup exit drift, and workbench relay mutations.");
+    return createPassResult("Forensics negative-proof harness rejects runtime-dir relapse, legacy contract leakage, chain-field removal, prompt/action ref weakening, proof removal, generic-port drift, and artifact-promotion lifecycle regression.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Forensics negative-proof harness failed.",

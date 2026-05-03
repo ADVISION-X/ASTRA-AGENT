@@ -18,9 +18,11 @@ export const buildTransportEnvelopeBase = <TChannelId extends
   payloadRefs: Record<string, string | null>;
   summary: string;
   tags: string[];
+  idempotencyKey?: string;
+  expiresAt?: string;
 }) => {
   const createdAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 5 * 60_000).toISOString();
   const refs = Object.values(input.payloadRefs).filter(
     (value): value is string => typeof value === "string" && value.length > 0,
   );
@@ -35,7 +37,7 @@ export const buildTransportEnvelopeBase = <TChannelId extends
     missionId: input.missionId,
     mapId: input.mapId,
     stepId: input.stepId,
-    idempotencyKey: `${input.envelopeId}:idempotent`,
+    idempotencyKey: input.idempotencyKey ?? `${input.envelopeId}:idempotent`,
     sequenceNo: 0,
     inputRef: input.inputRef,
     payloadRef: refs.length > 0 ? refs : [`${input.envelopeId}:payload`],

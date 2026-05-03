@@ -2,9 +2,12 @@ import type { ZodType } from "zod";
 
 import type { CommanderReadChildContract } from "../contract.js";
 import type { CommanderConsoleChildContext } from "./commander-console-executor.js";
-import { gateCommanderRead } from "./commander-read-gate.js";
+import { gateCommanderRead, type CommanderReadGateSuccess } from "./commander-read-gate.js";
 import { commanderFlag, type CommanderDataQualityFlag, type CommanderEvidenceRef } from "../shared/commander-proof.js";
 import type { CommanderExecutionOutcome } from "../shared/commander-result.js";
+import { runCommanderIdempotencyGate } from "./commander-idempotency-gate.js";
+import { applyCommanderReadProofGate } from "./commander-read-proof-gate.js";
+import { runCommanderTimeoutGate } from "./commander-timeout-gate.js";
 
 type ReadExecutorInput<TInput, TOutput> = {
   contract: CommanderReadChildContract;
@@ -23,6 +26,11 @@ type ReadExecutorInput<TInput, TOutput> = {
     dataQualityFlags?: CommanderDataQualityFlag[];
   };
 };
+
+type ReadTimeoutSuccess<TOutput> = Extract<
+  Awaited<ReturnType<typeof runCommanderTimeoutGate<CommanderExecutionOutcome<TOutput>>>>,
+  { timedOut: false }
+>;
 
 const createBlockedReadOutcome = <TOutput>(input: {
   contract: CommanderReadChildContract;
@@ -50,6 +58,8 @@ const createBlockedReadOutcome = <TOutput>(input: {
   readDecision: "blocked-by-read-gate",
   transportDecision: null,
   hardStopDecision: null,
+  timeoutDecision: "not-applicable",
+  idempotencyDecision: "not-applicable",
   policyDecision: "blocked",
 });
 
@@ -61,12 +71,19 @@ const createReadSuccessOutcome = <TOutput>(input: {
   buildOutputPolicy?: ReadExecutorInput<unknown, TOutput>["buildOutputPolicy"];
 }): CommanderExecutionOutcome<TOutput> => {
   const policy = input.buildOutputPolicy?.(input.output);
-  const status = policy?.status ?? "success";
+  const proofGate = applyCommanderReadProofGate({
+    contract: input.contract,
+    evidenceRefs: input.buildEvidenceRefs(input.output),
+    targetRecordRef: policy?.targetRecordRef ?? null,
+    missionId: policy?.missionId ?? null,
+    dataQualityFlags: policy?.dataQualityFlags ?? [],
+  });
+  const status = proofGate.status === "review_required" ? "review_required" : policy?.status ?? "success";
   return {
     status,
     output: input.output,
     failureReason: policy?.failureReason ?? null,
-    reviewRequiredReason: policy?.reviewRequiredReason ?? null,
+    reviewRequiredReason: proofGate.reviewRequiredReason ?? policy?.reviewRequiredReason ?? null,
     inputRef: input.gated.inputRef,
     outputRef: `commander_read_output:${input.contract.childCapabilityId}:${input.gated.readRequestId}`,
     commandId: null,
@@ -77,9 +94,9 @@ const createReadSuccessOutcome = <TOutput>(input: {
     commandEnvelopeRef: null,
     resultEnvelopeRef: null,
     readModelSource: input.contract.readModelSource,
-    targetRecordRef: policy?.targetRecordRef ?? null,
-    evidenceRefs: input.buildEvidenceRefs(input.output),
-    dataQualityFlags: policy?.dataQualityFlags ?? [],
+    targetRecordRef: proofGate.targetRecordRef,
+    evidenceRefs: proofGate.evidenceRefs,
+    dataQualityFlags: proofGate.dataQualityFlags,
     boundaryDecision: input.contract.boundaryDecision,
     commandDecision: null,
     readDecision: "accepted-by-read-gate",
@@ -124,6 +141,88 @@ const createReadFailureOutcome = <TOutput>(input: {
   };
 };
 
+const createReadTimeoutOutcome = <TOutput>(input: {
+  contract: CommanderReadChildContract;
+  gated: Extract<ReturnType<typeof gateCommanderRead>, { ok: true }>;
+  idempotencyDecision: CommanderExecutionOutcome<TOutput>["idempotencyDecision"];
+}): CommanderExecutionOutcome<TOutput> => {
+  const reviewRequiredReason = `${input.contract.childCapabilityId} timed out after ${input.contract.maxDurationMs}ms.`;
+  return {
+    status: "review_required",
+    output: null,
+    failureReason: null,
+    reviewRequiredReason,
+    inputRef: input.gated.inputRef,
+    outputRef: null,
+    commandId: null,
+    readRequestId: input.gated.readRequestId,
+    runId: null,
+    missionId: null,
+    traceId: null,
+    commandEnvelopeRef: null,
+    resultEnvelopeRef: null,
+    readModelSource: input.contract.readModelSource,
+    targetRecordRef: null,
+    evidenceRefs: [],
+    dataQualityFlags: [commanderFlag("timeout_guarded", "warn", reviewRequiredReason)],
+    boundaryDecision: input.contract.boundaryDecision,
+    commandDecision: null,
+    readDecision: "accepted-by-read-gate",
+    transportDecision: null,
+    hardStopDecision: null,
+    timeoutDecision: "timed-out-review-required",
+    idempotencyDecision: input.idempotencyDecision ?? "not-applicable",
+    policyDecision: "review_required",
+  };
+};
+
+const runReadExecution = async <TInput, TOutput>(input: ReadExecutorInput<TInput, TOutput> & {
+  gated: CommanderReadGateSuccess<TInput>;
+}): Promise<{
+  timeoutResult: Awaited<ReturnType<typeof runCommanderTimeoutGate<CommanderExecutionOutcome<TOutput>>>>;
+  idempotencyDecision: CommanderExecutionOutcome<TOutput>["idempotencyDecision"];
+}> => {
+  let idempotencyDecision: CommanderExecutionOutcome<TOutput>["idempotencyDecision"] = "not-applicable";
+  const timeoutResult = await runCommanderTimeoutGate<CommanderExecutionOutcome<TOutput>>({
+    maxDurationMs: input.contract.maxDurationMs,
+    run: () => {
+      const idempotencyGate = runCommanderIdempotencyGate<CommanderExecutionOutcome<TOutput>>({
+        state: input.context.idempotencyState,
+        childCapabilityId: input.contract.childCapabilityId,
+        operatorRef: input.operatorRef,
+        policy: input.contract.idempotencyPolicy,
+        payload: input.gated.parsedInput,
+        execute: async () => {
+          try {
+            const output = await input.read(input.gated.parsedInput, input.context);
+            return createReadSuccessOutcome({
+              contract: input.contract,
+              gated: input.gated,
+              output,
+              buildEvidenceRefs: input.buildEvidenceRefs,
+              buildOutputPolicy: input.buildOutputPolicy,
+            });
+          } catch (error) {
+            return createReadFailureOutcome({ contract: input.contract, gated: input.gated, error });
+          }
+        },
+      });
+      idempotencyDecision = idempotencyGate.idempotencyDecision;
+      return idempotencyGate.resultPromise;
+    },
+  });
+  return { timeoutResult, idempotencyDecision };
+};
+
+const finalizeReadExecution = <TOutput>(input: {
+  timeoutResult: ReadTimeoutSuccess<TOutput>;
+  idempotencyDecision: CommanderExecutionOutcome<TOutput>["idempotencyDecision"];
+}): CommanderExecutionOutcome<TOutput> => ({
+  ...input.timeoutResult.value,
+  timeoutDecision: input.timeoutResult.timeoutDecision,
+  idempotencyDecision: input.idempotencyDecision ?? "not-applicable",
+});
+
 export async function executeCommanderReadChild<TInput, TOutput>(input: ReadExecutorInput<TInput, TOutput>): Promise<CommanderExecutionOutcome<TOutput>> {
   const gated = gateCommanderRead({
     childCapabilityId: input.contract.childCapabilityId,
@@ -136,16 +235,20 @@ export async function executeCommanderReadChild<TInput, TOutput>(input: ReadExec
     return createBlockedReadOutcome({ contract: input.contract, gated });
   }
 
-  try {
-    const output = await input.read(gated.parsedInput, input.context);
-    return createReadSuccessOutcome({
+  const execution = await runReadExecution({ ...input, gated });
+
+  if (execution.timeoutResult.timedOut) {
+    return createReadTimeoutOutcome({
       contract: input.contract,
       gated,
-      output,
-      buildEvidenceRefs: input.buildEvidenceRefs,
-      buildOutputPolicy: input.buildOutputPolicy,
+      idempotencyDecision: execution.idempotencyDecision,
     });
-  } catch (error) {
-    return createReadFailureOutcome({ contract: input.contract, gated, error });
   }
+
+  const timeoutResult = execution.timeoutResult;
+
+  return finalizeReadExecution({
+    timeoutResult,
+    idempotencyDecision: execution.idempotencyDecision,
+  });
 }

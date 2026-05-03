@@ -1,4 +1,4 @@
-generatedAt: 2026-05-02T09:47:05.009Z
+generatedAt: 2026-05-03T12:21:12.976Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -113,12 +113,14 @@ owners:
       - fs
       - hybrid
     lawIds:
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V1
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2
       - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2
       - GRASSEYE-LOCAL-APP-SHELL-001-V1
       - GRASSEYE-LOCAL-APP-SHELL-002-V1
       - GRASSEYE-LOCAL-APP-SHELL-003-V1
@@ -159,6 +161,7 @@ owners:
       - GRASSEYE-FORENSICS-PERSISTENCE-006-V2
       - GRASSEYE-FORENSICS-PERSISTENCE-007-V2
       - GRASSEYE-FORENSICS-PERSISTENCE-008-V2
+      - GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1
       - GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1
       - GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2
       - GRASSEYE-STRUCTURED-LOGGING-001-V1
@@ -171,11 +174,12 @@ owners:
       - GRASSEYE-STRUCTURED-LOGGING-008-V1
       - GRASSEYE-STRUCTURED-LOGGING-009-V1
     readsLawFiles:
-      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md
+      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md
+      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md
       - .github/instructions/cursor-rules/modules/module-structured-logging.instructions.md
       - .github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md
     readsBlueprintFiles:
-      - "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图.md"
+      - "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md"
       - "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
       - "docs/法案辅助文件/GrassEye 本地取证存储结构施工图.md"
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
@@ -190,11 +194,14 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V2
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V2
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V2
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md
     readsBlueprintFiles:
@@ -209,17 +216,17 @@ owners:
       - fs
       - hybrid
     lawIds:
-      - GRASSEYE-MAP-PLUGIN-001-V1
-      - GRASSEYE-MAP-PLUGIN-002-V1
-      - GRASSEYE-MAP-PLUGIN-003-V1
-      - GRASSEYE-MAP-PLUGIN-004-V1
-      - GRASSEYE-MAP-PLUGIN-005-V1
-      - GRASSEYE-MAP-PLUGIN-006-V1
-      - GRASSEYE-MAP-PLUGIN-007-V1
-      - GRASSEYE-MAP-PLUGIN-008-V1
-      - GRASSEYE-MAP-PLUGIN-009-V1
-      - GRASSEYE-MAP-PLUGIN-010-V1
-      - GRASSEYE-MAP-PLUGIN-011-V1
+      - GRASSEYE-MAP-PLUGIN-001-V2
+      - GRASSEYE-MAP-PLUGIN-002-V2
+      - GRASSEYE-MAP-PLUGIN-003-V2
+      - GRASSEYE-MAP-PLUGIN-004-V2
+      - GRASSEYE-MAP-PLUGIN-005-V2
+      - GRASSEYE-MAP-PLUGIN-006-V2
+      - GRASSEYE-MAP-PLUGIN-007-V2
+      - GRASSEYE-MAP-PLUGIN-008-V2
+      - GRASSEYE-MAP-PLUGIN-009-V2
+      - GRASSEYE-MAP-PLUGIN-010-V2
+      - GRASSEYE-MAP-PLUGIN-011-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md
       - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
@@ -243,11 +250,14 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V1
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V1
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V1
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V1
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
     readsBlueprintFiles:
@@ -263,22 +273,27 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V1
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V1
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V1
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md
       - .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md
-      - .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md
-      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md
+      - .github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md
+      - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md
       - .github/instructions/cursor-rules/modules/module-code-topology.instructions.md
       - .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md
       - .github/instructions/cursor-rules/modules/module-audit-system.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md"
       - "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md"
-      - "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md"
+      - "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md"
       - "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
   - inspectorId: nerve-bus-capability-owner
     capabilityDomain: nerve-bus-capability
@@ -309,10 +324,14 @@ owners:
       - hybrid
     lawIds:
       - GRASSEYE-LOCAL-BROWSER-SESSION-001-V1
-      - GRASSEYE-OPEN-CAPABILITY-001-V1
-      - GRASSEYE-OPEN-CAPABILITY-002-V1
-      - GRASSEYE-OPEN-CAPABILITY-003-V1
-      - GRASSEYE-OPEN-CAPABILITY-004-V1
+      - GRASSEYE-OPEN-CAPABILITY-001-V2
+      - GRASSEYE-OPEN-CAPABILITY-002-V2
+      - GRASSEYE-OPEN-CAPABILITY-003-V2
+      - GRASSEYE-OPEN-CAPABILITY-004-V2
+      - GRASSEYE-OPEN-CAPABILITY-005-V2
+      - GRASSEYE-OPEN-CAPABILITY-006-V2
+      - GRASSEYE-OPEN-CAPABILITY-007-V2
+      - GRASSEYE-OPEN-CAPABILITY-008-V2
       - GRASSEYE-PLATFORM-ACTION-001-V1
       - GRASSEYE-PLATFORM-ACTION-002-V1
     readsLawFiles:
@@ -334,14 +353,16 @@ owners:
       - fs
       - hybrid
     lawIds:
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-002-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-003-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-004-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-005-V2
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-006-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-008-V1
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
     readsBlueprintFiles:
@@ -356,15 +377,20 @@ owners:
       - fs
       - hybrid
     lawIds:
-      - GRASSEYE-PAGE-STATE-CAPABILITY-001-V1
-      - GRASSEYE-PAGE-STATE-CAPABILITY-002-V1
-      - GRASSEYE-PAGE-STATE-CAPABILITY-003-V1
-      - GRASSEYE-PAGE-STATE-CAPABILITY-004-V1
-      - GRASSEYE-PAGE-STATE-CAPABILITY-005-V1
+      - GRASSEYE-PAGE-STATE-CAPABILITY-001-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-002-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-003-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-004-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-005-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-006-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-007-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md
+      - .github/instructions/cursor-rules/modules/module-page-state-capability.FINAL.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md"
+      - "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图_FINAL.md"
   - inspectorId: post-action-verification-capability-owner
     capabilityDomain: post-action-verification-capability
     manifestPath: scripts/audit/domains/post-action-verification-capability/manifest.json
@@ -375,14 +401,19 @@ owners:
       - fs
       - hybrid
     lawIds:
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V1
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V1
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V1
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V1
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2
+      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md
+      - .github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md
     readsBlueprintFiles:
-      - "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md"
+      - "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md"
   - inspectorId: screenshot-capability-owner
     capabilityDomain: screenshot-capability
     manifestPath: scripts/audit/domains/screenshot-capability/manifest.json
@@ -394,10 +425,15 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-SCREENSHOT-CAPABILITY-001-V1
-      - GRASSEYE-SCREENSHOT-CAPABILITY-002-V1
-      - GRASSEYE-SCREENSHOT-CAPABILITY-003-V1
-      - GRASSEYE-SCREENSHOT-CAPABILITY-004-V1
+      - GRASSEYE-SCREENSHOT-CAPABILITY-001-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-002-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-003-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-004-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-005-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-006-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-007-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-008-V2
+      - GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md
     readsBlueprintFiles:
@@ -470,10 +506,14 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V1
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V1
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2
+      - GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md
     readsBlueprintFiles:

@@ -56,6 +56,9 @@ export function leaksPrivateScreenshotPath(sourceFile: SourceFile): boolean {
     if (repoPath === "src/lib/local-runtime/workbench.ts" && targetPath === `${PATHS.ROOT}/adapters/index.ts`) {
       return false;
     }
+    if (targetPath === PATHS.WORKBENCH_ABILITY_GROUP) {
+      return repoPath !== "src/lib/local-runtime/workbench-screenshot-ability-group.ts";
+    }
     return targetPath.startsWith(`${PATHS.ROOT}/runtime/`)
       || targetPath.startsWith(`${PATHS.ROOT}/children/`)
       || targetPath.startsWith(`${PATHS.ROOT}/ports/`)

@@ -2,6 +2,7 @@ import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, Visua
 import { VisualTargetRuntimeProofSchema } from "../schema.js";
 import { VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY } from "../shared/visual-target-proof.js";
 import { buildStableVisualTargetRef } from "../shared/visual-target-types.js";
+import { resolveVisualTargetChain } from "./visual-target-chain.js";
 import type { VisualTargetFailureTrace } from "./visual-target-input-gate.js";
 import type { VisualTargetCandidateScoreTrace } from "./target-selection-gate.js";
 
@@ -56,10 +57,10 @@ type VisualTargetRuntimeProofInput = {
 };
 
 function buildRuntimeProofIdentity(input: VisualTargetRuntimeProofInput) {
+  const chain = resolveVisualTargetChain(input.request, input.trace);
   return {
     proofId: buildStableVisualTargetRef("visual-target-proof", [input.trace.inputRef, input.outputRef, input.status]),
-    runId: buildStableVisualTargetRef("visual-target-run", [input.trace.sessionId, input.trace.childCapabilityId, input.trace.roundId, input.trace.videoVisitId]),
-    missionId: input.trace.sessionId,
+    ...chain,
     sessionId: input.trace.sessionId,
     roundId: input.trace.roundId,
     videoVisitId: input.trace.videoVisitId,

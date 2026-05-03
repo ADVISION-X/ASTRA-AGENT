@@ -4,26 +4,24 @@ import { PAGE_STATE_ABILITY_GROUP_ID, PageStateRuntimeProofSchema } from "../sch
 import type { PageStateAbilityInput, PageStateDataQualityFlag, PageStateFailureReason, PageStateRuntimeProof, PageStateType } from "../schema.js";
 import type { PageStateExecutionTiming, PageStateExecutionTrace } from "../shared/page-state-types.js";
 
+function hashJson(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
 function buildPageStateRuntimeProofHashFields(input: {
   request: PageStateAbilityInput;
-  timing: PageStateExecutionTiming;
-  pageStateFingerprint: string;
-}): Pick<PageStateRuntimeProof, "proofId" | "inputPayloadHash" | "snapshotHash" | "observationHash" | "debugLogRef"> {
-  const inputPayloadHash = createHash("sha256")
-    .update(JSON.stringify(input.request))
-    .digest("hex");
-  const snapshotHash = createHash("sha256")
-    .update(JSON.stringify(input.request.snapshot))
-    .digest("hex");
-  const observationHash = createHash("sha256")
-    .update(JSON.stringify(input.request.observations))
-    .digest("hex");
+}): Pick<PageStateRuntimeProof, "proofId" | "inputPayloadHash" | "snapshotHash" | "observationHash"> {
+  const inputPayloadHash = hashJson(input.request);
+  const snapshotHash = hashJson(input.request.snapshot);
+  const observationHash = hashJson(input.request.observations);
   const proofId = createHash("sha256")
     .update([
       input.request.runId,
-      input.request.childCapabilityId,
-      input.timing.startedAt.isoTimestamp,
-      input.pageStateFingerprint,
+      input.request.stepId,
+      input.request.capabilityCallId,
+      inputPayloadHash,
+      snapshotHash,
+      observationHash,
     ].join("|"))
     .digest("hex")
     .slice(0, 24);
@@ -33,13 +31,11 @@ function buildPageStateRuntimeProofHashFields(input: {
     inputPayloadHash,
     snapshotHash,
     observationHash,
-    debugLogRef: `page-state-debug:${input.request.runId}:${input.request.childCapabilityId}:${proofId}`,
   };
 }
 
 function buildPageStateRuntimeProofReferenceFields(input: {
   request: PageStateAbilityInput;
-  timing: PageStateExecutionTiming;
   pageStateFingerprint: string;
   diagnosticPayloadRef: string | null;
   structuredRuntimeEventRef: string | null;
@@ -51,6 +47,14 @@ function buildPageStateRuntimeProofReferenceFields(input: {
   | "sessionId"
   | "roundId"
   | "videoVisitId"
+  | "stepId"
+  | "mapPackageId"
+  | "mapPackageVersion"
+  | "selectedMapId"
+  | "selectedMapVersion"
+  | "activationSnapshotRef"
+  | "capabilityCallId"
+  | "nerveBusEnvelopeId"
   | "abilityGroupId"
   | "childCapabilityId"
   | "inputRef"
@@ -80,20 +84,28 @@ function buildPageStateRuntimeProofReferenceFields(input: {
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
+    stepId: input.request.stepId,
+    mapPackageId: input.request.mapPackageId,
+    mapPackageVersion: input.request.mapPackageVersion,
+    selectedMapId: input.request.selectedMapId,
+    selectedMapVersion: input.request.selectedMapVersion,
+    activationSnapshotRef: input.request.activationSnapshotRef,
+    capabilityCallId: input.request.capabilityCallId,
+    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
     abilityGroupId: PAGE_STATE_ABILITY_GROUP_ID,
     childCapabilityId: input.request.childCapabilityId,
-    inputRef: `page-state-input:${input.request.runId}:${input.request.childCapabilityId}`,
+    inputRef: input.request.inputRef,
     outputRef: null,
-    diagnosticPayloadRef: input.diagnosticPayloadRef ?? null,
-    debugLogRef: `page-state-debug:${input.request.runId}:${input.request.childCapabilityId}:${input.request.childCapabilityId}`,
-    structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
+    diagnosticPayloadRef: input.diagnosticPayloadRef,
+    debugLogRef: `page-state-debug:${input.request.runId}:${input.request.stepId}:${input.request.capabilityCallId}`,
+    structuredRuntimeEventRef: input.structuredRuntimeEventRef,
     snapshotId: input.request.snapshot.snapshotId,
     snapshotProofRef: input.request.snapshot.sourceProofRef,
     openHandoffProofRef: input.request.openHandoff.openProofRef,
     browserSessionRef: input.request.openHandoff.browserSessionRef,
     platformProfileId: input.request.openHandoff.platformProfileId,
-    resolvedPlatformProfileId: input.resolvedPlatformProfileId ?? null,
-    matchedHost: input.matchedHost ?? null,
+    resolvedPlatformProfileId: input.resolvedPlatformProfileId,
+    matchedHost: input.matchedHost,
     sourceAbilityGroupId: input.request.snapshot.sourceAbilityGroupId,
     sourceChildCapabilityId: input.request.snapshot.sourceChildCapabilityId,
     observationRefs: [...input.request.observations.map((observation) => observation.observationId)],
@@ -106,75 +118,17 @@ function buildPageStateRuntimeProofReferenceFields(input: {
   };
 }
 
-function buildPageStateRuntimeProofCoreFields(input: {
-  request: PageStateAbilityInput;
-  timing: PageStateExecutionTiming;
-  pageStateFingerprint: string;
-  diagnosticPayloadRef: string | null;
-  structuredRuntimeEventRef: string | null;
-  resolvedPlatformProfileId: string | null;
-  matchedHost: string | null;
-}): Pick<PageStateRuntimeProof,
-  | "proofId"
-  | "runId"
-  | "missionId"
-  | "sessionId"
-  | "roundId"
-  | "videoVisitId"
-  | "abilityGroupId"
-  | "childCapabilityId"
-  | "inputRef"
-  | "outputRef"
-  | "diagnosticPayloadRef"
-  | "debugLogRef"
-  | "structuredRuntimeEventRef"
-  | "snapshotId"
-  | "snapshotProofRef"
-  | "openHandoffProofRef"
-  | "browserSessionRef"
-  | "platformProfileId"
-  | "resolvedPlatformProfileId"
-  | "matchedHost"
-  | "sourceAbilityGroupId"
-  | "sourceChildCapabilityId"
-  | "observationRefs"
-  | "sourceEvidenceRefs"
-  | "inputPayloadHash"
-  | "snapshotHash"
-  | "observationHash"
-  | "currentUrl"
-  | "currentTitle"
-  | "pageStateFingerprint"
-  | "previousPageStateFingerprint"
-  | "classificationSource"> {
-  const hashFields = buildPageStateRuntimeProofHashFields(input);
-  const referenceFields = buildPageStateRuntimeProofReferenceFields({
-    request: input.request,
-    timing: input.timing,
-    pageStateFingerprint: input.pageStateFingerprint,
-    diagnosticPayloadRef: input.diagnosticPayloadRef ?? null,
-    structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
-    resolvedPlatformProfileId: input.resolvedPlatformProfileId ?? null,
-    matchedHost: input.matchedHost ?? null,
-  });
-
-  return {
-    ...hashFields,
-    ...referenceFields,
-  };
-}
-
 function buildPageStateRuntimeProofDecisionFields(input: {
   timing: PageStateExecutionTiming;
+  trace: PageStateExecutionTrace;
   status: "success" | "failed" | "review_required";
   decision: "proceed" | "block" | "review_required" | "fail";
   failureReason: PageStateFailureReason | null;
   reviewRequiredReason: string | null;
-  trace: PageStateExecutionTrace;
   pageStateType: PageStateType;
   confidence: number;
-  outputBoundaryDecision?: "allow" | "review_required" | "fail";
-  criticalDataQualityDecision?: "allow" | "review_required" | "fail";
+  outputBoundaryDecision?: "allow" | "review_required" | "fail" | undefined;
+  criticalDataQualityDecision?: "allow" | "review_required" | "fail" | undefined;
   dataQualityFlags: readonly PageStateDataQualityFlag[];
 }): Pick<PageStateRuntimeProof,
   | "startedAt"
@@ -185,6 +139,7 @@ function buildPageStateRuntimeProofDecisionFields(input: {
   | "failureReason"
   | "reviewRequiredReason"
   | "inputDecision"
+  | "payloadBudgetDecision"
   | "sourceBindingDecision"
   | "observationBindingDecision"
   | "freshnessDecision"
@@ -203,8 +158,9 @@ function buildPageStateRuntimeProofDecisionFields(input: {
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     inputDecision: input.trace.inputDecision,
+    payloadBudgetDecision: input.trace.payloadBudgetDecision,
     sourceBindingDecision: input.trace.sourceDecision,
-    observationBindingDecision: "bound",
+    observationBindingDecision: input.trace.observationBindingDecision,
     freshnessDecision: input.trace.freshnessDecision,
     platformDecision: input.trace.platformDecision,
     classificationDecision: input.trace.classificationDecision,
@@ -237,9 +193,9 @@ export function buildPageStateRuntimeProof(input: {
   receivedShapeHash?: string | null;
 }): PageStateRuntimeProof {
   return PageStateRuntimeProofSchema.parse({
-    ...buildPageStateRuntimeProofCoreFields({
+    ...buildPageStateRuntimeProofHashFields({ request: input.request }),
+    ...buildPageStateRuntimeProofReferenceFields({
       request: input.request,
-      timing: input.timing,
       pageStateFingerprint: input.pageStateFingerprint,
       diagnosticPayloadRef: input.diagnosticPayloadRef ?? null,
       structuredRuntimeEventRef: input.structuredRuntimeEventRef ?? null,
@@ -248,18 +204,18 @@ export function buildPageStateRuntimeProof(input: {
     }),
     ...buildPageStateRuntimeProofDecisionFields({
       timing: input.timing,
+      trace: input.trace,
       status: input.status,
       decision: input.decision,
       failureReason: input.failureReason,
       reviewRequiredReason: input.reviewRequiredReason,
-      trace: input.trace,
       pageStateType: input.pageStateType,
       confidence: input.confidence,
-      outputBoundaryDecision: input.outputBoundaryDecision ?? "allow",
-      criticalDataQualityDecision: input.criticalDataQualityDecision ?? "allow",
+      outputBoundaryDecision: input.outputBoundaryDecision,
+      criticalDataQualityDecision: input.criticalDataQualityDecision,
       dataQualityFlags: input.dataQualityFlags,
     }),
-    outputRef: input.status === "success" ? `page-state-output:${input.request.runId}:${input.request.childCapabilityId}` : null,
+    outputRef: input.status === "success" ? `page-state-output:${input.request.capabilityCallId}` : null,
     receivedShapeHash: input.receivedShapeHash ?? null,
   });
 }

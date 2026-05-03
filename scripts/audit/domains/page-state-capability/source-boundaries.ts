@@ -59,11 +59,23 @@ export function leaksPrivatePageStatePath(sourceFile: SourceFile): boolean {
 export function hasForbiddenCapabilityImport(sourceFile: SourceFile): boolean {
   return [
     "capabilities/ai",
+    "capabilities/open",
     "capabilities/screenshot",
+    "/screenshot/",
     "capabilities/visual-target",
     "capabilities/mouse-click",
     "capabilities/mouse-scroll",
     "capabilities/post-action-verification",
     "capabilities/forensics-persistence",
+    "capabilities/orchestration",
+    "capabilities/nerve-bus",
+    "lib/browser",
   ].some((marker) => hasImportModuleSpecifier(sourceFile, marker) || hasExportModuleSpecifier(sourceFile, marker));
+}
+
+export function hasDomBomUsage(sourceFile: SourceFile): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => {
+    const text = identifier.getText();
+    return text === "document" || text === "window";
+  });
 }

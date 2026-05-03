@@ -9,7 +9,7 @@ import { forensicsPersistenceInspectionUtils } from "./inspection-utils.js";
 
 const {
   INDEX_PATH,
-  LAW_RETIRED_ROOT,
+  LAW_OWNER,
   LAW_RUNTIME,
   LAW_STORAGE,
   LEGACY_LOCAL_DATA_ROOT,
@@ -113,10 +113,10 @@ const collectRetiredRootFindings = async (project: import("ts-morph").Project): 
   const legacyStoragePortExists = await fileExists(pathFromRepoRoot(LEGACY_STORAGE_PORT_PATH));
 
   if (indexLeaksInternals(indexSource)) {
-    findings.push(createFinding({ lawId: LAW_RETIRED_ROOT, file: INDEX_PATH, line: 1, severity: "error", message: "Forensics public index cannot leak runtime internals, children, or export-star barrels." }));
+    findings.push(createFinding({ lawId: LAW_OWNER, file: INDEX_PATH, line: 1, severity: "error", message: "Forensics public index cannot leak runtime internals, children, or export-star barrels." }));
   }
   if (legacyLocalDataExists || legacyStoragePortExists) {
-    findings.push(createFinding({ lawId: LAW_RETIRED_ROOT, file: legacyStoragePortExists ? LEGACY_STORAGE_PORT_PATH : LEGACY_LOCAL_DATA_ROOT, line: 1, severity: "fatal", message: "Retired local-data or legacy storage-port surfaces still overlap the Forensics owner boundary." }));
+    findings.push(createFinding({ lawId: LAW_OWNER, file: legacyStoragePortExists ? LEGACY_STORAGE_PORT_PATH : LEGACY_LOCAL_DATA_ROOT, line: 1, severity: "fatal", message: "Retired local-data or legacy storage-port surfaces still overlap the Forensics owner boundary." }));
   }
 
   return findings;

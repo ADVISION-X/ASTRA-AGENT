@@ -6,16 +6,21 @@
   "engine": "hybrid",
   "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
   "allowedLawIds": [
-    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V1",
-    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V1",
-    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V1",
-    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V1"
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
     ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
     ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
     ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
     ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
@@ -23,7 +28,7 @@
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md",
     "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md",
-    "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md",
+    "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md",
     "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
   ]
 }

@@ -1,8 +1,13 @@
 export const LAW_IDS = {
-  PUBLIC: "GRASSEYE-SCREENSHOT-CAPABILITY-001-V1",
-  BOUNDARY: "GRASSEYE-SCREENSHOT-CAPABILITY-002-V1",
-  SCHEMA: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V1",
-  SHAPE: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
+  PUBLIC: "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
+  BOUNDARY: "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2",
+  SHAPE: "GRASSEYE-SCREENSHOT-CAPABILITY-003-V2",
+  SCHEMA: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V2",
+  TIMEOUT: "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2",
+  TRANSFORM: "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2",
+  ENTRY: "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2",
+  LIFECYCLE: "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1",
+  NEGATIVE_PROOF: "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2",
 } as const;
 
 export const PATHS = {
@@ -11,19 +16,30 @@ export const PATHS = {
   ABILITY_GROUP: "src/capabilities/screenshot/ability-group.ts",
   CONTRACT: "src/capabilities/screenshot/contract.ts",
   SCHEMA: "src/capabilities/screenshot/schema.ts",
+  TYPES: "src/capabilities/screenshot/shared/screenshot-types.ts",
   REGISTRY: "src/capabilities/screenshot/registry.ts",
   INDEX: "src/capabilities/screenshot/index.ts",
   WORKBENCH_ABILITY_GROUP: "src/capabilities/screenshot/workbench-screenshot-ability-group.ts",
+  LIFECYCLE_SCHEMA: "src/capabilities/screenshot/shared/screenshot-artifact-lifecycle-schema.ts",
+  LIFECYCLE_RUNTIME: "src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts",
   EXECUTOR: "src/capabilities/screenshot/runtime/screenshot-executor.ts",
   EXECUTION_FLOW: "src/capabilities/screenshot/runtime/screenshot-execution-flow.ts",
   EXECUTION_PHASES: "src/capabilities/screenshot/runtime/screenshot-execution-phases.ts",
   EXECUTION_SUCCESS: "src/capabilities/screenshot/runtime/screenshot-execution-success.ts",
   EXECUTION_SUCCESS_RESULT: "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+  SUCCESS_HELPERS: "src/capabilities/screenshot/runtime/screenshot-execution-success-helpers.ts",
+  PAYLOAD_BUDGET_GATE: "src/capabilities/screenshot/runtime/screenshot-payload-budget-gate.ts",
+  ARTIFACT_STORAGE_GATE: "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
   CAPTURE_RUNNER: "src/capabilities/screenshot/runtime/capture-runner.ts",
   OUTPUT_BOUNDARY_GATE: "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
   PROOF_BUILDER: "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
   RESULT_BUILDER: "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
   DISPATCH_FAILURE: "src/capabilities/screenshot/runtime/screenshot-dispatch-failure.ts",
+  INPUT_GATE: "src/capabilities/screenshot/runtime/screenshot-input-gate.ts",
+  PHASE_HELPERS: "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
+  IDEMPOTENCY: "src/capabilities/screenshot/runtime/screenshot-idempotency.ts",
+  GOVERNANCE: "src/capabilities/screenshot/shared/screenshot-governance.ts",
+  CHAIN: "src/capabilities/screenshot/runtime/screenshot-chain.ts",
 } as const;
 
 export const CHILDREN = [
@@ -50,6 +66,7 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/runtime/screenshot-runtime-context.ts`,
   `${PATHS.ROOT}/runtime/screenshot-child-contract.ts`,
   `${PATHS.ROOT}/runtime/screenshot-input-gate.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-chain.ts`,
   `${PATHS.ROOT}/runtime/screenshot-payload-budget-gate.ts`,
   `${PATHS.ROOT}/runtime/screenshot-source-gate.ts`,
   `${PATHS.ROOT}/runtime/browser-session-gate.ts`,
@@ -71,15 +88,18 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/ports/screenshot-clock-port.ts`,
   `${PATHS.ROOT}/ports/screenshot-image-processing-port.ts`,
   `${PATHS.ROOT}/shared/screenshot-types.ts`,
+  `${PATHS.ROOT}/shared/screenshot-governance.ts`,
   `${PATHS.ROOT}/shared/screenshot-policy.ts`,
   `${PATHS.ROOT}/shared/screenshot-result.ts`,
   `${PATHS.ROOT}/shared/screenshot-proof.ts`,
   `${PATHS.ROOT}/shared/screenshot-failure.ts`,
   `${PATHS.ROOT}/shared/screenshot-artifact.ts`,
+  `${PATHS.ROOT}/shared/screenshot-artifact-lifecycle-schema.ts`,
   `${PATHS.ROOT}/shared/screenshot-scale-mapping.ts`,
+  `${PATHS.ROOT}/runtime/screenshot-artifact-lifecycle.ts`,
 ] as const;
 
-export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js", "./workbench-screenshot-ability-group.js"] as const;
+export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js"] as const;
 
 export const FORBIDDEN_CAPABILITY_MARKERS = [
   "/capabilities/ai/",

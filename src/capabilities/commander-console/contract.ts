@@ -52,6 +52,8 @@ type CommanderHumanCommandEnvelope = {
   maxRounds: number | null;
   maxMinutes: number | null;
   operatorNote: string | null;
+  idempotencyKey: string;
+  timeoutMs: number;
   payload: CommanderTransportPayload;
 };
 

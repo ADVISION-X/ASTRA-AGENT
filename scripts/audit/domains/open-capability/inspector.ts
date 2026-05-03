@@ -4,6 +4,7 @@ import { createAuditProject } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 import { openInspectionConstants } from "./inspection-constants.js";
+import { runOpenEnforcementCoverage } from "./enforcement-coverage.js";
 import { runOpenBoundaryChecks } from "./run-open-boundary-checks.js";
 import { runOpenExternalBoundaryChecks } from "./run-open-external-boundary-checks.js";
 import { runOpenRequiredShapeChecks } from "./run-open-required-shape-checks.js";
@@ -62,12 +63,13 @@ const createAntiEscapePhase = (findings: Finding[]): InspectorPhase => {
   );
 };
 
-const runOpenExtraChecks = async () => {
+const runOpenExtraChecks = async (context: import("../../core/schema.js").InspectorContext) => {
   const project = createAuditProject();
   const requiredShape = await runOpenRequiredShapeChecks(project);
   const runtimeFindings = runOpenRuntimeChecks(project);
   const boundary = runOpenBoundaryChecks(project);
   const { platformBoundary, browserBoundary } = await runOpenExternalBoundaryChecks();
+  const enforcementCoverage = await runOpenEnforcementCoverage(context);
   const findings = [
     ...requiredShape.findings,
     ...runtimeFindings,
@@ -75,6 +77,7 @@ const runOpenExtraChecks = async () => {
     ...boundary.antiEscapeFindings,
     ...platformBoundary.findings,
     ...browserBoundary.findings,
+    ...enforcementCoverage.findings,
   ];
 
   return {
@@ -86,6 +89,7 @@ const runOpenExtraChecks = async () => {
       createAntiEscapePhase(boundary.antiEscapeFindings),
       ...platformBoundary.phases,
       ...browserBoundary.phases,
+      enforcementCoverage.phase,
     ],
   };
 };

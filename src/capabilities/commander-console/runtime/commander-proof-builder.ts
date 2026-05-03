@@ -51,6 +51,8 @@ export function buildCommanderRuntimeProof(input: {
     readDecision: input.outcome.readDecision,
     transportDecision: input.outcome.transportDecision,
     hardStopDecision: input.outcome.hardStopDecision,
+    timeoutDecision: input.outcome.timeoutDecision ?? "not-applicable",
+    idempotencyDecision: input.outcome.idempotencyDecision ?? "not-applicable",
     policyDecision: input.outcome.policyDecision,
     dataQualityFlags: input.outcome.dataQualityFlags,
   });

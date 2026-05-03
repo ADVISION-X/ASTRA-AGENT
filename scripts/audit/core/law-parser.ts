@@ -22,7 +22,7 @@ const extractField = (block: string, fieldName: (typeof REQUIRED_FIELDS)[number]
 
 const listModuleLawFiles = async (): Promise<string[]> =>
   (await listImmediateFiles(moduleLawHome))
-    .filter((filePath) => filePath.endsWith(".instructions.md"))
+    .filter((filePath) => filePath.endsWith(".instructions.md") && !filePath.endsWith(".FINAL.instructions.md"))
     .sort();
 
 const createMissingHeaderConflict = (filePath: string): AuditConflict => ({

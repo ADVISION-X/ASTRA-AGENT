@@ -1,4 +1,3 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
@@ -16,93 +15,46 @@ const INSPECTOR_ENTRY = "scripts/audit/domains/commander-console-capability/insp
 
 const MUTATIONS: Mutation[] = [
   {
-    name: "command gate mutation",
-    file: "src/capabilities/commander-console/runtime/commander-command-gate.ts",
-    search: "return CommandTransportResultSchema.parse(result);",
-    replace: "return result;",
+    name: "weak start-mission gate mutation",
+    file: "src/capabilities/commander-console/shared/commander-transport-schema.ts",
+    search: "if (!value.requestedPlatformId || !value.selectedMapId) {",
+    replace: "if (!value.requestedPlatformId && !value.selectedMapId) {",
   },
   {
-    name: "read gate mutation",
-    file: "src/capabilities/commander-console/runtime/commander-read-gate.ts",
-    search: "const parsed = input.inputSchema.safeParse(input.readInput);",
-    replace: "const parsed = input.inputSchema.passthrough().safeParse(input.readInput);",
+    name: "timeout gate bypass mutation",
+    file: "src/capabilities/commander-console/runtime/commander-command-child-executor.ts",
+    search: "const timeoutResult = await runCommanderTimeoutGate<CommanderExecutionOutcome<CommanderCommandReceiptView>>({",
+    replace: "const timeoutResult = await (({ run }) => run())({",
   },
   {
-    name: "proof builder mutation",
-    file: "src/capabilities/commander-console/runtime/commander-proof-builder.ts",
-    search: "return RuntimeProofSchema.parse({",
-    replace: "return ({",
+    name: "idempotency hard-path mutation",
+    file: "src/capabilities/commander-console/runtime/commander-idempotency-gate.ts",
+    search: "if (input.policy === \"hard-stop-non-dedupe\") {",
+    replace: "if (false) {",
   },
   {
-    name: "child-schema-shell mutation",
-    file: "src/capabilities/commander-console/children/approve-candidate/schema.ts",
-    search: "export const ApproveCandidateInputSchema = ReviewDecisionInputSchema.extend({});",
-    replace: 'export { ReviewDecisionInputSchema as ApproveCandidateInputSchema } from "../../schema.js";',
+    name: "transport commandId mismatch bypass mutation",
+    file: "src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts",
+    search: "if (input.result.commandId !== input.command.commandId) {",
+    replace: "if (false) {",
   },
   {
-    name: "duplicate-schema mutation",
-    file: "src/capabilities/commander-console/shared/commander-schema-base.ts",
-    search: `export const CommanderMissionDashboardViewSchema = z.object({
-  mission: CommanderMissionViewSchema,
-  runtime: CommanderRuntimeSummaryViewSchema,
-  browser: CommanderBrowserSummaryViewSchema,
-  health: z.array(CommanderCapabilityHealthEntrySchema),
-  capabilityRoster: z.array(CommanderCapabilityRosterEntrySchema),
-  candidates: z.array(CommanderCandidateViewSchema),
-  reviewQueue: z.array(CommanderRecordSummaryViewSchema),
-  evidencePackets: z.array(CommanderRecordSummaryViewSchema),
-  browseLedger: z.array(CommanderRecordSummaryViewSchema),
-  failedRecords: z.array(CommanderRecordSummaryViewSchema),
-  runtimeProof: z.array(CommanderRuntimeProofTimelineEntrySchema),
-  auditSummary: CommanderAuditSummarySchema,
-}).strict();`,
-    replace: `export const CommanderMissionDashboardViewSchema = z.object({
-  mission: CommanderMissionViewSchema,
-  runtime: CommanderRuntimeSummaryViewSchema,
-  browser: CommanderBrowserSummaryViewSchema,
-  health: z.array(CommanderCapabilityHealthEntrySchema),
-  capabilityRoster: z.array(CommanderCapabilityRosterEntrySchema),
-  candidates: z.array(CommanderCandidateViewSchema),
-  reviewQueue: z.array(CommanderRecordSummaryViewSchema),
-  evidencePackets: z.array(CommanderRecordSummaryViewSchema),
-  browseLedger: z.array(CommanderRecordSummaryViewSchema),
-  failedRecords: z.array(CommanderRecordSummaryViewSchema),
-  runtimeProof: z.array(CommanderRuntimeProofTimelineEntrySchema),
-  auditSummary: CommanderAuditSummarySchema,
-}).strict();
-
-export const CommanderMissionDashboardViewSchema = z.object({
-  mission: CommanderMissionViewSchema,
-  runtime: CommanderRuntimeSummaryViewSchema,
-  browser: CommanderBrowserSummaryViewSchema,
-  health: z.array(CommanderCapabilityHealthEntrySchema),
-  capabilityRoster: z.array(CommanderCapabilityRosterEntrySchema),
-  candidates: z.array(CommanderCandidateViewSchema),
-  reviewQueue: z.array(CommanderRecordSummaryViewSchema),
-  evidencePackets: z.array(CommanderRecordSummaryViewSchema),
-  browseLedger: z.array(CommanderRecordSummaryViewSchema),
-  failedRecords: z.array(CommanderRecordSummaryViewSchema),
-  runtimeProof: z.array(CommanderRuntimeProofTimelineEntrySchema),
-  auditSummary: CommanderAuditSummarySchema,
-}).strict();`,
+    name: "accepted-without-result-envelope mutation",
+    file: "src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts",
+    search: "if (result.status !== \"accepted\" || result.resultEnvelopeRef) {",
+    replace: "if (result.status !== \"accepted\" || !result.resultEnvelopeRef) {",
   },
   {
-    name: "passthrough mutation",
-    file: "src/capabilities/commander-console/runtime/commander-read-gate.ts",
-    search: "const parsed = input.inputSchema.safeParse(input.readInput);",
-    replace: "const parsed = input.inputSchema.passthrough().safeParse(input.readInput);",
+    name: "read proof structured evidence bypass mutation",
+    file: "src/capabilities/commander-console/runtime/commander-read-proof-gate.ts",
+    search: "return input.contract.proofPolicy.requiresStructuredEvidenceRefs && input.evidenceRefs.length === 0\n    ? `${input.contract.childCapabilityId} requires structured evidenceRefs from governed read sources.`\n    : null;",
+    replace: "return null;",
   },
   {
     name: "emergency-downgrade mutation",
     file: "src/capabilities/commander-console/children/emergency-stop/implementation.ts",
     search: 'commandType: "emergency-stop",',
     replace: 'commandType: "stop-mission",',
-  },
-  {
-    name: "failed-receipt mutation",
-    file: "src/capabilities/commander-console/runtime/commander-child-executors.ts",
-    search: "output: receipt,",
-    replace: "output: null,",
   },
   {
     name: "export star mutation",
@@ -112,20 +64,19 @@ export const CommanderMissionDashboardViewSchema = z.object({
   },
   {
     name: "UI transport bypass mutation",
-    file: "src/lib/local-app-shell/commander-console-page-client.ts",
-    search: "window.commanderConsoleShell = commanderConsoleShell;",
-    replace: 'import("../../capabilities/commander-console/ports/command-transport-port.js");\nwindow.commanderConsoleShell = commanderConsoleShell;',
+    file: "src/lib/local-app-shell/commander-console-shell-client.ts",
+    search: "window.commanderConsoleUi = handlers;",
+    replace: 'import("../../capabilities/commander-console/ports/command-transport-port.js");\nwindow.commanderConsoleUi = handlers;',
   },
   {
     name: "as-any mutation",
     file: "src/capabilities/commander-console/runtime/commander-command-gate.ts",
-    search: "const payload = buildTransportPayload(parsed.data);",
-    replace: "const payload = buildTransportPayload(parsed.data);\n  const escapedPayload = payload as any;",
+    search: "const payload = buildTransportPayload(parsed);",
+    replace: "const payload = buildTransportPayload(parsed);\n  const escapedPayload = payload as any;",
   },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
-  await buildAuditArtifacts();
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector(INSPECTOR_ENTRY);

@@ -1,113 +1,722 @@
-# GrassEye Post-action Verification 动作后验证能力组施工图
+# GrassEye Post-action Verification 动作后验证能力组施工图 FINAL
 
-## 统一身份与冻结边界
+## 0. 文件身份
 
-- 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 14 个 active ability groups 与 4 个 active support laws，不重新分配主权。
-- 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
-- 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
+```yaml
+documentId: GRASSEYE-POST-ACTION-VERIFICATION-BLUEPRINT-FINAL
+owner: post-action-verification-capability
+documentType: construction-blueprint
+lawAuthority: module-post-action-verification-capability.instructions.md
+architecturePhase: Static Capability Package Architecture
+status: active
+replace:
+  - docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md
+mustNotCreate:
+  - new lawId
+  - new ability group
+  - page-state verification owner
+  - action ability verification owner
+  - evidence persistence owner
+```
 
-## 定位
+本施工图是 `module-post-action-verification-capability.instructions.md` 的建设级落地映射。
+本施工图不新增 lawId，不修改冻结法案，不重新分配主权。
+若本文档与 PAV 法案冲突，以 PAV 法案为最高权威。
 
-Post-action Verification Ability Group 是动作执行后的结果裁决能力组。
-它判断动作是否达成预期，不执行动作。
+---
 
-## 能力组接口
+## 1. 定位
 
-总调度只能调用 PostActionVerificationAbilityGroup.execute(input)。
-总调度不得直接调用子能力。
+Post-action Verification 是动作执行后的结果裁决能力组。
 
-## 子能力
+它负责回答：
 
-- verify-page-opened
-- verify-comments-panel-opened
-- verify-comments-panel-closed
-- verify-video-changed-after-scroll
-- verify-not-interested-result
-- verify-target-state-changed
+```txt
+动作执行以后，预期结果是否真的发生？
+```
 
-## 统一 contract
+它不回答：
 
-- PostActionVerificationAbilityInput
-- PostActionVerificationAbilityResult
-- PostActionExpectedOutcome
-- PostActionVerificationDecision
-- PostActionObservationRef
-- PostActionFailureReason
+```txt
+动作是否应该执行？
+下一步怎么走？
+页面现在是什么？
+产品是否存在？
+AI 判断是否正确？
+证据如何落盘？
+```
 
-## 输入字段
+一句话：
 
-- actionExecutionRef
-- actionLogRef
-- sourceAbilityGroupId
-- sourceActionType
-- expectedOutcome
-- beforeEvidenceRef
-- afterEvidenceRef
-- pageStateRef
-- aiObservationRef
-- visualTargetRef
-- screenshotDiffRef
-- requestedBy
-- sessionId
-- roundId
-- videoVisitId
-- confidencePolicy
-- verificationPolicy
+```txt
+动作能力只证明“我动了”，PAV 才证明“事情是否发生了”。
+```
 
-## 输出字段
+---
 
-- status
-- verificationDecision: verified | failed | review_required
-- expectedOutcome
-- observedOutcome
-- confidence
-- evidenceRefs
-- observationRefs
-- failureReason
-- reviewRequiredReason
-- dataQualityFlags
-- debugLogRef
+## 2. 故事链路位置
 
-## 禁止职责
+```txt
+Open / Click / Scroll / Text Input
+→ action proof / action log ref
+→ Screenshot / Page State / Visual Target / AI observations
+→ Post-action Verification
+→ verificationDecision
+→ Orchestration branch
+→ Forensics Persistence record
+```
 
-- 不截图
-- 不调用 AI
-- 不找坐标
-- 不点击
-- 不滚动
-- 不读 DOM/BOM
-- 不采集评论
-- 不判断产品
-- 不保存最终 evidence packet
-- 不决定下一步
+PAV 只能在动作完成后运行。
+PAV 不主动采集证据，只消费已经被治理的证据和观察。
 
-## 调用边界
+---
 
-- Open / Mouse Click / Mouse Scroll 只执行动作。
-- Text Input 只执行受治理写字动作，不裁决最终页面结果。
-- Screenshot 提供 before / after 图像证据。
-- AI / PageState / VisualTarget 提供观察结果。
-- Page State 只回答“当前页面此刻是什么状态”，不回答动作是否成功。
-- Post-action Verification 只验证动作结果。
-- Orchestration 根据验证结果决定下一步。
-- Forensics Persistence 负责落盘，不负责验证逻辑。
-- Mouse Click primitive success 不是 verified；verified 只能由 Post-action Verification 产出。
-- Mouse Scroll primitive success 不是 verified；滚动是否真的换视频只能由 Post-action Verification 产出。
-- Text Input primitive success 不是 verified；输入内容是否被页面接受只能由 Post-action Verification 或 Page State 产出。
+## 3. 标准包结构
 
-## 文件路径
+```txt
+src/capabilities/post-action-verification/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+│   ├── post-action-evidence-read-port.ts
+│   └── post-action-verification-clock-port.ts
+├── shared/
+│   ├── post-action-types.ts
+│   ├── post-action-policy.ts
+│   ├── post-action-result.ts
+│   ├── post-action-proof.ts
+│   ├── post-action-failure.ts
+│   ├── post-action-evidence.ts
+│   ├── post-action-observation.ts
+│   └── post-action-url.ts
+├── runtime/
+│   ├── post-action-verification-executor.ts
+│   ├── verification-input-gate.ts
+│   ├── action-proof-gate.ts
+│   ├── evidence-source-gate.ts
+│   ├── observation-proof-binding-gate.ts
+│   ├── before-after-consistency-gate.ts
+│   ├── verification-policy-gate.ts
+│   ├── verification-decision-gate.ts
+│   ├── post-action-output-boundary-gate.ts
+│   ├── verification-proof-builder.ts
+│   ├── verification-result-builder.ts
+│   └── verification-dispatch-failure.ts
+└── children/
+    ├── verify-page-opened/
+    ├── verify-comments-panel-opened/
+    ├── verify-comments-panel-closed/
+    ├── verify-video-changed-after-scroll/
+    ├── verify-not-interested-result/
+    └── verify-target-state-changed/
+```
 
-canonical root 必须是：
+`runtime/` 在 PAV 中允许存在，因为它是验证运行门禁，不是 Forensics finalizer。
+`runtime/` 禁止包含动作执行、截图、AI 调用、Forensics 写入、Orchestration 决策。
 
-- src/capabilities/post-action-verification/
+---
 
-不得落到：
+## 4. Public Contract
 
-- src/features/platform-action/
-- src/lib/mission-runtime/
-- src/lib/browser/
-- src/lib/local-ai/
-- src/capabilities/mouse-click/
-- src/capabilities/mouse-scroll/
-- src/capabilities/open/
+Public group surface：
+
+```txt
+listChildCapabilityIds()
+execute(input)
+```
+
+允许 thin wrapper 仅当：
+
+```txt
+wrapper → execute(input)
+不绕过 schema / registry / gate / proof
+```
+
+Public contract concepts：
+
+```txt
+PostActionVerificationAbilityInput
+PostActionVerificationAbilityResult
+PostActionExpectedOutcome
+PostActionVerificationDecision
+PostActionObservationRef
+PostActionEvidenceRef
+PostActionFailureReason
+PostActionRuntimeProof
+PostActionVerificationPolicy
+PostActionConfidencePolicy
+```
+
+禁止 public contract 暴露：
+
+```txt
+child execute interface
+runtime context
+screenshot implementation
+page-state implementation
+AI implementation
+Forensics writer
+browser controller
+DOM/BOM object
+```
+
+---
+
+## 5. Input Model
+
+`PostActionVerificationAbilityInput` 必须包含：
+
+```yaml
+PostActionVerificationAbilityInput:
+  abilityGroupId: post-action-verification
+  childCapabilityId: required
+  requestedBy: orchestration
+  missionId: required
+  runId: required
+  sessionId: required
+  roundId: required-or-null
+  videoVisitId: optional
+  stepId: required
+  mapPackageId: required
+  mapPackageVersion: required
+  selectedMapId: required
+  selectedMapVersion: required
+  activationSnapshotRef: required
+  capabilityCallId: required
+  nerveBusEnvelopeId: required
+  sourceAbilityGroupId: required
+  sourceChildCapabilityId: required
+  sourceActionType: required
+  actionProof: required
+  expectedOutcome: required
+  beforeAfterEvidence: required
+  observationSet: required
+  verificationPolicy: required
+  confidencePolicy: required
+  inputRef: required
+  idempotencyKey: required
+```
+
+缺失以下字段不得 success：
+
+```txt
+missionId
+runId
+stepId
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+actionProof
+expectedOutcome
+inputRef
+idempotencyKey
+```
+
+---
+
+## 6. Action Proof
+
+`PostActionActionProof`：
+
+```yaml
+actionProof:
+  actionProofRef: required
+  actionLogRef: required-or-actionRecordRef
+  actionRecordRef: required-or-actionLogRef
+  sourceRuntimeProofRef: required
+  sourceActionResultRef: optional
+  sourceActionOutputRef: optional
+  sourceAbilityGroupId: open | mouse-click | mouse-scroll | text-input
+  sourceChildCapabilityId: required
+  actionType: required
+  actionStatus: dispatched | completed | failed | review_required
+  primitiveExecutionRef: optional
+  navigationAttemptRef: optional
+  scrollExecutionRef: optional
+  startedAt: required
+  endedAt: required
+  selfReportedOnly: boolean
+```
+
+Rules:
+
+```txt
+selfReportedOnly = true → cannot verified
+missing actionLogRef/actionRecordRef → cannot verified
+missing sourceRuntimeProofRef → cannot verified
+forbidden source ability → failed
+action failed → failed or review_required
+```
+
+---
+
+## 7. Expected Outcome
+
+`PostActionExpectedOutcome`：
+
+```yaml
+expectedOutcome:
+  outcomeType:
+    - page_opened
+    - comments_panel_opened
+    - comments_panel_closed
+    - video_changed_after_scroll
+    - not_interested_applied
+    - target_state_changed
+  description: required
+  expectedUrlHost: optional
+  expectedUrlPrefix: optional
+  expectedState: optional
+  expectedTargetType: optional
+  requiresBeforeAfterComparison: boolean
+  requiresVisualEvidence: boolean
+```
+
+Expected outcome 是地图 step 声明的验证目标。
+PAV 不可临时发明新目标。
+
+---
+
+## 8. Evidence / Observation
+
+Evidence refs：
+
+```txt
+beforeEvidenceRef
+afterEvidenceRef
+screenshotDiffRef
+pageStateRef
+aiObservationRef
+visualTargetRef
+runtimeSignalRef
+```
+
+Observation 必须有：
+
+```yaml
+PostActionObservation:
+  kind: page_state | ai_observation | visual_target | screenshot_diff | video_identity | action_completion | runtime_signal
+  ref: required
+  source:
+    sourceAbilityGroupId: required
+    sourceChildCapabilityId: required
+    sourceProofRef: required
+  capturedAt: required
+  payload: strict-by-kind
+```
+
+Verified result 必须至少有：
+
+```txt
+supportingEvidenceRefs OR supportingObservationRefs
+supportingSourceProofRefs
+```
+
+如果 policy 要求 afterEvidence，缺失不得 verified。
+如果 expectedOutcome requiresBeforeAfterComparison，缺 before/after 不得 verified。
+如果 requiresVisualEvidence，缺 visual/screenshot evidence 不得 verified。
+
+---
+
+## 9. Verification Policy
+
+```yaml
+PostActionVerificationPolicy:
+  verificationMode:
+    - strict
+    - evidence-weighted
+    - review-on-ambiguous
+  requireAfterEvidence: boolean
+  requireBeforeAfterComparison: boolean
+  allowSelfReportedSuccess: false-by-default
+```
+
+```yaml
+PostActionConfidencePolicy:
+  minimumConfidence: number
+  allowReviewRequired: boolean
+```
+
+Rules:
+
+```txt
+confidence < minimumConfidence → review_required or failed
+critical data quality flag → not success
+ambiguous/contradictory evidence → review_required or failed
+```
+
+---
+
+## 10. Runtime Pipeline
+
+PAV executor 必须固定：
+
+```txt
+input schema gate
+→ child registry gate
+→ action proof gate
+→ evidence source gate
+→ observation proof binding gate
+→ before/after consistency gate
+→ verification policy gate
+→ child assessment
+→ verification decision gate
+→ output boundary gate
+→ proof builder
+→ result builder
+```
+
+禁止：
+
+```txt
+child direct final result
+child direct proof
+executor skipping action proof gate
+executor skipping output boundary
+success without proof
+```
+
+---
+
+## 11. Child Capabilities
+
+| child | 作用 | 必须观察 | 禁止 |
+|---|---|---|---|
+| verify-page-opened | 验证页面打开 | page_state / url evidence | open page |
+| verify-comments-panel-opened | 验证评论面板打开 | page_state / visual_target / ai_observation | click |
+| verify-comments-panel-closed | 验证评论面板关闭 | page_state / visual_target / ai_observation | click |
+| verify-video-changed-after-scroll | 验证滚动后视频变化 | video_identity / screenshot_diff / page_state | scroll |
+| verify-not-interested-result | 验证 not interested 生效 | page_state / screenshot_diff / runtime_signal | click |
+| verify-target-state-changed | 验证目标状态变化 | visual_target / screenshot_diff / page_state | action |
+
+Child 只能返回 assessment：
+
+```yaml
+PostActionChildAssessment:
+  observedOutcome: string
+  verificationDecision: verified | failed | review_required
+  confidence: number
+  failureReason: optional
+  reviewRequiredReason: optional
+  statusMessage: string
+  dataQualityFlags: string[]
+  supportingEvidenceRefs: string[]
+  supportingObservationRefs: string[]
+  supportingSourceProofRefs: string[]
+  verifiedByEvidenceKinds: string[]
+  confidenceSource: string
+```
+
+Child 禁止返回 final ability result。
+
+---
+
+## 12. Result Model
+
+`PostActionVerificationAbilityResult`：
+
+```yaml
+status: success | failed | review_required
+abilityGroupId: post-action-verification
+childCapabilityId: required
+missionId: required
+runId: required
+sessionId: required
+roundId: optional
+videoVisitId: optional
+stepId: required
+activationSnapshotRef: required
+capabilityCallId: required
+actionProofRef: required
+expectedOutcome: required
+output: required-if-success
+verificationDecision: verified | failed | review_required
+failureReason: required-if-failed
+reviewRequiredReason: required-if-review_required
+diagnosticPayloadRef: required-if-not-success
+runtimeProof: required
+dataQualityFlags: string[]
+```
+
+Success output：
+
+```yaml
+output:
+  observedOutcome: required
+  verificationDecision: verified
+  confidence: required
+  evidenceRefs: list
+  observationRefs: list
+  supportingSourceProofRefs: list
+  actionResultVerifiedRef: required
+  confidenceSource: required
+  verifiedByEvidenceKinds: list
+```
+
+---
+
+## 13. Runtime Proof
+
+`PostActionRuntimeProof` 必须保存真实上游链路：
+
+```yaml
+PostActionRuntimeProof:
+  proofId: required
+  missionId: required
+  runId: required
+  sessionId: required
+  roundId: optional
+  videoVisitId: optional
+  stepId: required
+  mapPackageId: required
+  mapPackageVersion: required
+  selectedMapId: required
+  selectedMapVersion: required
+  activationSnapshotRef: required
+  capabilityCallId: required
+  nerveBusEnvelopeId: required
+  abilityGroupId: post-action-verification
+  childCapabilityId: required
+  actionProofRef: required
+  actionLogRef: optional
+  actionRecordRef: optional
+  sourceActionRuntimeProofRef: required
+  sourceActionResultRef: optional
+  sourceActionOutputRef: optional
+  sourceActionAbilityGroupId: required
+  sourceActionChildCapabilityId: required
+  actionType: required
+  actionStatus: required
+  expectedOutcomeType: required
+  beforeEvidenceRefs: list
+  afterEvidenceRefs: list
+  observationRefs: list
+  evidenceSourceRefs: list
+  inputRef: required
+  outputRef: required-if-success
+  diagnosticPayloadRef: required-if-not-success
+  inputPayloadHash: required
+  actionProofHash: required
+  expectedOutcomeHash: required
+  observationSetHash: required
+  startedAt: required
+  endedAt: required
+  durationMs: required
+  status: required
+  verificationDecision: required
+  confidence: required
+  failureReason: optional
+  reviewRequiredReason: optional
+  gateDecisions: required
+  verificationDecisionTrace: list
+  dataQualityFlags: list
+```
+
+禁止：
+
+```txt
+runId from proofFingerprint only
+missionId from sessionId
+missing activationSnapshotRef
+missing capabilityCallId
+runtimeProof:null
+```
+
+---
+
+## 14. Output Boundary
+
+Success 不允许：
+
+```txt
+critical data quality flags
+missing supporting source proof
+missing evidence when required
+missing observation when required
+self-reported-only support
+low confidence
+contradictory before/after
+```
+
+Failure / review 必须：
+
+```txt
+output=null
+diagnosticPayloadRef exists
+reason exists
+runtimeProof exists
+```
+
+---
+
+## 15. 与其它能力组边界
+
+### Open / Mouse Click / Mouse Scroll / Text Input
+
+只执行动作。
+不得产出 verified。
+必须产出 action proof / action log ref 给 PAV。
+
+### Page State
+
+只回答当前状态。
+不得回答“动作是否成功”。
+
+### Screenshot / Visual Target / AI
+
+只提供观察。
+不得替 PAV 产出 final verificationDecision。
+
+### Orchestration
+
+只调用 PAV 并消费结果。
+不得伪造 PAV result。
+
+### Forensics
+
+只持久化 PAV result/ref。
+不得做 verification logic。
+
+---
+
+## 16. 执法系统
+
+必须存在：
+
+```txt
+scripts/audit/domains/post-action-verification-capability/manifest.json
+scripts/audit/domains/post-action-verification-capability/inspector.ts
+scripts/audit/domains/post-action-verification-capability/run-inspector.ts
+scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts
+```
+
+Inspector 必须：
+
+```txt
+ts-morph
+AST-level
+symbol-level
+import graph-level
+schema-level
+anti-escape
+generated artifact aware
+runner-connected
+negative-proof-backed
+```
+
+禁止：
+
+```txt
+regex final judgment
+grep final judgment
+includes final judgment
+manual-only proof
+warning-only P0
+detached inspector
+empty negative proof
+```
+
+---
+
+## 17. Inspector 必查
+
+```txt
+1. Law file is machine-blocking.
+2. Ability group is thin.
+3. Contract does not expose runtime context.
+4. Child registry/schema/folder parity.
+5. PAV root has no forbidden owner imports.
+6. External code cannot import runtime/** or children/**.
+7. Input schema includes missionId/runId/stepId/capabilityCallId/activationSnapshotRef/nerveBusEnvelopeId.
+8. Action proof requires actionLogRef or actionRecordRef.
+9. selfReportedOnly cannot verify.
+10. verified output requires supportingSourceProofRefs.
+11. required before/after evidence is enforced.
+12. runtimeProof contains chain fields.
+13. no fabricated runId/missionId.
+14. result/proof/input chain parity.
+15. child cannot build final result/proof.
+16. action abilities cannot return verificationDecision.
+17. page-state cannot claim verification truth.
+18. negative proof executed.
+19. ALL active laws in registry/matrix/audit-plan/runner.
+```
+
+---
+
+## 18. Negative Proof 最低清单
+
+必须 fail → rollback → pass：
+
+```txt
+manual-first enforcement reintroduced
+remove capabilityCallId from input
+remove activationSnapshotRef from input
+remove nerveBusEnvelopeId from input
+selfReportedOnly returns verified
+missing actionLogRef returns verified
+verified with no supportingSourceProofRefs
+verified with missing afterEvidence when required
+success with review_required decision
+success with critical data quality flags
+runtimeProof:null
+runId built from proofFingerprint
+missionId built from sessionId
+child imports screenshot implementation
+child builds final result
+external imports runtime private path
+page-state returns verificationDecision
+mouse-click returns verified
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+---
+
+## 19. READY 标准
+
+PAV READY 仅当：
+
+```txt
+PAV 法案 / 施工图 / inspector / generated / runner 口径一致
+ALL active law enforcement PASS
+CI-FULL PASS
+PAV public contract 原生化
+input/action/evidence/proof 链路字段完整
+verified result 有证据和 source proof 支撑
+动作成功不等于 verified
+page-state 不等于 verification
+runtimeProof 不伪造 runId/missionId
+children 只返回 assessment
+negative proof PASS
+```
+
+---
+
+## 20. 漂移信号
+
+```txt
+Open/Click/Scroll/TextInput 直接返回 verified
+PageState 被当作动作结果验证
+PAV child 直接调用截图/AI/动作实现
+PAV proof 缺 activationSnapshotRef
+PAV proof 用 proofFingerprint 伪造 runId
+verified result 无 sourceProofRefs
+failed result 仍有 output
+verify 脚本成为验收链
+```
+
+---
+
+## 21. 最终原则
+
+```txt
+动作不是结果。
+状态不是验证。
+观察不是裁决。
+PAV 只做动作后验证。
+没有链路证明，不算 verified。
+```

@@ -13,6 +13,7 @@ import type {
   ScreenshotExecutionPageStateGateState,
   ScreenshotExecutionSourceGateState,
 } from "./screenshot-execution-phases.js";
+import { resolveScreenshotTimeoutMs } from "./screenshot-chain.js";
 
 type ScreenshotOutputMetadata = {
   outputFilePath: string;
@@ -41,6 +42,7 @@ export const resolveScreenshotCaptureRun = async (input: {
   plan: ScreenshotExecutionPlan;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
+  request: ScreenshotAbilityInput;
   clockStart: ScreenshotClockStart;
   registryEntry: { maxDurationMs: number };
 }) => {
@@ -48,7 +50,7 @@ export const resolveScreenshotCaptureRun = async (input: {
     ? await runCaptureRunner({
         plan: input.plan,
         context: input.context,
-        timeoutMs: input.registryEntry.maxDurationMs,
+        timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
         evidenceId: input.scope.evidenceId,
         createdAt: input.clockStart.startedAt,
       })
@@ -80,13 +82,14 @@ const resolveScreenshotPhaseFailureStatus = (
 export const resolveScreenshotImageRun = async (input: {
   plan: ScreenshotExecutionPlan;
   context: ScreenshotRuntimeContext;
+  request: ScreenshotAbilityInput;
   registryEntry: { maxDurationMs: number };
 }) => {
   return input.plan.kind === "image-processing"
     ? await runImageProcessingRunner({
         plan: input.plan,
         context: input.context,
-        timeoutMs: input.registryEntry.maxDurationMs,
+        timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
       })
     : null;
 };

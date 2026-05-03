@@ -84,12 +84,25 @@ const buildOpenResultOutput = (input: OpenResultBuilderInput, sourceRef: string,
   });
 };
 
-const buildOpenResultEnvelopeCoreFields = (input: OpenResultEnvelopeInput) => ({
+const buildOpenResultEnvelopeCoreFields = (input: OpenResultEnvelopeInput, runtimeProof: OpenResult["runtimeProof"]) => ({
   abilityGroupId: "open",
   childCapabilityId: input.request.childCapabilityId,
   platformId: input.request.platformId,
   targetKind: input.request.targetKind,
   status: input.postOpenStateDecision.status,
+  missionId: input.request.missionId,
+  runId: input.request.runId,
+  sessionId: input.request.sessionId,
+  roundId: input.request.roundId,
+  videoVisitId: input.request.videoVisitId,
+  stepId: input.request.stepId,
+  mapPackageId: input.request.mapPackageId,
+  mapPackageVersion: input.request.mapPackageVersion,
+  selectedMapId: input.request.selectedMapId,
+  selectedMapVersion: input.request.selectedMapVersion,
+  activationSnapshotRef: input.request.activationSnapshotRef,
+  capabilityCallId: input.request.capabilityCallId,
+  nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
   message: buildStatusMessage({
     status: input.postOpenStateDecision.status,
     openedUrl: input.navigationDecision.openedUrl,
@@ -105,6 +118,8 @@ const buildOpenResultEnvelopeCoreFields = (input: OpenResultEnvelopeInput) => ({
   output: input.output,
   failureReason: input.failureReason,
   reviewRequiredReason: input.reviewRequiredReason,
+  diagnosticPayloadRef: runtimeProof.diagnosticPayloadRef,
+  dataQualityFlags: runtimeProof.dataQualityFlags,
 });
 
 const buildOpenResultRuntimeProof = (input: OpenResultEnvelopeInput) => buildOpenProof({
@@ -133,13 +148,17 @@ const buildOpenResultRuntimeProof = (input: OpenResultEnvelopeInput) => buildOpe
     dataQualityFlags: input.dataQualityFlags,
   });
 
-const buildOpenResultEnvelope = (input: OpenResultEnvelopeInput): OpenResult => OpenResultSchema.parse({
-  ...buildOpenResultEnvelopeCoreFields(input),
-  runtimeProof: buildOpenResultRuntimeProof(input),
-});
+const buildOpenResultEnvelope = (input: OpenResultEnvelopeInput): OpenResult => {
+  const runtimeProof = buildOpenResultRuntimeProof(input);
+
+  return OpenResultSchema.parse({
+    ...buildOpenResultEnvelopeCoreFields(input, runtimeProof),
+    runtimeProof,
+  });
+};
 
 export function buildOpenResult(input: OpenResultBuilderInput): OpenResult {
-  const sourceRef = input.request.sourceRef ?? `${input.request.sourceAbilityGroupId}:${input.request.sourceChildCapabilityId ?? "unknown"}:${input.request.runId}`;
+  const sourceRef = input.request.sourceRef;
   const openAttemptRef = input.navigationDecision.navigationAttemptRef;
   const pageStateHandoffRef = input.postOpenStateDecision.pageStateHandoffRef;
 

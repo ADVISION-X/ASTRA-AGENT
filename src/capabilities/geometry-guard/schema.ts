@@ -1,6 +1,8 @@
-import { z } from "zod";
+import { GeometryGuardRuntimeProofSchema as GeometryGuardRuntimeProofSchemaSource } from "./schema-runtime-proof.js";
 
-import { GeometryGuardRuntimeProofFieldSchemas } from "./schema-runtime-proof.js";
+const GeometryGuardRuntimeProofSchema = GeometryGuardRuntimeProofSchemaSource;
+
+export { GeometryGuardRuntimeProofSchema };
 
 export {
 	GeometryGuardBoundingBoxSchema,
@@ -50,52 +52,3 @@ export {
 	ValidateDesktopScreenBoundsResultSchema,
 	ValidateScaleMappingResultSchema,
 } from "./schema-result.js";
-
-const GeometryGuardRuntimeProofSchema = z.object({
-	proofId: GeometryGuardRuntimeProofFieldSchemas.proofId,
-	runId: GeometryGuardRuntimeProofFieldSchemas.runId,
-	missionId: GeometryGuardRuntimeProofFieldSchemas.missionId,
-	sessionId: GeometryGuardRuntimeProofFieldSchemas.sessionId,
-	roundId: GeometryGuardRuntimeProofFieldSchemas.roundId,
-	videoVisitId: GeometryGuardRuntimeProofFieldSchemas.videoVisitId,
-	abilityGroupId: GeometryGuardRuntimeProofFieldSchemas.abilityGroupId,
-	childCapabilityId: GeometryGuardRuntimeProofFieldSchemas.childCapabilityId,
-	sourceAbilityGroupId: GeometryGuardRuntimeProofFieldSchemas.sourceAbilityGroupId,
-	sourceChildCapabilityId: GeometryGuardRuntimeProofFieldSchemas.sourceChildCapabilityId,
-	inputRef: GeometryGuardRuntimeProofFieldSchemas.inputRef,
-	outputRef: GeometryGuardRuntimeProofFieldSchemas.outputRef,
-	sourceScreenshotEvidenceRef: GeometryGuardRuntimeProofFieldSchemas.sourceScreenshotEvidenceRef,
-	sourceTargetRef: GeometryGuardRuntimeProofFieldSchemas.sourceTargetRef,
-	sourceAiResultRef: GeometryGuardRuntimeProofFieldSchemas.sourceAiResultRef,
-	sourceCoordinateSpace: GeometryGuardRuntimeProofFieldSchemas.sourceCoordinateSpace,
-	requestedExecutionSpace: GeometryGuardRuntimeProofFieldSchemas.requestedExecutionSpace,
-	normalizedCoordinateSpace: GeometryGuardRuntimeProofFieldSchemas.normalizedCoordinateSpace,
-	sourceBounds: GeometryGuardRuntimeProofFieldSchemas.sourceBounds,
-	targetBounds: GeometryGuardRuntimeProofFieldSchemas.targetBounds,
-	bboxBefore: GeometryGuardRuntimeProofFieldSchemas.bboxBefore,
-	bboxAfter: GeometryGuardRuntimeProofFieldSchemas.bboxAfter,
-	clickPointBefore: GeometryGuardRuntimeProofFieldSchemas.clickPointBefore,
-	clickPointAfter: GeometryGuardRuntimeProofFieldSchemas.clickPointAfter,
-	scaleMappingRef: GeometryGuardRuntimeProofFieldSchemas.scaleMappingRef,
-	deviceScaleFactor: GeometryGuardRuntimeProofFieldSchemas.deviceScaleFactor,
-	runLockId: GeometryGuardRuntimeProofFieldSchemas.runLockId,
-	cancellationTokenRef: GeometryGuardRuntimeProofFieldSchemas.cancellationTokenRef,
-	resumeCheckpointRef: GeometryGuardRuntimeProofFieldSchemas.resumeCheckpointRef,
-	timeoutMs: GeometryGuardRuntimeProofFieldSchemas.timeoutMs,
-	retryCount: GeometryGuardRuntimeProofFieldSchemas.retryCount,
-	maxRetry: GeometryGuardRuntimeProofFieldSchemas.maxRetry,
-	startedAt: GeometryGuardRuntimeProofFieldSchemas.startedAt,
-	endedAt: GeometryGuardRuntimeProofFieldSchemas.endedAt,
-	durationMs: GeometryGuardRuntimeProofFieldSchemas.durationMs,
-	status: GeometryGuardRuntimeProofFieldSchemas.status,
-	guardDecision: GeometryGuardRuntimeProofFieldSchemas.guardDecision,
-	failureReason: GeometryGuardRuntimeProofFieldSchemas.failureReason,
-	reviewRequiredReason: GeometryGuardRuntimeProofFieldSchemas.reviewRequiredReason,
-	policyDecision: GeometryGuardRuntimeProofFieldSchemas.policyDecision,
-	boundsDecision: GeometryGuardRuntimeProofFieldSchemas.boundsDecision,
-	scaleDecision: GeometryGuardRuntimeProofFieldSchemas.scaleDecision,
-	transformDecision: GeometryGuardRuntimeProofFieldSchemas.transformDecision,
-	dataQualityFlags: GeometryGuardRuntimeProofFieldSchemas.dataQualityFlags,
-});
-
-export { GeometryGuardRuntimeProofSchema };

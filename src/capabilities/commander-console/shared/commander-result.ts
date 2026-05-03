@@ -3,6 +3,10 @@ import type { z } from "zod";
 import type { CommanderCommandType } from "../contract.js";
 import type { CommanderConsoleResultSchema, CommanderConsoleStatusSchema } from "../schema.js";
 import type {
+  CommanderIdempotencyDecisionSchema,
+  CommanderTimeoutDecisionSchema,
+} from "./commander-schema-foundation.js";
+import type {
   CommanderBoundaryDecisionSchema,
   CommanderCommandDecisionSchema,
   CommanderHardStopDecisionSchema,
@@ -43,6 +47,8 @@ export type CommanderExecutionOutcome<TOutput> = {
   readDecision: z.infer<typeof CommanderReadDecisionSchema> | null;
   transportDecision: z.infer<typeof CommanderTransportDecisionSchema> | null;
   hardStopDecision: z.infer<typeof CommanderHardStopDecisionSchema> | null;
+  timeoutDecision?: z.infer<typeof CommanderTimeoutDecisionSchema> | null;
+  idempotencyDecision?: z.infer<typeof CommanderIdempotencyDecisionSchema> | null;
   policyDecision: z.infer<typeof CommanderPolicyDecisionSchema>;
 };
 

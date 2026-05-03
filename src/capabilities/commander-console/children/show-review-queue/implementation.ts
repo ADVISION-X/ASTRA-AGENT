@@ -16,11 +16,17 @@ export const SHOW_REVIEW_QUEUE_CHILD: CommanderConsoleChildDefinition<ShowReview
       inputSchema: ShowReviewQueueInputSchema,
       context,
       read: async () => context.forensicsReadModel.listReviewQueue(),
-      buildEvidenceRefs: (records) => records.map((record) => buildCommanderEvidenceRef({
-        recordType: "candidate",
-        recordId: record.id,
-        sourceAbility: "forensics-read-model",
-      })),
+      buildEvidenceRefs: (records) => records.length > 0
+        ? records.map((record) => buildCommanderEvidenceRef({
+          recordType: "candidate",
+          recordId: record.id,
+          sourceAbility: "forensics-read-model",
+        }))
+        : [buildCommanderEvidenceRef({
+          recordType: "runtime-event",
+          recordId: "review-queue:empty",
+          sourceAbility: "forensics-read-model",
+        })],
     });
   },
 };

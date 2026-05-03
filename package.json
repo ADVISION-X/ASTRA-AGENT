@@ -24,10 +24,17 @@
     "audit:map-plugin-package": "tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
     "audit:map-prompt-contract": "tsx scripts/audit/domains/map-prompt-contract/run-inspector.ts",
     "audit:runtime-debug-transparency": "tsx scripts/audit/domains/runtime-debug-transparency/run-inspector.ts",
+    "audit:commander-console": "node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts",
     "audit:commander-console-user-love": "tsx scripts/audit/domains/commander-console-user-love/run-inspector.ts",
     "audit:agent-mechanical-skills": "tsx scripts/audit/domains/agent-mechanical-skills/run-inspector.ts",
     "audit:local-ai-runtime": "tsx scripts/audit/domains/local-ai-runtime/run-inspector.ts",
     "audit:forensics-persistence": "tsx scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
+    "audit:page-state": "node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts",
+    "audit:visual-target": "node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts",
+    "audit:screenshot": "node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts",
+    "audit:geometry-guard": "node --import tsx scripts/audit/domains/geometry-guard-capability/run-inspector.ts",
+    "audit:open": "node --import tsx scripts/audit/domains/open-capability/run-inspector.ts",
+    "audit:mouse-click": "node --import tsx scripts/audit/domains/mouse-click-capability/run-inspector.ts",
     "acceptance:local-ai-health": "npm run build && node scripts/acceptance/local-ai-health.mjs",
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
@@ -36,6 +43,7 @@
     "lint": "npm run typecheck"
   },
   "dependencies": {
+    "@img/sharp-darwin-arm64": "^0.34.5",
     "playwright": "^1.59.1",
     "sharp": "^0.34.5",
     "zod": "^3.24.4"

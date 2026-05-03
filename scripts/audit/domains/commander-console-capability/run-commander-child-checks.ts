@@ -28,18 +28,18 @@ const collectChildShapeFindings = (input: {
   const findings: Finding[] = [];
 
   if (!hasChildSchemaShape(input.schemaFile, input.childId)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: input.schemaPath, line: 1, severity: "fatal", message: "Commander child schema.ts must define real local input/output/policy schemas and must not be a re-export shell." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: input.schemaPath, line: 1, severity: "fatal", message: "Commander child schema.ts must define real local input/output/policy schemas and must not be a re-export shell." }));
   }
   if (!hasChildContractShape(input.contractFile, input.childId)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: input.contractPath, line: 1, severity: "fatal", message: "Commander child contract.ts must define real metadata constants and local input/output types." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: input.contractPath, line: 1, severity: "fatal", message: "Commander child contract.ts must define real metadata constants and local input/output types." }));
   }
   if (!hasChildImplementationShape(input.implementationFile, input.childId)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: input.implementationPath, line: 1, severity: "fatal", message: "Commander child implementation must export a real child definition with inputSchema/outputSchema/execute." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: input.implementationPath, line: 1, severity: "fatal", message: "Commander child implementation must export a real child definition with inputSchema/outputSchema/execute." }));
   }
 
   const contractDeclaration = input.contractFile.getVariableDeclaration(`${toUpperSnakeCase(input.childId)}_CONTRACT`);
   if (contractCollapsesToAny(contractDeclaration)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V1", file: input.contractPath, line: 1, severity: "fatal", message: "Commander child contracts must stay strongly typed and must not collapse to any." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: input.contractPath, line: 1, severity: "fatal", message: "Commander child contracts must stay strongly typed and must not collapse to any." }));
   }
 
   return findings;
@@ -56,7 +56,7 @@ const collectChildPrivacyFindings = (input: {
 
   const leakedReferences = referenceLeaksOutsideRegistry(input.definition);
   return leakedReferences.length > 0
-    ? [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V1", file: leakedReferences[0]!, line: 1, severity: "fatal", message: "Commander child implementations must stay private and only be referenced from registry.ts." })]
+    ? [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2", file: leakedReferences[0]!, line: 1, severity: "fatal", message: "Commander child implementations must stay private and only be referenced from registry.ts." })]
     : [];
 };
 
@@ -68,10 +68,10 @@ const collectChildExecutionRouteFindings = (input: {
   const findings: Finding[] = [];
 
   if (COMMAND_CHILD_IDS.has(input.childId) && !hasCallExpression(input.implementationFile, "executeCommanderCommandChild")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: input.implementationPath, line: 1, severity: "fatal", message: `Command child ${input.childId} must execute through executeCommanderCommandChild.` }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", file: input.implementationPath, line: 1, severity: "fatal", message: `Command child ${input.childId} must execute through executeCommanderCommandChild.` }));
   }
   if (!COMMAND_CHILD_IDS.has(input.childId) && !hasCallExpression(input.implementationFile, "executeCommanderReadChild")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: input.implementationPath, line: 1, severity: "fatal", message: `Read child ${input.childId} must execute through executeCommanderReadChild.` }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2", file: input.implementationPath, line: 1, severity: "fatal", message: `Read child ${input.childId} must execute through executeCommanderReadChild.` }));
   }
 
   return findings;
@@ -85,10 +85,10 @@ const collectChildExecutionSemanticFindings = (input: {
   const findings: Finding[] = [];
 
   if (input.childId === "emergency-stop" && input.implementationFile.getFullText().includes('"stop-mission"')) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: input.implementationPath, line: 1, severity: "fatal", message: "emergency-stop child must never downgrade into stop-mission semantics." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2", file: input.implementationPath, line: 1, severity: "fatal", message: "emergency-stop child must never downgrade into stop-mission semantics." }));
   }
   if (input.childId === "inspect-record-detail" && !input.implementationFile.getFullText().includes("record_not_found")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V1", file: input.implementationPath, line: 1, severity: "fatal", message: "inspect-record-detail must preserve the record_not_found review-required outcome." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2", file: input.implementationPath, line: 1, severity: "fatal", message: "inspect-record-detail must preserve the record_not_found review-required outcome." }));
   }
 
   return findings;

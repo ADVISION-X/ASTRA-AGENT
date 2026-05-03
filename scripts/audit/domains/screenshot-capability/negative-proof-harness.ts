@@ -4,6 +4,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { LAW_IDS } from "./config.js";
 
 type Mutation = {
   name: string;
@@ -23,6 +24,12 @@ const MUTATIONS: Mutation[] = [
     replace: "export {\n  listScreenshotChildren,\n} from \"./registry.js\";\nexport * from \"./adapters/index.js\";",
   },
   {
+    name: "public workbench entry mutation",
+    file: "src/capabilities/screenshot/index.ts",
+    search: "export {\n  listScreenshotChildren,\n} from \"./registry.js\";",
+    replace: "export {\n  listScreenshotChildren,\n} from \"./registry.js\";\nexport { createWorkbenchScreenshotAbilityGroup } from \"./workbench-screenshot-ability-group.js\";",
+  },
+  {
     name: "contract child-interface leak mutation",
     file: "src/capabilities/screenshot/contract.ts",
     search: "interface ScreenshotAbilityGroup {",
@@ -37,14 +44,50 @@ const MUTATIONS: Mutation[] = [
   {
     name: "private-runtime import mutation",
     file: "src/lib/local-runtime/workbench-screenshot-ability-group.ts",
-    search: "from \"../../capabilities/screenshot/index.js\";",
+    search: "from \"../../capabilities/screenshot/workbench-screenshot-ability-group.js\";",
     replace: "from \"../../capabilities/screenshot/runtime/workbench-screenshot-ability-group.js\";",
+  },
+  {
+    name: "nullable chain field regression mutation",
+    file: "src/capabilities/screenshot/shared/screenshot-governance.ts",
+    search: "  capabilityCallId: limitedString(200),",
+    replace: "  capabilityCallId: nullableLimitedString(200),",
   },
   {
     name: "non-success output escape mutation",
     file: "src/capabilities/screenshot/schema.ts",
     search: "non-success result must not expose output",
     replace: "non-success result may expose output",
+  },
+  {
+    name: "region crop flattening mutation",
+    file: "src/capabilities/screenshot/registry.ts",
+    search: "    outputImageKind: \"region_crop\",\n    coordinateSpacePolicy: \"region_crop_pixels\",",
+    replace: "    outputImageKind: \"evidence_original\",\n    coordinateSpacePolicy: \"source_image_pixels\",",
+  },
+  {
+    name: "timeout truth bypass mutation",
+    file: "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
+    search: "timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs)",
+    replace: "timeoutMs: input.registryEntry.maxDurationMs",
+  },
+  {
+    name: "result chain parity escape mutation",
+    file: "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
+    search: "dataQualityFlags: input.runtimeProof.dataQualityFlags,",
+    replace: "dataQualityFlags: [],",
+  },
+  {
+    name: "artifact lifecycle self-promotion mutation",
+    file: "src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts",
+    search: "    promotionStatus: \"not_promoted\",\n",
+    replace: "    promotionStatus: \"promoted\",\n",
+  },
+  {
+    name: "artifact lifecycle manifest removal mutation",
+    file: "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
+    search: "    artifactLifecycleManifestRef: input.artifactLifecycleManifestRef,\n",
+    replace: "",
   },
 ];
 
@@ -99,7 +142,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-SCREENSHOT-CAPABILITY-004-V1",
+        lawId: LAW_IDS.NEGATIVE_PROOF,
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",
@@ -128,7 +171,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Screenshot negative-proof harness rejects export-star, contract leak, payload-gate bypass, private-runtime import, and non-success output escape mutations.");
+    return createPassResult("Screenshot negative-proof harness rejects export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, nullable chain regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",

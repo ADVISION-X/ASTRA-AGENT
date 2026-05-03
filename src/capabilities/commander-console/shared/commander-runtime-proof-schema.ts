@@ -9,11 +9,13 @@ import {
   CommanderDispatchChildCapabilityIdSchema,
   CommanderEvidenceRefSchema,
   CommanderHardStopDecisionSchema,
+  CommanderIdempotencyDecisionSchema,
   CommanderOperatorRefSchema,
   CommanderPolicyDecisionSchema,
   CommanderReadDecisionSchema,
   CommanderReadModelSourceSchema,
   CommanderTargetRecordRefSchema,
+  CommanderTimeoutDecisionSchema,
   CommanderTransportDecisionSchema,
   NonEmptyStringSchema,
 } from "./commander-schema-foundation.js";
@@ -47,6 +49,8 @@ const RuntimeProofSchemaBase = z.object({
   readDecision: CommanderReadDecisionSchema.nullable(),
   transportDecision: CommanderTransportDecisionSchema.nullable(),
   hardStopDecision: CommanderHardStopDecisionSchema.nullable(),
+  timeoutDecision: CommanderTimeoutDecisionSchema,
+  idempotencyDecision: CommanderIdempotencyDecisionSchema,
   policyDecision: CommanderPolicyDecisionSchema,
   dataQualityFlags: z.array(CommanderDataQualityFlagSchema),
 }).strict();

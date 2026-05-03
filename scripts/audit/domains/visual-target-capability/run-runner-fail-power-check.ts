@@ -11,8 +11,13 @@ export async function runRunnerFailPowerCheck(project: Project): Promise<AttackO
 
   for (const functionName of config.REQUIRED_INSPECTOR_FUNCTIONS) {
     if (!importedNames.has(functionName)) {
-      findings.push(createViolation({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V1", file: config.INSPECTOR_ENTRY, message: `Visual Target inspector must import ${functionName}().` }));
+      findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: config.INSPECTOR_ENTRY, message: `Visual Target inspector must import ${functionName}().` }));
     }
+  }
+
+  const inspectorText = inspectorSource.getFullText();
+  if (!inspectorText.includes("await runNegativeProofHarness()")) {
+    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: config.INSPECTOR_ENTRY, message: "Visual Target inspector must invoke and report the negative-proof harness." }));
   }
 
   return { findings, phase: createAttackPhase("runner-fail-power-check", findings, "Visual Target inspector retains explicit attack-function structure, so audit failures remain attributable and reviewable.", "Visual Target inspector lost its explicit attack-function structure and risks silent enforcement drift.") };
