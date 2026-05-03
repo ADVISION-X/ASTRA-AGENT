@@ -135,6 +135,10 @@ requestedBy = orchestration
 transportedBy = nerve-bus
 ```
 
+Exception:
+- `taskType = map_authoring` may use `requestedBy = commander-console` and `transportedBy = commander-console` only for Commander Map Lab draft generation.
+- This exception does not allow Commander, Local App Shell, or Map Lab routes to bypass AI pipeline gates, Nerve Bus authority, or Orchestration mission-flow ownership.
+
 If a field is not available at an early stage, the result must be `failed` or `review_required`; it must not be `success`.
 
 ### Provider State Baseline
@@ -147,10 +151,13 @@ Allowed active local providers:
 
 Policy-disabled providers:
 - paid-vision-ai
-- paid-analysis-ai
 - future-api-ai
 
+Policy-guarded external provider:
+- paid-analysis-ai
+
 Disabled providers must remain visible in registry and audit surfaces, but must fail closed by default.
+Policy-guarded external provider must remain visible in registry and audit surfaces, fail closed by default, and may execute only when paid-provider allowlist, operator approval, provider config, secret, and external-transmission policy are all explicit.
 
 ### Forbidden AI Authority
 
@@ -207,6 +214,7 @@ Required direction:
   - `AiQualityPolicy`
   - `AiRuntimeProof`
 - AI requests must preserve `requestedBy = orchestration` and `transportedBy = nerve-bus`.
+  - Exception: `taskType = map_authoring` may preserve `requestedBy = commander-console` and `transportedBy = commander-console` only for Commander Map Lab draft generation; it must not be reused for mission step execution.
 - `src/lib/local-ai` may remain an internal local runtime boundary, but must not reclaim AI public ownership.
 - LocalAi task contracts may exist only inside `src/capabilities/ai/runtime-adapters/**` or governed `src/lib/local-ai/**` internals.
 
@@ -272,9 +280,10 @@ Required direction:
   - `local-text-ai`
   - `local-ocr-ai`
   - `internal-schema-validator`
+- Policy-guarded child registry includes:
+  - `paid-analysis-ai`
 - Disabled/future child registry includes:
   - `paid-vision-ai`
-  - `paid-analysis-ai`
   - `future-api-ai`
 - Public task type set:
   - `product_presence_judgment`
@@ -284,6 +293,7 @@ Required direction:
   - `comment_signal_summary`
   - `product_signal_summary`
   - `evidence_packet_analysis`
+  - `map_authoring`
   - `schema_validation_only`
 - AI owns the routing matrix from taskType to childCapabilityId.
 - Child readiness is inspectable only through governed readiness contract.
@@ -300,9 +310,10 @@ governanceInvariant:
     - local-text-ai
     - local-ocr-ai
     - internal-schema-validator
+  policyGuardedChildren:
+    - paid-analysis-ai
   disabledChildren:
     - paid-vision-ai
-    - paid-analysis-ai
     - future-api-ai
   taskRoutingOwner: ai-capability
   forbiddenChildIdSources:
@@ -487,11 +498,12 @@ alias: APEX-AI-005-V1
 
 ### 法条
 
-Paid and future API AI providers may exist only as named child capabilities under the AI Ability Group and must default to disabled-by-policy status.
+Paid and future API AI providers may exist only as named child capabilities under the AI Ability Group and must default to fail-closed policy state.
 
 Required direction:
 - `paid-vision-ai`, `paid-analysis-ai`, and `future-api-ai` may exist only as explicit children under `src/capabilities/ai/children`.
-- Default policy is `disabled_by_policy`.
+- `paid-vision-ai` and `future-api-ai` default policy is `disabled_by_policy`.
+- `paid-analysis-ai` may be `policy_guarded` only for explicitly operator-approved external analysis tasks such as `evidence_packet_analysis` and `map_authoring`.
 - Paid providers require:
   - `allowPaidProvider = true`
   - explicit provider allowlist
@@ -499,10 +511,12 @@ Required direction:
   - `costPolicy.maxEstimatedCost`
   - `operatorApprovalRef`
   - dedicated review path
+- `paid-analysis-ai` additionally requires `providerConfigRef` and `secretRef` before runtime execution may proceed.
 - No automatic fallback from local AI to paid or future API children is allowed.
 - No automatic fallback from paid/future providers to local success is allowed.
-- Policy-disabled children must be visible in registry and audit surfaces.
+- Policy-disabled and policy-guarded children must be visible in registry and audit surfaces.
 - Disabled provider execution must return `failed` with `failureKind = provider_disabled` and proof.
+- Policy-guarded provider execution with missing approval, config, or secret must return `failed` or `review_required` with explicit reason and proof; it must not return `success`.
 
 ### 机器可读不变量
 
@@ -512,9 +526,14 @@ governanceInvariant:
   owner: ai-capability
   disabledChildren:
     - paid-vision-ai
-    - paid-analysis-ai
     - future-api-ai
-  requiredFailureKind: provider_disabled
+  policyGuardedChildren:
+    - paid-analysis-ai
+  requiredFailClosedReasons:
+    - provider_disabled
+    - operator_approval_missing
+    - provider_config_missing
+    - provider_secret_missing
   forbiddenFallbacks:
     - paid-to-local-success
     - future-to-local-success
@@ -531,6 +550,7 @@ FORBIDDEN:
 - Treating future API placeholders as runnable production paths.
 - Executing a paid child when policy is incomplete or implied.
 - Disabled provider returning success.
+- Policy-guarded provider returning success while approval, config, or secret is missing.
 - Disabled provider returning fake review_required to avoid failure.
 
 ---

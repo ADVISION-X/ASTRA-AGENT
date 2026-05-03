@@ -16,8 +16,8 @@ Authority: this file is authoritative only for the text-input-capability domain.
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input Ability Group is the only owner of governed text writing capability.
 
@@ -41,8 +41,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input is write-only capability, not cognition, targeting, gesture, or verification truth.
 
@@ -74,8 +74,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input accepts only approved text payloads and verified target handoff.
 
@@ -107,8 +107,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input executes only through governed input, clipboard, and clock ports.
 
@@ -137,8 +137,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input success is primitive write success only and never verification truth.
 
@@ -167,8 +167,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input enforcement closes through owner inspector and audit runner only.
 
@@ -191,8 +191,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: text-input-capability
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Text Input canonical topology is one standard package with six governed execution children.
 

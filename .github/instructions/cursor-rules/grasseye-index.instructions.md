@@ -27,12 +27,18 @@ Index only locates the narrowest current authority.
 
 - Load GRASSEYE-KERNEL before any module match.
 - Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug runtime proof.
-- Index may route only to the 14 active ability groups and active support laws.
+- Index may route only to the 14 active ability groups, foundation laws, and explicit support-governance domains.
 - Match the narrowest domain by path and task keywords.
 - Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
 - Do not activate absent historical paths.
 - Do not use broad patterns to revive future capabilities.
 - When two modules appear close, choose the one that directly owns the decision or record boundary.
+
+Support-governance domains:
+- map-plugin-package routes as support governance, not as an active ability group.
+
+Local development tooling:
+- debug-loop-controller stays outside active law routing and must not be revived as an active ability group.
 
 ---
 
@@ -43,7 +49,7 @@ Index only locates the narrowest current authority.
 | commander console, human command, mission dashboard, runtime proof timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
 | ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance only |
 | orchestration ability group, mission state, mission command execution, operational map, map registry, step state, branch, runtime loop, observe, classify, act, record, orchestrator, facebook-product-discovery-map, tiktok-product-discovery-map, branch after AI output | module-orchestration-capability.instructions.md | Legacy runtime-loop vocabulary remaps to Orchestration mission-map authority |
-| map plugin, map package, operational map package, task template package, map import, map activation, map rollback, map quarantine, map compatibility, map validator, AI draft map, map step, prompt binding, map-driven prompt, map authoring prompt builder, AI-generated map prompt | module-map-plugin-package.instructions.md | Controlled pluggable map-package governance routes here first, then to Orchestration and Commander Console as the direct owners |
+| map plugin, map package, operational map package, task template package, map import, map activation, map rollback, map quarantine, map compatibility, map validator, AI draft map, map step, prompt binding, map-driven prompt, map authoring prompt builder, AI-generated map prompt | module-map-plugin-package.instructions.md | Controlled pluggable map-package support governance routes here first, then to Orchestration and Commander Console as the direct owners |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
 | ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |

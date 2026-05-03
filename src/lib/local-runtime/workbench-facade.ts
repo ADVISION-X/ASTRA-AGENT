@@ -14,6 +14,11 @@ export type WorkbenchFacade = Pick<
   | "setLocalAiRoleStartupState"
   | "deleteCandidate"
   | "exportCandidateSummaries"
+  | "getMapLabSnapshot"
+  | "saveMapLabProviderConfig"
+  | "generateMapLabDraft"
+  | "approveMapLabDraft"
+  | "activateMapLabDraft"
   | "getModeInfo"
 >;
 
@@ -30,5 +35,10 @@ export const createWorkbenchFacade = (runtime: WorkbenchRuntime): WorkbenchFacad
   setLocalAiRoleStartupState: (input) => runtime.setLocalAiRoleStartupState(input),
   deleteCandidate: (candidateId) => runtime.deleteCandidate(candidateId),
   exportCandidateSummaries: () => runtime.exportCandidateSummaries(),
+  getMapLabSnapshot: () => runtime.getMapLabSnapshot(),
+  saveMapLabProviderConfig: (input) => runtime.saveMapLabProviderConfig(input),
+  generateMapLabDraft: (input) => runtime.generateMapLabDraft(input),
+  approveMapLabDraft: (input) => runtime.approveMapLabDraft(input),
+  activateMapLabDraft: (input) => runtime.activateMapLabDraft(input),
   getModeInfo: () => runtime.getModeInfo(),
 });

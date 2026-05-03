@@ -25,6 +25,14 @@ function requiresOperatorReview(request: ParsedAiAbilityInput, childContract: Ai
   return childContract.providerKind === "paid" && request.providerPolicy.operatorApprovalRef === null;
 }
 
+function missingProviderConfigRef(request: ParsedAiAbilityInput, childContract: AiChildContract): boolean {
+  return childContract.providerKind === "paid" && request.providerPolicy.providerConfigRef === null;
+}
+
+function missingSecretRef(request: ParsedAiAbilityInput, childContract: AiChildContract): boolean {
+  return childContract.providerKind === "paid" && request.providerPolicy.secretRef === null;
+}
+
 function resolveEnabledProviderDecision(request: ParsedAiAbilityInput, childContract: AiChildContract) {
   if (childContract.providerKind === "internal") {
     return resolveInternalProviderDecision(childContract);
@@ -32,8 +40,14 @@ function resolveEnabledProviderDecision(request: ParsedAiAbilityInput, childCont
   if (childContract.providerKind === "local") {
     return { decision: "allow", reason: null } as const;
   }
+  if (missingProviderConfigRef(request, childContract)) {
+    return { decision: "review_required", reason: "provider_config_missing" } as const;
+  }
+  if (missingSecretRef(request, childContract)) {
+    return { decision: "review_required", reason: "provider_secret_missing" } as const;
+  }
   if (requiresOperatorReview(request, childContract)) {
-    return { decision: "review_required", reason: "provider_policy_blocked" } as const;
+    return { decision: "review_required", reason: "operator_approval_missing" } as const;
   }
   return { decision: "allow", reason: null } as const;
 }

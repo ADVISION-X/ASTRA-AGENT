@@ -18,6 +18,7 @@ const AI_TASK_TYPES = [
   "comment_signal_summary",
   "product_signal_summary",
   "evidence_packet_analysis",
+  "map_authoring",
   "schema_validation_only",
 ] as const;
 

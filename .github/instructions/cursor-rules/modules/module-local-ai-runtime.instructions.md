@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the ai-capability domain as the l
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: manual-first
@@ -47,7 +47,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-002-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: manual-first
@@ -80,7 +80,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-003-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: manual-first
@@ -112,7 +112,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-004-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: manual-first
@@ -143,7 +143,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-AI-RUNTIME-005-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: manual-first

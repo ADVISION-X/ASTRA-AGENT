@@ -6,15 +6,14 @@ import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-help
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import {
-  INSPECTOR_PATH,
-  MAP_PLUGIN_ACTIVE_LAW_IDS,
-  MAP_PLUGIN_LAW_FILE,
+  MAP_PLUGIN_ENFORCEMENT_BASELINE,
   MAP_PLUGIN_LAWS,
-  MAP_PLUGIN_REQUIRED_ENFORCEMENT_MODE,
-  MAP_PLUGIN_REQUIRED_EVIDENCE_MODE,
-  MAP_PLUGIN_REQUIRED_TIER,
+  MAP_PLUGIN_PATHS,
 } from "./constants.js";
 import { REQUIRED_AUDIT_FILES } from "./file-lists.js";
+
+const { activeLawIds: MAP_PLUGIN_ACTIVE_LAW_IDS, requiredEnforcementMode: MAP_PLUGIN_REQUIRED_ENFORCEMENT_MODE, requiredEvidenceMode: MAP_PLUGIN_REQUIRED_EVIDENCE_MODE, requiredTier: MAP_PLUGIN_REQUIRED_TIER } = MAP_PLUGIN_ENFORCEMENT_BASELINE;
+const { INSPECTOR_PATH, LAW_FILE: MAP_PLUGIN_LAW_FILE } = MAP_PLUGIN_PATHS;
 
 const RUNNER_PATH = "scripts/audit/domains/map-plugin-package/run-inspector.ts";
 const AUDIT_PLAN_PATH = "scripts/audit/generated/audit-plan.generated.json";

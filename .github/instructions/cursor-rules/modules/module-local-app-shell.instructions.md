@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the commander-console-capability 
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
@@ -43,7 +43,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-002-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
@@ -77,7 +77,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-003-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
@@ -105,7 +105,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-004-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first

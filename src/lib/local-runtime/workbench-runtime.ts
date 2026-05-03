@@ -5,6 +5,7 @@ import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { createWorkbenchNerveBus } from "./workbench-nerve-bus.js";
 import { createWorkbenchOrchestration } from "./workbench-orchestration.js";
 import { getWorkbenchLocalAiRoleControls, setWorkbenchLocalAiRoleStartupState } from "./workbench-ai-role-controls.js";
+import { createMapLabService } from "./map-lab/map-lab-service.js";
 import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
 
 export const createWorkbenchRuntime = (
@@ -12,6 +13,7 @@ export const createWorkbenchRuntime = (
 ): WorkbenchRuntime => {
   const baseRuntime = createWorkbenchBaseRuntime(options);
   const runtime = baseRuntime as WorkbenchRuntime;
+  const mapLabService = createMapLabService(runtime);
   runtime.nerveBusAbilityGroup = createWorkbenchNerveBus(runtime);
   runtime.orchestrationAbilityGroup = createWorkbenchOrchestration(runtime);
   runtime.commanderConsole = createWorkbenchCommanderConsole(runtime);
@@ -27,6 +29,11 @@ export const createWorkbenchRuntime = (
   runtime.setLocalAiRoleStartupState = (input) => setWorkbenchLocalAiRoleStartupState(input);
   runtime.deleteCandidate = (candidateId) => runtime.evidenceStore.deleteCandidate(candidateId);
   runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
+  runtime.getMapLabSnapshot = () => mapLabService.getSnapshot();
+  runtime.saveMapLabProviderConfig = (input) => mapLabService.saveProviderConfig(input);
+  runtime.generateMapLabDraft = (input) => mapLabService.generateDraft(input);
+  runtime.approveMapLabDraft = (input) => mapLabService.approveDraft(input);
+  runtime.activateMapLabDraft = (input) => mapLabService.activateDraft(input);
   runtime.getModeInfo = () => getModeInfo(runtime);
   return runtime;
 };

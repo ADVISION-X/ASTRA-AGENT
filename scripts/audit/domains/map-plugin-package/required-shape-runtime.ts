@@ -5,7 +5,9 @@ import { readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { MAP_PLUGIN_LAWS, ROOT } from "./constants.js";
+import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
+
+const { ROOT } = MAP_PLUGIN_PATHS;
 
 const CAPABILITY_CATALOG_GENERATED_PATH = "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json";
 
@@ -48,19 +50,23 @@ const resolveActiveRecord = (registry: ReturnType<typeof createMapPluginRegistry
   return activeRecord;
 };
 
+const hasFrozenGovernanceMetadata = (activeRecord: ActiveRegistryRecord): boolean => {
+  return [
+    activeRecord.activationId,
+    activeRecord.activationSnapshotRef,
+    activeRecord.activationSnapshotHash,
+    activeRecord.mapPackageHash,
+    activeRecord.operationalMapHash,
+    activeRecord.capabilityCatalogVersion,
+    activeRecord.promptCatalogVersion,
+    activeRecord.validationReportRef,
+    activeRecord.humanApprovalRef,
+  ].every(Boolean);
+};
+
 const collectActiveRecordMetadataFindings = (activeRecord: ActiveRegistryRecord): Finding[] => {
   const findings: Finding[] = [];
-  if (
-    !activeRecord.activationId
-    || !activeRecord.activationSnapshotRef
-    || !activeRecord.activationSnapshotHash
-    || !activeRecord.mapPackageHash
-    || !activeRecord.operationalMapHash
-    || !activeRecord.capabilityCatalogVersion
-    || !activeRecord.promptCatalogVersion
-    || !activeRecord.validationReportRef
-    || !activeRecord.humanApprovalRef
-  ) {
+  if (!hasFrozenGovernanceMetadata(activeRecord)) {
     findings.push(createRegistryBootstrapError("Active registry records must expose activationId, frozen hashes, and locked governance refs."));
   }
   if (!activeRecord.proofPolicy.recordPackageSelection) {

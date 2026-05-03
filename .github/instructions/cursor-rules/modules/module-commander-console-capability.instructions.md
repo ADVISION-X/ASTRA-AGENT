@@ -18,6 +18,7 @@ Core doctrine:
 - Commander Console is the cockpit for humans, not the engine.
 - Commander receives human intent and emits governed command envelopes.
 - Commander reads governed truth and renders Commander-owned view records.
+- Commander may host Map Lab authoring UX, but that UX remains a governed operator surface over AI/map-package lifecycle ports, not a second command system.
 - Commander does not execute maps, advance steps, call AI, write Forensics, touch browser/action primitives, or mutate candidates directly.
 - Human command entry has one owner: Commander Console.
 - Action and mission execution have other owners: Orchestration, Nerve Bus, action abilities, PAV, Forensics.
@@ -108,10 +109,13 @@ mark-review-required
 inspect-record-detail
 ```
 
+Map Lab authoring requests are not HumanCommandEnvelope mission commands. They are a separate governed operator-authoring path that may originate from Commander UI only through dedicated Map Lab service/API boundaries.
+
 Required:
 - Task API routes call Commander public interface.
 - Candidate review API routes call Commander public interface.
 - Commander emits governed HumanCommandEnvelope through CommandTransportPort.
+- Map Lab routes may call only governed Map Lab public methods; they must not directly call AI runtime adapters, provider configs, or registry internals.
 - Commander never holds raw Orchestration ability object.
 - Commander never directly mutates candidate/review/storage.
 - Commander public root is `src/capabilities/commander-console`.
@@ -121,6 +125,8 @@ Forbidden:
 - `candidate-api-handlers` calling setCandidateDisposition/resetLocalStore/deleteCandidate.
 - operator-control/workbench/startup owning command truth.
 - local shell becoming second command owner.
+- Commander or local shell directly importing AI child/runtime adapter internals for Map Lab authoring.
+- Commander or local shell directly mutating map registry/quarantine/activation internals outside governed Map Lab methods.
 - Commander exposing raw OrchestrationAbilityGroup.
 - hidden human-command paths outside Commander.
 

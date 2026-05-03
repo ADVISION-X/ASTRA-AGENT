@@ -1,0 +1,38 @@
+{
+  "promptContractId": "map.authoring.v1",
+  "promptId": "map.authoring.v1",
+  "taskType": "map_authoring",
+  "legacyTaskType": null,
+  "modelRole": "future",
+  "promptVersion": "map.authoring.v1",
+  "schemaVersion": "map-authoring-draft.v1",
+  "inputContract": "structured_record.map_authoring_request",
+  "requiredInputRefs": ["mapAuthoringRequestRef"],
+  "outputSchemaRef": "ai.map_authoring.v1",
+  "allowedBranchFields": [],
+  "systemPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#system",
+  "userPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#user",
+  "purpose": "Draft a governed GrassEye map package candidate from Commander operator requirements.",
+  "forbiddenOutputs": ["rawPrompt", "systemPrompt", "userPrompt", "handler", "script", "exec", "shell"],
+  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
+  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "confidencePolicy": {
+    "minConfidence": 0.6,
+    "belowMin": "review_required"
+  },
+  "reviewPolicy": {
+    "requiredWhen": ["low_confidence", "schema_mismatch", "prompt_contract_failure"]
+  },
+  "failurePolicy": {
+    "badJson": "review_required",
+    "schemaMismatch": "review_required",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
+  "promptHash": "sha256:map-authoring-v1",
+  "sensitiveOperation": true
+}

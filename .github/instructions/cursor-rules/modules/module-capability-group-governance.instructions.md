@@ -16,8 +16,8 @@ Authority: this file is authoritative only for the capability-group-governance d
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: GrassEye uses one fixed ability-group constitution and one execution chain.
 
@@ -48,8 +48,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: every ability group owns one public contract and one child-boundary catalog.
 
@@ -83,8 +83,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Commander, Nerve Bus, and Orchestration each have one fixed authority boundary.
 
@@ -123,8 +123,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: runtime proof minimum fields are fixed across every governed execution.
 
@@ -153,8 +153,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: every governed execution must leave evidence, log, and trace.
 
@@ -183,8 +183,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: ability groups must keep hard boundaries and topology must reflect ownership.
 
@@ -223,8 +223,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Capability Catalog is a generated read model, not a new owner.
 
@@ -241,8 +241,8 @@ Capability Catalog is a generated read model from active ability group registrie
 status: active
 tier: P0
 capabilityDomain: capability-group-governance
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: AI-generated map authoring must use the governed capability catalog.
 

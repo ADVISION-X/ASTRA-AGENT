@@ -61,16 +61,23 @@ GrassEye 当前法案源头已冻结。
 13. forensics-persistence
 14. page-state
 
-### 1.2 当前 active support laws
+### 1.2 当前 foundation laws
 
-固定为 4 个：
+固定为 5 个：
 
 1. audit-system
 2. capability-group-governance
-3. type-safety
-4. security-privacy
+3. code-purity
+4. type-safety
+5. security-privacy
 
-### 1.3 当前子契约归属
+### 1.3 当前 support governance domains
+
+固定为 1 个：
+
+1. map-plugin-package
+
+### 1.4 当前子契约归属
 
 | 子契约 | 父 owner | 是否 active owner | inspector 归属 |
 | --- | --- | --- | --- |
@@ -84,7 +91,7 @@ GrassEye 当前法案源头已冻结。
 | code-topology | capability-group-governance | 否 | capability-group-governance |
 | code-purity | audit-system | 否 | audit-system |
 
-### 1.4 禁止恢复的旧 owner
+### 1.5 禁止恢复的旧 owner
 
 以下不得重新进入 active owner、phase gate、audit plan、runner：
 

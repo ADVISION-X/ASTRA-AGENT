@@ -1,0 +1,66 @@
+# Repair Packet
+
+## Debug Session
+debug-2026-05-03T19-14-51-459Z / iteration 1
+
+## Scenario
+facebook-auth-check
+
+## Failure Category
+LAW_SOURCE_ERROR
+
+## Owner
+audit-system
+
+## Evidence
+- stdout.log#L6
+- runner-summary.json#L3
+- runner-summary.json#L21
+- runner-summary.json#L27
+- runner-summary.json#L45
+
+## Root Cause
+  "rootCause": "file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:39\n                const error = new ZodError(ctx.common.issues);\n                              ^\n\nZodError: [\n  {\n    \"received\": \"schema_uncertain\",\n    \"code\": \"invalid_enum_value\",\n    \"options\": [\n      \"low_confidence\",\n      \"schema_mismatch\",\n      \"bad_json\",\n      \"prompt_contract_failure\",\n      \"disabled_by_policy\"\n    ],\n    \"path\": [\n      \"reviewPolicy\",\n      \"requiredWhen\",\n      1\n    ],\n    \"message\": \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n  },\n  {\n    \"received\": \"capability_gap\",\n    \"code\": \"invalid_enum_value\",\n    \"options\": [\n      \"low_confidence\",\n      \"schema_mismatch\",\n      \"bad_json\",\n      \"prompt_contract_failure\",\n      \"disabled_by_policy\"\n    ],\n    \"path\": [\n      \"reviewPolicy\",\n      \"requiredWhen\",\n      2\n    ],\n    \"message\": \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n  }\n]\n    at get error (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:39:31)\n    at ZodObject.parse (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:114:22)\n    at readBuiltinPromptContract (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:32:43)\n    at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:47:69)\n    at Array.map (<anonymous>)\n    at buildPromptContractCatalog (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:47:51)\n    at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:70:32)\n    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/[eval1]:7:36 {\n  issues: [\n    {\n      received: 'schema_uncertain',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 1 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n    },\n    {\n      received: 'capability_gap',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 2 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n    }\n  ],\n  addIssue: [Function (anonymous)],\n  addIssues: [Function (anonymous)],\n  errors: [\n    {\n      received: 'schema_uncertain',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 1 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n    },\n    {\n      received: 'capability_gap',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 2 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n    }\n  ]\n}\n\nNode.js v24.4.1\n",
+
+## Allowed Modify
+- .github/instructions/cursor-rules/modules/**
+- docs/法案辅助文件/**
+- scripts/audit/**
+- package.json
+
+## Forbidden Modify
+- scripts/audit/generated/**
+- src/capabilities/commander-console/**
+- src/capabilities/orchestration/**
+- src/capabilities/nerve-bus/**
+- src/capabilities/open/**
+- src/capabilities/page-state/**
+- src/capabilities/screenshot/**
+- src/capabilities/ai/**
+- src/capabilities/visual-target/**
+- src/capabilities/geometry-guard/**
+- src/capabilities/mouse-click/**
+- src/capabilities/mouse-scroll/**
+- src/capabilities/text-input/**
+- src/capabilities/post-action-verification/**
+- src/capabilities/forensics-persistence/**
+
+## Required Fix
+-   "rootCause": "file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:39\n                const error = new ZodError(ctx.common.issues);\n                              ^\n\nZodError: [\n  {\n    \"received\": \"schema_uncertain\",\n    \"code\": \"invalid_enum_value\",\n    \"options\": [\n      \"low_confidence\",\n      \"schema_mismatch\",\n      \"bad_json\",\n      \"prompt_contract_failure\",\n      \"disabled_by_policy\"\n    ],\n    \"path\": [\n      \"reviewPolicy\",\n      \"requiredWhen\",\n      1\n    ],\n    \"message\": \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n  },\n  {\n    \"received\": \"capability_gap\",\n    \"code\": \"invalid_enum_value\",\n    \"options\": [\n      \"low_confidence\",\n      \"schema_mismatch\",\n      \"bad_json\",\n      \"prompt_contract_failure\",\n      \"disabled_by_policy\"\n    ],\n    \"path\": [\n      \"reviewPolicy\",\n      \"requiredWhen\",\n      2\n    ],\n    \"message\": \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n  }\n]\n    at get error (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:39:31)\n    at ZodObject.parse (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:114:22)\n    at readBuiltinPromptContract (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:32:43)\n    at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:47:69)\n    at Array.map (<anonymous>)\n    at buildPromptContractCatalog (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:47:51)\n    at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/ai/prompt-contracts/registry.ts:70:32)\n    at ModuleJob.run (node:internal/modules/esm/module_job:370:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)\n    at async file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/[eval1]:7:36 {\n  issues: [\n    {\n      received: 'schema_uncertain',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 1 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n    },\n    {\n      received: 'capability_gap',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 2 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n    }\n  ],\n  addIssue: [Function (anonymous)],\n  addIssues: [Function (anonymous)],\n  errors: [\n    {\n      received: 'schema_uncertain',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 1 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'schema_uncertain'\"\n    },\n    {\n      received: 'capability_gap',\n      code: 'invalid_enum_value',\n      options: [\n        'low_confidence',\n        'schema_mismatch',\n        'bad_json',\n        'prompt_contract_failure',\n        'disabled_by_policy'\n      ],\n      path: [ 'reviewPolicy', 'requiredWhen', 2 ],\n      message: \"Invalid enum value. Expected 'low_confidence' | 'schema_mismatch' | 'bad_json' | 'prompt_contract_failure' | 'disabled_by_policy', received 'capability_gap'\"\n    }\n  ]\n}\n\nNode.js v24.4.1\n",
+
+## Required Commands
+- npm run audit:build
+- npm run ci:full
+- node scripts/debug-loop/run-debug-loop.mjs --scenario facebook-auth-check --continue --runId debug-2026-05-03T19-14-51-459Z
+
+## Stop Rule
+debug:loop PASS + CI FULL PASS
+
+## Forbidden Actions
+- Only modify allowedModify paths.
+- Do not modify forbiddenModify paths.
+- Do not downgrade laws.
+- Do not disable inspectors.
+- Do not remove negative proof.
+- Do not hand-edit generated files to fake PASS.
+

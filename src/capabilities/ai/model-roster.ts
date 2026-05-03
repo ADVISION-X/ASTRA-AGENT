@@ -56,7 +56,7 @@ function buildDisabledEntries(): AiModelRosterEntry[] {
     {
       childCapabilityId: "paid-analysis-ai",
       providerKind: "paid",
-      taskTypes: ["evidence_packet_analysis"],
+      taskTypes: ["evidence_packet_analysis", "map_authoring"],
       modelRole: "future",
       runtime: "policy-disabled",
       modelOrTool: null,

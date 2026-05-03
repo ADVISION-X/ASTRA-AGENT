@@ -16,8 +16,8 @@ Authority: this file is authoritative only for the audit-system capability domai
 status: active
 tier: P0
 capabilityDomain: audit-system
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: inspector plus generated artifacts plus audit runner is the only enforcement chain.
 
@@ -58,8 +58,8 @@ FORBIDDEN:
 status: active
 tier: P0
 capabilityDomain: audit-system
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Map Prompt Contract Governance must be enforced by AST, schema, and negative proof.
 
@@ -76,8 +76,8 @@ Map Prompt Contract Governance must be enforced by AST, schema, and negative pro
 status: active
 tier: P0
 capabilityDomain: audit-system
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: Prompt contract and map binding drift is audit-blocking.
 

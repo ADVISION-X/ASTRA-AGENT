@@ -7,11 +7,57 @@ import { getTypeAliasPropertyNames, getZodObjectPropertyNames } from "../_shared
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
-import { MAP_PLUGIN_LAWS, ROOT } from "./constants.js";
+import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
 import { BUILTIN_PACKAGE_FILES, REQUIRED_SOURCE_FILES } from "./file-lists.js";
 import { inspectCapabilityCatalogGeneratedTruth, inspectRegistryBootstrap } from "./required-shape-runtime.js";
 
+const { ROOT } = MAP_PLUGIN_PATHS;
+
 const AI_DRAFT_PLACEHOLDER_PATH = `${ROOT}/builtins/ai-draft-map-placeholder.map-package.json`;
+const ACTIVATION_REQUIRED_FIELDS = [
+  "activationId",
+  "activationSnapshotRef",
+  "activationSnapshotHash",
+  "mapPackageId",
+  "mapPackageVersion",
+  "mapVersion",
+  "taskTemplateId",
+  "requestedPlatformId",
+  "approvedBy",
+  "activatedAt",
+  "reason",
+  "humanApprovalRef",
+  "validationReportRef",
+  "capabilityCatalogVersion",
+  "promptCatalogVersion",
+  "validationReportRef",
+  "operationalMapHash",
+  "mapPackageHash",
+] as const;
+const ACTIVE_RECORD_REQUIRED_FIELDS = [
+  "activationId",
+  "activationSnapshotRef",
+  "activationSnapshotHash",
+  "mapPackageHash",
+  "operationalMapHash",
+  "capabilityCatalogVersion",
+  "promptCatalogVersion",
+  "validationReportRef",
+  "humanApprovalRef",
+  "proofPolicy",
+] as const;
+
+const collectMissingTypeFieldFindings = (input: {
+  fieldSet: Set<string>;
+  requiredFields: readonly string[];
+  file: string;
+  message: string;
+}): Finding[] => {
+  const missingFields = input.requiredFields.filter((fieldName) => !input.fieldSet.has(fieldName));
+  return missingFields.length === 0
+    ? []
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: input.file, line: 1, severity: "fatal", message: input.message, detail: missingFields.join(", ") })];
+};
 
 const inspectMissingRequiredFiles = async (): Promise<Finding[]> => {
   const missing = await missingFiles(REQUIRED_SOURCE_FILES);
@@ -131,51 +177,20 @@ const inspectActivationTypes = (project: Project): Finding[] => {
   const activationRecordFields = getTypeAliasPropertyNames(activationProofSource, "MapActivationRecord");
   const activeRecordSource = getSource(project, `${ROOT}/shared/map-package-registry-types.ts`);
   const activeRecordFields = getTypeAliasPropertyNames(activeRecordSource, "ActiveOperationalMapRecord");
-  const activationRequiredFields = [
-    "activationId",
-    "activationSnapshotRef",
-    "activationSnapshotHash",
-    "mapPackageId",
-    "mapPackageVersion",
-    "mapVersion",
-    "taskTemplateId",
-    "requestedPlatformId",
-    "approvedBy",
-    "activatedAt",
-    "reason",
-    "humanApprovalRef",
-    "validationReportRef",
-    "capabilityCatalogVersion",
-    "promptCatalogVersion",
-    "validationReportRef",
-    "operationalMapHash",
-    "mapPackageHash",
-  ] as const;
-  const activeRequiredFields = [
-    "activationId",
-    "activationSnapshotRef",
-    "activationSnapshotHash",
-    "mapPackageHash",
-    "operationalMapHash",
-    "capabilityCatalogVersion",
-    "promptCatalogVersion",
-    "validationReportRef",
-    "humanApprovalRef",
-    "proofPolicy",
-  ] as const;
-
-  const findings: Finding[] = [];
-  const missingActivationFields = activationRequiredFields.filter((fieldName) => !activationRecordFields.has(fieldName));
-  if (missingActivationFields.length > 0) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/shared/map-package-proof.ts`, line: 1, severity: "fatal", message: "Activation record must capture immutable frozen snapshot proof fields.", detail: missingActivationFields.join(", ") }));
-  }
-
-  const missingActiveFields = activeRequiredFields.filter((fieldName) => !activeRecordFields.has(fieldName));
-  if (missingActiveFields.length > 0) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/shared/map-package-registry-types.ts`, line: 1, severity: "fatal", message: "Active operational map record must expose frozen activation metadata and governance fields.", detail: missingActiveFields.join(", ") }));
-  }
-
-  return findings;
+  return [
+    ...collectMissingTypeFieldFindings({
+      fieldSet: activationRecordFields,
+      requiredFields: ACTIVATION_REQUIRED_FIELDS,
+      file: `${ROOT}/shared/map-package-proof.ts`,
+      message: "Activation record must capture immutable frozen snapshot proof fields.",
+    }),
+    ...collectMissingTypeFieldFindings({
+      fieldSet: activeRecordFields,
+      requiredFields: ACTIVE_RECORD_REQUIRED_FIELDS,
+      file: `${ROOT}/shared/map-package-registry-types.ts`,
+      message: "Active operational map record must expose frozen activation metadata and governance fields.",
+    }),
+  ];
 };
 
 const inspectLifecycleSources = (project: Project): Finding[] => {

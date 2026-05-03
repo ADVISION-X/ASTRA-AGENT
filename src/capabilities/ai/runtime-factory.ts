@@ -3,23 +3,25 @@ import { createAiModelRosterPort } from "./model-roster.js";
 import { createSystemAiClock } from "./runtime/ai-clock.js";
 import { createAiPromptRegistry } from "./runtime/ai-prompt-registry.js";
 import {
-  createLocalAiRuntimePort,
-  type LocalAiRuntimePortOptions,
-} from "./runtime-adapters/local-ai-runtime-adapter.js";
+  createProviderAwareAiRuntimePort,
+  type ProviderAwareAiRuntimeInput,
+} from "./runtime-adapters/provider-aware-ai-runtime-adapter.js";
 
 export type CreateAiAbilityGroupInput = {
-  emitDebugEvent?: LocalAiRuntimePortOptions["emitDebugEvent"];
+  emitDebugEvent?: ProviderAwareAiRuntimeInput["emitDebugEvent"];
+  dataDir?: string | null;
 };
 
 export const createConfiguredAiAbilityGroup = (
   input: CreateAiAbilityGroupInput = {},
 ) => {
-  const runtimeOptions = input.emitDebugEvent
-    ? { emitDebugEvent: input.emitDebugEvent }
-    : {};
+  const runtimeOptions: ProviderAwareAiRuntimeInput = {
+    emitDebugEvent: input.emitDebugEvent,
+    dataDir: input.dataDir ?? null,
+  };
 
   return createAiAbilityGroup({
-    runtime: createLocalAiRuntimePort(runtimeOptions),
+    runtime: createProviderAwareAiRuntimePort(runtimeOptions),
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),
     promptRegistry: createAiPromptRegistry(),

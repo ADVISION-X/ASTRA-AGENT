@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T12:21:05.987Z",
+  "generatedAt": "2026-05-03T19:54:01.259Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 2,
@@ -86,25 +86,173 @@
       "capabilityDomain": "audit-system",
       "findings": [
         {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/log-indexer.mjs",
+          "line": 152,
+          "severity": "error",
+          "message": "Function buildLogIndex exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/map-resolver.mjs",
+          "line": 71,
+          "severity": "error",
+          "message": "Function resolveScenarioMapBinding exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/run-debug-loop.mjs",
+          "line": 34,
+          "severity": "error",
+          "message": "Function parseScenarioOutput contains a silent catch clause."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/run-debug-loop.mjs",
+          "line": 130,
+          "severity": "error",
+          "message": "Function runOneIteration exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/run-debug-loop.mjs",
+          "line": 230,
+          "severity": "error",
+          "message": "Function runDebugLoop exceeds code-purity function limits."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-          "file": "scripts/audit/domains/map-plugin-package/constants.ts",
+          "file": "scripts/debug-loop/run-debug-loop.mjs",
           "line": 1,
           "severity": "error",
           "message": "Import or export structure exceeds code-purity limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/map-plugin-package/required-shape-runtime.ts",
-          "line": 51,
+          "file": "scripts/debug-loop/run-state.mjs",
+          "line": 18,
           "severity": "error",
-          "message": "Function collectActiveRecordMetadataFindings exceeds code-purity function limits."
+          "message": "Function pathExists contains a silent catch clause."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/audit/domains/map-plugin-package/required-shape.ts",
-          "line": 129,
+          "file": "scripts/debug-loop/verifier.mjs",
+          "line": 54,
           "severity": "error",
-          "message": "Function inspectActivationTypes exceeds code-purity function limits."
+          "message": "Function parseTrailingJson contains a silent catch clause."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/verifier.mjs",
+          "line": 78,
+          "severity": "error",
+          "message": "Function buildVerdict exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/debug-loop/verifier.mjs",
+          "line": 90,
+          "severity": "error",
+          "message": "Function runVerification exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the runtime/implementation hard limit of 300 lines.",
+          "detail": "362"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-009-V1",
+          "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Compatibility bridge or legacy duplicate path naming is forbidden in active source truth."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-014-V1",
+          "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Physical remediation must remove bridge-style files instead of preserving duplicate paths."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+          "line": 186,
+          "severity": "error",
+          "message": "Function callOpenAiCompatible exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+          "line": 317,
+          "severity": "error",
+          "message": "Function createOpenAiCompatibleRuntimePort exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/ai/runtime/ai-provider-policy-gate.ts",
+          "line": 36,
+          "severity": "error",
+          "message": "Function resolveEnabledProviderDecision exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/ai/runtime/provider-config-store.ts",
+          "line": 72,
+          "severity": "error",
+          "message": "Function lockFilePermissions contains a silent catch clause."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/capabilities/ai/schema-core.schema.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/ai/shared/ai-output.ts",
+          "line": 39,
+          "severity": "error",
+          "message": "Function buildFallbackByTaskType exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
+          "line": 50,
+          "severity": "error",
+          "message": "Function buildMapAuthoringAiRequest exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
+          "line": 109,
+          "severity": "error",
+          "message": "Function createMapLabService exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
+          "line": 125,
+          "severity": "error",
+          "message": "Function generateDraft exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-005-V1",
+          "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File crosses too many real owner boundaries or cross-owner imports."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/map-plugins/authoring/map-authoring-draft-normalizer.ts",
+          "line": 50,
+          "severity": "error",
+          "message": "Function normalizeMapAuthoringDraft exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -179,13 +327,13 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1670 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1708 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Active source files stay within category hard limits."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Active source files still exceed code-purity file-size hard limits."
         },
         {
           "name": "touched-file-rule",
@@ -207,9 +355,9 @@
         },
         {
           "name": "owner-boundary-limits",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Owner-boundary counting stays at real capability granularity."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Cross-owner imports or owner boundaries still exceed code-purity limits."
         },
         {
           "name": "import-export-purity",
@@ -231,9 +379,9 @@
         },
         {
           "name": "refactor-direction",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Refactor direction avoids compatibility bridges and duplicate active paths."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Compatibility bridges or legacy duplicate routes still exist in active source truth."
         },
         {
           "name": "disaster-file-queue",
@@ -261,9 +409,9 @@
         },
         {
           "name": "physical-split-direction",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Remediation direction prefers physical deletion and physical splitting."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Active source still relies on bridges, wrappers, or cosmetic refactor direction."
         },
         {
           "name": "negative-proof-harness",
@@ -275,7 +423,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "CODE VIOLATION",
-      "violationCount": 4
+      "violationCount": 25
     }
   ]
 }

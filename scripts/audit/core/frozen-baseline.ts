@@ -18,14 +18,18 @@ const ABILITY_GROUP_DOMAIN_MAP: Record<string, string> = {
   "post-action-verification": "post-action-verification-capability",
   "forensics-persistence": "forensics-persistence-capability",
   "page-state": "page-state-capability",
-  "map-plugin-package": "map-plugin-package",
 };
 
-const SUPPORT_LAW_DOMAIN_MAP: Record<string, string> = {
+const FOUNDATION_LAW_DOMAIN_MAP: Record<string, string> = {
   "audit-system": "audit-system",
   "capability-group-governance": "capability-group-governance",
+  "code-purity": "audit-system",
   "type-safety": "type-safety",
   "security-privacy": "security-privacy",
+};
+
+const SUPPORT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {
+  "map-plugin-package": "map-plugin-package",
 };
 
 const DELETED_OWNER_DOMAIN_MAP: Record<string, string> = {
@@ -43,30 +47,38 @@ const DELETED_OWNER_DOMAIN_MAP: Record<string, string> = {
   "code-purity as independent owner": "code-purity",
 };
 
-type FrozenBaselineSection = "active-ability-groups" | "active-support-laws" | "deleted-active-owners" | null;
+type FrozenBaselineSection = "active-ability-groups" | "foundation-laws" | "support-governance-domains" | "deleted-active-owners" | null;
+
+const FROZEN_BASELINE_SECTION_BY_HEADING: Record<string, Exclude<FrozenBaselineSection, null>> = {
+  "## 13 个 active ability groups": "active-ability-groups",
+  "## 14 个 active ability groups": "active-ability-groups",
+  "## 4 个 active support laws": "foundation-laws",
+  "## 5 个 foundation laws": "foundation-laws",
+  "## 1 个 support governance domain": "support-governance-domains",
+  "## 1 个 support governance domains": "support-governance-domains",
+  "## support governance domains": "support-governance-domains",
+  "## 已删除 active owner": "deleted-active-owners",
+};
+
+const ACTIVE_DOMAIN_MAP_BY_SECTION: Partial<Record<Exclude<FrozenBaselineSection, null>, Record<string, string>>> = {
+  "active-ability-groups": ABILITY_GROUP_DOMAIN_MAP,
+  "foundation-laws": FOUNDATION_LAW_DOMAIN_MAP,
+  "support-governance-domains": SUPPORT_GOVERNANCE_DOMAIN_MAP,
+};
+
+const readNumberedListValue = (line: string): string | null => /^\d+\.\s+(.+)$/.exec(line)?.[1]?.trim() ?? null;
+
+const readBulletedListValue = (line: string): string | null => /^-\s+(.+)$/.exec(line)?.[1]?.trim() ?? null;
 
 const pushMappedValue = (target: string[], rawValue: string, mapping: Record<string, string>): void => {
   const mapped = mapping[rawValue];
-  if (mapped) {
+  if (mapped && !target.includes(mapped)) {
     target.push(mapped);
   }
 };
 
 const resolveFrozenBaselineSection = (line: string): FrozenBaselineSection | undefined => {
-  if (line === "## 13 个 active ability groups" || line === "## 14 个 active ability groups") {
-    return "active-ability-groups";
-  }
-  if (line === "## 4 个 active support laws") {
-    return "active-support-laws";
-  }
-  if (line === "## 已删除 active owner") {
-    return "deleted-active-owners";
-  }
-  if (line.startsWith("## ")) {
-    return null;
-  }
-
-  return undefined;
+  return line.startsWith("## ") ? FROZEN_BASELINE_SECTION_BY_HEADING[line] ?? null : undefined;
 };
 
 const collectFrozenBaselineDomain = (input: {
@@ -75,19 +87,16 @@ const collectFrozenBaselineDomain = (input: {
   activeCapabilityDomains: string[];
   deletedOwnerDomains: string[];
 }): void => {
-  const numbered = /^(\d+)\.\s+(.+)$/.exec(input.line);
-  if (numbered && input.section === "active-ability-groups") {
-    pushMappedValue(input.activeCapabilityDomains, numbered[2]!.trim(), ABILITY_GROUP_DOMAIN_MAP);
-    return;
-  }
-  if (numbered && input.section === "active-support-laws") {
-    pushMappedValue(input.activeCapabilityDomains, numbered[2]!.trim(), SUPPORT_LAW_DOMAIN_MAP);
+  const numberedValue = readNumberedListValue(input.line);
+  const activeDomainMap = input.section ? ACTIVE_DOMAIN_MAP_BY_SECTION[input.section] : undefined;
+  if (numberedValue && activeDomainMap) {
+    pushMappedValue(input.activeCapabilityDomains, numberedValue, activeDomainMap);
     return;
   }
 
-  const bulleted = /^-\s+(.+)$/.exec(input.line);
-  if (bulleted && input.section === "deleted-active-owners") {
-    pushMappedValue(input.deletedOwnerDomains, bulleted[1]!.trim(), DELETED_OWNER_DOMAIN_MAP);
+  const bulletedValue = input.section === "deleted-active-owners" ? readBulletedListValue(input.line) : null;
+  if (bulletedValue) {
+    pushMappedValue(input.deletedOwnerDomains, bulletedValue, DELETED_OWNER_DOMAIN_MAP);
   }
 };
 

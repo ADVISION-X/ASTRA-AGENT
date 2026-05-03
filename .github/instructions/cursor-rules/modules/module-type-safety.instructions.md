@@ -18,8 +18,8 @@ Authority: this file is authoritative only for the type-safety capability domain
 status: active
 tier: P0
 capabilityDomain: type-safety
-enforcementMode: manual-first
-evidenceMode: law
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
 
 summary: all external uncertainty must become validated domain types before it can drive actions or records.
 

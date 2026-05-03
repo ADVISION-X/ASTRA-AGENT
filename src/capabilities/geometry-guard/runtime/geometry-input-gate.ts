@@ -237,7 +237,19 @@ function buildFailureSourceFields(record: Record<string, unknown>) {
   };
 }
 
-function buildFailureGeometryFields(record: Record<string, unknown>) {
+function buildFailureGeometryFields(record: Record<string, unknown>): Pick<
+  ParsedGeometryGuardAbilityInput,
+  | "sourceCoordinateSpace"
+  | "requestedExecutionSpace"
+  | "bbox"
+  | "clickPoint"
+  | "imageSize"
+  | "viewportSize"
+  | "screenSize"
+  | "deviceScaleFactor"
+  | "scaleMapping"
+  | "idempotencyKey"
+> {
   return {
     sourceCoordinateSpace: hasCoordinateSpace(record.sourceCoordinateSpace) ? record.sourceCoordinateSpace : "contactSheet",
     requestedExecutionSpace: record.requestedExecutionSpace === "desktopScreen" ? "desktopScreen" : "browserViewport",

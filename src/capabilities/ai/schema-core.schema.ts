@@ -13,6 +13,8 @@ import {
   DEFAULT_AI_QUALITY_POLICY,
   DEFAULT_AI_SAFETY_POLICY,
 } from "./shared/ai-policy.js";
+import { MapAuthoringRequestSchema } from "../../map-plugins/authoring/map-authoring-request.schema.js";
+import { MapAuthoringAiOutputSchema } from "../../map-plugins/authoring/map-authoring-ai-output.schema.js";
 import {
   AI_ABILITY_GROUP_ID,
   AI_CHILD_CAPABILITY_IDS,
@@ -58,6 +60,8 @@ const AiModelRoleSchema = z.enum(AI_MODEL_ROLES);
 const AiSchemaValidationStatusSchema = z.enum(AI_SCHEMA_VALIDATION_STATUSES);
 const AiOutputAuthoritySchema = z.enum(AI_OUTPUT_AUTHORITIES);
 const AiChildCapabilityStatusSchema = z.enum(AI_CHILD_CAPABILITY_STATUSES);
+const AiRequestSourceSchema = z.enum(["orchestration", "commander-console"]);
+const AiTransportSourceSchema = z.enum(["nerve-bus", "commander-console"]);
 
 const AiProviderDecisionSchema = z.enum(AI_PROVIDER_POLICY_DECISIONS);
 const AiDataPolicyDecisionSchema = z.enum(AI_DATA_POLICY_DECISIONS);
@@ -73,6 +77,8 @@ const AiProviderPolicySchema = z.object({
   allowPaidProvider: z.boolean().default(DEFAULT_AI_PROVIDER_POLICY.allowPaidProvider),
   providerAllowlist: z.array(AiChildCapabilityIdSchema).default([...DEFAULT_AI_PROVIDER_POLICY.providerAllowlist]),
   operatorApprovalRef: nullableString,
+  providerConfigRef: nullableString,
+  secretRef: nullableString,
 }).strict();
 
 const AiDataPolicySchema = z.object({
@@ -168,6 +174,8 @@ const AiEvidencePacketAnalysisOutputSchema = z.object({
   notes: z.array(z.string().min(1).max(MAX_AI_NOTE_LENGTH)).max(MAX_AI_NOTES).default([]),
 }).strict();
 
+const AiMapAuthoringOutputSchema = MapAuthoringAiOutputSchema;
+
 const AiSchemaValidationOnlyInputSchema = z.object({
   candidate: z.unknown(),
   sourceRef: nullableString,
@@ -200,8 +208,8 @@ const AiBaseInputSchema = z.object({
   inputRefs: z.array(EvidenceRefSchema).max(MAX_AI_INPUT_REFS),
   promptContractId: z.string().min(1),
   expectedOutputSchema: z.string().min(1),
-  requestedBy: z.literal("orchestration"),
-  transportedBy: z.literal("nerve-bus"),
+  requestedBy: AiRequestSourceSchema,
+  transportedBy: AiTransportSourceSchema,
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
@@ -212,6 +220,8 @@ const AiBaseInputSchema = z.object({
     allowPaidProvider: DEFAULT_AI_PROVIDER_POLICY.allowPaidProvider,
     providerAllowlist: [...DEFAULT_AI_PROVIDER_POLICY.providerAllowlist],
     operatorApprovalRef: DEFAULT_AI_PROVIDER_POLICY.operatorApprovalRef,
+    providerConfigRef: DEFAULT_AI_PROVIDER_POLICY.providerConfigRef,
+    secretRef: DEFAULT_AI_PROVIDER_POLICY.secretRef,
   })),
   costPolicy: AiCostPolicySchema.default(() => ({ ...DEFAULT_AI_COST_POLICY })),
   dataPolicy: AiDataPolicySchema.default(() => ({ ...DEFAULT_AI_DATA_POLICY })),
@@ -266,6 +276,13 @@ const EvidencePacketAnalysisInputSchema = AiBaseInputSchema.extend({
   input: AiEvidencePacketAnalysisInputSchema,
 }).strict();
 
+const MapAuthoringInputSchema = AiBaseInputSchema.extend({
+  taskType: z.literal("map_authoring"),
+  inputModality: z.literal("structured_record"),
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
+  input: MapAuthoringRequestSchema,
+}).strict();
+
 const SchemaValidationOnlyInputSchema = AiBaseInputSchema.extend({
   taskType: z.literal("schema_validation_only"),
   inputModality: z.literal("structured_record"),
@@ -280,8 +297,26 @@ const AiInputSchema = z.discriminatedUnion("taskType", [
   CommentSignalSummaryInputSchema,
   ProductSignalSummaryInputSchema,
   EvidencePacketAnalysisInputSchema,
+  MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
-]);
+]).superRefine((value, context) => {
+  const expectedRequestedBy = value.taskType === "map_authoring" ? "commander-console" : "orchestration";
+  const expectedTransportedBy = value.taskType === "map_authoring" ? "commander-console" : "nerve-bus";
+  if (value.requestedBy !== expectedRequestedBy) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `${value.taskType} requires requestedBy=${expectedRequestedBy}`,
+      path: ["requestedBy"],
+    });
+  }
+  if (value.transportedBy !== expectedTransportedBy) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `${value.taskType} requires transportedBy=${expectedTransportedBy}`,
+      path: ["transportedBy"],
+    });
+  }
+});
 
 const LocalVisionAiInputSchema = z.union([
   ProductPresenceJudgmentInputSchema,
@@ -300,7 +335,10 @@ const PaidVisionAiInputSchema = z.union([
   VisualObservationInputSchema,
   VisualTargetCandidateAnalysisInputSchema,
 ]);
-const PaidAnalysisAiInputSchema = EvidencePacketAnalysisInputSchema;
+const PaidAnalysisAiInputSchema = z.union([
+  EvidencePacketAnalysisInputSchema,
+  MapAuthoringInputSchema,
+]);
 const FutureApiAiInputSchema = z.never();
 
 export {
@@ -337,6 +375,7 @@ export {
   AiProductSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisInputSchema,
   AiEvidencePacketAnalysisOutputSchema,
+  AiMapAuthoringOutputSchema,
   AiSchemaValidationOnlyInputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
@@ -347,6 +386,7 @@ export {
   CommentSignalSummaryInputSchema,
   ProductSignalSummaryInputSchema,
   EvidencePacketAnalysisInputSchema,
+  MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
   AiInputSchema,
   LocalVisionAiInputSchema,

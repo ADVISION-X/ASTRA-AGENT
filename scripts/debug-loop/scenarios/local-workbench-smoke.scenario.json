@@ -1,0 +1,18 @@
+{
+  "scenarioId": "local-workbench-smoke",
+  "scenarioKind": "local-workbench",
+  "description": "Start local GrassEye runtime without external platform dependency.",
+  "platformId": "local-workbench",
+  "browserHeadless": true,
+  "requiresAuth": false,
+  "entryMode": "local-startup",
+  "mapRequirement": {
+    "mode": "none"
+  },
+  "successSignals": [
+    "startupStatus=ready",
+    "abilityRegistryLoaded=true"
+  ],
+  "blockingSignals": [],
+  "maxRuntimeMs": 120000
+}

@@ -4,6 +4,7 @@ import { URL } from "node:url";
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
+import { handleMapLabRequest } from "./map-lab-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
 
@@ -45,6 +46,10 @@ async function handleRequest(
   }
 
   if (await handleCandidateRequest(request, response, activeWorkbench, url)) {
+    return;
+  }
+
+  if (await handleMapLabRequest(request, response, activeWorkbench, url)) {
     return;
   }
 

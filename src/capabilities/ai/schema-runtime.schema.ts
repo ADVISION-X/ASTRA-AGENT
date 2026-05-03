@@ -11,6 +11,7 @@ import {
   AiDisabledProviderDecisionSchema,
   AiEvidencePacketAnalysisOutputSchema,
   AiExecutionStatusSchema,
+  AiMapAuthoringOutputSchema,
   AiModelRoleSchema,
   AiOcrCleanupOutputSchema,
   AiOutputAuthoritySchema,
@@ -254,6 +255,12 @@ const EvidencePacketAnalysisResultSchema = z.union([
   createAiReviewRequiredResultSchema("evidence_packet_analysis"),
 ]);
 
+const MapAuthoringResultSchema = z.union([
+  createAiSuccessResultSchema("map_authoring", AiMapAuthoringOutputSchema),
+  createAiFailedResultSchema("map_authoring"),
+  createAiReviewRequiredResultSchema("map_authoring"),
+]);
+
 const SchemaValidationOnlyResultSchema = z.union([
   createAiSuccessResultSchema("schema_validation_only", AiSchemaValidationOnlyOutputSchema),
   createAiFailedResultSchema("schema_validation_only"),
@@ -303,6 +310,7 @@ const AiResultSchema = z.union([
   CommentSignalSummaryResultSchema,
   ProductSignalSummaryResultSchema,
   EvidencePacketAnalysisResultSchema,
+  MapAuthoringResultSchema,
   SchemaValidationOnlyResultSchema,
 ]).superRefine((value, context) => {
   validateAiResultState(value, context);
@@ -362,7 +370,10 @@ const PaidVisionAiResultSchema = z.union([
   VisualObservationResultSchema,
   VisualTargetCandidateAnalysisResultSchema,
 ]);
-const PaidAnalysisAiResultSchema = EvidencePacketAnalysisResultSchema;
+const PaidAnalysisAiResultSchema = z.union([
+  EvidencePacketAnalysisResultSchema,
+  MapAuthoringResultSchema,
+]);
 
 const AiChildReadinessSchema = z.object({
   abilityGroupId: AiAbilityGroupIdSchema,
@@ -437,6 +448,7 @@ export {
   CommentSignalSummaryResultSchema,
   ProductSignalSummaryResultSchema,
   EvidencePacketAnalysisResultSchema,
+  MapAuthoringResultSchema,
   SchemaValidationOnlyResultSchema,
   AiResultSchema,
   AiDispatchFailureEnvelopeSchema,

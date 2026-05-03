@@ -1,4 +1,4 @@
-import type { MouseClickAbilityInput, MouseClickChildCapabilityId } from "../contract.js";
+import type { MouseClickAbilityInput, MouseClickChildCapabilityId, ParsedMouseClickAbilityInput } from "../contract.js";
 import { MouseClickAbilityInputSchema } from "../schema.js";
 import { buildMouseClickExecutionSeed, type MouseClickExecutionSeed } from "./mouse-click-execution-seed.js";
 import { buildInvalidInputFailureEnvelope, type MouseClickFailureEnvelope } from "./mouse-click-failure-seed.js";

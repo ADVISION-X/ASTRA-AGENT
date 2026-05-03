@@ -1,0 +1,31 @@
+[CI FULL FAIL-FAST] stopped at typecheck with exit code 2.
+sx scripts/audit/ci-full.ts
+
+[CI FULL] 1/3 starting typecheck...
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+scripts/audit/domains/mouse-click-capability/required-shape.ts(94,22): error TS18047: 'schemaSource' is possibly 'null'.
+scripts/audit/domains/open-capability/run-open-runtime-checks.ts(155,20): error TS2304: Cannot find name 'createMissingFieldFinding'.
+scripts/audit/domains/open-capability/run-open-schema-shape-checks.ts(76,5): error TS2739: Type 'ReadonlyMap<string, ExportedDeclarations[]>' is missing the following properties from type 'Map<string, ExportedDeclarations[]>': clear, delete, set, [Symbol.toStringTag]
+src/capabilities/geometry-guard/runtime/geometry-input-gate.ts(257,3): error TS2322: Type '{ safetyPolicy: { allowReviewRequired: boolean; minimumConfidence: null; coordinateConfidence: null; requireSourceRef: boolean; clickSafetyMarginPx: number; roundingPolicy: "nearest_pixel"; }; ... 37 more ...; childCapabilityId: "validate-coordinate-space" | ... 6 more ... | "validate-desktop-screen-bounds"; }' is not assignable to type '{ requestedBy: string; selectedMapId: string | null; missionId: string | null; abilityGroupId: "geometry-guard"; purpose: string; runId: string | null; childCapabilityId: "validate-coordinate-space" | ... 6 more ... | "validate-desktop-screen-bounds"; ... 31 more ...; scaleMapping: { ...; } | null; }'.
+  Types of property 'requestedExecutionSpace' are incompatible.
+    Type 'string' is not assignable to type '"browserViewport" | "desktopScreen"'.
+src/capabilities/mouse-click/contract.ts(34,6): error TS2456: Type alias 'MouseClickRuntimeProof' circularly references itself.
+src/capabilities/mouse-click/contract.ts(36,6): error TS2456: Type alias 'ParsedMouseClickAbilityInput' circularly references itself.
+src/capabilities/mouse-click/contract.ts(40,6): error TS2456: Type alias 'MouseClickAbilityResult' circularly references itself.
+src/capabilities/mouse-click/mouse-click-schema-refinements.ts(65,14): error TS7022: 'validateMouseClickInputBindings' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/mouse-click-schema-refinements.ts(114,14): error TS7022: 'validateMouseClickRuntimeProof' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/mouse-click-schema-refinements.ts(171,14): error TS7022: 'validateMouseClickAbilityResult' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/runtime/mouse-click-failure-seed.ts(137,11): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+src/capabilities/mouse-click/runtime/mouse-click-input-gate.ts(15,11): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+src/capabilities/mouse-click/runtime/mouse-click-input-gate.ts(20,28): error TS2552: Cannot find name 'ParsedMouseClickAbilityInput'. Did you mean 'MouseClickAbilityInput'?
+src/capabilities/mouse-click/schema.ts(178,7): error TS7022: 'MouseClickAbilityInputSchema' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/schema.ts(189,7): error TS7022: 'MouseClickRuntimeProofSchema' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/schema.ts(335,7): error TS7022: 'MouseClickAbilityResultSchema' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capabilities/mouse-click/schema.ts(345,3): error TS2303: Circular definition of import alias 'MouseClickAbilityInputSchema'.
+src/capabilities/mouse-click/schema.ts(346,3): error TS2303: Circular definition of import alias 'MouseClickAbilityResultSchema'.
+src/capabilities/mouse-click/schema.ts(363,3): error TS2303: Circular definition of import alias 'MouseClickRuntimeProofSchema'.
+src/map-plugins/validation/prompt-contract-catalog-port.ts(13,3): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<"comment-intent-analysis" | "comment-text-cleanup" | "product-presence-judgment" | "product-signal-summary", MapPluginAiTaskType>'.
+  No index signature with a parameter of type 'string' was found on type 'Record<"comment-intent-analysis" | "comment-text-cleanup" | "product-presence-judgment" | "product-signal-summary", MapPluginAiTaskType>'.

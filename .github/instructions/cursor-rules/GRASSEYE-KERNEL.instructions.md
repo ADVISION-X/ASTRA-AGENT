@@ -52,14 +52,22 @@ One issue has one active owner plus any directly governing shared foundation.
 - post-action-verification
 - forensics-persistence
 - page-state
-- map-plugin-package
 
-## Active Support Laws
+## Foundation Laws
 
 - audit-system
 - capability-group-governance
+- code-purity
 - type-safety
 - security-privacy
+
+## Support Governance Domains
+
+- map-plugin-package
+
+## Local Development Tooling
+
+- debug-loop-controller
 
 ## Global Red Lines
 

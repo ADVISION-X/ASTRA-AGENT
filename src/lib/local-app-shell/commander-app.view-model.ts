@@ -4,7 +4,14 @@ import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, Com
 import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
-  if (value === "mission" || value === "results" || value === "review" || value === "health" || value === "developer") {
+  if (
+    value === "map-lab"
+    || value === "mission"
+    || value === "results"
+    || value === "review"
+    || value === "health"
+    || value === "developer"
+  ) {
     return value;
   }
 
@@ -14,6 +21,7 @@ function parseCommanderAppPageId(value: string | null | undefined): CommanderApp
 function createCommanderAppNavItems(t: (zh: string, en: string) => string): CommanderAppNavItem[] {
   return [
     { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
+    { pageId: "map-lab", label: t("地图工坊", "Map Lab"), shortLabel: t("工坊", "Lab") },
     { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
     { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
     { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },

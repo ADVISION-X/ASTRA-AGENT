@@ -1,6 +1,61 @@
 import { z } from "zod";
 
-import type { MouseClickAbilityResult, MouseClickRuntimeProof, ParsedMouseClickAbilityInput } from "./contract.js";
+type NullableString = string | null;
+type MouseClickPointValue = { x: number; y: number };
+
+type MouseClickInputBindingsValue = {
+  sourceAbilityGroupId: string;
+  sourceChildCapabilityId: NullableString;
+  missionId: string;
+  runId: string;
+  sessionId: string;
+  roundId: NullableString;
+  videoVisitId: NullableString;
+  stepId: string;
+  mapPackageId: string;
+  mapPackageVersion: string;
+  selectedMapId: string;
+  selectedMapVersion: string;
+  activationSnapshotRef: string;
+  capabilityCallId: string;
+  nerveBusEnvelopeId: string;
+  sourceCoordinateProofRef: string;
+  sourceTargetRef: string;
+  sourceVisualTargetResultRef: NullableString;
+  geometryGuardRef: string;
+  guardDecision: "allow";
+  geometryGuardOutputRef: string;
+  geometryGuardRuntimeProofRef: string;
+  geometryGuardNormalizedCoordinateSpace: string;
+  geometryGuardNormalizedClickPoint: MouseClickPointValue;
+  geometryGuardProof: {
+    sourceAbilityGroupId: string; sourceChildCapabilityId: NullableString; missionId: string; runId: string; sessionId: string; roundId: NullableString;
+    videoVisitId: NullableString; stepId: string; mapPackageId: string; mapPackageVersion: string; selectedMapId: string; selectedMapVersion: string;
+    activationSnapshotRef: string; capabilityCallId: string; nerveBusEnvelopeId: string; proofId: string; sourceTargetRef: string;
+    sourceVisualTargetResultRef: NullableString; geometryGuardRef: string; guardDecision: "allow"; outputRef: string; runtimeProofRef: string;
+    normalizedCoordinateSpace: string; normalizedClickPoint: MouseClickPointValue;
+  };
+};
+
+type MouseClickRuntimeProofValue = {
+  status: string; startedAt: string; endedAt: string; retryCount: number; maxRetry: number;
+  actionExecutionRef: NullableString; primitiveExecutionRef: NullableString; executableCoordinate: MouseClickPointValue | null;
+  postActionVerificationRequired: boolean; postActionVerificationHandoffRef: NullableString; missionId: NullableString; runId: NullableString;
+  stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
+  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; geometryGuardProofRef: NullableString;
+  geometryGuardOutputRef: NullableString; geometryGuardRuntimeProofRef: NullableString; diagnosticPayloadRef: NullableString; attemptRef: string;
+  sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string; primitiveDecision: string;
+  timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString;
+};
+
+type MouseClickAbilityResultValue = {
+  status: string; output: { postActionVerificationHandoffRef: string } | null; attemptRef: string; missionId: NullableString; runId: NullableString;
+  stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
+  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; diagnosticPayloadRef: NullableString;
+  geometryGuardProofRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string;
+  primitiveDecision: string; timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString; postActionVerificationHandoffRef: NullableString;
+  runtimeProof: MouseClickRuntimeProofValue;
+};
 
 const addIssue = (context: z.RefinementCtx, message: string, path: (string | number)[]): void => {
   context.addIssue({ code: z.ZodIssueCode.custom, message, path });
@@ -12,7 +67,7 @@ const validateBinding = (context: z.RefinementCtx, matches: boolean, path: (stri
   }
 };
 
-const validateInputSourceBindings = (value: ParsedMouseClickAbilityInput, context: z.RefinementCtx): void => {
+const validateInputSourceBindings = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   const proof = value.geometryGuardProof;
   validateBinding(context, value.sourceAbilityGroupId === proof.sourceAbilityGroupId, ["sourceAbilityGroupId"], "sourceAbilityGroupId must match geometryGuardProof.sourceAbilityGroupId");
   validateBinding(context, value.sourceChildCapabilityId === proof.sourceChildCapabilityId, ["sourceChildCapabilityId"], "sourceChildCapabilityId must match geometryGuardProof.sourceChildCapabilityId");
@@ -23,7 +78,7 @@ const validateInputSourceBindings = (value: ParsedMouseClickAbilityInput, contex
   validateBinding(context, value.videoVisitId === proof.videoVisitId, ["videoVisitId"], "videoVisitId must match geometryGuardProof.videoVisitId");
 };
 
-const validateInputExecutionBindings = (value: ParsedMouseClickAbilityInput, context: z.RefinementCtx): void => {
+const validateInputExecutionBindings = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   const proof = value.geometryGuardProof;
   validateBinding(context, value.stepId === proof.stepId, ["stepId"], "stepId must match geometryGuardProof.stepId");
   validateBinding(context, value.mapPackageId === proof.mapPackageId, ["mapPackageId"], "mapPackageId must match geometryGuardProof.mapPackageId");
@@ -35,7 +90,7 @@ const validateInputExecutionBindings = (value: ParsedMouseClickAbilityInput, con
   validateBinding(context, value.nerveBusEnvelopeId === proof.nerveBusEnvelopeId, ["nerveBusEnvelopeId"], "nerveBusEnvelopeId must match geometryGuardProof.nerveBusEnvelopeId");
 };
 
-const validateInputGuardBindings = (value: ParsedMouseClickAbilityInput, context: z.RefinementCtx): void => {
+const validateInputGuardBindings = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   const proof = value.geometryGuardProof;
   validateBinding(context, value.sourceCoordinateProofRef === proof.proofId, ["sourceCoordinateProofRef"], "sourceCoordinateProofRef must match geometryGuardProof.proofId");
   validateBinding(context, value.sourceTargetRef === proof.sourceTargetRef, ["sourceTargetRef"], "sourceTargetRef must match geometryGuardProof.sourceTargetRef");
@@ -46,7 +101,7 @@ const validateInputGuardBindings = (value: ParsedMouseClickAbilityInput, context
   validateBinding(context, value.geometryGuardRuntimeProofRef === proof.runtimeProofRef, ["geometryGuardRuntimeProofRef"], "geometryGuardRuntimeProofRef must match geometryGuardProof.runtimeProofRef");
 };
 
-const validateInputNormalizedGeometry = (value: ParsedMouseClickAbilityInput, context: z.RefinementCtx): void => {
+const validateInputNormalizedGeometry = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   const proof = value.geometryGuardProof;
   validateBinding(
     context,
@@ -62,14 +117,14 @@ const validateInputNormalizedGeometry = (value: ParsedMouseClickAbilityInput, co
   );
 };
 
-export const validateMouseClickInputBindings = (value: ParsedMouseClickAbilityInput, context: z.RefinementCtx): void => {
+export const validateMouseClickInputBindings = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   validateInputSourceBindings(value, context);
   validateInputExecutionBindings(value, context);
   validateInputGuardBindings(value, context);
   validateInputNormalizedGeometry(value, context);
 };
 
-const validateSuccessOutcomeRefs = (value: MouseClickRuntimeProof, context: z.RefinementCtx): void => {
+const validateSuccessOutcomeRefs = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.actionExecutionRef !== null, ["actionExecutionRef"], "success proof requires actionExecutionRef");
   validateBinding(context, value.primitiveExecutionRef !== null, ["primitiveExecutionRef"], "success proof requires primitiveExecutionRef");
   validateBinding(context, value.executableCoordinate !== null, ["executableCoordinate"], "success proof requires executableCoordinate");
@@ -81,7 +136,7 @@ const validateSuccessOutcomeRefs = (value: MouseClickRuntimeProof, context: z.Re
   );
 };
 
-const validateSuccessChainFields = (value: MouseClickRuntimeProof, context: z.RefinementCtx): void => {
+const validateSuccessChainFields = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.missionId !== null && value.runId !== null && value.stepId !== null, ["missionId"], "success proof requires missionId, runId, and stepId");
   validateBinding(
     context,
@@ -97,7 +152,7 @@ const validateSuccessChainFields = (value: MouseClickRuntimeProof, context: z.Re
   );
 };
 
-const validateSuccessGuardChain = (value: MouseClickRuntimeProof, context: z.RefinementCtx): void => {
+const validateSuccessGuardChain = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
   validateBinding(
     context,
     value.geometryGuardProofRef !== null && value.geometryGuardOutputRef !== null && value.geometryGuardRuntimeProofRef !== null,
@@ -106,12 +161,12 @@ const validateSuccessGuardChain = (value: MouseClickRuntimeProof, context: z.Ref
   );
 };
 
-const validateNonSuccessRuntimeProof = (value: MouseClickRuntimeProof, context: z.RefinementCtx): void => {
+const validateNonSuccessRuntimeProof = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.diagnosticPayloadRef !== null, ["diagnosticPayloadRef"], "non-success proof requires diagnosticPayloadRef");
   validateBinding(context, value.executableCoordinate === null, ["executableCoordinate"], "non-success proof must not expose executableCoordinate");
 };
 
-export const validateMouseClickRuntimeProof = (value: MouseClickRuntimeProof, context: z.RefinementCtx): void => {
+export const validateMouseClickRuntimeProof = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.startedAt <= value.endedAt, ["startedAt"], "startedAt must not be after endedAt");
   validateBinding(context, value.retryCount === 0, ["retryCount"], "retryCount must stay 0 for every Mouse Click attempt");
   validateBinding(context, value.maxRetry === 0, ["maxRetry"], "maxRetry must stay 0 for every Mouse Click attempt");
@@ -125,14 +180,14 @@ export const validateMouseClickRuntimeProof = (value: MouseClickRuntimeProof, co
   validateNonSuccessRuntimeProof(value, context);
 };
 
-const validateAbilityResultCore = (value: MouseClickAbilityResult, context: z.RefinementCtx): void => {
+const validateAbilityResultCore = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.status !== "success" || value.output !== null, ["output"], "success requires output");
   validateBinding(context, value.status === "success" || value.output === null, ["output"], "failed and review_required require output=null");
   validateBinding(context, value.runtimeProof.status === value.status, ["runtimeProof", "status"], "runtimeProof.status must equal result.status");
   validateBinding(context, value.runtimeProof.attemptRef === value.attemptRef, ["runtimeProof", "attemptRef"], "runtimeProof.attemptRef must equal result.attemptRef");
 };
 
-const validateAbilityResultChainParity = (value: MouseClickAbilityResult, context: z.RefinementCtx): void => {
+const validateAbilityResultChainParity = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.missionId === value.runtimeProof.missionId, ["runtimeProof", "missionId"], "runtimeProof.missionId must equal result.missionId");
   validateBinding(context, value.runId === value.runtimeProof.runId, ["runtimeProof", "runId"], "runtimeProof.runId must equal result.runId");
   validateBinding(context, value.stepId === value.runtimeProof.stepId, ["runtimeProof", "stepId"], "runtimeProof.stepId must equal result.stepId");
@@ -145,7 +200,7 @@ const validateAbilityResultChainParity = (value: MouseClickAbilityResult, contex
   validateBinding(context, value.nerveBusEnvelopeId === value.runtimeProof.nerveBusEnvelopeId, ["runtimeProof", "nerveBusEnvelopeId"], "runtimeProof.nerveBusEnvelopeId must equal result.nerveBusEnvelopeId");
 };
 
-const validateAbilityResultDecisionParity = (value: MouseClickAbilityResult, context: z.RefinementCtx): void => {
+const validateAbilityResultDecisionParity = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.diagnosticPayloadRef === value.runtimeProof.diagnosticPayloadRef, ["runtimeProof", "diagnosticPayloadRef"], "runtimeProof.diagnosticPayloadRef must equal result.diagnosticPayloadRef");
   validateBinding(context, value.geometryGuardProofRef === value.runtimeProof.geometryGuardProofRef, ["runtimeProof", "geometryGuardProofRef"], "runtimeProof.geometryGuardProofRef must equal result.geometryGuardProofRef");
   validateBinding(context, value.sourceVisualTargetResultRef === value.runtimeProof.sourceVisualTargetResultRef, ["runtimeProof", "sourceVisualTargetResultRef"], "runtimeProof.sourceVisualTargetResultRef must equal result.sourceVisualTargetResultRef");
@@ -158,7 +213,7 @@ const validateAbilityResultDecisionParity = (value: MouseClickAbilityResult, con
   validateBinding(context, value.postActionVerificationHandoffRef === value.runtimeProof.postActionVerificationHandoffRef, ["runtimeProof", "postActionVerificationHandoffRef"], "runtimeProof.postActionVerificationHandoffRef must equal result.postActionVerificationHandoffRef");
 };
 
-const validateAbilityResultOutput = (value: MouseClickAbilityResult, context: z.RefinementCtx): void => {
+const validateAbilityResultOutput = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.status !== "success" || value.postActionVerificationHandoffRef !== null, ["postActionVerificationHandoffRef"], "success requires postActionVerificationHandoffRef");
   validateBinding(
     context,
@@ -168,7 +223,7 @@ const validateAbilityResultOutput = (value: MouseClickAbilityResult, context: z.
   );
 };
 
-export const validateMouseClickAbilityResult = (value: MouseClickAbilityResult, context: z.RefinementCtx): void => {
+export const validateMouseClickAbilityResult = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateAbilityResultCore(value, context);
   validateAbilityResultChainParity(value, context);
   validateAbilityResultDecisionParity(value, context);

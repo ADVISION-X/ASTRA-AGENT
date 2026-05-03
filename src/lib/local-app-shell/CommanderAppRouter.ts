@@ -1,5 +1,6 @@
 import type { CommanderAppPageId, CommanderAppViewModel } from "./commander-app.types.js";
 import { renderHomeStartPage } from "./pages/HomeStartPage.js";
+import { renderMapLabPage } from "./pages/MapLabPage.js";
 import { renderMissionPage } from "./pages/MissionPage.js";
 import { renderResultsPage } from "./pages/ResultsPage.js";
 import { renderReviewPage } from "./pages/ReviewPage.js";
@@ -11,6 +12,7 @@ import { escapeHtml } from "./render-utils.js";
 export function buildCommanderAppPageHtmlMap(viewModel: CommanderConsoleViewModel, appViewModel: CommanderAppViewModel): Record<CommanderAppPageId, string> {
   return {
     home: renderHomeStartPage(viewModel, appViewModel),
+    "map-lab": renderMapLabPage(viewModel, appViewModel),
     mission: renderMissionPage(viewModel, appViewModel),
     results: renderResultsPage(viewModel, appViewModel),
     review: renderReviewPage(viewModel, appViewModel),

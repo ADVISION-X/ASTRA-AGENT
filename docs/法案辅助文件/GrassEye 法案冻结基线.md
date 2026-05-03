@@ -5,7 +5,8 @@
 当前法案源头冻结为：
 
 - 14 个 active ability groups
-- 4 个 active support laws
+- 5 个 foundation laws
+- 1 个 support governance domain
 - 若干父 owner 子契约法案
 
 ## 14 个 active ability groups
@@ -19,18 +20,27 @@
 7. visual-target
 8. geometry-guard
 9. mouse-click
-10. mouse-scroll
-11. post-action-verification
-12. forensics-persistence
-13. page-state
-14. map-plugin-package
+10. text-input
+11. mouse-scroll
+12. post-action-verification
+13. forensics-persistence
+14. page-state
 
-## 4 个 active support laws
+## 5 个 foundation laws
 
 1. audit-system
 2. capability-group-governance
-3. type-safety
-4. security-privacy
+3. code-purity
+4. type-safety
+5. security-privacy
+
+## 1 个 support governance domain
+
+1. map-plugin-package
+
+## 本地开发工具
+
+- debug-loop-controller
 
 ## 子契约归属表
 

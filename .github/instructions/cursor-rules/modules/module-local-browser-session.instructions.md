@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the open-capability domain as the
 
 ## Law GRASSEYE-LOCAL-BROWSER-SESSION-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: manual-first

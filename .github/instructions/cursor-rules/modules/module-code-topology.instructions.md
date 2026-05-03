@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the capability-group-governance d
 
 ## Law GRASSEYE-CODE-TOPOLOGY-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
@@ -59,7 +59,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-002-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
@@ -94,7 +94,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-003-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
@@ -126,7 +126,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-004-V2
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first

@@ -87,7 +87,16 @@ const buildAiRuntimeTerminalResult = (input: {
 const resolveAiTerminalRuntimeFailure = (
   runtimeResult: AiRuntimeExecutionOutput,
 ): string | null => (
-  ["runtime_threw", "runtime_timeout", "circuit_breaker_open", "concurrency_limited"].includes(runtimeResult.implementationStatus)
+  [
+    "runtime_threw",
+    "runtime_timeout",
+    "circuit_breaker_open",
+    "concurrency_limited",
+    "provider_not_configured",
+    "provider_secret_missing",
+    "runtime_invalid_response",
+    "runtime_http_failed",
+  ].includes(runtimeResult.implementationStatus)
     ? runtimeResult.implementationStatus
     : null
 );

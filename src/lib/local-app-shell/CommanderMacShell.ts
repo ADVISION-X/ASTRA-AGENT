@@ -4,6 +4,7 @@ import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
 import { buildCommanderConsoleShellCopy } from "./commander-console.copy.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
+import { mapLabClient } from "./map-lab-client.js";
 import { renderMacShellFrame } from "./layout/MacShellFrame.js";
 import { renderRightInspector } from "./layout/RightInspector.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
@@ -49,6 +50,7 @@ function renderCommanderMacShell(dashboard: CommanderMacShellDashboard, options:
     <script>window.__grasseyeCommanderConsolePageHtml = ${safeJsonScript(pageHtmlMap)};</script>
     <script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(inspectHtmlMap)};</script>
     <script>${commanderConsoleShellClient}</script>
+    <script>${mapLabClient}</script>
   </body>
 </html>`;
 }

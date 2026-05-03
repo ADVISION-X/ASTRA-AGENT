@@ -1,0 +1,26 @@
+{
+  "debugSessionId": "repair-packet-test",
+  "iteration": 1,
+  "scenarioId": "facebook-product-video-runtime",
+  "failureCategory": "PROOF_CHAIN_ERROR",
+  "owner": "visual-target",
+  "severity": "P0",
+  "firstFatal": "activationSnapshotRef missing",
+  "evidenceRefs": [
+    "runtime.jsonl#L10"
+  ],
+  "rootCause": "activationSnapshotRef missing",
+  "allowedModify": [
+    "src/capabilities/visual-target/**"
+  ],
+  "forbiddenModify": [
+    "src/capabilities/open/**"
+  ],
+  "requiredFix": [
+    "activationSnapshotRef missing"
+  ],
+  "requiredCommands": [
+    "npm run ci:full"
+  ],
+  "stopRule": "debug:loop PASS + CI FULL PASS"
+}

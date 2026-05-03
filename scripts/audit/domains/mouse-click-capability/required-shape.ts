@@ -91,7 +91,10 @@ function collectSchemaGuardFindings(schemaSource: ReturnType<typeof getSourceFil
 }
 
 function collectSchemaFindings(schemaSource: ReturnType<typeof getSourceFile>): Finding[] {
-  const schemaText = schemaSource.getFullText();
+  const schemaText = schemaSource?.getFullText() ?? "";
+  if (!schemaSource) {
+    return collectSchemaDeclarationFindings(schemaSource);
+  }
   return [
     ...collectSchemaDeclarationFindings(schemaSource),
     ...collectSchemaSnippetFindings(schemaText),

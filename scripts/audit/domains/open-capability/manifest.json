@@ -13,15 +13,10 @@
     "GRASSEYE-OPEN-CAPABILITY-005-V2",
     "GRASSEYE-OPEN-CAPABILITY-006-V2",
     "GRASSEYE-OPEN-CAPABILITY-007-V2",
-    "GRASSEYE-OPEN-CAPABILITY-008-V2",
-    "GRASSEYE-PLATFORM-ACTION-001-V1",
-    "GRASSEYE-PLATFORM-ACTION-002-V1",
-    "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1"
+    "GRASSEYE-OPEN-CAPABILITY-008-V2"
   ],
   "readsLawFiles": [
-    ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-platform-action.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md"
+    ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md"
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye Open 能力组施工图.md",

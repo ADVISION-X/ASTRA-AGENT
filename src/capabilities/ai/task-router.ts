@@ -8,6 +8,7 @@ const AI_TASK_ROUTING: Record<AiTaskType, AiChildCapabilityId | null> = {
   comment_signal_summary: "local-text-ai",
   product_signal_summary: "local-text-ai",
   evidence_packet_analysis: "paid-analysis-ai",
+  map_authoring: "paid-analysis-ai",
   schema_validation_only: "internal-schema-validator",
 };
 

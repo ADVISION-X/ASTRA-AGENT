@@ -1,0 +1,21 @@
+{
+  "status": "FAIL",
+  "successSignals": [],
+  "blockingSignals": [],
+  "runtimeEvents": [],
+  "rootCause": "/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/sharp/lib/sharp.js:120\n  throw new Error(help.join('\\n'));\n        ^\n\nError: Could not load the \"sharp\" module using the darwin-arm64 runtime\nPossible solutions:\n- Ensure optional dependencies can be installed:\n    npm install --include=optional sharp\n- Ensure your package manager supports multi-platform installation:\n    See https://sharp.pixelplumbing.com/install#cross-platform\n- Add platform-specific dependencies:\n    npm install --os=darwin --cpu=arm64 sharp\n- Consult the installation documentation:\n    See https://sharp.pixelplumbing.com/install\n    at Object.<anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/sharp/lib/sharp.js:120:9)\n    at Module._compile (node:internal/modules/cjs/loader:1692:14)\n    at Object.transformer (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)\n    at Module.load (node:internal/modules/cjs/loader:1427:32)\n    at Module._load (node:internal/modules/cjs/loader:1250:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1449:12)\n    at require (node:internal/modules/helpers:135:16)\n    at Object.<anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/sharp/lib/constructor.js:10:1)\n\nNode.js v24.4.1\n",
+  "scenarioId": "local-workbench-smoke",
+  "command": {
+    "command": "/opt/homebrew/Cellar/node/24.4.1/bin/node",
+    "args": [
+      "--import",
+      "tsx",
+      "--input-type=module",
+      "-e",
+      "const scenario = {\"scenarioId\":\"local-workbench-smoke\",\"scenarioKind\":\"local-workbench\",\"description\":\"Start local GrassEye runtime without external platform dependency.\",\"platformId\":\"local-workbench\",\"requiresAuth\":false,\"entryMode\":\"local-startup\",\"mapRequirement\":{\"mode\":\"none\"},\"successSignals\":[\"startupStatus=ready\",\"abilityRegistryLoaded=true\"],\"blockingSignals\":[],\"maxRuntimeMs\":120000};\nconst RESULT_MARKER = \"DEBUG_LOOP_SCENARIO_RESULT:\";\nconst emit = (result) => console.log(RESULT_MARKER + JSON.stringify(result));\nconst createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;\nconst wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nconst baseOptions = { baseUrl: 'http://127.0.0.1:4173', platformTarget: scenario.platformId, browserHeadless: true };\nconst { createWorkbenchRuntime } = await import(\"file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/src/lib/local-runtime/workbench-runtime.ts\");\nconst { listCapabilityRoster } = await import(\"file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/src/lib/local-runtime/workbench-status.ts\");\nconst runtime = createWorkbenchRuntime(baseOptions);\nawait runtime.init();\nconst health = await runtime.getHealthReport();\nconst roster = await listCapabilityRoster();\nconst runtimeEvents = await runtime.listRuntimeDebugEvents(200);\nconst passed = health.status === 'ready' && roster.length > 0;\nemit({ status: passed ? 'PASS' : 'FAIL', scenarioId: scenario.scenarioId, successSignals: passed ? ['startupStatus=ready', 'abilityRegistryLoaded=true'] : [], blockingSignals: [], startupStatus: health.status, abilityRegistryLoaded: roster.length > 0, runtimeEvents, rootCause: health.actionableMessage });"
+    ],
+    "exitCode": 1,
+    "timedOut": false,
+    "failureReason": null
+  }
+}

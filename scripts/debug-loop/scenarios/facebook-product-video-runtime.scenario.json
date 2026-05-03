@@ -1,0 +1,44 @@
+{
+  "scenarioId": "facebook-product-video-runtime",
+  "scenarioKind": "mission-runtime",
+  "description": "Run Facebook product video discovery mission through Commander Console public command gate.",
+  "platformId": "facebook-web",
+  "browserHeadless": false,
+  "requiresAuth": true,
+  "entryMode": "commander-public-contract",
+  "humanGoal": "Find product-seeding videos in Facebook video feed and create evidence packets.",
+  "mapRequirement": {
+    "mode": "active-approved-map",
+    "taskTemplateId": "product-video-discovery",
+    "platformId": "facebook-web",
+    "requiredPromptContracts": true,
+    "allowAutoAuthoring": false,
+    "allowDraftExecution": false
+  },
+  "expectedChain": [
+    "commander-console",
+    "nerve-bus",
+    "orchestration",
+    "open",
+    "page-state",
+    "screenshot",
+    "ai",
+    "visual-target",
+    "geometry-guard",
+    "mouse-scroll",
+    "post-action-verification",
+    "forensics-persistence"
+  ],
+  "successSignals": [
+    "missionStatus=completed",
+    "forensicsEvidencePacketCreated=true"
+  ],
+  "blockingSignals": [
+    "AUTH_REQUIRED",
+    "CAPTCHA_REQUIRED",
+    "SECURITY_CHECK_REQUIRED",
+    "PROFILE_INVALID",
+    "SESSION_EXPIRED"
+  ],
+  "maxRuntimeMs": 180000
+}

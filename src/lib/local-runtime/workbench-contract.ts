@@ -11,6 +11,14 @@ import type {
 } from "./workbench-runtime-report-types.js";
 import type { StructuredLogBus } from "./structured-log-bus.js";
 import type { WorkbenchNerveBusAbilityGroup as NerveBusAbilityGroup } from "./workbench-nerve-bus-types.js";
+import type {
+  MapLabActivationResult,
+  MapLabApprovalResult,
+  MapLabGenerateDraftResult,
+  MapLabProviderConfigInput,
+  MapLabProviderState,
+  MapLabSnapshot,
+} from "./map-lab/map-lab-types.js";
 
 export type GrassEyePlatformTarget = "tiktok-web";
 
@@ -34,6 +42,11 @@ export type WorkbenchAbilityExecutionResult = {
 type WorkbenchAiExecutionResult = WorkbenchAbilityExecutionResult & {
   taskType?: string | null;
   confidence?: number | null;
+  output?: unknown | null;
+  promptVersion?: string;
+  modelProvider?: string;
+  modelName?: string;
+  runtime?: string;
 };
 
 type WorkbenchAiHealth = {
@@ -172,6 +185,11 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   setLocalAiRoleStartupState(input: { role: LocalModelRole; enabled: boolean }): Promise<unknown>;
   deleteCandidate(candidateId: string): Promise<void>;
   exportCandidateSummaries(): Promise<unknown>;
+  getMapLabSnapshot(): Promise<MapLabSnapshot>;
+  saveMapLabProviderConfig(input: MapLabProviderConfigInput): Promise<MapLabProviderState>;
+  generateMapLabDraft(input: unknown): Promise<MapLabGenerateDraftResult>;
+  approveMapLabDraft(input: { packageId: string; packageVersion: string; approvedBy: string }): Promise<MapLabApprovalResult>;
+  activateMapLabDraft(input: { packageId: string; packageVersion: string; approvedBy: string; reason: string }): Promise<MapLabActivationResult>;
   getModeInfo(): {
     dataMode: "Real Platform";
     platformId: string;

@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the forensics-persistence-capabil
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first
@@ -49,7 +49,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first

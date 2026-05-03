@@ -1,9 +1,18 @@
-export const ROOT = "src/map-plugins";
-export const BUILTINS_ROOT = `${ROOT}/builtins`;
-export const AUDIT_ROOT = "scripts/audit/domains/map-plugin-package";
-export const INSPECTOR_PATH = `${AUDIT_ROOT}/inspector.ts`;
-export const SCORECARD_PATH = "docs/audit/map-plugin-package-scorecard.md";
-export const MAP_PLUGIN_LAW_FILE = ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md";
+const ROOT = "src/map-plugins";
+const BUILTINS_ROOT = `${ROOT}/builtins`;
+const AUDIT_ROOT = "scripts/audit/domains/map-plugin-package";
+const INSPECTOR_PATH = `${AUDIT_ROOT}/inspector.ts`;
+const SCORECARD_PATH = "docs/audit/map-plugin-package-scorecard.md";
+const LAW_FILE = ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md";
+
+export const MAP_PLUGIN_PATHS = {
+	ROOT,
+	BUILTINS_ROOT,
+	AUDIT_ROOT,
+	INSPECTOR_PATH,
+	SCORECARD_PATH,
+	LAW_FILE,
+} as const;
 
 export const MAP_PLUGIN_LAWS = {
 	DATA_ONLY: "GRASSEYE-MAP-PLUGIN-001-V2",
@@ -19,7 +28,9 @@ export const MAP_PLUGIN_LAWS = {
 	ENFORCEMENT: "GRASSEYE-MAP-PLUGIN-011-V2",
 } as const;
 
-export const MAP_PLUGIN_ACTIVE_LAW_IDS = Object.values(MAP_PLUGIN_LAWS);
-export const MAP_PLUGIN_REQUIRED_TIER = "P0";
-export const MAP_PLUGIN_REQUIRED_ENFORCEMENT_MODE = "machine-blocking";
-export const MAP_PLUGIN_REQUIRED_EVIDENCE_MODE = "law+inspector+negative-proof";
+export const MAP_PLUGIN_ENFORCEMENT_BASELINE = {
+	activeLawIds: Object.values(MAP_PLUGIN_LAWS),
+	requiredTier: "P0",
+	requiredEnforcementMode: "machine-blocking",
+	requiredEvidenceMode: "law+inspector+negative-proof",
+} as const;

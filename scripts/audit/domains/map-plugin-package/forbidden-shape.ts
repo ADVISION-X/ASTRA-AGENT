@@ -5,7 +5,9 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { getSource, listMapPluginFiles } from "./audit-project.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
-import { BUILTINS_ROOT, MAP_PLUGIN_LAWS, ROOT } from "./constants.js";
+import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
+
+const { BUILTINS_ROOT, ROOT } = MAP_PLUGIN_PATHS;
 
 const FORBIDDEN_TEXT_FRAGMENTS = [
   "import(",

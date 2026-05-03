@@ -15,6 +15,7 @@ const AI_RUNTIME_TIMEOUT_BY_TASK_MS: Record<ParsedAiAbilityInput["taskType"], nu
   comment_signal_summary: 30_000,
   product_signal_summary: 30_000,
   evidence_packet_analysis: 30_000,
+  map_authoring: 60_000,
   schema_validation_only: 5_000,
 };
 

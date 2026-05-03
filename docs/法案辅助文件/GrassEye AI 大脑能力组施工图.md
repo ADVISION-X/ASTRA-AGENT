@@ -272,6 +272,15 @@ AiAbilityInputRequiredFields:
     roundId: required-or-visitId
     stepId: required
     capabilityCallId: required
+
+  例外：
+
+  ```txt
+  taskType = map_authoring
+  requestedBy = commander-console
+  transportedBy = commander-console
+  only for Commander Map Lab draft generation
+  ```
     nerveBusEnvelopeId: required
     activationSnapshotRef: required
     mapPackageId: required
@@ -602,7 +611,7 @@ Active children：
 | local-text-ai | local | enabled | yes |
 | local-ocr-ai | local | enabled | yes |
 | paid-vision-ai | paid | disabled_by_policy | no |
-| paid-analysis-ai | paid | disabled_by_policy | no |
+| paid-analysis-ai | paid | policy_guarded | operator-approved only |
 | future-api-ai | future | disabled_by_policy | no |
 
 Paid / future provider 执行前必须具备：
@@ -613,6 +622,8 @@ provider allowlist match
 dataPolicy.allowExternalTransmission = true
 costPolicy.maxEstimatedCost exists
 operatorApprovalRef exists
+providerConfigRef exists
+secretRef exists
 separate law/review path exists
 ```
 
@@ -624,6 +635,7 @@ paid fallback to local
 future fallback to local
 disabled provider success
 paid provider success without approval
+policy-guarded provider success without config/secret
 future provider runnable
 ```
 
@@ -632,6 +644,14 @@ Disabled provider 合法结果：
 ```txt
 status = failed
 failureKind = provider_disabled
+runtimeProof exists
+```
+
+Policy-guarded provider 在 approval/config/secret 缺失时的合法结果：
+
+```txt
+status = failed | review_required
+explicit reason = operator_approval_missing | provider_config_missing | provider_secret_missing
 runtimeProof exists
 ```
 

@@ -41,6 +41,8 @@ const DEFAULT_AI_PROVIDER_POLICY = {
   allowPaidProvider: false,
   providerAllowlist: ["local-vision-ai", "local-text-ai", "local-ocr-ai", "internal-schema-validator"] as const,
   operatorApprovalRef: null,
+  providerConfigRef: null,
+  secretRef: null,
 };
 
 const DEFAULT_AI_COST_POLICY = {

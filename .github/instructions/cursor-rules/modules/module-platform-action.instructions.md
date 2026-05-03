@@ -13,7 +13,7 @@ Authority: this file is authoritative only for the open-capability domain as the
 
 ## Law GRASSEYE-PLATFORM-ACTION-001-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: manual-first
@@ -49,7 +49,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-PLATFORM-ACTION-002-V1
 
-status: active
+status: retired
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: manual-first

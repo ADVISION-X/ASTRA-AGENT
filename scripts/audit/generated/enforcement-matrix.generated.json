@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T12:21:12.976Z",
+  "generatedAt": "2026-05-03T20:00:18.955Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -28,16 +28,10 @@
         "GRASSEYE-AI-CAPABILITY-011-V1",
         "GRASSEYE-AI-CAPABILITY-012-V1",
         "GRASSEYE-AI-CAPABILITY-013-V1",
-        "GRASSEYE-AI-CAPABILITY-014-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-001-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-002-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-003-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-004-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-005-V1"
+        "GRASSEYE-AI-CAPABILITY-014-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
         ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
         ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
         ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
@@ -107,15 +101,10 @@
         "GRASSEYE-CAPABILITY-GROUP-005-V1",
         "GRASSEYE-CAPABILITY-GROUP-006-V1",
         "GRASSEYE-CAPABILITY-GROUP-007-V1",
-        "GRASSEYE-CAPABILITY-GROUP-008-V1",
-        "GRASSEYE-CODE-TOPOLOGY-001-V1",
-        "GRASSEYE-CODE-TOPOLOGY-002-V1",
-        "GRASSEYE-CODE-TOPOLOGY-003-V1",
-        "GRASSEYE-CODE-TOPOLOGY-004-V2"
+        "GRASSEYE-CAPABILITY-GROUP-008-V1"
       ],
       "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md"
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
@@ -141,20 +130,10 @@
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "GRASSEYE-LOCAL-APP-SHELL-001-V1",
-        "GRASSEYE-LOCAL-APP-SHELL-002-V1",
-        "GRASSEYE-LOCAL-APP-SHELL-003-V1",
-        "GRASSEYE-LOCAL-APP-SHELL-004-V1",
-        "GRASSEYE-STARTUP-ENTRYPOINT-001-V1",
-        "GRASSEYE-STARTUP-ENTRYPOINT-002-V1",
-        "GRASSEYE-STARTUP-ENTRYPOINT-003-V1",
-        "GRASSEYE-STARTUP-ENTRYPOINT-004-V1"
+        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
         ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
         ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
       ],
@@ -188,24 +167,10 @@
         "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
-        "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1",
-        "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
-        "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
-        "GRASSEYE-STRUCTURED-LOGGING-001-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-002-V2",
-        "GRASSEYE-STRUCTURED-LOGGING-003-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-004-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-005-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-006-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-007-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-008-V1",
-        "GRASSEYE-STRUCTURED-LOGGING-009-V1"
+        "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1"
       ],
       "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md"
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md",
@@ -362,9 +327,16 @@
         "hybrid"
       ],
       "lawIds": [
-        "GRASSEYE-NERVE-BUS-CAPABILITY-001-V1",
-        "GRASSEYE-NERVE-BUS-CAPABILITY-002-V1",
-        "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1"
+        "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-004-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-005-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-006-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-007-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-008-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-009-V2",
+        "GRASSEYE-NERVE-BUS-CAPABILITY-010-V2"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md"
@@ -386,7 +358,6 @@
         "hybrid"
       ],
       "lawIds": [
-        "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1",
         "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "GRASSEYE-OPEN-CAPABILITY-002-V2",
         "GRASSEYE-OPEN-CAPABILITY-003-V2",
@@ -394,14 +365,10 @@
         "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "GRASSEYE-PLATFORM-ACTION-001-V1",
-        "GRASSEYE-PLATFORM-ACTION-002-V1"
+        "GRASSEYE-OPEN-CAPABILITY-008-V2"
       ],
       "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-platform-action.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md"
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Open 能力组施工图.md",

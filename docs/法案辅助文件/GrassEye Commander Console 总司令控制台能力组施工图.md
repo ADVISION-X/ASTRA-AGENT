@@ -533,6 +533,7 @@ rollback
 draft-only
 disabled
 not runnable
+Map Lab natural-language authoring -> preview -> human approve -> governed activate -> return to start surface
 ```
 
 Commander cannot:
@@ -570,6 +571,8 @@ dependency list
 validation findings
 compatibility matrix
 promptContractId
+Map Lab draft explanation / required clarifications / risk warnings / validation hints
+approve / activate actions only through governed Map Lab API
 ```
 
 ---
@@ -725,6 +728,8 @@ Commander 直连 Orchestration
 Commander 直连 Forensics storage
 Commander 直连 AI/local runtime
 Commander 直连 Browser/action
+Map Lab UI 直连 AI child/provider/runtime adapter
+Map Lab UI 直改 map registry / quarantine / activation internals
 task-api-handlers 绕过 Commander
 candidate-api-handlers 绕过 Commander
 Commander 使用 TaskRun / activeTaskRunId

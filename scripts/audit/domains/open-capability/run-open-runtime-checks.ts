@@ -41,6 +41,19 @@ const {
   hasStrictSuccessStatusCheck,
 } = openInspectionUtils;
 
+const createMissingFieldFinding = (input: {
+  fields: Set<string>;
+  requiredFields: readonly string[];
+  lawId: string;
+  file: string;
+  message: string;
+}): Finding[] => {
+  const missingFields = input.requiredFields.filter((field) => !input.fields.has(field));
+  return missingFields.length === 0
+    ? []
+    : [createFinding({ lawId: input.lawId, file: input.file, line: 1, severity: "fatal", message: input.message, detail: missingFields.join(",") })];
+};
+
 const collectExecutorFindings = (project: import("ts-morph").Project): Finding[] => {
   const executorSource = getOpenSourceOrThrow(project, EXECUTOR_PATH);
   const flowSource = getOpenSourceOrThrow(project, EXECUTOR_FLOW_PATH);
@@ -108,6 +121,20 @@ const collectPolicyGateFindings = (project: import("ts-morph").Project): Finding
   ...collectNavigationRunnerFinding(project),
 ];
 
+const collectMissingFieldFindings = (input: {
+  actualFields: readonly string[] | Set<string>;
+  requiredFields: readonly string[];
+  lawId: string;
+  file: string;
+  message: string;
+}): Finding[] => {
+  const actualFieldSet = input.actualFields instanceof Set ? input.actualFields : new Set(input.actualFields);
+  const missingFields = input.requiredFields.filter((field) => !actualFieldSet.has(field));
+  return missingFields.length === 0
+    ? []
+    : [createFinding({ lawId: input.lawId, file: input.file, line: 1, severity: "fatal", message: input.message, detail: missingFields.join(",") })];
+};
+
 const collectPostOpenStateFindings = (project: import("ts-morph").Project): Finding[] => {
   const postOpenStateSource = getOpenSourceOrThrow(project, POST_OPEN_STATE_HELPERS_PATH);
   const postOpenStateResultBuilders = getOpenSourceOrThrow(project, POST_OPEN_STATE_RESULT_BUILDERS_PATH);
@@ -152,8 +179,8 @@ const collectInputGateFinding = (project: import("ts-morph").Project): Finding[]
     ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: INPUT_GATE_PATH, line: 1, severity: "fatal", message: "Open input gate must use one trace-only raw failure parser and must not coerce fake business requests." })]
     : [];
 
-  findings.push(...createMissingFieldFinding({
-    fields: traceFields,
+  findings.push(...collectMissingFieldFindings({
+    actualFields: traceFields,
     requiredFields: [
       "stepId",
       "mapPackageId",

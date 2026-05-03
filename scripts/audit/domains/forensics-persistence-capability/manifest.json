@@ -14,24 +14,10 @@
     "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
-    "GRASSEYE-STRUCTURED-LOGGING-001-V1",
-      "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-002-V2",
-    "GRASSEYE-STRUCTURED-LOGGING-003-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-004-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-005-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-006-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-007-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-008-V1",
-    "GRASSEYE-STRUCTURED-LOGGING-009-V1",
-    "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
-    "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2"
+    "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1"
   ],
   "readsLawFiles": [
-    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md"
+    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md"
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md",

@@ -3,6 +3,7 @@ import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
+import { mapLabClient } from "./map-lab-client.js";
 import { renderAppFrame } from "./layout/AppFrame.js";
 import { renderBottomNav } from "./layout/BottomNav.js";
 import { renderCompactStatusBar } from "./layout/CompactStatusBar.js";
@@ -45,6 +46,7 @@ function renderCommanderAppShell(dashboard: CommanderAppShellDashboard, options:
     <script>window.__grasseyeCommanderConsolePageHtml = ${safeJsonScript(pageHtmlMap)};</script>
     <script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(inspectHtmlMap)};</script>
     <script>${commanderConsoleShellClient}</script>
+    <script>${mapLabClient}</script>
   </body>
 </html>`;
 }

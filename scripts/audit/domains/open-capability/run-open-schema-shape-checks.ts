@@ -35,7 +35,7 @@ const REQUIRED_VALIDATION_MARKERS = [
 
 type OpenSchemaContext = {
   childIds: string[];
-  exportedDeclarations: Map<string, import("ts-morph").ExportedDeclarations[]>;
+  exportedDeclarations: ReadonlyMap<string, import("ts-morph").ExportedDeclarations[]>;
   proofFields: Set<string>;
   requestFields: Set<string>;
   resultFields: Set<string>;

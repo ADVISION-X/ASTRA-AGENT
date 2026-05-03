@@ -3,6 +3,7 @@ import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.
 import {
   AiCommentSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisOutputSchema,
+  AiMapAuthoringOutputSchema,
   AiOcrCleanupOutputSchema,
   AiProductSignalSummaryOutputSchema,
   AiSchemaValidationOnlyOutputSchema,
@@ -17,6 +18,7 @@ const SCHEMA_BY_TASK_TYPE = {
   comment_signal_summary: { schemaId: "ai.comment_signal_summary.v1", schema: AiCommentSignalSummaryOutputSchema },
   product_signal_summary: { schemaId: "ai.product_signal_summary.v1", schema: AiProductSignalSummaryOutputSchema },
   evidence_packet_analysis: { schemaId: "ai.evidence_packet_analysis.v1", schema: AiEvidencePacketAnalysisOutputSchema },
+  map_authoring: { schemaId: "ai.map_authoring.v1", schema: AiMapAuthoringOutputSchema },
   schema_validation_only: { schemaId: "ai.schema_validation_only.v1", schema: AiSchemaValidationOnlyOutputSchema },
 } as const;
 

@@ -10,7 +10,9 @@ const AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID: Record<MapPluginAiChildCapabilityId, 
 };
 
 export const getExpectedPromptTaskType = (childCapabilityId: string): AiTaskType | null =>
-  AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID[childCapabilityId] ?? null;
+  childCapabilityId in AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID
+    ? AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID[childCapabilityId as MapPluginAiChildCapabilityId]
+    : null;
 
 export const getPromptContractCatalogEntry = (promptContractId: string): PromptContractCatalogEntry | null =>
   findMapPluginPromptContractCatalogEntry(promptContractId);

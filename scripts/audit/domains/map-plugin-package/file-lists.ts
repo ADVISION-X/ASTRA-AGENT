@@ -1,4 +1,6 @@
-import { AUDIT_ROOT, BUILTINS_ROOT, INSPECTOR_PATH, ROOT } from "./constants.js";
+import { MAP_PLUGIN_PATHS } from "./constants.js";
+
+const { AUDIT_ROOT, BUILTINS_ROOT, INSPECTOR_PATH, ROOT } = MAP_PLUGIN_PATHS;
 
 export const BUILTIN_PACKAGE_FILES = [
   `${BUILTINS_ROOT}/tiktok-product-discovery.map-package.json`,
