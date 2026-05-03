@@ -49,6 +49,10 @@ export type ActiveOperationalMapRecord = {
   promptCatalogVersion: string;
   validationReportRef: string;
   humanApprovalRef: string;
+  importProofRef: string;
+  quarantineProofRef: string;
+  activationProofRef: string;
+  authoringProofRef: string | null;
   proofPolicy: MapPackage["operationalMap"]["proofPolicy"];
   operationalMap: OperationalMap;
 };

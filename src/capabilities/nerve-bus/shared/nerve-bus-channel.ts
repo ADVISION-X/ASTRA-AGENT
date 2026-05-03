@@ -17,8 +17,10 @@ import type { NerveBusPayloadDocument } from "../ports/nerve-bus-transport-port.
 import type { NerveBusRunnerOutcome } from "../runtime/transport-runner.js";
 import type { NerveBusRuntimeContext } from "../runtime/transport-context.js";
 
-export type SupportedEnvelope = AbilityCommandEnvelope | AiRequestEnvelope | HumanCommandEnvelope;
-export type SupportedTransportEnvelope = SupportedEnvelope | AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;
+export type ForwardTransportEnvelope = AbilityCommandEnvelope | AiRequestEnvelope | HumanCommandEnvelope;
+export type MirroredTransportEnvelope = AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;
+export type SupportedEnvelope = ForwardTransportEnvelope | MirroredTransportEnvelope;
+export type SupportedTransportEnvelope = SupportedEnvelope;
 export type SupportedResultEnvelope = AbilityResultEnvelope | AiResponseEnvelope | HumanCommandResultEnvelope;
 
 export type NerveBusChildDefinition<TEnvelope extends SupportedTransportEnvelope, TResult extends SupportedResultEnvelope> = {

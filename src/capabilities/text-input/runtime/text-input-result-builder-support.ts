@@ -8,6 +8,23 @@ import {
   buildTextInputRuntimeProofTargetFields,
 } from "./text-input-proof-builder.js";
 
+function buildTextInputResultChainFields(seed: Pick<TextInputResultSeed, "missionId" | "runId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "sourceRef">) {
+  return {
+    missionId: seed.missionId,
+    runId: seed.runId,
+    stepId: seed.stepId,
+    mapPackageId: seed.mapPackageId,
+    mapPackageVersion: seed.mapPackageVersion,
+    selectedMapId: seed.selectedMapId,
+    selectedMapVersion: seed.selectedMapVersion,
+    activationId: seed.activationId,
+    activationSnapshotRef: seed.activationSnapshotRef,
+    capabilityCallId: seed.capabilityCallId,
+    nerveBusEnvelopeId: seed.nerveBusEnvelopeId,
+    sourceRef: seed.sourceRef,
+  };
+}
+
 export function buildTextInputCandidateOutput(input: {
   seed: TextInputResultSeed;
   actionExecutionRef: string | null;
@@ -60,14 +77,27 @@ export function buildTextInputRuntimeProofIdentityInput(
 ) {
   return buildTextInputRuntimeProofIdentityFields({
     attemptRef: input.seed.attemptRef,
+    missionId: input.seed.missionId,
+    runId: input.seed.runId,
     childCapabilityId: input.seed.childCapabilityId,
     sessionId: input.seed.sessionId,
     roundId: input.seed.roundId,
     videoVisitId: input.seed.videoVisitId,
+    stepId: input.seed.stepId,
+    mapPackageId: input.seed.mapPackageId,
+    mapPackageVersion: input.seed.mapPackageVersion,
+    selectedMapId: input.seed.selectedMapId,
+    selectedMapVersion: input.seed.selectedMapVersion,
+    activationId: input.seed.activationId,
+    activationSnapshotRef: input.seed.activationSnapshotRef,
+    capabilityCallId: input.seed.capabilityCallId,
+    nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
     sourceAbilityGroupId: input.seed.sourceAbilityGroupId,
     sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
     sourceOwner: input.seed.sourceOwner,
     sourceProofRef: input.seed.sourceProofRef,
+    sourceRef: input.seed.sourceRef,
+    idempotencyKey: input.seed.idempotencyKey,
     inputRef: input.seed.inputRef,
     outputRef,
     diagnosticPayloadRef,
@@ -96,6 +126,8 @@ export function buildTextInputRuntimeProofArtifactInput(input: {
     inputTextHash: input.seed.inputTextHash,
     approvedTextRef: input.seed.approvedTextRef,
     approvedTextHash: input.seed.approvedTextHash,
+    approvedTextSourceRef: input.seed.approvedTextSourceRef,
+    approvedTextApprovalRef: input.seed.approvedTextApprovalRef,
     typedTextHash: input.typedTextHash,
     keySequenceHash: input.keySequenceHash,
     approvedCommitRef: input.seed.approvedCommitRef,
@@ -106,6 +138,7 @@ export function buildTextInputRuntimeProofTargetInput(input: {
   seed: TextInputResultSeed;
 }) {
   return buildTextInputRuntimeProofTargetFields({
+    inputTargetRef: input.seed.inputTargetRef,
     targetRef: input.seed.targetRef,
     targetProofRef: input.seed.targetProofRef,
     targetProofOwner: input.seed.targetProofOwner as never,
@@ -210,6 +243,7 @@ export function buildTextInputAbilityResultPayload(
     abilityGroupId: "text-input",
     childCapabilityId: input.seed.childCapabilityId,
     status: outputBoundary.status,
+    ...buildTextInputResultChainFields(input.seed),
     sessionId: input.seed.sessionId,
     roundId: input.seed.roundId,
     videoVisitId: input.seed.videoVisitId,

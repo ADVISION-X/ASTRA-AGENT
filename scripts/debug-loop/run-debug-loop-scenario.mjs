@@ -40,7 +40,16 @@ function parseScenarioOutput(stdout, stderr) {
 }
 
 async function runScenarioCommand(scenarioId, iterationDir) {
-  const commandResult = await runCommand(process.execPath, [path.join(getDebugLoopDir(), "scenario-runner.mjs"), "--scenario", scenarioId], {
+  return runScenarioCommandWithMapResolution(scenarioId, iterationDir, null);
+}
+
+async function runScenarioCommandWithMapResolution(scenarioId, iterationDir, mapResolution) {
+  const args = [path.join(getDebugLoopDir(), "scenario-runner.mjs"), "--scenario", scenarioId];
+  if (mapResolution) {
+    args.push("--mapResolution", JSON.stringify(mapResolution));
+  }
+
+  const commandResult = await runCommand(process.execPath, args, {
     cwd: process.cwd(),
     stdoutPath: path.join(iterationDir, "stdout.log"),
     stderrPath: path.join(iterationDir, "stderr.log"),
@@ -74,5 +83,5 @@ export async function resolveScenarioExecution(input) {
 
   return input.mapResolution.decision && input.mapResolution.status === "blocked"
     ? { commandResult: null, scenarioResult: buildBlockedScenarioResult(input.scenario, input.mapResolution) }
-    : runScenarioCommand(input.scenario.scenarioId, input.iterationDir);
+    : runScenarioCommandWithMapResolution(input.scenario.scenarioId, input.iterationDir, input.mapResolution);
 }

@@ -17,6 +17,10 @@ export type MapActivationRecord = {
   promptCatalogVersion: string;
   operationalMapHash: string;
   mapPackageHash: string;
+  importProofRef: string;
+  quarantineProofRef: string;
+  activationProofRef: string;
+  authoringProofRef: string | null;
 };
 
 export type MapRollbackRecord = {
@@ -29,3 +33,46 @@ export type MapRollbackRecord = {
   rolledBackAt: string;
   reason: string;
 };
+
+function normalizeProofSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9:_-]/g, "_");
+}
+
+export function buildImportProofRef(input: {
+  packageId: string;
+  packageVersion: string;
+  importedAt: string;
+}): string {
+  return [
+    "map-proof:import",
+    input.packageId,
+    input.packageVersion,
+    normalizeProofSegment(input.importedAt),
+  ].join(":");
+}
+
+export function buildQuarantineProofRef(input: {
+  packageId: string;
+  packageVersion: string;
+  importedAt: string;
+}): string {
+  return [
+    "map-proof:quarantine",
+    input.packageId,
+    input.packageVersion,
+    normalizeProofSegment(input.importedAt),
+  ].join(":");
+}
+
+export function buildActivationProofRef(input: {
+  activationId: string;
+  packageId: string;
+  packageVersion: string;
+}): string {
+  return [
+    "map-proof:activation",
+    input.packageId,
+    input.packageVersion,
+    input.activationId,
+  ].join(":");
+}

@@ -4,7 +4,7 @@ import type {
 } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
-import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
+import { buildMirroredEnvelopeBase, buildPayloadDocument } from "./workbench-payload.js";
 
 const describeAbilityFailure = (
   failure: WorkbenchAbilityExecutionResult["failureReason"],
@@ -48,13 +48,10 @@ const buildAbilityResultEnvelope = (input: {
   summary: string;
   failureReason: string | null;
 }): AbilityResultEnvelope => ({
-  ...buildTransportEnvelopeBase({
+  ...buildMirroredEnvelopeBase({
     channelId: "ability-to-orchestration",
     envelopeId: `${input.envelope.envelopeId}:result`,
-    missionId: input.envelope.missionId,
-    mapId: input.envelope.mapId,
-    stepId: input.envelope.stepId,
-    inputRef: input.envelope.inputRef,
+    requestEnvelope: input.envelope,
     payloadRefs: { output: input.outputPayload.documentRef },
     summary: input.summary,
     tags: [input.envelope.to, input.envelope.commandName, input.result.status],
@@ -63,6 +60,12 @@ const buildAbilityResultEnvelope = (input: {
   resultId: `${input.envelope.commandId}:result`,
   from: input.envelope.to,
   to: "orchestration",
+  correlationEnvelopeId: input.envelope.envelopeId,
+  correlationCapabilityCallId: input.envelope.capabilityCallId,
+  correlationInputRef: input.envelope.inputRef,
+  proofRef: `${input.envelope.envelopeId}:result:proof`,
+  targetAbilityGroupId: input.envelope.targetAbilityGroupId,
+  targetChildCapabilityId: input.envelope.targetChildCapabilityId,
   status: input.result.status,
   outputRef: input.result.status === "success" ? input.outputPayload.documentRef : null,
   diagnosticPayloadRef: input.result.status === "success" ? null : input.outputPayload.documentRef,

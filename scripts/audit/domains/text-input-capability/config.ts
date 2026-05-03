@@ -1,13 +1,21 @@
 export const LAW_IDS = {
-  PUBLIC: "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1",
-  SHAPE: "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V1",
-  EXECUTION: "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1",
-  RESULT: "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V1",
-  PACKAGE: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1",
+  PUBLIC: "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
+  WRITE_ONLY: "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",
+  SHAPE: "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2",
+  EXECUTION: "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2",
+  SENSITIVE: "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2",
+  RESULT: "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2",
+  PROOF: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2",
+  CHILDREN: "GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2",
+  PACKAGE: "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2",
 } as const;
 
 export const PATHS = {
   ROOT: "src/capabilities/text-input",
+  MANIFEST: "scripts/audit/domains/text-input-capability/manifest.json",
+  INSPECTOR: "scripts/audit/domains/text-input-capability/inspector.ts",
+  RUN_INSPECTOR: "scripts/audit/domains/text-input-capability/run-inspector.ts",
+  NEGATIVE_PROOF: "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
   ABILITY_GROUP: "src/capabilities/text-input/ability-group.ts",
   CONTRACT: "src/capabilities/text-input/contract.ts",
   INDEX: "src/capabilities/text-input/index.ts",
@@ -33,11 +41,13 @@ export const PATHS = {
   CLIPBOARD_POLICY_GATE: "src/capabilities/text-input/runtime/clipboard-policy-gate.ts",
   RUNNER: "src/capabilities/text-input/runtime/primitive-text-input-runner.ts",
   RESULT_BUILDER: "src/capabilities/text-input/runtime/text-input-result-builder.ts",
+  RESULT_SUPPORT: "src/capabilities/text-input/runtime/text-input-result-builder-support.ts",
   PROOF_BUILDER: "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
   OUTPUT_BOUNDARY_GATE: "src/capabilities/text-input/runtime/text-input-output-boundary-gate.ts",
   DEBUG_EVENTS: "src/capabilities/text-input/runtime/text-input-debug-events.ts",
   FAILURE: "src/capabilities/text-input/runtime/text-input-dispatch-failure.ts",
   CLOCK: "src/capabilities/text-input/runtime/text-input-clock.ts",
+  EXECUTOR_CLIPBOARD: "src/capabilities/text-input/runtime/text-input-executor-clipboard.ts",
   CLOCK_PORT: "src/capabilities/text-input/ports/text-input-clock-port.ts",
   EXECUTION_PORT: "src/capabilities/text-input/ports/text-input-execution-port.ts",
   CLIPBOARD_PORT: "src/capabilities/text-input/ports/clipboard-port.ts",
@@ -54,6 +64,10 @@ export const PATHS = {
 } as const;
 
 export const REQUIRED_FILES = [
+  PATHS.MANIFEST,
+  PATHS.INSPECTOR,
+  PATHS.RUN_INSPECTOR,
+  PATHS.NEGATIVE_PROOF,
   PATHS.ABILITY_GROUP,
   PATHS.CONTRACT,
   PATHS.INDEX,
@@ -79,11 +93,13 @@ export const REQUIRED_FILES = [
   PATHS.CLIPBOARD_POLICY_GATE,
   PATHS.RUNNER,
   PATHS.RESULT_BUILDER,
+  PATHS.RESULT_SUPPORT,
   PATHS.PROOF_BUILDER,
   PATHS.OUTPUT_BOUNDARY_GATE,
   PATHS.DEBUG_EVENTS,
   PATHS.FAILURE,
   PATHS.CLOCK,
+  PATHS.EXECUTOR_CLIPBOARD,
   PATHS.CLOCK_PORT,
   PATHS.EXECUTION_PORT,
   PATHS.CLIPBOARD_PORT,
@@ -109,6 +125,123 @@ export const REQUIRED_FILES = [
   PATHS.COMMIT_INPUT_IMPL,
   PATHS.PRIMITIVE_ADAPTER,
   PATHS.CLIPBOARD_ADAPTER,
+] as const;
+
+export const REQUIRED_INPUT_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "sessionId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "sourceAbilityGroupId",
+  "sourceChildCapabilityId",
+  "sourceProofRef",
+  "sourceRef",
+  "inputRef",
+  "idempotencyKey",
+] as const;
+
+export const REQUIRED_INPUT_TARGET_FIELDS = [
+  "inputTargetRef",
+  "targetRef",
+  "targetProofRef",
+  "targetProofOwner",
+  "targetKind",
+  "focusProofRef",
+  "focusProofOwner",
+  "focusVerifiedAt",
+  "postActionFocusVerificationRef",
+] as const;
+
+export const REQUIRED_WRITE_FIELDS = [
+  "inputText",
+  "inputTextRef",
+  "inputTextHash",
+  "approvedText",
+  "approvedTextRef",
+  "approvedTextHash",
+  "approvedTextSourceRef",
+  "approvedTextApprovalRef",
+] as const;
+
+export const REQUIRED_PROOF_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "sourceRef",
+  "idempotencyKey",
+  "inputTargetRef",
+  "approvedTextSourceRef",
+  "approvedTextApprovalRef",
+] as const;
+
+export const REQUIRED_RESULT_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "sourceRef",
+] as const;
+
+export const FORBIDDEN_CHILD_TOKENS = [
+  "send-message",
+  "publish",
+  "select-recipient",
+  "locate-input",
+  "read-input",
+] as const;
+
+export const FORBIDDEN_RESULT_FIELD_TOKENS = [
+  "pageStateVerified",
+  "fieldContentVerified",
+  "submissionSuccess",
+  "publishSuccess",
+  "sendSuccess",
+  "actionVerified",
+  "finalPageAccepted",
+  "nextStepId",
+  "productDecision",
+  "finalActionLogRef",
+  "browserActionId",
+  "browserActionResult",
+] as const;
+
+export const FORBIDDEN_DEBUG_LEAK_TOKENS = [
+  "rawInputText:",
+  "rawApprovedText:",
+  "rawClipboard",
+  "rawClipboardBackup",
+  "clipboardPlaintext",
+] as const;
+
+export const FORBIDDEN_PROOF_LEAK_PATTERNS = [
+  "inputTextRef: input.seed.inputText,",
+  "approvedTextRef: input.seed.approvedText,",
+  "inputTextHash: input.seed.inputText,",
+  "approvedTextHash: input.seed.approvedText,",
+  'runId: buildStableTextInputRef("text-input-run", [input.attemptRef])',
 ] as const;
 
 export const FORBIDDEN_IMPORT_PREFIXES = [

@@ -2,7 +2,7 @@ import type { ParsedTextInputAbilityInput } from "../contract.js";
 
 function buildTextInputTargetProofFailure(input: {
   status: "failed" | "review_required";
-  failureReason: "target_ref_required" | "target_proof_ref_required" | null;
+  failureReason: "input_target_ref_required" | "target_ref_required" | "target_proof_ref_required" | "target_binding_invalid" | null;
   reviewRequiredReason: string | null;
   statusMessage: string;
   policyDecision: "block" | "review_required";
@@ -23,6 +23,10 @@ function hasTextInputTargetRef(request: ParsedTextInputAbilityInput): boolean {
   return request.targetRef.length > 0;
 }
 
+function hasTextInputInputTargetRef(request: ParsedTextInputAbilityInput): boolean {
+  return request.inputTargetRef.length > 0;
+}
+
 function hasTextInputTargetProofRef(request: ParsedTextInputAbilityInput): boolean {
   return request.targetProofRef.length > 0;
 }
@@ -36,6 +40,21 @@ function hasTextInputTargetBinding(request: ParsedTextInputAbilityInput): boolea
 }
 
 function resolveInputTargetRefFailure(request: ParsedTextInputAbilityInput) {
+  if (hasTextInputInputTargetRef(request)) {
+    return null;
+  }
+
+  return buildTextInputTargetProofFailure({
+    status: "failed",
+    failureReason: "input_target_ref_required",
+    reviewRequiredReason: null,
+    statusMessage: "Text Input requires a governed inputTargetRef.",
+    policyDecision: "block",
+    dataQualityFlags: ["input_target_ref_missing"],
+  });
+}
+
+function resolveTargetRefFailure(request: ParsedTextInputAbilityInput) {
   if (hasTextInputTargetRef(request)) {
     return null;
   }
@@ -47,6 +66,21 @@ function resolveInputTargetRefFailure(request: ParsedTextInputAbilityInput) {
     statusMessage: "Text Input requires a governed targetRef.",
     policyDecision: "block",
     dataQualityFlags: ["target_ref_missing"],
+  });
+}
+
+function resolveGeometryGuardProofFailure(request: ParsedTextInputAbilityInput) {
+  if (request.targetProofOwner !== "geometry-guard" || request.geometryGuardProofRef !== null) {
+    return null;
+  }
+
+  return buildTextInputTargetProofFailure({
+    status: "failed",
+    failureReason: "target_binding_invalid",
+    reviewRequiredReason: null,
+    statusMessage: "Text Input requires geometryGuardProofRef when targetProofOwner is geometry-guard.",
+    policyDecision: "block",
+    dataQualityFlags: ["geometry_guard_proof_ref_missing"],
   });
 }
 
@@ -98,7 +132,9 @@ function resolveInputTargetBindingFailure(request: ParsedTextInputAbilityInput) 
 function resolveInputTargetProofPolicy(request: ParsedTextInputAbilityInput) {
   for (const failure of [
     resolveInputTargetRefFailure(request),
+    resolveTargetRefFailure(request),
     resolveInputTargetProofRefFailure(request),
+    resolveGeometryGuardProofFailure(request),
     resolveInputTargetEvidenceRefsFailure(request),
     resolveInputTargetBindingFailure(request),
   ]) {

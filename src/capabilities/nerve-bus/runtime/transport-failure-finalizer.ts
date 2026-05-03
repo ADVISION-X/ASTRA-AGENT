@@ -2,6 +2,7 @@ import {
   buildFailurePayloadDocument,
   buildGovernedFailureEnvelope,
   buildGovernedFailureResult,
+  buildProofRefForEnvelope,
 } from "./transport-result-builder.js";
 import { buildTransportProof } from "./transport-proof-builder.js";
 import type { NerveBusRuntimeContext } from "./transport-context.js";
@@ -54,52 +55,9 @@ const buildFailureProof = (input: TransportFailureFinalizerInput, ended: ReturnT
     status: input.status,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
+    semanticDecision: input.integrityDecision === "mismatched_result" ? "failed" : "not_started",
     dataQualityFlags: ["transport_governed_failure"],
   });
-
-const buildPendingFailureProof = (
-  input: TransportFailureFinalizerInput,
-  ended: ReturnType<NerveBusRuntimeContext["clock"]["now"]>,
-  diagnosticPayloadRef: string,
-) => ({
-  proofId: "pending-proof",
-  transportId: input.envelope.transportId,
-  traceId: input.envelope.traceId,
-  spanId: input.envelope.spanId,
-  missionId: input.envelope.missionId,
-  mapId: input.envelope.mapId,
-  stepId: input.envelope.stepId,
-  channelId: input.envelope.channelId,
-  from: input.envelope.from,
-  to: input.envelope.to,
-  envelopeId: input.envelope.envelopeId,
-  attemptId: input.envelope.attemptId,
-  idempotencyKey: input.envelope.idempotencyKey,
-  sequenceNo: input.envelope.sequenceNo,
-  payloadRef: input.envelope.payloadRef,
-  inputRef: input.envelope.inputRef,
-  outputRef: null,
-  diagnosticPayloadRef,
-  startedAt: input.startedAt,
-  endedAt: ended.iso,
-  durationMs: Math.max(0, ended.monotonicMs - input.startedMs),
-  status: input.status,
-  failureReason: input.failureReason,
-  reviewRequiredReason: input.reviewRequiredReason ?? null,
-  policyDecision: input.policyDecision,
-  integrityDecision: input.integrityDecision,
-  idempotencyDecision: input.idempotencyDecision,
-  sequenceDecision: input.sequenceDecision,
-  queueDecision: input.queueDecision,
-  timeoutDecision: input.timeoutDecision,
-  handlerDecision: input.handlerDecision,
-  handlerCallId: input.handlerCallId,
-  handlerStartedAt: input.handlerStartedAt,
-  handlerEndedAt: input.handlerEndedAt,
-  handlerDurationMs: input.handlerDurationMs,
-  circuitBreakerState: input.circuitBreakerState,
-  dataQualityFlags: ["transport_governed_failure"],
-});
 
 const buildFailureResultEnvelope = (
   input: TransportFailureFinalizerInput,
@@ -110,9 +68,9 @@ const buildFailureResultEnvelope = (
   failureReason: input.failureReason,
   reviewRequiredReason: input.reviewRequiredReason ?? null,
   status: input.status,
-  proof: buildPendingFailureProof(input, ended, diagnosticPayloadRef.outputRef),
+  proofRef: buildProofRefForEnvelope(input.envelope),
+  createdAt: ended.iso,
   diagnosticPayloadRef,
-  transportDecision: input.transportDecision ?? "executed",
 });
 
 const commitFailureResult = async (
@@ -136,11 +94,10 @@ export const finalizeFailure = async (input: TransportFailureFinalizerInput) => 
   const proof = buildFailureProof(input, ended, resultEnvelope, diagnosticPayloadRef.outputRef);
   const transportResult = await buildGovernedFailureResult({
     envelope: input.envelope,
+    resultEnvelope,
+    proof,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
-    status: input.status,
-    proof,
-    diagnosticPayloadRef,
     transportDecision: input.transportDecision ?? "executed",
   });
 

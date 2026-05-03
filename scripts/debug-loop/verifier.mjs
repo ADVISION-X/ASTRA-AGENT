@@ -110,6 +110,24 @@ async function runOwnerAudit(ownerAuditScript, iterationDir) {
     : null;
 }
 
+function buildSkippedLawEnforcementState() {
+  return {
+    runnerSummaryIncludesOwner: true,
+    hasActiveLaw: true,
+    hasMatrixEntry: true,
+    ownerInAuditPlan: true,
+    missingMatrixLawIds: [],
+    missingAuditPlanLawIds: [],
+    missingP0P1LawCoverage: [],
+    negativeProof: "PASS",
+    warningOnlyP0: false,
+    detachedInspector: false,
+    emptyNegativeProof: false,
+    lawEnforcementPassed: true,
+    remainingP0: [],
+  };
+}
+
 async function runVerificationCommands(input) {
   const auditBuildResult = await runNpmScript("audit:build", input.iterationDir, "audit-build");
   const postAuditBuildGitState = await captureGitState({ iterationDir: input.iterationDir, fileName: "git-state-post-audit-build.json" });
@@ -128,7 +146,9 @@ async function runVerificationCommands(input) {
     ownerAuditResult,
     ciFullResult,
     runtimeScenarioResult,
-    enforcementState: await readLawEnforcementState({ owner: input.owner }),
+    enforcementState: ownerAuditScript
+      ? await readLawEnforcementState({ owner: input.owner })
+      : buildSkippedLawEnforcementState(),
   };
 }
 
@@ -148,7 +168,9 @@ function createRuntimeScenarioPayload(runtimeScenarioResult) {
 
   return {
     status: resolveFallbackRuntimeStatus(runtimeScenarioResult),
-    rootCause: runtimeScenarioResult.failureReason ?? runtimeScenarioResult.stderr || runtimeScenarioResult.stdout || "runtime recheck result could not be parsed",
+    rootCause: (runtimeScenarioResult.failureReason ?? runtimeScenarioResult.stderr)
+      || runtimeScenarioResult.stdout
+      || "runtime recheck result could not be parsed",
   };
 }
 

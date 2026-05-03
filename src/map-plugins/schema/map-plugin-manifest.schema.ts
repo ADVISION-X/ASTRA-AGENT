@@ -12,8 +12,20 @@ const APPROVED_REQUIRED_FIELDS = [
 const AI_GENERATED_REQUIRED_FIELDS = [
   "authoringPromptRef",
   "authoringModelRef",
+  "authoringRunId",
+  "userRequirementRef",
+  "sourceRequirementHash",
+  "providerPolicyRef",
+  "promptContractId",
+  "promptContractVersion",
+  "promptHash",
   "capabilityCatalogVersion",
   "promptCatalogVersion",
+  "mapPackageSchemaVersion",
+  "securityPolicyRef",
+  "outputFormatVersion",
+  "generatedAt",
+  "authoringProofRef",
 ] as const;
 
 const addManifestIssue = (context: z.RefinementCtx, path: string, message: string): void => {
@@ -39,8 +51,20 @@ const MapPluginManifestBaseSchema = z.object({
   aiGenerated: z.boolean().default(false),
   authoringPromptRef: z.string().min(1).nullable().default(null),
   authoringModelRef: z.string().min(1).nullable().default(null),
+  authoringRunId: z.string().min(1).nullable().default(null),
+  userRequirementRef: z.string().min(1).nullable().default(null),
+  sourceRequirementHash: z.string().min(1).nullable().default(null),
+  providerPolicyRef: z.string().min(1).nullable().default(null),
+  promptContractId: z.string().min(1).nullable().default(null),
+  promptContractVersion: z.string().min(1).nullable().default(null),
+  promptHash: z.string().min(1).nullable().default(null),
   capabilityCatalogVersion: z.string().min(1).nullable().default(null),
   promptCatalogVersion: z.string().min(1).nullable().default(null),
+  mapPackageSchemaVersion: z.string().min(1).nullable().default(null),
+  securityPolicyRef: z.string().min(1).nullable().default(null),
+  outputFormatVersion: z.string().min(1).nullable().default(null),
+  generatedAt: z.string().datetime().nullable().default(null),
+  authoringProofRef: z.string().min(1).nullable().default(null),
   validationReportRef: z.string().min(1).nullable().default(null),
   humanApprovalRef: z.string().min(1).nullable().default(null)
 }).strict();

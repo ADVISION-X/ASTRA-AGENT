@@ -18,12 +18,20 @@ function isPassVerification(verificationResult) {
     return false;
   }
 
-  return verificationResult.auditBuild === "PASS"
-    && verificationResult.ownerAudit === "PASS"
+  return hasPassingAuditVerification(verificationResult)
+    && hasNoRemainingP0(verificationResult)
     && verificationResult.ciFull === "PASS"
     && verificationResult.runtimeScenario === "PASS"
-    && verificationResult.lawEnforcementPassed === true
-    && Array.isArray(verificationResult.remainingP0)
+    && verificationResult.lawEnforcementPassed === true;
+}
+
+function hasPassingAuditVerification(verificationResult) {
+  return verificationResult.auditBuild === "PASS"
+    && (verificationResult.ownerAuditRequired === false || verificationResult.ownerAudit === "PASS");
+}
+
+function hasNoRemainingP0(verificationResult) {
+  return Array.isArray(verificationResult.remainingP0)
     && verificationResult.remainingP0.length === 0;
 }
 

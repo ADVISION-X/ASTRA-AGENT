@@ -10,6 +10,7 @@ import {
 import { MapPluginMissionTerminalStatusSchema } from "../schema/operational-map-payload.schema.js";
 import { MapPluginOrchestrationSequencePolicySchema } from "../schema/operational-map-policy.schema.js";
 import { PromptBindingsSchema } from "../schema/prompt-bindings.schema.js";
+import { MapAuthoringChainSchema } from "./map-authoring-proof-chain.js";
 
 const DraftRunLimitSchema = z.object({
   maxRounds: z.number().int().positive(),
@@ -50,6 +51,7 @@ export const MapAuthoringAiOutputSchema = z.object({
   validationHints: z.array(z.string().min(1)).default([]),
   needsCapabilityExpansion: z.boolean().default(false),
   draftStatus: z.enum(["draft_ready", "needs_clarification"]).default("draft_ready"),
+  authoringChain: MapAuthoringChainSchema.partial().default({}),
 }).strict();
 
 export type MapAuthoringDraftPackage = z.output<typeof MapAuthoringDraftPackageSchema>;

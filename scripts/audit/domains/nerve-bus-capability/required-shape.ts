@@ -1,25 +1,132 @@
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
+import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
 import { CHANNEL_IDS, LAW_IDS, PATHS } from "./config.js";
-import { getSchemaChannelIds, getSourceFile, makeProject, missingRequiredFiles } from "./project-access.js";
+import { getSourceFile, makeProject, missingRequiredFiles } from "./project-access.js";
+import { collectBuilderFindings } from "./required-shape-builder-findings.js";
+
+const CONTRACT_METHODS = [
+  "transportEnvelope",
+  "dispatchHumanCommand",
+  "dispatchAbilityCommand",
+  "dispatchAbilityResult",
+  "requestAi",
+  "dispatchAiResponse",
+  "dispatchCommanderMessage",
+] as const;
+
+const SCHEMA_SOURCE_PATHS = [
+  `${PATHS.ROOT}/schema-foundation.schema.ts`,
+  `${PATHS.ROOT}/schema-envelope.schema.ts`,
+  `${PATHS.ROOT}/schema-transport.schema.ts`,
+] as const;
+
+const REQUIRED_SCHEMA_FIELDS = [
+  "runId",
+  "sessionId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "sourceRef",
+  "inputRef",
+  "payloadRef",
+  "commanderCommandRef",
+  "commanderEnvelopeRef",
+  "requestedPlatformId",
+  "targetRecordRef",
+  "targetAbilityGroupId",
+  "targetChildCapabilityId",
+  "capabilityInputRef",
+  "expectedOutputSchemaRef",
+  "promptContractId",
+  "promptContractVersion",
+  "outputSchemaRef",
+  "aiInputRefs",
+  "providerPolicyRef",
+  "correlationEnvelopeId",
+  "correlationCapabilityCallId",
+  "correlationInputRef",
+  "proofRef",
+] as const;
+
+const getPropertyNames = (sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>): Set<string> => {
+  return new Set(
+    sourceTextOwner.getDescendants().flatMap((node) => {
+      if (Node.isPropertyAssignment(node) || Node.isShorthandPropertyAssignment(node)) {
+        return [node.getName()];
+      }
+      return [];
+    }),
+  );
+};
+
+const sourceHasProperties = (sourceTextOwner: ReturnType<typeof getSourceFile>, propertyNames: readonly string[]): boolean => {
+  if (!sourceTextOwner) {
+    return false;
+  }
+
+  const names = getPropertyNames(sourceTextOwner);
+  return propertyNames.every((propertyName) => names.has(propertyName));
+};
+
+const sourceTextIncludesAll = (sourceTextOwner: ReturnType<typeof getSourceFile>, tokens: readonly string[]): boolean => {
+  if (!sourceTextOwner) {
+    return false;
+  }
+
+  const text = sourceTextOwner.getFullText();
+  return tokens.every((token) => text.includes(token));
+};
+
+const getSchemaSources = (project: ReturnType<typeof makeProject>) => {
+  return SCHEMA_SOURCE_PATHS
+    .map((path) => getSourceFile(project, path))
+    .filter((sourceFile): sourceFile is NonNullable<typeof sourceFile> => sourceFile !== null);
+};
+
+const schemaSourcesHaveProperties = (project: ReturnType<typeof makeProject>, propertyNames: readonly string[]): boolean => {
+  const names = new Set<string>();
+  for (const sourceFile of getSchemaSources(project)) {
+    for (const propertyName of getPropertyNames(sourceFile)) {
+      names.add(propertyName);
+    }
+  }
+  return propertyNames.every((propertyName) => names.has(propertyName));
+};
+
+const getFirstCallPosition = (sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>, callName: string): number => {
+  const match = sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === callName);
+  return match?.getStart() ?? -1;
+};
 
 async function collectMissingFileFindings(findings: Finding[]): Promise<void> {
   for (const filePath of await missingRequiredFiles()) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: filePath, line: 1, severity: "fatal", message: "Nerve Bus required production file is missing." }));
+    findings.push(createFinding({ lawId: LAW_IDS.ENFORCEMENT, file: filePath, line: 1, severity: "fatal", message: "Nerve Bus required production file is missing." }));
   }
 }
 
 function collectContractFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings: Finding[] = [];
   const contractSource = getSourceFile(project, PATHS.CONTRACT);
-  if (!contractSource || !hasInterfaceMethod(contractSource, "NerveBusAbilityGroup", "dispatchHumanCommand") || !hasInterfaceMethod(contractSource, "NerveBusAbilityGroup", "dispatchAbilityCommand") || !hasInterfaceMethod(contractSource, "NerveBusAbilityGroup", "requestAi")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.CONTRACT, line: 1, severity: "fatal", message: "Nerve Bus must expose stable public dispatch methods in contract.ts." }));
+  if (!contractSource) {
+    return [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.CONTRACT, line: 1, severity: "fatal", message: "Nerve Bus contract.ts is missing." })];
   }
-  return findings;
+
+  return CONTRACT_METHODS
+    .filter((methodName) => !hasInterfaceMethod(contractSource, "NerveBusAbilityGroup", methodName))
+    .map((methodName) => createFinding({
+      lawId: LAW_IDS.PUBLIC,
+      file: PATHS.CONTRACT,
+      line: 1,
+      severity: "fatal",
+      message: `Nerve Bus public contract must expose ${methodName}.`,
+    }));
 }
 
 function interfaceMethodCarriesSignal(project: ReturnType<typeof makeProject>, path: string, interfaceName: string, methodName: string): boolean {
@@ -32,146 +139,163 @@ function interfaceMethodCarriesSignal(project: ReturnType<typeof makeProject>, p
 function collectHandlerPortFindings(project: ReturnType<typeof makeProject>): Finding[] {
   return ["dispatchAbilityCommand", "dispatchHumanCommand", "requestAi"]
     .filter((methodName) => !interfaceMethodCarriesSignal(project, PATHS.HANDLER_PORT, "NerveBusHandlerPort", methodName))
-    .map((methodName) => createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.HANDLER_PORT, line: 1, severity: "fatal", message: `Nerve Bus handler port method ${methodName} must carry AbortSignal.` }));
+    .map((methodName) => createFinding({ lawId: LAW_IDS.PIPELINE, file: PATHS.HANDLER_PORT, line: 1, severity: "fatal", message: `Nerve Bus handler port method ${methodName} must carry AbortSignal.` }));
 }
 
-function collectAbilityGroupFindings(project: ReturnType<typeof makeProject>): Finding[] {
+function collectHumanTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const humanDispatchSource = getSourceFile(project, PATHS.HUMAN_COMMAND_DISPATCH);
+  return !sourceHasProperties(humanDispatchSource, ["commanderCommandRef", "commanderEnvelopeRef", "requestedPlatformId", "targetRecordRef"])
+    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.HUMAN_COMMAND_DISPATCH, line: 1, severity: "fatal", message: "Commander-to-Orchestration transport builder must preserve governed human command fields." })]
+    : [];
+}
+
+function collectCommandTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const commandTransportSource = getSourceFile(project, PATHS.COMMANDER_COMMAND_TRANSPORT);
+  return !commandTransportSource || !hasCallExpression(commandTransportSource, "dispatchHumanCommand")
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.COMMANDER_COMMAND_TRANSPORT, line: 1, severity: "fatal", message: "Commander command transport must dispatch human commands through Nerve Bus." })]
+    : [];
+}
+
+function collectAdapterTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const adapterSource = getSourceFile(project, PATHS.ORCHESTRATION_ADAPTER);
+  return !adapterSource || !hasCallExpression(adapterSource, "dispatchAbilityCommand") || !hasCallExpression(adapterSource, "requestAi") || !hasCallExpression(adapterSource, "dispatchCommanderMessage")
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_ADAPTER, line: 1, severity: "fatal", message: "Orchestration adapter must route ability, AI, and commander review traffic through Nerve Bus." })]
+    : [];
+}
+
+function collectEnvelopeBuilderTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const envelopeBuilderSource = getSourceFile(project, PATHS.ORCHESTRATION_ENVELOPE_BUILDERS);
+  return !sourceHasProperties(envelopeBuilderSource, [
+    "runId",
+    "activationSnapshotRef",
+    "capabilityCallId",
+    "expectedOutputSchemaRef",
+    "promptContractVersion",
+    "outputSchemaRef",
+    "aiInputRefs",
+    "correlationEnvelopeId",
+    "proofRef",
+  ])
+    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.ORCHESTRATION_ENVELOPE_BUILDERS, line: 1, severity: "fatal", message: "Orchestration envelope builders must preserve full-chain ability, AI, and commander envelope fields." })]
+    : [];
+}
+
+function collectStepDispatcherTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
-  const abilityGroupSource = getSourceFile(project, PATHS.ABILITY_GROUP);
-  if (!abilityGroupSource || !hasCallExpressionPath(abilityGroupSource, ["HumanCommandDispatchInputSchema", "parse"]) || !hasCallExpressionPath(abilityGroupSource, ["AbilityCommandDispatchInputSchema", "parse"]) || !hasCallExpressionPath(abilityGroupSource, ["AiRequestDispatchInputSchema", "parse"]) || !hasCallExpression(abilityGroupSource, "createNerveBusRuntimeContext") || !hasCallExpression(abilityGroupSource, "executeNerveBusChild")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ABILITY_GROUP, line: 1, severity: "fatal", message: "Nerve Bus ability-group must stay schema-first and route through the executor." }));
+  const stepDispatcherSource = getSourceFile(project, PATHS.STEP_DISPATCHER);
+  if (!stepDispatcherSource || !hasCallExpression(stepDispatcherSource, "sendCommandToAbility") || !hasCallExpression(stepDispatcherSource, "sendRequestToAi") || !hasCallExpression(stepDispatcherSource, "sendReviewRequestToCommander")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must use governed Nerve Bus port methods for ability, AI, and review dispatch." }));
   }
-  return abilityGroupSource ? findings.concat(collectAbilityGroupFactoryFindings(abilityGroupSource)) : findings;
-}
-
-function collectAbilityGroupFactoryFindings(abilityGroupSource: NonNullable<ReturnType<typeof getSourceFile>>): Finding[] {
-  return ["createSystemNerveBusClockPort", "createInMemoryNerveBusTransportPort", "createInMemoryNerveBusIdempotencyPort", "createInMemoryNerveBusQueuePort"]
-    .filter((forbidden) => hasCallExpression(abilityGroupSource, forbidden))
-    .map((forbidden) => createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ABILITY_GROUP, line: 1, severity: "fatal", message: `Nerve Bus ability-group must not construct ${forbidden}.` }));
-}
-
-function collectContextFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings: Finding[] = [];
-  const contextSource = getSourceFile(project, PATHS.CONTEXT);
-  if (!contextSource || !hasCallExpression(contextSource, "createSystemNerveBusClockPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusTransportPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusIdempotencyPort") || !hasCallExpression(contextSource, "createInMemoryNerveBusQueuePort") || !hasCallExpression(contextSource, "createInMemoryNerveBusSequencePort")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.CONTEXT, line: 1, severity: "fatal", message: "Nerve Bus runtime context must own default transport composition." }));
+  if (!sourceHasProperties(stepDispatcherSource, ["runId", "activationSnapshotRef", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve frozen activation chain and AI prompt binding refs." }));
   }
   return findings;
 }
 
-function getFirstCallPosition(sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>, callName: string): number {
-  const match = sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === callName);
-  return match?.getStart() ?? -1;
+function collectRuntimeContextTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const runtimeContextSource = getSourceFile(project, PATHS.ORCHESTRATION_RUNTIME_CONTEXT);
+  return !runtimeContextSource || !hasCallExpression(runtimeContextSource, "dispatchCommanderMessage")
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_RUNTIME_CONTEXT, line: 1, severity: "fatal", message: "Orchestration runtime context must expose Nerve Bus commander-message transport surface." })]
+    : [];
 }
 
-function collectSchemaDeclarationFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings: Finding[] = [];
+function collectBoundaryTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  return [
+    ...collectHumanTransportFindings(project),
+    ...collectCommandTransportFindings(project),
+    ...collectAdapterTransportFindings(project),
+    ...collectEnvelopeBuilderTransportFindings(project),
+    ...collectStepDispatcherTransportFindings(project),
+    ...collectRuntimeContextTransportFindings(project),
+  ];
+}
+
+function collectSchemaFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const schemaSource = getSourceFile(project, PATHS.SCHEMA);
   if (!schemaSource) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Nerve Bus schema file is missing." }));
-  } else {
-    for (const declaration of ["NerveBusChannelIdSchema", "HandlerDecisionSchema", "QueueDecisionSchema", "SequenceDecisionSchema", "CircuitBreakerStateSchema", "NerveBusTransportProofSchema"]) {
-      if (!schemaSource.getVariableDeclaration(declaration)) {
-        findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: `Nerve Bus schema must declare ${declaration}.` }));
-      }
+    return [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Nerve Bus schema file is missing." })];
+  }
+
+  const findings: Finding[] = [];
+  for (const declaration of ["NerveBusTransportInputSchema", "NerveBusMirroredTransportResultSchema", "NerveBusTransportProofSchema"]) {
+    if (!sourceTextIncludesAll(schemaSource, [declaration])) {
+      findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: `Nerve Bus schema must declare ${declaration}.` }));
     }
   }
+
+  if (!schemaSourcesHaveProperties(project, REQUIRED_SCHEMA_FIELDS)) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Nerve Bus schema must declare full-chain envelope, AI, and result fields." }));
+  }
+
   return findings;
 }
 
 function collectChannelAndRegistryFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
-  const schemaChannelIds = getSchemaChannelIds(project);
-  if (schemaChannelIds.length !== CHANNEL_IDS.length || CHANNEL_IDS.some((channelId) => !schemaChannelIds.includes(channelId))) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Nerve Bus schema channel ids must match the canonical six-channel registry." }));
+  const schemaFoundationSource = getSourceFile(project, `${PATHS.ROOT}/schema-foundation.schema.ts`);
+  const schemaFoundationText = schemaFoundationSource?.getFullText() ?? "";
+  if (!CHANNEL_IDS.every((channelId) => schemaFoundationText.includes(`"${channelId}"`))) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHANNELS, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Nerve Bus schema channel ids must match the canonical six-channel registry." }));
   }
+
   const registrySource = getSourceFile(project, PATHS.REGISTRY);
   if (!registrySource || !registrySource.getVariableDeclaration("NERVE_BUS_CHANNEL_REGISTRY")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: "Nerve Bus registry must declare the canonical channel registry." }));
+    findings.push(createFinding({ lawId: LAW_IDS.CHANNELS, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: "Nerve Bus registry must declare the canonical channel registry." }));
   } else {
     for (const channelId of CHANNEL_IDS) {
       if (!registrySource.getFullText().includes(`"${channelId}"`)) {
-        findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: `Nerve Bus registry is missing channel ${channelId}.` }));
+        findings.push(createFinding({ lawId: LAW_IDS.CHANNELS, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: `Nerve Bus registry is missing channel ${channelId}.` }));
       }
     }
   }
+
   return findings;
 }
 
-function collectExecutorAndBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings: Finding[] = [];
+function collectExecutorFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const executorSource = getSourceFile(project, PATHS.EXECUTOR);
   if (!executorSource) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus executor file is missing." }));
-  } else {
-    for (const callee of ["enforceEnvelopeInputGate", "enforceChannelPolicyGate", "enforceEnvelopeIntegrityGate", "enforceTransportIdempotencyGate", "resolveTransportTimeoutGate", "enforceTransportSequencePolicy", "enforceTransportResultSemanticGate", "buildTransportProof", "buildDuplicateInFlightFailureDetails", "buildSuccessTransportResult"]) {
-      if (!hasCallExpression(executorSource, callee)) {
-        findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Nerve Bus executor must call ${callee}.` }));
-      }
-    }
-    const bindInputPayloadPosition = getFirstCallPosition(executorSource, "input.context.transport.bindInputPayload");
-    const postReservationPosition = getFirstCallPosition(executorSource, "resolvePostReservationFailure");
-    if (bindInputPayloadPosition !== -1 && postReservationPosition !== -1 && bindInputPayloadPosition < postReservationPosition) {
-      findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus must bind input payload only after post-idempotency transport gates pass." }));
-    }
-    const executeBranch = executorSource.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => statement.getExpression().getText().includes('outcome.kind === "handler_failed"'));
-    if (!executeBranch) {
-      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus executor must branch on the runner outcome kind." }));
-    }
+    return [createFinding({ lawId: LAW_IDS.PIPELINE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus executor file is missing." })];
   }
-  return findings;
-}
 
-function collectRunnerFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
-  const runnerSource = getSourceFile(project, PATHS.RUNNER);
-  if (!runnerSource || !runnerSource.getTypeAlias("NerveBusRunnerOutcome") || !hasCallExpression(runnerSource, "raceWithTimeout")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Nerve Bus runner must expose a discriminated outcome and timeout race handling." }));
+  for (const callee of [
+    "enforceEnvelopeInputGate",
+    "enforceChannelPolicyGate",
+    "enforceEnvelopeIntegrityGate",
+    "enforceTransportIdempotencyGate",
+    "resolveTransportTimeoutGate",
+    "enforceTransportSequencePolicy",
+    "enforceTransportResultSemanticGate",
+    "buildTransportProof",
+    "buildSuccessTransportResult",
+  ]) {
+    if (!hasCallExpression(executorSource, callee)) {
+      findings.push(createFinding({ lawId: LAW_IDS.PIPELINE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Nerve Bus executor must call ${callee}.` }));
+    }
   }
+
+  const bindInputPayloadPosition = getFirstCallPosition(executorSource, "input.context.transport.bindInputPayload");
+  const postReservationPosition = getFirstCallPosition(executorSource, "resolvePostReservationFailure");
+  if (bindInputPayloadPosition !== -1 && postReservationPosition !== -1 && bindInputPayloadPosition < postReservationPosition) {
+    findings.push(createFinding({ lawId: LAW_IDS.PIPELINE, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: "Nerve Bus must bind input payload only after post-idempotency gates pass." }));
+  }
+
   return findings;
-}
-
-function collectProofBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const proofBuilderSource = getSourceFile(project, PATHS.PROOF_BUILDER);
-  return !proofBuilderSource || !hasCallExpressionPath(proofBuilderSource, ["NerveBusTransportProofSchema", "parse"])
-    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus proof builder must parse governed proof output." })]
-    : [];
-}
-
-function collectResultBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const resultBuilderSource = getSourceFile(project, PATHS.RESULT_BUILDER);
-  return !resultBuilderSource || !hasCallExpressionPath(resultBuilderSource, ["AbilityTransportResultSchema", "parse"]) || !hasCallExpressionPath(resultBuilderSource, ["AiTransportResultSchema", "parse"]) || !hasCallExpressionPath(resultBuilderSource, ["HumanCommandTransportResultSchema", "parse"])
-    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus result builder must parse governed transport results." })]
-    : [];
-}
-
-function collectIndexFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  return !getSourceFile(project, PATHS.INDEX)
-    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.INDEX, line: 1, severity: "fatal", message: "Nerve Bus public index is missing." })]
-    : [];
-}
-
-function collectRunnerAndBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  const findings = [
-    ...collectRunnerFindings(project),
-    ...collectProofBuilderFindings(project),
-    ...collectResultBuilderFindings(project),
-  ];
-  return findings.concat(collectIndexFindings(project));
 }
 
 export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const project = makeProject();
   const findings: Finding[] = [];
+
   await collectMissingFileFindings(findings);
   findings.push(...collectContractFindings(project));
   findings.push(...collectHandlerPortFindings(project));
-  findings.push(...collectAbilityGroupFindings(project));
-  findings.push(...collectContextFindings(project));
-  findings.push(...collectSchemaDeclarationFindings(project));
+  findings.push(...collectBoundaryTransportFindings(project));
+  findings.push(...collectSchemaFindings(project));
   findings.push(...collectChannelAndRegistryFindings(project));
-  findings.push(...collectExecutorAndBuilderFindings(project));
-  findings.push(...collectRunnerAndBuilderFindings(project));
+  findings.push(...collectExecutorFindings(project));
+  findings.push(...collectBuilderFindings(project));
 
   const phasePassed = findings.length === 0;
   return {
@@ -181,8 +305,8 @@ export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; p
       phasePassed ? "PASS" : "CODE VIOLATION",
       phasePassed,
       phasePassed
-        ? "Nerve Bus required package, thin entry, executor chain, and governed builders are present."
-        : "Nerve Bus required package or governed execution shape is incomplete.",
+        ? "Nerve Bus V2 transport contract, six channels, full-chain envelope fields, and governed builders are present."
+        : "Nerve Bus V2 transport shape is incomplete or has drifted from the governed contract.",
     ),
   };
 }

@@ -23,7 +23,7 @@ export const createCommandTransport = (
   runtime: WorkbenchRuntime,
  ) => ({
   emitHumanCommand: async (command: CommanderHumanCommand) => {
-    const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(buildHumanCommandDispatchInput(command));
+    const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(await buildHumanCommandDispatchInput(runtime, command));
     const status: "accepted" | "failed" | "review_required" = transport.resultEnvelope.status === "success"
       ? "accepted"
       : transport.resultEnvelope.status;

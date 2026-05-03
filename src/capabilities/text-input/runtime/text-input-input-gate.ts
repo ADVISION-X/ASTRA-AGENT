@@ -26,24 +26,40 @@ const TEXT_INPUT_ALLOWED_KEYS = new Set<TextInputKey | TextInputCommitKey>([
 
 export type TextInputExecutionSeed = {
   attemptRef: string;
+  missionId: string;
+  runId: string;
   inputRef: string;
   childCapabilityId: TextInputChildCapabilityId;
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId: string;
+  mapPackageId: string;
+  mapPackageVersion: string;
+  selectedMapId: string;
+  selectedMapVersion: string;
+  activationId: string;
+  activationSnapshotRef: string;
+  capabilityCallId: string;
+  nerveBusEnvelopeId: string;
   requestedBy: string;
   purpose: string;
-  sourceAbilityGroupId: string | null;
-  sourceChildCapabilityId: string | null;
-  sourceOwner: TextInputSourceOwner | null;
-  sourceProofRef: string | null;
+  sourceAbilityGroupId: string;
+  sourceChildCapabilityId: string;
+  sourceOwner: TextInputSourceOwner;
+  sourceProofRef: string;
+  sourceRef: string;
+  idempotencyKey: string;
   inputText: string | null;
   inputTextRef: string | null;
   inputTextHash: string | null;
   approvedText: string | null;
   approvedTextRef: string | null;
   approvedTextHash: string | null;
+  approvedTextSourceRef: string | null;
+  approvedTextApprovalRef: string | null;
   approvedCommitRef: string | null;
+  inputTargetRef: string;
   targetRef: string;
   targetProofRef: string;
   targetProofOwner: string;
@@ -68,22 +84,38 @@ export type TextInputFailureEnvelope = {
   attemptRef: string;
   inputRef: string;
   childCapabilityId: TextInputChildCapabilityId | null;
+  missionId: string | null;
+  runId: string | null;
   sessionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationId: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
   requestedBy: string | null;
   purpose: string | null;
   sourceAbilityGroupId: string | null;
   sourceChildCapabilityId: string | null;
   sourceOwner: TextInputSourceOwner | null;
   sourceProofRef: string | null;
+  sourceRef: string | null;
+  idempotencyKey: string | null;
   inputText: string | null;
   inputTextRef: string | null;
   inputTextHash: string | null;
   approvedText: string | null;
   approvedTextRef: string | null;
   approvedTextHash: string | null;
+  approvedTextSourceRef: string | null;
+  approvedTextApprovalRef: string | null;
   approvedCommitRef: string | null;
+  inputTargetRef: string | null;
   targetRef: string | null;
   targetProofRef: string | null;
   targetProofOwner: string | null;
@@ -176,22 +208,87 @@ export function parseTextInputAbilityInput(input: unknown):
 }
 
 export function buildTextInputExecutionSeed(input: ParsedTextInputAbilityInput): TextInputExecutionSeed {
-  const inputRef = buildStableTextInputRef("text-input-input", [
-    input.sessionId,
-    input.childCapabilityId,
-    input.targetRef,
-    input.inputTextRef,
-    input.approvedTextRef,
-    input.key,
-    input.purpose,
+  const attemptRef = buildStableTextInputRef("text-input-attempt", [
+    input.inputRef,
+    input.idempotencyKey,
+    input.capabilityCallId,
   ]);
 
   return {
-    attemptRef: buildStableTextInputRef("text-input-attempt", [inputRef, input.requestedBy]),
-    inputRef,
-    ...input,
+    attemptRef,
+    missionId: input.missionId,
+    runId: input.runId,
+    inputRef: input.inputRef,
+    childCapabilityId: input.childCapabilityId,
+    sessionId: input.sessionId,
+    roundId: input.roundId,
+    videoVisitId: input.videoVisitId,
+    stepId: input.stepId,
+    mapPackageId: input.mapPackageId,
+    mapPackageVersion: input.mapPackageVersion,
+    selectedMapId: input.selectedMapId,
+    selectedMapVersion: input.selectedMapVersion,
+    activationId: input.activationId,
+    activationSnapshotRef: input.activationSnapshotRef,
+    capabilityCallId: input.capabilityCallId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
+    requestedBy: input.requestedBy,
+    purpose: input.purpose,
+    sourceAbilityGroupId: input.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.sourceChildCapabilityId,
+    sourceOwner: input.sourceOwner,
+    sourceProofRef: input.sourceProofRef,
+    sourceRef: input.sourceRef,
+    idempotencyKey: input.idempotencyKey,
+    inputText: input.inputText,
+    inputTextRef: input.inputTextRef,
+    inputTextHash: input.inputTextHash,
+    approvedText: input.approvedText,
+    approvedTextRef: input.approvedTextRef,
+    approvedTextHash: input.approvedTextHash,
+    approvedTextSourceRef: input.approvedTextSourceRef,
+    approvedTextApprovalRef: input.approvedTextApprovalRef,
+    approvedCommitRef: input.approvedCommitRef,
+    inputTargetRef: input.inputTargetRef,
+    targetRef: input.targetRef,
+    targetProofRef: input.targetProofRef,
+    targetProofOwner: input.targetProofOwner,
+    targetKind: input.targetKind,
+    targetEvidenceRefs: input.targetEvidenceRefs,
+    focusProofRef: input.focusProofRef,
+    focusProofOwner: input.focusProofOwner,
+    focusVerifiedAt: input.focusVerifiedAt,
+    geometryGuardProofRef: input.geometryGuardProofRef,
+    mouseClickProofRef: input.mouseClickProofRef,
+    postActionFocusVerificationRef: input.postActionFocusVerificationRef,
+    operatorApprovalRef: input.operatorApprovalRef,
+    humanApprovalRef: input.humanApprovalRef,
+    mapPolicyApprovalRef: input.mapPolicyApprovalRef,
+    key: input.key,
+    policy: input.policy,
     parseErrorRef: null,
     receivedShapeHash: null,
+  };
+}
+
+function resolveFailureInputRef(raw: UnknownObject, receivedShapeHash: string, childCapabilityId: TextInputChildCapabilityId | null): string {
+  return readNonEmptyString(raw.inputRef)
+    ?? buildStableTextInputRef("text-input-input", [receivedShapeHash, childCapabilityId]);
+}
+
+function buildTextInputFailureChainFields(raw: UnknownObject): Pick<TextInputFailureEnvelope, "missionId" | "runId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId"> {
+  return {
+    missionId: readNonEmptyString(raw.missionId),
+    runId: readNonEmptyString(raw.runId),
+    stepId: readNonEmptyString(raw.stepId),
+    mapPackageId: readNonEmptyString(raw.mapPackageId),
+    mapPackageVersion: readNonEmptyString(raw.mapPackageVersion),
+    selectedMapId: readNonEmptyString(raw.selectedMapId),
+    selectedMapVersion: readNonEmptyString(raw.selectedMapVersion),
+    activationId: readNonEmptyString(raw.activationId),
+    activationSnapshotRef: readNonEmptyString(raw.activationSnapshotRef),
+    capabilityCallId: readNonEmptyString(raw.capabilityCallId),
+    nerveBusEnvelopeId: readNonEmptyString(raw.nerveBusEnvelopeId),
   };
 }
 
@@ -199,11 +296,13 @@ function buildTextInputFailureIdentityFields(
   raw: UnknownObject,
   childCapabilityId: TextInputChildCapabilityId | null,
   receivedShapeHash: string,
-): Pick<TextInputFailureEnvelope, "attemptRef" | "inputRef" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "requestedBy" | "purpose" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef"> {
+): Pick<TextInputFailureEnvelope, "attemptRef" | "inputRef" | "childCapabilityId" | "missionId" | "runId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "requestedBy" | "purpose" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey"> {
+  const inputRef = resolveFailureInputRef(raw, receivedShapeHash, childCapabilityId);
   return {
-    attemptRef: buildStableTextInputRef("text-input-attempt", [receivedShapeHash, childCapabilityId]),
-    inputRef: buildStableTextInputRef("text-input-input", [receivedShapeHash, childCapabilityId]),
+    attemptRef: buildStableTextInputRef("text-input-attempt", [inputRef, readNonEmptyString(raw.idempotencyKey) ?? receivedShapeHash, childCapabilityId]),
+    inputRef,
     childCapabilityId,
+    ...buildTextInputFailureChainFields(raw),
     sessionId: readNonEmptyString(raw.sessionId),
     roundId: readNonEmptyString(raw.roundId),
     videoVisitId: readNonEmptyString(raw.videoVisitId),
@@ -213,6 +312,8 @@ function buildTextInputFailureIdentityFields(
     sourceChildCapabilityId: readNonEmptyString(raw.sourceChildCapabilityId),
     sourceOwner: resolveSourceOwner(raw.sourceOwner),
     sourceProofRef: readNonEmptyString(raw.sourceProofRef),
+    sourceRef: readNonEmptyString(raw.sourceRef),
+    idempotencyKey: readNonEmptyString(raw.idempotencyKey),
   };
 }
 
@@ -220,7 +321,7 @@ function buildTextInputFailureContentFields(
   raw: UnknownObject,
   parseErrorText: string,
   policy: TextInputPolicy,
-): Pick<TextInputFailureEnvelope, "inputText" | "inputTextRef" | "inputTextHash" | "approvedText" | "approvedTextRef" | "approvedTextHash" | "approvedCommitRef" | "targetRef" | "targetProofRef" | "targetProofOwner" | "targetKind" | "targetEvidenceRefs" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "operatorApprovalRef" | "humanApprovalRef" | "mapPolicyApprovalRef" | "key" | "policy" | "parseErrorRef"> {
+): Pick<TextInputFailureEnvelope, "inputText" | "inputTextRef" | "inputTextHash" | "approvedText" | "approvedTextRef" | "approvedTextHash" | "approvedTextSourceRef" | "approvedTextApprovalRef" | "approvedCommitRef" | "inputTargetRef" | "targetRef" | "targetProofRef" | "targetProofOwner" | "targetKind" | "targetEvidenceRefs" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "operatorApprovalRef" | "humanApprovalRef" | "mapPolicyApprovalRef" | "key" | "policy" | "parseErrorRef"> {
   return {
     inputText: typeof raw.inputText === "string" ? raw.inputText : null,
     inputTextRef: readNonEmptyString(raw.inputTextRef),
@@ -228,7 +329,10 @@ function buildTextInputFailureContentFields(
     approvedText: typeof raw.approvedText === "string" ? raw.approvedText : null,
     approvedTextRef: readNonEmptyString(raw.approvedTextRef),
     approvedTextHash: readNonEmptyString(raw.approvedTextHash),
+    approvedTextSourceRef: readNonEmptyString(raw.approvedTextSourceRef),
+    approvedTextApprovalRef: readNonEmptyString(raw.approvedTextApprovalRef),
     approvedCommitRef: readNonEmptyString(raw.approvedCommitRef),
+    inputTargetRef: readNonEmptyString(raw.inputTargetRef),
     targetRef: readNonEmptyString(raw.targetRef),
     targetProofRef: readNonEmptyString(raw.targetProofRef),
     targetProofOwner: readNonEmptyString(raw.targetProofOwner),

@@ -46,6 +46,7 @@ const buildSuccessfulExecutionProof = <TEnvelope extends SupportedEnvelope, TRes
     status: input.resultEnvelope.status,
     failureReason: input.outcome.failureReason,
     reviewRequiredReason: input.outcome.reviewRequiredReason,
+    semanticDecision: "passed",
     dataQualityFlags: input.outcome.handlerDecision === "executed" ? [] : ["transport_handler_degraded"],
   });
 };

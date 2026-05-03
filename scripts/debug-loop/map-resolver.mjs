@@ -2,8 +2,8 @@ import { runCommand } from "./command-runner.mjs";
 import { getRepoRoot } from "./path-policy.mjs";
 
 const SNAPSHOT_SCRIPT = [
-  "import { getDefaultMapPluginRegistry } from './src/map-plugins/registry/map-plugin-registry.ts';",
-  "const registry = getDefaultMapPluginRegistry();",
+  "import { getDevelopmentMapPluginRegistry } from './src/map-plugins/registry/map-plugin-registry.ts';",
+  "const registry = getDevelopmentMapPluginRegistry();",
   "const payload = registry.active.listActivePackages().map((mapPackage) => ({",
   "  packageId: mapPackage.manifest.packageId,",
   "  packageVersion: mapPackage.manifest.packageVersion,",

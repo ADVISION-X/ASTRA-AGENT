@@ -24,6 +24,7 @@
     "audit:orchestration": "node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts",
     "audit:nerve-bus": "tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
     "audit:capability-runtime-wiring": "tsx scripts/audit/domains/capability-runtime-wiring/run-inspector.ts",
+    "audit:text-input": "npm run audit:text-input-capability",
     "audit:text-input-capability": "tsx scripts/audit/domains/text-input-capability/run-inspector.ts",
     "audit:map-plugin-package": "tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
     "audit:map-prompt-contract": "tsx scripts/audit/domains/map-prompt-contract/run-inspector.ts",

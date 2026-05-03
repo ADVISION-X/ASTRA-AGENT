@@ -33,6 +33,22 @@ function missingSecretRef(request: ParsedAiAbilityInput, childContract: AiChildC
   return childContract.providerKind === "paid" && request.providerPolicy.secretRef === null;
 }
 
+const PAID_PROVIDER_REVIEW_RULES = [
+  [missingProviderConfigRef, "provider_config_missing"],
+  [missingSecretRef, "provider_secret_missing"],
+  [requiresOperatorReview, "operator_approval_missing"],
+] as const;
+
+function resolvePaidProviderDecision(request: ParsedAiAbilityInput, childContract: AiChildContract) {
+  for (const [matchesRule, reason] of PAID_PROVIDER_REVIEW_RULES) {
+    if (matchesRule(request, childContract)) {
+      return { decision: "review_required", reason } as const;
+    }
+  }
+
+  return { decision: "allow", reason: null } as const;
+}
+
 function resolveEnabledProviderDecision(request: ParsedAiAbilityInput, childContract: AiChildContract) {
   if (childContract.providerKind === "internal") {
     return resolveInternalProviderDecision(childContract);
@@ -40,16 +56,8 @@ function resolveEnabledProviderDecision(request: ParsedAiAbilityInput, childCont
   if (childContract.providerKind === "local") {
     return { decision: "allow", reason: null } as const;
   }
-  if (missingProviderConfigRef(request, childContract)) {
-    return { decision: "review_required", reason: "provider_config_missing" } as const;
-  }
-  if (missingSecretRef(request, childContract)) {
-    return { decision: "review_required", reason: "provider_secret_missing" } as const;
-  }
-  if (requiresOperatorReview(request, childContract)) {
-    return { decision: "review_required", reason: "operator_approval_missing" } as const;
-  }
-  return { decision: "allow", reason: null } as const;
+
+  return resolvePaidProviderDecision(request, childContract);
 }
 
 export function evaluateAiProviderPolicy(request: ParsedAiAbilityInput, childContract: AiChildContract): { decision: "allow" | "review_required" | "blocked" | "disabled"; reason: string | null } {

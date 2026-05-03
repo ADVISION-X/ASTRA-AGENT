@@ -6,8 +6,8 @@ import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plug
 
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import {
+  buildMirroredEnvelopeBase,
   buildPayloadDocument,
-  buildTransportEnvelopeBase,
   payloadDocumentToObject,
 } from "./workbench-payload.js";
 
@@ -15,16 +15,14 @@ type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiHandledResult = Awaited<ReturnType<CreateNerveBusAbilityGroupInput["handlerPort"]["requestAi"]>>;
 
-const requireChainField = (value: string | null | undefined): string => value ?? "";
-
 const buildWorkbenchAiInputRefs = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
-) => ([{
-  id: envelope.inputRef,
+) => envelope.aiInputRefs.map((ref) => ({
+  id: ref,
   kind: "evidence-packet" as const,
   summary: inputPayload.summary,
-}]);
+}));
 
 const describeFailureReason = (
   failureReason: string | { code?: string; message?: string; detail?: string | null } | null | undefined,
@@ -50,29 +48,28 @@ const buildWorkbenchAiAbilityRequest = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
 ) => {
-  const mapRecord = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
   return {
     abilityGroupId: "ai" as const,
     missionId: envelope.missionId,
     taskType: envelope.taskType,
     inputModality: "image_collection" as const,
     inputRefs: buildWorkbenchAiInputRefs(envelope, inputPayload),
-    promptContractId: envelope.promptRef,
-    expectedOutputSchema: `${envelope.taskType}.result.v1`,
+    promptContractId: envelope.promptContractId,
+    expectedOutputSchema: envelope.outputSchemaRef,
     requestedBy: "orchestration" as const,
     transportedBy: "nerve-bus" as const,
-    sessionId: envelope.missionId,
-    roundId: envelope.stepId,
-    videoVisitId: null,
+    sessionId: envelope.sessionId,
+    roundId: envelope.roundId,
+    videoVisitId: envelope.videoVisitId,
     stepId: envelope.stepId,
-    capabilityCallId: envelope.requestId,
-    nerveBusEnvelopeId: envelope.envelopeId,
-    mapPackageId: requireChainField(mapRecord?.packageId),
-    mapPackageVersion: requireChainField(mapRecord?.packageVersion),
-    selectedMapId: envelope.mapId,
-    selectedMapVersion: requireChainField(mapRecord?.mapVersion),
-    activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
-    promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
+    capabilityCallId: envelope.capabilityCallId,
+    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.selectedMapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationSnapshotRef: envelope.activationSnapshotRef,
+    promptCatalogVersion: envelope.promptContractVersion,
     qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
     providerPolicy: { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null },
     costPolicy: { maxEstimatedCost: 0 },
@@ -123,13 +120,10 @@ const buildWorkbenchAiResponse = (input: {
 
   return {
     envelope: {
-      ...buildTransportEnvelopeBase({
+      ...buildMirroredEnvelopeBase({
         channelId: "ai-to-orchestration",
         envelopeId: `${input.envelope.envelopeId}:response`,
-        missionId: input.envelope.missionId,
-        mapId: input.envelope.mapId,
-        stepId: input.envelope.stepId,
-        inputRef: input.envelope.inputRef,
+        requestEnvelope: input.envelope,
         payloadRefs: { output: outputPayload.documentRef },
         summary: outputPayload.summary,
         tags: ["ai", aiTaskType],
@@ -138,11 +132,15 @@ const buildWorkbenchAiResponse = (input: {
       responseId: `${input.envelope.requestId}:response`,
       from: "ai",
       to: "orchestration",
+      correlationEnvelopeId: input.envelope.envelopeId,
+      correlationCapabilityCallId: input.envelope.capabilityCallId,
+      correlationInputRef: input.envelope.inputRef,
+      proofRef: `${input.envelope.envelopeId}:response:proof`,
       status,
       decision: aiTaskType,
       confidence,
-      outputRef: outputPayload.documentRef,
-      diagnosticPayloadRef: null,
+      outputRef: status === "success" ? outputPayload.documentRef : null,
+      diagnosticPayloadRef: status === "success" ? null : outputPayload.documentRef,
       failureReason: status === "failed" ? failureReason : null,
       reviewRequiredReason: status === "review_required" ? input.aiResult.reviewRequiredReason ?? null : null,
     },

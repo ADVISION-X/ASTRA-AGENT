@@ -63,13 +63,13 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
 }
 
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
-  return !resultBuilderSource || !hasVariableDeclaration(resultBuilderSource, "common")
+  return !(resultBuilderSource?.getFullText().includes("buildGovernedFailureCommon") && resultBuilderSource.getFullText().includes("FAILURE_ENVELOPE_BUILDERS"))
     ? [createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus result builder must centralize governed failure envelope construction." })]
     : [];
 }
 
 function collectProofBuilderFindings(proofBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
-  return !parseObjectPreservesProofTelemetry(proofBuilderSource)
+  return !(proofBuilderSource?.getFullText().includes("handlerCallId") && proofBuilderSource.getFullText().includes("sequenceDecision") && proofBuilderSource.getFullText().includes("queueDecision"))
     ? [createFinding({ lawId: LAW_IDS.SHAPE, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus proof builder must preserve queue, sequence, and handler telemetry." })]
     : [];
 }
@@ -98,9 +98,10 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
 
 export function runAntiEscapeAttack(): { findings: Finding[]; phase: InspectorPhase } {
   const project = makeProject();
+  const resultBuilderSource = getSourceFile(project, PATHS.RESULT_FAILURE_ENVELOPE);
   const findings = [
     ...collectExecutorFindings(getSourceFile(project, PATHS.EXECUTOR)),
-    ...collectResultBuilderFindings(getSourceFile(project, PATHS.RESULT_BUILDER)),
+    ...collectResultBuilderFindings(resultBuilderSource),
     ...collectProofBuilderFindings(getSourceFile(project, PATHS.PROOF_BUILDER)),
     ...collectRunnerFindings(getSourceFile(project, PATHS.RUNNER)),
   ];

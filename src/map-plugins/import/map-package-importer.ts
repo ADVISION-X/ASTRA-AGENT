@@ -1,5 +1,9 @@
 import { validateMapPackage } from "../validation/map-package-validator.js";
 import type { MapPluginRegistry } from "../registry/map-plugin-registry.js";
+import {
+  buildImportProofRef,
+  buildQuarantineProofRef,
+} from "../shared/map-package-proof.js";
 
 export function importMapPackage(input: {
   registry: MapPluginRegistry;
@@ -15,10 +19,21 @@ export function importMapPackage(input: {
     };
   }
 
+  const importedAt = new Date().toISOString();
   input.registry.versions.set(validation.mapPackage);
   input.registry.quarantined.set({
-    importedAt: new Date().toISOString(),
+    importedAt,
     importedBy: input.importedBy,
+    importProofRef: buildImportProofRef({
+      packageId: validation.mapPackage.manifest.packageId,
+      packageVersion: validation.mapPackage.manifest.packageVersion,
+      importedAt,
+    }),
+    quarantineProofRef: buildQuarantineProofRef({
+      packageId: validation.mapPackage.manifest.packageId,
+      packageVersion: validation.mapPackage.manifest.packageVersion,
+      importedAt,
+    }),
     mapPackage: validation.mapPackage,
     validationIssues: validation.issues
   });

@@ -35,6 +35,18 @@ export function validateTextSourceProof(input: { request: ParsedTextInputAbility
     };
   }
 
+  if (!input.request.sourceRef) {
+    return {
+      ok: false as const,
+      status: "failed" as const,
+      failureReason: "source_ref_required" as const,
+      reviewRequiredReason: null,
+      statusMessage: "Text Input requires sourceRef for governed write operations.",
+      policyDecision: "block" as const,
+      dataQualityFlags: ["source_ref_missing"],
+    };
+  }
+
   return {
     ok: true as const,
     policyDecision: "allow" as const,

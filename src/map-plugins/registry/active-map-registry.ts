@@ -46,6 +46,10 @@ function toActiveOperationalMapRecord(registration: ActiveRegistration): ActiveO
     promptCatalogVersion: registration.activationRecord.promptCatalogVersion,
     validationReportRef: registration.activationRecord.validationReportRef,
     humanApprovalRef: registration.activationRecord.humanApprovalRef,
+    importProofRef: registration.activationRecord.importProofRef,
+    quarantineProofRef: registration.activationRecord.quarantineProofRef,
+    activationProofRef: registration.activationRecord.activationProofRef,
+    authoringProofRef: registration.activationRecord.authoringProofRef,
     proofPolicy: registration.mapPackage.operationalMap.proofPolicy,
     operationalMap: toOperationalMap(registration.mapPackage),
   };

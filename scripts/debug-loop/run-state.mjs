@@ -86,6 +86,7 @@ export async function resolveIterationPlan(debugSessionId, continueMode) {
     latestIteration,
     startIteration: latestIteration + 1,
     previousRepairPacket,
-    previousGitState: await readIterationJson(debugSessionId, latestIteration, "git-state.json"),
+    previousGitState: await readIterationJson(debugSessionId, latestIteration, "git-state-post-audit-build.json")
+      ?? await readIterationJson(debugSessionId, latestIteration, "git-state.json"),
   };
 }

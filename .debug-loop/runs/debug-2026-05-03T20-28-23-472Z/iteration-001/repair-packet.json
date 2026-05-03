@@ -1,0 +1,48 @@
+{
+  "debugSessionId": "debug-2026-05-03T20-28-23-472Z",
+  "iteration": 1,
+  "scenarioId": "local-workbench-smoke",
+  "failureCategory": "CODE_PURITY_ERROR",
+  "owner": "audit-system",
+  "severity": "P0",
+  "firstFatal": "  \"rootCause\": \"\\nnode:internal/modules/run_main:105\\n    triggerUncaughtException(\\n    ^\\nError [TransformError]: Transform failed with 1 error:\\n/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/nerve-bus/runtime/transport-success-result.ts:12:30: ERROR: Unexpected \\\"=\\\"\\n    at failureErrorWithLog (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/esbuild/lib/main.js:1748:15)\\n    at /Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/esbuild/lib/main.js:1017:50\\n    at responseCallbacks.<computed> (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/esbuild/lib/main.js:884:9)\\n    at handleIncomingPacket (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/esbuild/lib/main.js:939:12)\\n    at Socket.readFromStdout (/Users/nexgen/Documents/GrassEye -AI-AGENT/node_modules/esbuild/lib/main.js:862:7)\\n    at Socket.emit (node:events:507:28)\\n    at addChunk (node:internal/streams/readable:559:12)\\n    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)\\n    at Readable.push (node:internal/streams/readable:390:5)\\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)\\n\\nNode.js v24.4.1\\n\",",
+  "evidenceRefs": [
+    "runner-summary.json#L89",
+    "runner-summary.json#L93",
+    "runner-summary.json#L96",
+    "runner-summary.json#L100",
+    "runner-summary.json#L103"
+  ],
+  "rootCause": "          \"lawId\": \"GRASSEYE-CODE-PURITY-003-V1\",",
+  "allowedModify": [
+    "scripts/audit/**",
+    "package.json"
+  ],
+  "forbiddenModify": [
+    ".github/instructions/cursor-rules/modules/**",
+    "scripts/audit/generated/**",
+    "src/capabilities/commander-console/**",
+    "src/capabilities/orchestration/**",
+    "src/capabilities/nerve-bus/**",
+    "src/capabilities/open/**",
+    "src/capabilities/page-state/**",
+    "src/capabilities/screenshot/**",
+    "src/capabilities/ai/**",
+    "src/capabilities/visual-target/**",
+    "src/capabilities/geometry-guard/**",
+    "src/capabilities/mouse-click/**",
+    "src/capabilities/mouse-scroll/**",
+    "src/capabilities/text-input/**",
+    "src/capabilities/post-action-verification/**",
+    "src/capabilities/forensics-persistence/**"
+  ],
+  "requiredFix": [
+    "          \"lawId\": \"GRASSEYE-CODE-PURITY-003-V1\","
+  ],
+  "requiredCommands": [
+    "npm run audit:build",
+    "npm run ci:full",
+    "node scripts/debug-loop/run-debug-loop.mjs --scenario local-workbench-smoke --continue --runId debug-2026-05-03T20-28-23-472Z"
+  ],
+  "stopRule": "debug:loop PASS + CI FULL PASS"
+}

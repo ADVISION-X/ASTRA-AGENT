@@ -5,6 +5,8 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 
+import { LAW_IDS } from "./config.js";
+
 type Mutation = {
   name: string;
   file: string;
@@ -20,76 +22,106 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
   {
-    name: "export-star escape mutation",
-    file: "src/capabilities/text-input/index.ts",
-    search: 'export { listTextInputChildren } from "./registry.js";',
-    replace: 'export { listTextInputChildren } from "./registry.js";\nexport * from "./schema.js";',
+    name: "activation snapshot optional mutation",
+    file: "src/capabilities/text-input/schema.ts",
+    search: "  activationSnapshotRef: z.string().min(1),",
+    replace: "  activationSnapshotRef: nullableString,",
   },
   {
-    name: "target gate bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    search: "const targetGate = validateInputTargetProof({ request: input.request });",
-    replace: 'const targetGate = { ok: true, policyDecision: "allow", statusMessage: "bypassed", dataQualityFlags: [] };',
+    name: "nerve bus envelope optional mutation",
+    file: "src/capabilities/text-input/schema.ts",
+    search: "  nerveBusEnvelopeId: z.string().min(1),",
+    replace: "  nerveBusEnvelopeId: nullableString,",
   },
   {
-    name: "focus gate bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    search: "const focusGate = validateFocusProof({",
-    replace: "const focusGate = { ok: true, policyDecision: \"allow\", statusMessage: \"bypassed\", dataQualityFlags: [] };\n    // mutated from validateFocusProof({",
+    name: "capability call optional mutation",
+    file: "src/capabilities/text-input/schema.ts",
+    search: "  capabilityCallId: z.string().min(1),",
+    replace: "  capabilityCallId: nullableString,",
   },
   {
-    name: "source proof gate bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    search: "const sourceGate = validateTextSourceProof({ request: input.request });",
-    replace: 'const sourceGate = { ok: true, policyDecision: "allow", statusMessage: "bypassed", dataQualityFlags: [] };',
+    name: "approved text ref gate bypass mutation",
+    file: "src/capabilities/text-input/runtime/approved-text-gate.ts",
+    search: "  if (!input.request.approvedTextRef || input.request.approvedTextRef.length === 0) {",
+    replace: "  if (false && (!input.request.approvedTextRef || input.request.approvedTextRef.length === 0)) {",
   },
   {
-    name: "sensitive gate bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    search: "const sensitiveGate = validateSensitiveText({ request: input.request });",
-    replace: 'const sensitiveGate = { ok: true, sensitiveTextDecision: "allowed", redactionDecision: "masked", redactedPreview: null, dataQualityFlags: [] };',
+    name: "approved text hash parity bypass mutation",
+    file: "src/capabilities/text-input/runtime/approved-text-gate.ts",
+    search: "  if (input.request.inputTextHash !== input.request.approvedTextHash || (input.request.inputText ?? \"\") !== (input.request.approvedText ?? \"\")) {",
+    replace: "  if (false && (input.request.inputTextHash !== input.request.approvedTextHash || (input.request.inputText ?? \"\") !== (input.request.approvedText ?? \"\"))) {",
   },
   {
-    name: "proof drop mutation",
-    file: "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-    search: "const runtimeProof = buildRuntimeProofForResult(input, {",
-    replace: "const proofRemoved = buildRuntimeProofForResult(input, {",
+    name: "press key arbitrary schema mutation",
+    file: "src/capabilities/text-input/schema.ts",
+    search: "  key: TextInputKeySchema,",
+    replace: "  key: z.string().min(1),",
   },
   {
-    name: "output boundary bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-    search: "const outputBoundary = validateTextInputOutputBoundary({",
-    replace: "const outputBoundary = { status: input.status, failureReason: input.failureReason as never, reviewRequiredReason: input.reviewRequiredReason, statusMessage: input.statusMessage, outputBoundaryDecision: \"valid\" as const, dataQualityFlags: input.dataQualityFlags, output: candidateOutput };\n  // mutated from validateTextInputOutputBoundary({",
+    name: "commit approved ref bypass mutation",
+    file: "src/capabilities/text-input/runtime/commit-policy-gate.ts",
+    search: "  if (!input.request.policy.commitPolicy.requireApprovedCommitRef || (input.request.approvedCommitRef?.length ?? 0) > 0) {",
+    replace: "  if (true) {",
   },
   {
-    name: "debug bundle drop mutation",
-    file: "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-    search: "const debugBundle = buildTextInputDebugBundle({",
-    replace: 'const debugBundle = { diagnosticPayloadRef: "fake-diagnostic", debugLogRef: "fake-debug", structuredRuntimeEventRef: "fake-runtime-event" };\n  // mutated from buildTextInputDebugBundle({',
+    name: "raw text debug leak mutation",
+    file: "src/capabilities/text-input/runtime/text-input-debug-events.ts",
+    search: "    emittedEventTypes,",
+    replace: "    rawInputText: payloadText,\n    emittedEventTypes,",
   },
   {
-    name: "runner abort removal mutation",
+    name: "fabricated run id mutation",
+    file: "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
+    search: "    runId: input.runId,",
+    replace: "    runId: buildStableTextInputRef(\"text-input-run\", [input.attemptRef]),",
+  },
+  {
+    name: "abort signal removal mutation",
     file: "src/capabilities/text-input/runtime/primitive-text-input-runner.ts",
-    search: "const abortController = new AbortController();",
-    replace: "const abortController = { signal: input.context.executionPort as never, abort() {} } as never;",
+    search: "        abortSignal: abortController.signal,",
+    replace: "        abortSignal: undefined as never,",
   },
   {
-    name: "input gate child fallback mutation",
-    file: "src/capabilities/text-input/runtime/text-input-input-gate.ts",
-    search: "    ? value as TextInputChildCapabilityId\n    : null;",
-    replace: "    ? value as TextInputChildCapabilityId\n    : \"type-text\";",
+    name: "retry loop mutation",
+    file: "src/capabilities/text-input/runtime/primitive-text-input-runner.ts",
+    search: "  const abortController = new AbortController();",
+    replace: "  for (let retry = 0; retry < 2; retry += 1) {}\n  const abortController = new AbortController();",
   },
   {
-    name: "commit gate bypass mutation",
-    file: "src/capabilities/text-input/runtime/text-input-execution-gates.ts",
-    search: "const commitGate = validateCommitPolicy({ request: input.request });",
-    replace: 'const commitGate = { ok: true, keyPolicyDecision: "allowed", commitPolicyRef: null, dataQualityFlags: [] };',
+    name: "pav handoff removal mutation",
+    file: "src/capabilities/text-input/runtime/text-input-result-builder.ts",
+    search: "  const postActionVerificationHandoffRef = buildPostActionVerificationHandoffRef(input);",
+    replace: "  const postActionVerificationHandoffRef = null;",
   },
   {
-    name: "clipboard restore swallow mutation",
-    file: "src/capabilities/text-input/runtime/text-input-executor-finalize.ts",
-    search: "  input.executionResult.state.clipboardDecision = input.state.clipboardDecision;\n  input.executionResult.state.restoredClipboardHash = input.state.restoredClipboardHash;\n  input.executionResult.state.dataQualityFlags = mergeFlags(input.executionResult.state.dataQualityFlags, input.state.dataQualityFlags);",
-    replace: "  input.executionResult.state.clipboardDecision = input.executionResult.state.clipboardDecision;\n  input.executionResult.state.restoredClipboardHash = input.executionResult.state.restoredClipboardHash;\n  input.executionResult.state.dataQualityFlags = input.executionResult.state.dataQualityFlags;",
+    name: "business result field mutation",
+    file: "src/capabilities/text-input/runtime/text-input-result-builder-support.ts",
+    search: "    runtimeProof,\n  };",
+    replace: "    runtimeProof,\n    sendSuccess: outputBoundary.status === \"success\",\n  };",
+  },
+  {
+    name: "child direct primitive mutation",
+    file: "src/capabilities/text-input/children/type-text/implementation.ts",
+    search: "      const parsedInput = TypeTextAbilityInputSchema.parse(input);\n      return executeTextInput({ request: parsedInput, context });",
+    replace: "      const parsedInput = TypeTextAbilityInputSchema.parse(input);\n      await context.executionPort.execute({} as never);\n      return executeTextInput({ request: parsedInput, context });",
+  },
+  {
+    name: "child forbidden browser import mutation",
+    file: "src/capabilities/text-input/children/type-text/implementation.ts",
+    search: "import { TypeTextAbilityInputSchema } from \"./schema.js\";",
+    replace: "import type { BrowserControllerTextInputRuntimePorts } from \"../../../../lib/browser/text-input-primitive-port.js\";\nimport { TypeTextAbilityInputSchema } from \"./schema.js\";",
+  },
+  {
+    name: "forbidden child registry mutation",
+    file: "src/capabilities/text-input/registry.ts",
+    search: "  createCommitInputCapability(),\n] as const;",
+    replace: "  createCommitInputCapability(),\n  { childCapabilityId: \"send-message\" } as never,\n] as const;",
+  },
+  {
+    name: "negative proof invocation removed mutation",
+    file: "scripts/audit/domains/text-input-capability/inspector.ts",
+    search: "      : await runNegativeProofHarness();",
+    replace: "      : { findings: [], phase: { name: \"negative-proof-harness\", classification: \"PASS\" as const, passed: true, summary: \"mutated skip\" } };",
   },
 ];
 
@@ -147,7 +179,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1",
+        lawId: LAW_IDS.PACKAGE,
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",
@@ -177,7 +209,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations(runInspector);
 
-    return createPassResult("Text Input negative-proof harness rejects export laundering, source/target/focus gate bypass, proof drop, output-boundary escape, runner timeout escape, clipboard proof swallowing, and fallback mutations.");
+    return createPassResult("Text Input negative-proof harness rejects chain-field weakening, approved-text bypass, raw debug leakage, fabricated runId, timeout escape, business-result leakage, child primitive bypass, forbidden browser imports, forbidden child expansion, and negative-proof removal mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Text Input negative-proof harness failed.",

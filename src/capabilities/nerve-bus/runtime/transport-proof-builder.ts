@@ -1,10 +1,70 @@
 import { createId } from "../../../lib/local-runtime/ids.js";
 
-import { NerveBusTransportProofSchema } from "../schema.js";
+import { NERVE_BUS_ABILITY_GROUP_ID, NerveBusTransportProofSchema } from "../schema.js";
 import type { SupportedEnvelope, SupportedResultEnvelope } from "../shared/nerve-bus-channel.js";
 import type { NerveBusTransportProof } from "../shared/nerve-bus-proof.js";
 
-export function buildTransportProof(input: {
+const isForwardEnvelope = (envelope: SupportedEnvelope): envelope is Extract<SupportedEnvelope, {
+  envelopeKind: "ability_command" | "ai_request" | "human_command";
+}> => (
+  envelope.envelopeKind === "ability_command"
+  || envelope.envelopeKind === "ai_request"
+  || envelope.envelopeKind === "human_command"
+);
+
+const resolveProofId = (input: { envelope: SupportedEnvelope; resultEnvelope: SupportedResultEnvelope }): string => {
+  if (isForwardEnvelope(input.envelope)) {
+    return input.resultEnvelope.proofRef;
+  }
+
+  return createId("nerve_bus_proof");
+};
+
+const resolveTargetAbilityGroupId = (input: { envelope: SupportedEnvelope; resultEnvelope: SupportedResultEnvelope }) => {
+  if ("targetAbilityGroupId" in input.envelope) {
+    return input.envelope.targetAbilityGroupId;
+  }
+
+  if ("targetAbilityGroupId" in input.resultEnvelope) {
+    return input.resultEnvelope.targetAbilityGroupId;
+  }
+
+  return null;
+};
+
+const resolveTargetChildCapabilityId = (input: { envelope: SupportedEnvelope; resultEnvelope: SupportedResultEnvelope }) => {
+  if ("targetChildCapabilityId" in input.envelope) {
+    return input.envelope.targetChildCapabilityId;
+  }
+
+  if ("targetChildCapabilityId" in input.resultEnvelope) {
+    return input.resultEnvelope.targetChildCapabilityId;
+  }
+
+  return null;
+};
+
+const resolvePromptContractId = (envelope: SupportedEnvelope) => {
+  return envelope.envelopeKind === "ai_request" ? envelope.promptContractId : null;
+};
+
+const resolvePromptContractVersion = (envelope: SupportedEnvelope) => {
+  return envelope.envelopeKind === "ai_request" ? envelope.promptContractVersion : null;
+};
+
+const resolveOutputSchemaRef = (envelope: SupportedEnvelope) => {
+  if (envelope.envelopeKind === "ai_request") {
+    return envelope.outputSchemaRef;
+  }
+
+  if (envelope.envelopeKind === "ability_command") {
+    return envelope.expectedOutputSchemaRef;
+  }
+
+  return null;
+};
+
+type BuildTransportProofInput = {
   envelope: SupportedEnvelope;
   resultEnvelope: SupportedResultEnvelope;
   startedAt: string;
@@ -27,45 +87,93 @@ export function buildTransportProof(input: {
   status: "success" | "failed" | "review_required";
   failureReason: string | null;
   reviewRequiredReason: string | null;
+  semanticDecision: "passed" | "failed" | "not_started";
   dataQualityFlags: string[];
-}): NerveBusTransportProof {
+};
+
+const buildProofIdentityFields = (input: BuildTransportProofInput) => ({
+  proofId: resolveProofId(input),
+  abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
+  channelId: input.envelope.channelId,
+  envelopeKind: input.envelope.envelopeKind,
+  envelopeId: input.envelope.envelopeId,
+  nerveBusEnvelopeId: input.envelope.nerveBusEnvelopeId,
+  correlationEnvelopeId: input.resultEnvelope.correlationEnvelopeId,
+});
+
+const buildProofTraceFields = (envelope: SupportedEnvelope) => ({
+  transportId: envelope.transportId,
+  traceId: envelope.traceId,
+  spanId: envelope.spanId,
+  attemptId: envelope.attemptId,
+  missionId: envelope.missionId,
+  runId: envelope.runId,
+  sessionId: envelope.sessionId,
+  roundId: envelope.roundId,
+  videoVisitId: envelope.videoVisitId,
+});
+
+const buildProofExecutionChainFields = (envelope: SupportedEnvelope) => ({
+  stepId: envelope.stepId,
+  mapPackageId: envelope.mapPackageId,
+  mapPackageVersion: envelope.mapPackageVersion,
+  selectedMapId: envelope.selectedMapId,
+  selectedMapVersion: envelope.selectedMapVersion,
+  activationId: envelope.activationId,
+  activationSnapshotRef: envelope.activationSnapshotRef,
+  capabilityCallId: envelope.capabilityCallId,
+  sourceRef: envelope.sourceRef,
+  inputRef: envelope.inputRef,
+  payloadRef: envelope.payloadRef,
+  from: envelope.from,
+  to: envelope.to,
+  idempotencyKey: envelope.idempotencyKey,
+  sequenceNo: envelope.sequenceNo,
+});
+
+const buildProofTargetFields = (input: BuildTransportProofInput) => ({
+  outputRef: input.outputRef,
+  diagnosticPayloadRef: input.diagnosticPayloadRef,
+  targetAbilityGroupId: resolveTargetAbilityGroupId(input),
+  targetChildCapabilityId: resolveTargetChildCapabilityId(input),
+  promptContractId: resolvePromptContractId(input.envelope),
+  promptContractVersion: resolvePromptContractVersion(input.envelope),
+  outputSchemaRef: resolveOutputSchemaRef(input.envelope),
+});
+
+const buildProofTimingFields = (input: BuildTransportProofInput) => ({
+  startedAt: input.startedAt,
+  endedAt: input.endedAt,
+  durationMs: Math.max(0, Math.trunc(input.durationMs)),
+  handlerCallId: input.handlerCallId,
+  handlerStartedAt: input.handlerStartedAt,
+  handlerEndedAt: input.handlerEndedAt,
+  handlerDurationMs: Math.max(0, Math.trunc(input.handlerDurationMs)),
+  circuitBreakerState: input.circuitBreakerState,
+});
+
+const buildProofDecisionFields = (input: BuildTransportProofInput) => ({
+  status: input.status,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason,
+  policyDecision: input.policyDecision,
+  integrityDecision: input.integrityDecision,
+  idempotencyDecision: input.idempotencyDecision,
+  sequenceDecision: input.sequenceDecision,
+  queueDecision: input.queueDecision,
+  timeoutDecision: input.timeoutDecision,
+  handlerDecision: input.handlerDecision,
+  semanticDecision: input.semanticDecision,
+  dataQualityFlags: input.dataQualityFlags,
+});
+
+export function buildTransportProof(input: BuildTransportProofInput): NerveBusTransportProof {
   return NerveBusTransportProofSchema.parse({
-    proofId: createId("nerve_bus_proof"),
-    transportId: input.envelope.transportId,
-    traceId: input.envelope.traceId,
-    spanId: input.envelope.spanId,
-    missionId: input.envelope.missionId,
-    mapId: input.envelope.mapId,
-    stepId: input.envelope.stepId,
-    channelId: input.envelope.channelId,
-    from: input.envelope.from,
-    to: input.envelope.to,
-    envelopeId: input.envelope.envelopeId,
-    attemptId: input.envelope.attemptId,
-    idempotencyKey: input.envelope.idempotencyKey,
-    sequenceNo: input.envelope.sequenceNo,
-    payloadRef: input.envelope.payloadRef,
-    inputRef: input.envelope.inputRef,
-    outputRef: input.outputRef,
-    diagnosticPayloadRef: input.diagnosticPayloadRef,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs: Math.max(0, Math.trunc(input.durationMs)),
-    status: input.status,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    policyDecision: input.policyDecision,
-    integrityDecision: input.integrityDecision,
-    idempotencyDecision: input.idempotencyDecision,
-    sequenceDecision: input.sequenceDecision,
-    queueDecision: input.queueDecision,
-    timeoutDecision: input.timeoutDecision,
-    handlerDecision: input.handlerDecision,
-    handlerCallId: input.handlerCallId,
-    handlerStartedAt: input.handlerStartedAt,
-    handlerEndedAt: input.handlerEndedAt,
-    handlerDurationMs: Math.max(0, Math.trunc(input.handlerDurationMs)),
-    circuitBreakerState: input.circuitBreakerState,
-    dataQualityFlags: input.dataQualityFlags,
+    ...buildProofIdentityFields(input),
+    ...buildProofTraceFields(input.envelope),
+    ...buildProofExecutionChainFields(input.envelope),
+    ...buildProofTargetFields(input),
+    ...buildProofTimingFields(input),
+    ...buildProofDecisionFields(input),
   });
 }

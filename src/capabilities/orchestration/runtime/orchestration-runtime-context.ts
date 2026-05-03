@@ -9,6 +9,7 @@ import { createOrchestrationNerveBusAdapter, type OrchestrationNerveBusTransport
 
 type OrchestrationRuntimeNerveBus = {
   dispatchAbilityCommand: OrchestrationNerveBusTransportSurface["dispatchAbilityCommand"];
+  dispatchCommanderMessage: OrchestrationNerveBusTransportSurface["dispatchCommanderMessage"];
   requestAi: OrchestrationNerveBusTransportSurface["requestAi"];
 };
 
@@ -16,6 +17,9 @@ function createNerveBusTransportSurface(nerveBus: OrchestrationRuntimeNerveBus):
   return {
     dispatchAbilityCommand(input) {
       return nerveBus.dispatchAbilityCommand(input);
+    },
+    dispatchCommanderMessage(input) {
+      return nerveBus.dispatchCommanderMessage(input);
     },
     requestAi(input) {
       return nerveBus.requestAi(input);

@@ -1,5 +1,11 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
-import { buildPayloadDocument, buildTransportEnvelopeBase, payloadDocumentToObject, payloadValueToInteger, payloadValueToString } from "./workbench-payload.js";
+import {
+  buildMirroredEnvelopeBase,
+  buildPayloadDocument,
+  payloadDocumentToObject,
+  payloadValueToInteger,
+  payloadValueToString,
+} from "./workbench-payload.js";
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { HumanCommandEnvelope, HumanCommandResultEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 
@@ -37,13 +43,10 @@ const buildHumanCommandResultEnvelope = (input: {
   });
   return {
     envelope: {
-      ...buildTransportEnvelopeBase({
+      ...buildMirroredEnvelopeBase({
         channelId: "orchestration-to-commander",
         envelopeId: `${input.envelope.envelopeId}:result`,
-        missionId: input.envelope.missionId,
-        mapId: input.envelope.mapId,
-        stepId: input.envelope.stepId,
-        inputRef: input.envelope.inputRef,
+        requestEnvelope: input.envelope,
         payloadRefs: { output: outputPayload.documentRef },
         summary: outputPayload.summary,
         tags: ["commander-console", input.status],
@@ -52,10 +55,14 @@ const buildHumanCommandResultEnvelope = (input: {
       envelopeKind: "human_command_result",
       from: "orchestration",
       to: "commander-console",
+      correlationEnvelopeId: input.envelope.envelopeId,
+      correlationCapabilityCallId: input.envelope.capabilityCallId,
+      correlationInputRef: input.envelope.inputRef,
+      proofRef: `${input.envelope.envelopeId}:result:proof`,
       status: input.status,
-      outputRef: outputPayload.documentRef,
-      diagnosticPayloadRef: null,
-      failureReason: input.failureReason ?? null,
+      outputRef: input.status === "success" ? outputPayload.documentRef : null,
+      diagnosticPayloadRef: input.status === "success" ? null : outputPayload.documentRef,
+      failureReason: input.status === "failed" ? input.failureReason ?? "human command failed" : null,
       reviewRequiredReason: input.status === "review_required" ? input.failureReason ?? "review required" : null,
     },
     outputPayload,

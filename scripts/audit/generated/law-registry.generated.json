@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T20:00:18.955Z",
+  "generatedAt": "2026-05-03T21:02:22.236Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -723,9 +723,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map packages are declarative data packages consumed by Orchestration, not runtime code, child abilities, or new owners.",
+      "summary": "map packages are declarative route data consumed by Orchestration, not runtime code, child abilities, or new owners.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 92
+      "line": 108
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-002-V2",
@@ -736,7 +736,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must pass import, quarantine, validation, human approval, activation, active registry, and rollback lifecycle before runtime consumption.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 144
+      "line": 172
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
@@ -747,7 +747,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 239
+      "line": 291
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-004-V2",
@@ -758,7 +758,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 331
+      "line": 402
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
@@ -769,7 +769,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 412
+      "line": 523
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
@@ -780,7 +780,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and human approval pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 481
+      "line": 598
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
@@ -791,7 +791,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 564
+      "line": 750
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
@@ -800,9 +800,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "branch condition DSL must be schema-declared, closed, and non-executable.",
+      "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 630
+      "line": 827
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
@@ -813,7 +813,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/approval path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 708
+      "line": 925
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -824,7 +824,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map activation, validation, approval, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 787
+      "line": 1023
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -833,9 +833,20 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
+      "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1124
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 867
+      "line": 1194
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -1641,81 +1652,103 @@
       "line": 83
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input Ability Group is the only owner of governed text writing capability.",
+      "summary": "Text Input is the only owner of governed text/key writing primitives.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 14
+      "line": 100
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input is write-only capability, not cognition, targeting, gesture, or verification truth.",
+      "summary": "Text Input is write-only and must not generate text, locate targets, decide target safety, or verify final page state.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 39
+      "line": 153
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input accepts only approved text payloads and verified target handoff.",
+      "summary": "Text Input input must carry full mission/map/step/capability chain, approved text proof, verified target proof, focus proof, and Nerve Bus envelope refs.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 72
+      "line": 213
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input executes only through governed input, clipboard, and clock ports.",
+      "summary": "Text Input executes only through governed execution, clipboard, and clock ports with AbortSignal/timeout and fail-closed semantics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 105
+      "line": 339
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input success is primitive write success only and never verification truth.",
+      "summary": "Text Input must treat sensitive text and clipboard content as non-persistent transient material and must record only refs, hashes, redacted previews, and policy decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 135
+      "line": 430
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input enforcement closes through owner inspector and audit runner only.",
+      "summary": "Text Input success is primitive write/key success only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 165
+      "line": 488
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1",
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input canonical topology is one standard package with six governed execution children.",
+      "summary": "Text Input runtime proof must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff, and redaction decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 189
+      "line": 559
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Text Input children are narrow execution bindings and must use unified runtime.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 696
+    },
+    {
+      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "text-input-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+      "line": 770
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",

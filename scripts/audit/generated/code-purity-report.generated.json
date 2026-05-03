@@ -1,27 +1,22 @@
 {
-  "generatedAt": "2026-05-03T20:00:34.078Z",
+  "generatedAt": "2026-05-03T21:02:38.701Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit.zip",
-    "scripts/audit/core/frozen-baseline.ts",
-    "scripts/audit/domains/ai-capability/manifest.json",
-    "scripts/audit/domains/capability-group-governance/manifest.json",
-    "scripts/audit/domains/commander-console-capability/manifest.json",
-    "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-    "scripts/audit/domains/map-plugin-package/anti-escape.ts",
-    "scripts/audit/domains/map-plugin-package/audit-project.ts",
+    "scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts",
     "scripts/audit/domains/map-plugin-package/constants.ts",
-    "scripts/audit/domains/map-plugin-package/file-lists.ts",
-    "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-    "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape-runtime.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape.ts",
-    "scripts/audit/domains/map-plugin-package/scorecard-gate.ts",
-    "scripts/audit/domains/mouse-click-capability/required-shape.ts",
-    "scripts/audit/domains/nerve-bus-capability/manifest.json",
-    "scripts/audit/domains/open-capability/manifest.json",
-    "scripts/audit/domains/open-capability/run-open-runtime-checks.ts",
-    "scripts/audit/domains/open-capability/run-open-schema-shape-checks.ts",
+    "scripts/audit/domains/map-plugin-package/manifest.json",
+    "scripts/audit/domains/nerve-bus-capability/anti-escape.ts",
+    "scripts/audit/domains/nerve-bus-capability/config.ts",
+    "scripts/audit/domains/nerve-bus-capability/forbidden-shape.ts",
+    "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/nerve-bus-capability/project-access.ts",
+    "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+    "scripts/audit/domains/text-input-capability/anti-escape.ts",
+    "scripts/audit/domains/text-input-capability/config.ts",
+    "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
+    "scripts/audit/domains/text-input-capability/manifest.json",
+    "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/text-input-capability/required-shape.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
@@ -29,42 +24,72 @@
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/runner-summary.json",
-    "src/app/create-workbench-server.ts",
-    "src/capabilities/ai/children/paid-analysis-ai/contract.ts",
-    "src/capabilities/ai/children/paid-analysis-ai/schema.ts",
-    "src/capabilities/ai/model-roster.ts",
-    "src/capabilities/ai/prompt-contracts/registry.ts",
-    "src/capabilities/ai/prompt-contracts/schema.ts",
-    "src/capabilities/ai/runtime-factory.ts",
-    "src/capabilities/ai/runtime/ai-execution-context.ts",
+    "scripts/debug-loop/decision-engine.mjs",
+    "scripts/debug-loop/failure-classifier-rules.mjs",
+    "scripts/debug-loop/map-resolver.mjs",
+    "scripts/debug-loop/run-debug-loop-scenario.mjs",
+    "scripts/debug-loop/run-state.mjs",
+    "scripts/debug-loop/scenario-runner.mjs",
+    "scripts/debug-loop/verifier.mjs",
+    "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/provider-aware-ai-runtime-adapter.ts",
     "src/capabilities/ai/runtime/ai-provider-policy-gate.ts",
-    "src/capabilities/ai/runtime/ai-runtime-result.ts",
-    "src/capabilities/ai/runtime/ai-schema-gate.ts",
-    "src/capabilities/ai/runtime/local-ai-runtime-policy.ts",
+    "src/capabilities/ai/runtime/provider-config-store.ts",
     "src/capabilities/ai/schema-core.schema.ts",
-    "src/capabilities/ai/schema-runtime.schema.ts",
-    "src/capabilities/ai/schema.ts",
     "src/capabilities/ai/shared/ai-output.ts",
-    "src/capabilities/ai/shared/ai-policy.ts",
-    "src/capabilities/ai/shared/ai-types.ts",
-    "src/capabilities/ai/task-router.ts",
-    "src/capabilities/geometry-guard/runtime/geometry-input-gate.ts",
-    "src/capabilities/mouse-click/mouse-click-schema-refinements.ts",
-    "src/capabilities/mouse-click/runtime/mouse-click-input-gate.ts",
-    "src/capabilities/orchestration.zip",
-    "src/lib/local-app-shell/commander-app.types.ts",
-    "src/lib/local-app-shell/commander-app.view-model.ts",
-    "src/lib/local-app-shell/commander-console.copy.ts",
-    "src/lib/local-app-shell/CommanderAppRouter.ts",
-    "src/lib/local-app-shell/CommanderAppShell.ts",
-    "src/lib/local-app-shell/CommanderMacShell.ts",
-    "src/lib/local-runtime/workbench-ai-ability-group.ts",
-    "src/lib/local-runtime/workbench-contract.ts",
-    "src/lib/local-runtime/workbench-facade.ts",
-    "src/lib/local-runtime/workbench-runtime.ts",
-    "src/map-plugins/authoring/map-authoring-request.schema.ts",
+    "src/capabilities/nerve-bus.zip",
+    "src/capabilities/nerve-bus/ability-group.ts",
+    "src/capabilities/nerve-bus/contract.ts",
+    "src/capabilities/nerve-bus/ports/nerve-bus-idempotency-port.ts",
+    "src/capabilities/nerve-bus/runtime/nerve-bus-executor-support.ts",
+    "src/capabilities/nerve-bus/runtime/transport-failure-finalizer.ts",
+    "src/capabilities/nerve-bus/runtime/transport-proof-builder.ts",
+    "src/capabilities/nerve-bus/runtime/transport-result-builder.ts",
+    "src/capabilities/nerve-bus/runtime/transport-result-semantic-gate.ts",
+    "src/capabilities/nerve-bus/runtime/transport-success-result.ts",
+    "src/capabilities/nerve-bus/schema.ts",
+    "src/capabilities/nerve-bus/shared/nerve-bus-channel.ts",
+    "src/capabilities/nerve-bus/shared/nerve-bus-result.ts",
+    "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
+    "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
+    "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
+    "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+    "src/capabilities/text-input/runtime/approved-text-gate.ts",
+    "src/capabilities/text-input/runtime/focus-proof-gate.ts",
+    "src/capabilities/text-input/runtime/input-target-proof-gate.ts",
+    "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+    "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
+    "src/capabilities/text-input/runtime/text-input-result-builder-support.ts",
+    "src/capabilities/text-input/runtime/text-source-proof-gate.ts",
+    "src/capabilities/text-input/schema.ts",
+    "src/capabilities/text-input/shared/text-input-failure.ts",
+    "src/lib/local-app-shell/view-model/map-catalog.ts",
+    "src/lib/local-runtime/map-lab/map-lab-service.ts",
+    "src/lib/local-runtime/workbench-ability-result-envelope.ts",
+    "src/lib/local-runtime/workbench-commander-command-transport.ts",
+    "src/lib/local-runtime/workbench-commander-debug.ts",
+    "src/lib/local-runtime/workbench-human-command-dispatch.ts",
+    "src/lib/local-runtime/workbench-human-command.ts",
+    "src/lib/local-runtime/workbench-map-chain-support.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+    "src/lib/local-runtime/workbench-payload.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/map-plugins/authoring/map-authoring-ai-output.schema.ts",
+    "src/map-plugins/authoring/map-authoring-draft-normalizer.ts",
+    "src/map-plugins/authoring/map-authoring-prompt-builder.ts",
+    "src/map-plugins/authoring/map-authoring-response.schema.ts",
+    "src/map-plugins/authoring/map-authoring-safety-policy.ts",
     "src/map-plugins/authoring/map-authoring-template.ts",
-    "src/map-plugins/validation/prompt-contract-catalog-port.ts"
+    "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
+    "src/map-plugins/import/map-package-activation.ts",
+    "src/map-plugins/import/map-package-importer.ts",
+    "src/map-plugins/registry/active-map-registry.ts",
+    "src/map-plugins/registry/map-plugin-registry.ts",
+    "src/map-plugins/registry/quarantined-map-registry.ts",
+    "src/map-plugins/schema/map-plugin-manifest.schema.ts",
+    "src/map-plugins/shared/map-package-proof.ts",
+    "src/map-plugins/shared/map-package-registry-types.ts",
+    "src/map-plugins/validation/map-capability-registry-validator.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -76,28 +101,82 @@
   ],
   "godFileInventory": [
     {
-      "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
-      "lines": 362,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 62,
-      "primaryRole": "adapter",
+      "file": "scripts/audit/domains/text-input-capability/required-shape.ts",
+      "lines": 445,
+      "fileType": "audit phase",
+      "overLimitBy": 95,
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "callOpenAiCompatible",
-        "createOpenAiCompatibleRuntimePort"
+        "collectSchemaAndRegistryFindings",
+        "collectBuilderFindings",
+        "collectGateFindings",
+        "hasAdapterPackageChain"
       ],
       "classMembers": 0,
-      "importCount": 9,
+      "importCount": 7,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 398,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 98,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchReviewStep",
+        "dispatchAiStep"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+      "lines": 379,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 79,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildTextInputExecutionSeed"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/schema.ts",
+      "lines": 546,
+      "fileType": "schema/type",
+      "overLimitBy": 46,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateTextInputRuntimeProofSuccessRequirements"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     }
   ],
   "disasterFileInventory": [
     {
-      "file": "scripts/audit/generated/law-registry.generated.json",
-      "lines": 1821,
+      "file": "scripts/audit/generated/code-purity-report.generated.json",
+      "lines": 885,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -111,35 +190,31 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/schema-core.schema.ts",
-      "lines": 399,
-      "fileType": "schema/type",
+      "file": "scripts/audit/generated/law-registry.generated.json",
+      "lines": 1854,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-payload.ts",
+      "lines": 194,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 4,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
-      "lines": 234,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildMapAuthoringAiRequest",
-        "createMapLabService",
-        "generateDraft"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 5,
-      "ownerBoundaries": 2,
+      "importCount": 2,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -162,68 +237,212 @@
   ],
   "ownerMixingInventory": [
     {
-      "file": "src/capabilities/ai/schema-core.schema.ts",
-      "lines": 399,
-      "fileType": "schema/type",
+      "file": "src/lib/local-runtime/workbench-payload.ts",
+      "lines": 194,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 4,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
-      "lines": 234,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildMapAuthoringAiRequest",
-        "createMapLabService",
-        "generateDraft"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 5,
-      "ownerBoundaries": 2,
+      "importCount": 2,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
-  "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
+  "oversizedTouchedFileInventory": [
     {
-      "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
-      "lines": 362,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 62,
-      "primaryRole": "adapter",
+      "file": "scripts/audit/domains/text-input-capability/required-shape.ts",
+      "lines": 445,
+      "fileType": "audit phase",
+      "overLimitBy": 95,
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "callOpenAiCompatible",
-        "createOpenAiCompatibleRuntimePort"
+        "collectSchemaAndRegistryFindings",
+        "collectBuilderFindings",
+        "collectGateFindings",
+        "hasAdapterPackageChain"
       ],
       "classMembers": 0,
-      "importCount": 9,
+      "importCount": 7,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 398,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 98,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchReviewStep",
+        "dispatchAiStep"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+      "lines": 379,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 79,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildTextInputExecutionSeed"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/runtime/ai-provider-policy-gate.ts",
-      "lines": 70,
+      "file": "src/capabilities/text-input/schema.ts",
+      "lines": 546,
+      "fileType": "schema/type",
+      "overLimitBy": 46,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateTextInputRuntimeProofSuccessRequirements"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
+    }
+  ],
+  "functionOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/text-input-capability/anti-escape.ts",
+      "lines": 152,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "collectRunnerFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/required-shape.ts",
+      "lines": 445,
+      "fileType": "audit phase",
+      "overLimitBy": 95,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "collectSchemaAndRegistryFindings",
+        "collectBuilderFindings",
+        "collectGateFindings",
+        "hasAdapterPackageChain"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/nerve-bus/ability-group.ts",
+      "lines": 166,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeTransportInput"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
+      "lines": 266,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildAbilityDispatchEnvelope",
+        "buildAiDispatchEnvelope",
+        "buildCommanderReviewEnvelope"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 398,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 98,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchReviewStep",
+        "dispatchAiStep"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/approved-text-gate.ts",
+      "lines": 175,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveEnabledProviderDecision"
+        "validateApprovedTextApprovedTextFields"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/focus-proof-gate.ts",
+      "lines": 61,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "validateFocusProof"
       ],
       "classMembers": 0,
       "importCount": 1,
@@ -234,52 +453,67 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/shared/ai-output.ts",
-      "lines": 171,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
+      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+      "lines": 379,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 79,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "buildFallbackByTaskType"
+        "buildTextInputExecutionSeed"
       ],
       "classMembers": 0,
       "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/text-source-proof-gate.ts",
+      "lines": 55,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "validateTextSourceProof"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
-      "lines": 234,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
+      "file": "src/capabilities/text-input/schema.ts",
+      "lines": 546,
+      "fileType": "schema/type",
+      "overLimitBy": 46,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "buildMapAuthoringAiRequest",
-        "createMapLabService",
-        "generateDraft"
+        "validateTextInputRuntimeProofSuccessRequirements"
       ],
       "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 5,
-      "ownerBoundaries": 2,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
       "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/map-plugins/authoring/map-authoring-draft-normalizer.ts",
-      "lines": 159,
+      "file": "src/map-plugins/authoring/map-authoring-template.ts",
+      "lines": 95,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "normalizeMapAuthoringDraft"
+        "buildMapAuthoringTemplate"
       ],
       "classMembers": 0,
-      "importCount": 7,
+      "importCount": 5,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -287,13 +521,13 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/map-plugins/validation/map-capability-registry-validator.ts",
-      "lines": 75,
+      "file": "src/map-plugins/import/map-package-activation.ts",
+      "lines": 161,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
-      "primaryRole": "validator",
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "validateCapabilityRegistry"
+        "buildActivationRecord"
       ],
       "classMembers": 0,
       "importCount": 5,
@@ -305,11 +539,42 @@
     }
   ],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [],
+  "importExportOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/text-input-capability/config.ts",
+      "lines": 272,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/map-plugins/authoring/map-authoring-contract.ts",
+      "lines": 9,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/law-registry.generated.json",
-      "lines": 1821,
+      "lines": 1854,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -338,99 +603,183 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/schema-core.schema.ts",
-      "lines": 399,
-      "fileType": "schema/type",
+      "file": "scripts/audit/generated/code-purity-report.generated.json",
+      "lines": 885,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-payload.ts",
+      "lines": 194,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 4,
-      "ownerBoundaries": 2,
+      "importCount": 2,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/schema.ts",
+      "lines": 546,
+      "fileType": "schema/type",
+      "overLimitBy": 46,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateTextInputRuntimeProofSuccessRequirements"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
       "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
-      "lines": 234,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
+      "file": "scripts/audit/domains/text-input-capability/required-shape.ts",
+      "lines": 445,
+      "fileType": "audit phase",
+      "overLimitBy": 95,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "buildMapAuthoringAiRequest",
-        "createMapLabService",
-        "generateDraft"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 5,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
-      "lines": 362,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 62,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "callOpenAiCompatible",
-        "createOpenAiCompatibleRuntimePort"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/shared/ai-output.ts",
-      "lines": 171,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildFallbackByTaskType"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/map-plugins/authoring/map-authoring-draft-normalizer.ts",
-      "lines": 159,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "normalizeMapAuthoringDraft"
+        "collectSchemaAndRegistryFindings",
+        "collectBuilderFindings",
+        "collectGateFindings",
+        "hasAdapterPackageChain"
       ],
       "classMembers": 0,
       "importCount": 7,
       "crossOwnerImports": 2,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 398,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 98,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchReviewStep",
+        "dispatchAiStep"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/text-input-input-gate.ts",
+      "lines": 379,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 79,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildTextInputExecutionSeed"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/config.ts",
+      "lines": 272,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
+      "lines": 266,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildAbilityDispatchEnvelope",
+        "buildAiDispatchEnvelope",
+        "buildCommanderReviewEnvelope"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/approved-text-gate.ts",
+      "lines": 175,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateApprovedTextApprovedTextFields"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/nerve-bus/ability-group.ts",
+      "lines": 166,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeTransportInput"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/map-plugins/validation/map-capability-registry-validator.ts",
-      "lines": 75,
+      "file": "src/map-plugins/import/map-package-activation.ts",
+      "lines": 161,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
-      "primaryRole": "validator",
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "validateCapabilityRegistry"
+        "buildActivationRecord"
       ],
       "classMembers": 0,
       "importCount": 5,
@@ -441,13 +790,47 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/runtime/ai-provider-policy-gate.ts",
-      "lines": 70,
-      "fileType": "runtime/implementation",
+      "file": "scripts/audit/domains/text-input-capability/anti-escape.ts",
+      "lines": 152,
+      "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveEnabledProviderDecision"
+        "collectRunnerFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/map-plugins/authoring/map-authoring-template.ts",
+      "lines": 95,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildMapAuthoringTemplate"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/focus-proof-gate.ts",
+      "lines": 61,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "validateFocusProof"
       ],
       "classMembers": 0,
       "importCount": 1,
@@ -456,12 +839,44 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/text-input/runtime/text-source-proof-gate.ts",
+      "lines": 55,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "validateTextSourceProof"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/map-plugins/authoring/map-authoring-contract.ts",
+      "lines": 9,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
     {
       "file": "scripts/audit/generated/law-registry.generated.json",
-      "lines": 1821,
+      "lines": 1854,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -490,56 +905,51 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/schema-core.schema.ts",
-      "lines": 399,
-      "fileType": "schema/type",
+      "file": "scripts/audit/generated/code-purity-report.generated.json",
+      "lines": 885,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-payload.ts",
+      "lines": 194,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 4,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-service.ts",
-      "lines": 234,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildMapAuthoringAiRequest",
-        "createMapLabService",
-        "generateDraft"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 5,
-      "ownerBoundaries": 2,
+      "importCount": 2,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/ai/runtime-adapters/openai-compatible-runtime-adapter.ts",
-      "lines": 362,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 62,
-      "primaryRole": "adapter",
+      "file": "src/capabilities/text-input/schema.ts",
+      "lines": 546,
+      "fileType": "schema/type",
+      "overLimitBy": 46,
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "callOpenAiCompatible",
-        "createOpenAiCompatibleRuntimePort"
+        "validateTextInputRuntimeProofSuccessRequirements"
       ],
       "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     }
   ]
 }

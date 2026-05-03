@@ -1,9 +1,10 @@
-import type { AbilityTransportResult, AiTransportResult, HumanCommandTransportResult } from "../shared/nerve-bus-result.js";
+import type { AbilityTransportResult, AiTransportResult, HumanCommandTransportResult, NerveBusMirroredTransportResult } from "../shared/nerve-bus-result.js";
 
 export type NerveBusStoredTransportResult =
   | AbilityTransportResult
   | AiTransportResult
-  | HumanCommandTransportResult;
+  | HumanCommandTransportResult
+  | NerveBusMirroredTransportResult;
 
 export type NerveBusIdempotencyReservation = "reserved" | "duplicate_cached" | "duplicate_in_flight";
 

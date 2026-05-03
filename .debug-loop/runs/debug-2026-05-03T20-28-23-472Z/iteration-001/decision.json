@@ -1,0 +1,23 @@
+{
+  "debugSessionId": "debug-2026-05-03T20-28-23-472Z",
+  "iteration": 1,
+  "decision": "CONTINUE",
+  "reason": "          \"lawId\": \"GRASSEYE-CODE-PURITY-003-V1\",",
+  "stageTrail": [
+    "PRECHECK",
+    "LOAD_SCENARIO",
+    "GIT_GUARD_BEFORE",
+    "MAP_RESOLVE",
+    "AUTH_PRECHECK",
+    "PUBLISH_TASK",
+    "RUN_SCENARIO",
+    "COLLECT_LOGS",
+    "INDEX_LOGS",
+    "CLASSIFY_FAILURE",
+    "ROUTE_OWNER",
+    "BUILD_REPAIR_PACKET",
+    "DECIDE_NEXT"
+  ],
+  "scenarioStatus": "FAIL",
+  "verificationResult": null
+}

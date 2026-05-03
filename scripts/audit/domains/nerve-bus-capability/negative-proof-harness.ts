@@ -4,6 +4,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { LAW_IDS } from "./config.js";
 
 type Mutation = {
   name: string;
@@ -23,22 +24,34 @@ const MUTATIONS: Mutation[] = [
     replace: 'export { listNerveBusChildren } from "./registry.js";\nexport * from "./schema.js";',
   },
   {
-    name: "input gate bypass mutation",
-    file: "src/capabilities/nerve-bus/runtime/nerve-bus-executor.ts",
-    search: "const inputGate = enforceEnvelopeInputGate({ envelope: input.envelope, registryEntry: input.registryEntry });",
-    replace: "const inputGate = { ok: true } as const;",
+    name: "commander bypass mutation",
+    file: "src/lib/local-runtime/workbench-commander-command-transport.ts",
+    search: "    const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(await buildHumanCommandDispatchInput(runtime, command));",
+    replace: "    const transport = await runtime.orchestrationAbilityGroup.executeMissionControlCommand(command as never);",
   },
   {
-    name: "timeout relabel mutation",
-    file: "src/capabilities/nerve-bus/runtime/transport-runner.ts",
-    search: 'handlerDecision: "timed_out",',
-    replace: 'handlerDecision: "missing_handler",',
+    name: "review transport bypass mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
+    search: "    const transport = await nerveBus.dispatchCommanderMessage({",
+    replace: "    const transport = await nerveBus.requestAi({",
   },
   {
-    name: "proof drop mutation",
+    name: "ai contract drift mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
+    search: "    promptContractVersion: input.promptContractVersion,",
+    replace: "    promptVersion: input.promptContractVersion,",
+  },
+  {
+    name: "default injection mutation",
+    file: "src/lib/local-runtime/workbench-human-command-dispatch.ts",
+    search: "    targetRecordRef: command.targetRecordRef?.recordId ?? null,",
+    replace: "    targetRecordRef: command.targetRecordRef?.recordId ?? \"record:default\",",
+  },
+  {
+    name: "proof chain drop mutation",
     file: "src/capabilities/nerve-bus/runtime/transport-proof-builder.ts",
-    search: "    queueDecision: input.queueDecision,",
-    replace: "    queueState: input.queueDecision,",
+    search: "  activationSnapshotRef: envelope.activationSnapshotRef,",
+    replace: "  activationSnapshotRefLegacy: envelope.activationSnapshotRef,",
   },
 ];
 
@@ -93,7 +106,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   return {
     findings: [
       createFinding({
-        lawId: "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1",
+        lawId: LAW_IDS.ENFORCEMENT,
         file: INSPECTOR_ENTRY,
         line: 1,
         severity: "fatal",
@@ -122,7 +135,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Nerve Bus negative-proof harness rejects export-star escape, gate bypass, timeout relabeling, and proof dropping mutations.");
+    return createPassResult("Nerve Bus negative-proof harness rejects export-star escape, commander/review bypass, AI contract drift, default injection, and proof chain dropping mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Nerve Bus negative-proof harness failed.",

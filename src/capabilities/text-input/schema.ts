@@ -12,6 +12,7 @@ import {
   TEXT_INPUT_COMMIT_KEYS,
   TEXT_INPUT_KEYS,
   TEXT_INPUT_TARGET_KINDS,
+  buildStableTextInputRef,
 } from "./shared/text-input-types.js";
 
 const nullableString = z.string().min(1).nullable().optional().default(null);
@@ -63,6 +64,7 @@ const TextInputOutputBoundaryDecisionSchema = z.enum(TEXT_INPUT_OUTPUT_BOUNDARY_
 const TextInputSourceOwnerSchema = z.enum(TEXT_INPUT_SOURCE_OWNERS);
 const TextInputTargetProofOwnerSchema = z.enum(TEXT_INPUT_TARGET_PROOF_OWNERS);
 const TextInputFocusProofOwnerSchema = z.enum(TEXT_INPUT_FOCUS_PROOF_OWNERS);
+const TEXT_INPUT_WRITE_CHILD_CAPABILITY_IDS = new Set(["type-text", "paste-text", "replace-input"]);
 
 const TextInputMaxLengthPolicySchema = z.object({
   maxLength: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.maxLengthPolicy.maxLength),
@@ -127,15 +129,30 @@ const TextInputPolicySchema = z.object({
 
 const TextInputBaseSchema = z.object({
   abilityGroupId: z.literal(TEXT_INPUT_ABILITY_GROUP_ID).default(TEXT_INPUT_ABILITY_GROUP_ID),
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: z.string().min(1),
+  mapPackageId: z.string().min(1),
+  mapPackageVersion: z.string().min(1),
+  selectedMapId: z.string().min(1),
+  selectedMapVersion: z.string().min(1),
+  activationId: z.string().min(1),
+  activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
   requestedBy: z.string().min(1),
   purpose: z.string().min(1),
-  sourceAbilityGroupId: nullableString,
-  sourceChildCapabilityId: nullableString,
-  sourceOwner: TextInputSourceOwnerSchema.nullable().default(null),
-  sourceProofRef: nullableString,
+  sourceAbilityGroupId: z.string().min(1),
+  sourceChildCapabilityId: z.string().min(1),
+  sourceOwner: TextInputSourceOwnerSchema,
+  sourceProofRef: z.string().min(1),
+  sourceRef: z.string().min(1),
+  inputRef: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+  inputTargetRef: z.string().min(1),
   targetRef: z.string().min(1),
   targetProofRef: z.string().min(1),
   targetProofOwner: TextInputTargetProofOwnerSchema,
@@ -160,6 +177,8 @@ const GovernedWriteFieldsSchema = z.object({
   approvedText: z.string().min(1),
   approvedTextRef: z.string().min(1),
   approvedTextHash: hashString,
+  approvedTextSourceRef: z.string().min(1),
+  approvedTextApprovalRef: z.string().min(1),
   approvedCommitRef: nullableString,
   key: z.null().optional().default(null),
 }).strict();
@@ -180,6 +199,8 @@ const ClearInputAbilityInputSchema = TextInputBaseSchema.extend({
   approvedText: z.null().optional().default(null),
   approvedTextRef: z.null().optional().default(null),
   approvedTextHash: z.null().optional().default(null),
+  approvedTextSourceRef: z.null().optional().default(null),
+  approvedTextApprovalRef: z.null().optional().default(null),
   approvedCommitRef: z.null().optional().default(null),
   key: z.null().optional().default(null),
 }).strict();
@@ -196,6 +217,8 @@ const PressKeyAbilityInputSchema = TextInputBaseSchema.extend({
   approvedText: z.null().optional().default(null),
   approvedTextRef: z.null().optional().default(null),
   approvedTextHash: z.null().optional().default(null),
+  approvedTextSourceRef: z.null().optional().default(null),
+  approvedTextApprovalRef: z.null().optional().default(null),
   approvedCommitRef: z.null().optional().default(null),
   key: TextInputKeySchema,
 }).strict();
@@ -208,6 +231,8 @@ const CommitInputAbilityInputSchema = TextInputBaseSchema.extend({
   approvedText: z.null().optional().default(null),
   approvedTextRef: z.null().optional().default(null),
   approvedTextHash: z.null().optional().default(null),
+  approvedTextSourceRef: z.null().optional().default(null),
+  approvedTextApprovalRef: z.null().optional().default(null),
   approvedCommitRef: z.string().min(1),
   key: TextInputCommitKeySchema,
 }).strict();
@@ -229,16 +254,28 @@ const TextInputClockSchema = z.object({
 
 const TextInputRuntimeProofSchema = z.object({
   proofId: z.string().min(1),
-  runId: z.string().min(1),
+  missionId: nullableString,
+  runId: nullableString,
   sessionId: z.string().min(1).nullable().default(null),
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationId: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   abilityGroupId: z.literal(TEXT_INPUT_ABILITY_GROUP_ID),
   childCapabilityId: TextInputChildCapabilityIdSchema.nullable().default(null),
   sourceAbilityGroupId: nullableString,
   sourceChildCapabilityId: nullableString,
   sourceOwner: TextInputSourceOwnerSchema.nullable().default(null),
   sourceProofRef: nullableString,
+  sourceRef: nullableString,
+  idempotencyKey: nullableString,
   inputRef: z.string().min(1),
   outputRef: z.string().min(1).nullable().default(null),
   diagnosticPayloadRef: z.string().min(1).nullable().default(null),
@@ -254,9 +291,12 @@ const TextInputRuntimeProofSchema = z.object({
   inputTextHash: hashString.nullable().default(null),
   approvedTextRef: nullableString,
   approvedTextHash: hashString.nullable().default(null),
+  approvedTextSourceRef: nullableString,
+  approvedTextApprovalRef: nullableString,
   typedTextHash: hashString.nullable().default(null),
   keySequenceHash: hashString.nullable().default(null),
   approvedCommitRef: nullableString,
+  inputTargetRef: nullableString,
   targetRef: nullableString,
   targetProofRef: nullableString,
   targetProofOwner: TextInputTargetProofOwnerSchema.nullable().default(null),
@@ -266,9 +306,9 @@ const TextInputRuntimeProofSchema = z.object({
   geometryGuardProofRef: nullableString,
   mouseClickProofRef: nullableString,
   postActionFocusVerificationRef: nullableString,
-  targetKind: TextInputTargetKindSchema,
+  targetKind: TextInputTargetKindSchema.nullable().default(null),
   targetEvidenceRefs: z.array(z.string().min(1)).default([]),
-  actionKind: TextInputChildCapabilityIdSchema,
+  actionKind: TextInputChildCapabilityIdSchema.nullable().default(null),
   key: z.union([TextInputKeySchema, TextInputCommitKeySchema]).nullable().default(null),
   textLength: nonNegativeInt,
   policyDecision: TextInputPolicyDecisionSchema,
@@ -329,9 +369,21 @@ const TextInputAbilityResultSchema = z.object({
   abilityGroupId: z.literal(TEXT_INPUT_ABILITY_GROUP_ID),
   childCapabilityId: TextInputChildCapabilityIdSchema.nullable().default(null),
   status: TextInputStatusSchema,
+  missionId: nullableString,
+  runId: nullableString,
   sessionId: z.string().min(1).nullable().default(null),
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationId: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
+  sourceRef: nullableString,
   attemptRef: z.string().min(1),
   output: TextInputSuccessOutputSchema.nullable().default(null),
   diagnosticPayloadRef: z.string().min(1).nullable().default(null),
@@ -350,6 +402,59 @@ const TextInputAbilityResultSchema = z.object({
 
 type TextInputRuntimeProofValue = z.infer<typeof TextInputRuntimeProofSchema>;
 type TextInputAbilityResultValue = z.infer<typeof TextInputAbilityResultSchema>;
+const SUCCESS_PROOF_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "sourceRef",
+  "idempotencyKey",
+  "inputTargetRef",
+] as const;
+const RESULT_PROOF_PARITY_FIELDS = [
+  "missionId",
+  "runId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+  "sourceRef",
+] as const;
+
+type SuccessProofChainField = (typeof SUCCESS_PROOF_CHAIN_FIELDS)[number];
+type ResultProofParityField = (typeof RESULT_PROOF_PARITY_FIELDS)[number];
+
+function addMissingRuntimeProofFieldIssue(
+  value: TextInputRuntimeProofValue,
+  context: z.RefinementCtx,
+  field: SuccessProofChainField,
+): void {
+  if (value[field] === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: `${field} is required for successful runtime proof`, path: [field] });
+  }
+}
+
+function addResultRuntimeProofParityIssue(
+  value: TextInputAbilityResultValue,
+  context: z.RefinementCtx,
+  field: ResultProofParityField,
+): void {
+  if (value[field] !== value.runtimeProof[field]) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${field} must equal result.${field}`, path: ["runtimeProof", field] });
+  }
+}
 
 function validateTextInputRuntimeProofChronology(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
   if (value.startedAt > value.endedAt) {
@@ -360,6 +465,10 @@ function validateTextInputRuntimeProofChronology(value: TextInputRuntimeProofVal
 function validateTextInputRuntimeProofSuccessRequirements(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
   if (value.status !== "success") {
     return;
+  }
+
+  for (const field of SUCCESS_PROOF_CHAIN_FIELDS) {
+    addMissingRuntimeProofFieldIssue(value, context, field);
   }
 
   if (value.outputRef === null) {
@@ -373,6 +482,23 @@ function validateTextInputRuntimeProofSuccessRequirements(value: TextInputRuntim
   }
   if (value.postActionVerificationHandoffRef === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
+  }
+  if (value.actionKind === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionKind", path: ["actionKind"] });
+  }
+  if (value.targetKind === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires targetKind", path: ["targetKind"] });
+  }
+  if (value.runId === buildStableTextInputRef("text-input-run", [value.attemptRef])) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtime proof runId must come from input, not attemptRef", path: ["runId"] });
+  }
+  if (value.actionKind !== null && TEXT_INPUT_WRITE_CHILD_CAPABILITY_IDS.has(value.actionKind)) {
+    if (value.approvedTextSourceRef === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires approvedTextSourceRef for write children", path: ["approvedTextSourceRef"] });
+    }
+    if (value.approvedTextApprovalRef === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires approvedTextApprovalRef for write children", path: ["approvedTextApprovalRef"] });
+    }
   }
 }
 
@@ -402,6 +528,9 @@ function validateTextInputAbilityResultOutputRequirements(value: TextInputAbilit
 }
 
 function validateTextInputAbilityResultRuntimeProofRequirements(value: TextInputAbilityResultValue, context: z.RefinementCtx): void {
+  for (const field of RESULT_PROOF_PARITY_FIELDS) {
+    addResultRuntimeProofParityIssue(value, context, field);
+  }
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }

@@ -24,6 +24,12 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/u, "");
 }
 
+function isIgnorablePermissionError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error
+    && "code" in error
+    && ["EPERM", "ENOTSUP", "EROFS", "EINVAL"].includes(String(error.code ?? ""));
+}
+
 function maskApiKey(apiKey: string): string {
   const suffix = apiKey.slice(-4);
   return suffix ? `••••${suffix}` : "••••";
@@ -69,8 +75,12 @@ async function ensureConfigParent(path: string): Promise<void> {
 async function lockFilePermissions(path: string): Promise<void> {
   try {
     await chmod(path, 0o600);
-  } catch {
-    // Best effort only. Some filesystems ignore chmod semantics.
+  } catch (error) {
+    if (isIgnorablePermissionError(error)) {
+      return;
+    }
+
+    throw error;
   }
 }
 

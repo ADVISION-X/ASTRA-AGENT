@@ -4,6 +4,7 @@ export type WorkbenchMapChain = {
   mapPackageId: string | null;
   mapPackageVersion: string | null;
   selectedMapVersion: string | null;
+  activationId: string | null;
   activationSnapshotRef: string | null;
 };
 
@@ -13,6 +14,7 @@ export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
       mapPackageId: null,
       mapPackageVersion: null,
       selectedMapVersion: null,
+      activationId: null,
       activationSnapshotRef: null,
     };
   }
@@ -22,6 +24,7 @@ export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
     mapPackageId: record?.packageId ?? null,
     mapPackageVersion: record?.packageVersion ?? null,
     selectedMapVersion: record?.mapVersion ?? null,
+    activationId: record?.activationId ?? null,
     activationSnapshotRef: record?.activationSnapshotRef ?? null,
   };
 };

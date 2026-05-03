@@ -1,4 +1,4 @@
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
@@ -13,7 +13,7 @@ const buildCommanderMapChain = (mapId: string | null | undefined) => {
     };
   }
 
-  const record = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+  const record = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
   return {
     mapPackageId: record?.packageId ?? null,
     mapPackageVersion: record?.packageVersion ?? null,

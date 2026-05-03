@@ -13,8 +13,14 @@ const OWNER_PATTERNS = [
   ["text-input", /text-input/i],
   ["post-action-verification", /post-action-verification/i],
   ["forensics-persistence", /forensics-persistence/i],
-  ["map-plugin-package", /map-plugin-package|taskTemplateId|activationSnapshotRef|selectedMapId|promptBindings/i],
+  ["map-plugin-package", /map-plugin-package|taskTemplateId|promptBindings|validationReportRef|humanApprovalRef/i],
   ["audit-system", /audit|law|inspector|code-purity/i],
+];
+
+const OWNER_SOURCE_HINTS = [
+  ["audit-system", /audit-build|owner-audit|runner-summary|law-registry|enforcement-matrix|audit-plan/i],
+  ["map-plugin-package", /map-resolver|validationReportRef|humanApprovalRef|promptBindings/i],
+  ["orchestration", /runtime-recheck/i],
 ];
 
 const LAW_AND_AUDIT_RULES = [
@@ -28,6 +34,19 @@ export function collectEvidenceRefs(signals = [], limit = 5) {
 }
 
 function findOwner(logIndex, fallbackOwner = "debug-loop-controller") {
+  const fatalSource = `${logIndex.firstFatal?.source ?? ""} ${logIndex.firstFatal?.text ?? ""}`;
+  for (const [ownerId, pattern] of OWNER_SOURCE_HINTS) {
+    if (pattern.test(fatalSource)) {
+      return ownerId;
+    }
+  }
+
+  for (const [ownerId, pattern] of OWNER_PATTERNS) {
+    if (pattern.test(fatalSource)) {
+      return ownerId;
+    }
+  }
+
   const texts = (logIndex.ownerSignals ?? []).map((signal) => signal.text ?? "");
   for (const [ownerId, pattern] of OWNER_PATTERNS) {
     if (texts.some((text) => pattern.test(text))) {

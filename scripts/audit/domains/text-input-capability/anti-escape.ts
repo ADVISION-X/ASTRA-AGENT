@@ -112,11 +112,17 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
   if (!fullText.includes("AbortController")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must own AbortController." }));
   }
+  if (!fullText.includes("abortSignal: abortController.signal")) {
+    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must pass abortController.signal into the execution port call." }));
+  }
   if (!fullText.includes("Promise.race")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must use Promise.race for timeout and abort enforcement." }));
   }
   if (!fullText.includes("text input primitive timed out")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must preserve hard timeout enforcement." }));
+  }
+  if (fullText.includes("for (let retry =") || fullText.includes("retry += 1")) {
+    findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must not reintroduce retry loops." }));
   }
   if (fullText.includes("[\"execute\"]") || fullText.includes("['execute']")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must not hide execution behind computed property access." }));

@@ -1,6 +1,6 @@
 import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
 import { createLocalAiRuntimePort, type LocalAiRuntimePortOptions } from "./local-ai-runtime-adapter.js";
-import { createOpenAiCompatibleRuntimePort } from "./openai-compatible-runtime-adapter.js";
+import { createExternalProviderRuntimePort } from "./external-provider-runtime-adapter.js";
 import { routeAiTaskToChild } from "../task-router.js";
 
 function mergeRuntimeHealth(primary: Awaited<ReturnType<AiRuntimePort["getRuntimeHealth"]>>, secondary: Awaited<ReturnType<AiRuntimePort["getRuntimeHealth"]>>) {
@@ -22,7 +22,7 @@ export function createProviderAwareAiRuntimePort(input: ProviderAwareAiRuntimeIn
   const localRuntime = input.emitDebugEvent
     ? createLocalAiRuntimePort({ emitDebugEvent: input.emitDebugEvent })
     : createLocalAiRuntimePort();
-  const externalRuntime = createOpenAiCompatibleRuntimePort({ dataDir: input.dataDir ?? null });
+  const externalRuntime = createExternalProviderRuntimePort({ dataDir: input.dataDir ?? null });
 
   return {
     async execute(request, options) {

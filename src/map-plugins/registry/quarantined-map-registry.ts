@@ -4,6 +4,8 @@ import type { MapPackage } from "../shared/map-package-types.js";
 export type QuarantinedMapRecord = {
   importedAt: string;
   importedBy: string;
+  importProofRef: string;
+  quarantineProofRef: string;
   mapPackage: MapPackage;
   validationIssues: MapPackageValidationIssue[];
 };

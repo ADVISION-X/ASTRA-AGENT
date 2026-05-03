@@ -1,0 +1,92 @@
+{
+  "debugSessionId": "debug-2026-05-03T20-30-49-789Z",
+  "iteration": 1,
+  "decision": "CONTINUE",
+  "reason": "src/capabilities/nerve-bus/runtime/transport-success-result.ts(12,3): error TS1131: Property or signature expected.",
+  "stageTrail": [
+    "PRECHECK",
+    "LOAD_SCENARIO",
+    "GIT_GUARD_BEFORE",
+    "MAP_RESOLVE",
+    "AUTH_PRECHECK",
+    "PUBLISH_TASK",
+    "RUN_SCENARIO",
+    "RUN_VERIFIER",
+    "COLLECT_LOGS",
+    "INDEX_LOGS",
+    "CLASSIFY_FAILURE",
+    "ROUTE_OWNER",
+    "BUILD_REPAIR_PACKET",
+    "DECIDE_NEXT"
+  ],
+  "scenarioStatus": "PASS",
+  "verificationResult": {
+    "auditBuild": "PASS",
+    "ownerAuditRequired": false,
+    "ownerAudit": "MISSING",
+    "negativeProof": "PASS",
+    "ciFull": "FAIL",
+    "runtimeScenario": "PASS",
+    "runtimeScenarioPayload": {
+      "status": "PASS",
+      "scenarioId": "facebook-auth-check",
+      "successSignals": [
+        "authStatus=AUTH_OK",
+        "pageState=platform_ready"
+      ],
+      "blockingSignals": [],
+      "authStatus": "AUTH_OK",
+      "pageState": "platform_ready",
+      "browserSession": {
+        "browserMode": "real_chrome_persistent",
+        "browserProfileRef": "facebook-web:persistent-local-profile",
+        "browserExecutablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "profileStatus": "logged_in",
+        "profileDirectory": "Default",
+        "profileProvisioning": "managed_default",
+        "profileVerificationStatus": "operator_verified",
+        "profileVerificationReason": "current local Chrome session reused as the governed real-platform browser",
+        "loginState": "logged_in",
+        "currentUrl": "https://www.facebook.com/reel/",
+        "lastLoginCheckAt": "2026-05-03T20:30:55.095Z",
+        "loginRequiredReason": null,
+        "reviewRequiredReason": null,
+        "open": true,
+        "currentTitle": "(10) Facebook",
+        "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+      },
+      "runtimeEvents": [],
+      "rootCause": null,
+      "command": {
+        "command": "/opt/homebrew/Cellar/node/24.4.1/bin/node",
+        "exitCode": 0,
+        "timedOut": false,
+        "failureReason": null
+      }
+    },
+    "runtimeScenarioResultPath": "/Users/nexgen/Documents/GrassEye -AI-AGENT/.debug-loop/runs/debug-2026-05-03T20-30-49-789Z/iteration-001/runtime-recheck-result.json",
+    "runnerSummaryIncludesOwner": true,
+    "hasActiveLaw": true,
+    "hasMatrixEntry": true,
+    "ownerInAuditPlan": true,
+    "missingMatrixLawIds": [],
+    "missingAuditPlanLawIds": [],
+    "missingP0P1LawCoverage": [],
+    "warningOnlyP0": false,
+    "detachedInspector": false,
+    "emptyNegativeProof": false,
+    "lawEnforcementPassed": true,
+    "auditBuildGeneratedHashesAfter": {
+      "scripts/audit/generated/audit-conflicts.generated.json": "e1b951d8a775ce5b9801e01a650e3fbbd55a3d37",
+      "scripts/audit/generated/audit-plan.generated.json": "4c4e819ccb52ea71d6bf0085471417aba6956bdc",
+      "scripts/audit/generated/code-purity-report.generated.json": "cd72869461d50271b7caaeb851e5c860adceb125",
+      "scripts/audit/generated/enforcement-matrix.generated.json": "e8e136bae6513c80e7dd1b427e2652aeae99d740",
+      "scripts/audit/generated/enforcement-matrix.generated.yaml": "e0de1ed1ca467546967d216970a1ab79080e8f02",
+      "scripts/audit/generated/law-registry.generated.json": "72c1c8dd51dde84e32921e03c6b0c8addd1eeb07",
+      "scripts/audit/generated/runner-summary.json": "7524b17ed983eddfc07a023fcb2837822b7c647c",
+      "scripts/audit/generated/touched-files.generated.json": "d0ce25f9a87b287f05caff1313e41f910cedb473"
+    },
+    "remainingP0": [],
+    "verdict": "NOT_PASS"
+  }
+}

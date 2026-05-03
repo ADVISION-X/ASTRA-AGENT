@@ -15,6 +15,18 @@ export function validateFocusProof(input: { request: ParsedTextInputAbilityInput
     };
   }
 
+  if (input.request.focusProofOwner === "mouse-click" && input.request.mouseClickProofRef === null) {
+    return {
+      ok: false as const,
+      status: "failed" as const,
+      failureReason: "focus_binding_invalid" as const,
+      reviewRequiredReason: null,
+      statusMessage: "Text Input requires mouseClickProofRef when focusProofOwner is mouse-click.",
+      policyDecision: "block" as const,
+      dataQualityFlags: ["mouse_click_proof_ref_missing"],
+    };
+  }
+
   const focusVerifiedAtMs = Date.parse(input.request.focusVerifiedAt);
   const currentMs = Date.parse(input.currentIsoTimestamp);
   if (!Number.isFinite(focusVerifiedAtMs) || !Number.isFinite(currentMs)) {

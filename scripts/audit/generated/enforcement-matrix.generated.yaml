@@ -1,4 +1,4 @@
-generatedAt: 2026-05-03T20:00:18.955Z
+generatedAt: 2026-05-03T21:02:22.236Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -192,6 +192,7 @@ owners:
       - GRASSEYE-MAP-PLUGIN-009-V2
       - GRASSEYE-MAP-PLUGIN-010-V2
       - GRASSEYE-MAP-PLUGIN-011-V2
+      - GRASSEYE-MAP-PLUGIN-012-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md
       - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
@@ -435,13 +436,15 @@ owners:
       - config
       - hybrid
     lawIds:
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-001-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-002-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-003-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-004-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-005-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-006-V1
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-007-V1
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2
+      - GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md
     readsBlueprintFiles:

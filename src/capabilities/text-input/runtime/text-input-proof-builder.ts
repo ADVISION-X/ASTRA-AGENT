@@ -3,14 +3,27 @@ import { buildStableTextInputRef } from "../shared/text-input-types.js";
 
 export function buildTextInputRuntimeProof(input: {
   attemptRef: string;
+  missionId: string | null;
+  runId: string | null;
   childCapabilityId: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input" | null;
   sessionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationId: string | null;
+  activationSnapshotRef: string | null;
+  capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;
   sourceChildCapabilityId: string | null;
   sourceOwner: "commander-console" | "orchestration" | "ai" | "map-policy" | "human-approval" | null;
   sourceProofRef: string | null;
+  sourceRef: string | null;
+  idempotencyKey: string | null;
   inputRef: string;
   outputRef: string | null;
   diagnosticPayloadRef: string | null;
@@ -25,9 +38,12 @@ export function buildTextInputRuntimeProof(input: {
   inputTextHash: string | null;
   approvedTextRef: string | null;
   approvedTextHash: string | null;
+  approvedTextSourceRef: string | null;
+  approvedTextApprovalRef: string | null;
   typedTextHash: string | null;
   keySequenceHash: string | null;
   approvedCommitRef: string | null;
+  inputTargetRef: string | null;
   targetRef: string | null;
   targetProofRef: string | null;
   targetProofOwner: "visual-target" | "geometry-guard" | "mouse-click" | "page-state" | "post-action-verification" | null;
@@ -82,19 +98,31 @@ export function buildTextInputRuntimeProof(input: {
 
 type TextInputRuntimeProofInput = Parameters<typeof buildTextInputRuntimeProof>[0];
 
-export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRuntimeProofInput, "attemptRef" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "inputRef" | "outputRef" | "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">) {
+export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRuntimeProofInput, "attemptRef" | "missionId" | "runId" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey" | "inputRef" | "outputRef" | "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">) {
   return {
     proofId: buildStableTextInputRef("text-input-proof", [input.attemptRef]),
-    runId: buildStableTextInputRef("text-input-run", [input.attemptRef]),
+    missionId: input.missionId,
+    runId: input.runId,
     sessionId: input.sessionId,
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
+    stepId: input.stepId,
+    mapPackageId: input.mapPackageId,
+    mapPackageVersion: input.mapPackageVersion,
+    selectedMapId: input.selectedMapId,
+    selectedMapVersion: input.selectedMapVersion,
+    activationId: input.activationId,
+    activationSnapshotRef: input.activationSnapshotRef,
+    capabilityCallId: input.capabilityCallId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     abilityGroupId: "text-input",
     childCapabilityId: input.childCapabilityId,
     sourceAbilityGroupId: input.sourceAbilityGroupId,
     sourceChildCapabilityId: input.sourceChildCapabilityId,
     sourceOwner: input.sourceOwner,
     sourceProofRef: input.sourceProofRef,
+    sourceRef: input.sourceRef,
+    idempotencyKey: input.idempotencyKey,
     inputRef: input.inputRef,
     outputRef: input.outputRef,
     diagnosticPayloadRef: input.diagnosticPayloadRef,
@@ -104,7 +132,7 @@ export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRu
   };
 }
 
-export function buildTextInputRuntimeProofArtifactFields(input: Pick<TextInputRuntimeProofInput, "actionExecutionRef" | "primitiveExecutionRef" | "clearPrimitiveExecutionRef" | "writePrimitiveExecutionRef" | "operationRef" | "inputTextRef" | "inputTextHash" | "approvedTextRef" | "approvedTextHash" | "typedTextHash" | "keySequenceHash" | "approvedCommitRef">) {
+export function buildTextInputRuntimeProofArtifactFields(input: Pick<TextInputRuntimeProofInput, "actionExecutionRef" | "primitiveExecutionRef" | "clearPrimitiveExecutionRef" | "writePrimitiveExecutionRef" | "operationRef" | "inputTextRef" | "inputTextHash" | "approvedTextRef" | "approvedTextHash" | "approvedTextSourceRef" | "approvedTextApprovalRef" | "typedTextHash" | "keySequenceHash" | "approvedCommitRef">) {
   return {
     actionExecutionRef: input.actionExecutionRef,
     primitiveExecutionRef: input.primitiveExecutionRef,
@@ -115,14 +143,17 @@ export function buildTextInputRuntimeProofArtifactFields(input: Pick<TextInputRu
     inputTextHash: input.inputTextHash,
     approvedTextRef: input.approvedTextRef,
     approvedTextHash: input.approvedTextHash,
+    approvedTextSourceRef: input.approvedTextSourceRef,
+    approvedTextApprovalRef: input.approvedTextApprovalRef,
     typedTextHash: input.typedTextHash,
     keySequenceHash: input.keySequenceHash,
     approvedCommitRef: input.approvedCommitRef,
   };
 }
 
-export function buildTextInputRuntimeProofTargetFields(input: Pick<TextInputRuntimeProofInput, "targetRef" | "targetProofRef" | "targetProofOwner" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "targetKind" | "targetEvidenceRefs">) {
+export function buildTextInputRuntimeProofTargetFields(input: Pick<TextInputRuntimeProofInput, "inputTargetRef" | "targetRef" | "targetProofRef" | "targetProofOwner" | "focusProofRef" | "focusProofOwner" | "focusVerifiedAt" | "geometryGuardProofRef" | "mouseClickProofRef" | "postActionFocusVerificationRef" | "targetKind" | "targetEvidenceRefs">) {
   return {
+    inputTargetRef: input.inputTargetRef,
     targetRef: input.targetRef,
     targetProofRef: input.targetProofRef,
     targetProofOwner: input.targetProofOwner,

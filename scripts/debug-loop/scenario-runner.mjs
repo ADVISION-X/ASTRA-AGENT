@@ -19,9 +19,11 @@ function getScenarioPath(scenarioId) {
 
 export function parseScenarioRunnerArgs(argv) {
   const scenarioIndex = argv.indexOf("--scenario");
+  const mapResolutionIndex = argv.indexOf("--mapResolution");
   return {
     help: argv.includes("--help") || argv.includes("-h"),
     scenarioId: scenarioIndex === -1 ? null : argv[scenarioIndex + 1] ?? null,
+    mapResolution: mapResolutionIndex === -1 ? null : JSON.parse(argv[mapResolutionIndex + 1] ?? "null"),
   };
 }
 
@@ -72,7 +74,7 @@ if (import.meta.url === new URL(process.argv[1], "file://").href) {
     printScenarioRunnerUsage();
     process.exitCode = args.help ? 0 : 1;
   } else {
-    const result = await runScenario({ scenarioId: args.scenarioId });
+    const result = await runScenario({ scenarioId: args.scenarioId, mapResolution: args.mapResolution });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     process.exitCode = result.status === "PASS" ? 0 : result.status === "BLOCKED" ? 2 : 1;
   }

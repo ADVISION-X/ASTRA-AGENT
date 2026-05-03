@@ -1,0 +1,9 @@
+export const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map.authoring.v1";
+export const MAP_AUTHORING_PROMPT_CONTRACT_VERSION = "map.authoring.v1";
+export const MAP_AUTHORING_OUTPUT_FORMAT_VERSION = "ai.map_authoring.v1";
+export const MAP_AUTHORING_SECURITY_POLICY_REF = "policy://map-authoring/security/v1";
+export const MAP_AUTHORING_DEFAULT_PROVIDER_POLICY_REF = "provider-policy://map-authoring/unresolved";
+export const MAP_AUTHORING_PACKAGE_VERSION = "1.0.0";
+export const MAP_AUTHORING_SCHEMA_VERSION = "1";
+export const MAP_AUTHORING_MIN_GRASSEYE_VERSION = "0.1.0";
+export const MAP_AUTHORING_AUTHOR = "GrassEye AI Draft";

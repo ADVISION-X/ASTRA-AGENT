@@ -1,5 +1,5 @@
 import type { Locale } from "../../localization/dictionaries.js";
-import { getDefaultMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
+import { getDevelopmentMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
 
 import { localizeCommanderText } from "../locale.js";
 import type { CommanderConsoleMapView } from "../types.js";
@@ -23,7 +23,7 @@ function getReadinessTone(lifecycleStatus: string): CommanderConsoleMapView["rea
 }
 
 export function buildMapCatalog(locale: Locale): CommanderConsoleMapView[] {
-  return getDefaultMapPluginRegistry().listDeveloperCatalog().map((mapPackage) => ({
+  return getDevelopmentMapPluginRegistry().listDeveloperCatalog().map((mapPackage) => ({
     packageId: mapPackage.packageId,
     version: mapPackage.packageVersion,
     mapId: mapPackage.mapId,

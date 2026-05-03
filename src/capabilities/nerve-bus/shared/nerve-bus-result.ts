@@ -5,6 +5,8 @@ import type {
   AiTransportResultSchema,
   EnvelopeStatusSchema,
   HumanCommandTransportResultSchema,
+  NerveBusMirroredTransportResultSchema,
+  NerveBusTransportResultSchema,
   TransportDecisionSchema,
 } from "../schema.js";
 
@@ -13,3 +15,5 @@ export type NerveBusTransportDecision = z.infer<typeof TransportDecisionSchema>;
 export type AbilityTransportResult = z.infer<typeof AbilityTransportResultSchema>;
 export type AiTransportResult = z.infer<typeof AiTransportResultSchema>;
 export type HumanCommandTransportResult = z.infer<typeof HumanCommandTransportResultSchema>;
+export type NerveBusMirroredTransportResult = z.infer<typeof NerveBusMirroredTransportResultSchema>;
+export type NerveBusTransportResult = z.infer<typeof NerveBusTransportResultSchema>;

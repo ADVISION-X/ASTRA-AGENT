@@ -1,4 +1,5 @@
 import { loadBuiltinMapPackages } from "../builtins/index.js";
+import { approveMapPackage } from "../import/map-package-approval.js";
 import { activateMapPackage } from "../import/map-package-activation.js";
 import { importMapPackage } from "../import/map-package-importer.js";
 import { rollbackMapPackage } from "../import/map-package-rollback.js";
@@ -45,6 +46,11 @@ const toDeveloperMapPackageItem = (registry: MapPluginRegistry, mapPackage: MapP
 const shouldActivateBuiltinPackage = (builtinPackage: MapPackage): boolean =>
   builtinPackage.manifest.approvalStatus === "approved" && builtinPackage.taskTemplate.availabilityPolicy === "active";
 
+const BUILTIN_PRODUCTION_IMPORTER = "builtin-production-seed";
+const BUILTIN_DEVELOPMENT_ACTOR = "builtin-development-seed";
+
+export type MapPluginRegistryBootstrapMode = "production" | "development";
+
 export type MapPluginRegistry = {
   versions: MapPackageVersionStore;
   quarantined: QuarantinedMapRegistry;
@@ -85,30 +91,78 @@ export function MapPluginRegistry(): MapPluginRegistry {
   return createMapPluginRegistry();
 }
 
-let defaultRegistry: MapPluginRegistry | null = null;
+const registryCache = new Map<MapPluginRegistryBootstrapMode, MapPluginRegistry>();
 
-const seedBuiltinPackages = (registry: MapPluginRegistry): void => {
+const seedBuiltinQuarantine = (registry: MapPluginRegistry): void => {
   for (const builtinPackage of loadBuiltinMapPackages()) {
-    registry.importPackage(builtinPackage, "builtin-loader");
-    if (shouldActivateBuiltinPackage(builtinPackage)) {
-      registry.activatePackage(
-        builtinPackage.manifest.packageId,
-        builtinPackage.manifest.packageVersion,
-        "builtin-loader",
-        "builtin activation",
-      );
+    const imported = registry.importPackage(builtinPackage, BUILTIN_PRODUCTION_IMPORTER);
+    if (!imported.imported) {
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed quarantine import.`);
     }
   }
 };
 
-export function getDefaultMapPluginRegistry(): MapPluginRegistry {
-  if (defaultRegistry) {
-    return defaultRegistry;
+const seedBuiltinDevelopmentActivation = (registry: MapPluginRegistry): void => {
+  for (const builtinPackage of loadBuiltinMapPackages()) {
+    const imported = registry.importPackage(builtinPackage, BUILTIN_DEVELOPMENT_ACTOR);
+    if (!imported.imported) {
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development import.`);
+    }
+    if (!shouldActivateBuiltinPackage(builtinPackage)) {
+      continue;
+    }
+
+    const approved = approveMapPackage({
+      registry,
+      packageId: builtinPackage.manifest.packageId,
+      packageVersion: builtinPackage.manifest.packageVersion,
+      approvedBy: BUILTIN_DEVELOPMENT_ACTOR,
+    });
+    if (!approved.approved) {
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development approval.`);
+    }
+
+    const activated = registry.activatePackage(
+      builtinPackage.manifest.packageId,
+      builtinPackage.manifest.packageVersion,
+      BUILTIN_DEVELOPMENT_ACTOR,
+      "development builtin activation",
+    );
+    if (activated.activated === false) {
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development activation.`);
+    }
+  }
+};
+
+const createBuiltinSeededRegistry = (bootstrapMode: MapPluginRegistryBootstrapMode): MapPluginRegistry => {
+  const registry = createMapPluginRegistry();
+  if (bootstrapMode === "development") {
+    seedBuiltinDevelopmentActivation(registry);
+  } else {
+    seedBuiltinQuarantine(registry);
   }
 
-  const registry = createMapPluginRegistry();
-  seedBuiltinPackages(registry);
+  return registry;
+};
 
-  defaultRegistry = registry;
-  return defaultRegistry;
+export function getDefaultMapPluginRegistry(): MapPluginRegistry {
+  const cached = registryCache.get("production");
+  if (cached) {
+    return cached;
+  }
+
+  const registry = createBuiltinSeededRegistry("production");
+  registryCache.set("production", registry);
+  return registry;
+}
+
+export function getDevelopmentMapPluginRegistry(): MapPluginRegistry {
+  const cached = registryCache.get("development");
+  if (cached) {
+    return cached;
+  }
+
+  const registry = createBuiltinSeededRegistry("development");
+  registryCache.set("development", registry);
+  return registry;
 }

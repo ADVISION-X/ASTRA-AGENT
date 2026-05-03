@@ -21,7 +21,7 @@ const buildApprovedTextGateFailureResult = (input: {
 }) => ({
   ok: false as const,
   status: input.status ?? "failed" as const,
-  failureReason: input.failureReason as "input_text_required" | "input_text_ref_required" | "missing_approved_text" | "approved_text_ref_required" | "input_text_hash_mismatch" | "approved_text_hash_mismatch" | "approved_text_chain_mismatch" | "text_too_long",
+  failureReason: input.failureReason as "input_text_required" | "input_text_ref_required" | "missing_approved_text" | "approved_text_ref_required" | "approved_text_source_ref_required" | "approved_text_approval_ref_required" | "input_text_hash_mismatch" | "approved_text_hash_mismatch" | "approved_text_chain_mismatch" | "text_too_long",
   reviewRequiredReason: input.reviewRequiredReason ?? null,
   policyDecision: input.policyDecision ?? "block" as const,
   statusMessage: input.statusMessage,
@@ -62,6 +62,22 @@ const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInpu
       failureReason: "approved_text_ref_required",
       statusMessage: "Text Input requires approvedTextRef for the selected child capability.",
       dataQualityFlag: "approved_text_ref_required",
+    });
+  }
+
+  if (!input.request.approvedTextSourceRef || input.request.approvedTextSourceRef.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "approved_text_source_ref_required",
+      statusMessage: "Text Input requires approvedTextSourceRef for the selected child capability.",
+      dataQualityFlag: "approved_text_source_ref_required",
+    });
+  }
+
+  if (!input.request.approvedTextApprovalRef || input.request.approvedTextApprovalRef.length === 0) {
+    return buildApprovedTextGateFailureResult({
+      failureReason: "approved_text_approval_ref_required",
+      statusMessage: "Text Input requires approvedTextApprovalRef for the selected child capability.",
+      dataQualityFlag: "approved_text_approval_ref_required",
     });
   }
 

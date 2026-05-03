@@ -45,7 +45,7 @@ export function getExternalImportsWithPrefix(project: Project, targetPrefix: str
 }
 
 export function getSchemaChannelIds(project: Project): string[] {
-  const schemaSource = getSourceFile(project, PATHS.SCHEMA);
+  const schemaSource = getSourceFile(project, PATHS.SCHEMA) ?? getSourceFile(project, `${PATHS.ROOT}/schema-foundation.schema.ts`);
   return schemaSource ? getZodEnumValues(schemaSource, "NerveBusChannelIdSchema") : [];
 }
 

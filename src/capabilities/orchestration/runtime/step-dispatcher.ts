@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
+import { getDefaultMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { ensurePostActionVerificationDispatchGate } from "./orchestration-post-action-verification.js";
@@ -29,6 +30,89 @@ type AbilityDispatchInput = {
 
 type AbilityDispatchTarget = Exclude<AbilityStep["targetAbilityGroupId"], null | "ai">;
 
+type DispatchChain = {
+  runId: string;
+  sessionId: string;
+  roundId: string;
+  videoVisitId: string | null;
+  mapPackageId: string;
+  mapPackageVersion: string;
+  selectedMapVersion: string;
+  activationId: string;
+  activationSnapshotRef: string;
+};
+
+const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; value: DispatchChain } | { ok: false; failureReason: string } => {
+  if (!state.activeTaskRunId) {
+    return { ok: false, failureReason: `Step "${stepId}" cannot dispatch without activeTaskRunId.` };
+  }
+
+  if (!state.missionId || !state.mapPackageId || !state.mapPackageVersion || !state.selectedMapVersion || !state.activationId || !state.activationSnapshotRef) {
+    return { ok: false, failureReason: `Step "${stepId}" is missing frozen activation chain fields.` };
+  }
+
+  return {
+    ok: true,
+    value: {
+      runId: state.activeTaskRunId,
+      sessionId: state.missionId,
+      roundId: String(state.currentRoundIndex),
+      videoVisitId: null,
+      mapPackageId: state.mapPackageId,
+      mapPackageVersion: state.mapPackageVersion,
+      selectedMapVersion: state.selectedMapVersion,
+      activationId: state.activationId,
+      activationSnapshotRef: state.activationSnapshotRef,
+    },
+  };
+};
+
+const buildAbilityOutputSchemaRef = (targetAbilityGroupId: string, childCapabilityId: string) => `${targetAbilityGroupId}.${childCapabilityId}.output`;
+
+const resolvePayloadRefValue = (
+  payloadRefs: MissionState["payloadRefs"],
+  key: string,
+): string | null => {
+  const payloadKey = key as keyof MissionState["payloadRefs"];
+  const value = payloadRefs[payloadKey];
+  return typeof value === "string" && value.length > 0 ? value : null;
+};
+
+const resolveAiDispatchRequirements = (input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: AiStep;
+}): { ok: true; value: { promptContractVersion: string; outputSchemaRef: string; aiInputRefs: string[]; providerPolicyRef: string } } | { ok: false; failureReason: string } => {
+  const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
+  if (!registration) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
+  }
+
+  const binding = registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
+  if (!binding) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
+  }
+
+  if (!input.state.promptContractVersion) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing promptContractVersion.` };
+  }
+
+  const aiInputRefs = binding.requiredInputRefs.map((key) => resolvePayloadRefValue(input.state.payloadRefs, key));
+  if (aiInputRefs.some((value) => value === null)) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from payloadRefs.` };
+  }
+
+  return {
+    ok: true,
+    value: {
+      promptContractVersion: input.state.promptContractVersion,
+      outputSchemaRef: binding.outputSchemaRef,
+      aiInputRefs: aiInputRefs as string[],
+      providerPolicyRef: `orchestration:${input.step.stepId}:provider-policy`,
+    },
+  };
+};
+
 async function dispatchReviewStep(input: {
   state: MissionState;
   map: OperationalMap;
@@ -39,11 +123,25 @@ async function dispatchReviewStep(input: {
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
   missionId: string;
 }): Promise<StepDispatchResult> {
+  const chain = resolveDispatchChain(input.state, input.step.stepId);
+  if (!chain.ok) {
+    return { dispatched: false, failureReason: chain.failureReason };
+  }
+
   const timeoutResult = await dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendReviewRequestToCommander({
       missionId: input.missionId,
       mapId: input.map.mapId,
       stepId: input.step.stepId,
+      runId: chain.value.runId,
+      sessionId: chain.value.sessionId,
+      roundId: chain.value.roundId,
+      videoVisitId: chain.value.videoVisitId,
+      mapPackageId: chain.value.mapPackageId,
+      mapPackageVersion: chain.value.mapPackageVersion,
+      selectedMapVersion: chain.value.selectedMapVersion,
+      activationId: chain.value.activationId,
+      activationSnapshotRef: chain.value.activationSnapshotRef,
       reason: input.reason ?? input.state.reviewRequiredReason ?? "orchestration requires human review",
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
@@ -109,12 +207,35 @@ async function dispatchAiStep(input: {
     return { dispatched: false, failureReason: `AI step "${input.step.stepId}" is missing required promptContractId.` };
   }
 
+  const chain = resolveDispatchChain(input.state, input.step.stepId);
+  if (!chain.ok) {
+    return { dispatched: false, failureReason: chain.failureReason };
+  }
+
+  const aiDispatchRequirements = resolveAiDispatchRequirements(input);
+  if (!aiDispatchRequirements.ok) {
+    return { dispatched: false, failureReason: aiDispatchRequirements.failureReason };
+  }
+
   const timeoutResult = await dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendRequestToAi({
       missionId: input.missionId,
       mapId: input.map.mapId,
       stepId: input.step.stepId,
+      runId: chain.value.runId,
+      sessionId: chain.value.sessionId,
+      roundId: chain.value.roundId,
+      videoVisitId: chain.value.videoVisitId,
+      mapPackageId: chain.value.mapPackageId,
+      mapPackageVersion: chain.value.mapPackageVersion,
+      selectedMapVersion: chain.value.selectedMapVersion,
+      activationId: chain.value.activationId,
+      activationSnapshotRef: chain.value.activationSnapshotRef,
       promptContractId: input.step.promptContractId!,
+      promptContractVersion: aiDispatchRequirements.value.promptContractVersion,
+      outputSchemaRef: aiDispatchRequirements.value.outputSchemaRef,
+      aiInputRefs: aiDispatchRequirements.value.aiInputRefs,
+      providerPolicyRef: aiDispatchRequirements.value.providerPolicyRef,
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,
@@ -157,13 +278,29 @@ function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
 }
 
 async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGroupId: AbilityDispatchTarget) {
+  const chain = resolveDispatchChain(input.state, input.step.stepId);
+  if (!chain.ok) {
+    throw new Error(chain.failureReason);
+  }
+
   return dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendCommandToAbility({
       missionId: input.missionId,
       mapId: input.map.mapId,
       stepId: input.step.stepId,
+      runId: chain.value.runId,
+      sessionId: chain.value.sessionId,
+      roundId: chain.value.roundId,
+      videoVisitId: chain.value.videoVisitId,
+      mapPackageId: chain.value.mapPackageId,
+      mapPackageVersion: chain.value.mapPackageVersion,
+      selectedMapVersion: chain.value.selectedMapVersion,
+      activationId: chain.value.activationId,
+      activationSnapshotRef: chain.value.activationSnapshotRef,
       targetAbilityGroupId,
       childCapabilityId: input.step.childCapabilityId,
+      expectedOutputSchemaRef: buildAbilityOutputSchemaRef(targetAbilityGroupId, input.step.childCapabilityId),
+      postActionVerificationRequired: input.step.postActionVerification !== null,
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,

@@ -7,6 +7,8 @@ import {
   buildMapPackageHash,
   buildOperationalMapHash,
 } from "../shared/map-package-fingerprint.js";
+import { buildActivationProofRef } from "../shared/map-package-proof.js";
+import type { QuarantinedMapRecord } from "../registry/quarantined-map-registry.js";
 
 type ActivationFailureReason = "map_not_found" | "map_validation_failed" | "map_not_approved";
 
@@ -30,11 +32,19 @@ function isActivationFailure(value: ActivationFailure | object): value is Activa
   return "activated" in value && value.activated === false;
 }
 
+function resolveAuthoringProofRef(mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>): string | null {
+  const candidate = (mapPackage.manifest as Record<string, unknown>).authoringProofRef;
+  return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
+}
+
 function resolveActivationPackage(input: {
   registry: MapPluginRegistry;
   packageId: string;
   packageVersion: string;
-}): ActivationFailure | { mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>> } {
+}): ActivationFailure | {
+  mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>;
+  quarantined: QuarantinedMapRecord;
+} {
   const quarantined = input.registry.quarantined.get(input.packageId, input.packageVersion);
   const mapPackage = input.registry.versions.get(input.packageId, input.packageVersion);
   if (!quarantined || !mapPackage) {
@@ -43,7 +53,7 @@ function resolveActivationPackage(input: {
   if (quarantined.validationIssues.length > 0) {
     return createActivationFailure("map_validation_failed");
   }
-  return { mapPackage };
+  return { mapPackage, quarantined };
 }
 
 function resolveActivationManifestRefs(mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>): ActivationFailure | ActivationManifestRefs {
@@ -67,6 +77,7 @@ function resolveActivationManifestRefs(mapPackage: NonNullable<ReturnType<MapPlu
 function buildActivationRecord(input: {
   activationId: string;
   mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>;
+  quarantined: QuarantinedMapRecord;
   approvedBy: string;
   reason: string;
   manifestRefs: ActivationManifestRefs;
@@ -78,6 +89,11 @@ function buildActivationRecord(input: {
   });
   const mapPackageHash = buildMapPackageHash(input.mapPackage);
   const operationalMapHash = buildOperationalMapHash(input.mapPackage.operationalMap);
+  const activationProofRef = buildActivationProofRef({
+    activationId: input.activationId,
+    packageId: input.mapPackage.manifest.packageId,
+    packageVersion: input.mapPackage.manifest.packageVersion,
+  });
   const activationSnapshotHash = buildActivationSnapshotHash({
     activationSnapshotRef,
     mapPackageHash,
@@ -105,6 +121,10 @@ function buildActivationRecord(input: {
     promptCatalogVersion: input.manifestRefs.promptCatalogVersion,
     operationalMapHash,
     mapPackageHash,
+    importProofRef: input.quarantined.importProofRef,
+    quarantineProofRef: input.quarantined.quarantineProofRef,
+    activationProofRef,
+    authoringProofRef: resolveAuthoringProofRef(input.mapPackage),
   };
 }
 
@@ -128,6 +148,7 @@ export function activateMapPackage(input: {
   const activationRecord = buildActivationRecord({
     activationId: randomUUID(),
     mapPackage: activationPackage.mapPackage,
+    quarantined: activationPackage.quarantined,
     approvedBy: input.approvedBy,
     reason: input.reason,
     manifestRefs,
