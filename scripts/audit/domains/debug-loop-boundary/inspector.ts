@@ -147,7 +147,7 @@ const collectScenarioFindings = async (scenarioFiles: string[]): Promise<Finding
     }
     for (const [key, nested] of Object.entries(value)) {
       const nextTrail = [...trail, key];
-      if (FORBIDDEN_SCENARIO_FIELDS.has(key)) findings.push(buildFinding("GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1", file, 1, `Scenario must not contain forbidden field ${key}.`, nextTrail.join(".")));
+      if (FORBIDDEN_SCENARIO_FIELDS.has(key)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1", file, line: 1, message: `Scenario must not contain forbidden field ${key}.`, detail: nextTrail.join(".") }));
       visit(file, nested, nextTrail);
     }
   };

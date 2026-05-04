@@ -11,6 +11,7 @@ type Mutation = {
   search: string;
   replace: string;
   expectedNeedle: string;
+  skipBuild?: boolean;
 };
 
 type InspectorProcessResult = {
@@ -23,6 +24,8 @@ const LAW_ID = "GRASSEYE-AUDIT-SYSTEM-001-V1";
 const INSPECTOR_ENTRY = "scripts/audit/domains/audit-system/inspector.ts";
 const RUN_INSPECTOR_ENTRY = "scripts/audit/domains/audit-system/run-inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF";
+const SKIP_CODE_PURITY_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF";
+const SKIP_AUDIT_SYSTEM_CODE_PURITY_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
 
 const MUTATIONS: Mutation[] = [
   {
@@ -31,13 +34,15 @@ const MUTATIONS: Mutation[] = [
     search: "    validateNegativeProofWiring(context),",
     replace: "    validateOwnedLawExecution(context),",
     expectedNeedle: "Audit-system inspector must execute validateNegativeProofWiring inside its Promise.all owner chain.",
+    skipBuild: true,
   },
   {
     name: "phase gate audit-system removal mutation",
     file: "scripts/audit/phase-gates/phase-04-full-enforcement.json",
-    search: "    \"audit-system\",",
-    replace: "    \"agent-runtime\",",
+    search: "\"audit-system\",",
+    replace: "\"agent-runtime\",",
     expectedNeedle: "Current phase gate must keep audit-system active.",
+    skipBuild: true,
   },
   {
     name: "generated artifact hand-edit mutation",
@@ -45,6 +50,7 @@ const MUTATIONS: Mutation[] = [
     search: "  \"phase\": \"phase-04-full-enforcement\",",
     replace: "  \"phase\": \"phase-04-hand-edited\",",
     expectedNeedle: "Generated artifact content drifted away from the rebuild output; generated files must not be hand-edited.",
+    skipBuild: true,
   },
   {
     name: "negative-proof invocation removed mutation",
@@ -52,19 +58,22 @@ const MUTATIONS: Mutation[] = [
     search: "      : runNegativeProofHarness(),",
     replace: "      : Promise.resolve({ findings: [], phase: { name: \"negative-proof-harness\", classification: \"PASS\" as const, passed: true, summary: \"negative-proof removed by mutation\" } }),",
     expectedNeedle: "Audit-system inspector must invoke and report the negative-proof harness.",
+    skipBuild: true,
   },
 ];
 
-function runInspectorProcess(): InspectorProcessResult {
+function runInspectorProcess(skipBuild = false): InspectorProcessResult {
   const result = spawnSync(
     "node",
-    ["--import", "tsx", RUN_INSPECTOR_ENTRY],
+    ["--import", "tsx", RUN_INSPECTOR_ENTRY, ...(skipBuild ? ["--skip-build"] : [])],
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
       env: {
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
+        [SKIP_CODE_PURITY_NEGATIVE_PROOF_ENV]: "1",
+        [SKIP_AUDIT_SYSTEM_CODE_PURITY_ENV]: "1",
         TSX_DISABLE_CACHE: "1",
       },
     },
@@ -85,7 +94,7 @@ async function mutateAndVerify(mutation: Mutation, baseline: InspectorProcessRes
   await applyAuditMutation(filePath, state.original, mutation);
 
   try {
-    const failRun = runInspectorProcess();
+    const failRun = runInspectorProcess(mutation.skipBuild);
     const combinedOutput = formatInspectorOutput(failRun);
     if (failRun.status === 0) {
       throw new Error(`Mutation ${mutation.name} did not fail inspector as expected.\n${combinedOutput}`);
@@ -97,7 +106,7 @@ async function mutateAndVerify(mutation: Mutation, baseline: InspectorProcessRes
     await restoreAuditFileState(filePath, state);
   }
 
-  const rollbackRun = runInspectorProcess();
+  const rollbackRun = runInspectorProcess(mutation.skipBuild);
   if (rollbackRun.status !== baseline.status || formatInspectorOutput(rollbackRun) !== formatInspectorOutput(baseline)) {
     throw new Error(`Mutation ${mutation.name} did not restore the baseline inspector result after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
   }
@@ -129,7 +138,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const baseline = runInspectorProcess();
+    const baseline = runInspectorProcess(true);
     const baselineOutput = formatInspectorOutput(baseline);
 
     if (MUTATIONS.some((mutation) => baselineOutput.includes(mutation.expectedNeedle))) {

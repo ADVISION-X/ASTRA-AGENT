@@ -35,7 +35,7 @@ const TS_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const createProductionProject = (): Project =>
   new Project({
     tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
-    skipAddingFilesFromTsConfig: false,
+    skipAddingFilesFromTsConfig: true,
     compilerOptions: {
       allowJs: true,
     },

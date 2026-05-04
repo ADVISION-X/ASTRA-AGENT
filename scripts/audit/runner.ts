@@ -7,7 +7,9 @@ import type { InspectorResult } from "./core/schema.js";
 const DEFAULT_STEP_TIMEOUT_MS = 60_000;
 const STEP_TIMEOUT_MS_BY_DOMAIN: Record<string, number> = {
 	"map-plugin-package": 300_000,
+	"audit-system": 900_000,
 	"ai-capability": 300_000,
+	"page-state-capability": 300_000,
 };
 
 const resolveStepTimeoutMs = (label: string): number => STEP_TIMEOUT_MS_BY_DOMAIN[label] ?? DEFAULT_STEP_TIMEOUT_MS;

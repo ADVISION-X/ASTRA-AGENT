@@ -39,6 +39,24 @@ const FOUNDATION_LAWS = [
 
 const SUPPORT_GOVERNANCE_DOMAINS = ["map-plugin-package"] as const;
 const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
+const CURRENT_PARENT_OWNERS = [
+  ...ACTIVE_ABILITY_GROUPS.map((group) => `${group}-capability`),
+  ...FOUNDATION_LAWS,
+  "commander-console-capability",
+  "orchestration-capability",
+  "nerve-bus-capability",
+  "ai-capability",
+  "open-capability",
+  "screenshot-capability",
+  "visual-target-capability",
+  "geometry-guard-capability",
+  "mouse-click-capability",
+  "text-input-capability",
+  "mouse-scroll-capability",
+  "post-action-verification-capability",
+  "forensics-persistence-capability",
+  "page-state-capability",
+] as const;
 
 const FORBIDDEN_MACHINE_MARKERS = ["required", "forbidden", "ready"] as const;
 
@@ -115,145 +133,131 @@ const containsMachineMarkers = (sectionLines: string[]): boolean =>
     return FORBIDDEN_MACHINE_MARKERS.some((marker) => normalized.includes(marker));
   });
 
-export async function runBlueprintBaselineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const content = await readTextFile(pathFromRepoRoot(BLUEPRINT_FILE));
-  const lines = content.split("\n");
-  const frozenConclusion = parseBulletList(extractSectionLines(lines, "## 冻结结论"));
-  const activeAbilityGroups = parseOrderedList(extractSectionLines(lines, "## 14 个 active ability groups"));
-  const foundationLaws = parseOrderedList(extractSectionLines(lines, "## 5 个 foundation laws"));
-  const supportGovernanceDomains = parseOrderedList(extractSectionLines(lines, "## 1 个 support governance domain"));
-  const localDevelopmentTooling = parseBulletList(extractSectionLines(lines, "## 本地开发工具"));
-  const childContractSection = extractSectionLines(lines, "## 子契约归属表");
-  const childContractRows = parseChildContractRows(childContractSection);
+const collectFrozenConclusionFindings = (input: {
+  frozenConclusion: string[];
+  childContractRows: ChildContractRow[];
+}): Finding[] => {
+  const findings: Finding[] = [];
 
+  if (!input.frozenConclusion.includes("14 个 active ability groups")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-001", message: "Index blueprint must keep the frozen conclusion active-ability-group count at 14." }));
+  }
+  if (!input.frozenConclusion.includes("5 个 foundation laws")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-002", message: "Index blueprint must keep the frozen conclusion foundation-law count at 5." }));
+  }
+  if (!input.frozenConclusion.includes("1 个 support governance domain")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint must keep the frozen conclusion support-governance count at 1." }));
+  }
+  if (!input.frozenConclusion.includes("若干父 owner 子契约法案") || input.childContractRows.length === 0) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-004", message: "Index blueprint must keep the frozen conclusion child-contract-law statement and a non-empty child-contract table." }));
+  }
+
+  return findings;
+};
+
+const collectChildContractParentOwnerFindings = (childContractRows: ChildContractRow[]): Finding[] => {
+  const unresolvedParentOwners = childContractRows
+    .flatMap((row) => row.parentOwners)
+    .filter((parentOwner) => !CURRENT_PARENT_OWNERS.includes(parentOwner as (typeof CURRENT_PARENT_OWNERS)[number]));
+
+  return unresolvedParentOwners.length === 0
+    ? []
+    : [createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-004", message: "Index blueprint child-contract rows must resolve only to current parent owners.", detail: unresolvedParentOwners.join(", ") })];
+};
+
+const collectExactBaselineSectionFindings = (input: {
+  lines: string[];
+  activeAbilityGroups: string[];
+  foundationLaws: string[];
+  supportGovernanceDomains: string[];
+  localDevelopmentTooling: string[];
+}) => {
   const section002Findings: Finding[] = [];
   const activeSectionFindings: Finding[] = [];
   const foundationSectionFindings: Finding[] = [];
   const debugLoopFindings: Finding[] = [];
 
-  if (!frozenConclusion.includes("14 个 active ability groups")) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-001",
-      message: "Index blueprint must keep the frozen conclusion active-ability-group count at 14.",
-    }));
+  if (JSON.stringify(input.activeAbilityGroups) !== JSON.stringify(ACTIVE_ABILITY_GROUPS) || containsMachineMarkers(extractSectionLines(input.lines, "## 14 个 active ability groups"))) {
+    activeSectionFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-003-REQ-001", message: "Index blueprint active-ability-group section must keep the exact 14-group baseline and contain no extra machine rules." }));
   }
-  if (!frozenConclusion.includes("5 个 foundation laws")) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-002",
-      message: "Index blueprint must keep the frozen conclusion foundation-law count at 5.",
-    }));
+  if (JSON.stringify(input.foundationLaws) !== JSON.stringify(FOUNDATION_LAWS) || containsMachineMarkers(extractSectionLines(input.lines, "## 5 个 foundation laws"))) {
+    foundationSectionFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-004-REQ-001", message: "Index blueprint foundation-law section must keep the exact five-law baseline and contain no extra machine rules." }));
   }
-  if (!frozenConclusion.includes("1 个 support governance domain")) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003",
-      message: "Index blueprint must keep the frozen conclusion support-governance count at 1.",
-    }));
+  if (JSON.stringify(input.supportGovernanceDomains) !== JSON.stringify(SUPPORT_GOVERNANCE_DOMAINS)) {
+    section002Findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint support-governance section must keep the exact single-domain baseline." }));
   }
-  if (!frozenConclusion.includes("若干父 owner 子契约法案") || childContractRows.length === 0) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-004",
-      message: "Index blueprint must keep the frozen conclusion child-contract-law statement and a non-empty child-contract table.",
-    }));
+  if (JSON.stringify(input.localDevelopmentTooling) !== JSON.stringify(LOCAL_DEVELOPMENT_TOOLING)) {
+    debugLoopFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-006-REQ-001", message: "Index blueprint local development tooling must remain debug-loop-controller only." }));
   }
 
-  const unresolvedParentOwners = childContractRows
-    .flatMap((row) => row.parentOwners)
-    .filter((parentOwner) => ![
-      ...ACTIVE_ABILITY_GROUPS.map((group) => `${group}-capability`),
-      ...FOUNDATION_LAWS,
-      "commander-console-capability",
-      "orchestration-capability",
-      "nerve-bus-capability",
-      "ai-capability",
-      "open-capability",
-      "screenshot-capability",
-      "visual-target-capability",
-      "geometry-guard-capability",
-      "mouse-click-capability",
-      "text-input-capability",
-      "mouse-scroll-capability",
-      "post-action-verification-capability",
-      "forensics-persistence-capability",
-      "page-state-capability",
-    ].includes(parentOwner));
-  if (unresolvedParentOwners.length > 0) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-004",
-      message: "Index blueprint child-contract rows must resolve only to current parent owners.",
-      detail: unresolvedParentOwners.join(", "),
-    }));
-  }
+  return { section002Findings, activeSectionFindings, foundationSectionFindings, debugLoopFindings };
+};
 
-  if (JSON.stringify(activeAbilityGroups) !== JSON.stringify(ACTIVE_ABILITY_GROUPS) || containsMachineMarkers(extractSectionLines(lines, "## 14 个 active ability groups"))) {
-    activeSectionFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-003-REQ-001",
-      message: "Index blueprint active-ability-group section must keep the exact 14-group baseline and contain no extra machine rules.",
-    }));
-  }
+const loadBlueprintBaselineState = async () => {
+  const content = await readTextFile(pathFromRepoRoot(BLUEPRINT_FILE));
+  const lines = content.split("\n");
 
-  if (JSON.stringify(foundationLaws) !== JSON.stringify(FOUNDATION_LAWS) || containsMachineMarkers(extractSectionLines(lines, "## 5 个 foundation laws"))) {
-    foundationSectionFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-004-REQ-001",
-      message: "Index blueprint foundation-law section must keep the exact five-law baseline and contain no extra machine rules.",
-    }));
-  }
+  return {
+    lines,
+    frozenConclusion: parseBulletList(extractSectionLines(lines, "## 冻结结论")),
+    activeAbilityGroups: parseOrderedList(extractSectionLines(lines, "## 14 个 active ability groups")),
+    foundationLaws: parseOrderedList(extractSectionLines(lines, "## 5 个 foundation laws")),
+    supportGovernanceDomains: parseOrderedList(extractSectionLines(lines, "## 1 个 support governance domain")),
+    localDevelopmentTooling: parseBulletList(extractSectionLines(lines, "## 本地开发工具")),
+    childContractRows: parseChildContractRows(extractSectionLines(lines, "## 子契约归属表")),
+  };
+};
 
-  if (JSON.stringify(supportGovernanceDomains) !== JSON.stringify(SUPPORT_GOVERNANCE_DOMAINS)) {
-    section002Findings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003",
-      message: "Index blueprint support-governance section must keep the exact single-domain baseline.",
-    }));
-  }
+const createBlueprintBaselinePhase = (name: string, findings: Finding[], passMessage: string, failMessage: string): InspectorPhase => {
+  return createPhase(
+    name,
+    findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
+    findings.length === 0,
+    findings.length === 0 ? passMessage : failMessage,
+  );
+};
 
-  if (JSON.stringify(localDevelopmentTooling) !== JSON.stringify(LOCAL_DEVELOPMENT_TOOLING)) {
-    debugLoopFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-006-REQ-001",
-      message: "Index blueprint local development tooling must remain debug-loop-controller only.",
-    }));
-  }
+const buildBlueprintBaselinePhases = (input: {
+  section002Findings: Finding[];
+  activeSectionFindings: Finding[];
+  foundationSectionFindings: Finding[];
+  debugLoopFindings: Finding[];
+}): InspectorPhase[] => [
+  createBlueprintBaselinePhase("blueprint-frozen-conclusion", input.section002Findings, "Index blueprint frozen conclusion keeps the active, foundation, support, and child-contract freeze statements intact.", "Index blueprint frozen conclusion drifted away from the governed freeze statements."),
+  createBlueprintBaselinePhase("blueprint-active-ability-groups", input.activeSectionFindings, "Index blueprint active-ability-group section stays exact and contains no extra machine rules.", "Index blueprint active-ability-group section drifted away from the governed baseline."),
+  createBlueprintBaselinePhase("blueprint-foundation-laws", input.foundationSectionFindings, "Index blueprint foundation-law section stays exact and contains no extra machine rules.", "Index blueprint foundation-law section drifted away from the governed baseline."),
+  createBlueprintBaselinePhase("blueprint-local-development-tooling", input.debugLoopFindings, "Index blueprint local development tooling stays frozen at debug-loop-controller.", "Index blueprint local development tooling drifted away from debug-loop-controller."),
+];
+
+export async function runBlueprintBaselineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const state = await loadBlueprintBaselineState();
+  const section002Findings = [
+    ...collectFrozenConclusionFindings({ frozenConclusion: state.frozenConclusion, childContractRows: state.childContractRows }),
+    ...collectChildContractParentOwnerFindings(state.childContractRows),
+  ];
+  const exactBaselineSectionFindings = collectExactBaselineSectionFindings({
+    lines: state.lines,
+    activeAbilityGroups: state.activeAbilityGroups,
+    foundationLaws: state.foundationLaws,
+    supportGovernanceDomains: state.supportGovernanceDomains,
+    localDevelopmentTooling: state.localDevelopmentTooling,
+  });
 
   const findings = [
     ...section002Findings,
-    ...activeSectionFindings,
-    ...foundationSectionFindings,
-    ...debugLoopFindings,
+    ...exactBaselineSectionFindings.section002Findings,
+    ...exactBaselineSectionFindings.activeSectionFindings,
+    ...exactBaselineSectionFindings.foundationSectionFindings,
+    ...exactBaselineSectionFindings.debugLoopFindings,
   ];
 
   return {
     findings,
-    phases: [
-      createPhase(
-        "blueprint-frozen-conclusion",
-        section002Findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-        section002Findings.length === 0,
-        section002Findings.length === 0
-          ? "Index blueprint frozen conclusion keeps the active, foundation, support, and child-contract freeze statements intact."
-          : "Index blueprint frozen conclusion drifted away from the governed freeze statements.",
-      ),
-      createPhase(
-        "blueprint-active-ability-groups",
-        activeSectionFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-        activeSectionFindings.length === 0,
-        activeSectionFindings.length === 0
-          ? "Index blueprint active-ability-group section stays exact and contains no extra machine rules."
-          : "Index blueprint active-ability-group section drifted away from the governed baseline.",
-      ),
-      createPhase(
-        "blueprint-foundation-laws",
-        foundationSectionFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-        foundationSectionFindings.length === 0,
-        foundationSectionFindings.length === 0
-          ? "Index blueprint foundation-law section stays exact and contains no extra machine rules."
-          : "Index blueprint foundation-law section drifted away from the governed baseline.",
-      ),
-      createPhase(
-        "blueprint-local-development-tooling",
-        debugLoopFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-        debugLoopFindings.length === 0,
-        debugLoopFindings.length === 0
-          ? "Index blueprint local development tooling stays frozen at debug-loop-controller."
-          : "Index blueprint local development tooling drifted away from debug-loop-controller.",
-      ),
-    ],
+    phases: buildBlueprintBaselinePhases({
+      section002Findings,
+      activeSectionFindings: exactBaselineSectionFindings.activeSectionFindings,
+      foundationSectionFindings: exactBaselineSectionFindings.foundationSectionFindings,
+      debugLoopFindings: exactBaselineSectionFindings.debugLoopFindings,
+    }),
   };
 }

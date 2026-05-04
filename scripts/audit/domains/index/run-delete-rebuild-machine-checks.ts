@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type InterfaceDeclaration, type MethodSignature, type SourceFile } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -92,25 +92,27 @@ const collectCopiedChildImplementationFindings = (sourceFiles: SourceFile[]): Fi
   return findings;
 };
 
+const hasBroadPortMethod = (method: MethodSignature): boolean => {
+  const returnText = method.getReturnTypeNode()?.getText() ?? "";
+  if (["unknown", "any", "Record<string, unknown>"].includes(returnText)) {
+    return true;
+  }
+
+  return method.getParameters().some((parameter) => {
+    const parameterText = parameter.getTypeNode()?.getText() ?? "";
+    return ["unknown", "any", "Record<string, unknown>"].includes(parameterText);
+  });
+};
+
+const findBroadPortInterface = (sourceFile: SourceFile): InterfaceDeclaration | undefined => {
+  return sourceFile.getInterfaces().find((iface) => iface.getMethods().length > 5 || iface.getMethods().some(hasBroadPortMethod));
+};
+
 const collectBroadPortFindings = (sourceFiles: SourceFile[]): Finding[] => sourceFiles
   .filter((sourceFile) => toRelativeSourcePath(sourceFile).includes("/ports/"))
   .flatMap((sourceFile) => {
     const relativePath = toRelativeSourcePath(sourceFile);
-    const broadInterface = sourceFile.getInterfaces().find((iface) => {
-      if (iface.getMethods().length > 5) {
-        return true;
-      }
-      return iface.getMethods().some((method) => {
-        const returnText = method.getReturnTypeNode()?.getText() ?? "";
-        if (["unknown", "any", "Record<string, unknown>"].includes(returnText)) {
-          return true;
-        }
-        return method.getParameters().some((parameter) => {
-          const parameterText = parameter.getTypeNode()?.getText() ?? "";
-          return ["unknown", "any", "Record<string, unknown>"].includes(parameterText);
-        });
-      });
-    });
+    const broadInterface = findBroadPortInterface(sourceFile);
     return broadInterface
       ? [createRequirementFinding("K02-BLUEPRINT-02-SECTION-011-REQ-012", relativePath, broadInterface.getStartLineNumber(), "Delete-rebuild principle forbids primitive ports with broad any/unknown/Record payloads or oversized method surfaces.")]
       : [];

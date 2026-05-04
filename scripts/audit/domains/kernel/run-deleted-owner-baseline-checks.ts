@@ -20,6 +20,11 @@ type AuditPlan = {
   owners?: AuditPlanOwner[];
 };
 
+type DeletedOwnerBaselineState = {
+  deletedOwnerLines: string[];
+  auditPlanDomains: Set<string>;
+};
+
 const DELETED_OWNER_REQUIREMENTS: DeletedOwnerRequirement[] = [
   { requirementId: "K01-BLUEPRINT-01-SECTION-008-REQ-001", label: "local-data", deletedDomain: "local-data" },
   { requirementId: "K01-BLUEPRINT-01-SECTION-008-REQ-002", label: "localization", deletedDomain: "localization" },
@@ -72,51 +77,69 @@ const parseBulletSection = (content: string, heading: string): string[] => {
   return items;
 };
 
-export async function runDeletedOwnerBaselineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+const loadDeletedOwnerBaselineState = async (): Promise<DeletedOwnerBaselineState> => {
   const [blueprintContent, auditPlan] = await Promise.all([
     readTextFile(pathFromRepoRoot(kernelInspectionConstants.BLUEPRINT_FILE)),
     readJsonFile<AuditPlan>(pathFromRepoRoot("scripts/audit/generated/audit-plan.generated.json")),
   ]);
-  const deletedOwnerLines = parseBulletSection(blueprintContent, "## 已删除 active owner");
-  const auditPlanDomains = new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : []));
-  const findings: Finding[] = [];
 
-  for (const requirement of DELETED_OWNER_REQUIREMENTS) {
-    if (!deletedOwnerLines.includes(requirement.label)) {
-      findings.push(createRequirementFinding({
-        requirementId: requirement.requirementId,
-        message: "Frozen baseline deleted active owner list drifted away from the governed baseline.",
-        detail: `missing deleted-owner line: ${requirement.label}`,
-      }));
-      continue;
-    }
+  return {
+    deletedOwnerLines: parseBulletSection(blueprintContent, "## 已删除 active owner"),
+    auditPlanDomains: new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : [])),
+  };
+};
 
-    if (requirement.deletedDomain && auditPlanDomains.has(requirement.deletedDomain)) {
-      findings.push(createRequirementFinding({
-        requirementId: requirement.requirementId,
-        message: "Deleted active owner must not reappear as an audit-plan owner.",
-        detail: `deletedDomain=${requirement.deletedDomain}`,
-      }));
-    }
-
-    if (requirement.expectedRehomedDomain && !auditPlanDomains.has(requirement.expectedRehomedDomain)) {
-      findings.push(createRequirementFinding({
-        requirementId: requirement.requirementId,
-        message: "Deleted active owner must re-home under its governed parent owner rather than revive independently.",
-        detail: `expectedRehomedDomain=${requirement.expectedRehomedDomain}`,
-      }));
-    }
+const collectDeletedOwnerRequirementFindings = (
+  requirement: DeletedOwnerRequirement,
+  state: DeletedOwnerBaselineState,
+): Finding[] => {
+  if (!state.deletedOwnerLines.includes(requirement.label)) {
+    return [createRequirementFinding({
+      requirementId: requirement.requirementId,
+      message: "Frozen baseline deleted active owner list drifted away from the governed baseline.",
+      detail: `missing deleted-owner line: ${requirement.label}`,
+    })];
   }
 
-  const deletedLabels = new Set(DELETED_OWNER_REQUIREMENTS.map((requirement) => requirement.label));
-  const unexpectedDeletedLines = deletedOwnerLines.filter((line) => !deletedLabels.has(line));
-  if (unexpectedDeletedLines.length > 0) {
+  const findings: Finding[] = [];
+  if (requirement.deletedDomain && state.auditPlanDomains.has(requirement.deletedDomain)) {
     findings.push(createRequirementFinding({
-      requirementId: DELETED_OWNER_REQUIREMENTS[0]!.requirementId,
-      message: "Frozen baseline deleted active owner list contains unexpected entries.",
-      detail: unexpectedDeletedLines.join(", "),
+      requirementId: requirement.requirementId,
+      message: "Deleted active owner must not reappear as an audit-plan owner.",
+      detail: `deletedDomain=${requirement.deletedDomain}`,
     }));
   }
+
+  if (requirement.expectedRehomedDomain && !state.auditPlanDomains.has(requirement.expectedRehomedDomain)) {
+    findings.push(createRequirementFinding({
+      requirementId: requirement.requirementId,
+      message: "Deleted active owner must re-home under its governed parent owner rather than revive independently.",
+      detail: `expectedRehomedDomain=${requirement.expectedRehomedDomain}`,
+    }));
+  }
+
+  return findings;
+};
+
+const collectUnexpectedDeletedLineFindings = (deletedOwnerLines: string[]): Finding[] => {
+  const deletedLabels = new Set(DELETED_OWNER_REQUIREMENTS.map((requirement) => requirement.label));
+  const unexpectedDeletedLines = deletedOwnerLines.filter((line) => !deletedLabels.has(line));
+
+  return unexpectedDeletedLines.length > 0
+    ? [createRequirementFinding({
+        requirementId: DELETED_OWNER_REQUIREMENTS[0]!.requirementId,
+        message: "Frozen baseline deleted active owner list contains unexpected entries.",
+        detail: unexpectedDeletedLines.join(", "),
+      })]
+    : [];
+};
+
+export async function runDeletedOwnerBaselineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const state = await loadDeletedOwnerBaselineState();
+  const findings = [
+    ...DELETED_OWNER_REQUIREMENTS.flatMap((requirement) => collectDeletedOwnerRequirementFindings(requirement, state)),
+    ...collectUnexpectedDeletedLineFindings(state.deletedOwnerLines),
+  ];
 
   return {
     findings,

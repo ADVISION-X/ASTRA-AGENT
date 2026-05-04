@@ -214,7 +214,21 @@ const buildNeedle = (requirementId: string): string =>
 const buildPhaseName = (requirementId: string): string =>
   `standard-package-section-0-${requirementId.toLowerCase()}`;
 
-export async function runStandardPackageBlueprintChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+const createStandardPackageBlueprintFinding = (requirementId: string): Finding => createFinding({
+  lawId: requirementId,
+  file: STANDARD_PACKAGE_BLUEPRINT_FILE,
+  line: 1,
+  severity: "fatal",
+  message: buildNeedle(requirementId),
+});
+
+const collectMissingLineFindings = (requirements: readonly SectionRequirement[], sectionLines: string[]): Finding[] => {
+  return requirements
+    .filter((requirement) => !sectionLines.includes(requirement.expectedLine))
+    .map((requirement) => createStandardPackageBlueprintFinding(requirement.requirementId));
+};
+
+const loadStandardPackageBlueprintState = async () => {
   const [content, auditPlan, enforcementMatrix, phaseGate] = await Promise.all([
     readTextFile(pathFromRepoRoot(STANDARD_PACKAGE_BLUEPRINT_FILE)),
     readJsonFile<AuditPlan>(pathFromRepoRoot("scripts/audit/generated/audit-plan.generated.json")),
@@ -222,36 +236,42 @@ export async function runStandardPackageBlueprintChecks(): Promise<{ findings: F
     readJsonFile<PhaseGate>(pathFromRepoRoot("scripts/audit/phase-gates/phase-04-full-enforcement.json")),
   ]);
   const lines = content.split(/\r?\n/);
-  const section0Lines = extractSectionLines(lines, "## 0. 文件定位");
-  const section1Lines = extractSectionLines(lines, "## 1. 当前冻结基线");
-  const section15Lines = extractSectionLines(lines, "### 1.5 禁止恢复的旧 owner");
-  const section21Lines = extractSectionLines(lines, "### 2.1 统一模式原则");
-  const auditPlanDomains = new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : []));
-  const enforcementMatrixDomains = new Set((enforcementMatrix.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : []));
-  const phaseGateDomains = new Set(phaseGate.activeLawDomains ?? []);
 
-  const findings = SECTION_0_REQUIREMENTS
-    .filter((requirement) => !section0Lines.includes(requirement.expectedLine))
-    .map((requirement) => createFinding({
-      lawId: requirement.requirementId,
-      file: STANDARD_PACKAGE_BLUEPRINT_FILE,
-      line: 1,
-      severity: "fatal",
-      message: buildNeedle(requirement.requirementId),
-    }));
+  return {
+    section0Lines: extractSectionLines(lines, "## 0. 文件定位"),
+    section1Lines: extractSectionLines(lines, "## 1. 当前冻结基线"),
+    section15Lines: extractSectionLines(lines, "### 1.5 禁止恢复的旧 owner"),
+    section21Lines: extractSectionLines(lines, "### 2.1 统一模式原则"),
+    auditPlanDomains: new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : [])),
+    enforcementMatrixDomains: new Set((enforcementMatrix.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : [])),
+    phaseGateDomains: new Set(phaseGate.activeLawDomains ?? []),
+  };
+};
 
-  findings.push(...SECTION_1_REQUIREMENTS
-    .filter((requirement) => !section1Lines.includes(requirement.expectedLine))
-    .map((requirement) => createFinding({
-      lawId: requirement.requirementId,
-      file: STANDARD_PACKAGE_BLUEPRINT_FILE,
-      line: 1,
-      severity: "fatal",
-      message: buildNeedle(requirement.requirementId),
-    })));
+const createRequirementPhase = (requirementId: string, findings: Finding[], sectionLabel: string): InspectorPhase => {
+  return createPhase(
+    buildPhaseName(requirementId),
+    findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
+    findings.length === 0,
+    findings.length === 0
+      ? `${requirementId} remains exact in ${sectionLabel}.`
+      : `${requirementId} drifted in ${sectionLabel}.`,
+  );
+};
 
-  if (!section15Lines.includes(SECTION_15_INTRO_LINE)
-    || DELETED_OWNER_DOMAINS.some((domain) => auditPlanDomains.has(domain) || enforcementMatrixDomains.has(domain) || phaseGateDomains.has(domain))) {
+const buildRequirementPhases = (requirements: readonly SectionRequirement[], findings: Finding[], sectionLabel: string): InspectorPhase[] => {
+  return requirements.map((requirement) => createRequirementPhase(requirement.requirementId, findings.filter((finding) => finding.lawId === requirement.requirementId), sectionLabel));
+};
+
+export async function runStandardPackageBlueprintChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const state = await loadStandardPackageBlueprintState();
+  const findings = [
+    ...collectMissingLineFindings(SECTION_0_REQUIREMENTS, state.section0Lines),
+    ...collectMissingLineFindings(SECTION_1_REQUIREMENTS, state.section1Lines),
+  ];
+
+  if (!state.section15Lines.includes(SECTION_15_INTRO_LINE)
+    || DELETED_OWNER_DOMAINS.some((domain) => state.auditPlanDomains.has(domain) || state.enforcementMatrixDomains.has(domain) || state.phaseGateDomains.has(domain))) {
     findings.push(createFinding({
       lawId: "K02-BLUEPRINT-02-SECTION-008-REQ-001",
       file: STANDARD_PACKAGE_BLUEPRINT_FILE,
@@ -261,81 +281,26 @@ export async function runStandardPackageBlueprintChecks(): Promise<{ findings: F
     }));
   }
 
-  findings.push(...SECTION_15_DELETED_OWNER_REQUIREMENTS
-    .filter((requirement) => !section15Lines.includes(requirement.expectedLine))
-    .map((requirement) => createFinding({
-      lawId: requirement.requirementId,
-      file: STANDARD_PACKAGE_BLUEPRINT_FILE,
-      line: 1,
-      severity: "fatal",
-      message: buildNeedle(requirement.requirementId),
-    })));
+  findings.push(...collectMissingLineFindings(SECTION_15_DELETED_OWNER_REQUIREMENTS, state.section15Lines));
+  findings.push(...collectMissingLineFindings(SECTION_21_REQUIREMENTS, state.section21Lines));
 
-  findings.push(...SECTION_21_REQUIREMENTS
-    .filter((requirement) => !section21Lines.includes(requirement.expectedLine))
-    .map((requirement) => createFinding({
-      lawId: requirement.requirementId,
-      file: STANDARD_PACKAGE_BLUEPRINT_FILE,
-      line: 1,
-      severity: "fatal",
-      message: buildNeedle(requirement.requirementId),
-    })));
+  const deletedOwnerBoundaryFindings = findings.filter((finding) => finding.lawId === "K02-BLUEPRINT-02-SECTION-008-REQ-001");
 
   return {
     findings,
     phases: [
-      ...SECTION_0_REQUIREMENTS.map((requirement) => {
-        const requirementFindings = findings.filter((finding) => finding.lawId === requirement.requirementId);
-        return createPhase(
-          buildPhaseName(requirement.requirementId),
-          requirementFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-          requirementFindings.length === 0,
-          requirementFindings.length === 0
-            ? `${requirement.requirementId} remains exact in blueprint-02 section 0.`
-            : `${requirement.requirementId} drifted in blueprint-02 section 0.`,
-        );
-      }),
-      ...SECTION_1_REQUIREMENTS.map((requirement) => {
-        const requirementFindings = findings.filter((finding) => finding.lawId === requirement.requirementId);
-        return createPhase(
-          buildPhaseName(requirement.requirementId),
-          requirementFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-          requirementFindings.length === 0,
-          requirementFindings.length === 0
-            ? `${requirement.requirementId} remains exact in blueprint-02 section 1.`
-            : `${requirement.requirementId} drifted in blueprint-02 section 1.`,
-        );
-      }),
+      ...buildRequirementPhases(SECTION_0_REQUIREMENTS, findings, "blueprint-02 section 0"),
+      ...buildRequirementPhases(SECTION_1_REQUIREMENTS, findings, "blueprint-02 section 1"),
       createPhase(
         buildPhaseName("K02-BLUEPRINT-02-SECTION-008-REQ-001"),
-        findings.filter((finding) => finding.lawId === "K02-BLUEPRINT-02-SECTION-008-REQ-001").length === 0 ? "PASS" : "CODE VIOLATION",
-        findings.filter((finding) => finding.lawId === "K02-BLUEPRINT-02-SECTION-008-REQ-001").length === 0,
-        findings.filter((finding) => finding.lawId === "K02-BLUEPRINT-02-SECTION-008-REQ-001").length === 0
+        deletedOwnerBoundaryFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+        deletedOwnerBoundaryFindings.length === 0,
+        deletedOwnerBoundaryFindings.length === 0
           ? "Blueprint-02 section 1.5 keeps deleted owners out of active owner, phase gate, audit plan, and runner."
           : "Blueprint-02 section 1.5 drifted into reviving deleted owners.",
       ),
-      ...SECTION_15_DELETED_OWNER_REQUIREMENTS.map((requirement) => {
-        const requirementFindings = findings.filter((finding) => finding.lawId === requirement.requirementId);
-        return createPhase(
-          buildPhaseName(requirement.requirementId),
-          requirementFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-          requirementFindings.length === 0,
-          requirementFindings.length === 0
-            ? `${requirement.requirementId} remains exact in blueprint-02 section 1.5.`
-            : `${requirement.requirementId} drifted in blueprint-02 section 1.5.`,
-        );
-      }),
-      ...SECTION_21_REQUIREMENTS.map((requirement) => {
-        const requirementFindings = findings.filter((finding) => finding.lawId === requirement.requirementId);
-        return createPhase(
-          buildPhaseName(requirement.requirementId),
-          requirementFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-          requirementFindings.length === 0,
-          requirementFindings.length === 0
-            ? `${requirement.requirementId} remains exact in blueprint-02 section 2.1.`
-            : `${requirement.requirementId} drifted in blueprint-02 section 2.1.`,
-        );
-      }),
+      ...buildRequirementPhases(SECTION_15_DELETED_OWNER_REQUIREMENTS, findings, "blueprint-02 section 1.5"),
+      ...buildRequirementPhases(SECTION_21_REQUIREMENTS, findings, "blueprint-02 section 2.1"),
     ],
   };
 }

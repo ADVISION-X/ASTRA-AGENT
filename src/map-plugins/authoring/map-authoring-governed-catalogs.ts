@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 
 import {
-  listPromptContractCatalogEntries,
-  type PromptContractCatalogEntry,
-} from "../../capabilities/ai/prompt-contracts/index.js";
+  AI_PROMPT_CONTRACT_CATALOG_VERSION,
+  listAiPromptContractCatalogEntries,
+  type AiPromptContractCatalogEntry,
+} from "../../capabilities/ai/prompt-contract-catalog-port.js";
 import {
   buildCapabilityCatalog,
   CapabilityCatalogDocumentSchema,
@@ -17,7 +18,13 @@ const GENERATED_CAPABILITY_CATALOG_URL = new URL(
 
 export type MapAuthoringGovernedCatalogs = {
   capabilityCatalog: CapabilityCatalogDocument;
-  promptContractCatalog: PromptContractCatalogEntry[];
+  promptContractCatalog: AiPromptContractCatalogEntry[];
+};
+
+export const MAP_AUTHORING_GOVERNED_PROMPT_CONTRACT_CATALOG_VERSION = AI_PROMPT_CONTRACT_CATALOG_VERSION;
+
+export const listMapAuthoringGovernedPromptContracts = (): AiPromptContractCatalogEntry[] => {
+  return listAiPromptContractCatalogEntries();
 };
 
 function readGeneratedCapabilityCatalog(): CapabilityCatalogDocument {
@@ -44,6 +51,6 @@ export function buildMapAuthoringGovernedCatalogs(): MapAuthoringGovernedCatalog
 
   return {
     capabilityCatalog,
-    promptContractCatalog: listPromptContractCatalogEntries(),
+    promptContractCatalog: listMapAuthoringGovernedPromptContracts(),
   };
 }

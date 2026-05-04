@@ -1,11 +1,72 @@
 {
-  "generatedAt": "2026-05-04T08:58:03.937Z",
+  "generatedAt": "2026-05-04T15:22:08.328Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
-    "inspectors": 0,
-    "passed": 0,
+    "inspectors": 1,
+    "passed": 1,
     "failed": 0,
     "blocking": 0
   },
-  "results": []
+  "results": [
+    {
+      "inspector": "GrassEye Page State Capability Owner Inspector",
+      "inspectorId": "page-state-capability-owner",
+      "capabilityDomain": "page-state-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "page-state-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State V2 canonical package shape is present."
+        },
+        {
+          "name": "page-state-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State forbidden V2 shapes are absent."
+        },
+        {
+          "name": "page-state-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State owner boundary is isolated."
+        },
+        {
+          "name": "page-state-truth-ownership",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State truth ownership remains exclusive to the Page State ability group."
+        },
+        {
+          "name": "page-state-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State anti-escape checks are closed."
+        },
+        {
+          "name": "page-state-enforcement-coverage",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State FINAL law, manifest, matrix, audit-plan, and runner-summary are aligned."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State negative-proof harness rejects manual-first-enforcement-reintroduced: manual-first-enforcement-reintroduced fail-ok, turn-p0-into-warning-only: turn-p0-into-warning-only fail-ok, truth-ownership:skip-build: open-feed-ready-classifier-outside-page-state, platform-login-wall-truth-helper-outside-page-state, accept-action-completion-as-page-state-proof fail-ok, required:skip-build: remove-capabilityCallId-from-input, remove-activationSnapshotRef-from-input, remove-nerveBusEnvelopeId-from-input, remove-snapshot-sourceProofRef, observation-without-sourceProofRef, proof-runId-from-fingerprint, proof-missing-activationSnapshotRef, child-returns-boolean fail-ok, anti-escape:skip-build: success-without-evidenceRefs, failed-result-retains-output, child-hardcodes-tiktok-feed-path, remove-negative-proof-invocation, remove-negative-proof-phase-grouping fail-ok, forbidden:skip-build: result-adds-verificationDecision, child-imports-screenshot-implementation, add-verify-page-state-capabilities fail-ok, boundary:skip-build: external-import-of-child-implementation fail-ok."
+        }
+      ],
+      "summary": "page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    }
+  ]
 }

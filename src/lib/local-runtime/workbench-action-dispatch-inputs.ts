@@ -1,7 +1,12 @@
-import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { hashTextValue } from "../../capabilities/text-input/shared/text-input-types.js";
+import { createHash } from "node:crypto";
+
+import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/index.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
+
+const hashTextValue = (value: string): string => {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+};
 
 const collectPayloadEvidenceRefs = (payload: Record<string, string | number | boolean | null>) => {
   return [
@@ -142,6 +147,49 @@ export const buildMouseClickCommand = (
   }));
 };
 
+const buildTextInputTargetProofFields = (input: {
+  envelope: AbilityCommandEnvelope;
+  payload: Record<string, string | number | boolean | null>;
+  geometryProofRef: string;
+  targetRef: string;
+}) => {
+  return {
+    inputTargetRef: input.targetRef,
+    targetRef: input.targetRef,
+    targetProofRef: input.geometryProofRef,
+    targetProofOwner: "geometry-guard",
+    targetKind: "commentComposer",
+    targetEvidenceRefs: collectPayloadEvidenceRefs(input.payload),
+    focusProofRef: input.envelope.inputRef,
+    focusProofOwner: "post-action-verification",
+    focusVerifiedAt: input.envelope.createdAt,
+    geometryGuardProofRef: payloadValueToString(input.payload.geometryProofRef),
+    mouseClickProofRef: payloadValueToString(input.payload.abilityResultRef),
+    postActionFocusVerificationRef: input.envelope.inputRef,
+    operatorApprovalRef: null,
+    humanApprovalRef: null,
+    mapPolicyApprovalRef: `${input.envelope.mapId}:map-policy-approval`,
+  };
+};
+
+const buildTextInputApprovedTextFields = (input: {
+  governedText: ReturnType<typeof resolveGovernedTextSeed>;
+  inputTextHash: string;
+  approvedTextApprovalRef: string;
+}) => {
+  return {
+    inputText: input.governedText.text,
+    inputTextRef: `${input.governedText.sourceRef}:input-text`,
+    inputTextHash: input.inputTextHash,
+    approvedText: input.governedText.text,
+    approvedTextRef: `${input.governedText.sourceRef}:approved-text`,
+    approvedTextHash: input.inputTextHash,
+    approvedTextSourceRef: input.governedText.sourceRef,
+    approvedTextApprovalRef: input.approvedTextApprovalRef,
+    approvedCommitRef: null,
+  };
+};
+
 export const buildTextInputCommand = (
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -151,7 +199,7 @@ export const buildTextInputCommand = (
   const targetRef = payloadValueToString(payload.sourceTargetRef) ?? envelope.inputRef;
   const governedText = resolveGovernedTextSeed(envelope, payload);
   const textValue = governedText.text ?? "";
-  const textHash = hashTextValue(textValue);
+  const inputTextHash = hashTextValue(textValue);
   const approvedTextApprovalRef = `${envelope.inputRef}:approved-text-approval`;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "text-input",
@@ -179,30 +227,8 @@ export const buildTextInputCommand = (
     sourceRef: governedText.sourceRef,
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,
-    inputTargetRef: targetRef,
-    targetRef,
-    targetProofRef: geometryProofRef,
-    targetProofOwner: "geometry-guard",
-    targetKind: "commentComposer",
-    targetEvidenceRefs: collectPayloadEvidenceRefs(payload),
-    focusProofRef: envelope.inputRef,
-    focusProofOwner: "post-action-verification",
-    focusVerifiedAt: envelope.createdAt,
-    geometryGuardProofRef: payloadValueToString(payload.geometryProofRef),
-    mouseClickProofRef: payloadValueToString(payload.abilityResultRef),
-    postActionFocusVerificationRef: envelope.inputRef,
-    operatorApprovalRef: null,
-    humanApprovalRef: null,
-    mapPolicyApprovalRef: `${envelope.mapId}:map-policy-approval`,
-    inputText: governedText.text,
-    inputTextRef: `${governedText.sourceRef}:input-text`,
-    inputTextHash: textHash,
-    approvedText: governedText.text,
-    approvedTextRef: `${governedText.sourceRef}:approved-text`,
-    approvedTextHash: textHash,
-    approvedTextSourceRef: governedText.sourceRef,
-    approvedTextApprovalRef,
-    approvedCommitRef: null,
+    ...buildTextInputTargetProofFields({ envelope, payload, geometryProofRef, targetRef }),
+    ...buildTextInputApprovedTextFields({ governedText, inputTextHash, approvedTextApprovalRef }),
   }));
 };
 

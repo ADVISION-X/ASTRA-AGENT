@@ -49,6 +49,7 @@ export const PATHS = {
   ORCHESTRATION_ADAPTER: "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
   ORCHESTRATION_ENVELOPE_BUILDERS: "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
   STEP_DISPATCHER: "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+  STEP_DISPATCH_REQUEST_BUILDERS: "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts",
   CHANNELS_ROOT: "src/capabilities/nerve-bus/channels",
 } as const;
 

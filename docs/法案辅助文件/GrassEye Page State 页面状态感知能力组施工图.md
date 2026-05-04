@@ -588,6 +588,19 @@ turn P0 into warning-only
 remove negative proof invocation
 ```
 
+执行拓扑要求：
+
+```txt
+negative-proof-harness 必须按执法 phase 对 mutation 分组。
+每个 mutation 必须声明 targeted enforcement phase。
+嵌套 inspector 必须只执行该 mutation group 对应的 targeted phase。
+禁止每个 mutation 重放完整 inspector。
+禁止每个 mutation 重建 generated artifacts；只有法条 metadata mutation 可重建。
+rollback PASS 可在所有 mutation rollback 后统一执行一次，但必须真实重建并证明恢复 PASS。
+anti-escape phase 必须用 ts-morph AST 检查 negative-proof-harness 的分组、phase 标注、targeted phase 传递和 grouped loop。
+negative proof 必须包含“拆回逐 mutation 完整 inspector”的自毁 mutation，并证明会被 inspector 阻断。
+```
+
 ---
 
 ## 17. READY 标准

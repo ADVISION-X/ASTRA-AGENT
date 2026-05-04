@@ -1,6 +1,6 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { Node } from "ts-morph";
 
-import { readJsonFile, readTextFile, listFilesRecursive } from "../../core/filesystem.js";
+import { readTextFile, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -8,6 +8,7 @@ import { getNodeLine } from "../../core/ts-morph.js";
 import { createStartupProject, getIdentifierCallWithin, hasNamedImport } from "../local-app-shell/inspection-utils.js";
 
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
+import { collectStartupPlatformGovernanceFindings } from "./startup-platform-target-checks.js";
 
 const STARTUP_GATE_LAW_ID = "GRASSEYE-STARTUP-ENTRYPOINT-005-V1";
 const LOCAL_AI_GATE_LAW_ID = "GRASSEYE-LOCAL-AI-RUNTIME-006-V1";
@@ -15,7 +16,6 @@ const STARTUP_HELPER_PATH = "scripts/startup/lib/local-ai-runtime-readiness.mjs"
 const STARTUP_PROBE_PATH = "scripts/startup/lib/local-ai-runtime-readiness-probe.ts";
 const STARTUP_CONTRACT_PATH = "src/lib/local-ai/startup-readiness.ts";
 const APP_SERVER_PATH = "src/app/server.ts";
-const PACKAGE_JSON_PATH = "package.json";
 
 const ALLOWED_BOOTSTRAP_FILES = new Set([
   commanderConsoleInspectionConstants.STARTUP_PATH,
@@ -29,10 +29,6 @@ const FORBIDDEN_BOOTSTRAP_MARKERS = [
   'open", ["-a", "Ollama"]',
   'ollama", ["serve"]',
 ];
-
-type PackageJsonShape = {
-  scripts?: Record<string, string>;
-};
 
 const createStartupGateFinding = (input: { lawId: string; file: string; message: string; line?: number; severity?: "error" | "fatal"; detail?: string }): Finding => {
   return createFinding({
@@ -120,154 +116,6 @@ function collectFailClosedFindings(launchSource: import("ts-morph").SourceFile):
   }
   if (!readinessText.includes("throw new Error")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup local AI gate must fail closed when readiness does not pass." }));
-  }
-
-  return findings;
-}
-
-function getObjectLiteralPropertyInitializer(node: import("ts-morph").Node | undefined, propertyName: string) {
-  if (!node || !Node.isObjectLiteralExpression(node)) {
-    return undefined;
-  }
-
-  const property = node.getProperty(propertyName);
-  return property && Node.isPropertyAssignment(property) ? property.getInitializer() : undefined;
-}
-
-function hasObjectLiteralProperty(node: import("ts-morph").Node | undefined, propertyName: string): boolean {
-  if (!node || !Node.isObjectLiteralExpression(node)) {
-    return false;
-  }
-
-  const property = node.getProperty(propertyName);
-  return Boolean(property && (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)));
-}
-
-function getStartServiceEnvInitializer(
-  launchSource: import("ts-morph").SourceFile,
-  propertyName: string,
-) {
-  const startService = launchSource.getFunction("startService");
-  const startLocalServiceCall = startService ? getIdentifierCallWithin(startService, "startLocalService") : undefined;
-  const options = startLocalServiceCall?.getArguments()[0];
-  const envObject = getObjectLiteralPropertyInitializer(getObjectLiteralPropertyInitializer(options, "env"), propertyName);
-  return envObject;
-}
-
-async function collectStartupPlatformGovernanceFindings(
-  project: import("ts-morph").Project,
-  launchSource: import("ts-morph").SourceFile,
-): Promise<Finding[]> {
-  return [
-    ...(await collectStartupPackageScriptFindings()),
-    ...collectStartupLaunchPlatformFindings(launchSource),
-    ...collectAppServerPlatformGovernanceFindings(project),
-  ];
-}
-
-async function collectStartupPackageScriptFindings(): Promise<Finding[]> {
-  const findings: Finding[] = [];
-  const packageJson = await readJsonFile<PackageJsonShape>(pathFromRepoRoot(PACKAGE_JSON_PATH));
-  const internalAppServerScript = packageJson.scripts?.["internal:app-server:dev"];
-
-  if (!internalAppServerScript) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: PACKAGE_JSON_PATH, message: "package.json must keep internal:app-server:dev as the single local app shell start script." }));
-  } else if (internalAppServerScript.includes("GRASSEYE_PLATFORM_TARGET=")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: PACKAGE_JSON_PATH, message: "internal:app-server:dev must not hardcode GRASSEYE_PLATFORM_TARGET. Startup must pass an explicit platform target at runtime." }));
-  }
-
-  return findings;
-}
-
-function collectStartupLaunchPlatformFindings(
-  launchSource: import("ts-morph").SourceFile,
-): Finding[] {
-  const findings: Finding[] = [];
-  const parseFlags = launchSource.getFunction("parseFlags");
-  const parseFlagsText = parseFlags?.getText() ?? "";
-  if (!parseFlags || !parseFlagsText.includes("STARTUP_PLATFORM_TARGET_REQUIRED")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must fail closed when platformTarget is missing or invalid." }));
-  }
-  if (!parseFlagsText.includes("GRASSEYE_PLATFORM_TARGET")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must resolve platformTarget from explicit flag or environment input." }));
-  }
-
-  const platformTargetInitializer = getStartServiceEnvInitializer(launchSource, "GRASSEYE_PLATFORM_TARGET");
-  if (!platformTargetInitializer) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must pass GRASSEYE_PLATFORM_TARGET into the app server child process." }));
-  } else if (Node.isStringLiteral(platformTargetInitializer)) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, line: getNodeLine(platformTargetInitializer), message: "Startup must not hardcode the child process platform target." }));
-  }
-
-  const startupReadinessInitializer = getStartServiceEnvInitializer(launchSource, "GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON");
-  if (!startupReadinessInitializer || startupReadinessInitializer.getText() !== "JSON.stringify(localAiReadiness)") {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must pass governed startup readiness JSON into the app server child process." }));
-  }
-
-  return findings;
-}
-
-function collectAppServerPlatformGovernanceFindings(
-  project: import("ts-morph").Project,
-): Finding[] {
-  const findings: Finding[] = [];
-
-  const serverSource = project.getSourceFile(pathFromRepoRoot(APP_SERVER_PATH));
-  if (!serverSource) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, message: "App server source must be available for startup platform governance checks." }));
-    return findings;
-  }
-
-  return [
-    ...findings,
-    ...collectAppServerPlatformTargetFindings(serverSource),
-    ...collectAppServerWorkbenchStartupFindings(serverSource),
-  ];
-}
-
-function collectAppServerPlatformTargetFindings(
-  serverSource: import("ts-morph").SourceFile,
-): Finding[] {
-  const findings: Finding[] = [];
-  const parsePlatformTargetDeclaration = serverSource.getVariableDeclaration("parsePlatformTarget");
-  const parsePlatformTargetInitializer = parsePlatformTargetDeclaration?.getInitializer();
-  if (!parsePlatformTargetInitializer || !Node.isArrowFunction(parsePlatformTargetInitializer)) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, message: "App server must validate platformTarget through a dedicated parsePlatformTarget gate." }));
-  } else {
-    const parsePlatformTargetText = parsePlatformTargetInitializer.getText();
-    if (!parsePlatformTargetText.includes('value === "tiktok-web"') || !parsePlatformTargetText.includes('value === "facebook-web"')) {
-      findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, line: getNodeLine(parsePlatformTargetInitializer), message: "App server platform validation must explicitly allow the governed platform target set instead of pinning one platform." }));
-    }
-  }
-
-  const pinnedPlatformCheck = serverSource.getDescendantsOfKind(SyntaxKind.BinaryExpression).find((expression) => {
-    const right = expression.getRight();
-    return expression.getOperatorToken().getText() === "!=="
-      && expression.getLeft().getText().includes("configuredPlatformTarget")
-      && Node.isStringLiteral(right)
-      && right.getLiteralValue() === "tiktok-web";
-  });
-  if (pinnedPlatformCheck) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, line: getNodeLine(pinnedPlatformCheck), message: "App server must not pin startup to tiktok-web through a single-platform guard." }));
-  }
-
-  return findings;
-}
-
-function collectAppServerWorkbenchStartupFindings(
-  serverSource: import("ts-morph").SourceFile,
-): Finding[] {
-  const findings: Finding[] = [];
-  const parseStartupReadinessDeclaration = serverSource.getVariableDeclaration("parseStartupReadiness");
-  const parseStartupReadinessInitializer = parseStartupReadinessDeclaration?.getInitializer();
-  if (!parseStartupReadinessInitializer || !Node.isArrowFunction(parseStartupReadinessInitializer) || !parseStartupReadinessInitializer.getText().includes("LocalAiStartupReadinessSchema.parse")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, message: "App server must parse governed startup readiness JSON before creating the workbench." }));
-  }
-
-  const createWorkbenchHandleCall = getIdentifierCallWithin(serverSource, "createGrassEyeWorkbenchHandle");
-  const createWorkbenchOptions = createWorkbenchHandleCall?.getArguments()[0];
-  if (!hasObjectLiteralProperty(createWorkbenchOptions, "startupReadiness")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: APP_SERVER_PATH, message: "App server must pass startupReadiness into the workbench handle so Commander can expose missionRuntimeAvailable and failureReason." }));
   }
 
   return findings;

@@ -73,26 +73,42 @@ function collectExecutorFindings(project: Project): Finding[] {
   return findings;
 }
 
-function collectBuilderFindings(project: Project): Finding[] {
+const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean => {
+  return [
+    "missionId: request?.missionId ?? null",
+    "runId: request?.runId ?? null",
+    "activationSnapshotRef: request?.activationSnapshotRef ?? null",
+    "capabilityCallId: request?.capabilityCallId ?? null",
+    "nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null",
+  ].every((snippet) => proofBuilderText.includes(snippet));
+};
+
+const hasFabricatedProofBuilderFields = (proofBuilderText: string): boolean => {
+  return proofBuilderText.includes("runId: `post-action-verification-run:${input.proofFingerprint}`")
+    || proofBuilderText.includes("missionId: request?.sessionId ?? null");
+};
+
+function collectProofBuilderFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const proofBuilderSource = getSource(project, PATHS.PROOF_BUILDER);
   const proofBuilderText = proofBuilderSource.getFullText();
   if (!hasCallExpressionPath(proofBuilderSource, ["PostActionRuntimeProofSchema", "parse"])) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must parse PostActionRuntimeProofSchema." }));
   }
-  if (!proofBuilderText.includes("missionId: request?.missionId ?? null")
-    || !proofBuilderText.includes("runId: request?.runId ?? null")
-    || !proofBuilderText.includes("activationSnapshotRef: request?.activationSnapshotRef ?? null")
-    || !proofBuilderText.includes("capabilityCallId: request?.capabilityCallId ?? null")
-    || !proofBuilderText.includes("nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null")
-    || proofBuilderText.includes("runId: `post-action-verification-run:${input.proofFingerprint}`")
-    || proofBuilderText.includes("missionId: request?.sessionId ?? null")) {
+  if (!hasRequiredProofBuilderChainFields(proofBuilderText) || hasFabricatedProofBuilderFields(proofBuilderText)) {
     findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must preserve real mission/run chain fields and must not fabricate runId or missionId." }));
   }
-  if (!hasCallExpressionPath(getSource(project, PATHS.RESULT_BUILDER), ["PostActionVerificationAbilityResultSchema", "parse"])) {
+
+  return findings;
+}
+
+function collectResultBuilderFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+  const resultBuilderSource = getSource(project, PATHS.RESULT_BUILDER);
+  if (!hasCallExpressionPath(resultBuilderSource, ["PostActionVerificationAbilityResultSchema", "parse"])) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must parse PostActionVerificationAbilityResultSchema." }));
   }
-  const resultBuilderText = getSource(project, PATHS.RESULT_BUILDER).getFullText();
+  const resultBuilderText = resultBuilderSource.getFullText();
   if (!resultBuilderText.includes("missionId: input.request?.missionId ?? null")
     || !resultBuilderText.includes("runId: input.request?.runId ?? null")
     || !resultBuilderText.includes("activationSnapshotRef: input.request?.activationSnapshotRef ?? null")
@@ -100,9 +116,22 @@ function collectBuilderFindings(project: Project): Finding[] {
     || !resultBuilderText.includes("nerveBusEnvelopeId: input.request?.nerveBusEnvelopeId ?? null")) {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
   }
-  return !hasCallExpressionPath(getSource(project, PATHS.DISPATCH_FAILURE), ["PostActionVerificationAbilityInputSchema", "safeParse"])
-    ? findings.concat(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.DISPATCH_FAILURE, line: 1, severity: "fatal", message: "Dispatch failure must terminate through the governed invalid-input envelope path." }))
-    : findings;
+
+  return findings;
+}
+
+function collectDispatchFailureFindings(project: Project): Finding[] {
+  return hasCallExpressionPath(getSource(project, PATHS.DISPATCH_FAILURE), ["PostActionVerificationAbilityInputSchema", "safeParse"])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.DISPATCH_FAILURE, line: 1, severity: "fatal", message: "Dispatch failure must terminate through the governed invalid-input envelope path." })];
+}
+
+function collectBuilderFindings(project: Project): Finding[] {
+  return [
+    ...collectProofBuilderFindings(project),
+    ...collectResultBuilderFindings(project),
+    ...collectDispatchFailureFindings(project),
+  ];
 }
 
 function collectInspectorFindings(project: Project): Finding[] {

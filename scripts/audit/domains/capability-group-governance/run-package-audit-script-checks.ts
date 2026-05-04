@@ -18,9 +18,14 @@ const {
 
 const RESERVED_AUDIT_SCRIPT_NAMES = ["audit", "audit:build"] as const;
 const ROUTING_AUDIT_SCRIPT_NAMES = ["audit:kernel", "audit:index"] as const;
+const LOCAL_DEVELOPMENT_AUDIT_SCRIPT_NAMES = ["audit:debug-loop-boundary"] as const;
 
 const collectAllowedAuditScriptNames = (): Set<string> => {
-  const allowed = new Set<string>([...RESERVED_AUDIT_SCRIPT_NAMES, ...ROUTING_AUDIT_SCRIPT_NAMES]);
+  const allowed = new Set<string>([
+    ...RESERVED_AUDIT_SCRIPT_NAMES,
+    ...ROUTING_AUDIT_SCRIPT_NAMES,
+    ...LOCAL_DEVELOPMENT_AUDIT_SCRIPT_NAMES,
+  ]);
 
   for (const foundationLaw of FOUNDATION_LAWS) {
     allowed.add(`audit:${foundationLaw}`);

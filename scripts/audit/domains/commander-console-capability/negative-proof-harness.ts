@@ -77,8 +77,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "startup local-ai gate after service mutation",
     file: "scripts/startup/launch-grasseye.mjs",
-    search: "  const localAiReadiness = await ensureLocalAiReadiness();\n\n  await preparePort();\n  const serviceHandle = await startService(root, flags, localAiReadiness);",
-    replace: "  await preparePort();\n  const serviceHandle = await startService(root, flags, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
+    search: "  const localAiReadiness = await ensureLocalAiReadiness();\n\n  await preparePort();\n  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);",
+    replace: "  await preparePort();\n  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
   },
   {
     name: "startup update preflight removal mutation",
@@ -101,8 +101,14 @@ const MUTATIONS: Mutation[] = [
   {
     name: "startup platform hardcode mutation",
     file: "scripts/startup/launch-grasseye.mjs",
-    search: "      GRASSEYE_PLATFORM_TARGET: flags.platformTarget,",
+    search: "      GRASSEYE_PLATFORM_TARGET: runtimeFlags.platformTarget,",
     replace: "      GRASSEYE_PLATFORM_TARGET: \"tiktok-web\",",
+  },
+  {
+    name: "startup interactive platform selection removal mutation",
+    file: "scripts/startup/lib/platform-target.mjs",
+    search: "  if (shouldPromptForStartupPlatform(flags, io)) {\n",
+    replace: "  if (false) {\n",
   },
   {
     name: "startup readiness bridge removal mutation",

@@ -17,6 +17,8 @@ type ReplaceMutation = {
   oldText: string;
   newText: string;
   expectedNeedle: string;
+  phase: TargetNegativeProofPhase;
+  skipBuild?: boolean;
 };
 
 type CreateFileMutation = {
@@ -25,9 +27,24 @@ type CreateFileMutation = {
   file: string;
   content: string;
   expectedNeedle: string;
+  phase: TargetNegativeProofPhase;
+  skipBuild?: boolean;
 };
 
 type NegativeProofMutation = ReplaceMutation | CreateFileMutation;
+type NegativeProofMutationGroup = {
+  name: string;
+  mutations: NegativeProofMutation[];
+  phase: TargetNegativeProofPhase;
+  skipBuild: boolean;
+};
+type TargetNegativeProofPhase =
+  | "required"
+  | "forbidden"
+  | "boundary"
+  | "truth-ownership"
+  | "anti-escape"
+  | "enforcement-coverage";
 
 const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
@@ -37,6 +54,8 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     newText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: manual-first  \nevidenceMode: law+inspector+negative-proof",
     expectedNeedle: "machine-blocking",
+    phase: "enforcement-coverage",
+    skipBuild: false,
   },
   {
     kind: "replace",
@@ -45,6 +64,8 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     newText: "status: active  \ntier: P1  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     expectedNeedle: "must remain P0",
+    phase: "enforcement-coverage",
+    skipBuild: false,
   },
   {
     kind: "create-file",
@@ -52,6 +73,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: "src/capabilities/open/runtime/page-state-feed-ready-classifier-probe.ts",
     content: "export const feedReadyClassifier = () => \"feed_ready\";\n",
     expectedNeedle: "truth classifiers or truth helpers",
+    phase: "truth-ownership",
   },
   {
     kind: "create-file",
@@ -59,6 +81,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: "src/lib/browser/page-state-login-wall-truth-helper.ts",
     content: "export const loginWallTruthHelper = () => \"login_required\";\n",
     expectedNeedle: "truth classifiers or truth helpers",
+    phase: "truth-ownership",
   },
   {
     kind: "replace",
@@ -67,6 +90,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    kind: z.literal(\"post_action_verification\"),",
     newText: "    kind: z.literal(\"action_completion\"),",
     expectedNeedle: "action completion as governed page-state proof",
+    phase: "truth-ownership",
   },
   {
     kind: "replace",
@@ -75,6 +99,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "  capabilityCallId: z.string().min(1),",
     newText: "  capabilityCallIdRemoved: z.string().min(1),",
     expectedNeedle: "must include capabilityCallId",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -83,6 +108,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "  activationSnapshotRef: z.string().min(1),",
     newText: "  activationSnapshotRefRemoved: z.string().min(1),",
     expectedNeedle: "must include activationSnapshotRef",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -91,6 +117,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "  nerveBusEnvelopeId: z.string().min(1),",
     newText: "  nerveBusEnvelopeIdRemoved: z.string().min(1),",
     expectedNeedle: "must include nerveBusEnvelopeId",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -99,6 +126,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "  sourceChildCapabilityId: z.string().min(1),\n  sourceProofRef: z.string().min(1),\n});\n\nconst PageStateFreshnessPolicySchema = z.object({",
     newText: "  sourceChildCapabilityId: z.string().min(1),\n});\n\nconst PageStateFreshnessPolicySchema = z.object({",
     expectedNeedle: "PageStateSnapshotSchema must include sourceProofRef",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -107,6 +135,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    sourceChildCapabilityId: z.string().min(1),\n    sourceProofRef: z.string().min(1),\n    payload: RuntimeSignalObservationPayloadSchema,",
     newText: "    sourceChildCapabilityId: z.string().min(1),\n    payload: RuntimeSignalObservationPayloadSchema,",
     expectedNeedle: "sourceProofRef on snapshot and every governed observation shape",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -115,6 +144,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    addIssue(ctx, [\"evidenceRefs\"], \"success result must retain evidenceRefs\");",
     newText: "    // evidenceRefs requirement removed by mutation",
     expectedNeedle: "evidence backing",
+    phase: "anti-escape",
   },
   {
     kind: "replace",
@@ -123,6 +153,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    runtimeProof: input.runtimeProof,",
     newText: "    verificationDecision: \"verified\",\n    runtimeProof: input.runtimeProof,",
     expectedNeedle: "post-action verification truth fields",
+    phase: "forbidden",
   },
   {
     kind: "replace",
@@ -131,6 +162,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    addIssue(ctx, [\"output\"], \"failed or review_required result must null output\");",
     newText: "    addIssue(ctx, [\"output\"], \"failed or review_required result may retain output\");",
     expectedNeedle: "must forbid non-null output or outputRef",
+    phase: "anti-escape",
   },
   {
     kind: "replace",
@@ -139,6 +171,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    runId: input.request.runId,",
     newText: "    runId: input.pageStateFingerprint,",
     expectedNeedle: "must propagate input.request.runId",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -147,6 +180,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    activationSnapshotRef: input.request.activationSnapshotRef,",
     newText: "    activationSnapshotRef: null,",
     expectedNeedle: "must propagate input.request.activationSnapshotRef",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -155,6 +189,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "import type { DetectLoginStateChildCapability } from \"./contract.js\";",
     newText: "import type { DetectLoginStateChildCapability } from \"./contract.js\";\nimport { createScreenshotAbilityGroup } from \"../../../screenshot/index.js\";",
     expectedNeedle: "must not import forbidden capability implementations",
+    phase: "forbidden",
   },
   {
     kind: "replace",
@@ -163,6 +198,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "      return DetectLoginStateChildOutputSchema.parse(buildLoginStateOutput(request));",
     newText: "      return true as never;",
     expectedNeedle: "ChildOutputSchema.parse boundary",
+    phase: "required",
   },
   {
     kind: "replace",
@@ -171,6 +207,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "  if (resolvedProfile && hasFeedEvidence && urlMatchesFeedPath(request.snapshot.currentUrl, resolvedProfile)) {",
     newText: "  if (resolvedProfile && hasFeedEvidence && request.snapshot.currentUrl.includes(\"/foryou\")) {",
     expectedNeedle: "hardcode TikTok-only paths",
+    phase: "anti-escape",
   },
   {
     kind: "create-file",
@@ -178,6 +215,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: "src/app/page-state-private-import-probe.ts",
     content: 'import "../capabilities/page-state/children/detect-login-state/implementation.js";\nexport const probe = true;\n',
     expectedNeedle: "must not import page-state runtime or child internals",
+    phase: "boundary",
   },
   {
     kind: "create-file",
@@ -185,6 +223,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: "src/capabilities/page-state/verify-page-state-capabilities.ts",
     content: "export const verifyPageStateCapabilities = true;\n",
     expectedNeedle: "must not add verify/capability-check side paths",
+    phase: "forbidden",
   },
   {
     kind: "replace",
@@ -193,19 +232,34 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    : await runNegativeProofHarness();",
     newText: "      : { findings: [], phase: { name: \"negative-proof-harness\", classification: \"PASS\" as const, passed: true, summary: \"negative-proof removed by mutation\" } };",
     expectedNeedle: "must invoke and report the negative-proof harness",
+    phase: "anti-escape",
+  },
+  {
+    kind: "replace",
+    name: "remove-negative-proof-phase-grouping",
+    file: "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    oldText: "    for (const group of createMutationGroups()) {\n      reports.push(await mutateGroupAndVerifyFailure(group));\n    }",
+    newText: "    for (const group of PAGE_STATE_NEGATIVE_PROOF_MUTATIONS.map((mutation) => ({ name: mutation.name, mutations: [mutation], phase: mutation.phase, skipBuild: mutation.skipBuild ?? true }))) {\n      reports.push(await mutateGroupAndVerifyFailure(group));\n    }",
+    expectedNeedle: "must iterate grouped mutations instead of replaying the full inspector per mutation",
+    phase: "anti-escape",
   },
 ];
 
-function runInspectorProcess(): { status: number | null; stdout: string; stderr: string } {
+function runInspectorProcess(options: {
+  phase?: TargetNegativeProofPhase;
+  skipBuild?: boolean;
+} = {}): { status: number | null; stdout: string; stderr: string } {
+  const skipBuild = options.skipBuild ?? true;
   const result = spawnSync(
     "node",
-    ["--import", "tsx", RUN_INSPECTOR_ENTRY],
+    ["--import", "tsx", RUN_INSPECTOR_ENTRY, ...(skipBuild ? ["--skip-build"] : [])],
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
       env: {
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
+        ...(options.phase ? { GRASSEYE_PAGE_STATE_NEGATIVE_PROOF_PHASE: options.phase } : {}),
       },
     },
   );
@@ -256,27 +310,69 @@ async function applyMutation(mutation: NegativeProofMutation): Promise<() => Pro
   };
 }
 
-async function mutateAndVerify(mutation: NegativeProofMutation): Promise<string> {
-  const rollback = await applyMutation(mutation);
+function createMutationGroups(): NegativeProofMutationGroup[] {
+  const groups = new Map<string, NegativeProofMutationGroup>();
+  for (const mutation of PAGE_STATE_NEGATIVE_PROOF_MUTATIONS) {
+    const skipBuild = mutation.skipBuild ?? true;
+    const key = skipBuild
+      ? `${mutation.phase}:skip-build`
+      : mutation.name;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.mutations.push(mutation);
+      continue;
+    }
+
+    groups.set(key, {
+      name: key,
+      mutations: [mutation],
+      phase: mutation.phase,
+      skipBuild,
+    });
+  }
+
+  return [...groups.values()];
+}
+
+async function applyMutationGroup(group: NegativeProofMutationGroup): Promise<() => Promise<void>> {
+  const rollbacks: Array<() => Promise<void>> = [];
   try {
-    const failRun = runInspectorProcess();
+    for (const mutation of group.mutations) {
+      rollbacks.push(await applyMutation(mutation));
+    }
+
+    return async () => {
+      for (const rollback of rollbacks.reverse()) {
+        await rollback();
+      }
+    };
+  } catch (error) {
+    for (const rollback of rollbacks.reverse()) {
+      await rollback();
+    }
+    throw error;
+  }
+}
+
+async function mutateGroupAndVerifyFailure(group: NegativeProofMutationGroup): Promise<string> {
+  const rollback = await applyMutationGroup(group);
+  try {
+    const failRun = runInspectorProcess({ phase: group.phase, skipBuild: group.skipBuild });
     const combinedOutput = `${failRun.stdout}\n${failRun.stderr}`;
     if (failRun.status === 0) {
-      throw new Error(`Mutation ${mutation.name} did not fail inspector as expected.\n${combinedOutput}`);
+      throw new Error(`Mutation group ${group.name} did not fail inspector as expected.\n${combinedOutput}`);
     }
-    if (!combinedOutput.includes(mutation.expectedNeedle)) {
-      throw new Error(`Mutation ${mutation.name} failed, but not for the expected reason. Missing needle: ${mutation.expectedNeedle}`);
+    const missingNeedles = group.mutations
+      .map((mutation) => mutation.expectedNeedle)
+      .filter((needle) => !combinedOutput.includes(needle));
+    if (missingNeedles.length > 0) {
+      throw new Error(`Mutation group ${group.name} failed, but not for every expected reason. Missing needles: ${missingNeedles.join("; ")}`);
     }
   } finally {
     await rollback();
   }
 
-  const rollbackRun = runInspectorProcess();
-  if (rollbackRun.status !== 0) {
-    throw new Error(`Mutation ${mutation.name} did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
-  }
-
-  return `${mutation.name}: fail-ok rollback-ok`;
+  return `${group.name}: ${group.mutations.map((mutation) => mutation.name).join(", ")} fail-ok`;
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
@@ -303,7 +399,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const baseline = runInspectorProcess();
+    const baseline = runInspectorProcess({ skipBuild: true });
     if (baseline.status !== 0) {
       return createFatalResult(
         "Page State inspector baseline must pass before negative-proof mutation checks.",
@@ -312,8 +408,13 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
     }
 
     const reports: string[] = [];
-    for (const mutation of PAGE_STATE_NEGATIVE_PROOF_MUTATIONS) {
-      reports.push(await mutateAndVerify(mutation));
+    for (const group of createMutationGroups()) {
+      reports.push(await mutateGroupAndVerifyFailure(group));
+    }
+
+    const rollbackRun = runInspectorProcess({ skipBuild: false });
+    if (rollbackRun.status !== 0) {
+      throw new Error(`Negative-proof mutations did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
     }
 
     return createPassResult(`Page State negative-proof harness rejects ${reports.join(", ")}.`);

@@ -176,6 +176,69 @@ function collectInspectorHarnessFindings(project: Project): Finding[] {
     : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file: `${AUDIT_ROOT}/inspector.ts`, line: 1, severity: "fatal", message: "Page State inspector must invoke and report the negative-proof harness." })];
 }
 
+function hasPropertyAssignment(node: Node, propertyName: string): boolean {
+  return node.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
+}
+
+function getArrayLiteralInitializer(project: Project, file: string, declarationName: string) {
+  const source = getSource(project, file);
+  const initializer = source.getVariableDeclaration(declarationName)?.getInitializer();
+  return initializer && Node.isArrayLiteralExpression(initializer) ? initializer : null;
+}
+
+function everyMutationCarriesPhase(project: Project): boolean {
+  const mutations = getArrayLiteralInitializer(project, `${AUDIT_ROOT}/negative-proof-harness.ts`, "PAGE_STATE_NEGATIVE_PROOF_MUTATIONS");
+  if (!mutations) {
+    return false;
+  }
+
+  const elements = mutations.getElements();
+  return elements.length > 0 && elements.every((element) => Node.isObjectLiteralExpression(element) && hasPropertyAssignment(element, "phase"));
+}
+
+function hasGroupedMutationLoop(project: Project): boolean {
+  const source = getSource(project, `${AUDIT_ROOT}/negative-proof-harness.ts`);
+  return source.getDescendantsOfKind(SyntaxKind.ForOfStatement).some((statement) => {
+    const expression = statement.getExpression();
+    return Node.isCallExpression(expression)
+      && Node.isIdentifier(expression.getExpression())
+      && expression.getExpression().getText() === "createMutationGroups";
+  });
+}
+
+function passesTargetPhaseToInspectorProcess(project: Project): boolean {
+  const source = getSource(project, `${AUDIT_ROOT}/negative-proof-harness.ts`);
+  return source.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    const [argument] = callExpression.getArguments();
+    return Node.isIdentifier(expression)
+      && expression.getText() === "runInspectorProcess"
+      && Node.isObjectLiteralExpression(argument)
+      && argument.getProperty("phase")
+      && argument.getProperty("skipBuild");
+  });
+}
+
+function collectNegativeProofPerformanceFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+  const file = `${AUDIT_ROOT}/negative-proof-harness.ts`;
+
+  if (!getSource(project, file).getFunction("createMutationGroups")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file, line: 1, severity: "fatal", message: "Page State negative proof must group mutations by targeted enforcement phase." }));
+  }
+  if (!everyMutationCarriesPhase(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file, line: 1, severity: "fatal", message: "Every Page State negative-proof mutation must declare its targeted enforcement phase." }));
+  }
+  if (!hasGroupedMutationLoop(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file, line: 1, severity: "fatal", message: "Page State negative proof must iterate grouped mutations instead of replaying the full inspector per mutation." }));
+  }
+  if (!passesTargetPhaseToInspectorProcess(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file, line: 1, severity: "fatal", message: "Page State negative proof must pass targeted phase selection into nested inspector processes." }));
+  }
+
+  return findings;
+}
+
 export async function runAntiEscape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings = [
     ...collectExecutionRouteFindings(project),
@@ -186,6 +249,7 @@ export async function runAntiEscape(project: Project): Promise<{ findings: Findi
     ...collectSchemaFindings(project),
     ...collectOutputBoundaryFindings(project),
     ...collectInspectorHarnessFindings(project),
+    ...collectNegativeProofPerformanceFindings(project),
   ];
 
   const phasePassed = findings.length === 0;

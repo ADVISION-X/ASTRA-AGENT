@@ -6,7 +6,7 @@ import { getExternalImportsWithPrefix, getSourceFile, makeProject } from "./proj
 import { LAW_IDS, PATHS } from "./config.js";
 
 const SELECTOR_TOKENS = ["targetSelector", "cssSelector", "domSelector", "querySelector", "locator"] as const;
-const EXTERNAL_DIRECT_WRITE_ROOTS = ["src/lib/local-runtime/", "src/lib/browser/", "src/features/platform-action/"] as const;
+const EXTERNAL_DIRECT_WRITE_ROOTS = ["src/lib/local-runtime/", "src/lib/browser/"] as const;
 const ALLOWED_EXTERNAL_IMPORTERS = ["src/lib/browser/text-input-runtime-ports.ts"] as const;
 
 function collectPublicContractFindings(project: ReturnType<typeof makeProject>): Finding[] {

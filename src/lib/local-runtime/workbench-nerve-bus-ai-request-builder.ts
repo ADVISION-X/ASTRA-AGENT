@@ -1,0 +1,118 @@
+import type {
+  AiRequestDispatchInput,
+} from "../../capabilities/nerve-bus/contract.js";
+import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+
+import {
+  payloadDocumentToObject,
+  payloadValueToString,
+} from "./workbench-payload.js";
+
+type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
+type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
+type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").WorkbenchRuntime["aiAbilityGroup"]["execute"]>[0];
+
+const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+
+const buildWorkbenchAiInputRefs = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+) => envelope.aiInputRefs.map((ref) => ({
+  id: ref,
+  kind: "evidence-packet" as const,
+  summary: inputPayload.summary,
+}));
+
+const requireChainField = (value: string | null | undefined): string => {
+  if (!value) {
+    throw new Error("Workbench AI request is missing required active map chain fields.");
+  }
+
+  return value;
+};
+
+const buildDefaultAiInputPayload = (inputPayload: WorkbenchAiPayloadDocument) => {
+  return payloadDocumentToObject(inputPayload);
+};
+
+const buildProductPresenceInputPayload = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+) => {
+  const payload = payloadDocumentToObject(inputPayload);
+  const preparedInputRef = payloadValueToString(payload.promptInputRef) ?? envelope.aiInputRefs[0] ?? null;
+  const screenshotEvidenceId = payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
+  const aiInputRefs = envelope.aiInputRefs.length > 0 ? envelope.aiInputRefs : (preparedInputRef ? [preparedInputRef] : []);
+  const inputMode = aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";
+  const samplingStrategy = aiInputRefs.length > 1 ? "adaptive_short_video" : "single_frame_fallback";
+
+  return {
+    inputMode,
+    multiFrameEvidenceSetId: null,
+    contactSheetEvidenceId: inputMode === "multi_image" ? null : preparedInputRef,
+    frameEvidenceIds: inputMode === "multi_image" ? aiInputRefs : [],
+    screenshotEvidenceId,
+    screenshotRegion: null,
+    sourceUrl: payloadValueToString(payload.targetUrl) ?? "workbench://local-runtime/product-presence",
+    samplingStrategy,
+    sampledFrameCount: Math.max(aiInputRefs.length, 1),
+    validFrameCount: aiInputRefs.length,
+    expectedFrameCount: Math.max(aiInputRefs.length, 1),
+    fallbackReason: inputMode === "single_frame_fallback" ? "workbench_single_frame_dispatch" : null,
+    missingFrames: [],
+    summary: inputPayload.summary,
+    tags: ["workbench", envelope.promptContractId],
+  };
+};
+
+const buildWorkbenchAiInputPayload = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+) => {
+  return envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
+    ? buildProductPresenceInputPayload(envelope, inputPayload)
+    : buildDefaultAiInputPayload(inputPayload);
+};
+
+export const throwIfAborted = (signal: AbortSignal) => {
+  if (signal.aborted) {
+    throw new Error(typeof signal.reason === "string" ? signal.reason : "Transport aborted before AI completion.");
+  }
+};
+
+export const buildWorkbenchAiAbilityRequest = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+): WorkbenchAiExecuteInput => {
+  const mapRecord = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
+
+  return {
+    abilityGroupId: "ai" as const,
+    missionId: envelope.missionId,
+    taskType: envelope.taskType,
+    inputModality: "image_collection" as const,
+    inputRefs: buildWorkbenchAiInputRefs(envelope, inputPayload),
+    promptContractId: envelope.promptContractId,
+    expectedOutputSchema: envelope.outputSchemaRef,
+    requestedBy: "orchestration" as const,
+    transportedBy: "nerve-bus" as const,
+    sessionId: envelope.sessionId,
+    roundId: envelope.roundId,
+    videoVisitId: envelope.videoVisitId,
+    stepId: envelope.stepId,
+    capabilityCallId: envelope.requestId,
+    nerveBusEnvelopeId: envelope.envelopeId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.mapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
+    promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
+    qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
+    providerPolicy: { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null },
+    costPolicy: { maxEstimatedCost: 0 },
+    dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
+    safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
+    input: buildWorkbenchAiInputPayload(envelope, inputPayload),
+  };
+};

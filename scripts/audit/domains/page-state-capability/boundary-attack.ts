@@ -1,13 +1,13 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createPageStateAuditProject, getPageStateSources, getSource } from "./audit-project.js";
+import { getPageStateSources, getSource } from "./audit-project.js";
 import { ROOT } from "./constants.js";
 import { leaksPrivatePageStatePath } from "./source-boundaries.js";
 import type { Project } from "ts-morph";
 
 export async function runBoundaryAttack(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
-  const allSources = createPageStateAuditProject().getSourceFiles();
+  const allSources = project.getSourceFiles();
 
   for (const sourceFile of allSources) {
     if (leaksPrivatePageStatePath(sourceFile)) {

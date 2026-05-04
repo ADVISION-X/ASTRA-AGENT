@@ -135,7 +135,7 @@ const collectDeletedOwnerReintroductionFindings = (input: {
   })];
 });
 
-export async function runBlueprintGovernanceChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+const loadBlueprintGovernanceState = async () => {
   const [blueprintContent, packageJson, runInspectorText, auditPlan, enforcementMatrix, phaseGate] = await Promise.all([
     readTextFile(pathFromRepoRoot(BLUEPRINT_FILE)),
     readJsonFile<PackageJson>(pathFromRepoRoot("package.json")),
@@ -146,124 +146,155 @@ export async function runBlueprintGovernanceChecks(): Promise<{ findings: Findin
   ]);
 
   const blueprintLines = blueprintContent.split(/\r?\n/);
-  const childContractSection = extractSectionLines(blueprintLines, "## 子契约归属表");
-  const deletedOwnerLines = parseBulletSection(blueprintContent, "## 已删除 active owner");
-  const syncSection = extractSectionLines(blueprintLines, "## 后续执法系统同步原则");
-  const auditPlanDomains = new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : []));
-  const enforcementMatrixDomains = new Set((enforcementMatrix.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : []));
-  const phaseGateDomains = new Set(phaseGate.activeLawDomains ?? []);
-  const packageScripts = packageJson.scripts ?? {};
 
-  const childContractFindings: Finding[] = [];
-  const deletedOwnerFindings: Finding[] = [];
-  const generatedSyncFindings: Finding[] = [];
+  return {
+    childContractSection: extractSectionLines(blueprintLines, "## 子契约归属表"),
+    deletedOwnerLines: parseBulletSection(blueprintContent, "## 已删除 active owner"),
+    syncSection: extractSectionLines(blueprintLines, "## 后续执法系统同步原则"),
+    auditPlan,
+    enforcementMatrix,
+    runInspectorText,
+    packageScripts: packageJson.scripts ?? {},
+    auditPlanDomains: new Set((auditPlan.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : [])),
+    enforcementMatrixDomains: new Set((enforcementMatrix.owners ?? []).flatMap((owner) => owner.capabilityDomain ? [owner.capabilityDomain] : [])),
+    phaseGateDomains: new Set(phaseGate.activeLawDomains ?? []),
+  };
+};
 
-  if (containsMachineMarkers(childContractSection)) {
-    childContractFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-007-REQ-001",
-      message: "Index blueprint child-contract table must not contain extra required/forbidden/READY machine markers.",
-    }));
-  }
+const collectChildContractMachineizationFindings = (childContractSection: string[]): Finding[] => {
+  return containsMachineMarkers(childContractSection)
+    ? [createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-007-REQ-001", message: "Index blueprint child-contract table must not contain extra required/forbidden/READY machine markers." })]
+    : [];
+};
+
+const collectDeletedOwnerBaselineFindings = (input: {
+  deletedOwnerLines: string[];
+  auditPlanDomains: Set<string>;
+  enforcementMatrixDomains: Set<string>;
+}): Finding[] => {
+  return [
+    ...collectDeletedOwnerRequirementFindings(input),
+    ...collectUnexpectedDeletedOwnerLineFindings(input.deletedOwnerLines),
+  ];
+};
+
+const collectDeletedOwnerRequirementFindings = (input: {
+  deletedOwnerLines: string[];
+  auditPlanDomains: Set<string>;
+  enforcementMatrixDomains: Set<string>;
+}): Finding[] => {
+  const findings: Finding[] = [];
 
   for (const requirement of DELETED_OWNER_REQUIREMENTS) {
-    if (!deletedOwnerLines.includes(requirement.label)) {
-      deletedOwnerFindings.push(createBlueprintFinding({
-        lawId: requirement.requirementId,
-        message: "Index blueprint deleted active owner baseline drifted away from the governed list.",
-        detail: `missing line: ${requirement.label}`,
-      }));
+    if (!input.deletedOwnerLines.includes(requirement.label)) {
+      findings.push(createBlueprintFinding({ lawId: requirement.requirementId, message: "Index blueprint deleted active owner baseline drifted away from the governed list.", detail: `missing line: ${requirement.label}` }));
       continue;
     }
-
-    if (requirement.deletedDomain && (auditPlanDomains.has(requirement.deletedDomain) || enforcementMatrixDomains.has(requirement.deletedDomain))) {
-      deletedOwnerFindings.push(createBlueprintFinding({
-        lawId: requirement.requirementId,
-        message: "Deleted active owner must not reappear in generated audit owners.",
-        detail: requirement.deletedDomain,
-      }));
+    if (requirement.deletedDomain && (input.auditPlanDomains.has(requirement.deletedDomain) || input.enforcementMatrixDomains.has(requirement.deletedDomain))) {
+      findings.push(createBlueprintFinding({ lawId: requirement.requirementId, message: "Deleted active owner must not reappear in generated audit owners.", detail: requirement.deletedDomain }));
     }
-
-    if (requirement.expectedRehomedDomain && !auditPlanDomains.has(requirement.expectedRehomedDomain)) {
-      deletedOwnerFindings.push(createBlueprintFinding({
-        lawId: requirement.requirementId,
-        message: "Deleted independent owner must re-home under its governed current owner.",
-        detail: requirement.expectedRehomedDomain,
-      }));
+    if (requirement.expectedRehomedDomain && !input.auditPlanDomains.has(requirement.expectedRehomedDomain)) {
+      findings.push(createBlueprintFinding({ lawId: requirement.requirementId, message: "Deleted independent owner must re-home under its governed current owner.", detail: requirement.expectedRehomedDomain }));
     }
   }
 
+  return findings;
+};
+
+const collectUnexpectedDeletedOwnerLineFindings = (deletedOwnerLines: string[]): Finding[] => {
   const unexpectedDeletedOwnerLines = deletedOwnerLines.filter((line) => !DELETED_OWNER_REQUIREMENTS.some((requirement) => requirement.label === line));
-  if (unexpectedDeletedOwnerLines.length > 0) {
-    deletedOwnerFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-008-REQ-001",
-      message: "Index blueprint deleted active owner list contains unexpected entries.",
-      detail: unexpectedDeletedOwnerLines.join(", "),
-    }));
+
+  return unexpectedDeletedOwnerLines.length === 0
+    ? []
+    : [createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-008-REQ-001", message: "Index blueprint deleted active owner list contains unexpected entries.", detail: unexpectedDeletedOwnerLines.join(", ") })];
+};
+
+const collectGeneratedBuildChainFindings = (input: {
+  syncSection: string[];
+  packageScripts: Record<string, string>;
+  runInspectorText: string;
+}): Finding[] => {
+  const findings: Finding[] = [];
+
+  if (!input.syncSection.includes("后续 audit/generated registry、matrix、audit-plan、phase-gate、manifest、inspector 必须以本冻结基线为唯一源头。")
+    || input.packageScripts["audit:build"] !== "node --import tsx scripts/audit/build-audit-artifacts-cli.ts"
+    || !input.runInspectorText.includes("await buildAuditArtifacts();")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-001", message: "Index blueprint sync principle requires the governed build chain and index run-inspector rebuild step." }));
+  }
+  if (LEGACY_OWNER_DOMAINS.some((owner) => `audit:${owner}` in input.packageScripts) || !input.syncSection.includes("- 不得用旧 owner 恢复 CI。")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-002", file: "package.json", message: "Index blueprint sync principle must not revive legacy owners for CI." }));
   }
 
-  if (!syncSection.includes("后续 audit/generated registry、matrix、audit-plan、phase-gate、manifest、inspector 必须以本冻结基线为唯一源头。")
-    || packageScripts["audit:build"] !== "node --import tsx scripts/audit/build-audit-artifacts-cli.ts"
-    || !runInspectorText.includes("await buildAuditArtifacts();")) {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-001",
-      message: "Index blueprint sync principle requires the governed build chain and index run-inspector rebuild step.",
-    }));
+  return findings;
+};
+
+const collectGeneratedDeletedOwnerFindings = (input: {
+  syncSection: string[];
+  auditPlanDomains: Set<string>;
+  enforcementMatrixDomains: Set<string>;
+}): Finding[] => {
+  const findings: Finding[] = [];
+
+  if (!input.syncSection.includes("- 不得为了 CI 恢复 deleted owner。")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-003", message: "Index blueprint sync principle must keep the deleted-owner CI revival ban intact." }));
+  }
+  findings.push(...collectDeletedOwnerReintroductionFindings({ requirementId: "K02-BLUEPRINT-01-SECTION-009-REQ-003", file: "scripts/audit/generated/audit-plan.generated.json", domains: input.auditPlanDomains, message: "Generated audit plan must not revive deleted owners for CI." }));
+  findings.push(...collectDeletedOwnerReintroductionFindings({ requirementId: "K02-BLUEPRINT-01-SECTION-009-REQ-003", file: "scripts/audit/generated/enforcement-matrix.generated.json", domains: input.enforcementMatrixDomains, message: "Generated enforcement matrix must not revive deleted owners for CI." }));
+
+  return findings;
+};
+
+const collectGeneratedMetadataAndRunnerFindings = (input: {
+  syncSection: string[];
+  auditPlan: AuditPlan;
+  enforcementMatrix: EnforcementMatrix;
+  auditPlanDomains: Set<string>;
+  phaseGateDomains: Set<string>;
+}): Finding[] => {
+  const findings: Finding[] = [];
+
+  if (!input.syncSection.includes("- 不得手写 generated 文件伪造通过。")
+    || !input.auditPlan.generatedAt
+    || !input.enforcementMatrix.generatedAt
+    || input.auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-04-full-enforcement.json") {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-004", file: "scripts/audit/generated/audit-plan.generated.json", message: "Index blueprint generated artifacts must keep machine-owned metadata and phase-gate binding." }));
+  }
+  if (!input.syncSection.includes("- 不得让 runner 执行不在冻结基线中的独立 owner。")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-005", message: "Index blueprint sync principle must keep the runner frozen-baseline owner ban intact." }));
   }
 
-  if (LEGACY_OWNER_DOMAINS.some((owner) => `audit:${owner}` in packageScripts) || !syncSection.includes("- 不得用旧 owner 恢复 CI。")) {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-002",
-      file: "package.json",
-      message: "Index blueprint sync principle must not revive legacy owners for CI.",
-    }));
-  }
-
-  if (!syncSection.includes("- 不得为了 CI 恢复 deleted owner。")) {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-003",
-      message: "Index blueprint sync principle must keep the deleted-owner CI revival ban intact.",
-    }));
-  }
-  generatedSyncFindings.push(...collectDeletedOwnerReintroductionFindings({
-    requirementId: "K02-BLUEPRINT-01-SECTION-009-REQ-003",
-    file: "scripts/audit/generated/audit-plan.generated.json",
-    domains: auditPlanDomains,
-    message: "Generated audit plan must not revive deleted owners for CI.",
-  }));
-  generatedSyncFindings.push(...collectDeletedOwnerReintroductionFindings({
-    requirementId: "K02-BLUEPRINT-01-SECTION-009-REQ-003",
-    file: "scripts/audit/generated/enforcement-matrix.generated.json",
-    domains: enforcementMatrixDomains,
-    message: "Generated enforcement matrix must not revive deleted owners for CI.",
-  }));
-
-  if (!syncSection.includes("- 不得手写 generated 文件伪造通过。")
-    || !auditPlan.generatedAt
-    || !enforcementMatrix.generatedAt
-    || auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-04-full-enforcement.json") {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-004",
-      file: "scripts/audit/generated/audit-plan.generated.json",
-      message: "Index blueprint generated artifacts must keep machine-owned metadata and phase-gate binding.",
-    }));
-  }
-
-  if (!syncSection.includes("- 不得让 runner 执行不在冻结基线中的独立 owner。")) {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-005",
-      message: "Index blueprint sync principle must keep the runner frozen-baseline owner ban intact.",
-    }));
-  }
-
-  const outOfBaselineOwners = [...auditPlanDomains].filter((domain) => !phaseGateDomains.has(domain));
+  const outOfBaselineOwners = [...input.auditPlanDomains].filter((domain) => !input.phaseGateDomains.has(domain));
   if (outOfBaselineOwners.length > 0) {
-    generatedSyncFindings.push(createBlueprintFinding({
-      lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-005",
-      file: "scripts/audit/generated/audit-plan.generated.json",
-      message: "Generated runner audit plan must not execute owners outside the frozen baseline.",
-      detail: outOfBaselineOwners.join(", "),
-    }));
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-005", file: "scripts/audit/generated/audit-plan.generated.json", message: "Generated runner audit plan must not execute owners outside the frozen baseline.", detail: outOfBaselineOwners.join(", ") }));
   }
+
+  return findings;
+};
+
+const buildBlueprintGovernancePhases = (input: {
+  childContractFindings: Finding[];
+  deletedOwnerFindings: Finding[];
+  generatedSyncFindings: Finding[];
+}): InspectorPhase[] => [
+  createPhase("blueprint-child-contract-machineization", input.childContractFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT", input.childContractFindings.length === 0, input.childContractFindings.length === 0 ? "Index blueprint child-contract table contains no unmachineized required/forbidden/READY markers." : "Index blueprint child-contract table still contains unmachineized markers."),
+  createPhase("blueprint-deleted-active-owner-baseline", input.deletedOwnerFindings.length === 0 ? "PASS" : "CODE VIOLATION", input.deletedOwnerFindings.length === 0, input.deletedOwnerFindings.length === 0 ? "Index blueprint deleted active owners stay deleted and re-home only under governed current owners." : "Index blueprint deleted active owner baseline drifted or a deleted owner reappeared."),
+  createPhase("blueprint-generated-sync-principles", input.generatedSyncFindings.length === 0 ? "PASS" : "CODE VIOLATION", input.generatedSyncFindings.length === 0, input.generatedSyncFindings.length === 0 ? "Index blueprint generated sync principles keep build-chain, deleted-owner, metadata, and runner-baseline boundaries intact." : "Index blueprint generated sync principles drifted away from the governed baseline."),
+];
+
+export async function runBlueprintGovernanceChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const state = await loadBlueprintGovernanceState();
+
+  const childContractFindings = collectChildContractMachineizationFindings(state.childContractSection);
+  const deletedOwnerFindings = collectDeletedOwnerBaselineFindings({
+    deletedOwnerLines: state.deletedOwnerLines,
+    auditPlanDomains: state.auditPlanDomains,
+    enforcementMatrixDomains: state.enforcementMatrixDomains,
+  });
+  const generatedSyncFindings = [
+    ...collectGeneratedBuildChainFindings({ syncSection: state.syncSection, packageScripts: state.packageScripts, runInspectorText: state.runInspectorText }),
+    ...collectGeneratedDeletedOwnerFindings({ syncSection: state.syncSection, auditPlanDomains: state.auditPlanDomains, enforcementMatrixDomains: state.enforcementMatrixDomains }),
+    ...collectGeneratedMetadataAndRunnerFindings({ syncSection: state.syncSection, auditPlan: state.auditPlan, enforcementMatrix: state.enforcementMatrix, auditPlanDomains: state.auditPlanDomains, phaseGateDomains: state.phaseGateDomains }),
+  ];
 
   const findings = [
     ...childContractFindings,
@@ -273,31 +304,6 @@ export async function runBlueprintGovernanceChecks(): Promise<{ findings: Findin
 
   return {
     findings,
-    phases: [
-      createPhase(
-        "blueprint-child-contract-machineization",
-        childContractFindings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
-        childContractFindings.length === 0,
-        childContractFindings.length === 0
-          ? "Index blueprint child-contract table contains no unmachineized required/forbidden/READY markers."
-          : "Index blueprint child-contract table still contains unmachineized markers.",
-      ),
-      createPhase(
-        "blueprint-deleted-active-owner-baseline",
-        deletedOwnerFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        deletedOwnerFindings.length === 0,
-        deletedOwnerFindings.length === 0
-          ? "Index blueprint deleted active owners stay deleted and re-home only under governed current owners."
-          : "Index blueprint deleted active owner baseline drifted or a deleted owner reappeared.",
-      ),
-      createPhase(
-        "blueprint-generated-sync-principles",
-        generatedSyncFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        generatedSyncFindings.length === 0,
-        generatedSyncFindings.length === 0
-          ? "Index blueprint generated sync principles keep build-chain, deleted-owner, metadata, and runner-baseline boundaries intact."
-          : "Index blueprint generated sync principles drifted away from the governed baseline.",
-      ),
-    ],
+    phases: buildBlueprintGovernancePhases({ childContractFindings, deletedOwnerFindings, generatedSyncFindings }),
   };
 }

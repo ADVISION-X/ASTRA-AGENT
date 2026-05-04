@@ -183,11 +183,12 @@ function collectEnvelopeBuilderTransportFindings(project: ReturnType<typeof make
 function collectStepDispatcherTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const stepDispatcherSource = getSourceFile(project, PATHS.STEP_DISPATCHER);
+  const stepDispatchRequestBuildersSource = getSourceFile(project, PATHS.STEP_DISPATCH_REQUEST_BUILDERS);
   if (!stepDispatcherSource || !hasCallExpression(stepDispatcherSource, "sendCommandToAbility") || !hasCallExpression(stepDispatcherSource, "sendRequestToAi") || !hasCallExpression(stepDispatcherSource, "sendReviewRequestToCommander")) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must use governed Nerve Bus port methods for ability, AI, and review dispatch." }));
   }
-  if (!sourceHasProperties(stepDispatcherSource, ["runId", "activationSnapshotRef", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve frozen activation chain and AI prompt binding refs." }));
+  if (!sourceHasProperties(stepDispatchRequestBuildersSource, ["runId", "activationSnapshotRef", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCH_REQUEST_BUILDERS, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve frozen activation chain and AI prompt binding refs." }));
   }
   return findings;
 }

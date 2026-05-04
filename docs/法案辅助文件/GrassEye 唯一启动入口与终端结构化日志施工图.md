@@ -148,6 +148,7 @@ Debug Loop 只能记录 blocked，不能代替生产启动链
 
 ```txt
 通过 --platform=facebook-web|tiktok-web 或 GRASSEYE_PLATFORM_TARGET 显式提供 platformTarget。
+如果启动命令运行在交互式终端且未提供 flag/env，startup 可以在 update_preflight_check 之前要求操作者显式选择一次 platformTarget。
 startup 在启动 service 前记录一次 platform_target_resolved 结构化日志。
 startup 把 startup readiness JSON 与 platformTarget 一起传给 app server，供 Commander 直接显示 missionRuntimeAvailable 与 failureReason。
 ```
@@ -155,6 +156,8 @@ startup 把 startup readiness JSON 与 platformTarget 一起传给 app server，
 ### 禁止
 
 ```txt
+交互式 grasseye:start 在未提供平台时直接 hard fail，而不给一次受控显式选择机会。
+非交互式启动在缺失 platformTarget 时假装选择成功或写入隐式默认平台。
 package.json 的 internal:app-server:dev 写死 GRASSEYE_PLATFORM_TARGET=tiktok-web。
 launch-grasseye.mjs 在 startService env 中写死某个平台。
 src/app/server.ts 只接受 tiktok-web 并把其它显式平台拒绝掉。

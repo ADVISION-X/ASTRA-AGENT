@@ -2,6 +2,7 @@ import { access, mkdir, readFile, readdir, rename, writeFile } from "node:fs/pro
 import path from "node:path";
 
 const DEFAULT_IGNORED_DIRS = new Set([".git", ".venv", "dist", "node_modules"]);
+const recursiveFileListCache = new Map<string, Promise<string[]>>();
 
 const isMissingPathError = (error: unknown): boolean =>
   error instanceof Error && "code" in error && error.code === "ENOENT";
@@ -113,6 +114,19 @@ const collectRecursiveFiles = async (
   }
 };
 
+const createRecursiveFileListCacheKey = (
+  dirPath: string,
+  options?: {
+    extensions?: string[];
+    ignoreDirs?: string[];
+  },
+): string =>
+  JSON.stringify({
+    dirPath: path.resolve(dirPath),
+    extensions: [...(options?.extensions ?? [])].sort(),
+    ignoreDirs: [...(options?.ignoreDirs ?? [])].sort(),
+  });
+
 export const listFilesRecursive = async (
   dirPath: string,
   options?: {
@@ -120,15 +134,31 @@ export const listFilesRecursive = async (
     ignoreDirs?: string[];
   },
 ): Promise<string[]> => {
+  const cacheKey = createRecursiveFileListCacheKey(dirPath, options);
+  const cached = recursiveFileListCache.get(cacheKey);
+  if (cached) {
+    return [...(await cached)];
+  }
+
   const state: RecursiveCollectionState = {
     ignoreDirs: new Set(options?.ignoreDirs ?? []),
     extensions: options?.extensions,
     results: [],
   };
 
-  if (await fileExists(dirPath)) {
-    await collectRecursiveFiles(dirPath, state);
-  }
+  const collected = (async () => {
+    if (await fileExists(dirPath)) {
+      await collectRecursiveFiles(dirPath, state);
+    }
 
-  return state.results;
+    return state.results.sort((left, right) => left.localeCompare(right));
+  })();
+
+  recursiveFileListCache.set(cacheKey, collected);
+  try {
+    return [...(await collected)];
+  } catch (error) {
+    recursiveFileListCache.delete(cacheKey);
+    throw error;
+  }
 };

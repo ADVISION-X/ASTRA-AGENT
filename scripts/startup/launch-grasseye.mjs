@@ -5,6 +5,7 @@ import { assessDependencyState, installDependencies } from "./lib/dependency-che
 import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
+import { parseStartupFlags, resolveStartupPlatformTarget, shouldPromptForStartupPlatform } from "./lib/platform-target.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
@@ -14,7 +15,6 @@ const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
 const healthUrl = `${baseUrl}/api/runtime/health`;
 const terminalLogger = createTerminalStructuredLogger();
-const ALLOWED_PLATFORM_TARGETS = new Set(["tiktok-web", "facebook-web"]);
 
 function toFailureReason(error) {
   return error instanceof Error ? error.message : String(error);
@@ -33,25 +33,7 @@ function logFail(...[phase, component, eventType, status, message, extra = {}]) 
 }
 
 function parseFlags(argv) {
-  const platformFlagIndex = argv.findIndex((value) => value === "--platform" || value.startsWith("--platform="));
-  const inlinePlatformTarget = platformFlagIndex >= 0 && argv[platformFlagIndex]?.startsWith("--platform=")
-    ? argv[platformFlagIndex].slice("--platform=".length).trim()
-    : null;
-  const positionalPlatformTarget = platformFlagIndex >= 0 && argv[platformFlagIndex] === "--platform"
-    ? (argv[platformFlagIndex + 1] ?? "").trim()
-    : "";
-  const platformTarget = inlinePlatformTarget || positionalPlatformTarget || process.env.GRASSEYE_PLATFORM_TARGET?.trim() || "";
-  const platformSource = inlinePlatformTarget || positionalPlatformTarget ? "flag" : process.env.GRASSEYE_PLATFORM_TARGET?.trim() ? "env" : "missing";
-  if (!ALLOWED_PLATFORM_TARGETS.has(platformTarget)) {
-    throw new Error("STARTUP_PLATFORM_TARGET_REQUIRED: provide --platform=facebook-web|tiktok-web or set GRASSEYE_PLATFORM_TARGET explicitly.");
-  }
-
-  return {
-    updateRequested: argv.includes("--update"),
-    skipOpen: argv.includes("--no-open") || process.env.GRASSEYE_SKIP_OPEN === "1",
-    platformTarget,
-    platformSource,
-  };
+  return parseStartupFlags(argv);
 }
 
 function registerSignalHandlers(shutdown) {
@@ -123,24 +105,24 @@ async function preparePort() {
   });
 }
 
-async function startService(root, flags, localAiReadiness) {
+async function startService(root, runtimeFlags, localAiReadiness) {
   const serviceStart = Date.now();
   logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`, {
-    refs: [`platformTarget=${flags.platformTarget}`],
+    refs: [`platformTarget=${runtimeFlags.platformTarget}`],
   });
   const serviceHandle = await startLocalService({
     rootDir: root,
     preStartScripts: [],
     scriptName: "internal:app-server:dev",
     env: {
-      GRASSEYE_PLATFORM_TARGET: flags.platformTarget,
+      GRASSEYE_PLATFORM_TARGET: runtimeFlags.platformTarget,
       GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
   });
   logPass("SERVICE", "app_server", "app_server", "ready", `local app shell process started for ${baseUrl}`, {
-    refs: [`platformTarget=${flags.platformTarget}`],
+    refs: [`platformTarget=${runtimeFlags.platformTarget}`],
     durationMs: Date.now() - serviceStart,
   });
   return serviceHandle;
@@ -214,16 +196,19 @@ function logStartupReady() {
 
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
-  logEvent("STARTUP", "bootstrap", "platform_target_resolved", "ready", `resolved startup platform target ${flags.platformTarget}`, {
-    refs: [`source=${flags.platformSource}`],
+  if (shouldPromptForStartupPlatform(flags)) {
+    logEvent("STARTUP", "bootstrap", "platform_target_selection_required", "started", "no explicit platform target provided; prompting for governed startup platform selection");
+  }
+  const runtimeFlags = await resolveStartupPlatformTarget(flags);
+  logEvent("STARTUP", "bootstrap", "platform_target_resolved", "ready", `resolved startup platform target ${runtimeFlags.platformTarget}`, {
+    refs: [`source=${runtimeFlags.platformSource}`],
   });
-  await runUpdatePreflight(root, flags);
+  await runUpdatePreflight(root, runtimeFlags);
   const localAiReadiness = await ensureLocalAiReadiness();
-
   await preparePort();
-  const serviceHandle = await startService(root, flags, localAiReadiness);
+  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);
   await verifyAppHealth(serviceHandle);
-  await openReadyPage(flags);
+  await openReadyPage(runtimeFlags);
   markMissionRuntimeAvailable(localAiReadiness);
   logStartupReady();
   return serviceHandle;

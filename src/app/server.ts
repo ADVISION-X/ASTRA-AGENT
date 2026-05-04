@@ -2,10 +2,9 @@ import { createServer } from "node:http";
 import { pathToFileURL, URL } from "node:url";
 
 import { createWorkbenchServer as createWorkbenchHttpServer } from "./create-workbench-server.js";
-import { getDefaultPhase04LocalDataDir } from "../lib/local-runtime/default-data-dir.js";
-import { createGrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle-factory.js";
+import { createGrassEyeWorkbenchHandle, getDefaultPhase04LocalDataDir } from "../lib/local-runtime/workbench-launch-contract.js";
 import { LocalAiStartupReadinessSchema } from "../types/local-ai.js";
-import type { GrassEyePlatformTarget } from "../lib/local-runtime/workbench-contract.js";
+import type { GrassEyePlatformTarget } from "../lib/local-runtime/workbench-launch-contract.js";
 
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);

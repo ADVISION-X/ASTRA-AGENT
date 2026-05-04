@@ -22,6 +22,8 @@ const REQUIRED_CHAIN_FIELD_NAMES = [
   "promptCatalogVersion",
 ] as const;
 
+const WORKBENCH_AI_REQUEST_BUILDER_FILE = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+
 const getNamedObjectLiteral = (sourceFile: SourceFile, declarationName: string) => {
   const initializer = sourceFile.getVariableDeclaration(declarationName)?.getInitializer();
   const expression = initializer && Node.isAsExpression(initializer) ? initializer.getExpression() : initializer;
@@ -78,7 +80,7 @@ export function findProofChainViolations(project: Project): Finding[] {
   const chainFieldSource = getSourceOrThrow(project, `${AI_ROOT}/schema-chain-fields.ts`);
   const inputSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-core.schema.ts`);
   const runtimeSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime.schema.ts`);
-  const workbenchRequestSource = getSourceOrThrow(project, "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts");
+  const workbenchRequestSource = getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_FILE);
   const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
   const idempotencySource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`);
   const findings: Finding[] = [];
@@ -90,7 +92,7 @@ export function findProofChainViolations(project: Project): Finding[] {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/schema-core.schema.ts`, line: 1, severity: "fatal", message: "AI input and runtime proof schemas must import the governed chain-field schema helper." }));
   }
   if (!hasWorkbenchChainFields(workbenchRequestSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts", line: 1, severity: "fatal", message: "Workbench AI requests must inject step, capability call, envelope, map activation, and prompt catalog chain fields from Nerve Bus and active map registry context." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_REQUEST_BUILDER_FILE, line: 1, severity: "fatal", message: "Workbench AI requests must inject step, capability call, envelope, map activation, and prompt catalog chain fields from Nerve Bus and active map registry context." }));
   }
   if (!hasProofBuilderChainFields(proofBuilderSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime/ai-proof-builder.ts`, line: 1, severity: "fatal", message: "AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, activationSnapshotRef, promptContractVersion, and promptCatalogVersion from governed request context." }));

@@ -12,6 +12,22 @@ import { runTruthOwnershipAttack } from "./run-truth-ownership-attack.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_POST_ACTION_NEGATIVE_PROOF";
 
+const runPostActionNegativeProof = async () => {
+  if (process.env[SKIP_NEGATIVE_PROOF_ENV] !== "1") {
+    return runNegativeProofHarness();
+  }
+
+  return {
+    findings: [],
+    phase: {
+      name: "negative-proof-harness",
+      classification: "PASS" as const,
+      passed: true,
+      summary: "Post Action Verification negative-proof harness was skipped for nested inspector execution.",
+    },
+  };
+};
+
 export async function inspectPostActionVerificationCapability(context: InspectorContext): Promise<InspectorResult> {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "post-action-verification-capability",
@@ -25,17 +41,7 @@ export async function inspectPostActionVerificationCapability(context: Inspector
   const boundary = await runBoundaryAttack(project);
   const truthOwnership = runTruthOwnershipAttack(project);
   const antiEscape = await runAntiEscape(project);
-  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? {
-        findings: [],
-        phase: {
-          name: "negative-proof-harness",
-          classification: "PASS" as const,
-          passed: true,
-          summary: "Post Action Verification negative-proof harness was skipped for nested inspector execution.",
-        },
-      }
-    : await runNegativeProofHarness();
+  const negativeProof = await runPostActionNegativeProof();
   const findings = [
     ...base.findings,
     ...lawBaseline.findings,

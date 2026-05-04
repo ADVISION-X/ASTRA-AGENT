@@ -9,6 +9,12 @@ type PackageJson = {
   scripts?: Record<string, string>;
 };
 
+type ForbiddenOwnerRuntimeFindingGroups = {
+  forbiddenAuditEntryFindings: Finding[];
+  forbiddenRuntimeRootFindings: Finding[];
+  auditTruthBoundaryFindings: Finding[];
+};
+
 const LEGACY_OWNER_IDS = [
   "agent-runtime",
   "browse-flow",
@@ -84,58 +90,54 @@ const createRequirementFinding = (input: {
   ...(input.detail ? { detail: input.detail } : {}),
 });
 
-const collectForbiddenAuditEntryFindings = (scripts: Record<string, string>): Finding[] => {
-  const findings: Finding[] = [];
-
-  for (const ownerId of LEGACY_OWNER_IDS) {
-    const scriptName = `audit:${ownerId}`;
-    if (scriptName in scripts) {
-      findings.push(createRequirementFinding({
-        lawId: REQUIREMENT_ID_009,
-        file: "package.json",
-        message: `package.json must not expose ${scriptName}; retired legacy owners must not be reintroduced as active owners.`,
-      }));
-    }
-  }
-
-  for (const ownerId of NON_OWNER_AUDIT_IDS) {
-    const scriptName = `audit:${ownerId}`;
-    if (!(scriptName in scripts)) {
-      continue;
-    }
-
-    const lawId = ownerId === "local-data"
-      ? REQUIREMENT_ID_013
-      : ownerId === "platform-action"
-        ? REQUIREMENT_ID_014
-        : REQUIREMENT_ID_011;
-    const message = ownerId === "local-data"
-      ? "package.json must not expose audit:local-data; local-data must not own evidence, ledger, AI-result, snapshot, or operator-snapshot truth."
-      : ownerId === "platform-action"
-        ? "package.json must not expose audit:platform-action; platform-action must not own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth."
-        : `package.json must not expose ${scriptName}; non-capability surfaces must not publish audit owners.`;
-
-    findings.push(createRequirementFinding({
-      lawId,
+const collectLegacyAuditEntryFindings = (scripts: Record<string, string>): Finding[] => {
+  return LEGACY_OWNER_IDS
+    .filter((ownerId) => `audit:${ownerId}` in scripts)
+    .map((ownerId) => createRequirementFinding({
+      lawId: REQUIREMENT_ID_009,
       file: "package.json",
-      message,
+      message: `package.json must not expose audit:${ownerId}; retired legacy owners must not be reintroduced as active owners.`,
     }));
-  }
+};
 
-  for (const ownerId of PSEUDO_OWNER_AUDIT_IDS) {
-    const scriptName = `audit:${ownerId}`;
-    if (!(scriptName in scripts)) {
-      continue;
-    }
+const createNonOwnerAuditEntryFinding = (ownerId: string): Finding => {
+  const scriptName = `audit:${ownerId}`;
+  const lawId = ownerId === "local-data"
+    ? REQUIREMENT_ID_013
+    : ownerId === "platform-action"
+      ? REQUIREMENT_ID_014
+      : REQUIREMENT_ID_011;
+  const message = ownerId === "local-data"
+    ? "package.json must not expose audit:local-data; local-data must not own evidence, ledger, AI-result, snapshot, or operator-snapshot truth."
+    : ownerId === "platform-action"
+      ? "package.json must not expose audit:platform-action; platform-action must not own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth."
+      : `package.json must not expose ${scriptName}; non-capability surfaces must not publish audit owners.`;
 
-    findings.push(createRequirementFinding({
+  return createRequirementFinding({ lawId, file: "package.json", message });
+};
+
+const collectNonOwnerAuditEntryFindings = (scripts: Record<string, string>): Finding[] => {
+  return NON_OWNER_AUDIT_IDS
+    .filter((ownerId) => `audit:${ownerId}` in scripts)
+    .map((ownerId) => createNonOwnerAuditEntryFinding(ownerId));
+};
+
+const collectPseudoOwnerAuditEntryFindings = (scripts: Record<string, string>): Finding[] => {
+  return PSEUDO_OWNER_AUDIT_IDS
+    .filter((ownerId) => `audit:${ownerId}` in scripts)
+    .map((ownerId) => createRequirementFinding({
       lawId: REQUIREMENT_ID_011,
       file: "package.json",
-      message: `package.json must not expose ${scriptName}; PlatformAdapter, feature folders, helper files, startup scripts, and browser primitives must not publish ability owners.`,
+      message: `package.json must not expose audit:${ownerId}; PlatformAdapter, feature folders, helper files, startup scripts, and browser primitives must not publish ability owners.`,
     }));
-  }
+};
 
-  return findings;
+const collectForbiddenAuditEntryFindings = (scripts: Record<string, string>): Finding[] => {
+  return [
+    ...collectLegacyAuditEntryFindings(scripts),
+    ...collectNonOwnerAuditEntryFindings(scripts),
+    ...collectPseudoOwnerAuditEntryFindings(scripts),
+  ];
 };
 
 const collectAuditTruthBoundaryFindings = (scripts: Record<string, string>): Finding[] => {
@@ -181,56 +183,85 @@ async function collectForbiddenRuntimeRootFindings(): Promise<Finding[]> {
   return findings;
 }
 
-export async function runForbiddenOwnerRuntimeChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+async function loadForbiddenOwnerRuntimeFindingGroups(): Promise<ForbiddenOwnerRuntimeFindingGroups> {
   const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
   const scripts = packageJson.scripts ?? {};
   const forbiddenAuditEntryFindings = collectForbiddenAuditEntryFindings(scripts);
-  const auditTruthBoundaryFindings = collectAuditTruthBoundaryFindings(scripts);
-  const forbiddenRuntimeRootFindings = await collectForbiddenRuntimeRootFindings();
+
+  return {
+    forbiddenAuditEntryFindings,
+    forbiddenRuntimeRootFindings: await collectForbiddenRuntimeRootFindings(),
+    auditTruthBoundaryFindings: collectAuditTruthBoundaryFindings(scripts),
+  };
+}
+
+const createForbiddenAuditOwnerPublicationPhase = (groups: ForbiddenOwnerRuntimeFindingGroups): InspectorPhase => {
+  return createPhase(
+    "forbidden-audit-owner-publication",
+    groups.forbiddenAuditEntryFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+    groups.forbiddenAuditEntryFindings.length === 0,
+    groups.forbiddenAuditEntryFindings.length === 0
+      ? "package.json does not publish retired or non-capability audit owners."
+      : "package.json still publishes retired owners or non-capability surfaces as audit owners.",
+  );
+};
+
+const createForbiddenFeatureRuntimeRootsPhase = (groups: ForbiddenOwnerRuntimeFindingGroups): InspectorPhase => {
+  return createPhase(
+    "forbidden-feature-runtime-roots",
+    groups.forbiddenRuntimeRootFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+    groups.forbiddenRuntimeRootFindings.length === 0,
+    groups.forbiddenRuntimeRootFindings.length === 0
+      ? "Legacy feature runtime roots remain removed after capability-group cutover."
+      : "Legacy feature runtime roots reappeared after capability-group cutover.",
+  );
+};
+
+const createNoSecondExecutionChainPhase = (groups: ForbiddenOwnerRuntimeFindingGroups): InspectorPhase => {
   const secondExecutionChainFindings = [
-    ...forbiddenAuditEntryFindings,
-    ...forbiddenRuntimeRootFindings,
+    ...groups.forbiddenAuditEntryFindings,
+    ...groups.forbiddenRuntimeRootFindings,
   ];
+
+  return createPhase(
+    "no-second-execution-chain",
+    secondExecutionChainFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+    secondExecutionChainFindings.length === 0,
+    secondExecutionChainFindings.length === 0
+      ? "Kernel keeps a single execution chain beside the ability-group formula."
+      : "Kernel drift reintroduced a second execution chain beside the ability-group formula.",
+  );
+};
+
+const createAuditEnforcementTruthBoundaryPhase = (groups: ForbiddenOwnerRuntimeFindingGroups): InspectorPhase => {
+  return createPhase(
+    "audit-enforcement-truth-boundary",
+    groups.auditTruthBoundaryFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+    groups.auditTruthBoundaryFindings.length === 0,
+    groups.auditTruthBoundaryFindings.length === 0
+      ? "Audit entrypoints keep enforcement truth inside the governed audit chain."
+      : "Audit entrypoints still delegate enforcement truth to verify/test/ad-hoc quality scripts.",
+  );
+};
+
+function buildForbiddenOwnerRuntimePhases(groups: ForbiddenOwnerRuntimeFindingGroups): InspectorPhase[] {
+  return [
+    createForbiddenAuditOwnerPublicationPhase(groups),
+    createForbiddenFeatureRuntimeRootsPhase(groups),
+    createNoSecondExecutionChainPhase(groups),
+    createAuditEnforcementTruthBoundaryPhase(groups),
+  ];
+}
+
+export async function runForbiddenOwnerRuntimeChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const groups = await loadForbiddenOwnerRuntimeFindingGroups();
 
   return {
     findings: [
-      ...forbiddenAuditEntryFindings,
-      ...forbiddenRuntimeRootFindings,
-      ...auditTruthBoundaryFindings,
+      ...groups.forbiddenAuditEntryFindings,
+      ...groups.forbiddenRuntimeRootFindings,
+      ...groups.auditTruthBoundaryFindings,
     ],
-    phases: [
-      createPhase(
-        "forbidden-audit-owner-publication",
-        forbiddenAuditEntryFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        forbiddenAuditEntryFindings.length === 0,
-        forbiddenAuditEntryFindings.length === 0
-          ? "package.json does not publish retired or non-capability audit owners."
-          : "package.json still publishes retired owners or non-capability surfaces as audit owners.",
-      ),
-      createPhase(
-        "forbidden-feature-runtime-roots",
-        forbiddenRuntimeRootFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        forbiddenRuntimeRootFindings.length === 0,
-        forbiddenRuntimeRootFindings.length === 0
-          ? "Legacy feature runtime roots remain removed after capability-group cutover."
-          : "Legacy feature runtime roots reappeared after capability-group cutover.",
-      ),
-      createPhase(
-        "no-second-execution-chain",
-        secondExecutionChainFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        secondExecutionChainFindings.length === 0,
-        secondExecutionChainFindings.length === 0
-          ? "Kernel keeps a single execution chain beside the ability-group formula."
-          : "Kernel drift reintroduced a second execution chain beside the ability-group formula.",
-      ),
-      createPhase(
-        "audit-enforcement-truth-boundary",
-        auditTruthBoundaryFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        auditTruthBoundaryFindings.length === 0,
-        auditTruthBoundaryFindings.length === 0
-          ? "Audit entrypoints keep enforcement truth inside the governed audit chain."
-          : "Audit entrypoints still delegate enforcement truth to verify/test/ad-hoc quality scripts.",
-      ),
-    ],
+    phases: buildForbiddenOwnerRuntimePhases(groups),
   };
 }

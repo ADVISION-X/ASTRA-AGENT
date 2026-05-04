@@ -41,47 +41,70 @@ const addMissingFileFinding = (findings: Finding[], file: string, message: strin
   }));
 };
 
-export async function runIndexOwnerSurfaceChecks(
-  context: InspectorContext,
-): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+const collectRequiredFileFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
 
   if (!(await fileExists(pathFromRepoRoot(MANIFEST_FILE)))) {
     addMissingFileFinding(findings, MANIFEST_FILE, "Index routing owner manifest is missing.");
   }
-
   if (!(await fileExists(pathFromRepoRoot(RUN_INSPECTOR_FILE)))) {
     addMissingFileFinding(findings, RUN_INSPECTOR_FILE, "Index routing run-inspector entry is missing.");
   }
-
   if (!(await fileExists(pathFromRepoRoot(NEGATIVE_PROOF_HARNESS_FILE)))) {
     addMissingFileFinding(findings, NEGATIVE_PROOF_HARNESS_FILE, "Index routing negative-proof harness is missing.");
   }
 
-  if (await fileExists(pathFromRepoRoot(MANIFEST_FILE))) {
-    const manifest = await readJsonFile<IndexManifest>(pathFromRepoRoot(MANIFEST_FILE));
-    if (manifest.inspectorId !== "index-owner") {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest inspectorId must remain index-owner." }));
-    }
-    if (manifest.capabilityDomain !== "index") {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest capabilityDomain must remain index." }));
-    }
-    if (manifest.entry !== INSPECTOR_ENTRY) {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest entry must point at the index inspector." }));
-    }
-    if (!(manifest.readsLawFiles ?? []).includes(KERNEL_FILE)) {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest must read the kernel routing law file." }));
-    }
-    if (!(manifest.readsLawFiles ?? []).includes(INDEX_FILE)) {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest must read the index routing law file." }));
-    }
-    if (!(manifest.readsBlueprintFiles ?? []).includes(BLUEPRINT_FILE)) {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest must read the frozen baseline blueprint file." }));
-    }
-    if (!(manifest.readsBlueprintFiles ?? []).includes(STANDARD_PACKAGE_BLUEPRINT_FILE)) {
-      findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message: "Index manifest must read the standard package blueprint file." }));
-    }
+  return findings;
+};
+
+const createManifestFinding = (message: string): Finding =>
+  createFinding({ lawId: REQUIREMENT_ID_001, file: MANIFEST_FILE, line: 1, severity: "error", message });
+
+const collectManifestReadFindings = (input: {
+  values: string[];
+  expectedPath: string;
+  message: string;
+}): Finding[] => input.values.includes(input.expectedPath) ? [] : [createManifestFinding(input.message)];
+
+const collectManifestFindings = async (): Promise<Finding[]> => {
+  if (!(await fileExists(pathFromRepoRoot(MANIFEST_FILE)))) {
+    return [];
   }
+
+  const manifest = await readJsonFile<IndexManifest>(pathFromRepoRoot(MANIFEST_FILE));
+
+  return [
+    ...(manifest.inspectorId === "index-owner" ? [] : [createManifestFinding("Index manifest inspectorId must remain index-owner.")]),
+    ...(manifest.capabilityDomain === "index" ? [] : [createManifestFinding("Index manifest capabilityDomain must remain index.")]),
+    ...(manifest.entry === INSPECTOR_ENTRY ? [] : [createManifestFinding("Index manifest entry must point at the index inspector.")]),
+    ...collectManifestReadFindings({ values: manifest.readsLawFiles ?? [], expectedPath: KERNEL_FILE, message: "Index manifest must read the kernel routing law file." }),
+    ...collectManifestReadFindings({ values: manifest.readsLawFiles ?? [], expectedPath: INDEX_FILE, message: "Index manifest must read the index routing law file." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: BLUEPRINT_FILE, message: "Index manifest must read the frozen baseline blueprint file." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: STANDARD_PACKAGE_BLUEPRINT_FILE, message: "Index manifest must read the standard package blueprint file." }),
+  ];
+};
+
+const collectAuditScriptFindings = async (): Promise<Finding[]> => {
+  const findings: Finding[] = [];
+  const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
+  const auditScript = packageJson.scripts?.["audit:index"];
+
+  if (!auditScript) {
+    findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: "package.json", line: 1, severity: "fatal", message: "package.json must expose audit:index for the index routing owner." }));
+  } else if (auditScript !== EXPECTED_AUDIT_SCRIPT) {
+    findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: "package.json", line: 1, severity: "error", message: "package.json audit:index must execute the governed index run-inspector entry.", detail: auditScript }));
+  }
+
+  return findings;
+};
+
+export async function runIndexOwnerSurfaceChecks(
+  context: InspectorContext,
+): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const findings = [
+    ...(await collectRequiredFileFindings()),
+    ...(await collectManifestFindings()),
+  ];
 
   if (!context.matrixOwnersByDomain.get("index")) {
     findings.push(createFinding({
@@ -92,27 +115,7 @@ export async function runIndexOwnerSurfaceChecks(
       message: "Generated enforcement matrix must include the index routing owner.",
     }));
   }
-
-  const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
-  const auditScript = packageJson.scripts?.["audit:index"];
-  if (!auditScript) {
-    findings.push(createFinding({
-      lawId: REQUIREMENT_ID_001,
-      file: "package.json",
-      line: 1,
-      severity: "fatal",
-      message: "package.json must expose audit:index for the index routing owner.",
-    }));
-  } else if (auditScript !== EXPECTED_AUDIT_SCRIPT) {
-    findings.push(createFinding({
-      lawId: REQUIREMENT_ID_001,
-      file: "package.json",
-      line: 1,
-      severity: "error",
-      message: "package.json audit:index must execute the governed index run-inspector entry.",
-      detail: auditScript,
-    }));
-  }
+  findings.push(...(await collectAuditScriptFindings()));
 
   return {
     findings,

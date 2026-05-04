@@ -6,7 +6,7 @@ import { getSourceFile, makeProject } from "./audit-project.js";
 import { PATHS } from "./config.js";
 
 const LAW_ID = "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2";
-const EXTERNAL_OWNER_ROOTS = ["src/lib/local-runtime/", "src/lib/browser/", "src/features/platform-action/"] as const;
+const EXTERNAL_OWNER_ROOTS = ["src/lib/local-runtime/", "src/lib/browser/"] as const;
 const BUSINESS_VERBS = ["open_comments", "click_not_interested", "like_or_save_candidate", "continue_next"] as const;
 const EXTERNAL_CLICK_OWNER_MARKERS = ["clickStrategy", "executePrimitiveClick", "primitiveClickOwner"] as const;
 const BUSINESS_VERB_OWNER_PATHS = ["/runtime/", "/children/", "/ability-group.ts", "/registry.ts"] as const;

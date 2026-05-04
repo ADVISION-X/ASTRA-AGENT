@@ -19,7 +19,9 @@ const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<Awai
 });
 
 const main = async (): Promise<void> => {
-  await buildAuditArtifacts();
+  if (!process.argv.includes("--skip-build")) {
+    await buildAuditArtifacts();
+  }
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector("scripts/audit/domains/page-state-capability/inspector.ts");

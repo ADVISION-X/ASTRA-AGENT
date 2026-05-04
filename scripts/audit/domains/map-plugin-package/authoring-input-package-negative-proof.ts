@@ -2,13 +2,13 @@ export const AUTHORING_INPUT_PACKAGE_MUTATIONS = [
   {
     name: "remove capabilityCatalog from input package mutation",
     file: "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
-    search: '    capabilityCatalog: buildCapabilityGroups(generatedAt),\n',
+    search: 'capabilityCatalog: buildCapabilityGroupsFromCatalog(capabilityCatalog, generatedAt),',
     replace: "",
   },
   {
     name: "remove outputSchemaCatalog from input package mutation",
     file: "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
-    search: '    outputSchemaCatalog: buildOutputSchemaCatalog(),\n',
+    search: 'outputSchemaCatalog: buildOutputSchemaCatalog(promptContractEntries),',
     replace: "",
   },
   {

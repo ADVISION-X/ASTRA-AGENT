@@ -38,40 +38,49 @@ const createRequirementFinding = (detail: string): Finding => createFinding({
   detail,
 });
 
-const parseChildContractTable = (content: string): ChildContractRow[] => {
+const extractChildContractTableLines = (content: string): string[] => {
   const lines = content.split(/\r?\n/);
   const headingIndex = lines.findIndex((line) => line.trim() === "## 子契约归属表");
   if (headingIndex === -1) {
     return [];
   }
 
-  const rows: ChildContractRow[] = [];
+  const tableLines: string[] = [];
   for (let index = headingIndex + 1; index < lines.length; index += 1) {
     const line = lines[index]?.trim() ?? "";
-    if (!line) {
-      continue;
-    }
     if (line.startsWith("## ")) {
       break;
     }
-    if (!line.startsWith("|")) {
-      continue;
+    if (line) {
+      tableLines.push(line);
     }
-
-    const cells = line.split("|").map((cell) => cell.trim()).filter((cell) => cell.length > 0);
-    if (cells.length !== 4 || cells[0] === "子契约" || cells[0] === "---") {
-      continue;
-    }
-
-    rows.push({
-      childContract: cells[0]!,
-      parentOwner: cells[1]!,
-      activeOwner: cells[2]!,
-      inspectorOwner: cells[3]!,
-    });
   }
 
-  return rows;
+  return tableLines;
+};
+
+const parseChildContractLine = (line: string): ChildContractRow | null => {
+  if (!line.startsWith("|")) {
+    return null;
+  }
+
+  const cells = line.split("|").map((cell) => cell.trim()).filter((cell) => cell.length > 0);
+  if (cells.length !== 4 || cells[0] === "子契约" || cells[0] === "---") {
+    return null;
+  }
+
+  return {
+    childContract: cells[0]!,
+    parentOwner: cells[1]!,
+    activeOwner: cells[2]!,
+    inspectorOwner: cells[3]!,
+  };
+};
+
+const parseChildContractTable = (content: string): ChildContractRow[] => {
+  return extractChildContractTableLines(content)
+    .map((line) => parseChildContractLine(line))
+    .filter((row): row is ChildContractRow => row !== null);
 };
 
 const serializeRows = (rows: readonly ChildContractRow[]): string[] => rows.map((row) => [
@@ -81,20 +90,24 @@ const serializeRows = (rows: readonly ChildContractRow[]): string[] => rows.map(
   row.inspectorOwner,
 ].join(" | "));
 
-export async function runChildContractGovernanceChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const content = await readTextFile(pathFromRepoRoot(BLUEPRINT_FILE));
-  const actualRows = parseChildContractTable(content);
+const collectChildContractTableFindings = (actualRows: ChildContractRow[]): Finding[] => {
   const actual = serializeRows(actualRows);
   const expected = serializeRows(EXPECTED_CHILD_CONTRACT_ROWS);
   const missing = expected.filter((row) => !actual.includes(row));
   const unexpected = actual.filter((row) => !expected.includes(row));
-  const findings = missing.length === 0 && unexpected.length === 0 && actual.length === expected.length
+
+  return missing.length === 0 && unexpected.length === 0 && actual.length === expected.length
     ? []
     : [createRequirementFinding([
         missing.length > 0 ? `missing: ${missing.join(", ")}` : null,
         unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : null,
         actual.length !== expected.length ? `count=${actual.length}, expected=${expected.length}` : null,
       ].filter(Boolean).join("; "))];
+};
+
+export async function runChildContractGovernanceChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const content = await readTextFile(pathFromRepoRoot(BLUEPRINT_FILE));
+  const findings = collectChildContractTableFindings(parseChildContractTable(content));
 
   return {
     findings,

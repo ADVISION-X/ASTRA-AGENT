@@ -11,6 +11,17 @@ import { runRequiredShape } from "./required-shape.js";
 import { runTruthOwnership } from "./truth-ownership.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF";
+const TARGET_NEGATIVE_PROOF_PHASE_ENV = "GRASSEYE_PAGE_STATE_NEGATIVE_PROOF_PHASE";
+const TARGET_NEGATIVE_PROOF_PHASES = [
+  "required",
+  "forbidden",
+  "boundary",
+  "truth-ownership",
+  "anti-escape",
+  "enforcement-coverage",
+] as const;
+
+type TargetNegativeProofPhase = (typeof TARGET_NEGATIVE_PROOF_PHASES)[number];
 
 function createSkippedNegativeProofPhase() {
   return {
@@ -28,6 +39,39 @@ async function resolveNegativeProofPhase() {
   return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
     ? createSkippedNegativeProofPhase()
     : await runNegativeProofHarness();
+}
+
+function resolveTargetNegativeProofPhase(): TargetNegativeProofPhase | null {
+  const value = process.env[TARGET_NEGATIVE_PROOF_PHASE_ENV];
+  return TARGET_NEGATIVE_PROOF_PHASES.includes(value as TargetNegativeProofPhase)
+    ? value as TargetNegativeProofPhase
+    : null;
+}
+
+async function runTargetedNegativeProofPhase(context: InspectorContext, phase: TargetNegativeProofPhase): Promise<InspectorResult> {
+  const project = createPageStateAuditProject();
+  const result = phase === "required"
+    ? await runRequiredShape(project)
+    : phase === "forbidden"
+      ? await runForbiddenShape(project)
+      : phase === "boundary"
+        ? await runBoundaryAttack(project)
+        : phase === "truth-ownership"
+          ? runTruthOwnership(project)
+          : phase === "anti-escape"
+            ? await runAntiEscape(project)
+            : await runEnforcementCoverage(context);
+
+  return finalizeInspectorResult({
+    inspector: "GrassEye Page State Capability Owner Inspector",
+    inspectorId: "page-state-capability-owner",
+    capabilityDomain: "page-state-capability",
+    findings: result.findings,
+    phases: [result.phase],
+    summary: result.findings.length === 0
+      ? `page-state targeted negative-proof phase ${phase} passed`
+      : `page-state targeted negative-proof phase ${phase} found violations`,
+  });
 }
 
 function collectInspectorFindings(input: {
@@ -75,6 +119,11 @@ function collectInspectorPhases(input: {
 }
 
 export async function inspectPageStateCapability(context: InspectorContext): Promise<InspectorResult> {
+  const targetedNegativeProofPhase = resolveTargetNegativeProofPhase();
+  if (targetedNegativeProofPhase) {
+    return runTargetedNegativeProofPhase(context, targetedNegativeProofPhase);
+  }
+
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "page-state-capability",
     inspectorId: "page-state-capability-owner",

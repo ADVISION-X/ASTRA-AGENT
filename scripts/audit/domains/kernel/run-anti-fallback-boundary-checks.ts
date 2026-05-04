@@ -10,6 +10,14 @@ type PackageJson = {
   devDependencies?: Record<string, string>;
 };
 
+type AntiFallbackFindingGroups = {
+  cloudProviderDependencyFindings: Finding[];
+  localAiConfigFindings: Finding[];
+  disabledProviderFallbackFindings: Finding[];
+  selectorDomFindings: Finding[];
+  hiddenBridgeFindings: Finding[];
+};
+
 const AI_CHILD_CONTRACT_ROOT = "src/capabilities/ai/children";
 const EXECUTION_SURFACE_ROOTS = [
   "src/lib/browser",
@@ -180,7 +188,7 @@ async function collectHiddenBridgeFindings(): Promise<Finding[]> {
   return findings;
 }
 
-export async function runAntiFallbackBoundaryChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+async function loadAntiFallbackFindingGroups(): Promise<AntiFallbackFindingGroups> {
   const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
   const [
     localAiConfigFindings,
@@ -193,41 +201,60 @@ export async function runAntiFallbackBoundaryChecks(): Promise<{ findings: Findi
     collectSelectorDomFindings(),
     collectHiddenBridgeFindings(),
   ]);
-  const cloudProviderDependencyFindings = collectCloudProviderDependencyFindings(packageJson);
+
+  return {
+    cloudProviderDependencyFindings: collectCloudProviderDependencyFindings(packageJson),
+    localAiConfigFindings,
+    disabledProviderFallbackFindings,
+    selectorDomFindings,
+    hiddenBridgeFindings,
+  };
+}
+
+function buildAntiFallbackPhases(groups: AntiFallbackFindingGroups): InspectorPhase[] {
+  const localOnlyFindings = groups.cloudProviderDependencyFindings.length
+    + groups.localAiConfigFindings.length
+    + groups.disabledProviderFallbackFindings.length;
+
+  return [
+    createPhase(
+      "anti-cloud-fallback-config",
+      localOnlyFindings === 0 ? "PASS" : "CODE VIOLATION",
+      localOnlyFindings === 0,
+      localOnlyFindings === 0
+        ? "AI runtime contracts stay local-only and keep cloud fallback disabled."
+        : "AI runtime contracts or dependencies drifted toward cloud or fallback execution.",
+    ),
+    createPhase(
+      "anti-selector-dom-contracts",
+      groups.selectorDomFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+      groups.selectorDomFindings.length === 0,
+      groups.selectorDomFindings.length === 0
+        ? "Execution surfaces expose geometry- and ref-based contracts without selector or DOM scraping paths."
+        : "Execution surfaces still expose selector or DOM scraping contracts.",
+    ),
+    createPhase(
+      "anti-hidden-compat-bridges",
+      groups.hiddenBridgeFindings.length === 0 ? "PASS" : "CODE VIOLATION",
+      groups.hiddenBridgeFindings.length === 0,
+      groups.hiddenBridgeFindings.length === 0
+        ? "Execution surfaces have no hidden compat, bridge, or legacy paths."
+        : "Execution surfaces still contain hidden compat, bridge, or legacy paths.",
+    ),
+  ];
+}
+
+export async function runAntiFallbackBoundaryChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const groups = await loadAntiFallbackFindingGroups();
 
   return {
     findings: [
-      ...cloudProviderDependencyFindings,
-      ...localAiConfigFindings,
-      ...disabledProviderFallbackFindings,
-      ...selectorDomFindings,
-      ...hiddenBridgeFindings,
+      ...groups.cloudProviderDependencyFindings,
+      ...groups.localAiConfigFindings,
+      ...groups.disabledProviderFallbackFindings,
+      ...groups.selectorDomFindings,
+      ...groups.hiddenBridgeFindings,
     ],
-    phases: [
-      createPhase(
-        "anti-cloud-fallback-config",
-        cloudProviderDependencyFindings.length + localAiConfigFindings.length + disabledProviderFallbackFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        cloudProviderDependencyFindings.length + localAiConfigFindings.length + disabledProviderFallbackFindings.length === 0,
-        cloudProviderDependencyFindings.length + localAiConfigFindings.length + disabledProviderFallbackFindings.length === 0
-          ? "AI runtime contracts stay local-only and keep cloud fallback disabled."
-          : "AI runtime contracts or dependencies drifted toward cloud or fallback execution.",
-      ),
-      createPhase(
-        "anti-selector-dom-contracts",
-        selectorDomFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        selectorDomFindings.length === 0,
-        selectorDomFindings.length === 0
-          ? "Execution surfaces expose geometry- and ref-based contracts without selector or DOM scraping paths."
-          : "Execution surfaces still expose selector or DOM scraping contracts.",
-      ),
-      createPhase(
-        "anti-hidden-compat-bridges",
-        hiddenBridgeFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        hiddenBridgeFindings.length === 0,
-        hiddenBridgeFindings.length === 0
-          ? "Execution surfaces have no hidden compat, bridge, or legacy paths."
-          : "Execution surfaces still contain hidden compat, bridge, or legacy paths.",
-      ),
-    ],
+    phases: buildAntiFallbackPhases(groups),
   };
 }

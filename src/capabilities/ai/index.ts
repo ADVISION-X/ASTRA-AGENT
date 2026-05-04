@@ -5,6 +5,17 @@ export {
   saveAiExternalProviderConfig,
 } from "./provider-config.js";
 export {
+  AI_PROMPT_CONTRACT_CATALOG_VERSION,
+  findAiPromptContractCatalogEntry,
+  listAiPromptContractCatalogEntries,
+  type AiPromptContractCatalogEntry,
+} from "./prompt-contract-catalog-port.js";
+export {
+  findAiOutputSchemaDescriptor,
+  requireAiOutputSchemaDescriptor,
+  type AiOutputSchemaDescriptor,
+} from "./output-schema-catalog-port.js";
+export {
   AI_ABILITY_GROUP_ID,
   AI_CHILD_CAPABILITY_IDS,
   type AiAbilityGroup,

@@ -193,6 +193,9 @@ const inspectInputPackageBuilder = (project: Project): Finding[] => {
   const builderSource = getSource(project, INPUT_PACKAGE_BUILDER_FILE);
   const sourceText = builderSource.getFullText();
   const findings: Finding[] = [];
+  const derivesPromptCatalogFromGovernedRegistry = hasCallExpression(builderSource, "listPromptContractCatalogEntries")
+    || hasCallExpression(builderSource, "listAiPromptContractCatalogEntries")
+    || hasCallExpression(builderSource, "listMapAuthoringGovernedPromptContracts");
 
   if (!hasCallExpressionPath(builderSource, ["MapAuthoringInputPackageSchema", "parse"])) {
     findings.push(createAuthoringFinding(
@@ -201,7 +204,7 @@ const inspectInputPackageBuilder = (project: Project): Finding[] => {
       "Map Authoring Input Package builder must close through MapAuthoringInputPackageSchema.parse.",
     ));
   }
-  if (!hasCallExpression(builderSource, "buildCapabilityCatalog") || !hasCallExpression(builderSource, "listPromptContractCatalogEntries")) {
+  if (!hasCallExpression(builderSource, "buildCapabilityCatalog") || !derivesPromptCatalogFromGovernedRegistry) {
     findings.push(createAuthoringFinding(
       MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
       INPUT_PACKAGE_BUILDER_FILE,

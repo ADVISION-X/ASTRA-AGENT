@@ -11,6 +11,11 @@ type PackageJson = {
   scripts?: Record<string, string>;
 };
 
+type ChildOwnershipFindingGroups = {
+  childrenRootDetails: string[];
+  childAuditEntryViolations: string[];
+};
+
 const {
   ACTIVE_ABILITY_GROUPS,
   CAPABILITY_ROOT,
@@ -67,55 +72,66 @@ const collectChildCapabilityIds = async (): Promise<string[]> => {
   return [...childIds].sort();
 };
 
-export async function runChildOwnershipChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const findings: Finding[] = [];
+const createChildrenRootFinding = (details: string[]): Finding => createFinding({
+  lawId: REQUIREMENT_ID_002,
+  file: "src",
+  line: 1,
+  severity: "fatal",
+  message: `Children roots must live only under src/capabilities/<ability-group>/children. Details: ${details.join("; ")}`,
+});
+
+const createChildAuditEntryFinding = (scriptName: string): Finding => createFinding({
+  lawId: REQUIREMENT_ID_002,
+  file: "package.json",
+  line: 1,
+  severity: "fatal",
+  message: `package.json must not expose ${scriptName}; child abilities may exist only under one parent ability group.`,
+});
+
+async function loadChildOwnershipFindingGroups(): Promise<ChildOwnershipFindingGroups> {
   const childrenRoots = await collectNestedChildrenRoots("src");
   const expectedChildrenRoots = collectExpectedChildrenRoots();
-  const childrenRootDetails = collectListDiffDetails(childrenRoots, expectedChildrenRoots);
-  if (childrenRootDetails.length > 0) {
-    findings.push(createFinding({
-      lawId: REQUIREMENT_ID_002,
-      file: "src",
-      line: 1,
-      severity: "fatal",
-      message: `Children roots must live only under src/capabilities/<ability-group>/children. Details: ${childrenRootDetails.join("; ")}`,
-    }));
-  }
-
   const childCapabilityIds = await collectChildCapabilityIds();
   const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
-  const childAuditEntryViolations = Object.keys(packageJson.scripts ?? {})
-    .filter((scriptName) => scriptName.startsWith("audit:"))
-    .filter((scriptName) => childCapabilityIds.includes(scriptName.slice("audit:".length)));
-  for (const scriptName of childAuditEntryViolations) {
-    findings.push(createFinding({
-      lawId: REQUIREMENT_ID_002,
-      file: "package.json",
-      line: 1,
-      severity: "fatal",
-      message: `package.json must not expose ${scriptName}; child abilities may exist only under one parent ability group.`,
-    }));
-  }
+
+  return {
+    childrenRootDetails: collectListDiffDetails(childrenRoots, expectedChildrenRoots),
+    childAuditEntryViolations: Object.keys(packageJson.scripts ?? {})
+      .filter((scriptName) => scriptName.startsWith("audit:"))
+      .filter((scriptName) => childCapabilityIds.includes(scriptName.slice("audit:".length))),
+  };
+}
+
+function buildChildOwnershipPhases(groups: ChildOwnershipFindingGroups): InspectorPhase[] {
+  return [
+    createPhase(
+      "child-root-placement",
+      groups.childrenRootDetails.length === 0 ? "PASS" : "CODE VIOLATION",
+      groups.childrenRootDetails.length === 0,
+      groups.childrenRootDetails.length === 0
+        ? "Every children root stays under exactly one active ability-group root."
+        : "Some children roots escaped the active ability-group parent boundary.",
+    ),
+    createPhase(
+      "child-audit-entrypoints",
+      groups.childAuditEntryViolations.length === 0 ? "PASS" : "CODE VIOLATION",
+      groups.childAuditEntryViolations.length === 0,
+      groups.childAuditEntryViolations.length === 0
+        ? "No child capability is exposed as an independent audit owner."
+        : "A child capability is exposed as an independent audit owner.",
+    ),
+  ];
+}
+
+export async function runChildOwnershipChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
+  const groups = await loadChildOwnershipFindingGroups();
+  const findings = [
+    ...(groups.childrenRootDetails.length > 0 ? [createChildrenRootFinding(groups.childrenRootDetails)] : []),
+    ...groups.childAuditEntryViolations.map((scriptName) => createChildAuditEntryFinding(scriptName)),
+  ];
 
   return {
     findings,
-    phases: [
-      createPhase(
-        "child-root-placement",
-        childrenRootDetails.length === 0 ? "PASS" : "CODE VIOLATION",
-        childrenRootDetails.length === 0,
-        childrenRootDetails.length === 0
-          ? "Every children root stays under exactly one active ability-group root."
-          : "Some children roots escaped the active ability-group parent boundary.",
-      ),
-      createPhase(
-        "child-audit-entrypoints",
-        childAuditEntryViolations.length === 0 ? "PASS" : "CODE VIOLATION",
-        childAuditEntryViolations.length === 0,
-        childAuditEntryViolations.length === 0
-          ? "No child capability is exposed as an independent audit owner."
-          : "A child capability is exposed as an independent audit owner.",
-      ),
-    ],
+    phases: buildChildOwnershipPhases(groups),
   };
 }

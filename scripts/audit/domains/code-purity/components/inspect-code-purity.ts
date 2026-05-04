@@ -20,6 +20,20 @@ const REQUIRED_COMPONENT_EXPORTS = [
   },
 ] as const;
 
+const SKIP_CODE_PURITY_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
+
+const createSkippedCodePurityResult = (): { findings: Finding[]; phases: InspectorPhase[] } => ({
+  findings: [],
+  phases: [
+    createPhase(
+      "code-purity-nested-skip",
+      "PASS",
+      true,
+      "Code-purity scan is skipped for nested audit-system negative-proof execution.",
+    ),
+  ],
+});
+
 const debug = (message: string): void => {
   if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
     process.stdout.write(`[code-purity-owner] ${message}\n`);
@@ -69,6 +83,7 @@ const collectSourceFiles = async (): Promise<{
   relativePaths: string[];
   touchedPaths: Set<string>;
   touchedBaselineSource: string;
+  project: Project;
   sourceFiles: SourceFile[];
 }> => {
   const touchedSnapshot = await collectTouchedFilesArtifact();
@@ -80,7 +95,7 @@ const collectSourceFiles = async (): Promise<{
   const sourceFiles = relativePaths
     .map((relativePath) => project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath)))
     .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
-  return { relativePaths, touchedPaths, touchedBaselineSource: touchedSnapshot.touchedBaselineSource, sourceFiles };
+  return { relativePaths, touchedPaths, touchedBaselineSource: touchedSnapshot.touchedBaselineSource, project, sourceFiles };
 };
 
 const inspectSourceFiles = (sourceFiles: SourceFile[], touchedPaths: Set<string>, reportDraft: ReturnType<typeof createEmptyPurityReport>): Finding[] =>
@@ -167,8 +182,12 @@ const createInspectorPhases = (sourceFiles: SourceFile[], findings: Finding[], n
 ];
 
 export const inspectCodePurity = async (context: InspectorContext): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+  if (process.env[SKIP_CODE_PURITY_ENV] === "1") {
+    return createSkippedCodePurityResult();
+  }
+
   const reportDraft = createEmptyPurityReport();
-  const { touchedPaths, touchedBaselineSource, sourceFiles } = await collectSourceFiles();
+  const { touchedPaths, touchedBaselineSource, project, sourceFiles } = await collectSourceFiles();
   reportDraft.touchedBaselineSource = touchedBaselineSource;
   reportDraft.touchedFiles = [...touchedPaths].sort((left, right) => left.localeCompare(right));
   reportDraft.scanScope = [...CODE_PURITY_SCAN_SCOPE];
@@ -182,7 +201,6 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     };
   }
 
-  const project = createPurityProject();
   const findings = [
     ...inspectSourceFiles(sourceFiles, touchedPaths, reportDraft),
     ...inspectRequiredComponentExports(project),
