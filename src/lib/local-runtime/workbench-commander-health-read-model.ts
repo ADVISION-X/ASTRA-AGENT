@@ -8,9 +8,9 @@ const createStartupReadinessEntry = (runtime: WorkbenchRuntime) => {
       id: "startup-readiness",
       label: "startup-readiness",
       tone: "warn" as const,
-      detail: `startup readiness context missing; platformTarget=${runtime.options.platformTarget}`,
+      detail: `startup readiness context missing; startupShell=${runtime.options.platformTarget}`,
       ownerResponsible: "Startup Entrypoint / Commander Console",
-      actionableMessage: "Launch the workbench through grasseye:start with an explicit platform target.",
+      actionableMessage: "Launch the workbench through grasseye:start to populate governed startup readiness proof.",
       failureReason: null,
       missionRuntimeAvailable: false,
       checkedAt: null,
@@ -21,7 +21,7 @@ const createStartupReadinessEntry = (runtime: WorkbenchRuntime) => {
     id: "startup-readiness",
     label: "startup-readiness",
     tone: startupReadiness.missionRuntimeAvailable ? "good" as const : "danger" as const,
-    detail: `status=${startupReadiness.status}; platformTarget=${startupReadiness.platformTarget}; ${startupReadiness.detail}`,
+    detail: `status=${startupReadiness.status}; startupShell=${startupReadiness.platformTarget}; ${startupReadiness.detail}`,
     ownerResponsible: "Startup Entrypoint / AI Capability / Commander Console",
     actionableMessage: startupReadiness.missionRuntimeAvailable
       ? "Startup gate passed before Commander Console opened mission runtime."

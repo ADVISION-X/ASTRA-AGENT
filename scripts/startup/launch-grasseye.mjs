@@ -5,7 +5,6 @@ import { assessDependencyState, installDependencies } from "./lib/dependency-che
 import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
-import { parseStartupFlags, resolveStartupPlatformTarget, shouldPromptForStartupPlatform } from "./lib/platform-target.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
@@ -33,7 +32,10 @@ function logFail(...[phase, component, eventType, status, message, extra = {}]) 
 }
 
 function parseFlags(argv) {
-  return parseStartupFlags(argv);
+  return {
+    updateRequested: argv.includes("--update"),
+    skipOpen: argv.includes("--no-open") || process.env.GRASSEYE_SKIP_OPEN === "1",
+  };
 }
 
 function registerSignalHandlers(shutdown) {
@@ -105,24 +107,20 @@ async function preparePort() {
   });
 }
 
-async function startService(root, runtimeFlags, localAiReadiness) {
+async function startService(root, localAiReadiness) {
   const serviceStart = Date.now();
-  logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`, {
-    refs: [`platformTarget=${runtimeFlags.platformTarget}`],
-  });
+  logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
   const serviceHandle = await startLocalService({
     rootDir: root,
     preStartScripts: [],
     scriptName: "internal:app-server:dev",
     env: {
-      GRASSEYE_PLATFORM_TARGET: runtimeFlags.platformTarget,
       GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
   });
   logPass("SERVICE", "app_server", "app_server", "ready", `local app shell process started for ${baseUrl}`, {
-    refs: [`platformTarget=${runtimeFlags.platformTarget}`],
     durationMs: Date.now() - serviceStart,
   });
   return serviceHandle;
@@ -196,19 +194,12 @@ function logStartupReady() {
 
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
-  if (shouldPromptForStartupPlatform(flags)) {
-    logEvent("STARTUP", "bootstrap", "platform_target_selection_required", "started", "no explicit platform target provided; prompting for governed startup platform selection");
-  }
-  const runtimeFlags = await resolveStartupPlatformTarget(flags);
-  logEvent("STARTUP", "bootstrap", "platform_target_resolved", "ready", `resolved startup platform target ${runtimeFlags.platformTarget}`, {
-    refs: [`source=${runtimeFlags.platformSource}`],
-  });
-  await runUpdatePreflight(root, runtimeFlags);
+  await runUpdatePreflight(root, flags);
   const localAiReadiness = await ensureLocalAiReadiness();
   await preparePort();
-  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);
+  const serviceHandle = await startService(root, localAiReadiness);
   await verifyAppHealth(serviceHandle);
-  await openReadyPage(runtimeFlags);
+  await openReadyPage(flags);
   markMissionRuntimeAvailable(localAiReadiness);
   logStartupReady();
   return serviceHandle;

@@ -56,7 +56,7 @@ const executePointerAbilityCommand = (
   throw new Error(`Unsupported pointer ability target: ${envelope.to}`);
 };
 
-const executeRuntimeAbilityCommand = (
+const executeRuntimeAbilityCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -67,7 +67,7 @@ const executeRuntimeAbilityCommand = (
     case "forensics-persistence":
       return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
     case "page-state":
-      return runtime.pageStateAbilityGroup.execute(buildPageStateDispatchInput(runtime, envelope));
+      return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope));
   }
 
   throw new Error(`Unsupported runtime ability target: ${envelope.to}`);

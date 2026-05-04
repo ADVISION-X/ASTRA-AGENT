@@ -17,6 +17,7 @@ type ReplaceMutation = {
   oldText: string;
   newText: string;
   expectedNeedle: string;
+  skipBuild?: boolean;
 };
 
 type CreateFileMutation = {
@@ -25,9 +26,15 @@ type CreateFileMutation = {
   file: string;
   content: string;
   expectedNeedle: string;
+  skipBuild?: boolean;
 };
 
 type NegativeProofMutation = ReplaceMutation | CreateFileMutation;
+type NegativeProofMutationGroup = {
+  name: string;
+  mutations: NegativeProofMutation[];
+  skipBuild: boolean;
+};
 
 const hasErrorCode = (error: unknown, code: string): boolean => typeof error === "object"
   && error !== null
@@ -42,6 +49,7 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "status: active\ntier: P0\ncapabilityDomain: visual-target-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof\n\nsummary: Visual Target is the only owner of governed visual target result normalization.",
     newText: "status: active\ntier: P0\ncapabilityDomain: visual-target-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof\n\nsummary: Visual Target is the only owner of governed visual target result normalization.",
     expectedNeedle: "must remain machine-blocking",
+    skipBuild: false,
   },
   {
     kind: "replace",
@@ -50,6 +58,7 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "status: active\ntier: P0\ncapabilityDomain: visual-target-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof\n\nsummary: Visual Target is the only owner of governed visual target result normalization.",
     newText: "status: active\ntier: P1\ncapabilityDomain: visual-target-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof\n\nsummary: Visual Target is the only owner of governed visual target result normalization.",
     expectedNeedle: "must remain P0",
+    skipBuild: false,
   },
   {
     kind: "create-file",
@@ -153,10 +162,10 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   },
 ];
 
-function runInspectorProcess(): { status: number | null; stdout: string; stderr: string } {
+function runInspectorProcess(skipBuild = true): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     "node",
-    ["--import", "tsx", RUN_INSPECTOR_ENTRY],
+    ["--import", "tsx", RUN_INSPECTOR_ENTRY, ...(skipBuild ? ["--skip-build"] : [])],
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
@@ -214,27 +223,59 @@ async function applyMutation(mutation: NegativeProofMutation): Promise<() => Pro
   };
 }
 
-async function mutateAndVerify(mutation: NegativeProofMutation): Promise<string> {
-  const rollback = await applyMutation(mutation);
+function createMutationGroups(): NegativeProofMutationGroup[] {
+  const groups = new Map<string, NegativeProofMutationGroup>();
+  for (const mutation of VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS) {
+    const skipBuild = mutation.skipBuild ?? true;
+    const key = skipBuild ? "skip-build" : mutation.name;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.mutations.push(mutation);
+      continue;
+    }
+    groups.set(key, { name: key, mutations: [mutation], skipBuild });
+  }
+  return [...groups.values()];
+}
+
+async function applyMutationGroup(group: NegativeProofMutationGroup): Promise<() => Promise<void>> {
+  const rollbacks: Array<() => Promise<void>> = [];
   try {
-    const failRun = runInspectorProcess();
+    for (const mutation of group.mutations) {
+      rollbacks.push(await applyMutation(mutation));
+    }
+    return async () => {
+      for (const rollback of rollbacks.reverse()) {
+        await rollback();
+      }
+    };
+  } catch (error) {
+    for (const rollback of rollbacks.reverse()) {
+      await rollback();
+    }
+    throw error;
+  }
+}
+
+async function mutateGroupAndVerify(group: NegativeProofMutationGroup): Promise<string> {
+  const rollback = await applyMutationGroup(group);
+  try {
+    const failRun = runInspectorProcess(group.skipBuild);
     const combinedOutput = `${failRun.stdout}\n${failRun.stderr}`;
     if (failRun.status === 0) {
-      throw new Error(`Mutation ${mutation.name} did not fail inspector as expected.\n${combinedOutput}`);
+      throw new Error(`Mutation group ${group.name} did not fail inspector as expected.\n${combinedOutput}`);
     }
-    if (!combinedOutput.includes(mutation.expectedNeedle)) {
-      throw new Error(`Mutation ${mutation.name} failed, but not for the expected reason. Missing needle: ${mutation.expectedNeedle}`);
+    const missingNeedles = group.mutations
+      .map((mutation) => mutation.expectedNeedle)
+      .filter((needle) => !combinedOutput.includes(needle));
+    if (missingNeedles.length > 0) {
+      throw new Error(`Mutation group ${group.name} failed, but not for every expected reason. Missing needles: ${missingNeedles.join("; ")}`);
     }
   } finally {
     await rollback();
   }
 
-  const rollbackRun = runInspectorProcess();
-  if (rollbackRun.status !== 0) {
-    throw new Error(`Mutation ${mutation.name} did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
-  }
-
-  return `${mutation.name}: fail-ok rollback-ok`;
+  return `${group.name}: ${group.mutations.map((mutation) => mutation.name).join(", ")} fail-ok`;
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
@@ -261,7 +302,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const baseline = runInspectorProcess();
+    const baseline = runInspectorProcess(true);
     if (baseline.status !== 0) {
       return createFatalResult(
         "Visual Target inspector baseline must pass before negative-proof mutation checks.",
@@ -270,8 +311,16 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
     }
 
     const reports: string[] = [];
-    for (const mutation of VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS) {
-      reports.push(await mutateAndVerify(mutation));
+    for (const group of createMutationGroups()) {
+      reports.push(await mutateGroupAndVerify(group));
+    }
+
+    const rollbackRun = runInspectorProcess(false);
+    if (rollbackRun.status !== 0) {
+      return createFatalResult(
+        `Visual Target negative-proof mutations did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`,
+        "Visual Target negative-proof harness cannot prove rollback restoration.",
+      );
     }
 
     return createPassResult(`Visual Target negative-proof harness rejects ${reports.join(", ")}.`);

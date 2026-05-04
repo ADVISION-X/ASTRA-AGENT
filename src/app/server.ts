@@ -9,11 +9,10 @@ import type { GrassEyePlatformTarget } from "../lib/local-runtime/workbench-laun
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
-const parsePlatformTarget = (value: string | undefined): GrassEyePlatformTarget => {
-  if (value === "tiktok-web" || value === "facebook-web") {
-    return value;
-  }
-  throw new Error("GrassEye startup requires explicit GRASSEYE_PLATFORM_TARGET=facebook-web|tiktok-web. Silent platform defaults are forbidden.");
+const STARTUP_SHELL_PLATFORM = "agent-shell" as const;
+
+const resolveStartupShellPlatformTarget = (value: string | undefined): GrassEyePlatformTarget => {
+  return value === "tiktok-web" || value === "facebook-web" ? value : STARTUP_SHELL_PLATFORM;
 };
 
 const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
@@ -36,9 +35,9 @@ const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
   };
 };
 
-const configuredPlatformTarget = parsePlatformTarget(process.env.GRASSEYE_PLATFORM_TARGET);
+const startupShellPlatformTarget = resolveStartupShellPlatformTarget(process.env.GRASSEYE_PLATFORM_TARGET);
 const browserProfileDirectory = process.env.GRASSEYE_BROWSER_PROFILE_DIRECTORY?.trim();
-const platformTarget = configuredPlatformTarget;
+const platformTarget = startupShellPlatformTarget;
 const realPlatformDataDir = getDefaultPhase04LocalDataDir();
 const defaultDataDir = realPlatformDataDir;
 const startupReadiness = parseStartupReadiness(platformTarget);

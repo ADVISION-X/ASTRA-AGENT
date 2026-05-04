@@ -1016,6 +1016,14 @@ runRunnerFailPowerCheck()
 4. 回滚临时破坏。
 5. 再运行 audit 恢复 PASS。
 
+执行拓扑强制要求：
+
+- spawned negative-proof harness 禁止对大量 mutation 逐个重放完整 inspector。
+- 多 mutation spawned harness 必须合组 mutation；高复杂 owner 必须按 phase 或等价执法切片缩小 nested inspector 范围。
+- 非 law metadata mutation 的 nested inspector 必须 `--skip-build`。
+- rollback PASS 可以在所有 mutation rollback 后统一执行一次，但必须真实证明恢复 PASS。
+- audit-system owner 必须用 ts-morph AST 全仓检查 negative-proof-harness 的 spawn、mutation loop、rollback replay、`--skip-build` 与 grouping topology。
+
 最低通用 mutation：
 
 1. 删除 input gate 调用 → audit FAIL → 回滚

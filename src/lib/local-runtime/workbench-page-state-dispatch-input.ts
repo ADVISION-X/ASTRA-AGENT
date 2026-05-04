@@ -1,17 +1,57 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import type { WorkbenchRuntime } from "./workbench-contract.js";
+import type { RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 
 const DEFAULT_PLATFORM_URL = {
   "tiktok-web": "https://www.tiktok.com/foryou",
   "facebook-web": "https://www.facebook.com/reel/",
-} as const;
+} satisfies Record<RequestedPlatformId, string>;
 
-export const buildPageStateDispatchInput = (
+const resolvePlatformFromUrl = (currentUrl: string): RequestedPlatformId | null => {
+  try {
+    const { hostname } = new URL(currentUrl);
+    if (hostname.includes("facebook.com")) {
+      return "facebook-web";
+    }
+    if (hostname.includes("tiktok.com")) {
+      return "tiktok-web";
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const resolveShellPlatform = (platformTarget: WorkbenchRuntime["options"]["platformTarget"]): RequestedPlatformId | null => {
+  return platformTarget === "facebook-web" || platformTarget === "tiktok-web" ? platformTarget : null;
+};
+
+const resolvePageStatePlatformProfile = async (runtime: WorkbenchRuntime): Promise<RequestedPlatformId> => {
+  const session = runtime.browserController.getSessionState();
+  const platformFromUrl = resolvePlatformFromUrl(session.currentUrl);
+  if (platformFromUrl) {
+    return platformFromUrl;
+  }
+
+  const mission = await runtime.orchestrationAbilityGroup.getMissionState();
+  if (mission.requestedPlatform) {
+    return mission.requestedPlatform;
+  }
+
+  const shellPlatform = resolveShellPlatform(runtime.options.platformTarget);
+  if (shellPlatform) {
+    return shellPlatform;
+  }
+
+  throw new Error("Page State dispatch requires a mission requestedPlatform or a known real-platform currentUrl.");
+};
+
+export const buildPageStateDispatchInput = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
 ) => {
   const session = runtime.browserController.getSessionState();
-  const platformProfileId = runtime.options.platformTarget;
+  const platformProfileId = await resolvePageStatePlatformProfile(runtime);
   return JSON.parse(JSON.stringify({
     childCapabilityId: envelope.commandName === "detect-feed-ready" ? "detect-feed-ready" : "detect-platform-page-kind",
     runId: envelope.mapId,

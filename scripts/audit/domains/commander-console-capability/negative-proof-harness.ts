@@ -77,8 +77,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "startup local-ai gate after service mutation",
     file: "scripts/startup/launch-grasseye.mjs",
-    search: "  const localAiReadiness = await ensureLocalAiReadiness();\n\n  await preparePort();\n  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);",
-    replace: "  await preparePort();\n  const serviceHandle = await startService(root, runtimeFlags, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
+    search: "  const localAiReadiness = await ensureLocalAiReadiness();\n  await preparePort();\n  const serviceHandle = await startService(root, localAiReadiness);",
+    replace: "  await preparePort();\n  const serviceHandle = await startService(root, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
   },
   {
     name: "startup update preflight removal mutation",
@@ -101,14 +101,14 @@ const MUTATIONS: Mutation[] = [
   {
     name: "startup platform hardcode mutation",
     file: "scripts/startup/launch-grasseye.mjs",
-    search: "      GRASSEYE_PLATFORM_TARGET: runtimeFlags.platformTarget,",
-    replace: "      GRASSEYE_PLATFORM_TARGET: \"tiktok-web\",",
+    search: "      GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),\n",
+    replace: "      GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),\n      GRASSEYE_PLATFORM_TARGET: \"tiktok-web\",\n",
   },
   {
-    name: "startup interactive platform selection removal mutation",
+    name: "startup platform helper resurrection mutation",
     file: "scripts/startup/lib/platform-target.mjs",
-    search: "  if (shouldPromptForStartupPlatform(flags, io)) {\n",
-    replace: "  if (false) {\n",
+    mode: "write",
+    content: "export const shouldPromptForStartupPlatform = () => true;\n",
   },
   {
     name: "startup readiness bridge removal mutation",
@@ -125,8 +125,14 @@ const MUTATIONS: Mutation[] = [
   {
     name: "server single-platform guard mutation",
     file: "src/app/server.ts",
-    search: "  if (value === \"tiktok-web\" || value === \"facebook-web\") {",
-    replace: "  if (value === \"tiktok-web\") {",
+    search: "  return value === \"tiktok-web\" || value === \"facebook-web\" ? value : STARTUP_SHELL_PLATFORM;\n",
+    replace: "  if (value === \"tiktok-web\" || value === \"facebook-web\") {\n    return value;\n  }\n  throw new Error(\"GrassEye startup requires explicit GRASSEYE_PLATFORM_TARGET=facebook-web|tiktok-web.\");\n",
+  },
+  {
+    name: "page-state consumes startup shell platform mutation",
+    file: "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
+    search: "  const platformProfileId = await resolvePageStatePlatformProfile(runtime);\n",
+    replace: "  const platformProfileId = runtime.options.platformTarget;\n",
   },
   {
     name: "server startup readiness handoff removal mutation",

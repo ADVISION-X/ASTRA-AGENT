@@ -5,7 +5,9 @@ import { hasBlockingFindings } from "../../core/result.js";
 import { inspectVisualTargetCapability } from "./inspector.js";
 
 const main = async (): Promise<void> => {
-  await buildAuditArtifacts();
+  if (!process.argv.includes("--skip-build")) {
+    await buildAuditArtifacts();
+  }
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const result = await inspectVisualTargetCapability(context);

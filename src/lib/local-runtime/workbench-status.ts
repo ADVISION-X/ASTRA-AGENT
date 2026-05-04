@@ -3,6 +3,15 @@ import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/ru
 import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 
 const PLATFORM_MODE_INFO = {
+  "agent-shell": {
+    platformLabel: "Mission-governed multi-platform agent shell",
+    executionMode: "Platform binding is resolved at mission start",
+    fallbackMode: "No startup-time platform binding or silent default",
+    geometryGuard: "Capability-owned at execution time",
+    viewport: "Derived from governed browser session",
+    calibration: "Held by Geometry Guard runtime proof",
+    orientation: "capability-owned",
+  },
   "tiktok-web": {
     platformLabel: "TikTok web governed map runtime",
     executionMode: "Ability-group governed runtime",

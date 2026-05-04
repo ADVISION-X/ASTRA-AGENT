@@ -43,7 +43,7 @@ const MUTATIONS: Mutation[] = [
 function runInspectorProcess(): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
     "node",
-    ["--import", "tsx", RUN_INSPECTOR_ENTRY],
+    ["--import", "tsx", RUN_INSPECTOR_ENTRY, "--skip-build"],
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",

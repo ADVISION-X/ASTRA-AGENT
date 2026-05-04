@@ -40,6 +40,11 @@ law file -> owner manifest -> generated registry / matrix / audit plan -> owner 
 - 不允许 scripts/verify 作为能力验收
 - 不允许 verify-* 命令作为 inspector 替代
 - 不允许测试文件、warning、美化 summary 伪装 PASS
+- 不允许 spawned negative-proof harness 对大量 mutation 逐个重放完整 inspector。
+- 不允许每个 mutation 后都重跑完整 rollback PASS；必须优先合组 mutation，并在全部 rollback 后做一次真实 PASS 证明。
+- 不允许非 law metadata mutation 重建 generated artifacts；spawned nested inspector 必须支持 `--skip-build`。
+- 多 mutation spawned negative proof 必须具备分组机制；高复杂 owner 应进一步传递 targeted phase 到 nested inspector。
+- audit-system 必须用 ts-morph AST 检查全仓 `negative-proof-harness.ts` 的 spawn、mutation loop、rollback replay、`--skip-build` 和 grouping topology。
 
 ## 验收信号
 

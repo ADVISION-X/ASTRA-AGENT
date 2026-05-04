@@ -12,6 +12,13 @@ export type NegativeProofMutation = {
   file: string;
   oldText: string;
   newText: string;
+  skipBuild?: boolean;
+};
+
+type NegativeProofMutationGroup = {
+  name: string;
+  mutations: NegativeProofMutation[];
+  skipBuild: boolean;
 };
 
 export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
@@ -20,12 +27,14 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
     oldText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
     newText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
+    skipBuild: false,
   },
   {
     name: "warning-only-p0",
     file: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
     oldText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
     newText: "status: active\ntier: P1\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    skipBuild: false,
   },
   {
     name: "ability-group-creates-clock",
@@ -120,10 +129,10 @@ function applyMutationOnce(source: string, mutation: NegativeProofMutation): str
   return `${source.slice(0, matchIndex)}${mutation.newText}${source.slice(matchIndex + mutation.oldText.length)}`;
 }
 
-function runInspectorProcess(): { status: number | null; stdout: string; stderr: string } {
+function runInspectorProcess(skipBuild = true): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(
-    "npx",
-    ["tsx", "scripts/audit/domains/post-action-verification-capability/run-inspector.ts"],
+    "node",
+    ["--import", "tsx", "scripts/audit/domains/post-action-verification-capability/run-inspector.ts", ...(skipBuild ? ["--skip-build"] : [])],
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
@@ -136,6 +145,59 @@ function runInspectorProcess(): { status: number | null; stdout: string; stderr:
     stdout: result.stdout ?? "",
     stderr: result.stderr ?? "",
   };
+}
+
+function createMutationGroups(): NegativeProofMutationGroup[] {
+  const groups = new Map<string, NegativeProofMutationGroup>();
+  for (const mutation of POST_ACTION_NEGATIVE_PROOF_MUTATIONS) {
+    const skipBuild = mutation.skipBuild ?? true;
+    const key = skipBuild ? "skip-build" : mutation.name;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.mutations.push(mutation);
+      continue;
+    }
+    groups.set(key, { name: key, mutations: [mutation], skipBuild });
+  }
+  return [...groups.values()];
+}
+
+async function applyMutationGroup(group: NegativeProofMutationGroup): Promise<() => Promise<void>> {
+  const originalByFile = new Map<string, string>();
+  try {
+    for (const mutation of group.mutations) {
+      const absolutePath = pathFromRepoRoot(mutation.file);
+      if (!originalByFile.has(absolutePath)) {
+        originalByFile.set(absolutePath, await readFile(absolutePath, "utf8"));
+      }
+      const currentContent = await readFile(absolutePath, "utf8");
+      await writeFile(absolutePath, applyMutationOnce(currentContent, mutation), "utf8");
+    }
+    return async () => {
+      for (const [absolutePath, originalContent] of originalByFile) {
+        await writeFile(absolutePath, originalContent, "utf8");
+      }
+    };
+  } catch (error) {
+    for (const [absolutePath, originalContent] of originalByFile) {
+      await writeFile(absolutePath, originalContent, "utf8");
+    }
+    throw error;
+  }
+}
+
+async function mutateGroupAndVerify(group: NegativeProofMutationGroup): Promise<string> {
+  const rollback = await applyMutationGroup(group);
+  try {
+    const failRun = runInspectorProcess(group.skipBuild);
+    if (failRun.status === 0) {
+      throw new Error(`Mutation group ${group.name} did not fail inspector as expected.\n${failRun.stdout}\n${failRun.stderr}`);
+    }
+  } finally {
+    await rollback();
+  }
+
+  return `${group.name}: ${group.mutations.map((mutation) => mutation.name).join(", ")} fail-ok`;
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
@@ -158,29 +220,13 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
   const reports: string[] = [];
 
   try {
-    for (const mutation of POST_ACTION_NEGATIVE_PROOF_MUTATIONS) {
-      const absolutePath = pathFromRepoRoot(mutation.file);
-      const originalContent = await readFile(absolutePath, "utf8");
+    for (const group of createMutationGroups()) {
+      reports.push(await mutateGroupAndVerify(group));
+    }
 
-      try {
-        const mutatedContent = applyMutationOnce(originalContent, mutation);
-        await writeFile(absolutePath, mutatedContent, "utf8");
-
-        const failRun = runInspectorProcess();
-        if (failRun.status === 0) {
-          throw new Error(`Mutation ${mutation.name} did not fail inspector as expected.\n${failRun.stdout}\n${failRun.stderr}`);
-        }
-
-        await writeFile(absolutePath, originalContent, "utf8");
-        const rollbackRun = runInspectorProcess();
-        if (rollbackRun.status !== 0) {
-          throw new Error(`Mutation ${mutation.name} did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
-        }
-
-        reports.push(`${mutation.name}: fail-ok rollback-ok`);
-      } finally {
-        await writeFile(absolutePath, originalContent, "utf8");
-      }
+    const rollbackRun = runInspectorProcess(false);
+    if (rollbackRun.status !== 0) {
+      throw new Error(`Post Action Verification mutations did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
     }
 
     return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");

@@ -142,26 +142,27 @@ Debug Loop 只能记录 blocked，不能代替生产启动链
 
 ### 目标
 
-启动链必须显式解析 platformTarget，并把同一个 target 透传到 app server 与 Commander snapshot；禁止在启动脚本、server 或 package script 里写死 tiktok-web 默认值。
+启动链必须保持 shell-neutral，只负责 bootstrap 与 readiness；Facebook/TikTok 平台绑定属于 mission start、task template binding 和 orchestration，不属于 startup。
 
 ### 允许
 
 ```txt
-通过 --platform=facebook-web|tiktok-web 或 GRASSEYE_PLATFORM_TARGET 显式提供 platformTarget。
-如果启动命令运行在交互式终端且未提供 flag/env，startup 可以在 update_preflight_check 之前要求操作者显式选择一次 platformTarget。
-startup 在启动 service 前记录一次 platform_target_resolved 结构化日志。
-startup 把 startup readiness JSON 与 platformTarget 一起传给 app server，供 Commander 直接显示 missionRuntimeAvailable 与 failureReason。
+grasseye:start 在未提供任何平台参数时直接完成 shell bootstrap。
+app server 可以把缺失的 GRASSEYE_PLATFORM_TARGET 解析为 agent-shell，仅代表启动壳层，不代表 mission 平台绑定。
+startup 把 startup readiness JSON 交给 app server，供 Commander 直接显示 missionRuntimeAvailable 与 failureReason。
+mission requestedPlatformId 只能来自 start-mission payload、已批准 task template binding，或 orchestration 冻结后的 mission state。
 ```
 
 ### 禁止
 
 ```txt
-交互式 grasseye:start 在未提供平台时直接 hard fail，而不给一次受控显式选择机会。
-非交互式启动在缺失 platformTarget 时假装选择成功或写入隐式默认平台。
+grasseye:start 在 bootstrap 期间要求操作者做 Facebook/TikTok 二选一。
+startup 用 --platform、GRASSEYE_PLATFORM_TARGET、readline prompt、结构化日志事件等形式重建启动期平台门禁。
 package.json 的 internal:app-server:dev 写死 GRASSEYE_PLATFORM_TARGET=tiktok-web。
-launch-grasseye.mjs 在 startService env 中写死某个平台。
-src/app/server.ts 只接受 tiktok-web 并把其它显式平台拒绝掉。
-Commander 通过重新探测或临时推断来替代启动链交付的 readiness result。
+launch-grasseye.mjs 在 startService env 中透传或写死某个平台。
+src/app/server.ts 因缺失 GRASSEYE_PLATFORM_TARGET 而 hard fail。
+page-state 或其它 runtime slice 直接把 startup shell platform 当成 mission requestedPlatform 使用。
+Commander 通过重新探测或临时推断来替代 mission/requestedPlatform 与 startup readiness 的受控来源。
 ```
 
 ## 启动禁止项

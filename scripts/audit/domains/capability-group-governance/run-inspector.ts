@@ -5,7 +5,9 @@ import { hasBlockingFindings } from "../../core/result.js";
 const INSPECTOR_ENTRY = "scripts/audit/domains/capability-group-governance/inspector.ts";
 
 const main = async (): Promise<void> => {
-  await buildAuditArtifacts();
+  if (!process.argv.includes("--skip-build")) {
+    await buildAuditArtifacts();
+  }
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector(INSPECTOR_ENTRY);

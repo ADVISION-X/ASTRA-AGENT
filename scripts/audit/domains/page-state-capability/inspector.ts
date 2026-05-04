@@ -48,19 +48,30 @@ function resolveTargetNegativeProofPhase(): TargetNegativeProofPhase | null {
     : null;
 }
 
-async function runTargetedNegativeProofPhase(context: InspectorContext, phase: TargetNegativeProofPhase): Promise<InspectorResult> {
+async function runTargetedProjectPhase(phase: Exclude<TargetNegativeProofPhase, "enforcement-coverage">) {
   const project = createPageStateAuditProject();
-  const result = phase === "required"
-    ? await runRequiredShape(project)
-    : phase === "forbidden"
-      ? await runForbiddenShape(project)
-      : phase === "boundary"
-        ? await runBoundaryAttack(project)
-        : phase === "truth-ownership"
-          ? runTruthOwnership(project)
-          : phase === "anti-escape"
-            ? await runAntiEscape(project)
-            : await runEnforcementCoverage(context);
+  switch (phase) {
+    case "required":
+      return runRequiredShape(project);
+    case "forbidden":
+      return runForbiddenShape(project);
+    case "boundary":
+      return runBoundaryAttack(project);
+    case "truth-ownership":
+      return runTruthOwnership(project);
+    case "anti-escape":
+      return runAntiEscape(project);
+  }
+}
+
+async function runTargetedPhaseCheck(context: InspectorContext, phase: TargetNegativeProofPhase) {
+  return phase === "enforcement-coverage"
+    ? runEnforcementCoverage(context)
+    : runTargetedProjectPhase(phase);
+}
+
+async function runTargetedNegativeProofPhase(context: InspectorContext, phase: TargetNegativeProofPhase): Promise<InspectorResult> {
+  const result = await runTargetedPhaseCheck(context, phase);
 
   return finalizeInspectorResult({
     inspector: "GrassEye Page State Capability Owner Inspector",

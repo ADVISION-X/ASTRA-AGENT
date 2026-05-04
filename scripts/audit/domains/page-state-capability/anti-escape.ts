@@ -187,7 +187,7 @@ function getArrayLiteralInitializer(project: Project, file: string, declarationN
 }
 
 function everyMutationCarriesPhase(project: Project): boolean {
-  const mutations = getArrayLiteralInitializer(project, `${AUDIT_ROOT}/negative-proof-harness.ts`, "PAGE_STATE_NEGATIVE_PROOF_MUTATIONS");
+  const mutations = getArrayLiteralInitializer(project, `${AUDIT_ROOT}/negative-proof-mutations.ts`, "PAGE_STATE_NEGATIVE_PROOF_MUTATIONS");
   if (!mutations) {
     return false;
   }

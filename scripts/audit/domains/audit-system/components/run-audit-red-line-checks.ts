@@ -2,6 +2,7 @@ import type { Finding, InspectorContext, InspectorPhase } from "../../../core/sc
 import { inspectCodePurity } from "../../code-purity/components/inspect-code-purity.js";
 import { validateNoSimulatedProductionPaths } from "./validate-no-simulated-production-paths.js";
 import { validateNegativeProofWiring } from "./validate-negative-proof-wiring.js";
+import { validateNegativeProofRuntimeTopology } from "./validate-negative-proof-runtime-topology.js";
 import { validateNoTestArtifacts } from "./validate-no-test-artifacts.js";
 import { validateOwnedLawExecution } from "./validate-owned-law-execution.js";
 
@@ -18,5 +19,6 @@ export const runAuditRedLineChecks = async (
     validateOwnedLawExecution(context),
     validateNoSimulatedProductionPaths(context),
     validateNegativeProofWiring(context),
+    validateNegativeProofRuntimeTopology(context),
     inspectCodePurity(context),
   ]);

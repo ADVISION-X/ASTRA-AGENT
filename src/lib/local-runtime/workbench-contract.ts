@@ -21,7 +21,9 @@ import type {
   MapLabSnapshot,
 } from "./map-lab/map-lab-types.js";
 
-export type GrassEyePlatformTarget = "tiktok-web" | "facebook-web";
+export type RequestedPlatformId = "tiktok-web" | "facebook-web";
+
+export type GrassEyePlatformTarget = RequestedPlatformId | "agent-shell";
 
 export type GrassEyeWorkbenchOptions = {
   dataDir?: string;
@@ -116,8 +118,6 @@ type WorkbenchOrchestrationAbilityGroup = {
   emergencyStop(input: { missionId: string; reason: string }): Promise<WorkbenchMissionState>;
   listMapIds(): string[];
 };
-
-export type RequestedPlatformId = "tiktok-web" | "facebook-web";
 
 export type MissionStartPreflightComponent = {
   name: "requestedPlatform" | "selectedMap" | "browserController" | "localAi" | "dataStore";
