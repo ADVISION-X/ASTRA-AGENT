@@ -30,9 +30,18 @@ function isIgnorablePermissionError(error: unknown): error is NodeJS.ErrnoExcept
     && ["EPERM", "ENOTSUP", "EROFS", "EINVAL"].includes(String(error.code ?? ""));
 }
 
-function maskApiKey(apiKey: string): string {
+function secretLast4(apiKey: string): string | null {
   const suffix = apiKey.slice(-4);
-  return suffix ? `••••${suffix}` : "••••";
+  return suffix || null;
+}
+
+function resolveMissingReason(config: AiExternalProviderConfig): string | null {
+  if (!config.enabled) return "provider_disabled";
+  if (!config.allowPaidProvider) return "paid_provider_not_allowed";
+  if (!config.dataPolicy.allowExternalTransmission) return "external_transmission_approval_missing";
+  if (!config.operatorApprovalRef) return "operator_approval_missing";
+  if (!config.secretRef || !config.apiKey) return "provider_secret_missing";
+  return null;
 }
 
 function toPublicState(config: AiExternalProviderConfig | null): AiExternalProviderPublicState {
@@ -41,18 +50,26 @@ function toPublicState(config: AiExternalProviderConfig | null): AiExternalProvi
       providerId: "openai-compatible",
       configured: false,
       enabled: false,
+      missingReason: "provider_config_missing",
     });
   }
 
   return AiExternalProviderPublicStateSchema.parse({
     providerId: config.providerId,
+    displayName: config.displayName,
+    providerKind: config.providerKind,
     configured: true,
     enabled: config.enabled,
     configRef: config.configRef,
     secretRef: config.secretRef,
-    baseUrl: config.baseUrl,
+    hasSecret: true,
+    secretLast4: secretLast4(config.apiKey),
     model: config.model,
-    maskedApiKey: maskApiKey(config.apiKey),
+    allowPaidProvider: config.allowPaidProvider,
+    allowExternalTransmission: config.dataPolicy.allowExternalTransmission,
+    maxEstimatedCost: config.costPolicy.maxEstimatedCost,
+    operatorApprovalRef: config.operatorApprovalRef,
+    missingReason: resolveMissingReason(config),
     updatedAt: config.updatedAt,
   });
 }
@@ -95,16 +112,38 @@ export async function loadAiExternalProviderConfig(dataDir: string): Promise<AiE
 
 export async function saveAiExternalProviderConfig(
   dataDir: string,
-  input: { baseUrl: string; model: string; apiKey: string; enabled?: boolean; updatedAt: string },
+  input: {
+    displayName?: string | null;
+    providerKind?: string | null;
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+    allowPaidProvider?: boolean;
+    providerAllowlist?: ["paid-analysis-ai"] | string[];
+    dataPolicy?: { allowExternalTransmission?: boolean };
+    costPolicy?: { maxEstimatedCost?: number };
+    operatorApprovalRef?: string | null;
+    approvalReason?: string | null;
+    enabled?: boolean;
+    updatedAt: string;
+  },
 ): Promise<AiExternalProviderPublicState> {
   const filePath = resolveProviderConfigPath(dataDir);
   const config = AiExternalProviderConfigSchema.parse({
     providerId: "openai-compatible",
+    displayName: input.displayName?.trim() || null,
+    providerKind: "openai-compatible",
     configRef: DEFAULT_CONFIG_REF,
     secretRef: DEFAULT_SECRET_REF,
     baseUrl: trimTrailingSlash(input.baseUrl.trim()),
     model: input.model.trim(),
     apiKey: input.apiKey.trim(),
+    allowPaidProvider: input.allowPaidProvider ?? true,
+    providerAllowlist: ["paid-analysis-ai"],
+    dataPolicy: { allowExternalTransmission: input.dataPolicy?.allowExternalTransmission ?? true },
+    costPolicy: { maxEstimatedCost: input.costPolicy?.maxEstimatedCost ?? 5 },
+    operatorApprovalRef: input.operatorApprovalRef?.trim() || null,
+    approvalReason: input.approvalReason?.trim() || null,
     enabled: input.enabled ?? true,
     updatedAt: input.updatedAt,
   });

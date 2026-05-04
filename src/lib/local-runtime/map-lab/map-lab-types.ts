@@ -4,20 +4,35 @@ import type { MapPackage } from "../../../map-plugins/shared/map-package-types.j
 import { MapAuthoringRequestSchema } from "../../../map-plugins/authoring/map-authoring-request.schema.js";
 
 export type MapLabProviderConfigInput = {
+  displayName?: string | null;
+  providerKind?: string | null;
   baseUrl: string;
   model: string;
   apiKey: string;
+  allowPaidProvider?: boolean;
+  providerAllowlist?: string[];
+  dataPolicy?: { allowExternalTransmission?: boolean };
+  costPolicy?: { maxEstimatedCost?: number };
+  operatorApprovalRef?: string | null;
+  approvalReason?: string | null;
 };
 
 export type MapLabProviderState = {
   providerId: string;
+  displayName: string | null;
+  providerKind: string | null;
   configured: boolean;
   enabled: boolean;
   configRef: string | null;
   secretRef: string | null;
-  baseUrl: string | null;
+  hasSecret: boolean;
+  secretLast4: string | null;
   model: string | null;
-  maskedApiKey: string | null;
+  allowPaidProvider: boolean;
+  allowExternalTransmission: boolean;
+  maxEstimatedCost: number | null;
+  operatorApprovalRef: string | null;
+  missingReason: string | null;
   updatedAt: string | null;
 };
 

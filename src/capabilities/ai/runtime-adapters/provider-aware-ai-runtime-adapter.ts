@@ -22,7 +22,10 @@ export function createProviderAwareAiRuntimePort(input: ProviderAwareAiRuntimeIn
   const localRuntime = input.emitDebugEvent
     ? createLocalAiRuntimePort({ emitDebugEvent: input.emitDebugEvent })
     : createLocalAiRuntimePort();
-  const externalRuntime = createExternalProviderRuntimePort({ dataDir: input.dataDir ?? null });
+  const externalRuntime = createExternalProviderRuntimePort({
+    dataDir: input.dataDir ?? null,
+    emitDebugEvent: input.emitDebugEvent,
+  });
 
   return {
     async execute(request, options) {

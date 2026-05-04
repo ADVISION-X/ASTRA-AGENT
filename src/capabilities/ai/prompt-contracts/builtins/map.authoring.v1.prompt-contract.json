@@ -1,10 +1,10 @@
 {
-  "promptContractId": "map.authoring.v1",
-  "promptId": "map.authoring.v1",
+  "promptContractId": "map-authoring-from-user-requirement-v1",
+  "promptId": "map-authoring-from-user-requirement-v1",
   "taskType": "map_authoring",
   "legacyTaskType": null,
   "modelRole": "future",
-  "promptVersion": "map.authoring.v1",
+  "promptVersion": "map-authoring-from-user-requirement-v1",
   "schemaVersion": "map-authoring-draft.v1",
   "inputContract": "structured_record.map_authoring_input_package",
   "requiredInputRefs": ["mapAuthoringInputPackageRef"],

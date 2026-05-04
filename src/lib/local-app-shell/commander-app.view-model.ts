@@ -6,6 +6,7 @@ import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
   if (
     value === "map-lab"
+    || value === "ai-provider-settings"
     || value === "mission"
     || value === "results"
     || value === "review"
@@ -22,6 +23,7 @@ function createCommanderAppNavItems(t: (zh: string, en: string) => string): Comm
   return [
     { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
     { pageId: "map-lab", label: t("地图工坊", "Map Lab"), shortLabel: t("工坊", "Lab") },
+    { pageId: "ai-provider-settings", label: t("AI Provider 设置", "AI Provider Settings"), shortLabel: t("AI 设置", "AI Set") },
     { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
     { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
     { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },

@@ -9,7 +9,7 @@ import { buildStableGeometryRef } from "../shared/geometry-transform.js";
 
 function buildGeometryProofChainFields(input: Parameters<typeof buildGeometryRuntimeProof>[0]) {
   return {
-    runId: input.request.runId,
+    runId: buildStableGeometryRef([input.request.sessionId, input.request.childCapabilityId, input.request.roundId, input.request.videoVisitId]),
     missionId: input.request.missionId,
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,

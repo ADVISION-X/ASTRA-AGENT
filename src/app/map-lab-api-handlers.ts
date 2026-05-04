@@ -14,10 +14,22 @@ async function handleProviderConfigRequest(
     writeJsonResponse(response, 200, await activeWorkbench.getMapLabSnapshot());
     return true;
   }
-  if (request.method !== "POST" || url.pathname !== "/api/map-lab/provider-config") {
+  if (request.method !== "POST" || url.pathname !== "/api/ai-provider-settings/provider-config") {
     return false;
   }
-  const body = await parseJsonBody(request) as { baseUrl?: string; model?: string; apiKey?: string };
+  const body = await parseJsonBody(request) as {
+    displayName?: string | null;
+    providerKind?: string | null;
+    baseUrl?: string;
+    model?: string;
+    apiKey?: string;
+    allowPaidProvider?: boolean;
+    providerAllowlist?: string[];
+    dataPolicy?: { allowExternalTransmission?: boolean };
+    costPolicy?: { maxEstimatedCost?: number };
+    operatorApprovalRef?: string | null;
+    approvalReason?: string | null;
+  };
   if (!body.baseUrl || !body.model || !body.apiKey) {
     writeJsonResponse(response, 400, { error: "invalid_provider_config" });
     return true;
@@ -26,6 +38,14 @@ async function handleProviderConfigRequest(
     baseUrl: body.baseUrl,
     model: body.model,
     apiKey: body.apiKey,
+    displayName: body.displayName ?? null,
+    providerKind: body.providerKind ?? "openai-compatible",
+    allowPaidProvider: body.allowPaidProvider ?? true,
+    providerAllowlist: body.providerAllowlist ?? ["paid-analysis-ai"],
+    dataPolicy: body.dataPolicy ?? { allowExternalTransmission: true },
+    costPolicy: body.costPolicy ?? { maxEstimatedCost: 5 },
+    operatorApprovalRef: body.operatorApprovalRef ?? null,
+    approvalReason: body.approvalReason ?? null,
   }));
   return true;
 }

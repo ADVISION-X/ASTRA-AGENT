@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { AiRuntimeExecutionOutput, AiRuntimeHealth, ParsedAiAbilityInput } from "../contract.js";
 import type { AiClockPort } from "../ports/ai-clock-port.js";
 import type { AiRuntimeExecuteOptions, AiRuntimePort } from "../ports/ai-runtime-port.js";
@@ -12,6 +14,7 @@ import {
   buildExternalProviderMessages,
   normalizeExternalProviderOutput,
 } from "./external-provider-runtime-messages.js";
+import type { LocalAiRuntimePortOptions } from "./local-ai-runtime-debug-contract.js";
 import {
   buildExternalProviderFailureOutput,
   buildExternalProviderSuccessOutput,
@@ -21,6 +24,7 @@ import {
 type ExternalProviderRuntimeInput = {
   dataDir?: string | null;
   clock?: AiClockPort;
+  emitDebugEvent?: LocalAiRuntimePortOptions["emitDebugEvent"];
 };
 
 type RuntimeState = {
@@ -68,6 +72,106 @@ function buildHealth(input: {
     lastFailureReason: input.state.lastFailureReason,
     lastInvocationStatus: input.state.lastInvocationStatus,
   });
+}
+
+function hashValue(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function resolveDebugMode(): "summary" | "full" {
+  return process.env.GRASSEYE_DEBUG_AI_IO === "full" ? "full" : "summary";
+}
+
+function previewText(value: string, maxLength = 500): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
+}
+
+function buildPromptDebugRef(request: ParsedAiAbilityInput): string {
+  return `debug://ai/${request.sessionId}/${request.capabilityCallId}/${request.promptContractId}`;
+}
+
+function buildRawResponseRef(request: ParsedAiAbilityInput): string {
+  return `debug://ai/${request.sessionId}/${request.capabilityCallId}/raw-response`;
+}
+
+function buildRedactedProviderRequestBody(config: { model: string }, messages: { system: string; user: string }) {
+  return {
+    model: config.model,
+    response_format: { type: "json_object" },
+    headers: { authorization: "[redacted]" },
+    messages: [
+      { role: "system", content: messages.system },
+      { role: "user", content: messages.user },
+    ],
+  };
+}
+
+async function emitExternalDebugEvent(
+  emitDebugEvent: ExternalProviderRuntimeInput["emitDebugEvent"],
+  input: Parameters<NonNullable<ExternalProviderRuntimeInput["emitDebugEvent"]>>[0],
+) {
+  await emitDebugEvent?.(input);
+}
+
+function buildExternalDebugBase(input: {
+  request: ParsedAiAbilityInput;
+  config: { providerId: string; model: string; configRef: string; secretRef: string };
+  messages: { system: string; user: string };
+  rawResponseText?: string | null;
+  parsedJson?: unknown | null;
+  parserErrors?: string[];
+  durationMs?: number | null;
+}) {
+  const mode = resolveDebugMode();
+  const requestHash = `sha256:${hashValue(input.request.input)}`;
+  const promptDebugRef = buildPromptDebugRef(input.request);
+  const rawResponseRef = buildRawResponseRef(input.request);
+  return {
+    sessionId: input.request.sessionId,
+    missionId: input.request.missionId,
+    roundId: input.request.roundId,
+    videoVisitId: input.request.videoVisitId,
+    traceId: input.request.missionId ?? input.request.sessionId,
+    spanId: input.request.capabilityCallId,
+    attemptId: `${input.request.capabilityCallId}:attempt:0`,
+    taskType: input.request.taskType,
+    refs: input.request.inputRefs.map((ref) => ref.id),
+    provider: input.config.providerId,
+    model: input.config.model,
+    modelRole: "map-authoring",
+    runtime: "openai-compatible",
+    promptContractId: input.request.promptContractId,
+    promptVersion: input.request.promptContractId,
+    promptCatalogVersion: input.request.promptCatalogVersion,
+    outputSchemaRef: input.request.expectedOutputSchema,
+    providerConfigRef: input.config.configRef,
+    secretRef: input.config.secretRef,
+    promptDebugRef,
+    systemPromptHash: `sha256:${hashValue(input.messages.system)}`,
+    userPromptHash: `sha256:${hashValue(input.messages.user)}`,
+    promptPreview: previewText(input.messages.user),
+    promptFullText: mode === "full" ? `${input.messages.system}\n\n${input.messages.user}` : null,
+    rawResponsePreview: input.rawResponseText ? previewText(input.rawResponseText) : null,
+    rawResponseText: mode === "full" ? input.rawResponseText ?? null : null,
+    rawResponseHash: input.rawResponseText ? `sha256:${hashValue(input.rawResponseText)}` : null,
+    rawResponseRef,
+    inputPackageId: input.request.taskType === "map_authoring" ? input.request.input.inputPackageId : null,
+    inputPackageVersion: input.request.taskType === "map_authoring" ? input.request.input.inputPackageVersion : null,
+    inputPackageHash: requestHash,
+    capabilityCatalogVersion: input.request.taskType === "map_authoring" ? input.request.input.capabilityCatalog.version : null,
+    outputSchemaCatalogVersion: input.request.taskType === "map_authoring" ? input.request.input.outputSchemaCatalog.version : null,
+    mapPackageSchemaVersion: input.request.taskType === "map_authoring" ? input.request.input.mapPackageSchema.schemaVersion : null,
+    promptDebugBundleRef: promptDebugRef,
+    providerRequestBodyRedacted: mode === "full" ? buildRedactedProviderRequestBody(input.config, input.messages) : { model: input.config.model, headers: { authorization: "[redacted]" }, promptLength: input.messages.system.length + input.messages.user.length },
+    providerRequestDebugRef: `${promptDebugRef}/provider-request`,
+    parsedJson: input.parsedJson ?? null,
+    parsedDecision: null,
+    parserErrors: input.parserErrors ?? [],
+    sourceScreenshotEvidenceId: null,
+    aiInputArtifactRef: input.request.inputRefs[0]?.id ?? null,
+    imageInputs: [],
+    tokenEstimate: Math.ceil((input.messages.system.length + input.messages.user.length) / 4),
+  };
 }
 
 function buildProviderNotConfiguredOutput(): AiRuntimeExecutionOutput {
@@ -203,15 +307,62 @@ async function callExternalProvider(
     });
   }
 
+  await emitExternalDebugEvent(input.emitDebugEvent, {
+    eventType: "AI_REQUEST_DEBUG",
+    level: "DEBUG",
+    status: "started",
+    ...buildExternalDebugBase({ request, config, messages }),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: "ai-capability",
+    durationMs: null,
+  });
+
   const started = clock.startRun();
   const payloadResult = await requestExternalPayload(config, messages, options);
   const ended = clock.finishRun(started);
-  return payloadResult.ok
-    ? buildExternalProviderOutput(request, config.model, payloadResult.payload, {
-        createdAt: ended.endedAt,
-        gatewayDurationMs: ended.durationMs,
-      })
-    : payloadResult.output;
+  if (!payloadResult.ok) {
+    await emitExternalDebugEvent(input.emitDebugEvent, {
+      eventType: "AI_ERROR_DEBUG",
+      level: "ERROR",
+      status: "failed",
+      ...buildExternalDebugBase({ request, config, messages, durationMs: ended.durationMs }),
+      failureReason: payloadResult.output.implementationStatus,
+      errorKind: payloadResult.output.implementationStatus,
+      actionableMessage: "Check paid-analysis-ai provider config, secretRef, operator approval, external transmission policy, and upstream provider response.",
+      ownerResponsible: "ai-capability",
+      durationMs: ended.durationMs,
+    });
+    return payloadResult.output;
+  }
+
+  const parsedResponse = parseExternalProviderResponseText(payloadResult.payload);
+  const parsedJson = parsedResponse.text ? parseExtractedJson(parsedResponse.text) : null;
+  await emitExternalDebugEvent(input.emitDebugEvent, {
+    eventType: "AI_RESPONSE_DEBUG",
+    level: "DEBUG",
+    status: "success",
+    ...buildExternalDebugBase({
+      request,
+      config,
+      messages,
+      rawResponseText: parsedResponse.text,
+      parsedJson: parsedJson?.ok ? parsedJson.value : null,
+      parserErrors: parsedJson && !parsedJson.ok ? ["json_extraction_failed"] : [],
+      durationMs: ended.durationMs,
+    }),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: "ai-capability",
+    durationMs: ended.durationMs,
+  });
+
+  return buildExternalProviderOutput(request, config.model, payloadResult.payload, {
+    createdAt: ended.endedAt,
+    gatewayDurationMs: ended.durationMs,
+  });
 }
 
 async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, clock: AiClockPort, state: RuntimeState) {

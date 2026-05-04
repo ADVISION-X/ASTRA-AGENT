@@ -137,7 +137,7 @@ const OpenRuntimeProofBaseSchema = z.object({
 
 export const OpenRuntimeProofSchema = OpenRuntimeProofBaseSchema.superRefine(validateOpenRuntimeProof);
 
-export const OpenResultBaseSchema = z.object({
+const openResultShape = {
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),
   childCapabilityId: OpenChildCapabilityIdSchema.nullable().default(null),
   platformId: OpenPlatformIdSchema.nullable().default(null),
@@ -168,6 +168,8 @@ export const OpenResultBaseSchema = z.object({
   diagnosticPayloadRef: nullableString,
   dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),
   runtimeProof: OpenRuntimeProofSchema,
-}).strict();
+} satisfies z.ZodRawShape;
 
-export const OpenResultSchema = OpenResultBaseSchema.superRefine(validateOpenResult);
+export const OpenResultBaseSchema = z.object(openResultShape).strict();
+
+export const OpenResultSchema = z.object(openResultShape).strict().superRefine(validateOpenResult);

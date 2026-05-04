@@ -7,16 +7,16 @@ const DEFAULT_PLATFORM_URL = {
 } satisfies Record<RequestedPlatformId, string>;
 
 const resolvePlatformFromUrl = (currentUrl: string): RequestedPlatformId | null => {
-  try {
-    const { hostname } = new URL(currentUrl);
-    if (hostname.includes("facebook.com")) {
-      return "facebook-web";
-    }
-    if (hostname.includes("tiktok.com")) {
-      return "tiktok-web";
-    }
-  } catch {
+  if (!URL.canParse(currentUrl)) {
     return null;
+  }
+
+  const { hostname } = new URL(currentUrl);
+  if (hostname.includes("facebook.com")) {
+    return "facebook-web";
+  }
+  if (hostname.includes("tiktok.com")) {
+    return "tiktok-web";
   }
 
   return null;

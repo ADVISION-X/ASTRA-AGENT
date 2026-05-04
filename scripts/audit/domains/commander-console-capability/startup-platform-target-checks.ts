@@ -61,29 +61,45 @@ async function collectStartupPackageScriptFindings(): Promise<Finding[]> {
   return findings;
 }
 
-function collectStartupLaunchFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
-  const findings: Finding[] = [];
+function collectStartupLaunchImportFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
   const helperImport = launchSource.getImportDeclaration(STARTUP_PLATFORM_HELPER_IMPORT);
   const parseFlags = launchSource.getFunction("parseFlags");
+
+  return [
+    ...(helperImport
+      ? [createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(helperImport), message: "Startup must not import the deleted platform-target helper. Platform binding belongs to mission start, not bootstrap." })]
+      : []),
+    ...(parseFlags && getIdentifierCallWithin(parseFlags, "parseStartupFlags")
+      ? [createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(parseFlags), message: "Startup parseFlags must stay local to update/no-open parsing and must not delegate to platform selection helpers." })]
+      : []),
+  ];
+}
+
+function collectStartupLaunchFlowFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
   const performLaunch = launchSource.getFunction("performLaunch");
+
+  return [
+    ...(performLaunch && getIdentifierCallWithin(performLaunch, "resolveStartupPlatformTarget")
+      ? [createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(performLaunch), message: "Startup must not resolve a requested platform before update preflight or service start." })]
+      : []),
+    ...(performLaunch && getIdentifierCallWithin(performLaunch, "shouldPromptForStartupPlatform")
+      ? [createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(performLaunch), message: "Startup must not prompt for Facebook/TikTok selection during bootstrap." })]
+      : []),
+  ];
+}
+
+function collectStartupLaunchStructuredLogFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
   const helperEventNames = launchSource.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue());
+
+  return helperEventNames.includes("platform_target_selection_required") || helperEventNames.includes("platform_target_resolved")
+    ? [createStartupGateFinding({ file: STARTUP_PATH, message: "Startup structured logs must not carry startup platform selection events." })]
+    : [];
+}
+
+function collectStartupLaunchEnvFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
+  const findings: Finding[] = [];
   const platformTargetInitializer = getStartServiceEnvInitializer(launchSource, "GRASSEYE_PLATFORM_TARGET");
 
-  if (helperImport) {
-    findings.push(createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(helperImport), message: "Startup must not import the deleted platform-target helper. Platform binding belongs to mission start, not bootstrap." }));
-  }
-  if (parseFlags && getIdentifierCallWithin(parseFlags, "parseStartupFlags")) {
-    findings.push(createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(parseFlags), message: "Startup parseFlags must stay local to update/no-open parsing and must not delegate to platform selection helpers." }));
-  }
-  if (performLaunch && getIdentifierCallWithin(performLaunch, "resolveStartupPlatformTarget")) {
-    findings.push(createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(performLaunch), message: "Startup must not resolve a requested platform before update preflight or service start." }));
-  }
-  if (performLaunch && getIdentifierCallWithin(performLaunch, "shouldPromptForStartupPlatform")) {
-    findings.push(createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(performLaunch), message: "Startup must not prompt for Facebook/TikTok selection during bootstrap." }));
-  }
-  if (helperEventNames.includes("platform_target_selection_required") || helperEventNames.includes("platform_target_resolved")) {
-    findings.push(createStartupGateFinding({ file: STARTUP_PATH, message: "Startup structured logs must not carry startup platform selection events." }));
-  }
   if (platformTargetInitializer) {
     findings.push(createStartupGateFinding({ file: STARTUP_PATH, line: getNodeLine(platformTargetInitializer), message: "Startup must not pass GRASSEYE_PLATFORM_TARGET into the app server child process." }));
   }
@@ -92,6 +108,15 @@ function collectStartupLaunchFindings(launchSource: import("ts-morph").SourceFil
   }
 
   return findings;
+}
+
+function collectStartupLaunchFindings(launchSource: import("ts-morph").SourceFile): Finding[] {
+  return [
+    ...collectStartupLaunchImportFindings(launchSource),
+    ...collectStartupLaunchFlowFindings(launchSource),
+    ...collectStartupLaunchStructuredLogFindings(launchSource),
+    ...collectStartupLaunchEnvFindings(launchSource),
+  ];
 }
 
 function collectDeletedHelperFindings(project: import("ts-morph").Project): Finding[] {

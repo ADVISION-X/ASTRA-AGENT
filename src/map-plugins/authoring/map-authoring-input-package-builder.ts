@@ -18,8 +18,6 @@ import {
 
 export const MAP_AUTHORING_INPUT_PACKAGE_VERSION = "map-authoring-input-package.v1";
 
-const MAP_AUTHORING_ALLOWED_AUTOMATION_SCOPE = "generate_governed_draft_map_only";
-
 const staticHash = (value: unknown): string => {
   return createHash("sha256")
     .update(JSON.stringify(value))
@@ -35,18 +33,11 @@ const buildPolicyDescriptor = (
 const buildUserRequirement = (request: MapAuthoringRequest) => ({
   goal: request.objective,
   targetPlatform: request.targetPlatform,
-  allowedAutomationScope: MAP_AUTHORING_ALLOWED_AUTOMATION_SCOPE,
-  mustAskBefore: [
-    "send message",
-    "submit form",
-    "purchase or payment",
-    "delete content",
-    "commit text input",
-    "activate ai-generated map",
-  ],
-  failureHandlingPreference: "review_required",
-  evidencePreference: "retain_refs_only",
-  runLimit: { maxRounds: 3, maxMinutes: 20 },
+  allowedAutomationScope: request.allowedAutomationScope,
+  mustAskBefore: request.mustAskBefore,
+  failureHandlingPreference: request.failureHandlingPreference,
+  evidencePreference: request.evidencePreference,
+  runLimit: request.runLimit,
   operatorNotes: request.operatorNotes,
   outputLanguage: request.outputLanguage,
 });
@@ -67,6 +58,11 @@ const buildRequirementFingerprint = (request: MapAuthoringRequest) => ({
   missionId: request.missionId,
   objective: request.objective,
   targetPlatform: request.targetPlatform,
+  allowedAutomationScope: request.allowedAutomationScope,
+  mustAskBefore: request.mustAskBefore,
+  failureHandlingPreference: request.failureHandlingPreference,
+  evidencePreference: request.evidencePreference,
+  runLimit: request.runLimit,
   operatorNotes: request.operatorNotes,
   outputLanguage: request.outputLanguage,
 });

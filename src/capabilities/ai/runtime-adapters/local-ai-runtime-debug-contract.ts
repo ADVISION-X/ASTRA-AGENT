@@ -31,6 +31,18 @@ type AiRuntimeStructuredDebugEvent = {
   rawResponseText: string | null;
   rawResponseHash: string | null;
   rawResponseRef: string | null;
+  promptCatalogVersion: string | null;
+  providerConfigRef: string | null;
+  secretRef: string | null;
+  inputPackageId: string | null;
+  inputPackageVersion: string | null;
+  inputPackageHash: string | null;
+  capabilityCatalogVersion: string | null;
+  outputSchemaCatalogVersion: string | null;
+  mapPackageSchemaVersion: string | null;
+  promptDebugBundleRef: string | null;
+  providerRequestBodyRedacted: unknown | null;
+  providerRequestDebugRef: string | null;
   parsedJson: unknown | null;
   parsedDecision: string | null;
   parserErrors: string[];
@@ -64,6 +76,7 @@ type CollectedDebugState = {
   promptFullText: string | null;
   rawResponsePreview: string | null;
   rawResponseText: string | null;
+  providerRequestBodyRedacted: unknown | null;
   parsedJson: unknown | null;
   parsedDecision: string | null;
   parserErrors: string[];

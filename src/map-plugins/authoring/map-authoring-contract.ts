@@ -1,5 +1,5 @@
-const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map.authoring.v1";
-const MAP_AUTHORING_PROMPT_CONTRACT_VERSION = "map.authoring.v1";
+const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map-authoring-from-user-requirement-v1";
+const MAP_AUTHORING_PROMPT_CONTRACT_VERSION = "map-authoring-from-user-requirement-v1";
 const MAP_AUTHORING_OUTPUT_FORMAT_VERSION = "ai.map_authoring.v1";
 const MAP_AUTHORING_SECURITY_POLICY_REF = "policy://map-authoring/security/v1";
 const MAP_AUTHORING_DEFAULT_PROVIDER_POLICY_REF = "provider-policy://map-authoring/unresolved";

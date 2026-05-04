@@ -2,42 +2,40 @@ import { PostActionVerificationAbilityResultSchema } from "../schema.js";
 import type { ParsedPostActionVerificationAbilityInput, PostActionRuntimeProof, PostActionVerificationAbilityResult } from "../contract.js";
 import type { PostActionChildAssessment } from "./post-action-verification-runtime-context.js";
 
-function buildVerificationOutput(input: {
-  request: ParsedPostActionVerificationAbilityInput | null;
-  assessment: PostActionChildAssessment | null;
-  status: PostActionVerificationAbilityResult["status"];
+function createVerifiedOutput(input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  assessment: PostActionChildAssessment;
   runtimeProof: PostActionRuntimeProof;
 }) {
-  return input.status === "success" && input.request !== null && input.assessment !== null
-    ? {
-        observedOutcome: input.assessment.observedOutcome,
-        verificationDecision: "verified" as const,
-        confidence: input.assessment.confidence,
-        evidenceRefs: [...input.assessment.supportingEvidenceRefs],
-        observationRefs: [...input.assessment.supportingObservationRefs],
-        actionResultVerifiedRef: input.runtimeProof.outputRef ?? `${input.request.inputRef}:verified`,
-        confidenceSource: input.assessment.confidenceSource,
-        verifiedByEvidenceKinds: [...input.assessment.verifiedByEvidenceKinds],
-        supportingSourceProofRefs: [...input.assessment.supportingSourceProofRefs],
-      }
-    : null;
+  return {
+    observedOutcome: input.assessment.observedOutcome,
+    verificationDecision: "verified" as const,
+    confidence: input.assessment.confidence,
+    evidenceRefs: [...input.assessment.supportingEvidenceRefs],
+    observationRefs: [...input.assessment.supportingObservationRefs],
+    actionResultVerifiedRef: input.runtimeProof.outputRef ?? `${input.request.inputRef}:verified`,
+    confidenceSource: input.assessment.confidenceSource,
+    verifiedByEvidenceKinds: [...input.assessment.verifiedByEvidenceKinds],
+    supportingSourceProofRefs: [...input.assessment.supportingSourceProofRefs],
+  };
 }
 
-export function buildPostActionVerificationResult(input: {
-  request: ParsedPostActionVerificationAbilityInput | null;
-  assessment: PostActionChildAssessment | null;
-  status: PostActionVerificationAbilityResult["status"];
-  verificationDecision: PostActionVerificationAbilityResult["verificationDecision"];
-  failureReason: PostActionVerificationAbilityResult["failureReason"];
-  reviewRequiredReason: string | null;
-  statusMessage: string;
-  runtimeProof: PostActionRuntimeProof;
-  diagnosticPayloadRef: string | null;
-  dataQualityFlags: string[];
-}): PostActionVerificationAbilityResult {
-  const output = buildVerificationOutput(input);
-
-  return PostActionVerificationAbilityResultSchema.parse({
+function createResultPayload(
+  input: {
+    request: ParsedPostActionVerificationAbilityInput | null;
+    assessment: PostActionChildAssessment | null;
+    status: PostActionVerificationAbilityResult["status"];
+    verificationDecision: PostActionVerificationAbilityResult["verificationDecision"];
+    failureReason: PostActionVerificationAbilityResult["failureReason"];
+    reviewRequiredReason: string | null;
+    statusMessage: string;
+    runtimeProof: PostActionRuntimeProof;
+    diagnosticPayloadRef: string | null;
+    dataQualityFlags: string[];
+  },
+  output: ReturnType<typeof createVerifiedOutput> | null,
+) {
+  return {
     status: input.status,
     abilityGroupId: input.request?.abilityGroupId ?? "post-action-verification",
     childCapabilityId: input.request?.childCapabilityId ?? null,
@@ -67,5 +65,24 @@ export function buildPostActionVerificationResult(input: {
     policyDecision: input.runtimeProof.policyDecision,
     runtimeProof: input.runtimeProof,
     dataQualityFlags: input.dataQualityFlags,
-  });
+  };
+}
+
+export function buildPostActionVerificationResult(input: {
+  request: ParsedPostActionVerificationAbilityInput | null;
+  assessment: PostActionChildAssessment | null;
+  status: PostActionVerificationAbilityResult["status"];
+  verificationDecision: PostActionVerificationAbilityResult["verificationDecision"];
+  failureReason: PostActionVerificationAbilityResult["failureReason"];
+  reviewRequiredReason: string | null;
+  statusMessage: string;
+  runtimeProof: PostActionRuntimeProof;
+  diagnosticPayloadRef: string | null;
+  dataQualityFlags: string[];
+}): PostActionVerificationAbilityResult {
+  const output = input.status === "success" && input.request !== null && input.assessment !== null
+    ? createVerifiedOutput({ request: input.request, assessment: input.assessment, runtimeProof: input.runtimeProof })
+    : null;
+
+  return PostActionVerificationAbilityResultSchema.parse(createResultPayload(input, output));
 }

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { buildMapAuthoringInputPackage } from "../../../map-plugins/authoring/map-authoring-input-package-builder.js";
 import type { MapLabAuthoringRequest, MapLabProviderState } from "./map-lab-types.js";
 
-const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map.authoring.v1";
+const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map-authoring-from-user-requirement-v1";
 const MAP_AUTHORING_OUTPUT_SCHEMA = "ai.map_authoring.v1";
 const MAP_AUTHORING_QUALITY_POLICY = {
   minimumConfidence: 0.6,
@@ -70,14 +70,14 @@ export function buildMapAuthoringAiRequest(
     qualityPolicy: MAP_AUTHORING_QUALITY_POLICY,
     providerPolicy: {
       requireLocalOnly: false,
-      allowPaidProvider: true,
+      allowPaidProvider: providerState.allowPaidProvider,
       providerAllowlist: ["paid-analysis-ai"],
-      operatorApprovalRef: `approval://map-lab/generation/${request.missionId}`,
+      operatorApprovalRef: providerState.operatorApprovalRef,
       providerConfigRef: providerState.configRef,
       secretRef: providerState.secretRef,
     },
-    costPolicy: MAP_AUTHORING_COST_POLICY,
-    dataPolicy: MAP_AUTHORING_DATA_POLICY,
+    costPolicy: { maxEstimatedCost: providerState.maxEstimatedCost ?? MAP_AUTHORING_COST_POLICY.maxEstimatedCost },
+    dataPolicy: { ...MAP_AUTHORING_DATA_POLICY, allowExternalTransmission: providerState.allowExternalTransmission },
     safetyPolicy: MAP_AUTHORING_SAFETY_POLICY,
     taskType: "map_authoring" as const,
     inputModality: "structured_record" as const,

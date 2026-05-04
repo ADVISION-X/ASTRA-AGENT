@@ -3,7 +3,7 @@ import type { StructuredActionLog, StructuredRuntimeEvent } from "../../types/st
 
 import type { StructuredLogLevel } from "./structured-log-terminal.js";
 
-const SENSITIVE_INLINE_VALUE_PATTERN = /((?:cookie|session|token|password|localStorage)\s*[:=]\s*)[^\s,;]+/gi;
+const SENSITIVE_INLINE_VALUE_PATTERN = /((?:apiKey|api_key|authorization|cookie|session|token|password|credential|secret|localStorage)\s*[:=]\s*)[^\s,;]+/gi;
 
 const redactSensitiveText = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -80,7 +80,10 @@ const buildEventAiPayload = (entry: StructuredRuntimeEvent): Record<string, unkn
   runtime: entry.runtime,
   promptContractId: entry.promptContractId,
   promptVersion: entry.promptVersion,
+  promptCatalogVersion: entry.promptCatalogVersion,
   outputSchemaRef: entry.outputSchemaRef,
+  providerConfigRef: entry.providerConfigRef,
+  secretRef: entry.secretRef,
   promptDebugRef: entry.promptDebugRef,
   systemPromptHash: entry.systemPromptHash,
   userPromptHash: entry.userPromptHash,
@@ -88,6 +91,14 @@ const buildEventAiPayload = (entry: StructuredRuntimeEvent): Record<string, unkn
   rawResponsePreview: redactSensitiveText(entry.rawResponsePreview),
   rawResponseHash: entry.rawResponseHash,
   rawResponseRef: entry.rawResponseRef,
+  inputPackageId: entry.inputPackageId,
+  inputPackageVersion: entry.inputPackageVersion,
+  inputPackageHash: entry.inputPackageHash,
+  capabilityCatalogVersion: entry.capabilityCatalogVersion,
+  outputSchemaCatalogVersion: entry.outputSchemaCatalogVersion,
+  mapPackageSchemaVersion: entry.mapPackageSchemaVersion,
+  promptDebugBundleRef: entry.promptDebugBundleRef,
+  providerRequestDebugRef: entry.providerRequestDebugRef,
   parsedDecision: entry.parsedDecision,
   parserErrors: entry.parserErrors,
   sourceScreenshotEvidenceId: entry.sourceScreenshotEvidenceId,
@@ -128,6 +139,7 @@ const buildEventDebugPayload = (entry: StructuredRuntimeEvent): Record<string, u
   proofRefs: entry.proofRefs,
   artifactRefs: entry.artifactRefs,
   promptFullText: redactSensitiveText(entry.promptFullText),
+  providerRequestBodyRedacted: entry.providerRequestBodyRedacted,
   rawResponseText: redactSensitiveText(entry.rawResponseText),
   parsedJson: entry.parsedJson,
   imageInputs: entry.imageInputs,

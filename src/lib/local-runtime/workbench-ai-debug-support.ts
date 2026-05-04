@@ -34,6 +34,18 @@ export type WorkbenchAiDebugEvent = {
   rawResponseText: string | null;
   rawResponseHash: string | null;
   rawResponseRef: string | null;
+  promptCatalogVersion?: string | null;
+  providerConfigRef?: string | null;
+  secretRef?: string | null;
+  inputPackageId?: string | null;
+  inputPackageVersion?: string | null;
+  inputPackageHash?: string | null;
+  capabilityCatalogVersion?: string | null;
+  outputSchemaCatalogVersion?: string | null;
+  mapPackageSchemaVersion?: string | null;
+  promptDebugBundleRef?: string | null;
+  providerRequestBodyRedacted?: unknown | null;
+  providerRequestDebugRef?: string | null;
   parsedJson: unknown | null;
   parserErrors: string[];
   sourceScreenshotEvidenceId: string | null;
@@ -75,12 +87,13 @@ export const resolveAiDebugStep = (taskType: WorkbenchAiDebugEvent["taskType"]):
 
 const resolveAiDebugChildCapabilityId = (
   taskType: WorkbenchAiDebugEvent["taskType"],
-): "local-vision-ai" | "local-text-ai" | "local-ocr-ai" | "internal-schema-validator" => {
+): "local-vision-ai" | "local-text-ai" | "local-ocr-ai" | "internal-schema-validator" | "paid-analysis-ai" => {
   switch (taskType) {
+    case "map_authoring":
+    case "evidence_packet_analysis": return "paid-analysis-ai";
     case "ocr_cleanup": return "local-ocr-ai";
     case "comment_signal_summary":
-    case "product_signal_summary":
-    case "evidence_packet_analysis": return "local-text-ai";
+    case "product_signal_summary": return "local-text-ai";
     case "schema_validation_only": return "internal-schema-validator";
     default: return "local-vision-ai";
   }
@@ -168,7 +181,10 @@ const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: L
   runtime: input.runtime,
   promptContractId: input.promptContractId,
   promptVersion: input.promptVersion,
+  promptCatalogVersion: input.promptCatalogVersion,
   outputSchemaRef: input.outputSchemaRef,
+  providerConfigRef: input.providerConfigRef,
+  secretRef: input.secretRef,
   promptDebugRef: input.promptDebugRef,
   systemPromptHash: input.systemPromptHash,
   userPromptHash: input.userPromptHash,
@@ -178,6 +194,15 @@ const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: L
   rawResponseText: input.rawResponseText,
   rawResponseHash: input.rawResponseHash,
   rawResponseRef: input.rawResponseRef,
+  inputPackageId: input.inputPackageId,
+  inputPackageVersion: input.inputPackageVersion,
+  inputPackageHash: input.inputPackageHash,
+  capabilityCatalogVersion: input.capabilityCatalogVersion,
+  outputSchemaCatalogVersion: input.outputSchemaCatalogVersion,
+  mapPackageSchemaVersion: input.mapPackageSchemaVersion,
+  promptDebugBundleRef: input.promptDebugBundleRef,
+  providerRequestBodyRedacted: input.providerRequestBodyRedacted,
+  providerRequestDebugRef: input.providerRequestDebugRef,
   parsedJson: input.parsedJson,
   parsedDecision: input.parsedDecision,
   parserErrors: input.parserErrors,
