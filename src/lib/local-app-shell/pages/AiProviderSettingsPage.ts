@@ -8,47 +8,87 @@ const CONTROL_STYLE = "width:100%;min-width:0;min-height:var(--cc-input-height);
 
 function renderProviderSettingsCard(t: (zh: string, en: string) => string): string {
   return renderCard(
-    t("高级 AI Provider 设置", "Advanced AI Provider Settings"),
-    t("AI Capability / paid-analysis-ai", "AI Capability / paid-analysis-ai"),
+    t("AI 设置", "AI Settings"),
+    t("只保存必要信息", "Only the essentials"),
     `<form class="cc-stack" data-ai-provider-settings-form>
-      <p class="cc-note" data-ai-provider-settings-status>${escapeHtml(t("正在读取 provider readiness。", "Loading provider readiness."))}</p>
+      <p class="cc-note" data-ai-provider-settings-status>${escapeHtml(t("正在读取 AI 状态。", "Loading AI status."))}</p>
       <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("显示名称", "Display Name"))}</span><input name="displayName" type="text" placeholder="OpenAI compatible map authoring" /></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("Provider Kind", "Provider Kind"))}</span><select name="providerKind" style="${CONTROL_STYLE}"><option value="openai-compatible">OpenAI Compatible</option></select></label>
-      </div>
-      <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">Base URL</span><input name="baseUrl" type="url" inputmode="url" placeholder="https://api.example.com/v1" /></label>
-        <label class="cc-field"><span class="cc-section-title">Model</span><input name="model" type="text" placeholder="gpt-4.1-mini" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 名称", "AI Name"))}</span><input name="displayName" type="text" placeholder="${escapeHtml(t("例如：地图生成 AI", "Example: Map Authoring AI"))}" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 公司", "AI Company"))}</span><select name="providerCompany" style="${CONTROL_STYLE}" data-ai-provider-company><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="openrouter">OpenRouter</option></select></label>
       </div>
       <label class="cc-field"><span class="cc-section-title">API Key</span><input name="apiKey" type="password" autocomplete="off" placeholder="sk-..." /></label>
-      <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("允许付费 Provider", "Allow Paid Provider"))}</span><select name="allowPaidProvider" style="${CONTROL_STYLE}"><option value="true">true</option><option value="false">false</option></select></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("允许外部传输", "Allow External Transmission"))}</span><select name="allowExternalTransmission" style="${CONTROL_STYLE}"><option value="true">true</option><option value="false">false</option></select></label>
-      </div>
-      <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("Cost Max", "Cost Max"))}</span><input name="maxEstimatedCost" type="number" min="0.01" step="0.01" value="5" /></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("Operator Approval Ref", "Operator Approval Ref"))}</span><input name="operatorApprovalRef" type="text" placeholder="approval://map-lab/provider/operator" /></label>
-      </div>
-      <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("批准原因", "Approval Reason"))}</span><input name="approvalReason" type="text" placeholder="operator approved external map authoring" /></label>
+      <input name="providerKind" type="hidden" value="openai-compatible" />
+      <input name="baseUrl" type="hidden" value="" />
+      <input name="model" type="hidden" value="" />
+      <input name="allowPaidProvider" type="hidden" value="true" />
+      <input name="allowExternalTransmission" type="hidden" value="true" />
+      <input name="maxEstimatedCost" type="hidden" value="5" />
+      <input name="operatorApprovalRef" type="hidden" value="approval://settings/ai-provider/operator" />
+      <input name="approvalReason" type="hidden" value="operator saved AI provider from Settings" />
       <div class="cc-inline-actions">
-        <button type="submit" class="cc-button cc-button-primary" data-map-lab-busy-sensitive>${escapeHtml(t("保存 AI Provider 设置", "Save AI Provider Settings"))}</button>
+        <button type="submit" class="cc-button cc-button-primary" data-map-lab-busy-sensitive>${escapeHtml(t("保存 AI", "Save AI"))}</button>
         <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("刷新状态", "Refresh State"))}</button>
       </div>
-      <p class="cc-muted">${escapeHtml(t("保存后页面只显示 configured、secretRef 与 last4；明文 key 不会回显到 UI、终端、proof 或 map package。", "After saving, the UI only shows configured, secretRef, and last4. The raw key is never echoed to UI, terminal, proof, or map packages."))}</p>
+      <p class="cc-muted">${escapeHtml(t("只需要填写名称、AI 公司和密匙；服务地址与模型由系统按公司内置映射处理。明文 key 不回显到页面、终端、proof 或地图包。", "Only name, AI company, and key are required. Endpoint and model are mapped internally. The raw key is never echoed to UI, terminal, proof, or map packages."))}</p>
     </form>`,
   );
 }
 
-export function renderAiProviderSettingsPage(viewModel: CommanderConsoleViewModel, _appViewModel: CommanderAppViewModel): string {
+function renderSavedAiCard(t: (zh: string, en: string) => string): string {
+  return renderCard(
+    t("已保存 AI", "Saved AI"),
+    t("可查看、编辑、删除", "View, edit, delete"),
+    `<div class="cc-stack">
+      <div data-map-lab-provider-summary>${renderEmptyState(t("正在读取已保存 AI。", "Loading saved AI."))}</div>
+      <div class="cc-inline-actions">
+        <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("查看状态", "View Status"))}</button>
+        <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("编辑", "Edit"))}</button>
+        <button type="button" class="cc-button cc-button-danger" disabled="disabled">${escapeHtml(t("删除", "Delete"))}</button>
+      </div>
+      <p class="cc-muted">${escapeHtml(t("当前构建先开放保存和状态查看；删除动作会在本地 Secret Store 删除接口完成后启用。", "This build supports saving and status checks first; delete will be enabled after the local Secret Store delete endpoint lands."))}</p>
+    </div>`,
+  );
+}
+
+function renderLocalRuntimeCard(t: (zh: string, en: string) => string): string {
+  return renderCard(
+    t("本地运行", "Local Runtime"),
+    t("只读状态", "Read-only status"),
+    `<div class="cc-stack">
+      <div class="cc-detail-block">
+        <span>${escapeHtml(t("本地 AI", "Local AI"))}</span>
+        <strong data-map-lab-provider-status>${escapeHtml(t("正在读取。", "Loading."))}</strong>
+      </div>
+      <p class="cc-muted">${escapeHtml(t("完整启动、依赖和结构化日志仍然在终端中查看；页面只保留必要状态。", "Full startup, dependency, and structured logs stay in the terminal; the page keeps only essential status."))}</p>
+    </div>`,
+  );
+}
+
+function renderPreferenceCard(t: (zh: string, en: string) => string): string {
+  return renderCard(
+    t("使用偏好", "Preferences"),
+    t("低频设置", "Low-frequency settings"),
+    `<div class="cc-stack">
+      <div class="cc-run-limit-grid">
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("语言", "Language"))}</span><select style="${CONTROL_STYLE}" data-settings-locale-select><option value="zh">中文</option><option value="en">English</option></select></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("证据保存", "Evidence Storage"))}</span><input value="${escapeHtml(t("本地受治理目录", "Local governed directory"))}" disabled="disabled" /></label>
+      </div>
+      <p class="cc-muted">${escapeHtml(t("设置页只放低频配置，不放任务启动、调试模式或内部地图字段。", "Settings only contains low-frequency configuration, not launch controls, debug modes, or internal map fields."))}</p>
+    </div>`,
+  );
+}
+
+export function renderSettingsPage(viewModel: CommanderConsoleViewModel, _appViewModel: CommanderAppViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return joinHtml([
-    `<section class="cc-page" data-app-page="ai-provider-settings" data-ai-provider-settings-page>`,
+    `<section class="cc-page" data-app-page="settings" data-ai-provider-settings-page>`,
     renderPageHeader(
-      t("AI Provider 设置", "AI Provider Settings"),
-      t("配置 AI Capability 受治理 paid-analysis-ai，不把 secret 带回 Map Lab 操作页。", "Configure the AI Capability governed paid-analysis-ai without bringing secrets back into the Map Lab authoring page."),
+      t("设置", "Settings"),
+      t("只保留用户真正需要配置的内容：AI、本地运行状态、语言和证据偏好。", "Only keep what users really configure: AI, local runtime status, language, and evidence preferences."),
     ),
     `<div class="cc-page-stack">`,
-    `<div class="cc-home-grid">${renderProviderSettingsCard(t)}${renderCard(t("只读摘要", "Readiness Summary"), t("Provider / Policy / Secret", "Provider / Policy / Secret"), `<div data-map-lab-provider-summary>${renderEmptyState(t("正在读取 provider 摘要。", "Loading provider summary."))}</div>`)}</div>`,
+    `<div class="cc-home-grid">${renderProviderSettingsCard(t)}${renderSavedAiCard(t)}</div>`,
+    `<div class="cc-home-grid">${renderLocalRuntimeCard(t)}${renderPreferenceCard(t)}</div>`,
     `</div>`,
     `</section>`,
   ]);

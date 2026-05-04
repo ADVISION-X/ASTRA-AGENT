@@ -6,6 +6,7 @@ import { MapAuthoringRequestSchema } from "../../../map-plugins/authoring/map-au
 export type MapLabProviderConfigInput = {
   displayName?: string | null;
   providerKind?: string | null;
+  providerCompany?: "openai" | "deepseek" | "openrouter" | null;
   baseUrl: string;
   model: string;
   apiKey: string;
@@ -21,6 +22,7 @@ export type MapLabProviderState = {
   providerId: string;
   displayName: string | null;
   providerKind: string | null;
+  providerCompany: "openai" | "deepseek" | "openrouter" | null;
   configured: boolean;
   enabled: boolean;
   configRef: string | null;

@@ -21,7 +21,6 @@ function renderLaunchActions(viewModel: CommanderConsoleViewModel, launchLocked:
   return `<div class="cc-action-row">
           <button type="submit" class="cc-button cc-button-primary"${launchLocked ? ' disabled="disabled"' : ""}>${escapeHtml(t("开始任务", "Start Task"))}</button>
           <button type="button" class="cc-button" data-scroll-target="mission-cockpit">${escapeHtml(t("查看当前任务", "See Mission Cockpit"))}</button>
-          <button type="button" class="cc-button" data-mode-toggle>${escapeHtml(t("打开开发者模式", "Open Developer Mode"))}</button>
         </div>`;
 }
 
@@ -29,7 +28,7 @@ function renderLaunchCopy(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return `<div class="cc-launch-copy">
           <p class="cc-launch-heading">${escapeHtml(t("请选择你要让 GrassEye 做什么", "Choose what you want GrassEye to do"))}</p>
-          <p class="cc-note">${escapeHtml(t("普通用户只需要选择任务模板，再确认运行时长和最多处理数量。内部地图、平台和档案都留在开发者模式。", "Normal users only choose a task template, then confirm run time and max items. Internal maps, platform targets, and profiles stay in developer mode."))}</p>
+          <p class="cc-note">${escapeHtml(t("普通用户只需要选择任务，再确认运行时长和最多处理数量。内部地图、平台和档案不进入用户侧启动流程。", "Users only choose a task, then confirm run time and max items. Internal maps, platform targets, and profiles stay out of the user launch flow."))}</p>
         </div>`;
 }
 

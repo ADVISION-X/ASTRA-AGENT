@@ -80,7 +80,7 @@ const resolveExplicitBinding = (activeRegistry: ActiveRegistry, input: MissionSt
     return createBindingFailure(
       "requestedPlatformId and selectedMapId are both required before mission start.",
       "任务无法启动，因为缺少 taskTemplateId 或显式地图绑定。",
-      "选择一个已激活批准的任务模板，或在开发者模式下提供有效的 selectedMapId 与 requestedPlatformId。",
+      "回到开始页选择一个已激活批准的任务模板；不要在用户侧手工填写内部地图字段。",
     );
   }
 

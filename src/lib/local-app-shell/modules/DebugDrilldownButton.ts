@@ -8,7 +8,7 @@ export function renderDebugDrilldownButton(viewModel: CommanderConsoleViewModel)
   const inspectId = latest ? `${latest.step}-0` : "";
 
   return `<div class="cc-inline-actions">
-    <button type="button" class="cc-button cc-button-tight" data-nav-page="health">${escapeHtml(t("打开健康页", "Open Health"))}</button>
-    ${latest ? `<button type="button" class="cc-button cc-button-tight" data-inspect-kind="round" data-inspect-id="${escapeHtml(inspectId)}">${escapeHtml(t("打开调试包", "Open Debug Bundle"))}</button>` : ""}
+    <button type="button" class="cc-button cc-button-tight" data-nav-page="health">${escapeHtml(t("打开诊断", "Open Diagnostics"))}</button>
+    ${latest ? `<button type="button" class="cc-button cc-button-tight" data-inspect-kind="round" data-inspect-id="${escapeHtml(inspectId)}">${escapeHtml(t("查看详情", "Inspect Detail"))}</button>` : ""}
   </div>`;
 }

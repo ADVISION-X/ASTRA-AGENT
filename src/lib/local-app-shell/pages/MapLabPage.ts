@@ -15,10 +15,10 @@ function renderReadinessCard(t: (zh: string, en: string) => string): string {
       <p class="cc-note" data-map-lab-provider-status>${escapeHtml(t("正在读取 provider readiness。", "Loading provider readiness."))}</p>
       <div data-map-lab-provider-summary>${renderEmptyState(t("正在读取 provider 摘要。", "Loading provider summary."))}</div>
       <div class="cc-inline-actions">
-        <a class="cc-button cc-button-primary" href="?page=ai-provider-settings">${escapeHtml(t("打开 AI Provider 设置", "Open AI Provider Settings"))}</a>
+        <a class="cc-button cc-button-primary" href="?page=settings">${escapeHtml(t("打开设置", "Open Settings"))}</a>
         <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("刷新摘要", "Refresh Summary"))}</button>
       </div>
-      <p class="cc-muted">${escapeHtml(t("Map Lab 不接收、不保存、不回显 API key、baseUrl、provider 或 model 配置。", "Map Lab does not accept, store, or echo API key, baseUrl, provider, or model configuration."))}</p>
+      <p class="cc-muted">${escapeHtml(t("地图工坊只生成草稿；AI key、模型和本地运行配置统一放在设置页。", "Map Lab only generates drafts; AI keys, models, and local runtime configuration live in Settings."))}</p>
     </div>`,
   );
 }
@@ -49,13 +49,13 @@ function renderGenerateCard(t: (zh: string, en: string) => string): string {
       <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("目标平台", "Target Platform"))}</span><select name="targetPlatform" style="${CONTROL_STYLE}"><option value="tiktok-web">TikTok Web</option><option value="facebook-web">Facebook Web</option></select></label>
       <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("自然语言需求", "Natural Language Requirement"))}</span><textarea name="objective" style="${TEXTAREA_STYLE}" placeholder="${escapeHtml(t("例如：进入 TikTok 搜索关键词，打开结果页前 5 条视频并保存证据包。", "Example: Search TikTok for a keyword, open the first 5 results, and capture evidence packets."))}"></textarea></label>
       <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">allowedAutomationScope</span><input name="allowedAutomationScope" type="text" value="observe_and_prepare_draft_only" /></label>
-        <label class="cc-field"><span class="cc-section-title">runLimit</span><input name="runLimit" type="text" value="maxRounds=5,maxMinutes=15" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("自动化范围", "Automation Scope"))}</span><input name="allowedAutomationScope" type="text" value="observe_and_prepare_draft_only" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("运行边界", "Run Bounds"))}</span><input name="runLimit" type="text" value="maxRounds=5,maxMinutes=15" /></label>
       </div>
-      <label class="cc-field"><span class="cc-section-title">mustAskBefore</span><input name="mustAskBefore" type="text" value="send,submit,publish,delete,purchase,modify_user_data" /></label>
+      <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("必须先问我", "Ask Me Before"))}</span><input name="mustAskBefore" type="text" value="send,submit,publish,delete,purchase,modify_user_data" /></label>
       <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">failureHandlingPreference</span><input name="failureHandlingPreference" type="text" value="review_required" /></label>
-        <label class="cc-field"><span class="cc-section-title">evidencePreference</span><input name="evidencePreference" type="text" value="refs_and_hashes_only" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("失败处理", "Failure Handling"))}</span><input name="failureHandlingPreference" type="text" value="review_required" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("证据偏好", "Evidence Preference"))}</span><input name="evidencePreference" type="text" value="refs_and_hashes_only" /></label>
       </div>
       <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("操作员补充", "Operator Notes"))}</span><textarea name="operatorNotes" style="${TEXTAREA_STYLE}" placeholder="${escapeHtml(t("补充风险边界、语言要求或人工复核重点。", "Add risk boundaries, language requirements, or review focus points."))}"></textarea></label>
       <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("输出语言", "Output Language"))}</span><select name="outputLanguage" style="${CONTROL_STYLE}"><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></label>

@@ -4,8 +4,7 @@ import { escapeHtml } from "../render-utils.js";
 
 export function renderBottomNav(appViewModel: CommanderAppViewModel, viewModel: CommanderConsoleViewModel): string {
   const navItems = appViewModel.navItems.map((item) => {
-    const hidden = item.requiresDeveloperMode ? ' data-developer-nav="hidden" hidden="hidden"' : "";
-    return `<button type="button" class="cc-bottom-nav-item${item.pageId === appViewModel.initialPageId ? " is-active" : ""}" data-nav-page="${escapeHtml(item.pageId)}"${hidden}>
+    return `<button type="button" class="cc-bottom-nav-item${item.pageId === appViewModel.initialPageId ? " is-active" : ""}" data-nav-page="${escapeHtml(item.pageId)}">
       <span>${escapeHtml(item.shortLabel)}</span>
       <small>${escapeHtml(item.label)}</small>
     </button>`;

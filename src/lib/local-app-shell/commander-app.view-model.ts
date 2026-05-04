@@ -6,14 +6,17 @@ import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
   if (
     value === "map-lab"
-    || value === "ai-provider-settings"
     || value === "mission"
     || value === "results"
     || value === "review"
+    || value === "settings"
     || value === "health"
-    || value === "developer"
   ) {
     return value;
+  }
+
+  if (value === "ai-provider-settings" || value === "developer") {
+    return "settings";
   }
 
   return "home";
@@ -23,12 +26,11 @@ function createCommanderAppNavItems(t: (zh: string, en: string) => string): Comm
   return [
     { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
     { pageId: "map-lab", label: t("地图工坊", "Map Lab"), shortLabel: t("工坊", "Lab") },
-    { pageId: "ai-provider-settings", label: t("AI Provider 设置", "AI Provider Settings"), shortLabel: t("AI 设置", "AI Set") },
     { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
     { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
     { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },
-    { pageId: "health", label: t("健康", "Health"), shortLabel: t("健康", "Health") },
-    { pageId: "developer", label: t("开发者", "Developer"), shortLabel: t("开发者", "Dev"), requiresDeveloperMode: true },
+    { pageId: "settings", label: t("设置", "Settings"), shortLabel: t("设置", "Set") },
+    { pageId: "health", label: t("诊断", "Diagnostics"), shortLabel: t("诊断", "Diag") },
   ];
 }
 
@@ -61,9 +63,9 @@ function createCommanderAppTabGroups(t: (zh: string, en: string) => string): Com
       groupId: "health",
       defaultTabId: "health-capabilities",
       options: [
-        { id: "health-capabilities", label: t("能力健康", "Capabilities") },
-        { id: "health-failures", label: t("故障雷达", "Failures") },
-        { id: "health-logs", label: t("结构化日志", "Logs") },
+        { id: "health-capabilities", label: t("状态", "Status") },
+        { id: "health-failures", label: t("阻断", "Blocks") },
+        { id: "health-logs", label: t("日志摘要", "Log Summary") },
       ],
     },
   ];

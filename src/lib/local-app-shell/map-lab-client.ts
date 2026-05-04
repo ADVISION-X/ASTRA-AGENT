@@ -1,6 +1,6 @@
 type MapLabLocale = "zh" | "en";
 type MapLabFeedbackTone = "ok" | "attention" | "blocked";
-type MapLabProviderState = { providerId: string; displayName: string | null; providerKind: string | null; configured: boolean; enabled: boolean; configRef: string | null; secretRef: string | null; hasSecret: boolean; secretLast4: string | null; model: string | null; allowPaidProvider: boolean; allowExternalTransmission: boolean; maxEstimatedCost: number | null; operatorApprovalRef: string | null; missingReason: string | null; updatedAt: string | null; };
+type MapLabProviderState = { providerId: string; displayName: string | null; providerKind: string | null; providerCompany: "openai" | "deepseek" | "openrouter" | null; configured: boolean; enabled: boolean; configRef: string | null; secretRef: string | null; hasSecret: boolean; secretLast4: string | null; model: string | null; allowPaidProvider: boolean; allowExternalTransmission: boolean; maxEstimatedCost: number | null; operatorApprovalRef: string | null; missingReason: string | null; updatedAt: string | null; };
 type MapLabCatalogItem = { packageId: string; packageVersion: string; mapId: string; title: string; lifecycleStatus: string; approvalStatus: string; summary: string; chain: string[]; validationIssues: Array<{ code: string; message: string; severity: string }>; activationId: string | null; draftOnly: boolean; };
 type MapLabSnapshot = { provider: MapLabProviderState; developerCatalog: MapLabCatalogItem[]; };
 type MapLabPreviewPackage = { manifest: { displayName: string; packageId: string; packageVersion: string; approvalStatus: string }; taskTemplate: { description: string; requestedPlatformId: string }; operationalMap: { allowedAbilityGroups: string[]; finalStates: string[] }; dependencies: { requiredCapabilities: string[]; requiredPromptContracts: string[]; requiredPlatformProfiles: string[] }; };
@@ -15,7 +15,18 @@ function mapLabListHtml(items: string[], emptyText: string): string { return ite
 function mapLabBuildProviderSummaryHtml(snapshot: MapLabSnapshot, locale: MapLabLocale): string {
   const provider = snapshot.provider;
   const updatedAt = provider.updatedAt ? new Date(provider.updatedAt).toLocaleString(locale === "zh" ? "zh-CN" : "en-US") : mapLabText(locale, "尚未写入", "Not saved yet");
-  return `<dl class="cc-summary-list"><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "Provider", "Provider"))}</dt><dd>${mapLabEscapeHtml(provider.displayName ?? provider.providerId)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "配置状态", "Configured"))}</dt><dd>${mapLabEscapeHtml(provider.configured ? mapLabText(locale, "已配置", "Configured") : mapLabText(locale, "未配置", "Missing"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "模型", "Model"))}</dt><dd>${mapLabEscapeHtml(provider.model ?? mapLabText(locale, "未设置", "Unset"))}</dd></div><div class="cc-summary-row"><dt>secretRef</dt><dd>${mapLabEscapeHtml(provider.secretRef ?? mapLabText(locale, "未保存", "Not saved"))}</dd></div><div class="cc-summary-row"><dt>last4</dt><dd>${mapLabEscapeHtml(provider.secretLast4 ?? mapLabText(locale, "未保存", "Not saved"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "外部传输", "External Transmission"))}</dt><dd>${mapLabEscapeHtml(provider.allowExternalTransmission ? "allowed" : "blocked")}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "缺失原因", "Missing Reason"))}</dt><dd>${mapLabEscapeHtml(provider.missingReason ?? "none")}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "最近更新时间", "Updated"))}</dt><dd>${mapLabEscapeHtml(updatedAt)}</dd></div></dl>`;
+  const company = provider.providerCompany === "deepseek" ? "DeepSeek" : provider.providerCompany === "openrouter" ? "OpenRouter" : "OpenAI";
+  return `<dl class="cc-summary-list"><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "AI 名称", "AI Name"))}</dt><dd>${mapLabEscapeHtml(provider.displayName ?? mapLabText(locale, "未命名", "Unnamed"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "AI 公司", "AI Company"))}</dt><dd>${mapLabEscapeHtml(company)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "配置状态", "Configured"))}</dt><dd>${mapLabEscapeHtml(provider.configured ? mapLabText(locale, "已配置", "Configured") : mapLabText(locale, "未配置", "Missing"))}</dd></div><div class="cc-summary-row"><dt>Key</dt><dd>${mapLabEscapeHtml(provider.secretLast4 ? `••••${provider.secretLast4}` : mapLabText(locale, "未保存", "Not saved"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "最近更新时间", "Updated"))}</dt><dd>${mapLabEscapeHtml(updatedAt)}</dd></div></dl>`;
+}
+
+function mapLabResolveProviderCompany(value: FormDataEntryValue | null): "openai" | "deepseek" | "openrouter" {
+  return value === "deepseek" || value === "openrouter" ? value : "openai";
+}
+
+function mapLabResolveProviderDefaults(providerCompany: "openai" | "deepseek" | "openrouter"): { baseUrl: string; model: string } {
+  if (providerCompany === "deepseek") return { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" };
+  if (providerCompany === "openrouter") return { baseUrl: "https://openrouter.ai/api/v1", model: "openai/gpt-4.1-mini" };
+  return { baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini" };
 }
 
 function mapLabBuildStatsHtml(snapshot: MapLabSnapshot, locale: MapLabLocale): string {
@@ -74,17 +85,17 @@ async function mapLabPostJson(path: string, body?: unknown): Promise<unknown> {
 
 function mapLabSeedProviderForm(form: HTMLFormElement, snapshot: MapLabSnapshot): void {
   const displayNameInput = form.elements.namedItem("displayName");
-  const modelInput = form.elements.namedItem("model");
+  const providerCompanyInput = form.elements.namedItem("providerCompany");
   const apiKeyInput = form.elements.namedItem("apiKey");
   const operatorApprovalRefInput = form.elements.namedItem("operatorApprovalRef");
   if (displayNameInput instanceof HTMLInputElement) displayNameInput.value = snapshot.provider.displayName ?? "";
-  if (modelInput instanceof HTMLInputElement) modelInput.value = snapshot.provider.model ?? "";
+  if (providerCompanyInput instanceof HTMLSelectElement) providerCompanyInput.value = snapshot.provider.providerCompany ?? "openai";
   if (operatorApprovalRefInput instanceof HTMLInputElement) operatorApprovalRefInput.value = snapshot.provider.operatorApprovalRef ?? "";
   if (apiKeyInput instanceof HTMLInputElement) apiKeyInput.placeholder = snapshot.provider.secretLast4 ? `••••${snapshot.provider.secretLast4}` : "sk-...";
 }
 
 function mapLabResolveProviderStatus(snapshot: MapLabSnapshot | null, locale: MapLabLocale): string {
-  return snapshot?.provider.configured ? mapLabText(locale, "Provider 已配置，可以生成 draft。", "Provider configured. Draft generation is available.") : mapLabText(locale, "Provider 未配置，生成前必须先保存。", "Provider is missing. Save it before generation.");
+  return snapshot?.provider.configured ? mapLabText(locale, "AI 已配置，可以生成地图草稿。", "AI configured. Draft generation is available.") : mapLabText(locale, "AI 未配置，生成前必须先保存。", "AI is missing. Save it before generation.");
 }
 
 function mapLabResolveCatalogSummary(snapshot: MapLabSnapshot | null, locale: MapLabLocale): string {
@@ -97,7 +108,7 @@ function mapLabResolvePreviewHtml(state: MapLabClientState, locale: MapLabLocale
 }
 
 function mapLabResolveNextAction(snapshot: MapLabSnapshot | null, locale: MapLabLocale): string {
-  return snapshot?.provider.configured ? mapLabText(locale, "输入用户需求生成 draft；结果只会进入 draft/quarantine。", "Describe the goal and generate a draft; results only enter draft/quarantine.") : mapLabText(locale, "先到 AI Provider 设置页完成 paid-analysis-ai readiness。", "Complete paid-analysis-ai readiness in AI Provider Settings first.");
+  return snapshot?.provider.configured ? mapLabText(locale, "输入用户需求生成草稿；结果只会进入 draft/quarantine。", "Describe the goal and generate a draft; results only enter draft/quarantine.") : mapLabText(locale, "先到设置页保存 AI。", "Save AI in Settings first.");
 }
 
 function mapLabSyncProviderPanel(page: HTMLElement, snapshot: MapLabSnapshot | null, locale: MapLabLocale): void {
@@ -161,8 +172,10 @@ function mapLabReadApprovalContext(page: HTMLElement): { approvedBy: string; rea
 async function mapLabHandleProviderSubmit(target: HTMLFormElement, state: MapLabClientState, locale: MapLabLocale): Promise<void> {
   await mapLabRunAction(state, locale, "provider", async () => {
     const formData = new FormData(target);
-    await mapLabPostJson("/api/ai-provider-settings/provider-config", { displayName: String(formData.get("displayName") ?? "").trim(), providerKind: String(formData.get("providerKind") ?? "openai-compatible"), baseUrl: String(formData.get("baseUrl") ?? "").trim(), model: String(formData.get("model") ?? "").trim(), apiKey: String(formData.get("apiKey") ?? "").trim(), allowPaidProvider: String(formData.get("allowPaidProvider") ?? "true") === "true", providerAllowlist: ["paid-analysis-ai"], dataPolicy: { allowExternalTransmission: String(formData.get("allowExternalTransmission") ?? "true") === "true" }, costPolicy: { maxEstimatedCost: Number(formData.get("maxEstimatedCost") ?? 5) }, operatorApprovalRef: String(formData.get("operatorApprovalRef") ?? "").trim(), approvalReason: String(formData.get("approvalReason") ?? "").trim() });
-    state.feedback = { tone: "ok", title: mapLabText(locale, "Provider 已保存", "Provider saved"), body: mapLabText(locale, "高级 AI provider 已写入本地安全存储。", "The paid AI provider was saved to local secure storage.") };
+    const providerCompany = mapLabResolveProviderCompany(formData.get("providerCompany"));
+    const providerDefaults = mapLabResolveProviderDefaults(providerCompany);
+    await mapLabPostJson("/api/ai-provider-settings/provider-config", { displayName: String(formData.get("displayName") ?? "").trim(), providerCompany, providerKind: "openai-compatible", baseUrl: providerDefaults.baseUrl, model: providerDefaults.model, apiKey: String(formData.get("apiKey") ?? "").trim(), allowPaidProvider: String(formData.get("allowPaidProvider") ?? "true") === "true", providerAllowlist: ["paid-analysis-ai"], dataPolicy: { allowExternalTransmission: String(formData.get("allowExternalTransmission") ?? "true") === "true" }, costPolicy: { maxEstimatedCost: Number(formData.get("maxEstimatedCost") ?? 5) }, operatorApprovalRef: String(formData.get("operatorApprovalRef") ?? "").trim(), approvalReason: String(formData.get("approvalReason") ?? "").trim() });
+    state.feedback = { tone: "ok", title: mapLabText(locale, "AI 已保存", "AI saved"), body: mapLabText(locale, "AI 密匙已写入本地安全存储。", "The AI key was saved to local secure storage.") };
     await mapLabRefreshSnapshot(state, locale);
   });
 }

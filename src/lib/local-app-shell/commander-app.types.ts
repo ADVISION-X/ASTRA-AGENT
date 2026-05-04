@@ -1,12 +1,11 @@
 import type { ActionableErrorView } from "./view-helpers.js";
 
-export type CommanderAppPageId = "home" | "map-lab" | "ai-provider-settings" | "mission" | "results" | "review" | "health" | "developer";
+export type CommanderAppPageId = "home" | "map-lab" | "mission" | "results" | "review" | "settings" | "health";
 
 export type CommanderAppNavItem = {
   pageId: CommanderAppPageId;
   label: string;
   shortLabel: string;
-  requiresDeveloperMode?: boolean;
 };
 
 export type CommanderAppTabGroupId = "mission" | "results" | "health";

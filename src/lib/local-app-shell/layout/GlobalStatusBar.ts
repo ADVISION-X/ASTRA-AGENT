@@ -46,7 +46,6 @@ function renderTopbarControls(viewModel: CommanderConsoleViewModel, t: (zh: stri
         <button type="button" class="cc-button cc-button-danger" data-command-action="emergency-stop">${escapeHtml(t("急停", "E-Stop"))}</button>
       </div>
       <div class="cc-top-meta">
-        <button type="button" class="cc-button" data-mode-toggle>${escapeHtml(t("开发者模式", "Developer Mode"))}</button>
         <a class="cc-action-link" href="?lang=en">${escapeHtml(t("英文", "EN"))}</a>
         <a class="cc-action-link" href="?lang=zh">${escapeHtml(t("中文", "中文"))}</a>
         <button type="button" class="cc-button" onclick="window.location.reload()">${escapeHtml(t("刷新", "Refresh"))}</button>

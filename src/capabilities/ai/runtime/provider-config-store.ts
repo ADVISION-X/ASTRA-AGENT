@@ -36,12 +36,14 @@ function secretLast4(apiKey: string): string | null {
 }
 
 function resolveMissingReason(config: AiExternalProviderConfig): string | null {
-  if (!config.enabled) return "provider_disabled";
-  if (!config.allowPaidProvider) return "paid_provider_not_allowed";
-  if (!config.dataPolicy.allowExternalTransmission) return "external_transmission_approval_missing";
-  if (!config.operatorApprovalRef) return "operator_approval_missing";
-  if (!config.secretRef || !config.apiKey) return "provider_secret_missing";
-  return null;
+  const checks: Array<[boolean, string]> = [
+    [!config.enabled, "provider_disabled"],
+    [!config.allowPaidProvider, "paid_provider_not_allowed"],
+    [!config.dataPolicy.allowExternalTransmission, "external_transmission_approval_missing"],
+    [!config.operatorApprovalRef, "operator_approval_missing"],
+    [!config.secretRef || !config.apiKey, "provider_secret_missing"],
+  ];
+  return checks.find(([blocked]) => blocked)?.[1] ?? null;
 }
 
 function toPublicState(config: AiExternalProviderConfig | null): AiExternalProviderPublicState {
@@ -58,6 +60,7 @@ function toPublicState(config: AiExternalProviderConfig | null): AiExternalProvi
     providerId: config.providerId,
     displayName: config.displayName,
     providerKind: config.providerKind,
+    providerCompany: config.providerCompany,
     configured: true,
     enabled: config.enabled,
     configRef: config.configRef,
@@ -115,6 +118,7 @@ export async function saveAiExternalProviderConfig(
   input: {
     displayName?: string | null;
     providerKind?: string | null;
+    providerCompany?: "openai" | "deepseek" | "openrouter" | null;
     baseUrl: string;
     model: string;
     apiKey: string;
@@ -133,6 +137,7 @@ export async function saveAiExternalProviderConfig(
     providerId: "openai-compatible",
     displayName: input.displayName?.trim() || null,
     providerKind: "openai-compatible",
+    providerCompany: input.providerCompany ?? "openai",
     configRef: DEFAULT_CONFIG_REF,
     secretRef: DEFAULT_SECRET_REF,
     baseUrl: trimTrailingSlash(input.baseUrl.trim()),

@@ -3,7 +3,6 @@ import { localizeCommanderText } from "../locale.js";
 import { escapeHtml, renderStatusPill } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 import { buildHumanStepLabel, canEmergencyStopMission, formatRuntimeState, getActiveTaskTemplate, getRuntimeTone } from "../view-helpers.js";
-import { renderDeveloperToggle } from "./DeveloperToggle.js";
 
 export function renderMacToolbar(viewModel: CommanderConsoleViewModel, appViewModel: CommanderAppViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
@@ -25,7 +24,6 @@ export function renderMacToolbar(viewModel: CommanderConsoleViewModel, appViewMo
       <div class="cc-toolbar-metric"><span>${escapeHtml(t("待复核", "Pending Review"))}</span><strong>${escapeHtml(String(viewModel.reviewQueueSummary.pendingCount))}</strong></div>
     </div>
     <div class="cc-toolbar-actions">
-      ${renderDeveloperToggle(t("开发者模式", "Developer Mode"))}
       <button type="button" class="cc-button cc-button-danger cc-button-tight" data-command-action="emergency-stop"${canEmergencyStop ? "" : ' disabled="disabled"'}>${escapeHtml(t("急停", "E-Stop"))}</button>
     </div>
   </section>`;

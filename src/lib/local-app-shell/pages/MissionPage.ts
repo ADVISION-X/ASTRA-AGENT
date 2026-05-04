@@ -19,7 +19,7 @@ export function renderMissionPage(viewModel: CommanderConsoleViewModel, appViewM
   const latestEvents = viewModel.runtimeProofTimeline.slice(0, 5);
 
   return `<section class="cc-page" data-app-page="mission" data-mission-page>
-    ${renderPageHeader(t("运行", "Mission"), t("只显示运行过程，不把结果、复核、健康和开发者信息堆进同一页。", "Mission focuses on runtime only and keeps results, review, health, and developer details out of the same page."))}
+    ${renderPageHeader(t("运行", "Mission"), t("只显示运行过程，不把结果、复核、诊断和设置堆进同一页。", "Mission focuses on runtime only and keeps results, review, diagnostics, and settings out of the same page."))}
     ${renderTabButtons("mission", tabs)}
     ${renderTabPanels("mission", tabs, missionTabs?.defaultTabId ?? "mission-overview", (tabId) => {
       if (tabId === "mission-overview") {

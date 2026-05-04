@@ -79,15 +79,11 @@ function updateDebugState(state: CollectedDebugState, event: LocalAiDebugEvent) 
   }
 }
 
-function buildBaseDebugEvent(args: {
+const buildDebugTraceFields = (args: {
   request: ParsedAiAbilityInput;
-  state: CollectedDebugState;
   traceId: string;
   runtimeCallId: string | null;
-  rawOutputRef: string;
-  promptDebugRef: string;
-}): Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs"> {
-  return {
+}) => ({
     sessionId: args.request.sessionId,
     missionId: args.request.missionId,
     roundId: args.request.roundId,
@@ -97,6 +93,13 @@ function buildBaseDebugEvent(args: {
     attemptId: `${args.runtimeCallId ?? args.request.sessionId}:attempt:0`,
     taskType: args.request.taskType,
     refs: args.request.inputRefs.map((ref) => ref.id),
+});
+
+const buildDebugPromptFields = (args: {
+  request: ParsedAiAbilityInput;
+  state: CollectedDebugState;
+  promptDebugRef: string;
+}) => ({
     provider: args.state.provider,
     model: args.state.model,
     modelRole: args.state.modelRole,
@@ -109,25 +112,49 @@ function buildBaseDebugEvent(args: {
     userPromptHash: args.state.userPromptHash,
     promptPreview: args.state.promptPreview,
     promptFullText: args.state.promptFullText,
+});
+
+const buildDebugResponseFields = (args: {
+  state: CollectedDebugState;
+  rawOutputRef: string;
+}) => ({
     rawResponsePreview: args.state.rawResponsePreview,
     rawResponseText: args.state.rawResponseText,
     rawResponseHash: args.state.rawResponseText ? hashValue(args.state.rawResponseText) : null,
     rawResponseRef: args.rawOutputRef,
-    promptCatalogVersion: args.request.promptCatalogVersion,
-    providerConfigRef: args.request.providerPolicy.providerConfigRef,
-    secretRef: args.request.providerPolicy.secretRef,
-    inputPackageId: args.request.taskType === "map_authoring" ? args.request.input.inputPackageId : null,
-    inputPackageVersion: args.request.taskType === "map_authoring" ? args.request.input.inputPackageVersion : null,
-    inputPackageHash: args.request.taskType === "map_authoring" ? `sha256:${hashValue(args.request.input)}` : null,
-    capabilityCatalogVersion: args.request.taskType === "map_authoring" ? args.request.input.capabilityCatalog.version : null,
-    outputSchemaCatalogVersion: args.request.taskType === "map_authoring" ? args.request.input.outputSchemaCatalog.version : null,
-    mapPackageSchemaVersion: args.request.taskType === "map_authoring" ? args.request.input.mapPackageSchema.schemaVersion : null,
-    promptDebugBundleRef: args.promptDebugRef,
-    providerRequestBodyRedacted: args.state.providerRequestBodyRedacted,
-    providerRequestDebugRef: args.promptDebugRef,
     parsedJson: args.state.parsedJson,
     parsedDecision: args.state.parsedDecision,
     parserErrors: [...args.state.parserErrors],
+});
+
+const buildMapAuthoringDebugRefs = (request: ParsedAiAbilityInput) => ({
+  inputPackageId: request.taskType === "map_authoring" ? request.input.inputPackageId : null,
+  inputPackageVersion: request.taskType === "map_authoring" ? request.input.inputPackageVersion : null,
+  inputPackageHash: request.taskType === "map_authoring" ? `sha256:${hashValue(request.input)}` : null,
+  capabilityCatalogVersion: request.taskType === "map_authoring" ? request.input.capabilityCatalog.version : null,
+  outputSchemaCatalogVersion: request.taskType === "map_authoring" ? request.input.outputSchemaCatalog.version : null,
+  mapPackageSchemaVersion: request.taskType === "map_authoring" ? request.input.mapPackageSchema.schemaVersion : null,
+});
+
+function buildBaseDebugEvent(args: {
+  request: ParsedAiAbilityInput;
+  state: CollectedDebugState;
+  traceId: string;
+  runtimeCallId: string | null;
+  rawOutputRef: string;
+  promptDebugRef: string;
+}): Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs"> {
+  return {
+    ...buildDebugTraceFields(args),
+    ...buildDebugPromptFields(args),
+    ...buildDebugResponseFields(args),
+    promptCatalogVersion: args.request.promptCatalogVersion,
+    providerConfigRef: args.request.providerPolicy.providerConfigRef,
+    secretRef: args.request.providerPolicy.secretRef,
+    ...buildMapAuthoringDebugRefs(args.request),
+    promptDebugBundleRef: args.promptDebugRef,
+    providerRequestBodyRedacted: args.state.providerRequestBodyRedacted,
+    providerRequestDebugRef: args.promptDebugRef,
     sourceScreenshotEvidenceId: args.state.sourceScreenshotEvidenceId,
     aiInputArtifactRef: args.state.aiInputArtifactRef,
     imageInputs: [...args.state.imageInputs],

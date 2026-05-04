@@ -1,9 +1,7 @@
 {
-  "generatedAt": "2026-05-04T17:12:30.359Z",
+  "generatedAt": "2026-05-04T17:56:02.674Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/commander-console-capability/startup-platform-target-checks.ts",
-    "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
@@ -11,9 +9,13 @@
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/runner-summary.json",
-    "src/capabilities/open/schema-proof.ts",
-    "src/capabilities/post-action-verification/runtime/verification-result-builder.ts",
-    "src/lib/local-runtime/workbench-page-state-dispatch-input.ts"
+    "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts",
+    "src/capabilities/ai/runtime/provider-config-store.ts",
+    "src/capabilities/geometry-guard/runtime/geometry-proof-builder.ts",
+    "src/lib/local-runtime/workbench-ai-debug-support.ts",
+    "src/map-plugins/authoring/capability-catalog/policies.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",

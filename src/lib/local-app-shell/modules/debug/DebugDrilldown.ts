@@ -29,20 +29,18 @@ export function renderDebugDrilldown(viewModel: CommanderConsoleViewModel): stri
           <p class="cc-note">${escapeHtml(entry.createdAt)} · ${escapeHtml(entry.status)}</p>
         </div>
         <div class="cc-inline-actions">
-          <button type="button" class="cc-button" data-mode-toggle>${escapeHtml(t("更多调试", "More Debug"))}</button>
           <button type="button" class="cc-inline-button" data-inspect-kind="round" data-inspect-id="${escapeHtml(`${entry.step}-${index}`)}">${escapeHtml(t("检查", "Inspect"))}</button>
         </div>
       </article>`).join("")}
     </div>
     <div class="cc-inline-actions">
       ${renderInspectDebugBundle(viewModel)}
-      <button type="button" class="cc-button" data-mode-toggle>${escapeHtml(t("打开开发者模式", "Open Developer Mode"))}</button>
     </div>
   </div>`;
 
   return joinHtml([
     `<div class="cc-span-12">`,
-    renderCard(t("Debug Drilldown", "Debug Drilldown"), t("调试透明但不压迫", "Debug Without Pressure"), body),
+    renderCard(t("诊断详情", "Diagnostic Detail"), t("只读检查", "Read-only Inspect"), body),
     `</div>`,
   ]);
 }

@@ -6,7 +6,6 @@ import { renderActionableErrorBanner } from "../modules/ActionableErrorBanner.js
 import { renderCurrentMissionCard } from "../modules/CurrentMissionCard.js";
 import { renderResultSummaryCard } from "../modules/ResultSummaryCard.js";
 import { renderRunLimitMiniForm } from "../modules/RunLimitMiniForm.js";
-import { renderSafetyControls } from "../modules/SafetyControls.js";
 import { renderTaskTemplateLauncherModule } from "../modules/TaskTemplateLauncher.js";
 import { renderPageHeader } from "../layout/PageHeader.js";
 import { getActiveTaskTemplate } from "../view-helpers.js";
@@ -43,7 +42,6 @@ function renderHomeSidebar(viewModel: CommanderConsoleViewModel): string {
   return `<div class="cc-home-sidebar-stack">
     ${renderCurrentMissionCard(viewModel, { title: t("当前任务", "Current Mission"), eyebrow: t("运行摘要", "Mission Summary"), includeOpenAction: true })}
     <section class="cc-card">${renderRunLimitMiniForm(viewModel)}</section>
-    <section class="cc-card">${renderSafetyControls(viewModel)}</section>
     ${shouldRenderResultSummary(viewModel) ? renderResultSummaryCard(viewModel, { title: t("结果摘要", "Result Summary"), eyebrow: t("有进度时出现", "Appears when progress exists"), includeOpenAction: true }) : ""}
   </div>`;
 }

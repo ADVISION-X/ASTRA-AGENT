@@ -2,7 +2,6 @@ import type { CommanderAppViewModel } from "../commander-app.types.js";
 import { localizeCommanderText } from "../locale.js";
 import { escapeHtml, renderStatusPill } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
-import { renderDeveloperToggle } from "./DeveloperToggle.js";
 import { buildHumanStepLabel, formatRuntimeState, getActiveTaskTemplate, getRuntimeTone } from "../view-helpers.js";
 
 export function renderCompactStatusBar(viewModel: CommanderConsoleViewModel, appViewModel: CommanderAppViewModel): string {
@@ -17,7 +16,6 @@ export function renderCompactStatusBar(viewModel: CommanderConsoleViewModel, app
         ${renderStatusPill(formatRuntimeState(viewModel), runtimeTone)}
       </div>
       <div class="cc-status-actions">
-        ${renderDeveloperToggle(t("开发者", "Developer"))}
         <button type="button" class="cc-button cc-button-danger cc-button-tight" data-command-action="emergency-stop">${escapeHtml(t("急停", "E-Stop"))}</button>
       </div>
     </div>

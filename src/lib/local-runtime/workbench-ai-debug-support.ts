@@ -174,11 +174,14 @@ const buildAiDebugStatusFields = (runtime: WorkbenchAiDebugRuntime, input: Workb
   loginState: runtime.browserController.getSessionState().loginState,
 });
 
-const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: LocalForensicsArtifactRef[]) => ({
+const buildAiDebugModelFields = (input: WorkbenchAiDebugEvent) => ({
   provider: input.provider,
   model: input.model,
   modelRole: input.modelRole,
   runtime: input.runtime,
+});
+
+const buildAiDebugPromptFields = (input: WorkbenchAiDebugEvent) => ({
   promptContractId: input.promptContractId,
   promptVersion: input.promptVersion,
   promptCatalogVersion: input.promptCatalogVersion,
@@ -190,22 +193,31 @@ const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: L
   userPromptHash: input.userPromptHash,
   promptPreview: input.promptPreview,
   promptFullText: input.promptFullText,
+  promptDebugBundleRef: input.promptDebugBundleRef,
+});
+
+const buildAiDebugResponseFields = (input: WorkbenchAiDebugEvent) => ({
   rawResponsePreview: input.rawResponsePreview,
   rawResponseText: input.rawResponseText,
   rawResponseHash: input.rawResponseHash,
   rawResponseRef: input.rawResponseRef,
+  parsedJson: input.parsedJson,
+  parsedDecision: input.parsedDecision,
+  parserErrors: input.parserErrors,
+});
+
+const buildAiDebugMapAuthoringFields = (input: WorkbenchAiDebugEvent) => ({
   inputPackageId: input.inputPackageId,
   inputPackageVersion: input.inputPackageVersion,
   inputPackageHash: input.inputPackageHash,
   capabilityCatalogVersion: input.capabilityCatalogVersion,
   outputSchemaCatalogVersion: input.outputSchemaCatalogVersion,
   mapPackageSchemaVersion: input.mapPackageSchemaVersion,
-  promptDebugBundleRef: input.promptDebugBundleRef,
   providerRequestBodyRedacted: input.providerRequestBodyRedacted,
   providerRequestDebugRef: input.providerRequestDebugRef,
-  parsedJson: input.parsedJson,
-  parsedDecision: input.parsedDecision,
-  parserErrors: input.parserErrors,
+});
+
+const buildAiDebugRefFields = (input: WorkbenchAiDebugEvent, artifactRefs: LocalForensicsArtifactRef[]) => ({
   sourceScreenshotEvidenceId: input.sourceScreenshotEvidenceId,
   aiInputArtifactRef: input.aiInputArtifactRef,
   imageInputs: input.imageInputs,
@@ -220,6 +232,14 @@ const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: L
   artifactRefs,
   actionLogRefs: [],
   dataQualityFlags: input.parserErrors,
+});
+
+const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: LocalForensicsArtifactRef[]) => ({
+  ...buildAiDebugModelFields(input),
+  ...buildAiDebugPromptFields(input),
+  ...buildAiDebugResponseFields(input),
+  ...buildAiDebugMapAuthoringFields(input),
+  ...buildAiDebugRefFields(input, artifactRefs),
 });
 
 export const buildAiStructuredRuntimeEvent = (

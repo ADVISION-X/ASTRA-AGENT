@@ -112,7 +112,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
   },
 };
 
-export const humanize = (value: string): string => value.split("-").filter(Boolean).join(" ");
+export const humanize = (value: string | undefined): string => (value ?? "unknown-child").split("-").filter(Boolean).join(" ");
 
 export const buildEntry = (
   abilityGroupId: string,

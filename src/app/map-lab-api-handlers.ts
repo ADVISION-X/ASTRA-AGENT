@@ -4,6 +4,18 @@ import type { URL } from "node:url";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { parseJsonBody, writeJsonResponse } from "./workbench-api-helpers.js";
 
+type AiProviderCompany = "openai" | "deepseek" | "openrouter";
+
+const AI_PROVIDER_COMPANY_DEFAULTS: Record<AiProviderCompany, { baseUrl: string; model: string }> = {
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini" },
+  deepseek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
+  openrouter: { baseUrl: "https://openrouter.ai/api/v1", model: "openai/gpt-4.1-mini" },
+};
+
+function normalizeProviderCompany(value: unknown): AiProviderCompany {
+  return value === "deepseek" || value === "openrouter" ? value : "openai";
+}
+
 async function handleProviderConfigRequest(
   request: IncomingMessage,
   response: ServerResponse,
@@ -20,6 +32,7 @@ async function handleProviderConfigRequest(
   const body = await parseJsonBody(request) as {
     displayName?: string | null;
     providerKind?: string | null;
+    providerCompany?: string | null;
     baseUrl?: string;
     model?: string;
     apiKey?: string;
@@ -30,15 +43,20 @@ async function handleProviderConfigRequest(
     operatorApprovalRef?: string | null;
     approvalReason?: string | null;
   };
-  if (!body.baseUrl || !body.model || !body.apiKey) {
+  const providerCompany = normalizeProviderCompany(body.providerCompany);
+  const providerDefaults = AI_PROVIDER_COMPANY_DEFAULTS[providerCompany];
+  const baseUrl = body.baseUrl?.trim() || providerDefaults.baseUrl;
+  const model = body.model?.trim() || providerDefaults.model;
+  if (!baseUrl || !model || !body.apiKey) {
     writeJsonResponse(response, 400, { error: "invalid_provider_config" });
     return true;
   }
   writeJsonResponse(response, 200, await activeWorkbench.saveMapLabProviderConfig({
-    baseUrl: body.baseUrl,
-    model: body.model,
+    baseUrl,
+    model,
     apiKey: body.apiKey,
     displayName: body.displayName ?? null,
+    providerCompany,
     providerKind: body.providerKind ?? "openai-compatible",
     allowPaidProvider: body.allowPaidProvider ?? true,
     providerAllowlist: body.providerAllowlist ?? ["paid-analysis-ai"],
