@@ -26,6 +26,7 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   selectedMapId: NonEmptyStringSchema.optional(),
   taskTemplateId: NonEmptyStringSchema.optional(),
   activationId: NonEmptyStringSchema.optional(),
+  activationSnapshotRef: NonEmptyStringSchema.optional(),
   humanGoal: CommanderGoalSchema.optional(),
   maxRounds: CommanderMaxRoundsSchema.optional(),
   maxMinutes: CommanderMaxMinutesSchema.optional(),

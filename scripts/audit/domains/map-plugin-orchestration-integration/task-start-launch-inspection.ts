@@ -19,5 +19,5 @@ export function hasGovernedTaskStartBindingResolution(project: Project): boolean
   const taskStartFlowSource = getSource(project, TASK_START_FLOW);
   const taskStartBindingSource = getSource(project, TASK_START_BINDING);
   return hasCallExpression(taskStartFlowSource, "resolveMissionStartBinding")
-    && hasCallExpression(taskStartBindingSource, "getDefaultMapPluginRegistry");
+    && hasCallExpression(taskStartBindingSource, "getLocalAppShellMapRegistry");
 }

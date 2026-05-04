@@ -31,13 +31,12 @@ const PRIMARY_PAGE_DEFINITIONS: PageDefinition[] = [
     enLabel: "Command",
     zhEyebrow: "一级页面",
     enEyebrow: "Level 1",
-    zhDescription: "用户只选任务模板与运行限制。内部 map / platform / profile 仅在高级与检查面显示。",
-    enDescription: "The operator only picks a task template and run limits. Internal map, platform, and profile stay in Advanced and Inspect views.",
+    zhDescription: "用户只选任务模板与运行限制。内部 map / platform / profile 不进入普通启动页。",
+    enDescription: "The operator only picks a task template and run limits. Internal map, platform, and profile stay out of the ordinary start surface.",
     tabs: [
       { id: "command-center:maps", zhLabel: "任务目录", enLabel: "Task Catalog", zhSubtitle: "选择预设任务模板", enSubtitle: "Choose a preset task template" },
       { id: "command-center:start", zhLabel: "开始运行", enLabel: "Start Run", zhSubtitle: "设置限制并开始", enSubtitle: "Set limits and begin" },
       { id: "command-center:preflight", zhLabel: "预检", enLabel: "Preflight", zhSubtitle: "启动前就绪门", enSubtitle: "Readiness gates" },
-      { id: "command-center:preview", zhLabel: "指令预览", enLabel: "Command Preview", zhSubtitle: "人类命令 JSON", enSubtitle: "Human command JSON" },
     ],
   },
   {

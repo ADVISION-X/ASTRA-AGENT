@@ -161,7 +161,9 @@ const createActiveFeedApi = (
     return listRegistrations(activeByMapId).map(toActiveOperationalMapRecord);
   },
   listOrdinaryTaskTemplates() {
-    return listRegistrations(activeByMapId).map(toOrdinaryTaskTemplateFeedItem);
+    return listRegistrations(activeByMapId)
+      .map(toOrdinaryTaskTemplateFeedItem)
+      .filter((item) => item.availability === "ready");
   },
   listApprovedTaskTemplates() {
     return listRegistrations(activeByMapId).map(toDeveloperTaskTemplateFeedItem);

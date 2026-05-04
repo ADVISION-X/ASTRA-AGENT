@@ -79,8 +79,8 @@ const inspectCommanderConsumers = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   const taskTemplateRegistrySource = getSource(project, TASK_TEMPLATE_REGISTRY);
 
-  if (!hasCallExpression(taskTemplateRegistrySource, "listOrdinaryTaskTemplates") || !hasCallExpression(taskTemplateRegistrySource, "getTaskTemplateDeveloperBinding")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander task-template registry must consume ordinary task feeds and optional developer bindings separately." }));
+  if (!hasCallExpression(taskTemplateRegistrySource, "listOrdinaryTaskTemplates") || hasCallExpression(taskTemplateRegistrySource, "getTaskTemplateDeveloperBinding")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander task-template registry must consume only ordinary task feed fields for normal launch." }));
   }
   if (!hasTaskStartDelegation(project)) {
     findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: TASK_API_HANDLERS, line: 1, severity: "fatal", message: "Task API must delegate /api/tasks/start through the dedicated task-start control path before mission dispatch." }));

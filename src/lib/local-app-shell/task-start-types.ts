@@ -8,6 +8,7 @@ export type StartTaskBody = {
   selectedMapId?: string;
   maxRounds?: number;
   maxMinutes?: number;
+  operatorNote?: string;
 };
 
 export type StartDraft = {
@@ -20,6 +21,7 @@ export type StartDraft = {
   selectedMapId: string | null;
   maxRounds: number | undefined;
   maxMinutes: number | undefined;
+  operatorNote: string | null;
 };
 
 export type StartApproval = StartDraft & {

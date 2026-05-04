@@ -63,8 +63,8 @@ const inspectTaskTemplateRegistry = (project: Project): Finding[] => {
   const taskTemplateRegistry = getSource(project, COMMANDER_TASK_TEMPLATE_REGISTRY);
   const findings: Finding[] = [];
 
-  if (!hasCallExpression(taskTemplateRegistry, "listOrdinaryTaskTemplates") || !hasCallExpression(taskTemplateRegistry, "getTaskTemplateDeveloperBinding") || !hasCallExpression(taskTemplateRegistry, "getDefaultMapPluginRegistry")) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.FEED_BOUNDARY, file: COMMANDER_TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander task template registry must source ordinary task templates separately from developer bindings." }));
+  if (!hasCallExpression(taskTemplateRegistry, "listOrdinaryTaskTemplates") || !hasCallExpression(taskTemplateRegistry, "getLocalAppShellMapRegistry") || hasCallExpression(taskTemplateRegistry, "getTaskTemplateDeveloperBinding")) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.FEED_BOUNDARY, file: COMMANDER_TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander ordinary task template registry must source only the governed ordinary task feed and must not attach developer bindings." }));
   }
   if (["STATIC_TASK_TEMPLATE_DEFINITIONS", ...LEGACY_MAP_IDS].some((fragment) => taskTemplateRegistry.getFullText().includes(fragment))) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.FEED_BOUNDARY, file: COMMANDER_TASK_TEMPLATE_REGISTRY, line: 1, severity: "fatal", message: "Commander task template registry must not preserve a static parallel task-template source of truth." }));

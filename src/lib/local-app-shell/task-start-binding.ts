@@ -1,10 +1,15 @@
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { getLocalAppShellMapRegistry } from "../../map-plugins/registry/local-app-shell-map-registry.js";
 
-type ActiveRegistry = ReturnType<typeof getDefaultMapPluginRegistry>["active"];
+type ActiveRegistry = ReturnType<typeof getLocalAppShellMapRegistry>["active"];
 type TaskTemplateLaunchRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecordByTaskTemplateId"]>>;
 type ActiveMapRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecord"]>>;
 
 export type RequestedPlatformId = "facebook-web" | "tiktok-web";
+
+type RunLimitInput = {
+  maxRounds: number | undefined;
+  maxMinutes: number | undefined;
+};
 
 export type MissionStartBindingInput = {
   taskTemplateId: string | null;
@@ -23,6 +28,7 @@ type MissionStartBindingSuccess = {
   ok: true;
   taskTemplateId: string;
   activationId: string;
+  activationSnapshotRef: string;
   requestedPlatformId: RequestedPlatformId;
   selectedMapId: string;
 };
@@ -38,6 +44,7 @@ const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecor
     ok: true,
     taskTemplateId: binding.taskTemplateId,
     activationId: binding.activationId,
+    activationSnapshotRef: binding.activationSnapshotRef,
     requestedPlatformId,
     selectedMapId,
   };
@@ -111,8 +118,19 @@ export function normalizePositiveInteger(value: unknown, max: number): number | 
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= max ? value : undefined;
 }
 
+export function clampStartRunLimits(taskTemplateId: string, input: RunLimitInput): Required<RunLimitInput> {
+  const task = getLocalAppShellMapRegistry().active.listOrdinaryTaskTemplates()
+    .find((template) => template.taskTemplateId === taskTemplateId);
+  const defaultRunLimit = task?.defaultRunLimit ?? { maxRounds: 3, maxMinutes: 20 };
+  const maxAllowedRunLimit = task?.maxAllowedRunLimit ?? defaultRunLimit;
+  return {
+    maxRounds: Math.max(1, Math.min(input.maxRounds ?? defaultRunLimit.maxRounds, maxAllowedRunLimit.maxRounds)),
+    maxMinutes: Math.max(1, Math.min(input.maxMinutes ?? defaultRunLimit.maxMinutes, maxAllowedRunLimit.maxMinutes)),
+  };
+}
+
 export function resolveMissionStartBinding(input: MissionStartBindingInput): MissionStartBinding {
-  const activeRegistry = getDefaultMapPluginRegistry().active;
+  const activeRegistry = getLocalAppShellMapRegistry().active;
   return input.taskTemplateId
     ? resolveTaskTemplateBinding(activeRegistry, input)
     : resolveExplicitBinding(activeRegistry, input);

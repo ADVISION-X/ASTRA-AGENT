@@ -4,6 +4,7 @@ import { createId } from "../local-runtime/ids.js";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { parseTaskJsonBody } from "./task-http-helpers.js";
 import {
+  clampStartRunLimits,
   normalizePositiveInteger,
   normalizeRequestedPlatformId,
   resolveMissionStartBinding,
@@ -13,6 +14,7 @@ import {
   recordTaskStartDraftEvents,
   recordTaskStartLocalAiReadiness,
   recordTaskStartPreflightStart,
+  recordCommanderEnvelopeBuilt,
   sendBlockedTaskStartPreflight,
   sendTaskStartBindingFailure,
   writeTaskStartDispatchResult,
@@ -31,11 +33,16 @@ const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> =>
     selectedMapId: body.selectedMapId?.trim() || null,
     maxRounds: normalizePositiveInteger(body.maxRounds, 9),
     maxMinutes: normalizePositiveInteger(body.maxMinutes, 180),
+    operatorNote: body.operatorNote?.trim() || null,
   };
 };
 
 const buildApproval = (draft: StartDraft, binding: Extract<MissionStartBinding, { ok: true }>): StartApproval => {
-  return { ...draft, binding };
+  const runLimit = clampStartRunLimits(binding.taskTemplateId, {
+    maxRounds: draft.maxRounds,
+    maxMinutes: draft.maxMinutes,
+  });
+  return { ...draft, ...runLimit, binding };
 };
 
 const buildStartMissionInput = (approval: StartApproval) => {
@@ -53,9 +60,11 @@ const buildStartMissionInput = (approval: StartApproval) => {
       selectedMapId: approval.binding.selectedMapId,
       taskTemplateId: approval.binding.taskTemplateId,
       activationId: approval.binding.activationId,
+      activationSnapshotRef: approval.binding.activationSnapshotRef,
       ...(approval.humanGoal ? { humanGoal: approval.humanGoal } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),
       ...(approval.maxMinutes ? { maxMinutes: approval.maxMinutes } : {}),
+      ...(approval.operatorNote ? { operatorNote: approval.operatorNote } : {}),
     },
   };
 };
@@ -98,6 +107,7 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
     actionableMessage: "Dispatch the governed human command through Commander Console and Nerve Bus.",
     ownerResponsible: "Commander Console / Nerve Bus",
   });
+  await recordCommanderEnvelopeBuilt(activeWorkbench, approval);
   const result = await activeWorkbench.commanderConsole.execute({
     childCapabilityId: "issue-human-command",
     operatorRef: "commander-console:http",

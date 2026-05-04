@@ -169,8 +169,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "commander direct registry write mutation",
     file: "src/lib/local-app-shell/task-template-registry.ts",
-    search: '  const activeRegistry = getDefaultMapPluginRegistry().active;\n',
-    replace: '  const activeRegistry = getDefaultMapPluginRegistry().active;\n  getDefaultMapPluginRegistry().active.activate({} as never, {} as never);\n',
+    search: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n',
+    replace: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n  getLocalAppShellMapRegistry().active.activate({} as never, {} as never);\n',
   },
   {
     name: "forensics proof missing activationId mutation",

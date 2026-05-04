@@ -48,7 +48,6 @@ export function buildCommandDraft(
     commandSource: "commander-console:start-form-submit",
     taskTemplateId: activeTaskTemplate?.taskTemplateId ?? null,
     humanGoal: activeTaskTemplate?.defaultHumanGoal ?? (dashboard.mission.humanGoal || ""),
-    targetProfileRef: activeTaskTemplate?.developerBinding?.targetProfileRef ?? (dashboard.browser.browserProfileRef || null),
     maxRounds: activeTaskTemplate?.defaultRunLimit.maxRounds ?? 3,
     maxMinutes: activeTaskTemplate?.defaultRunLimit.maxMinutes ?? 20,
   };

@@ -29,10 +29,8 @@ function safeDate(value: string | null): number | null {
 }
 
 function getActiveTaskTemplate(viewModel: CommanderConsoleViewModel): CommanderConsoleTaskTemplate | null {
-  return viewModel.taskTemplates.find((template) => template.availability === "ready"
-    && template.developerBinding?.mapId === (viewModel.rawSnapshot.mission.selectedMapId ?? null)
-    && template.developerBinding?.requestedPlatformId === (viewModel.rawSnapshot.mission.requestedPlatform ?? null))
-    ?? viewModel.taskTemplates.find((template) => template.taskTemplateId === viewModel.commandDraft.taskTemplateId)
+  return viewModel.taskTemplates.find((template) => template.taskTemplateId === viewModel.commandDraft.taskTemplateId)
+    ?? viewModel.taskTemplates.find((template) => template.availability === "ready")
     ?? null;
 }
 

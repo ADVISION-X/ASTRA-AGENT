@@ -20,6 +20,17 @@ function localizeSafetyLevel(viewModel: CommanderConsoleViewModel, safetyLevel: 
 export function renderTaskTemplateLauncherModule(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   const selectedTemplate = getActiveTaskTemplate(viewModel)?.taskTemplateId ?? viewModel.commandDraft.taskTemplateId;
+  if (viewModel.taskTemplates.length === 0) {
+    return `<section class="cc-home-section" data-home-launcher>
+    <div class="cc-section-copy">
+      <p class="cc-section-title">${escapeHtml(t("还没有可启动任务", "No Runnable Tasks"))}</p>
+      <p class="cc-note">${escapeHtml(t("还没有可启动任务。请先去地图工坊输入需求，生成并激活地图。", "No runnable task is available. Go to Map Lab, describe the need, generate a map, and activate it first."))}</p>
+    </div>
+    <div class="cc-inline-actions">
+      <button type="button" class="cc-button cc-button-primary" data-nav-page="map-lab">${escapeHtml(t("进入地图工坊", "Open Map Lab"))}</button>
+    </div>
+  </section>`;
+  }
 
   return `<section class="cc-home-section" data-home-launcher>
     <div class="cc-section-copy">
@@ -44,5 +55,9 @@ export function renderTaskTemplateLauncherModule(viewModel: CommanderConsoleView
       }).join("")}
     </div>
     <p class="cc-home-selected-copy" data-selected-task-description>${escapeHtml(getActiveTaskTemplate(viewModel)?.description ?? t("请选择一个任务模板。", "Select a task template."))}</p>
+    <label class="cc-field">
+      <span>${escapeHtml(t("本次目标", "Goal"))}</span>
+      <textarea id="cc-human-goal" name="humanGoal" rows="3">${escapeHtml(getActiveTaskTemplate(viewModel)?.defaultHumanGoal ?? "")}</textarea>
+    </label>
   </section>`;
 }

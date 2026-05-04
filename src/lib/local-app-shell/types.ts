@@ -93,17 +93,7 @@ type CommanderConsoleTaskTemplate = {
     maxMinutes: number;
   };
   safetyLevel: string;
-  developerBinding?: {
-    mapId: string | null;
-    requestedPlatformId: "facebook-web" | "tiktok-web" | null;
-    targetProfileRef: string | null;
-    platformProfileRef: string | null;
-  };
   userVisibleCapabilities: string[];
-  advancedFields: {
-    aiMode: string;
-    logLevel: string;
-  };
   defaultHumanGoal: string;
   availability: "ready" | "disabled";
   disabledReason?: string;
@@ -114,7 +104,6 @@ type CommanderConsoleCommandDraft = {
   commandSource: "commander-console:start-form-submit";
   taskTemplateId: string | null;
   humanGoal: string;
-  targetProfileRef: string | null;
   maxRounds: number;
   maxMinutes: number;
 };

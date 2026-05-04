@@ -139,6 +139,10 @@ export const commanderConsoleShellClient = `(function () {
       return;
     }
     setTextContent(getSelectedTaskDescription(), template.description);
+    const goalInput = document.querySelector("#cc-human-goal");
+    if (goalInput instanceof HTMLTextAreaElement && !goalInput.value.trim()) {
+      goalInput.value = template.defaultHumanGoal || "";
+    }
     const startForm = getStartForm();
     if (startForm instanceof HTMLFormElement) {
       const maxRoundsInput = startForm.querySelector("#cc-max-rounds");
@@ -207,12 +211,12 @@ export const commanderConsoleShellClient = `(function () {
     const maxMinutes = Number(formData.get("maxMinutes") || template.defaultRunLimit.maxMinutes);
     state.maxRounds = Math.max(1, Math.min(maxRounds, template.maxAllowedRunLimit.maxRounds));
     state.maxMinutes = Math.max(1, Math.min(maxMinutes, template.maxAllowedRunLimit.maxMinutes));
+    const humanGoal = String(formData.get("humanGoal") || template.defaultHumanGoal || "").trim();
     return {
       commandType: "start-mission",
       commandSource: "commander-console:start-form-submit",
       taskTemplateId,
-      humanGoal: template.defaultHumanGoal,
-      targetProfileRef: (template.developerBinding && template.developerBinding.targetProfileRef) || null,
+      humanGoal,
       maxRounds: state.maxRounds,
       maxMinutes: state.maxMinutes
     };

@@ -1,14 +1,12 @@
 import type { Locale } from "../localization/dictionaries.js";
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { getLocalAppShellMapRegistry } from "../../map-plugins/registry/local-app-shell-map-registry.js";
 
-import { localizeCommanderText } from "./locale.js";
 import type { CommanderConsoleTaskTemplate } from "./types.js";
 
 export function buildCommanderTaskTemplates(locale: Locale): CommanderConsoleTaskTemplate[] {
-  const activeRegistry = getDefaultMapPluginRegistry().active;
+  const activeRegistry = getLocalAppShellMapRegistry().active;
 
   return activeRegistry.listOrdinaryTaskTemplates().map((definition) => {
-    const developerBinding = activeRegistry.getTaskTemplateDeveloperBinding(definition.taskTemplateId);
     const template: CommanderConsoleTaskTemplate = {
       taskTemplateId: definition.taskTemplateId,
       version: definition.version,
@@ -17,21 +15,7 @@ export function buildCommanderTaskTemplates(locale: Locale): CommanderConsoleTas
       defaultRunLimit: definition.defaultRunLimit,
       maxAllowedRunLimit: definition.maxAllowedRunLimit,
       safetyLevel: definition.safetyLevel,
-      ...(developerBinding
-        ? {
-            developerBinding: {
-              requestedPlatformId: developerBinding.requestedPlatformId,
-              platformProfileRef: developerBinding.platformProfileRef,
-              targetProfileRef: developerBinding.targetProfileRef,
-              mapId: developerBinding.mapId,
-            },
-          }
-        : {}),
       userVisibleCapabilities: definition.userVisibleCapabilities,
-      advancedFields: {
-        aiMode: localizeCommanderText(locale, "受控地图包", "governed map package"),
-        logLevel: "debug",
-      },
       availability: definition.availability,
       displayName: definition.displayName,
       description: definition.description,

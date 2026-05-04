@@ -103,6 +103,18 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
     ownerResponsible: "Commander Console",
   });
   await activeWorkbench.recordCommanderDebugEvent({
+    eventType: "MISSION_READINESS_CHECK_STARTED",
+    status: "started",
+    traceId: approval.traceId,
+    spanId: "mission-readiness-check-started",
+    attemptId: approval.attemptId,
+    mapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    reason: "MissionReadiness is scoped to the selected task binding, not the app shell.",
+    actionableMessage: "Check selected task map binding, browser, local AI, platform target, human goal, and run limits.",
+    ownerResponsible: "Commander Console / Orchestration / Map Plugin Registry",
+  });
+  await activeWorkbench.recordCommanderDebugEvent({
     eventType: "MISSION_PREFLIGHT_STARTED",
     status: "started",
     traceId: approval.traceId,
@@ -113,6 +125,21 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
     reason: "Mission preflight is checking readiness before command dispatch.",
     actionableMessage: "Verify browser session, local AI, map binding, and Forensics storage before mission start.",
     ownerResponsible: "Commander Console / Orchestration",
+  });
+}
+
+export async function recordCommanderEnvelopeBuilt(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
+  await activeWorkbench.recordCommanderDebugEvent({
+    eventType: "COMMANDER_COMMAND_ENVELOPE_BUILT",
+    status: "success",
+    traceId: approval.traceId,
+    spanId: "commander-command-envelope-built",
+    attemptId: approval.attemptId,
+    mapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    reason: `taskTemplateId resolved to requestedPlatformId=${approval.binding.requestedPlatformId}; selectedMapId=${approval.binding.selectedMapId}; activationSnapshotRef=${approval.binding.activationSnapshotRef}`,
+    actionableMessage: "Send the governed command through CommandTransportPort and Nerve Bus.",
+    ownerResponsible: "Commander Console",
   });
 }
 

@@ -23,7 +23,6 @@ export const REQUIRED_SOURCE_FILES = [
   "src/lib/local-app-shell/commander-console-view-model.ts",
   "src/lib/local-app-shell/view-helpers.ts",
   "src/lib/local-app-shell/modules/command/AdvancedFields.ts",
-  "src/lib/local-app-shell/pages/DeveloperPage.ts",
   "src/lib/local-app-shell/commander-console-shell-client.ts",
   "src/app/task-api-handlers.ts",
 ] as const;

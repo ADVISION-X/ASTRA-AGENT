@@ -34,7 +34,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const readStartMissionPayloadField = (
   command: HumanCommandDispatchCommand,
-  key: "targetUrl" | "targetTitle" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef",
+  key: "targetUrl" | "targetTitle" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef" | "taskTemplateId",
 ) => {
   if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
     return null;
@@ -81,6 +81,7 @@ const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => 
   maxRounds: command.maxRounds ?? null,
   maxMinutes: command.maxMinutes ?? null,
   operatorNote: command.operatorNote ?? null,
+  taskTemplateId: readStartMissionPayloadField(command, "taskTemplateId"),
   targetRecordId: command.targetRecordRef?.recordId ?? null,
   targetUrl: readStartMissionPayloadField(command, "targetUrl"),
   targetTitle: readStartMissionPayloadField(command, "targetTitle"),
@@ -221,7 +222,7 @@ const buildHumanCommandEnvelope = (
     commanderCommandRef: inputPayload.documentRef,
     commanderEnvelopeRef: envelopeId,
     requestedPlatformId: command.requestedPlatformId,
-    taskTemplateId: null,
+    taskTemplateId: readStartMissionPayloadField(command, "taskTemplateId"),
     targetRecordRef: command.targetRecordRef?.recordId ?? null,
   };
 };
