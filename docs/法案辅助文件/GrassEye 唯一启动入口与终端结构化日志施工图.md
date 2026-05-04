@@ -3,7 +3,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、1 个 support governance domain；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
 - 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
 - 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
 
@@ -48,13 +48,118 @@ Startup Entrypoint 不是：
 ## 启动顺序
 
 1. 检查 Node / npm / package 依赖状态。
-2. 检查并清理 canonical localhost 端口。
-3. 启动本地应用服务进程。
-4. 等待健康接口 PASS。
-5. 打开 Commander Console 本地 URL。
-6. 检查本地 AI runtime 可达性，但不跑任务。
-7. 启动终端结构化日志转播。
-8. 在终端输出最终启动摘要和等待人工命令状态。
+2. 执行 update_preflight_check。
+3. 检查本地 AI runtime presence。
+4. 检查 required local AI model roster。
+5. 启动或连接 governed local AI runtime。
+6. 执行 local AI health probe 与 ai_capability_readiness_gate。
+7. 检查并清理 canonical localhost 端口。
+8. 启动本地应用服务进程。
+9. 等待健康接口 PASS。
+10. 打开 Commander Console 本地 URL。
+11. 标记 mission runtime available。
+12. 启动终端结构化日志转播并进入等待人工命令状态。
+
+## Local AI Startup Readiness Gate
+
+### 目标
+
+GrassEye 启动链必须先确认本地 AI 运行环境和模型角色可用，再开放 mission runtime。
+
+### 标准启动链
+
+```txt
+grasseye:start
+→ dependency_check
+→ update_preflight_check
+→ local_ai_runtime_presence_check
+→ local_ai_model_roster_check
+→ local_ai_start_or_connect
+→ local_ai_health_probe
+→ ai_capability_readiness_gate
+→ local_app_service_start
+→ commander_console_open
+→ mission_runtime_available
+```
+
+### 允许
+
+```txt
+启动程序检查更新与依赖。
+启动程序通过 governed helper + probe 调用本地 AI startup readiness contract。
+启动程序启动或连接本地 AI runtime，但不做业务推理。
+启动程序把 readiness 结果写入结构化启动日志。
+Commander 展示 AI readiness 状态，但不绕过门禁。
+```
+
+### 禁止
+
+```txt
+业务能力组自己启动本地 AI。
+Debug Loop 自己启动本地 AI 来代替生产启动链。
+Commander 在 AI 未就绪时开放可运行 mission surface。
+AI 不可用时 fallback 到 fake success。
+启动程序直接做 AI 判断或 prompt inference。
+```
+
+### readiness 输出
+
+```json
+{
+  "component": "local-ai-runtime",
+  "status": "ready | failed | degraded",
+  "runtimeBaseUrl": "http://127.0.0.1:11434",
+  "detail": "LOCAL_AI_MODEL_MISSING; vision=missing:qwen2.5vl:3b",
+  "modelRoles": [
+    {
+      "modelRole": "vision",
+      "modelName": "qwen2.5vl:3b",
+      "provider": "local",
+      "runtime": "ollama",
+      "health": "ready | missing | unhealthy",
+      "failureReason": null
+    }
+  ],
+  "missionRuntimeAvailable": false,
+  "failureReason": "LOCAL_AI_MODEL_MISSING",
+  "developmentOnly": false,
+  "checkedAt": "2026-05-04T00:00:00.000Z"
+}
+```
+
+### fail-closed
+
+```txt
+只要 required model role 不 ready：
+missionRuntimeAvailable=false
+Commander 不得打开 runnable mission surface
+startup 必须输出 failureReason 并退出非 0
+Debug Loop 只能记录 blocked，不能代替生产启动链
+不得继续 mission runtime
+```
+
+## Startup Platform Target Governance
+
+### 目标
+
+启动链必须显式解析 platformTarget，并把同一个 target 透传到 app server 与 Commander snapshot；禁止在启动脚本、server 或 package script 里写死 tiktok-web 默认值。
+
+### 允许
+
+```txt
+通过 --platform=facebook-web|tiktok-web 或 GRASSEYE_PLATFORM_TARGET 显式提供 platformTarget。
+startup 在启动 service 前记录一次 platform_target_resolved 结构化日志。
+startup 把 startup readiness JSON 与 platformTarget 一起传给 app server，供 Commander 直接显示 missionRuntimeAvailable 与 failureReason。
+```
+
+### 禁止
+
+```txt
+package.json 的 internal:app-server:dev 写死 GRASSEYE_PLATFORM_TARGET=tiktok-web。
+launch-grasseye.mjs 在 startService env 中写死某个平台。
+src/app/server.ts 只接受 tiktok-web 并把其它显式平台拒绝掉。
+Commander 通过重新探测或临时推断来替代启动链交付的 readiness result。
+```
 
 ## 启动禁止项
 

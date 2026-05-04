@@ -45,6 +45,16 @@ const LocalAiInvocationStatusSchema = z.enum([
   "invalid_ai_output",
   "disabled_by_policy"
 ]);
+const LocalAiStartupFailureReasonSchema = z.enum([
+  "LOCAL_AI_RUNTIME_NOT_FOUND",
+  "LOCAL_AI_RUNTIME_START_FAILED",
+  "LOCAL_AI_MODEL_MISSING",
+  "LOCAL_AI_MODEL_UNHEALTHY",
+  "LOCAL_AI_READINESS_TIMEOUT",
+  "UPDATE_PREFLIGHT_FAILED",
+  "LOCAL_AI_NOT_READY"
+]);
+const LocalAiStartupRoleHealthSchema = z.enum(["ready", "missing", "unhealthy"]);
 
 const OcrCleanupPayloadSchema = z.object({
   cleanedComments: z.array(z.string().min(1)),
@@ -178,6 +188,7 @@ const LocalAiHealthSchema = z.object({
   ollamaStatus: LocalAiDependencyStatusSchema,
   visionModelStatus: LocalAiDependencyStatusSchema,
   textModelStatus: LocalAiDependencyStatusSchema,
+  productSignalModelStatus: LocalAiDependencyStatusSchema,
   ocrStatus: LocalAiDependencyStatusSchema,
   configuredModels: z.object({
     vision: z.string().min(1),
@@ -193,6 +204,27 @@ const LocalAiHealthSchema = z.object({
   lastInvocationStatus: LocalAiInvocationStatusSchema.nullable().default(null),
 });
 
+const LocalAiStartupRoleReadinessSchema = z.object({
+  modelRole: LocalAiModelRoleSchema,
+  modelName: z.string().min(1),
+  provider: z.literal("local"),
+  runtime: LocalAiRuntimeSchema,
+  health: LocalAiStartupRoleHealthSchema,
+  failureReason: LocalAiStartupFailureReasonSchema.nullable().default(null),
+});
+
+const LocalAiStartupReadinessSchema = z.object({
+  component: z.literal("local-ai-runtime"),
+  status: z.enum(["ready", "failed", "degraded"]),
+  runtimeBaseUrl: z.string().min(1),
+  detail: z.string().min(1),
+  modelRoles: z.array(LocalAiStartupRoleReadinessSchema),
+  missionRuntimeAvailable: z.boolean(),
+  failureReason: LocalAiStartupFailureReasonSchema.nullable().default(null),
+  developmentOnly: z.boolean().default(false),
+  checkedAt: z.string().datetime(),
+});
+
 type LocalAiTaskType = z.infer<typeof LocalAiTaskTypeSchema>;
 type LocalAiModelRole = z.infer<typeof LocalAiModelRoleSchema>;
 type LocalAiRuntime = z.infer<typeof LocalAiRuntimeSchema>;
@@ -200,6 +232,8 @@ type LocalAiImplementationStatus = z.infer<typeof LocalAiImplementationStatusSch
 type LocalAiOverallStatus = z.infer<typeof LocalAiOverallStatusSchema>;
 type LocalAiDependencyStatus = z.infer<typeof LocalAiDependencyStatusSchema>;
 type LocalAiInvocationStatus = z.infer<typeof LocalAiInvocationStatusSchema>;
+type LocalAiStartupFailureReason = z.infer<typeof LocalAiStartupFailureReasonSchema>;
+type LocalAiStartupRoleHealth = z.infer<typeof LocalAiStartupRoleHealthSchema>;
 type VisionClassificationPayload = z.infer<typeof VisionProductPresencePayloadSchema>;
 type OcrCleanupPayload = z.infer<typeof OcrCleanupPayloadSchema>;
 type CommentSignalPayload = z.infer<typeof CommentSignalPayloadSchema>;
@@ -207,6 +241,8 @@ type ProductSignalPayload = z.infer<typeof ProductSignalPayloadSchema>;
 type LocalAiTaskRequest = z.infer<typeof LocalAiTaskRequestSchema>;
 type LocalAiTaskResult = z.infer<typeof LocalAiTaskResultSchema>;
 type LocalAiHealth = z.infer<typeof LocalAiHealthSchema>;
+type LocalAiStartupRoleReadiness = z.infer<typeof LocalAiStartupRoleReadinessSchema>;
+type LocalAiStartupReadiness = z.infer<typeof LocalAiStartupReadinessSchema>;
 
-export { LocalAiTaskTypeSchema, LocalAiModelRoleSchema, LocalAiRuntimeSchema, LocalAiImplementationStatusSchema, LocalAiOverallStatusSchema, LocalAiDependencyStatusSchema, LocalAiInvocationStatusSchema, OcrCleanupPayloadSchema, CommentSignalPayloadSchema, ProductSignalPayloadSchema, VisionTaskRequestSchema, OcrTaskRequestSchema, CommentSignalTaskRequestSchema, ProductSignalTaskRequestSchema, LocalAiTaskRequestSchema, VisionTaskResultSchema, OcrTaskResultSchema, CommentSignalTaskResultSchema, ProductSignalTaskResultSchema, LocalAiTaskResultSchema, LocalAiHealthSchema };
-export type { LocalAiTaskType, LocalAiModelRole, LocalAiRuntime, LocalAiImplementationStatus, LocalAiOverallStatus, LocalAiDependencyStatus, LocalAiInvocationStatus, VisionClassificationPayload, OcrCleanupPayload, CommentSignalPayload, ProductSignalPayload, LocalAiTaskRequest, LocalAiTaskResult, LocalAiHealth };
+export { LocalAiTaskTypeSchema, LocalAiModelRoleSchema, LocalAiRuntimeSchema, LocalAiImplementationStatusSchema, LocalAiOverallStatusSchema, LocalAiDependencyStatusSchema, LocalAiInvocationStatusSchema, LocalAiStartupFailureReasonSchema, LocalAiStartupRoleHealthSchema, OcrCleanupPayloadSchema, CommentSignalPayloadSchema, ProductSignalPayloadSchema, VisionTaskRequestSchema, OcrTaskRequestSchema, CommentSignalTaskRequestSchema, ProductSignalTaskRequestSchema, LocalAiTaskRequestSchema, VisionTaskResultSchema, OcrTaskResultSchema, CommentSignalTaskResultSchema, ProductSignalTaskResultSchema, LocalAiTaskResultSchema, LocalAiHealthSchema, LocalAiStartupRoleReadinessSchema, LocalAiStartupReadinessSchema };
+export type { LocalAiTaskType, LocalAiModelRole, LocalAiRuntime, LocalAiImplementationStatus, LocalAiOverallStatus, LocalAiDependencyStatus, LocalAiInvocationStatus, LocalAiStartupFailureReason, LocalAiStartupRoleHealth, VisionClassificationPayload, OcrCleanupPayload, CommentSignalPayload, ProductSignalPayload, LocalAiTaskRequest, LocalAiTaskResult, LocalAiHealth, LocalAiStartupRoleReadiness, LocalAiStartupReadiness };

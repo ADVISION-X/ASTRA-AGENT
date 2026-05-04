@@ -49,6 +49,10 @@ const validateApprovedTextInputTextFields = (input: { request: ParsedTextInputAb
 };
 
 const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInputAbilityInput }) => {
+  return validateApprovedTextCoreFields(input) ?? validateApprovedTextApprovalChainFields(input);
+};
+
+const validateApprovedTextCoreFields = (input: { request: ParsedTextInputAbilityInput }) => {
   if (!input.request.approvedText || input.request.approvedText.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "missing_approved_text",
@@ -65,6 +69,10 @@ const validateApprovedTextApprovedTextFields = (input: { request: ParsedTextInpu
     });
   }
 
+  return null;
+};
+
+const validateApprovedTextApprovalChainFields = (input: { request: ParsedTextInputAbilityInput }) => {
   if (!input.request.approvedTextSourceRef || input.request.approvedTextSourceRef.length === 0) {
     return buildApprovedTextGateFailureResult({
       failureReason: "approved_text_source_ref_required",

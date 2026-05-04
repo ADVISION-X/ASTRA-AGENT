@@ -1,4 +1,4 @@
-import { getDefaultMapPluginRegistry as getGovernedMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
+import { getDevelopmentMapPluginRegistry as getGovernedMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
 import type { OperationalMapId } from "../contract.js";
 
 type OrchestrationMapPluginRegistry = ReturnType<typeof getGovernedMapPluginRegistry>;

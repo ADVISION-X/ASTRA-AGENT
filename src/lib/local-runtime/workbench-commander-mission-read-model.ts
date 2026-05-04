@@ -1,8 +1,18 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 
-export const createMissionReadModel = (runtime: WorkbenchRuntime) => ({
+export type WorkbenchCommanderMissionSelectionState = {
+  lastMissionId: string | null;
+};
+
+export const createMissionReadModel = (
+  runtime: WorkbenchRuntime,
+  missionSelectionState: WorkbenchCommanderMissionSelectionState,
+) => ({
   readMission: async () => {
-    const mission = await runtime.orchestrationAbilityGroup.getMissionState();
+    let mission = await runtime.orchestrationAbilityGroup.getMissionState();
+    if (mission.status === "idle" && missionSelectionState.lastMissionId) {
+      mission = await runtime.orchestrationAbilityGroup.getMissionState(missionSelectionState.lastMissionId);
+    }
     const status = mission.status === "pending" ? "idle" : mission.status;
     return {
       missionId: mission.missionId,

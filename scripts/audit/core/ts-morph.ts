@@ -1,8 +1,12 @@
-import { Node, Project, SyntaxKind, type CallExpression, type Expression, type Identifier, type ObjectLiteralExpression, type SourceFile, type VariableDeclaration } from "ts-morph";
+import { Node, Project, type CallExpression, type Expression, type Identifier, type ObjectLiteralExpression, type SourceFile, type VariableDeclaration } from "ts-morph";
 
 import { pathFromRepoRoot, toRepoRelativePath } from "./paths.js";
 
 let cachedProject: Project | undefined;
+
+export const resetAuditProject = (): void => {
+  cachedProject = undefined;
+};
 
 export const getAuditProject = (): Project => {
   if (!cachedProject) {
@@ -112,9 +116,4 @@ export const getReferencePaths = (identifier: Identifier): string[] => {
   }
 
   return [...paths].sort((left, right) => left.localeCompare(right));
-};
-
-export const isInsideNamedMethod = (node: Node, methodName: string): boolean => {
-  const method = node.getFirstAncestorByKind(SyntaxKind.MethodDeclaration);
-  return method?.getName() === methodName;
 };

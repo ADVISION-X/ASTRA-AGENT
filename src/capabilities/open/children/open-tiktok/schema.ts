@@ -6,15 +6,15 @@ import {
   OpenOutputPolicySchema,
   OpenProofPolicySchema,
   OpenRequestSchema,
-  OpenResultSchema,
+  OpenResultBaseSchema,
   OpenTargetProfileSchema,
 } from "../../schema.js";
 
-export const OpenTikTokRequestSchema = OpenRequestSchema.and(z.object({
+export const OpenTikTokRequestSchema = OpenRequestSchema.extend({
   childCapabilityId: z.literal("open-tiktok"),
   platformId: z.literal("tiktok-web"),
   targetKind: z.literal("platform-feed"),
-}).strict());
+}).strict();
 
 export const OpenTikTokBoundaryPolicySchema = OpenBoundaryPolicySchema.extend({
   allowedCaller: z.tuple([z.literal("orchestration"), z.literal("nerve-bus")]),
@@ -38,8 +38,8 @@ export const OpenTikTokTargetProfileSchema = OpenTargetProfileSchema.extend({
   failurePolicy: OpenTikTokFailurePolicySchema,
 }).strict();
 
-export const OpenTikTokResultSchema = OpenResultSchema.and(z.object({
+export const OpenTikTokResultSchema = OpenResultBaseSchema.extend({
   childCapabilityId: z.literal("open-tiktok"),
   platformId: z.literal("tiktok-web"),
   targetKind: z.literal("platform-feed"),
-}).strict());
+}).strict();

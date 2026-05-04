@@ -141,3 +141,76 @@ FORBIDDEN:
 - scripts/verify as startup health proof.
 - smoke or acceptance scripts acting as startup enforcement truth.
 - startup audit falling back to regex-only, grep-only, or includes-only final verdicts.
+
+## Law GRASSEYE-STARTUP-ENTRYPOINT-005-V1
+
+status: active
+tier: P0
+capabilityDomain: commander-console-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: startup must complete update preflight and local AI readiness gate before mission runtime becomes available.
+
+### 主题
+
+启动前更新检查与本地 AI 就绪门禁
+
+### 法条
+
+GrassEye startup must run one governed bootstrap readiness chain before mission runtime becomes available.
+
+Required startup order:
+- dependency_check
+- update_preflight_check
+- local_ai_runtime_presence_check
+- local_ai_model_roster_check
+- local_ai_start_or_connect
+- local_ai_health_probe
+- ai_capability_readiness_gate
+- local_app_service_start
+- commander_console_open
+- mission_runtime_available
+
+Required direction:
+- scripts/startup/launch-grasseye.mjs remains the only canonical startup entrypoint.
+- startup must run update preflight before local app service start or Commander Console open.
+- update preflight must be explicit, structured-logged, and proof-backed.
+- startup must obtain local AI readiness only through the governed startup helper and the governed local-ai readiness contract.
+- startup must verify required local AI model roles before mission runtime becomes available.
+- startup must use typed failureReason values for local AI startup failure:
+	- LOCAL_AI_RUNTIME_NOT_FOUND
+	- LOCAL_AI_RUNTIME_START_FAILED
+	- LOCAL_AI_MODEL_MISSING
+	- LOCAL_AI_MODEL_UNHEALTHY
+	- LOCAL_AI_READINESS_TIMEOUT
+	- UPDATE_PREFLIGHT_FAILED
+- Commander Console may open only after App Shell health passes.
+- mission runtime must remain unavailable when local AI readiness fails.
+- startup terminal structured logs must include phase, component, eventType, status, message, refs, durationMs, and failureReason.
+- startup must not invoke AI business inference, AI judgement, mission flow, or fake/mock/heuristic AI fallback as success.
+
+### 禁止
+
+FORBIDDEN:
+- starting local app service or opening Commander before ai_capability_readiness_gate passes.
+- marking mission runtime available while local AI readiness failed.
+- silently skipping update preflight or model roster check.
+- silently degrading local AI startup into fake success.
+- startup directly importing AI runtime internals outside the governed startup helper or readiness contract.
+- debug-loop replacing startup as the local AI bootstrap owner.
+- scattered local AI startup paths across ability groups or consumers.
+
+Required inspector:
+- check startup launch order keeps update preflight and local AI readiness before service start and mission runtime availability.
+- check startup reads typed local AI readiness result and fail-closes when readiness fails.
+- check startup helper delegates to the governed local AI readiness probe.
+- check debug-loop and consumers do not start local AI runtime ad hoc.
+
+Required negative proof:
+- move local AI readiness after service start or Commander open -> FAIL.
+- remove update_preflight_check -> FAIL.
+- remove local_ai_model_roster_check -> FAIL.
+- remove fail-closed throw from startup readiness gate -> FAIL.
+- bypass the governed local AI readiness probe -> FAIL.
+- debug-loop starts local AI runtime directly -> FAIL.

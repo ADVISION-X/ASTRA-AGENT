@@ -7,6 +7,13 @@ import { TEXT_INPUT_STATUSES } from "./shared/text-input-result.js";
 import { TEXT_INPUT_SOURCE_OWNERS } from "./shared/text-input-source.js";
 import { TEXT_INPUT_FOCUS_PROOF_OWNERS, TEXT_INPUT_TARGET_PROOF_OWNERS } from "./shared/text-input-target.js";
 import {
+  validateTextInputAbilityResultOutputRequirements,
+  validateTextInputAbilityResultRuntimeProofRequirements,
+  validateTextInputRuntimeProofChronology,
+  validateTextInputRuntimeProofFailureRequirements,
+  validateTextInputRuntimeProofSuccessRequirements,
+} from "./text-input-schema-refinements.js";
+import {
   TEXT_INPUT_ABILITY_GROUP_ID,
   TEXT_INPUT_CHILD_CAPABILITY_IDS,
   TEXT_INPUT_COMMIT_KEYS,
@@ -64,7 +71,6 @@ const TextInputOutputBoundaryDecisionSchema = z.enum(TEXT_INPUT_OUTPUT_BOUNDARY_
 const TextInputSourceOwnerSchema = z.enum(TEXT_INPUT_SOURCE_OWNERS);
 const TextInputTargetProofOwnerSchema = z.enum(TEXT_INPUT_TARGET_PROOF_OWNERS);
 const TextInputFocusProofOwnerSchema = z.enum(TEXT_INPUT_FOCUS_PROOF_OWNERS);
-const TEXT_INPUT_WRITE_CHILD_CAPABILITY_IDS = new Set(["type-text", "paste-text", "replace-input"]);
 
 const TextInputMaxLengthPolicySchema = z.object({
   maxLength: positiveInt.default(DEFAULT_TEXT_INPUT_POLICY.maxLengthPolicy.maxLength),
@@ -399,147 +405,5 @@ const TextInputAbilityResultSchema = z.object({
   validateTextInputAbilityResultOutputRequirements(value, context);
   validateTextInputAbilityResultRuntimeProofRequirements(value, context);
 });
-
-type TextInputRuntimeProofValue = z.infer<typeof TextInputRuntimeProofSchema>;
-type TextInputAbilityResultValue = z.infer<typeof TextInputAbilityResultSchema>;
-const SUCCESS_PROOF_CHAIN_FIELDS = [
-  "missionId",
-  "runId",
-  "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationId",
-  "activationSnapshotRef",
-  "capabilityCallId",
-  "nerveBusEnvelopeId",
-  "sourceRef",
-  "idempotencyKey",
-  "inputTargetRef",
-] as const;
-const RESULT_PROOF_PARITY_FIELDS = [
-  "missionId",
-  "runId",
-  "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationId",
-  "activationSnapshotRef",
-  "capabilityCallId",
-  "nerveBusEnvelopeId",
-  "sourceRef",
-] as const;
-
-type SuccessProofChainField = (typeof SUCCESS_PROOF_CHAIN_FIELDS)[number];
-type ResultProofParityField = (typeof RESULT_PROOF_PARITY_FIELDS)[number];
-
-function addMissingRuntimeProofFieldIssue(
-  value: TextInputRuntimeProofValue,
-  context: z.RefinementCtx,
-  field: SuccessProofChainField,
-): void {
-  if (value[field] === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: `${field} is required for successful runtime proof`, path: [field] });
-  }
-}
-
-function addResultRuntimeProofParityIssue(
-  value: TextInputAbilityResultValue,
-  context: z.RefinementCtx,
-  field: ResultProofParityField,
-): void {
-  if (value[field] !== value.runtimeProof[field]) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${field} must equal result.${field}`, path: ["runtimeProof", field] });
-  }
-}
-
-function validateTextInputRuntimeProofChronology(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
-  if (value.startedAt > value.endedAt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
-  }
-}
-
-function validateTextInputRuntimeProofSuccessRequirements(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
-  if (value.status !== "success") {
-    return;
-  }
-
-  for (const field of SUCCESS_PROOF_CHAIN_FIELDS) {
-    addMissingRuntimeProofFieldIssue(value, context, field);
-  }
-
-  if (value.outputRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
-  }
-  if (value.actionExecutionRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionExecutionRef", path: ["actionExecutionRef"] });
-  }
-  if (value.primitiveExecutionRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRef", path: ["primitiveExecutionRef"] });
-  }
-  if (value.postActionVerificationHandoffRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
-  }
-  if (value.actionKind === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionKind", path: ["actionKind"] });
-  }
-  if (value.targetKind === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires targetKind", path: ["targetKind"] });
-  }
-  if (value.runId === buildStableTextInputRef("text-input-run", [value.attemptRef])) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtime proof runId must come from input, not attemptRef", path: ["runId"] });
-  }
-  if (value.actionKind !== null && TEXT_INPUT_WRITE_CHILD_CAPABILITY_IDS.has(value.actionKind)) {
-    if (value.approvedTextSourceRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires approvedTextSourceRef for write children", path: ["approvedTextSourceRef"] });
-    }
-    if (value.approvedTextApprovalRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires approvedTextApprovalRef for write children", path: ["approvedTextApprovalRef"] });
-    }
-  }
-}
-
-function validateTextInputRuntimeProofFailureRequirements(value: TextInputRuntimeProofValue, context: z.RefinementCtx): void {
-  if (value.status === "success") {
-    return;
-  }
-
-  if (value.outputRef !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require outputRef=null", path: ["outputRef"] });
-  }
-  if (value.diagnosticPayloadRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-  }
-}
-
-function validateTextInputAbilityResultOutputRequirements(value: TextInputAbilityResultValue, context: z.RefinementCtx): void {
-  if (value.status === "success" && value.output === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success requires output", path: ["output"] });
-  }
-  if (value.status !== "success" && value.output !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require output=null", path: ["output"] });
-  }
-  if (value.status !== "success" && value.diagnosticPayloadRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-  }
-}
-
-function validateTextInputAbilityResultRuntimeProofRequirements(value: TextInputAbilityResultValue, context: z.RefinementCtx): void {
-  for (const field of RESULT_PROOF_PARITY_FIELDS) {
-    addResultRuntimeProofParityIssue(value, context, field);
-  }
-  if (value.runtimeProof.status !== value.status) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
-  }
-  if (value.runtimeProof.attemptRef !== value.attemptRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.attemptRef must equal result.attemptRef", path: ["runtimeProof", "attemptRef"] });
-  }
-  if (value.runtimeProof.diagnosticPayloadRef !== value.diagnosticPayloadRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.diagnosticPayloadRef must equal result.diagnosticPayloadRef", path: ["runtimeProof", "diagnosticPayloadRef"] });
-  }
-}
 
 export { TextInputChildCapabilityIdSchema, TextInputTargetKindSchema, TextInputKeySchema, TextInputCommitKeySchema, TextInputFailureReasonSchema, TextInputStatusSchema, TextInputPolicyDecisionSchema, TextInputPrimitiveDecisionSchema, TextInputClipboardDecisionSchema, TextInputSensitiveTextDecisionSchema, TextInputRedactionDecisionSchema, TextInputKeyPolicyDecisionSchema, TextInputOutputBoundaryDecisionSchema, TextInputSourceOwnerSchema, TextInputTargetProofOwnerSchema, TextInputFocusProofOwnerSchema, TextInputMaxLengthPolicySchema, TextInputSensitiveTextPolicySchema, TextInputRedactionPolicySchema, TextInputClipboardPolicySchema, TextInputCommitPolicySchema, TextInputKeyPolicySchema, TextInputReplacePolicySchema, TextInputPolicySchema, TypeTextAbilityInputSchema, PasteTextAbilityInputSchema, ClearInputAbilityInputSchema, ReplaceInputAbilityInputSchema, PressKeyAbilityInputSchema, CommitInputAbilityInputSchema, TextInputAbilityInputSchema, TextInputClockSchema, TextInputRuntimeProofSchema, TextInputSuccessOutputSchema, TextInputAbilityResultSchema };

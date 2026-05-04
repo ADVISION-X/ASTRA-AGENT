@@ -1,4 +1,5 @@
 import { buildCapabilityCatalog } from "../../../../src/map-plugins/authoring/capability-catalog/index.js";
+import { buildMapAuthoringGovernedCatalogs } from "../../../../src/map-plugins/authoring/map-authoring-governed-catalogs.js";
 import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
 import { createMapPluginRegistry } from "../../../../src/map-plugins/registry/map-plugin-registry.js";
 import { readTextFile } from "../../core/filesystem.js";
@@ -132,4 +133,15 @@ export const inspectCapabilityCatalogGeneratedTruth = async (): Promise<Finding[
   return JSON.stringify(generatedDocument) === JSON.stringify(rebuiltDocument)
     ? []
     : [createFinding({ lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG, file: CAPABILITY_CATALOG_GENERATED_PATH, line: 1, severity: "fatal", message: "Generated capability catalog must match the governed build source exactly." })];
+};
+
+export const inspectMapAuthoringCapabilityCatalogGate = (): Finding[] => {
+  try {
+    const catalogs = buildMapAuthoringGovernedCatalogs();
+    return catalogs.capabilityCatalog.entries.length > 0
+      ? []
+      : [createFinding({ lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: `${ROOT}/authoring/map-authoring-governed-catalogs.ts`, line: 1, severity: "fatal", message: "Map authoring governed capability catalog must expose at least one governed entry." })];
+  } catch (error) {
+    return [createFinding({ lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: `${ROOT}/authoring/map-authoring-governed-catalogs.ts`, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Map authoring capability catalog gate failed." })];
+  }
 };

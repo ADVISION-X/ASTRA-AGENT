@@ -1,11 +1,17 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 
+const DEFAULT_PLATFORM_URL = {
+  "tiktok-web": "https://www.tiktok.com/foryou",
+  "facebook-web": "https://www.facebook.com/reel/",
+} as const;
+
 export const buildPageStateDispatchInput = (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
 ) => {
   const session = runtime.browserController.getSessionState();
+  const platformProfileId = runtime.options.platformTarget;
   return JSON.parse(JSON.stringify({
     childCapabilityId: envelope.commandName === "detect-feed-ready" ? "detect-feed-ready" : "detect-platform-page-kind",
     runId: envelope.mapId,
@@ -16,7 +22,7 @@ export const buildPageStateDispatchInput = (
     requestedBy: "orchestration",
     snapshot: {
       snapshotId: `${envelope.inputRef}:snapshot`,
-      currentUrl: session.currentUrl || "https://www.tiktok.com/foryou",
+      currentUrl: session.currentUrl || DEFAULT_PLATFORM_URL[platformProfileId],
       currentTitle: session.currentTitle ?? "",
       browserLoginState: session.loginState,
       viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
@@ -31,7 +37,7 @@ export const buildPageStateDispatchInput = (
     freshnessPolicy: { maxSnapshotAgeMs: 300000, maxObservationAgeMs: 300000, maxObservationSkewMs: 300000 },
     confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
     statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: true, allowModalOverlay: false, allowUnknownState: true },
-    openHandoff: { openProofRef: envelope.inputRef, browserSessionRef: envelope.missionId, platformProfileId: "tiktok-web" },
+    openHandoff: { openProofRef: envelope.inputRef, browserSessionRef: envelope.missionId, platformProfileId },
     previousPageStateFingerprint: null,
   }));
 };

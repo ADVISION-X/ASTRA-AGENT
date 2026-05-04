@@ -7,6 +7,7 @@ import { createScreenshotAuditProject } from "./project-access.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
+import { runOwnershipBoundary } from "./ownership-boundary.js";
 import { runRequiredShape } from "./required-shape.js";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF";
 
@@ -26,6 +27,7 @@ const runNegativeProofCheck = async () => process.env[SKIP_NEGATIVE_PROOF_ENV] =
 
 const runScreenshotChecks = async (_context: InspectorContext) => {
   const project = createScreenshotAuditProject();
+  const ownershipBoundary = runOwnershipBoundary(project);
   const [required, forbidden, boundary, antiEscape] = await Promise.all([
     runRequiredShape(project),
     runForbiddenShape(project),
@@ -33,7 +35,7 @@ const runScreenshotChecks = async (_context: InspectorContext) => {
     runAntiEscape(project),
   ]);
   const negativeProof = await runNegativeProofCheck();
-  return { required, forbidden, boundary, antiEscape, negativeProof };
+  return { required, forbidden, boundary, ownershipBoundary, antiEscape, negativeProof };
 };
 
 const buildInspectorResult = (
@@ -45,6 +47,7 @@ const buildInspectorResult = (
     ...checks.required.findings,
     ...checks.forbidden.findings,
     ...checks.boundary.findings,
+    ...checks.ownershipBoundary.findings,
     ...checks.antiEscape.findings,
     ...checks.negativeProof.findings,
   ];
@@ -59,11 +62,12 @@ const buildInspectorResult = (
       checks.required.phase,
       checks.forbidden.phase,
       checks.boundary.phase,
+      checks.ownershipBoundary.phase,
       checks.antiEscape.phase,
       checks.negativeProof.phase,
     ],
     summary: findings.length === 0
-      ? "screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, anti-escape, and negative-proof phases"
+      ? "screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, ownership-boundary, anti-escape, and negative-proof phases"
       : "screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations",
   };
 };

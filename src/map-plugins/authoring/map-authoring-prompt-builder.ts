@@ -1,52 +1,53 @@
-import { PROMPT_CONTRACT_CATALOG_VERSION } from "../../capabilities/ai/prompt-contracts/index.js";
-import { CAPABILITY_CATALOG_VERSION } from "./capability-catalog/index.js";
 import {
-  MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
   MAP_AUTHORING_PROMPT_CONTRACT_ID,
   MAP_AUTHORING_PROMPT_CONTRACT_VERSION,
-  MAP_AUTHORING_SCHEMA_VERSION,
   MAP_AUTHORING_SECURITY_POLICY_REF,
 } from "./map-authoring-contract.js";
 import {
-  MapAuthoringRequestSchema,
-  type MapAuthoringRequest,
-} from "./map-authoring-request.schema.js";
+  MapAuthoringInputPackageSchema,
+  type MapAuthoringInputPackage,
+} from "./map-authoring-input-package.schema.js";
 import {
   MapAuthoringResponseSchema,
   type MapAuthoringResponse,
 } from "./map-authoring-response.schema.js";
 import { buildMapAuthoringTemplate } from "./map-authoring-template.js";
 
-const collectClarifications = (request: MapAuthoringRequest): string[] => {
+const collectClarifications = (inputPackage: MapAuthoringInputPackage): string[] => {
   const clarifications: string[] = [];
-  if (!request.operatorNotes.trim()) {
+  if (!inputPackage.userRequirement.operatorNotes.trim()) {
     clarifications.push("operator_notes_missing");
   }
-  if (!request.targetPlatform.includes("tiktok") && !request.targetPlatform.includes("facebook")) {
+  if (!inputPackage.userRequirement.mustAskBefore.length) {
+    clarifications.push("missing_confirmation_policy_inputs");
+  }
+  if (!inputPackage.targetPlatformProfile.targetPlatformId.includes("tiktok") && !inputPackage.targetPlatformProfile.targetPlatformId.includes("facebook")) {
     clarifications.push("target_platform_profile_unverified");
   }
   return clarifications;
 };
 
 export const buildMapAuthoringPrompt = (input: unknown): MapAuthoringResponse => {
-  const request = MapAuthoringRequestSchema.parse(input);
+  const inputPackage = MapAuthoringInputPackageSchema.parse(input);
   return MapAuthoringResponseSchema.parse({
-    authoringPrompt: buildMapAuthoringTemplate(request, {
+    authoringPrompt: buildMapAuthoringTemplate(inputPackage, {
       promptContractId: MAP_AUTHORING_PROMPT_CONTRACT_ID,
       promptContractVersion: MAP_AUTHORING_PROMPT_CONTRACT_VERSION,
-      mapPackageSchemaVersion: MAP_AUTHORING_SCHEMA_VERSION,
-      outputFormatVersion: MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
+      mapPackageSchemaVersion: inputPackage.mapPackageSchema.schemaVersion,
+      outputFormatVersion: inputPackage.mapAuthoringOutputSchema.schemaVersion,
       securityPolicyRef: MAP_AUTHORING_SECURITY_POLICY_REF,
-      capabilityCatalogVersion: CAPABILITY_CATALOG_VERSION,
-      promptCatalogVersion: PROMPT_CONTRACT_CATALOG_VERSION,
+      capabilityCatalogVersion: inputPackage.capabilityCatalog.version,
+      promptCatalogVersion: inputPackage.promptContractCatalog.version,
     }),
-    promptCatalogVersion: PROMPT_CONTRACT_CATALOG_VERSION,
-    capabilityCatalogVersion: CAPABILITY_CATALOG_VERSION,
+    inputPackageId: inputPackage.inputPackageId,
+    promptCatalogVersion: inputPackage.promptContractCatalog.version,
+    capabilityCatalogVersion: inputPackage.capabilityCatalog.version,
+    outputSchemaCatalogVersion: inputPackage.outputSchemaCatalog.version,
     promptContractId: MAP_AUTHORING_PROMPT_CONTRACT_ID,
     promptContractVersion: MAP_AUTHORING_PROMPT_CONTRACT_VERSION,
-    mapPackageSchemaVersion: MAP_AUTHORING_SCHEMA_VERSION,
-    outputFormatVersion: MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
+    mapPackageSchemaVersion: inputPackage.mapPackageSchema.schemaVersion,
+    outputFormatVersion: inputPackage.mapAuthoringOutputSchema.schemaVersion,
     securityPolicyRef: MAP_AUTHORING_SECURITY_POLICY_REF,
-    requiredClarifications: collectClarifications(request),
+    requiredClarifications: collectClarifications(inputPackage),
   });
 };

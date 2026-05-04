@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { MapPackageSchema } from "../schema/map-plugin-package.schema.js";
 import type { MapPackage } from "../shared/map-package-types.js";
+import type { MapAuthoringInputPackage } from "./map-authoring-input-package.schema.js";
 import type { MapAuthoringRequest } from "./map-authoring-request.schema.js";
 import {
   MAP_AUTHORING_AUTHOR,
@@ -16,11 +17,9 @@ import {
   type MapAuthoringAiOutput,
 } from "./map-authoring-ai-output.schema.js";
 import {
-  assertAuthoringChainConsistency,
-  buildCanonicalMapAuthoringChain,
   type MapAuthoringChain,
 } from "./map-authoring-proof-chain.js";
-import { buildMapAuthoringTemplate } from "./map-authoring-template.js";
+import { buildCanonicalAuthoringChainForDraft } from "./map-authoring-draft-chain.js";
 
 function slugify(value: string): string {
   return value
@@ -204,8 +203,26 @@ function buildMapPackagePayload(input: {
   };
 }
 
+function buildNormalizedAuthoringDraftResult(input: {
+  output: MapAuthoringAiOutput;
+  mapPackage: MapPackage;
+  authoringChain: MapAuthoringChain;
+}) {
+  return {
+    mapPackage: input.mapPackage,
+    humanReadableExplanation: input.output.humanReadableExplanation,
+    requiredClarifications: input.output.requiredClarifications,
+    riskWarnings: input.output.riskWarnings,
+    validationHints: input.output.validationHints,
+    needsCapabilityExpansion: input.output.needsCapabilityExpansion,
+    draftStatus: input.output.draftStatus,
+    authoringProofRef: input.authoringChain.authoringProofRef,
+  };
+}
+
 export function normalizeMapAuthoringDraft(input: {
   request: MapAuthoringRequest;
+  inputPackage: MapAuthoringInputPackage;
   aiOutput: unknown;
   promptContractId: string;
   promptVersion: string;
@@ -228,42 +245,8 @@ export function normalizeMapAuthoringDraft(input: {
 } {
   const output = MapAuthoringAiOutputSchema.parse(input.aiOutput);
   const identity = buildDraftIdentity(input.request, output);
-  const promptText = buildMapAuthoringTemplate(input.request, {
-    promptContractId: input.promptContractId,
-    promptContractVersion: input.promptVersion,
-    capabilityCatalogVersion: output.authoringChain.capabilityCatalogVersion,
-    promptCatalogVersion: output.authoringChain.promptCatalogVersion,
-    mapPackageSchemaVersion: output.authoringChain.mapPackageSchemaVersion ?? MAP_AUTHORING_SCHEMA_VERSION,
-    securityPolicyRef: output.authoringChain.securityPolicyRef ?? input.securityPolicyRef ?? MAP_AUTHORING_SECURITY_POLICY_REF,
-    outputFormatVersion: output.authoringChain.outputFormatVersion ?? input.outputFormatVersion ?? MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
-  });
-  const authoringChain = buildCanonicalMapAuthoringChain({
-    request: input.request,
-    promptContractId: input.promptContractId,
-    promptContractVersion: input.promptVersion,
-    promptText,
-    generatedAt: identity.createdAt,
-    providerPolicyRef: output.authoringChain.providerPolicyRef ?? input.providerPolicyRef,
-    capabilityCatalogVersion: output.authoringChain.capabilityCatalogVersion,
-    promptCatalogVersion: output.authoringChain.promptCatalogVersion,
-    mapPackageSchemaVersion: output.authoringChain.mapPackageSchemaVersion,
-    securityPolicyRef: output.authoringChain.securityPolicyRef ?? input.securityPolicyRef,
-    outputFormatVersion: output.authoringChain.outputFormatVersion ?? input.outputFormatVersion,
-  });
-  assertAuthoringChainConsistency({
-    candidate: output.authoringChain,
-    canonical: authoringChain,
-  });
+  const authoringChain = buildCanonicalAuthoringChainForDraft({ ...input, output, identity });
   const mapPackage = MapPackageSchema.parse(buildMapPackagePayload({ ...input, output, identity, authoringChain }));
 
-  return {
-    mapPackage,
-    humanReadableExplanation: output.humanReadableExplanation,
-    requiredClarifications: output.requiredClarifications,
-    riskWarnings: output.riskWarnings,
-    validationHints: output.validationHints,
-    needsCapabilityExpansion: output.needsCapabilityExpansion,
-    draftStatus: output.draftStatus,
-    authoringProofRef: authoringChain.authoringProofRef,
-  };
+  return buildNormalizedAuthoringDraftResult({ output, mapPackage, authoringChain });
 }

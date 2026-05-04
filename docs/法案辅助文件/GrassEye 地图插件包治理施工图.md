@@ -962,3 +962,380 @@ negative proof PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```
+
+
+---
+
+# Map Authoring Input Package FULL-MERGED Supplement
+
+本补充章节不删除、不压缩前文地图插件包治理施工图。  
+它只补齐高级 AI 生成 GrassEye 可验证地图所需的完整输入包与校验要求。
+
+## A. 为什么需要输入包
+
+高级 AI 生成地图不能只依赖用户自然语言需求。
+
+必须同时获得：
+
+```txt
+用户需求
+能力清单
+Prompt Contract 清单
+Output Schema / 分支字段清单
+地图 JSON Schema
+安全与人工确认规则
+PAV / Forensics / 证据规则
+平台约束
+示例地图
+```
+
+否则高级 AI 只能生成“看起来像地图”的草案，无法保证可验证、可激活、可运行。
+
+---
+
+## B. Map Authoring Input Package 标准结构
+
+```yaml
+inputPackageId: required
+inputPackageVersion: required
+generatedAt: required
+requesterRef: required
+
+userRequirement: required
+userRequirementRef: required
+sourceRequirementHash: required
+
+targetPlatformProfileRef: required
+targetPlatformProfile: required
+
+capabilityCatalog: required
+promptContractCatalog: required
+outputSchemaCatalog: required
+
+mapPackageSchema: required
+mapAuthoringOutputSchema: required
+
+safetyPolicy: required
+humanApprovalPolicy: required
+evidencePolicy: required
+pavPolicy: required
+forensicsPolicy: required
+privacyPolicy: required
+secretPolicy: required
+rateLimitPolicy: required
+
+exampleMaps: optional
+validationPolicy: required
+expectedDraftStatus: draft
+```
+
+缺少任何 required 字段：
+
+```txt
+BLOCKED_AUTHORING_INPUT_INCOMPLETE
+```
+
+不得继续生成地图。
+
+---
+
+## C. Capability Catalog 细则
+
+### C.1 Ability Group Entry
+
+```yaml
+abilityGroupId: required
+abilityGroupCode: required
+displayName: required
+description: required
+ownerDomain: required
+routableByMap: boolean
+publicContractRef: required
+inputSchemaRef: required
+outputSchemaRef: required
+forbiddenResponsibilities: non-empty list
+children: non-empty list
+```
+
+### C.2 Child Capability Entry
+
+```yaml
+childCapabilityId: required
+childCapabilityCode: required
+displayName: required
+description: required
+inputSchemaRef: required
+outputSchemaRef: required
+requiredInputRefs: list
+producedOutputRefs: list
+requiresGeometryProof: boolean
+requiresTargetProof: boolean
+requiresFocusProof: boolean
+requiresApprovedText: boolean
+requiresPostActionVerification: boolean
+requiresHumanReview: boolean
+sensitiveOperation: boolean
+sideEffectLevel: none | read | write | submit | delete | purchase
+allowedStepKinds: list
+supportedTargetKinds: list
+forbiddenResponsibilities: non-empty list
+proofRequirements: list
+failureModes: list
+```
+
+AI 只能引用 catalog 中 `routableByMap=true` 的能力。  
+能力不足时必须输出 `needsCapabilityExpansion=true`，不得发明能力。
+
+Capability Catalog Single Truth:
+
+```txt
+Prompt template may hardcode rules only; it must not hardcode ability-group or child-capability lists.
+Map Authoring Input Package capabilityCatalog is the only ability truth consumed by advanced AI map authoring.
+Adding, deleting, renaming, or changing a child capability must update the governed capability registry and generated capability catalog, not prompt body text.
+Missing or stale capability catalog truth must block map authoring with BLOCKED_CAPABILITY_CATALOG_STALE.
+```
+
+---
+
+## D. Prompt Contract Catalog 与 Output Schema Catalog
+
+### D.1 Prompt Contract Entry
+
+```yaml
+promptContractId: required
+promptContractVersion: required
+promptHash: required
+displayName: required
+description: required
+inputSchemaRef: required
+outputSchemaRef: required
+allowedInputRefs: list
+dataPolicy: required
+providerPolicy: required
+reviewPolicy: required
+failurePolicy: required
+redactionPolicy: required
+forensicsPolicy: required
+forbiddenOutputs: list
+branchableOutputFields: list
+```
+
+### D.2 Output Schema Entry
+
+```yaml
+outputSchemaRef: required
+schemaVersion: required
+declaredFields: list
+branchableFields: list
+fieldTypes: map
+requiredFields: list
+reviewFields: list
+confidenceFields: list
+forbiddenFields: list
+exampleOutput: optional
+```
+
+地图 branch 只能引用：
+
+```txt
+status
+schemaFieldRef:<fieldName> where fieldName ∈ branchableFields
+```
+
+禁止：
+
+```txt
+raw expression
+function body
+eval
+Function
+undeclared output field
+raw AI natural language branch
+```
+
+---
+
+## E. Safety / Human Approval Policy
+
+必须定义：
+
+```txt
+send message → human approval required
+submit form → human approval required
+purchase/payment → human approval required
+delete content → human approval required
+modify user data → human approval required
+bulk action → human approval + rate limit required
+text-input commit/send/publish semantics → explicit approval required
+external AI transmission of userRequirement → externalTransmissionApproval required
+AI-generated map activation → human approval required
+```
+
+---
+
+## F. Evidence / PAV / Forensics Policy
+
+必须定义：
+
+```txt
+mouse-click success requires PAV handoff
+text-input success requires PAV handoff
+action step requires runtime proof
+AI step requires aiProofRef + promptContract refs
+candidate/evidence capture requires evidencePacketRef or Forensics write request
+screenshot step requires retention policy
+Forensics stores refs/hashes only
+raw API keys/cookies/secrets/raw prompt/raw sensitive text/raw clipboard text must not enter proof/log/map package
+```
+
+---
+
+## G. Platform Profile
+
+必须定义：
+
+```yaml
+platformId: required
+platformName: required
+loginRequired: boolean
+authCheckPolicy: required
+securityCheckPolicy: required
+supportedTargets: list
+prohibitedOperations: list
+rateLimitPolicyRef: required
+captchaPolicy: required
+humanReviewPolicyRef: required
+safetyPauseConditions: list
+```
+
+AI 不得生成违反 platform profile 的地图步骤。
+
+---
+
+## H. Authoring Prompt Builder 约束
+
+生成地图的高级 AI 提示词必须写死：
+
+```txt
+You receive a complete Map Authoring Input Package.
+You generate declarative operational-map package candidates only.
+You cannot write code.
+You cannot write raw prompts.
+You cannot execute tools.
+You cannot call APIs.
+You cannot activate maps.
+You cannot approve maps.
+You cannot emit humanApprovalRef.
+You cannot emit validationReportRef.
+You cannot emit activationSnapshotRef.
+You cannot invent abilityGroupId.
+You cannot invent childCapabilityId.
+You cannot invent promptContractId.
+You cannot invent outputSchemaRef.
+You must use only capabilityCatalog, promptContractCatalog, outputSchemaCatalog, and policy catalogs.
+You must treat capabilityCatalog as the only ability truth and must not rely on manually duplicated ability text.
+If requirement is unclear, output requiredClarifications.
+If current abilities are insufficient, output needsCapabilityExpansion.
+If capabilityCatalog is missing, stale, or inconsistent with governed capability truth, return BLOCKED_CAPABILITY_CATALOG_STALE.
+If operation sends/deletes/buys/submits/modifies user data, add review gate.
+If operation involves commit/send/publish behavior, require explicit human confirmation.
+Return strict JSON matching MapAuthoringAiOutputSchema.
+```
+
+---
+
+## I. AI 生成地图输出要求
+
+AI 输出必须是 draft candidate：
+
+```yaml
+aiGenerated: true
+approvalStatus: draft
+availabilityPolicy: draft
+```
+
+禁止：
+
+```txt
+approvalStatus=approved
+active=true
+activationSnapshotRef
+humanApprovalRef
+validationReportRef
+rawPrompt
+functionBody
+eval
+script
+import
+require
+unknown abilityGroupId
+unknown childCapabilityId
+unknown promptContractId
+unknown outputSchemaRef
+```
+
+---
+
+## J. User-facing Explanation
+
+解释视图必须从 draftPackage + validation findings + policy catalogs 生成。
+
+Required:
+
+```txt
+taskName
+plainLanguageGoal
+whatThisTaskWillDo
+humanReadableSteps
+whatWillNotBeDone
+whenItWillPause
+permissionsAndLoginNeeds
+platformAssumptions
+evidenceToBeSaved
+screenshotRetentionSummary
+aiJudgmentRisk
+humanReviewPoints
+safetyWarnings
+capabilityLimitations
+needsCapabilityExpansionSummary
+requiredClarificationsSummary
+activationReadinessSummary
+```
+
+普通用户视图禁止暴露：
+
+```txt
+stepId
+childCapabilityId
+promptContractId
+activationSnapshotRef
+internal dependency graph
+rawPrompt
+```
+
+---
+
+## K. READY 增补标准
+
+Map Authoring 能力 READY only when:
+
+```txt
+Map Authoring Input Package complete
+capabilityCatalog detailed
+promptContractCatalog present
+outputSchemaCatalog present
+mapPackageSchema present
+mapAuthoringOutputSchema present
+safety/humanApproval/evidence/PAV/Forensics/platform policies present
+prompt template contains rules only and no duplicated ability catalog text
+stale capability catalog blocks authoring
+AI output schema strict
+AI generated maps draft/quarantine only
+high-risk actions require review gates
+action steps require PAV
+evidence steps require Forensics/evidence policy
+ordinary explanation hides internals
+activation proof and activationSnapshotRef required before runnable
+inspector PASS
+negative proof PASS
+```

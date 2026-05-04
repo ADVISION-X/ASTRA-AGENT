@@ -6,9 +6,10 @@ import type { Finding, InspectorContext, InspectorPhase } from "../../core/schem
 
 const CAPABILITY_DOMAIN = "page-state-capability";
 const INSPECTOR_ID = "page-state-capability-owner";
-const FINAL_LAW_PATH = ".github/instructions/cursor-rules/modules/module-page-state-capability.FINAL.instructions.md";
-const FINAL_BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图_FINAL.md";
+const FINAL_LAW_PATH = ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md";
+const FINAL_BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md";
 const RUNNER_SUMMARY_PATH = "scripts/audit/generated/runner-summary.json";
+const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
 const REQUIRED_LAW_IDS = [
   "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
   "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2",
@@ -97,6 +98,10 @@ function compareLawSets(input: {
 }
 
 async function inspectRunnerSummary(): Promise<Finding[]> {
+  if (process.env[DIRECT_OWNER_AUDIT_ENV] === "1") {
+    return [];
+  }
+
   try {
     const raw = await readFile(pathFromRepoRoot(RUNNER_SUMMARY_PATH), "utf8");
     const runnerSummary = JSON.parse(raw) as RunnerSummary;

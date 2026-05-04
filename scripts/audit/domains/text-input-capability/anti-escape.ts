@@ -102,25 +102,30 @@ function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof get
   return findings;
 }
 
-function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): Finding[] {
-  if (!runnerSource) {
-    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner is missing for anti-escape checks." })];
-  }
-
+function collectAbortRunnerFindings(fullText: string): Finding[] {
   const findings: Finding[] = [];
-  const fullText = runnerSource.getFullText();
   if (!fullText.includes("AbortController")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must own AbortController." }));
   }
   if (!fullText.includes("abortSignal: abortController.signal")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must pass abortController.signal into the execution port call." }));
   }
+  return findings;
+}
+
+function collectTimeoutRunnerFindings(fullText: string): Finding[] {
+  const findings: Finding[] = [];
   if (!fullText.includes("Promise.race")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must use Promise.race for timeout and abort enforcement." }));
   }
   if (!fullText.includes("text input primitive timed out")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must preserve hard timeout enforcement." }));
   }
+  return findings;
+}
+
+function collectRetryRunnerFindings(fullText: string): Finding[] {
+  const findings: Finding[] = [];
   if (fullText.includes("for (let retry =") || fullText.includes("retry += 1")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must not reintroduce retry loops." }));
   }
@@ -128,6 +133,19 @@ function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): 
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner must not hide execution behind computed property access." }));
   }
   return findings;
+}
+
+function collectRunnerFindings(runnerSource: ReturnType<typeof getSourceFile>): Finding[] {
+  if (!runnerSource) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Text Input primitive runner is missing for anti-escape checks." })];
+  }
+
+  const fullText = runnerSource.getFullText();
+  return [
+    ...collectAbortRunnerFindings(fullText),
+    ...collectTimeoutRunnerFindings(fullText),
+    ...collectRetryRunnerFindings(fullText),
+  ];
 }
 
 export function runAntiEscapeAttack(project: ReturnType<typeof makeProject> = makeProject()): { findings: Finding[]; phase: InspectorPhase } {

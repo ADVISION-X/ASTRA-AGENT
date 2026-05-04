@@ -1,4 +1,4 @@
-import { getDefaultLocalDataDir } from "./default-data-dir.js";
+import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import { createBrowserRuntime } from "./workbench-browser-runtime.js";
 import { createWorkbenchAiAbilityGroup } from "./workbench-ai-ability-group.js";
 import type { WorkbenchBaseRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
@@ -22,11 +22,12 @@ const createStructuredLogRuntime = (): StructuredLogBus => {
 export const createWorkbenchBaseRuntime = (
   options: GrassEyeWorkbenchOptions,
 ): WorkbenchBaseRuntime => {
-  const dataDir = options.dataDir ?? getDefaultLocalDataDir();
+  const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
+  const normalizedOptions = options.dataDir ? options : { ...options, dataDir };
   const structuredLogBus = createStructuredLogRuntime();
   const persistence = createPersistenceRuntime(dataDir, structuredLogBus);
-  const browser = createBrowserRuntime(options, dataDir);
-  const partialRuntime = { options, structuredLogBus, ...persistence, ...browser } as Omit<WorkbenchBaseRuntime, "aiAbilityGroup" | "openAbilityGroup" | "mouseClickAbilityGroup" | "textInputAbilityGroup" | "mouseScrollAbilityGroup" | "pageStateAbilityGroup" | "postActionVerificationAbilityGroup" | "screenshotAbilityGroup" | "visualTargetAbilityGroup" | "geometryGuardAbilityGroup">;
+  const browser = createBrowserRuntime(normalizedOptions, dataDir);
+  const partialRuntime = { options: normalizedOptions, structuredLogBus, ...persistence, ...browser } as Omit<WorkbenchBaseRuntime, "aiAbilityGroup" | "openAbilityGroup" | "mouseClickAbilityGroup" | "textInputAbilityGroup" | "mouseScrollAbilityGroup" | "pageStateAbilityGroup" | "postActionVerificationAbilityGroup" | "screenshotAbilityGroup" | "visualTargetAbilityGroup" | "geometryGuardAbilityGroup">;
   const actions = {
     ...createMouseClickRuntime(partialRuntime),
     ...createTextInputRuntime(partialRuntime),

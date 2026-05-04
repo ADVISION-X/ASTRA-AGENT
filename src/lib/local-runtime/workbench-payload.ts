@@ -1,5 +1,4 @@
-import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/index.js";
-import type { NerveBusEnvelopeBase } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import type { NerveBusPayloadDocument } from "../../capabilities/nerve-bus/contract.js";
 
 export type WorkbenchPayloadDocument = NerveBusPayloadDocument;
 
@@ -12,6 +11,31 @@ type TransportChannelId =
   | "ai-to-orchestration";
 
 type PayloadRefRecord = Record<string, string | null>;
+
+type MirroredRequestEnvelope = {
+  transportId: string;
+  traceId: string;
+  attemptId: string;
+  missionId: string;
+  runId: string;
+  sessionId: string;
+  roundId: string | null;
+  videoVisitId: string | null;
+  mapId: string;
+  mapPackageId: string;
+  mapPackageVersion: string;
+  selectedMapId: string;
+  selectedMapVersion: string;
+  activationId: string;
+  activationSnapshotRef: string;
+  stepId: string;
+  capabilityCallId: string;
+  sourceRef: string;
+  idempotencyKey: string;
+  sequenceNo: number;
+  inputRef: string;
+  expiresAt: string;
+};
 
 type TransportEnvelopeBaseInput<TChannelId extends TransportChannelId> = {
   channelId: TChannelId;
@@ -43,36 +67,14 @@ type TransportEnvelopeBaseInput<TChannelId extends TransportChannelId> = {
 type MirroredEnvelopeBaseInput<TChannelId extends TransportChannelId> = {
   channelId: TChannelId;
   envelopeId: string;
-  requestEnvelope: Pick<
-    NerveBusEnvelopeBase,
-    | "transportId"
-    | "traceId"
-    | "attemptId"
-    | "missionId"
-    | "runId"
-    | "sessionId"
-    | "roundId"
-    | "videoVisitId"
-    | "mapId"
-    | "mapPackageId"
-    | "mapPackageVersion"
-    | "selectedMapId"
-    | "selectedMapVersion"
-    | "activationId"
-    | "activationSnapshotRef"
-    | "stepId"
-    | "capabilityCallId"
-    | "sourceRef"
-    | "idempotencyKey"
-    | "sequenceNo"
-    | "inputRef"
-    | "expiresAt"
-  >;
+  requestEnvelope: MirroredRequestEnvelope;
   payloadRefs: PayloadRefRecord;
   summary: string;
   tags: string[];
   createdAt?: string;
 };
+
+const MAX_PAYLOAD_SUMMARY_LENGTH = 400;
 
 const collectPayloadRefs = (payloadRefs: PayloadRefRecord): string[] => {
   return Object.values(payloadRefs).filter(
@@ -80,8 +82,14 @@ const collectPayloadRefs = (payloadRefs: PayloadRefRecord): string[] => {
   );
 };
 
+const clampPayloadSummary = (summary: string): string => (
+  summary.length <= MAX_PAYLOAD_SUMMARY_LENGTH
+    ? summary
+    : `${summary.slice(0, MAX_PAYLOAD_SUMMARY_LENGTH - 3)}...`
+);
+
 const buildPayloadMetadata = (summary: string, refs: string[], tags: string[]) => ({
-  summary,
+  summary: clampPayloadSummary(summary),
   entityRefs: refs,
   evidenceRefs: refs,
   tags,
@@ -171,7 +179,7 @@ export const buildPayloadDocument = (input: {
 }): NerveBusPayloadDocument => ({
   documentType: input.documentType,
   documentRef: input.documentRef,
-  summary: input.summary,
+  summary: clampPayloadSummary(input.summary),
   entityRefs: [],
   evidenceRefs: [],
   contentBlocks: Object.entries(input.content)

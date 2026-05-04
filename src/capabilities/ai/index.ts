@@ -1,6 +1,10 @@
 export { createAiAbilityGroup } from "./ability-group.js";
 export { createConfiguredAiAbilityGroup } from "./runtime-factory.js";
 export {
+  getAiExternalProviderPublicState,
+  saveAiExternalProviderConfig,
+} from "./provider-config.js";
+export {
   AI_ABILITY_GROUP_ID,
   AI_CHILD_CAPABILITY_IDS,
   type AiAbilityGroup,

@@ -1,0 +1,17 @@
+{
+  "inspectorId": "index-owner",
+  "capabilityDomain": "index",
+  "owner": true,
+  "entry": "scripts/audit/domains/index/inspector.ts",
+  "engine": "law",
+  "supportsEvidenceModes": ["law", "schema"],
+  "allowedLawIds": [],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md",
+    ".github/instructions/cursor-rules/grasseye-index.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 法案冻结基线.md",
+    "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md"
+  ]
+}

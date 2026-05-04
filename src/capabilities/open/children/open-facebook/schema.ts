@@ -6,15 +6,15 @@ import {
   OpenOutputPolicySchema,
   OpenProofPolicySchema,
   OpenRequestSchema,
-  OpenResultSchema,
+  OpenResultBaseSchema,
   OpenTargetProfileSchema,
 } from "../../schema.js";
 
-export const OpenFacebookRequestSchema = OpenRequestSchema.and(z.object({
+export const OpenFacebookRequestSchema = OpenRequestSchema.extend({
   childCapabilityId: z.literal("open-facebook"),
   platformId: z.literal("facebook-web"),
   targetKind: z.literal("platform-feed"),
-}).strict());
+}).strict();
 
 export const OpenFacebookBoundaryPolicySchema = OpenBoundaryPolicySchema.extend({
   allowedCaller: z.tuple([z.literal("orchestration"), z.literal("nerve-bus")]),
@@ -38,8 +38,8 @@ export const OpenFacebookTargetProfileSchema = OpenTargetProfileSchema.extend({
   failurePolicy: OpenFacebookFailurePolicySchema,
 }).strict();
 
-export const OpenFacebookResultSchema = OpenResultSchema.and(z.object({
+export const OpenFacebookResultSchema = OpenResultBaseSchema.extend({
   childCapabilityId: z.literal("open-facebook"),
   platformId: z.literal("facebook-web"),
   targetKind: z.literal("platform-feed"),
-}).strict());
+}).strict();

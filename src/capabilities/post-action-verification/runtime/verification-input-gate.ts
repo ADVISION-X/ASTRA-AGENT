@@ -1,6 +1,27 @@
 import { POST_ACTION_CHILD_POLICY_MAP } from "../shared/post-action-policy.js";
 import type { ParsedPostActionVerificationAbilityInput } from "../contract.js";
 
+function hasRequestedContextBindings(request: ParsedPostActionVerificationAbilityInput) {
+  const requiredBindings = [
+    request.requestedBy,
+    request.missionId,
+    request.runId,
+    request.sessionId,
+    request.stepId,
+    request.mapPackageId,
+    request.mapPackageVersion,
+    request.selectedMapId,
+    request.selectedMapVersion,
+    request.activationSnapshotRef,
+    request.capabilityCallId,
+    request.nerveBusEnvelopeId,
+    request.inputRef,
+    request.idempotencyKey,
+  ];
+
+  return requiredBindings.every(Boolean);
+}
+
 function createInputGateFailure(
   statusMessage: string,
   dataQualityFlag: string,
@@ -31,12 +52,12 @@ function resolveExpectedOutcomeFailure(request: ParsedPostActionVerificationAbil
 }
 
 function resolveRequestedContextFailure(request: ParsedPostActionVerificationAbilityInput) {
-  if (request.requestedBy && request.sessionId && request.roundId !== undefined && request.videoVisitId !== undefined && request.inputRef) {
+  if (hasRequestedContextBindings(request)) {
     return null;
   }
 
   return createInputGateFailure(
-    "Post Action Verification requires requestedBy, sessionId, roundId, videoVisitId, and inputRef bindings.",
+    "Post Action Verification requires requestedBy, mission/run/step/map chain refs, activationSnapshotRef, capabilityCallId, nerveBusEnvelopeId, inputRef, and idempotencyKey bindings.",
     "requested_context_missing",
     "missing_requested_context",
   );

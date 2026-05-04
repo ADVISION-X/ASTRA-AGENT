@@ -56,10 +56,10 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
 
   for (const lawDomain of context.lawsByDomain.keys()) {
     if (!context.manifestsByDomain.has(lawDomain)) {
-      conflicts.push({ kind: "MANIFEST", message: "Active capability domain has no owner manifest.", capabilityDomain: lawDomain });
+      conflicts.push({ kind: "MANIFEST", message: "Active law domain has no owner manifest.", capabilityDomain: lawDomain });
     }
 
-    if (!context.phaseGate.activeCapabilityDomains.includes(lawDomain)) {
+    if (!context.phaseGate.activeLawDomains.includes(lawDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
         message: "Active law domain is not enabled in the current phase gate.",
@@ -75,21 +75,21 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
 const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditConflict[] => {
   const conflicts: AuditConflict[] = [];
 
-  for (const activeDomain of context.phaseGate.activeCapabilityDomains) {
+  for (const activeDomain of context.phaseGate.activeLawDomains) {
     if (!context.manifestsByDomain.has(activeDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate references a capability domain without a manifest.", capabilityDomain: activeDomain });
+      conflicts.push({ kind: "PLAN", message: "Phase gate references a law domain without a manifest.", capabilityDomain: activeDomain });
     }
 
     if (!context.lawsByDomain.has(activeDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate references a capability domain without an active law.", capabilityDomain: activeDomain });
+      conflicts.push({ kind: "PLAN", message: "Phase gate references a law domain without an active law.", capabilityDomain: activeDomain });
     }
   }
 
   for (const requiredDomain of context.requiredPhaseDomains) {
-    if (!context.phaseGate.activeCapabilityDomains.includes(requiredDomain)) {
+    if (!context.phaseGate.activeLawDomains.includes(requiredDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
-        message: "Current frozen phase gate is missing a required capability domain.",
+        message: "Current frozen phase gate is missing a required law domain.",
         capabilityDomain: requiredDomain,
         file: toRepoRelativePath(defaultPhaseGatePath),
       });
@@ -97,7 +97,7 @@ const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditCon
   }
 
   for (const deletedOwnerDomain of context.deletedOwnerDomains) {
-    if (context.phaseGate.activeCapabilityDomains.includes(deletedOwnerDomain)) {
+    if (context.phaseGate.activeLawDomains.includes(deletedOwnerDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
         message: "Current frozen phase gate must not reactivate a deleted owner domain.",
@@ -197,7 +197,7 @@ const collectManifestConflicts = async (
     lawsByDomain: groupLawsByDomain(laws),
     manifestsByDomain: new Map(manifests.map((manifest) => [manifest.capabilityDomain, manifest])),
     phaseGate,
-    requiredPhaseDomains: frozenBaseline.activeCapabilityDomains,
+    requiredPhaseDomains: frozenBaseline.activeLawDomains,
     deletedOwnerDomains: frozenBaseline.deletedOwnerDomains,
   };
 
@@ -224,9 +224,9 @@ const buildEnforcementMatrixOwners = (
   readsBlueprintFiles: manifest.readsBlueprintFiles ?? [],
 }));
 
-const buildAuditPlanOwners = (owners: EnforcementMatrixOwner[], activeCapabilityDomains: string[]) => {
+const buildAuditPlanOwners = (owners: EnforcementMatrixOwner[], activeLawDomains: string[]) => {
   const ownerByDomain = new Map(owners.map((owner) => [owner.capabilityDomain, owner]));
-  return activeCapabilityDomains.flatMap((capabilityDomain) => {
+  return activeLawDomains.flatMap((capabilityDomain) => {
     const owner = ownerByDomain.get(capabilityDomain);
     return owner
       ? [{ capabilityDomain, inspectorId: owner.inspectorId, entry: owner.entry, lawIds: owner.lawIds }]
@@ -241,9 +241,9 @@ const appendFrozenPlanConflicts = (
 ): void => {
   const plannedDomains = new Set(auditPlanOwners.map((owner) => owner.capabilityDomain));
 
-  for (const requiredDomain of frozenBaseline.activeCapabilityDomains) {
+  for (const requiredDomain of frozenBaseline.activeLawDomains) {
     if (!plannedDomains.has(requiredDomain)) {
-      auditConflicts.conflicts.push({ kind: "PLAN", message: "Generated audit plan is missing a required capability domain.", capabilityDomain: requiredDomain, file: toRepoRelativePath(generatedArtifactPaths.auditPlan) });
+      auditConflicts.conflicts.push({ kind: "PLAN", message: "Generated audit plan is missing a required law domain.", capabilityDomain: requiredDomain, file: toRepoRelativePath(generatedArtifactPaths.auditPlan) });
     }
   }
 
@@ -256,7 +256,7 @@ const appendFrozenPlanConflicts = (
 
 type BuiltAuditArtifacts = Omit<GeneratedArtifactsWriteInput, "touchedFilesArtifact">;
 
-const prepareGeneratedArtifacts = async (): Promise<GeneratedArtifactsWriteInput> => {
+export const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifactsWriteInput> => {
   const generatedAt = new Date().toISOString();
   const { laws, conflicts: lawConflicts } = await parseModuleLaws();
   const manifests = await loadDomainManifests();
@@ -266,7 +266,7 @@ const prepareGeneratedArtifacts = async (): Promise<GeneratedArtifactsWriteInput
   const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
   const lawsByDomain = groupLawsByDomain(laws);
   const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain);
-  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeCapabilityDomains);
+  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeLawDomains);
   const auditConflicts: AuditConflictsSnapshot = {
     generatedAt,
     conflicts: [...lawConflicts, ...manifestConflicts],
@@ -301,7 +301,7 @@ export const buildAuditArtifacts = async (): Promise<{
   auditPlan: AuditPlan;
   auditConflicts: AuditConflictsSnapshot;
 }> => {
-  const generatedArtifacts = await prepareGeneratedArtifacts();
+  const generatedArtifacts = await prepareAuditArtifactsSnapshot();
   await writeGeneratedArtifacts(generatedArtifacts);
 
   return {

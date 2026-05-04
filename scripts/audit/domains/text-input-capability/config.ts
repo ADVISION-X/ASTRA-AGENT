@@ -1,4 +1,4 @@
-export const LAW_IDS = {
+const LAW_IDS = {
   PUBLIC: "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
   WRITE_ONLY: "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",
   SHAPE: "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2",
@@ -10,7 +10,7 @@ export const LAW_IDS = {
   PACKAGE: "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2",
 } as const;
 
-export const PATHS = {
+const PATHS = {
   ROOT: "src/capabilities/text-input",
   MANIFEST: "scripts/audit/domains/text-input-capability/manifest.json",
   INSPECTOR: "scripts/audit/domains/text-input-capability/inspector.ts",
@@ -63,7 +63,7 @@ export const PATHS = {
   CLIPBOARD_ADAPTER: "src/lib/browser/system-clipboard-port.ts",
 } as const;
 
-export const REQUIRED_FILES = [
+const REQUIRED_FILES = [
   PATHS.MANIFEST,
   PATHS.INSPECTOR,
   PATHS.RUN_INSPECTOR,
@@ -127,7 +127,7 @@ export const REQUIRED_FILES = [
   PATHS.CLIPBOARD_ADAPTER,
 ] as const;
 
-export const REQUIRED_INPUT_CHAIN_FIELDS = [
+const REQUIRED_INPUT_CHAIN_FIELDS = [
   "missionId",
   "runId",
   "sessionId",
@@ -148,7 +148,7 @@ export const REQUIRED_INPUT_CHAIN_FIELDS = [
   "idempotencyKey",
 ] as const;
 
-export const REQUIRED_INPUT_TARGET_FIELDS = [
+const REQUIRED_INPUT_TARGET_FIELDS = [
   "inputTargetRef",
   "targetRef",
   "targetProofRef",
@@ -160,7 +160,7 @@ export const REQUIRED_INPUT_TARGET_FIELDS = [
   "postActionFocusVerificationRef",
 ] as const;
 
-export const REQUIRED_WRITE_FIELDS = [
+const REQUIRED_WRITE_FIELDS = [
   "inputText",
   "inputTextRef",
   "inputTextHash",
@@ -171,7 +171,7 @@ export const REQUIRED_WRITE_FIELDS = [
   "approvedTextApprovalRef",
 ] as const;
 
-export const REQUIRED_PROOF_CHAIN_FIELDS = [
+const REQUIRED_PROOF_CHAIN_FIELDS = [
   "missionId",
   "runId",
   "stepId",
@@ -190,7 +190,7 @@ export const REQUIRED_PROOF_CHAIN_FIELDS = [
   "approvedTextApprovalRef",
 ] as const;
 
-export const REQUIRED_RESULT_CHAIN_FIELDS = [
+const REQUIRED_RESULT_CHAIN_FIELDS = [
   "missionId",
   "runId",
   "stepId",
@@ -205,7 +205,7 @@ export const REQUIRED_RESULT_CHAIN_FIELDS = [
   "sourceRef",
 ] as const;
 
-export const FORBIDDEN_CHILD_TOKENS = [
+const FORBIDDEN_CHILD_TOKENS = [
   "send-message",
   "publish",
   "select-recipient",
@@ -213,7 +213,7 @@ export const FORBIDDEN_CHILD_TOKENS = [
   "read-input",
 ] as const;
 
-export const FORBIDDEN_RESULT_FIELD_TOKENS = [
+const FORBIDDEN_RESULT_FIELD_TOKENS = [
   "pageStateVerified",
   "fieldContentVerified",
   "submissionSuccess",
@@ -228,7 +228,7 @@ export const FORBIDDEN_RESULT_FIELD_TOKENS = [
   "browserActionResult",
 ] as const;
 
-export const FORBIDDEN_DEBUG_LEAK_TOKENS = [
+const FORBIDDEN_DEBUG_LEAK_TOKENS = [
   "rawInputText:",
   "rawApprovedText:",
   "rawClipboard",
@@ -236,7 +236,7 @@ export const FORBIDDEN_DEBUG_LEAK_TOKENS = [
   "clipboardPlaintext",
 ] as const;
 
-export const FORBIDDEN_PROOF_LEAK_PATTERNS = [
+const FORBIDDEN_PROOF_LEAK_PATTERNS = [
   "inputTextRef: input.seed.inputText,",
   "approvedTextRef: input.seed.approvedText,",
   "inputTextHash: input.seed.inputText,",
@@ -244,7 +244,7 @@ export const FORBIDDEN_PROOF_LEAK_PATTERNS = [
   'runId: buildStableTextInputRef("text-input-run", [input.attemptRef])',
 ] as const;
 
-export const FORBIDDEN_IMPORT_PREFIXES = [
+const FORBIDDEN_IMPORT_PREFIXES = [
   "src/capabilities/ai/",
   "src/capabilities/screenshot/",
   "src/capabilities/page-state/",
@@ -257,7 +257,7 @@ export const FORBIDDEN_IMPORT_PREFIXES = [
   "src/lib/browser/",
 ] as const;
 
-export const FORBIDDEN_TEXT_TOKENS = [
+const FORBIDDEN_TEXT_TOKENS = [
   "as any",
   "as unknown as",
   "@ts-ignore",
@@ -270,3 +270,20 @@ export const FORBIDDEN_TEXT_TOKENS = [
   "document.",
   "window.",
 ] as const;
+
+export {
+  FORBIDDEN_CHILD_TOKENS,
+  FORBIDDEN_DEBUG_LEAK_TOKENS,
+  FORBIDDEN_IMPORT_PREFIXES,
+  FORBIDDEN_PROOF_LEAK_PATTERNS,
+  FORBIDDEN_RESULT_FIELD_TOKENS,
+  FORBIDDEN_TEXT_TOKENS,
+  LAW_IDS,
+  PATHS,
+  REQUIRED_FILES,
+  REQUIRED_INPUT_CHAIN_FIELDS,
+  REQUIRED_INPUT_TARGET_FIELDS,
+  REQUIRED_PROOF_CHAIN_FIELDS,
+  REQUIRED_RESULT_CHAIN_FIELDS,
+  REQUIRED_WRITE_FIELDS,
+};

@@ -1,10 +1,19 @@
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
 import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 
 const PLATFORM_MODE_INFO = {
   "tiktok-web": {
     platformLabel: "TikTok web governed map runtime",
+    executionMode: "Ability-group governed runtime",
+    fallbackMode: "No platform-owned fallback chain",
+    geometryGuard: "Capability-owned at execution time",
+    viewport: "Derived from governed browser session",
+    calibration: "Held by Geometry Guard runtime proof",
+    orientation: "capability-owned",
+  },
+  "facebook-web": {
+    platformLabel: "Facebook web governed map runtime",
     executionMode: "Ability-group governed runtime",
     fallbackMode: "No platform-owned fallback chain",
     geometryGuard: "Capability-owned at execution time",
@@ -38,12 +47,12 @@ const resolveMissionBindingReadinessComponent = async (
   if (mission.mapId !== null) {
     return { name: "mission", ok: true, detail: `mission_status=${mission.status}; selectedMapId=${mission.mapId}; requestedPlatformId=${mission.requestedPlatform ?? "none"}; round=${mission.currentRoundIndex}`, ownerResponsible: "Orchestration", actionableMessage: "Mission binding already exists for the active run.", severity: "info", source: "active-mission" };
   }
-  const readyTemplates = getDefaultMapPluginRegistry().active.listOrdinaryTaskTemplates().filter((template) => template.availability === "ready");
+  const readyTemplates = getDevelopmentMapPluginRegistry().active.listOrdinaryTaskTemplates().filter((template) => template.availability === "ready");
   if (readyTemplates.length === 0) {
     return { name: "mission", ok: false, detail: "no active approved task template can resolve a governed map binding", ownerResponsible: "Orchestration / Map Plugin Registry", actionableMessage: "Activate at least one approved task template before starting a mission.", severity: "blocked", source: "active-task-template-feed" };
   }
   const defaultTemplate = readyTemplates[0];
-  const binding = defaultTemplate ? getDefaultMapPluginRegistry().active.getTaskTemplateDeveloperBinding(defaultTemplate.taskTemplateId) : null;
+  const binding = defaultTemplate ? getDevelopmentMapPluginRegistry().active.getTaskTemplateDeveloperBinding(defaultTemplate.taskTemplateId) : null;
   if (!defaultTemplate || !binding) {
     return { name: "mission", ok: false, detail: "active task-template feed is missing an approved developer binding", ownerResponsible: "Orchestration / Map Plugin Registry", actionableMessage: "Repair the active task template binding before starting a mission.", severity: "blocked", source: "active-task-template-feed" };
   }
@@ -155,7 +164,7 @@ export const getModeInfo = (runtime: WorkbenchRuntime) => {
     browserProfileDirectory: session.profileDirectory,
     browserProfileProvisioning: session.profileProvisioning,
     browserProfileVerificationStatus: session.profileVerificationStatus,
-    browserProfileVerificationReason: session.profileVerificationReason,
+    browserProfileVerificationReason: session.profileVerificationReason ?? "profile verification not required",
     loginState: session.loginState,
     lastLoginCheckAt: session.lastLoginCheckAt,
     loginRequiredReason: session.loginRequiredReason,

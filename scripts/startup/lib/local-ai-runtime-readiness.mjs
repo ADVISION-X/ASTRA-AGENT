@@ -1,137 +1,46 @@
+import path from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_OLLAMA_BASE_URL = process.env.GRASSEYE_OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
+const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "local-ai-runtime-readiness-probe.ts");
 
-function sleep(durationMs) {
-  return new Promise((resolve) => setTimeout(resolve, durationMs));
-}
-
-async function fetchJsonWithTimeout(url, timeoutMs) {
-  const controller = new AbortController();
-  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { accept: "application/json" },
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  } finally {
-    clearTimeout(timeoutHandle);
+const parseProbeOutput = (stdout, stderr) => {
+  const jsonLine = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
+  if (!jsonLine) {
+    throw new Error(stderr.trim() || "Local AI startup readiness probe produced no JSON output.");
   }
-}
+  return JSON.parse(jsonLine);
+};
 
-async function probeOllamaRuntime(baseUrl) {
-  try {
-    const payload = await fetchJsonWithTimeout(`${baseUrl}/api/tags`, 5_000);
-    const availableModels = Array.isArray(payload?.models)
-      ? payload.models
-          .map((entry) => entry?.name?.trim?.() ?? "")
-          .filter((name) => name.length > 0)
-      : [];
-    return {
-      ok: true,
-      availableModels,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      availableModels: [],
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
-async function waitForOllamaRuntime({ baseUrl, timeoutMs, intervalMs }) {
-  const deadline = Date.now() + timeoutMs;
-  let lastProbe = { ok: false, availableModels: [], error: "Ollama runtime not ready" };
-
-  while (Date.now() < deadline) {
-    lastProbe = await probeOllamaRuntime(baseUrl);
-    if (lastProbe.ok) {
-      return lastProbe;
-    }
-    await sleep(intervalMs);
-  }
-
-  return lastProbe;
-}
-
-function trySpawnDetached(command, args) {
+async function runReadinessProbe(env, logger) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: "ignore",
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    const child = spawn("node", ["--import", "tsx", probeScriptPath], {
+      env: { ...process.env, ...env },
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
+    child.stdout.on("data", (chunk) => {
+      stdoutChunks.push(Buffer.from(chunk));
+    });
+    child.stderr.on("data", (chunk) => {
+      const text = Buffer.from(chunk).toString("utf8").trim();
+      if (text.length > 0) {
+        logger(text);
+      }
+      stderrChunks.push(Buffer.from(chunk));
+    });
     child.once("error", reject);
-    child.once("spawn", () => {
-      child.unref();
-      resolve(undefined);
+    child.once("close", () => {
+      try {
+        resolve(parseProbeOutput(Buffer.concat(stdoutChunks).toString("utf8"), Buffer.concat(stderrChunks).toString("utf8")));
+      } catch (error) {
+        reject(error);
+      }
     });
   });
-}
-
-async function openOllamaApp(logger) {
-  logger("Ollama runtime unavailable; attempting to open the Ollama app.");
-  await trySpawnDetached("open", ["-a", "Ollama"]);
-}
-
-async function startOllamaServe(logger) {
-  logger("Ollama app did not recover the runtime; attempting detached 'ollama serve'.");
-  await trySpawnDetached("ollama", ["serve"]);
-}
-
-const toFailureReason = (error) => (error instanceof Error ? error.message : String(error));
-
-const toReadyResult = (started, availableModels) => ({ started, availableModels });
-
-async function tryRecoverViaApp({ logger, baseUrl, appWarmupMs, readyTimeoutMs, pollIntervalMs, failures }) {
-  try {
-    await openOllamaApp(logger);
-    await sleep(appWarmupMs);
-    const appProbe = await waitForOllamaRuntime({
-      baseUrl,
-      timeoutMs: readyTimeoutMs,
-      intervalMs: pollIntervalMs,
-    });
-    if (appProbe.ok) {
-      logger(`Local AI runtime recovered via Ollama app with ${appProbe.availableModels.length} models.`);
-      return toReadyResult(true, appProbe.availableModels);
-    }
-    failures.push(appProbe.error);
-  } catch (error) {
-    failures.push(toFailureReason(error));
-  }
-
-  return null;
-}
-
-async function tryRecoverViaServe({ logger, baseUrl, readyTimeoutMs, pollIntervalMs, failures }) {
-  try {
-    await startOllamaServe(logger);
-    const serveProbe = await waitForOllamaRuntime({
-      baseUrl,
-      timeoutMs: readyTimeoutMs,
-      intervalMs: pollIntervalMs,
-    });
-    if (serveProbe.ok) {
-      logger(`Local AI runtime recovered via detached ollama serve with ${serveProbe.availableModels.length} models.`);
-      return toReadyResult(true, serveProbe.availableModels);
-    }
-    failures.push(serveProbe.error);
-  } catch (error) {
-    failures.push(toFailureReason(error));
-  }
-
-  return null;
 }
 
 export async function ensureLocalAiRuntimeReady({
@@ -140,24 +49,13 @@ export async function ensureLocalAiRuntimeReady({
   appWarmupMs = 8_000,
   readyTimeoutMs = 20_000,
   pollIntervalMs = 500,
+  allowRecovery = true,
 } = {}) {
-  const initialProbe = await probeOllamaRuntime(baseUrl);
-  if (initialProbe.ok) {
-    logger(`Local AI runtime already reachable with ${initialProbe.availableModels.length} models.`);
-    return toReadyResult(false, initialProbe.availableModels);
-  }
-
-  const failures = [initialProbe.error].filter(Boolean);
-
-  const appResult = await tryRecoverViaApp({ logger, baseUrl, appWarmupMs, readyTimeoutMs, pollIntervalMs, failures });
-  if (appResult) {
-    return appResult;
-  }
-
-  const serveResult = await tryRecoverViaServe({ logger, baseUrl, readyTimeoutMs, pollIntervalMs, failures });
-  if (serveResult) {
-    return serveResult;
-  }
-
-  throw new Error(`Local AI runtime is not ready at ${baseUrl}: ${failures.filter(Boolean).join(" | ")}`);
+  return runReadinessProbe({
+    GRASSEYE_OLLAMA_BASE_URL: baseUrl,
+    GRASSEYE_LOCAL_AI_APP_WARMUP_MS: String(appWarmupMs),
+    GRASSEYE_LOCAL_AI_READY_TIMEOUT_MS: String(readyTimeoutMs),
+    GRASSEYE_LOCAL_AI_POLL_INTERVAL_MS: String(pollIntervalMs),
+    GRASSEYE_LOCAL_AI_ALLOW_RECOVERY: allowRecovery ? "1" : "0",
+  }, logger);
 }

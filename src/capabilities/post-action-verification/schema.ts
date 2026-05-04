@@ -217,9 +217,22 @@ const PostActionVerificationAbilityInputSchema = z.object({
   abilityGroupId: z.literal(POST_ACTION_VERIFICATION_ABILITY_GROUP_ID).default(POST_ACTION_VERIFICATION_ABILITY_GROUP_ID),
   childCapabilityId: PostActionVerificationChildCapabilityIdSchema,
   requestedBy: requiredString,
+  missionId: requiredString,
+  runId: requiredString,
   sessionId: requiredString,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: requiredString,
+  mapPackageId: requiredString,
+  mapPackageVersion: requiredString,
+  selectedMapId: requiredString,
+  selectedMapVersion: requiredString,
+  activationSnapshotRef: requiredString,
+  capabilityCallId: requiredString,
+  nerveBusEnvelopeId: requiredString,
+  sourceAbilityGroupId: PostActionSourceAbilityGroupIdSchema,
+  sourceChildCapabilityId: PostActionSourceChildCapabilityIdSchema,
+  sourceActionType: z.string().min(1).max(POST_ACTION_MAX_TARGET_TYPE_LENGTH),
   expectedOutcome: PostActionExpectedOutcomeSchema,
   actionProof: PostActionActionProofSchema,
   beforeAfterEvidence: PostActionBeforeAfterEvidenceSchema,
@@ -227,6 +240,7 @@ const PostActionVerificationAbilityInputSchema = z.object({
   verificationPolicy: PostActionVerificationPolicySchema,
   confidencePolicy: PostActionConfidencePolicySchema,
   inputRef: requiredString,
+  idempotencyKey: requiredString,
 }).strict();
 
 const PostActionVerificationClockSchema = z.object({
@@ -249,11 +263,19 @@ const PostActionVerificationOutputSchema = z.object({
 
 const PostActionRuntimeProofSchema = z.object({
   proofId: requiredString,
-  runId: requiredString,
   missionId: nullableString,
+  runId: requiredString,
   sessionId: nullableString,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   abilityGroupId: z.literal(POST_ACTION_VERIFICATION_ABILITY_GROUP_ID),
   childCapabilityId: PostActionVerificationChildCapabilityIdSchema.nullable(),
   actionProofRef: nullableString,
@@ -340,9 +362,19 @@ const PostActionVerificationAbilityResultBaseSchema = z.object({
   status: PostActionVerificationStatusSchema,
   abilityGroupId: z.literal(POST_ACTION_VERIFICATION_ABILITY_GROUP_ID),
   childCapabilityId: PostActionVerificationChildCapabilityIdSchema.nullable(),
+  missionId: nullableString,
+  runId: nullableString,
   sessionId: nullableString,
   roundId: nullableString,
   videoVisitId: nullableString,
+  stepId: nullableString,
+  mapPackageId: nullableString,
+  mapPackageVersion: nullableString,
+  selectedMapId: nullableString,
+  selectedMapVersion: nullableString,
+  activationSnapshotRef: nullableString,
+  capabilityCallId: nullableString,
+  nerveBusEnvelopeId: nullableString,
   actionProofRef: nullableString,
   expectedOutcome: PostActionExpectedOutcomeSchema.nullable(),
   output: PostActionVerificationOutputSchema.nullable(),
@@ -359,6 +391,23 @@ const PostActionVerificationAbilityResultBaseSchema = z.object({
 }).strict();
 
 type PostActionVerificationAbilityResultValue = z.output<typeof PostActionVerificationAbilityResultBaseSchema>;
+const RESULT_RUNTIME_PROOF_CHAIN_FIELDS = [
+  "missionId",
+  "runId",
+  "sessionId",
+  "roundId",
+  "videoVisitId",
+  "stepId",
+  "mapPackageId",
+  "mapPackageVersion",
+  "selectedMapId",
+  "selectedMapVersion",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "nerveBusEnvelopeId",
+] as const;
+
+type ResultRuntimeProofChainField = (typeof RESULT_RUNTIME_PROOF_CHAIN_FIELDS)[number];
 
 function postActionVerificationAbilityResultSuperRefine(
   value: PostActionVerificationAbilityResultValue,
@@ -375,6 +424,11 @@ const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
   value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ): void => {
+  for (const field of RESULT_RUNTIME_PROOF_CHAIN_FIELDS) {
+    if (value.runtimeProof[field] !== value[field]) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${field} must equal result.${field}`, path: ["runtimeProof", field] });
+    }
+  }
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
@@ -417,6 +471,11 @@ const validatePostActionVerificationAbilityResultGovernedFields = (
   }
   if (value.childCapabilityId === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "childCapabilityId is required for governed results", path: ["childCapabilityId"] });
+  }
+  for (const field of RESULT_RUNTIME_PROOF_CHAIN_FIELDS) {
+    if (value[field] === null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: `${field} is required for governed results`, path: [field] });
+    }
   }
   if (value.expectedOutcome === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "expectedOutcome is required for governed results", path: ["expectedOutcome"] });

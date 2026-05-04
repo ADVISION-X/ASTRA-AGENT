@@ -10,7 +10,7 @@ import {
   MAP_AUTHORING_SCHEMA_VERSION,
   MAP_AUTHORING_SECURITY_POLICY_REF,
 } from "./map-authoring-contract.js";
-import type { MapAuthoringRequest } from "./map-authoring-request.schema.js";
+import type { MapAuthoringInputPackage } from "./map-authoring-input-package.schema.js";
 
 export const MapAuthoringChainSchema = z.object({
   authoringRunId: z.string().min(1),
@@ -44,18 +44,20 @@ function normalizeSegment(value: string): string {
   return normalized.slice(0, 24) || "map-authoring";
 }
 
-function buildRequirementSnapshot(request: MapAuthoringRequest) {
+function buildRequirementSnapshot(inputPackage: MapAuthoringInputPackage) {
   return {
-    missionId: request.missionId,
-    objective: request.objective,
-    targetPlatform: request.targetPlatform,
-    operatorNotes: request.operatorNotes,
-    outputLanguage: request.outputLanguage,
+    inputPackageId: inputPackage.inputPackageId,
+    userRequirementRef: inputPackage.userRequirementRef,
+    sourceRequirementHash: inputPackage.sourceRequirementHash,
+    targetPlatformProfileRef: inputPackage.targetPlatformProfileRef,
+    capabilityCatalogVersion: inputPackage.capabilityCatalog.version,
+    promptCatalogVersion: inputPackage.promptContractCatalog.version,
+    outputSchemaCatalogVersion: inputPackage.outputSchemaCatalog.version,
   };
 }
 
 export function buildCanonicalMapAuthoringChain(input: {
-  request: MapAuthoringRequest;
+  inputPackage: MapAuthoringInputPackage;
   promptContractId: string;
   promptContractVersion: string;
   promptText: string;
@@ -67,13 +69,13 @@ export function buildCanonicalMapAuthoringChain(input: {
   securityPolicyRef?: string;
   outputFormatVersion?: string;
 }): MapAuthoringChain {
-  const requirementSnapshot = buildRequirementSnapshot(input.request);
-  const sourceRequirementHash = `sha256:${hashStableValue(requirementSnapshot)}`;
-  const capabilityCatalogVersion = input.capabilityCatalogVersion ?? CAPABILITY_CATALOG_VERSION;
-  const promptCatalogVersion = input.promptCatalogVersion ?? PROMPT_CONTRACT_CATALOG_VERSION;
-  const mapPackageSchemaVersion = input.mapPackageSchemaVersion ?? MAP_AUTHORING_SCHEMA_VERSION;
+  const requirementSnapshot = buildRequirementSnapshot(input.inputPackage);
+  const sourceRequirementHash = input.inputPackage.sourceRequirementHash;
+  const capabilityCatalogVersion = input.capabilityCatalogVersion ?? input.inputPackage.capabilityCatalog.version ?? CAPABILITY_CATALOG_VERSION;
+  const promptCatalogVersion = input.promptCatalogVersion ?? input.inputPackage.promptContractCatalog.version ?? PROMPT_CONTRACT_CATALOG_VERSION;
+  const mapPackageSchemaVersion = input.mapPackageSchemaVersion ?? input.inputPackage.mapPackageSchema.schemaVersion ?? MAP_AUTHORING_SCHEMA_VERSION;
   const securityPolicyRef = input.securityPolicyRef ?? MAP_AUTHORING_SECURITY_POLICY_REF;
-  const outputFormatVersion = input.outputFormatVersion ?? MAP_AUTHORING_OUTPUT_FORMAT_VERSION;
+  const outputFormatVersion = input.outputFormatVersion ?? input.inputPackage.mapAuthoringOutputSchema.schemaVersion ?? MAP_AUTHORING_OUTPUT_FORMAT_VERSION;
   const promptHash = `sha256:${hashStableValue({
     promptContractId: input.promptContractId,
     promptContractVersion: input.promptContractVersion,
@@ -83,14 +85,18 @@ export function buildCanonicalMapAuthoringChain(input: {
     promptText: input.promptText,
     requirementSnapshot,
   })}`;
-  const missionSegment = normalizeSegment(input.request.missionId);
-  const authoringRunId = `map-authoring:${missionSegment}:${hashStableValue({ promptHash, sourceRequirementHash }).slice(0, 12)}`;
+  const inputPackageSegment = normalizeSegment(input.inputPackage.inputPackageId);
+  const authoringRunId = `map-authoring:${inputPackageSegment}:${hashStableValue({ promptHash, sourceRequirementHash }).slice(0, 12)}`;
+
+  const promptContract = input.inputPackage.promptContractCatalog.entries.find(
+    (entry) => entry.promptContractId === input.promptContractId,
+  );
 
   return MapAuthoringChainSchema.parse({
     authoringRunId,
-    userRequirementRef: `user-requirement:${missionSegment}:${sourceRequirementHash.slice(-12)}`,
+    userRequirementRef: input.inputPackage.userRequirementRef,
     sourceRequirementHash,
-    providerPolicyRef: input.providerPolicyRef ?? MAP_AUTHORING_DEFAULT_PROVIDER_POLICY_REF,
+    providerPolicyRef: input.providerPolicyRef ?? promptContract?.providerPolicy.policyRef ?? MAP_AUTHORING_DEFAULT_PROVIDER_POLICY_REF,
     promptContractId: input.promptContractId,
     promptContractVersion: input.promptContractVersion,
     promptHash,

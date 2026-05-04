@@ -41,11 +41,14 @@ function buildPostActionRuntimeProofIdentityFields(input: {
   const request = input.request;
   return {
     proofId: `post-action-verification-proof:${input.proofFingerprint}`,
-    runId: `post-action-verification-run:${input.proofFingerprint}`,
-    missionId: request?.sessionId ?? null,
+    missionId: request?.missionId ?? null,
+    runId: request?.runId ?? null,
     sessionId: request?.sessionId ?? null,
-    roundId: request?.roundId ?? null,
-    videoVisitId: request?.videoVisitId ?? null,
+    roundId: request?.roundId ?? null, videoVisitId: request?.videoVisitId ?? null,
+    stepId: request?.stepId ?? null,
+    mapPackageId: request?.mapPackageId ?? null, mapPackageVersion: request?.mapPackageVersion ?? null,
+    selectedMapId: request?.selectedMapId ?? null, selectedMapVersion: request?.selectedMapVersion ?? null,
+    activationSnapshotRef: request?.activationSnapshotRef ?? null, capabilityCallId: request?.capabilityCallId ?? null, nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null,
     abilityGroupId: request?.abilityGroupId ?? "post-action-verification",
     childCapabilityId: request?.childCapabilityId ?? null,
   };
@@ -102,7 +105,6 @@ function buildPostActionRuntimeProofReferenceFields(input: {
 }
 
 function buildPostActionRuntimeProofDecisionFields(input: {
-  request: ParsedPostActionVerificationAbilityInput | null;
   context: PostActionVerificationRuntimeContext;
   startedAt: string;
   endedAt: string;
@@ -203,7 +205,6 @@ function buildPostActionRuntimeProofCoreFields(input: {
       proofFingerprint: input.proofFingerprint,
     }),
     ...buildPostActionRuntimeProofDecisionFields({
-      request: input.request,
       context: input.context,
       startedAt: input.startedAt,
       endedAt: input.endedAt,

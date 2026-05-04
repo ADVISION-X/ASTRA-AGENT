@@ -80,6 +80,8 @@ const MissionStatusSchema = z.enum([
 const StepKindSchema = OrchestrationStepKindSchemaSource;
 const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
 const TransitionConditionSourceSchema = OrchestrationTransitionConditionSourceSchemaSource;
+const TransitionConditionValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const BranchFieldValuesSchema = z.record(TransitionConditionValueSchema).default({});
 const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
 const MapDecisionSchema = z.enum(["selected", "rejected"]);
 const TransitionDecisionSchema = z.enum(["continue", "finalize", "review_required", "failed"]);
@@ -170,6 +172,7 @@ const MissionStepResultSchema = z.object({
   resultRef: z.string().min(1).nullable().optional().default(null),
   outputRef: z.string().min(1).nullable().optional().default(null),
   decision: z.string().min(1).nullable().optional().default(null),
+  branchFieldValues: BranchFieldValuesSchema,
   failureReason: z.string().min(1).nullable().optional().default(null),
   reviewRequiredReason: z.string().min(1).nullable().optional().default(null),
   transitionId: z.string().min(1).nullable().optional().default(null),
@@ -213,8 +216,8 @@ const RuntimeProofSchema = z.object({
   transitionId: z.string().min(1).nullable().optional().default(null),
   transitionEvaluationDecision: TransitionEvaluationDecisionSchema.nullable().optional().default(null),
   transitionConditionSource: TransitionConditionSourceSchema.nullable().optional().default(null),
-  transitionConditionExpected: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional().default(null),
-  transitionConditionActual: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional().default(null),
+  transitionConditionExpected: TransitionConditionValueSchema.optional().default(null),
+  transitionConditionActual: TransitionConditionValueSchema.optional().default(null),
   inputRef: z.string().min(1).nullable().optional().default(null),
   outputRef: z.string().min(1).nullable().optional().default(null),
   abilityResultRef: z.string().min(1).nullable().optional().default(null),
@@ -285,7 +288,7 @@ const MissionStateSchema = z.object({
 }).strict();
 
 const MissionExecutionResultSchema = z.object({
-  status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]),
+  status: MissionStatusSchema.exclude(["idle", "pending"]),
   output: z.object({
     missionState: MissionStateSchema,
     currentStepResult: MissionStepResultSchema.nullable().default(null),
@@ -354,6 +357,8 @@ export {
   StepKindSchema,
   TransitionStatusSchema,
   TransitionConditionSourceSchema,
+  TransitionConditionValueSchema,
+  BranchFieldValuesSchema,
   LoopDecisionSchema,
   MapDecisionSchema,
   TransitionDecisionSchema,

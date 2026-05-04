@@ -184,25 +184,33 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
   return issues;
 };
 
-const branchesOnDecision = (leftRef: string): boolean => leftRef === "decision";
+const collectBranchFields = (state: ResolvedPromptStepState): string[] => {
+  const stepBranchFields = state.transitions
+    .filter((transition) => transition.fromStepId === state.step.stepId)
+    .map((transition) => transition.condition.leftRef);
 
-const usesDecisionBranch = (state: ResolvedPromptStepState): boolean =>
-  branchesOnDecision(state.step.successCondition.leftRef)
-  || state.transitions.some(
-    (transition) => transition.fromStepId === state.step.stepId && branchesOnDecision(transition.condition.leftRef),
+  return Array.from(new Set([state.step.successCondition.leftRef, ...stepBranchFields]));
+};
+
+const validateAllowedBranchFields = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
+  const allowedBranchFields = new Set(state.promptContract.allowedBranchFields);
+  const invalidBranchFields = collectBranchFields(state).filter(
+    (leftRef) => leftRef !== "status" && !allowedBranchFields.has(leftRef),
   );
-
-const validateDecisionBranch = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
-  if (!usesDecisionBranch(state) || state.promptContract.allowedBranchFields.includes("decision")) {
+  if (invalidBranchFields.length === 0) {
     return [];
   }
 
-  return [createIssue({
+  const allowedDescription = state.promptContract.allowedBranchFields.length > 0
+    ? `status or declared branch fields: ${state.promptContract.allowedBranchFields.join(", ")}`
+    : "status only";
+
+  return invalidBranchFields.map((leftRef) => createIssue({
     code: "map_validation_failed",
-    message: `AI step ${state.step.stepId} branches on decision but prompt contract ${state.promptContract.promptContractId} does not allow that branch field.`,
+    message: `AI step ${state.step.stepId} branches on ${leftRef} but prompt contract ${state.promptContract.promptContractId} allows ${allowedDescription}.`,
     path: `operationalMap.steps.${state.step.stepId}`,
     severity: "fatal",
-  })];
+  }));
 };
 
 const validateReviewPolicy = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
@@ -254,7 +262,7 @@ export const validatePromptContractStep = (input: PromptStepValidationInput): Ma
     ...validateTaskType(resolved.state),
     ...validateOutputSchema(resolved.state),
     ...validateRequiredInputRefs(resolved.state),
-    ...validateDecisionBranch(resolved.state),
+    ...validateAllowedBranchFields(resolved.state),
     ...validateReviewPolicy(resolved.state),
     ...validatePromptRestrictions(resolved.state),
   ];

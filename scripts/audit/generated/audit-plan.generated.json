@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T21:02:22.236Z",
+  "generatedAt": "2026-05-04T09:31:14.033Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -19,7 +19,27 @@
         "GRASSEYE-MAP-PLUGIN-009-V2",
         "GRASSEYE-MAP-PLUGIN-010-V2",
         "GRASSEYE-MAP-PLUGIN-011-V2",
-        "GRASSEYE-MAP-PLUGIN-012-V2"
+        "GRASSEYE-MAP-PLUGIN-012-V2",
+        "GRASSEYE-MAP-PLUGIN-013-V2",
+        "GRASSEYE-MAP-PLUGIN-014-V2",
+        "GRASSEYE-MAP-PLUGIN-015-V2",
+        "GRASSEYE-MAP-PLUGIN-016-V2",
+        "GRASSEYE-MAP-PLUGIN-017-V2"
+      ]
+    },
+    {
+      "capabilityDomain": "debug-loop-boundary",
+      "inspectorId": "debug-loop-boundary-owner",
+      "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1"
       ]
     },
     {
@@ -98,7 +118,8 @@
         "GRASSEYE-AI-CAPABILITY-011-V1",
         "GRASSEYE-AI-CAPABILITY-012-V1",
         "GRASSEYE-AI-CAPABILITY-013-V1",
-        "GRASSEYE-AI-CAPABILITY-014-V1"
+        "GRASSEYE-AI-CAPABILITY-014-V1",
+        "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
       ]
     },
     {
@@ -130,7 +151,8 @@
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2"
+        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
+        "GRASSEYE-STARTUP-ENTRYPOINT-005-V1"
       ]
     },
     {

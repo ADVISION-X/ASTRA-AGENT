@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T21:02:22.236Z",
+  "generatedAt": "2026-05-04T09:31:14.033Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -530,6 +530,94 @@
       "line": 614
     },
     {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop is local development tooling and must not be registered as an active ability group, runtime owner, or production capability owner.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 145
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop may start missions only through Commander public contract and must not directly dispatch Nerve Bus, Orchestration, or ability actions.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 198
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop must not execute direct browser/page/platform operations during mission runtime.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 247
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop must not write production Forensics proof, evidence packets, activation snapshots, or active registry truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 299
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop map-authoring harness may create input/prompt artifacts but must not bypass map-plugin lifecycle or execute generated maps.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 353
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop scenario files describe user/operator intent and success/failure signals; they must not contain executable ability logic or direct platform automation logic.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 406
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop repair packets are diagnostic artifacts and must not become code, proof, policy, or runtime truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 485
+    },
+    {
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "debug-loop-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "debug-loop boundary must be machine-enforced by owner-local inspector, negative proof, and package scripts.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
+      "line": 539
+    },
+    {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
       "status": "active",
       "tier": "P0",
@@ -717,6 +805,17 @@
       "line": 704
     },
     {
+      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
+      "line": 172
+    },
+    {
       "lawId": "GRASSEYE-MAP-PLUGIN-001-V2",
       "status": "active",
       "tier": "P0",
@@ -725,7 +824,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages are declarative route data consumed by Orchestration, not runtime code, child abilities, or new owners.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 108
+      "line": 109
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-002-V2",
@@ -736,7 +835,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must pass import, quarantine, validation, human approval, activation, active registry, and rollback lifecycle before runtime consumption.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 172
+      "line": 173
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
@@ -747,7 +846,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 291
+      "line": 292
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-004-V2",
@@ -758,7 +857,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 402
+      "line": 403
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
@@ -769,7 +868,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 523
+      "line": 524
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
@@ -780,7 +879,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and human approval pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 598
+      "line": 599
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
@@ -791,7 +890,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 750
+      "line": 751
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
@@ -802,7 +901,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 827
+      "line": 828
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
@@ -813,7 +912,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/approval path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 925
+      "line": 926
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -824,7 +923,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map activation, validation, approval, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1023
+      "line": 1024
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -835,7 +934,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1124
+      "line": 1125
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
@@ -846,7 +945,62 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1194
+      "line": 1195
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1373
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1494
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1600
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "safety, human approval, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1697
+    },
+    {
+      "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "map-plugin-package",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+      "line": 1793
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -1650,6 +1804,17 @@
       "summary": "Sensitive tasks require review gates before mutating user data or high-risk platform state.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
       "line": 83
+    },
+    {
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "startup must complete update preflight and local AI readiness gate before mission runtime becomes available.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+      "line": 145
     },
     {
       "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",

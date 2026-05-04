@@ -73,6 +73,8 @@ function buildHealthInspectItems(
     references: [
       { label: localizeCommanderText(locale, "能力 ID", "Capability ID"), value: entry.id },
       { label: localizeCommanderText(locale, "色调", "Tone"), value: entry.tone },
+      ...(entry.missionRuntimeAvailable === undefined ? [] : [{ label: localizeCommanderText(locale, "任务可运行", "Mission runtime available"), value: entry.missionRuntimeAvailable ? "true" : "false" }]),
+      ...(entry.failureReason ? [{ label: localizeCommanderText(locale, "失败原因", "Failure reason"), value: entry.failureReason }] : []),
     ],
   }));
 }

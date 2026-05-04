@@ -168,3 +168,54 @@ Required direction:
 FORBIDDEN:
 - External modules importing LocalAi contracts through the AI ability group.
 - More than one bridge, compat, or legacy path for LocalAi mapping.
+
+## Law GRASSEYE-LOCAL-AI-RUNTIME-006-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.
+
+### 主题
+
+本地 AI 启动就绪契约
+
+### 法条
+
+Local AI Runtime must expose a single governed startup readiness contract for startup bootstrap to call.
+
+Required direction:
+- local-ai-runtime must provide one governed readiness contract for runtime presence, model roster availability, model-role mapping, health probe, timeout, and typed failureReason.
+- readiness contract must verify every required local model role explicitly, including productSignal.
+- readiness contract must not execute business inference or AI judgement.
+- readiness contract must not return fake success.
+- model-role config remains the source of required local model roles.
+- missing model role must fail with LOCAL_AI_MODEL_MISSING.
+- unhealthy model role must fail with LOCAL_AI_MODEL_UNHEALTHY.
+- startup may call the readiness contract through the governed startup helper and probe.
+- business owners, debug-loop, and capability consumers must not start local AI runtime directly.
+
+### 禁止
+
+FORBIDDEN:
+- ad-hoc ollama serve or local runtime startup in debug-loop, app handlers, workbench consumers, or ability groups.
+- ad-hoc model health checks scattered across consumers as bootstrap truth.
+- fake local AI readiness success.
+- model inference used as startup health proof.
+- readiness checks mutating prompt registry or model config.
+- readiness checks silently downloading or updating models.
+
+Required inspector:
+- exactly one governed local-ai startup readiness contract.
+- startup probe imports the governed local-ai startup readiness contract.
+- no consumers or debug-loop start local AI runtime directly.
+- readiness result includes modelRole, modelName, provider, runtime, health, failureReason, and missionRuntimeAvailable.
+
+Required negative proof:
+- consumer or debug-loop starts local AI runtime -> FAIL.
+- readiness returns success without full required model-role roster -> FAIL.
+- readiness uses business inference as startup proof -> FAIL.
+- readiness contract drifts away from the governed probe path -> FAIL.

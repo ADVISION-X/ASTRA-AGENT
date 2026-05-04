@@ -1,8 +1,4 @@
-import { createSystemForensicsClockPort } from "./shared/forensics-clock.js";
 import { createForensicsPersistenceRegistry } from "./registry.js";
-import type { ForensicsArtifactStoragePort } from "./ports/forensics-artifact-storage-port.js";
-import type { ForensicsClockPort } from "./ports/forensics-clock-port.js";
-import type { ForensicsStoragePort } from "./ports/forensics-storage-port.js";
 import {
   type ForensicsAiResultRecordInput,
   type ForensicsBrowseLedgerInput,
@@ -16,19 +12,10 @@ import {
   type ForensicsStructuredActionLogInput,
   type ForensicsStructuredRuntimeEventInput,
 } from "./contract.js";
+import { createForensicsExecutionContext, type CreateForensicsExecutionContextInput } from "./runtime/create-forensics-execution-context.js";
 import { buildUnknownForensicsChildResult } from "./shared/forensics-unknown-child-result.js";
 
-type CreateForensicsPersistenceAbilityGroupInput = {
-  recordStorage: ForensicsStoragePort;
-  artifactStorage: ForensicsArtifactStoragePort;
-  clock?: ForensicsClockPort;
-};
-
-const createExecutionContext = (input: CreateForensicsPersistenceAbilityGroupInput) => ({
-  recordStorage: input.recordStorage,
-  artifactStorage: input.artifactStorage,
-  clock: input.clock ?? createSystemForensicsClockPort(),
-});
+type CreateForensicsPersistenceAbilityGroupInput = CreateForensicsExecutionContextInput;
 
 const createForensicsChildWriters = (execute: ForensicsPersistenceAbilityGroup["execute"]) => ({
   writeStructuredRuntimeEvent: (request: ForensicsStructuredRuntimeEventInput) => execute(request),
@@ -44,7 +31,7 @@ const createForensicsChildWriters = (execute: ForensicsPersistenceAbilityGroup["
 
 export function createForensicsPersistenceAbilityGroup(input: CreateForensicsPersistenceAbilityGroupInput): ForensicsPersistenceAbilityGroup {
   const registry = createForensicsPersistenceRegistry();
-  const context = createExecutionContext(input);
+  const context = createForensicsExecutionContext(input);
 
   const execute: ForensicsPersistenceAbilityGroup["execute"] = async (request) => {
     const capability = registry.get(request.childCapabilityId);

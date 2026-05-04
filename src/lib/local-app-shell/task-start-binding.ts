@@ -1,7 +1,7 @@
 import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 type ActiveRegistry = ReturnType<typeof getDefaultMapPluginRegistry>["active"];
-type TaskTemplateBinding = NonNullable<ReturnType<ActiveRegistry["getTaskTemplateDeveloperBinding"]>>;
+type TaskTemplateLaunchRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecordByTaskTemplateId"]>>;
 type ActiveMapRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecord"]>>;
 
 export type RequestedPlatformId = "facebook-web" | "tiktok-web";
@@ -33,7 +33,7 @@ const createBindingFailure = (failureReason: string, actionableMessage: string, 
   return { ok: false, failureReason, actionableMessage, nextAction };
 };
 
-const createBindingSuccess = (binding: TaskTemplateBinding | ActiveMapRecord, requestedPlatformId: RequestedPlatformId, selectedMapId: string): MissionStartBindingSuccess => {
+const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecord, requestedPlatformId: RequestedPlatformId, selectedMapId: string): MissionStartBindingSuccess => {
   return {
     ok: true,
     taskTemplateId: binding.taskTemplateId,
@@ -43,7 +43,7 @@ const createBindingSuccess = (binding: TaskTemplateBinding | ActiveMapRecord, re
   };
 };
 
-const resolveTemplateBindingConflict = (input: MissionStartBindingInput, binding: TaskTemplateBinding): MissionStartBindingFailure | null => {
+const resolveTemplateBindingConflict = (input: MissionStartBindingInput, binding: TaskTemplateLaunchRecord): MissionStartBindingFailure | null => {
   if (input.selectedMapId && input.selectedMapId !== binding.mapId) {
     return createBindingFailure(
       `taskTemplateId=${input.taskTemplateId} conflicts with selectedMapId=${input.selectedMapId}.`,
@@ -62,7 +62,7 @@ const resolveTemplateBindingConflict = (input: MissionStartBindingInput, binding
 };
 
 const resolveTaskTemplateBinding = (activeRegistry: ActiveRegistry, input: MissionStartBindingInput): MissionStartBinding => {
-  const binding = input.taskTemplateId ? activeRegistry.getTaskTemplateDeveloperBinding(input.taskTemplateId) : null;
+  const binding = input.taskTemplateId ? activeRegistry.getActiveOperationalMapRecordByTaskTemplateId(input.taskTemplateId) : null;
   if (!binding || !binding.requestedPlatformId) {
     return createBindingFailure(
       `taskTemplateId=${input.taskTemplateId} is not bound to an active approved launch record.`,

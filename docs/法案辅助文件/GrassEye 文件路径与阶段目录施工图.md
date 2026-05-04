@@ -3,7 +3,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 13 个 active ability groups 与 4 个 active support laws，不重新分配主权。
+- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、1 个 support governance domain；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
 - 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
 - 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
 
@@ -25,7 +25,7 @@
 - 跨域类型：src/types
 - 审计：scripts/audit
 
-## 当前 13 个能力组路径
+## 当前 14 个能力组路径
 
 | 能力组 | canonical path |
 | --- | --- |
@@ -38,6 +38,7 @@
 | visual-target | src/capabilities/visual-target |
 | geometry-guard | src/capabilities/geometry-guard |
 | mouse-click | src/capabilities/mouse-click |
+| text-input | src/capabilities/text-input |
 | mouse-scroll | src/capabilities/mouse-scroll |
 | post-action-verification | src/capabilities/post-action-verification |
 | forensics-persistence | src/capabilities/forensics-persistence |

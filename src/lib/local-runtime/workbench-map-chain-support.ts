@@ -1,4 +1,4 @@
-import { getDefaultMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
+import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 export type WorkbenchMapChain = {
   mapPackageId: string | null;
@@ -19,7 +19,7 @@ export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
     };
   }
 
-  const record = getDefaultMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+  const record = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
   return {
     mapPackageId: record?.packageId ?? null,
     mapPackageVersion: record?.packageVersion ?? null,

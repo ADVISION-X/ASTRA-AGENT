@@ -40,7 +40,7 @@ const inspectInspectorSource = (project: Project): Finding[] => {
     findings.push(createEnforcementFinding(INSPECTOR_PATH, 1, "Map package inspector must not remain a pending placeholder once the domain is active."));
   }
 
-  for (const requiredCall of ["runRequiredShape", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape", "runNegativeProofHarness", "runScorecardGate"]) {
+  for (const requiredCall of ["runRequiredShape", "runAuthoringInputPackage", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape", "runNegativeProofHarness", "runScorecardGate"]) {
     if (!hasCallExpression(inspectorSource, requiredCall)) {
       findings.push(createEnforcementFinding(INSPECTOR_PATH, 1, `Map package inspector must execute ${requiredCall} as part of the governed enforcement chain.`));
     }
@@ -106,13 +106,13 @@ const inspectGeneratedOwnerCoverage = (context: InspectorContext): Finding[] => 
 
   const planOwner = context.planOwnersByDomain.get("map-plugin-package");
   if (!planOwner) {
-    findings.push(createEnforcementFinding(AUDIT_PLAN_PATH, 1, "Generated audit plan must include map-plugin-package runner participation."));
+    findings.push(createEnforcementFinding(AUDIT_PLAN_PATH, 1, "Generated audit plan must include map-plugin-package support-governance enforcement participation."));
   } else if (!hasExactLawSet(planOwner.lawIds)) {
     findings.push(createEnforcementFinding(AUDIT_PLAN_PATH, 1, "Generated audit plan must declare the exact active map-plugin law set."));
   }
 
-  if (!context.phaseGate.activeCapabilityDomains.includes("map-plugin-package")) {
-    findings.push(createEnforcementFinding(context.auditPlan.phaseGateFile, 1, "Current phase gate must keep map-plugin-package active."));
+  if (!context.phaseGate.activeLawDomains.includes("map-plugin-package")) {
+    findings.push(createEnforcementFinding(context.auditPlan.phaseGateFile, 1, "Current phase gate must keep map-plugin-package active as a support-governance law domain, not as an ability group."));
   }
 
   return findings;

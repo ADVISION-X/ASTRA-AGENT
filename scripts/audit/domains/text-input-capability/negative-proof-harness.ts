@@ -22,6 +22,42 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
   {
+    name: "manual-first-enforcement mutation",
+    file: ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: text-input-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P0\ncapabilityDomain: text-input-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "warning-only-p0 mutation",
+    file: ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: text-input-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P1\ncapabilityDomain: text-input-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "orchestration-direct-text-port mutation",
+    file: "src/capabilities/orchestration/ability-group.ts",
+    search: "import { listOrchestrationChildren } from \"./registry.js\";",
+    replace: "import type { TextInputExecutionPort } from \"../text-input/ports/text-input-execution-port.js\";\nimport { listOrchestrationChildren } from \"./registry.js\";",
+  },
+  {
+    name: "browser-controller-public-contract mutation",
+    file: "src/capabilities/text-input/contract.ts",
+    search: "import type { z } from \"zod\";",
+    replace: "import type { z } from \"zod\";\nimport type { BrowserController } from \"../../lib/browser/browser-controller.js\";",
+  },
+  {
+    name: "selector-public-input mutation",
+    file: "src/capabilities/text-input/schema.ts",
+    search: "  inputTargetRef: z.string().min(1),",
+    replace: "  inputTargetRef: z.string().min(1),\n  targetSelector: z.string().min(1).optional(),",
+  },
+  {
+    name: "platform-direct-text-write mutation",
+    file: "src/lib/local-runtime/workbench-text-input-runtime.ts",
+    search: "  textInputAbilityGroup: createWorkbenchTextInputAbilityGroup({",
+    replace: "  platformDirectTextWrite: runtime.browserController.textInput({ targetLabel: \"mutated\", action: \"type-text\", text: \"mutated\", key: null, fallbackUsed: false, abortSignal: new AbortController().signal }),\n  textInputAbilityGroup: createWorkbenchTextInputAbilityGroup({",
+  },
+  {
     name: "activation snapshot optional mutation",
     file: "src/capabilities/text-input/schema.ts",
     search: "  activationSnapshotRef: z.string().min(1),",
@@ -209,7 +245,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations(runInspector);
 
-    return createPassResult("Text Input negative-proof harness rejects chain-field weakening, approved-text bypass, raw debug leakage, fabricated runId, timeout escape, business-result leakage, child primitive bypass, forbidden browser imports, forbidden child expansion, and negative-proof removal mutations.");
+    return createPassResult("Text Input negative-proof harness rejects baseline drift, orchestration direct write imports, BrowserController public-contract leaks, selector-based public input, platform direct text-write bypass, chain-field weakening, approved-text bypass, raw debug leakage, fabricated runId, timeout escape, business-result leakage, child primitive bypass, forbidden browser imports, forbidden child expansion, and negative-proof removal mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Text Input negative-proof harness failed.",

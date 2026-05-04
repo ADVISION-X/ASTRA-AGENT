@@ -20,6 +20,66 @@ type InspectorRunner = () => Promise<InspectorRunResult>;
 
 const MUTATIONS: Mutation[] = [
   {
+    name: "manual-first-enforcement mutation",
+    file: ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: mouse-scroll-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P0\ncapabilityDomain: mouse-scroll-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "warning-only-p0 mutation",
+    file: ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: mouse-scroll-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P1\ncapabilityDomain: mouse-scroll-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "browser-controller-public-contract mutation",
+    file: "src/capabilities/mouse-scroll/contract.ts",
+    search: "import type { z } from \"zod\";",
+    replace: "import type { z } from \"zod\";\nimport type { BrowserController } from \"../../lib/browser/browser-controller.js\";",
+  },
+  {
+    name: "platform-direct-scroll mutation",
+    file: "src/lib/local-runtime/workbench-mouse-scroll-runtime.ts",
+    search: "  mouseScrollAbilityGroup: createWorkbenchMouseScrollAbilityGroup({",
+    replace: "  platformScrollStrategy: runtime.browserController.scroll({ targetLabel: \"mutated\", deltaX: 0, deltaY: 120, coordinateSpace: \"browser-viewport\", anchorPoint: { x: 0, y: 0 }, fallbackUsed: false }),\n  mouseScrollAbilityGroup: createWorkbenchMouseScrollAbilityGroup({",
+  },
+  {
+    name: "mouse-scroll-final-action-log mutation",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
+    search: "    runtimeProof,",
+    replace: "    runtimeProof,\n    actionLogRef: input.seed.attemptRef,",
+  },
+  {
+    name: "platform-business-verb-child mutation",
+    file: "src/capabilities/mouse-scroll/registry.ts",
+    search: "  createScrollRegionCapability(),",
+    replace: "  createScrollRegionCapability(),\n  \"scroll-next-video\" as never,",
+  },
+  {
+    name: "scale-mapping mutation",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-execution-validator.ts",
+    search: "  const deltaResolution = validateDeltaResolution(input, seed, safetyGate.value);",
+    replace: "  const scaleMapping = true;\n  const deltaResolution = validateDeltaResolution(input, seed, safetyGate.value);",
+  },
+  {
+    name: "scroll-until-found loop mutation",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts",
+    search: "  const validated = validateMouseScrollExecution(input);",
+    replace: "  while (input.request.purpose === \"scroll_until_found\") { break; }\n  const validated = validateMouseScrollExecution(input);",
+  },
+  {
+    name: "browser-action-id leakage mutation",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
+    search: "    runtimeProof,",
+    replace: "    runtimeProof,\n    BrowserActionId: input.primitiveCallId,",
+  },
+  {
+    name: "pav-decision-field mutation",
+    file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
+    search: "    runtimeProof,",
+    replace: "    runtimeProof,\n    postActionVerificationDecision: input.status === \"success\" ? \"verified\" : \"skipped\",",
+  },
+  {
     name: "export-star escape mutation",
     file: "src/capabilities/mouse-scroll/index.ts",
     search: 'export { listMouseScrollChildren } from "./registry.js";',
@@ -161,7 +221,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations(runInspectorOnce);
 
-    return createPassResult("Mouse Scroll negative-proof harness rejects gate bypass, proof drop, timeout abort escape, computed scroll, and composition drift mutations.");
+    return createPassResult("Mouse Scroll negative-proof harness rejects baseline drift, BrowserController public-contract leaks, platform direct scroll ownership, final action-log leakage, platform business-verb child drift, scale-mapping drift, scroll-until-found loops, BrowserAction result leakage, post-action verification decision leakage, gate bypass, proof drop, timeout abort escape, computed scroll, and composition drift mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Mouse Scroll negative-proof harness failed.",

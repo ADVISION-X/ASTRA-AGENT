@@ -24,6 +24,12 @@ const REQUIRED_INSPECTOR_CALLS = [
     importName: "validateNoSimulatedProductionPaths",
   },
   {
+    localName: "validateNegativeProofWiring",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
+    importPath: "./validate-negative-proof-wiring.js",
+    importName: "validateNegativeProofWiring",
+  },
+  {
     localName: "inspectCodePurity",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "../../code-purity/components/inspect-code-purity.js",

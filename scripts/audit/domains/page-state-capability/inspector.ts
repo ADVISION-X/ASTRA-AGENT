@@ -8,6 +8,7 @@ import { runEnforcementCoverage } from "./enforcement-coverage.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
+import { runTruthOwnership } from "./truth-ownership.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF";
 
@@ -34,6 +35,7 @@ function collectInspectorFindings(input: {
   required: Awaited<ReturnType<typeof runRequiredShape>>;
   forbidden: Awaited<ReturnType<typeof runForbiddenShape>>;
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
+  truthOwnership: ReturnType<typeof runTruthOwnership>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
   enforcementCoverage: Awaited<ReturnType<typeof runEnforcementCoverage>>;
   negativeProofFindings: Awaited<ReturnType<typeof resolveNegativeProofPhase>>["findings"];
@@ -43,6 +45,7 @@ function collectInspectorFindings(input: {
     ...input.required.findings,
     ...input.forbidden.findings,
     ...input.boundary.findings,
+    ...input.truthOwnership.findings,
     ...input.antiEscape.findings,
     ...input.enforcementCoverage.findings,
     ...input.negativeProofFindings,
@@ -54,6 +57,7 @@ function collectInspectorPhases(input: {
   required: Awaited<ReturnType<typeof runRequiredShape>>;
   forbidden: Awaited<ReturnType<typeof runForbiddenShape>>;
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
+  truthOwnership: ReturnType<typeof runTruthOwnership>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
   enforcementCoverage: Awaited<ReturnType<typeof runEnforcementCoverage>>;
   negativeProofPhase: Awaited<ReturnType<typeof resolveNegativeProofPhase>>["phase"];
@@ -63,6 +67,7 @@ function collectInspectorPhases(input: {
     input.required.phase,
     input.forbidden.phase,
     input.boundary.phase,
+    input.truthOwnership.phase,
     input.antiEscape.phase,
     input.enforcementCoverage.phase,
     input.negativeProofPhase,
@@ -79,13 +84,14 @@ export async function inspectPageStateCapability(context: InspectorContext): Pro
   const required = await runRequiredShape(project);
   const forbidden = await runForbiddenShape(project);
   const boundary = await runBoundaryAttack(project);
+  const truthOwnership = runTruthOwnership(project);
   const antiEscape = await runAntiEscape(project);
   const enforcementCoverage = await runEnforcementCoverage(context);
   const negativeProof = await resolveNegativeProofPhase();
   const negativeProofFindings = negativeProof.findings;
   const negativeProofPhase = negativeProof.phase;
-  const findings = collectInspectorFindings({ base, required, forbidden, boundary, antiEscape, enforcementCoverage, negativeProofFindings });
-  const phases = collectInspectorPhases({ base, required, forbidden, boundary, antiEscape, enforcementCoverage, negativeProofPhase });
+  const findings = collectInspectorFindings({ base, required, forbidden, boundary, truthOwnership, antiEscape, enforcementCoverage, negativeProofFindings });
+  const phases = collectInspectorPhases({ base, required, forbidden, boundary, truthOwnership, antiEscape, enforcementCoverage, negativeProofPhase });
 
   return finalizeInspectorResult({
     inspector: "GrassEye Page State Capability Owner Inspector",
@@ -94,7 +100,7 @@ export async function inspectPageStateCapability(context: InspectorContext): Pro
     findings,
     phases,
     summary: findings.length === 0
-      ? "page-state owner inspector passed required, forbidden, boundary, anti-escape, enforcement-coverage, and negative-proof phases"
+      ? "page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases"
       : "page-state owner inspector found capability-boundary, enforcement, or governance violations",
   });
 }

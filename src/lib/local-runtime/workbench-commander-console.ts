@@ -12,16 +12,18 @@ type CommanderConsoleAbilityGroup = ReturnType<typeof createCommanderConsoleAbil
 
 export const createWorkbenchCommanderConsole = (
   runtime: WorkbenchRuntime,
-): CommanderConsoleAbilityGroup =>
-  createCommanderConsoleAbilityGroup({
+): CommanderConsoleAbilityGroup => {
+  const missionSelectionState = { lastMissionId: null };
+  return createCommanderConsoleAbilityGroup({
     defaultOperatorRef: "commander-console:operator",
-    commandTransport: createCommandTransport(runtime),
-    missionReadModel: createMissionReadModel(runtime),
+    commandTransport: createCommandTransport(runtime, missionSelectionState),
+    missionReadModel: createMissionReadModel(runtime, missionSelectionState),
     forensicsReadModel: createForensicsReadModel(runtime),
     capabilityHealthReadModel: createCapabilityHealthReadModel(runtime),
     auditReadModel: createAuditReadModel(),
     runtimeProofReadModel: createRuntimeProofReadModel(runtime),
   });
+};
 
 export const getCommanderConsoleSnapshot = async (
   runtime: WorkbenchRuntime,

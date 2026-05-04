@@ -11,7 +11,7 @@ const collectRequiredDomainFindings = (
 ): Finding[] => {
   const findings: Finding[] = [];
 
-  if (!context.phaseGate.activeCapabilityDomains.includes(capabilityDomain)) {
+  if (!context.phaseGate.activeLawDomains.includes(capabilityDomain)) {
     findings.push(
       createFinding({
         lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -44,7 +44,7 @@ const collectDeletedOwnerFindings = (
 ): Finding[] => {
   const findings: Finding[] = [];
 
-  if (context.phaseGate.activeCapabilityDomains.includes(deletedOwnerDomain)) {
+  if (context.phaseGate.activeLawDomains.includes(deletedOwnerDomain)) {
     findings.push(
       createFinding({
         lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -87,7 +87,7 @@ export const validateRequiredPhaseDomains = async (
   const findings: Finding[] = [];
   const frozenBaseline = await loadFrozenBaselineDomains();
   const lawDomains = [...new Set(context.lawRegistry.laws.map((law) => law.capabilityDomain))].sort();
-  const requiredPhaseDomains = [...new Set([...frozenBaseline.activeCapabilityDomains, ...lawDomains])].sort();
+  const requiredPhaseDomains = [...new Set([...frozenBaseline.activeLawDomains, ...lawDomains])].sort();
 
   for (const capabilityDomain of requiredPhaseDomains) {
     findings.push(...collectRequiredDomainFindings(context, capabilityDomain));

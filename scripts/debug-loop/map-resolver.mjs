@@ -1,9 +1,12 @@
+import { access } from "node:fs/promises";
+import path from "node:path";
+
 import { runCommand } from "./command-runner.mjs";
-import { getRepoRoot } from "./path-policy.mjs";
+import { getDebugLoopDir, getRepoRoot } from "./path-policy.mjs";
 
 const SNAPSHOT_SCRIPT = [
-  "import { getDevelopmentMapPluginRegistry } from './src/map-plugins/registry/map-plugin-registry.ts';",
-  "const registry = getDevelopmentMapPluginRegistry();",
+  "import { getLocalAppShellMapRegistry } from './src/lib/local-app-shell/local-app-shell-map-registry.ts';",
+  "const registry = getLocalAppShellMapRegistry();",
   "const payload = registry.active.listActivePackages().map((mapPackage) => ({",
   "  packageId: mapPackage.manifest.packageId,",
   "  packageVersion: mapPackage.manifest.packageVersion,",
@@ -23,14 +26,15 @@ const SNAPSHOT_SCRIPT = [
   "console.log(JSON.stringify(payload));",
 ].join(" ");
 
+const MAP_AUTHORING_PUBLIC_CONTRACT_PATH = path.join(getDebugLoopDir(), "map-authoring-public-contract.mjs");
+
 const MAP_MODE_BLOCKERS = {
-  "generate-draft-map": ["BLOCKED_MAP_AUTHORING_NOT_IMPLEMENTED", "Map authoring public contract is not implemented."],
   "activate-existing-draft": ["BLOCKED_MAP_VALIDATION_INCOMPLETE", "Map validation, approval, and activation pipeline is incomplete for this mode."],
   "builtin-seed-map": ["BLOCKED_MAP_VALIDATION_INCOMPLETE", "Map validation, approval, and activation pipeline is incomplete for this mode."],
 };
 
-function buildBlockedResult(decision, rootCause) {
-  return { status: "blocked", decision, rootCause };
+function buildBlockedResult(decision, rootCause, metadata = null) {
+  return { status: "blocked", decision, rootCause, metadata };
 }
 
 async function readActiveMapSnapshot() {
@@ -78,6 +82,128 @@ function buildResolvedResult(entry) {
   };
 }
 
+async function pathExists(targetPath) {
+  try {
+    await access(targetPath);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function resolveAuthoringArtifactDir(input) {
+  if (typeof input.iterationDir === "string" && input.iterationDir.length > 0) {
+    return input.iterationDir;
+  }
+
+  return path.join(getRepoRoot(), ".debug-loop", "adhoc", input.scenario.scenarioId);
+}
+
+function resolveGeneratedMapPath(scenario) {
+  const candidate = scenario.mapRequirement?.generatedMapPath ?? null;
+  if (typeof candidate !== "string" || candidate.length === 0) {
+    return null;
+  }
+
+  return path.isAbsolute(candidate) ? candidate : path.join(getRepoRoot(), candidate);
+}
+
+function tryParseJson(text) {
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch (error) {
+    return { ok: false, errorMessage: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function buildAuthoringArtifacts(input) {
+  const artifactDir = resolveAuthoringArtifactDir(input);
+  const result = await runCommand(
+    process.execPath,
+    ["--import", "tsx", MAP_AUTHORING_PUBLIC_CONTRACT_PATH, "--scenario", JSON.stringify(input.scenario), "--artifactDir", artifactDir],
+    { cwd: getRepoRoot() },
+  );
+  const parsed = tryParseJson(result.stdout);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      decision: "BLOCKED_AUTHORING_INPUT_INCOMPLETE",
+      rootCause: result.failureReason ?? result.stderr ?? `Failed to parse map authoring public contract output: ${parsed.errorMessage}`,
+      metadata: { artifactDir },
+    };
+  }
+
+  if (parsed.value.status !== "ready") {
+    return {
+      ok: false,
+      decision: parsed.value.decision ?? "BLOCKED_AUTHORING_INPUT_INCOMPLETE",
+      rootCause: parsed.value.reason ?? "Map authoring public contract did not return ready status.",
+      metadata: parsed.value,
+    };
+  }
+
+  return {
+    ok: true,
+    metadata: {
+      artifactDir,
+      ...parsed.value,
+    },
+  };
+}
+
+async function resolveGenerateDraftMapMode(input) {
+  const authoring = await buildAuthoringArtifacts(input);
+  if (!authoring.ok) {
+    return buildBlockedResult(authoring.decision, authoring.rootCause, authoring.metadata ?? null);
+  }
+
+  const snapshot = await readActiveMapSnapshot();
+  if (snapshot.ok) {
+    const entry = findMatchingMapEntry(snapshot.entries, input.scenario.mapRequirement.taskTemplateId, input.scenario.platformId);
+    const entryBlock = resolveEntryBlock(entry, input);
+    if (!entryBlock && entry) {
+      return {
+        ...buildResolvedResult(entry),
+        metadata: authoring.metadata,
+      };
+    }
+  }
+
+  const generatedMapPath = resolveGeneratedMapPath(input.scenario);
+  if (!generatedMapPath) {
+    return buildBlockedResult(
+      "BLOCKED_AUTHORING_INPUT_INCOMPLETE",
+      "generate-draft-map requires scenario.mapRequirement.generatedMapPath.",
+      authoring.metadata,
+    );
+  }
+
+  const generatedMapExists = await pathExists(generatedMapPath);
+  if (!generatedMapExists) {
+    return buildBlockedResult(
+      "BLOCKED_CODEX_MAP_GENERATION_REQUIRED",
+      `Map authoring prompt created at ${authoring.metadata.promptPath}. Generate the governed map package at ${generatedMapPath} using ${authoring.metadata.inputPackagePath}.`,
+      {
+        ...authoring.metadata,
+        generatedMapPath,
+      },
+    );
+  }
+
+  return buildBlockedResult(
+    "BLOCKED_MAP_VALIDATION_INCOMPLETE",
+    `Draft map package exists at ${generatedMapPath}, but debug-loop activation for generate-draft-map is not wired yet.`,
+    {
+      ...authoring.metadata,
+      generatedMapPath,
+    },
+  );
+}
+
 function resolveModeResult(mode) {
   if (mode === "none") {
     return { status: "resolved", decision: null, rootCause: null, binding: null };
@@ -117,6 +243,10 @@ function resolveEntryBlock(entry, input) {
 
 export async function resolveScenarioMapBinding(input) {
   const mode = input.scenario.mapRequirement?.mode ?? "none";
+  if (mode === "generate-draft-map") {
+    return resolveGenerateDraftMapMode(input);
+  }
+
   const modeResult = resolveModeResult(mode);
   if (modeResult) {
     return modeResult;

@@ -2,10 +2,15 @@ import type { Finding, InspectorContext, InspectorPhase } from "../../core/schem
 import { getAuditProject } from "../../core/ts-morph.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 import { inspectCodeTopology } from "../code-topology/components/inspect-code-topology.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
+import { runNegativeProofWiringChecks } from "./run-negative-proof-wiring-checks.js";
 import { runAbilityContractChecks } from "./run-ability-contract-checks.js";
 import { runBoundaryImportChecks } from "./run-boundary-import-checks.js";
 import { runOwnerRuntimeProofChecks } from "./run-owner-runtime-proof-checks.js";
+import { runPackageAuditScriptChecks } from "./run-package-audit-script-checks.js";
 import { runRetiredRootChecks } from "./run-retired-root-checks.js";
+
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_CAPABILITY_GROUP_GOVERNANCE_NEGATIVE_PROOF";
 
 export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
   inspector: "GrassEye Capability Group Governance Owner Inspector",
@@ -17,6 +22,7 @@ export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
     ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
     "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
     "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md",
+    "scripts/audit/domains/capability-group-governance/negative-proof-harness.ts",
   ],
   pendingSummary: "capability-group-governance owner surface is missing law or blueprint truth",
   implementedSummary: "capability-group-governance owner surface enforces constitutional boundaries and topology checks",
@@ -24,6 +30,10 @@ export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
     const project = getAuditProject();
     const findings: Finding[] = [];
     const phases: InspectorPhase[] = [];
+
+    const packageAuditScriptChecks = await runPackageAuditScriptChecks();
+    findings.push(...packageAuditScriptChecks.findings);
+    phases.push(...packageAuditScriptChecks.phases);
 
     const retiredRootChecks = await runRetiredRootChecks(project);
     findings.push(...retiredRootChecks.findings);
@@ -41,9 +51,27 @@ export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
     findings.push(...ownerRuntimeProofChecks.findings);
     phases.push(...ownerRuntimeProofChecks.phases);
 
+    const negativeProofWiring = await runNegativeProofWiringChecks(project);
+    findings.push(...negativeProofWiring.findings);
+    phases.push(...negativeProofWiring.phases);
+
     const topology = await inspectCodeTopology(context);
     findings.push(...topology.findings);
     phases.push(...topology.phases);
+
+    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+      ? {
+          findings: [],
+          phase: {
+            name: "negative-proof-harness",
+            classification: "PASS" as const,
+            passed: true,
+            summary: "Capability-group-governance negative-proof harness was skipped for nested inspector execution.",
+          },
+        }
+      : await runNegativeProofHarness();
+    findings.push(...negativeProof.findings);
+    phases.push(negativeProof.phase);
 
     return { findings, phases };
   },

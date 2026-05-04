@@ -19,10 +19,9 @@
     "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2"
   ],
   "readsLawFiles": [
-    ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md"
+    ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md"
   ],
   "readsBlueprintFiles": [
-    "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md"
+    "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md"
   ]
 }

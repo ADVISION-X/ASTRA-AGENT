@@ -43,4 +43,4 @@ export {
 	OpenUrlSafetyDecisionSchema,
 	PostOpenStateDecisionSchema,
 } from "./schema-runtime.js";
-export { OpenResultSchema, OpenRuntimeProofSchema } from "./schema-proof.js";
+export { OpenResultBaseSchema, OpenResultSchema, OpenRuntimeProofSchema } from "./schema-proof.js";

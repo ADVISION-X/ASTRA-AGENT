@@ -1,0 +1,24 @@
+{
+  "inspectorId": "debug-loop-boundary-owner",
+  "capabilityDomain": "debug-loop-boundary",
+  "owner": true,
+  "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "allowedLawIds": [
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
+    "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Debug Loop Boundary 调试程序边界施工图.md"
+  ]
+}

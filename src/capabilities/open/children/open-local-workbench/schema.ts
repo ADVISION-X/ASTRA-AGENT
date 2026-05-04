@@ -6,15 +6,15 @@ import {
   OpenOutputPolicySchema,
   OpenProofPolicySchema,
   OpenRequestSchema,
-  OpenResultSchema,
+  OpenResultBaseSchema,
   OpenTargetProfileSchema,
 } from "../../schema.js";
 
-export const OpenLocalWorkbenchRequestSchema = OpenRequestSchema.and(z.object({
+export const OpenLocalWorkbenchRequestSchema = OpenRequestSchema.extend({
   childCapabilityId: z.literal("open-local-workbench"),
   platformId: z.literal("local-workbench"),
   targetKind: z.literal("local-workbench"),
-}).strict());
+}).strict();
 
 export const OpenLocalWorkbenchBoundaryPolicySchema = OpenBoundaryPolicySchema.extend({
   allowedCaller: z.tuple([z.literal("orchestration"), z.literal("nerve-bus")]),
@@ -38,8 +38,8 @@ export const OpenLocalWorkbenchTargetProfileSchema = OpenTargetProfileSchema.ext
   failurePolicy: OpenLocalWorkbenchFailurePolicySchema,
 }).strict();
 
-export const OpenLocalWorkbenchResultSchema = OpenResultSchema.and(z.object({
+export const OpenLocalWorkbenchResultSchema = OpenResultBaseSchema.extend({
   childCapabilityId: z.literal("open-local-workbench"),
   platformId: z.literal("local-workbench"),
   targetKind: z.literal("local-workbench"),
-}).strict());
+}).strict();

@@ -9,14 +9,34 @@ import { LAW_IDS } from "./config.js";
 type Mutation = {
   name: string;
   file: string;
-  search: string;
-  replace: string;
+  mode?: "replace" | "write";
+  search?: string;
+  replace?: string;
+  content?: string;
 };
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/screenshot-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
+  {
+    name: "historical screenshot drawer resurrection mutation",
+    file: "src/app/platform-action-screenshot-drawer-active-owner.ts",
+    mode: "write",
+    content: "export const screenshotDrawerOwner = true;\n",
+  },
+  {
+    name: "local-ai screenshot artifact helper mutation",
+    file: "src/lib/local-ai/resize-screenshot-artifact-helper.ts",
+    mode: "write",
+    content: "export const resizeScreenshotArtifactScaleMapping = () => \"ai_input\";\n",
+  },
+  {
+    name: "browser capture outside adapter mutation",
+    file: "src/lib/local-runtime/direct-screenshot-region-capture.ts",
+    mode: "write",
+    content: "import type { BrowserController } from \"../browser/browser-controller.js\";\n\nexport async function captureOutsideScreenshotAdapter(browserController: BrowserController) {\n  return browserController.screenshotRegion({ regionLabel: \"probe\" });\n}\n",
+  },
   {
     name: "export-star escape mutation",
     file: "src/capabilities/screenshot/index.ts",
@@ -171,7 +191,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Screenshot negative-proof harness rejects export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, nullable chain regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
+    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, nullable chain regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",

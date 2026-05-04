@@ -4,6 +4,7 @@ import { geometryGuardInspectionUtils as support } from "./inspection-utils.js";
 import { loadGeometryPresenceState } from "./presence-state.js";
 import { buildGeometryFindings, createGeometryPhaseState } from "./run-geometry-findings.js";
 import { getGeometryForbiddenState } from "./run-geometry-forbidden-checks.js";
+import { runLawOwnershipChecks } from "./run-law-ownership-checks.js";
 import {
   createGeometrySourceState,
   getGeometryChildImplementationViolations,
@@ -12,6 +13,7 @@ import {
 
 export async function runGeometryGuardChecks() {
   const project = createAuditProject();
+  const lawOwnership = runLawOwnershipChecks(project);
   const geometryFiles = support.collectGeometryFiles(project);
   const presenceState = await loadGeometryPresenceState(project);
   const sourceState = createGeometrySourceState(project);
@@ -27,7 +29,13 @@ export async function runGeometryGuardChecks() {
   });
 
   return {
-    findings: buildGeometryFindings({ requiredPresence: presenceState.requiredPresence, forbiddenPresence: presenceState.forbiddenPresence, requiredShapeState, forbiddenState, childImplementationViolations }),
-    phases: createGeometryPhaseState(requiredShapeState.requiredShapePassed, forbiddenState),
+    findings: [
+      ...buildGeometryFindings({ requiredPresence: presenceState.requiredPresence, forbiddenPresence: presenceState.forbiddenPresence, requiredShapeState, forbiddenState, childImplementationViolations }),
+      ...lawOwnership.findings,
+    ],
+    phases: [
+      ...createGeometryPhaseState(requiredShapeState.requiredShapePassed, forbiddenState),
+      lawOwnership.phase,
+    ],
   };
 }

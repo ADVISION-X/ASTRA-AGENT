@@ -47,6 +47,18 @@ function createLocalAiReadinessError(viewModel: CommanderConsoleViewModel, detai
   };
 }
 
+function createStartupReadinessError(viewModel: CommanderConsoleViewModel, detail: string, failureReason: string | null, missionRuntimeAvailable: boolean | undefined): ActionableErrorView {
+  return {
+    id: "startup-readiness",
+    tone: missionRuntimeAvailable === false ? "blocked" : "attention",
+    title: localizeCommanderText(viewModel.locale, "启动门禁状态异常", "Startup readiness gate is not healthy"),
+    whatHappened: localizeCommanderText(viewModel.locale, "控制台当前读取到的启动门禁状态不满足可安全放行任务运行的条件。", "The console is reading a startup gate state that is not safe for mission runtime availability."),
+    why: failureReason ? `${failureReason}; ${detail}` : detail,
+    nextAction: localizeCommanderText(viewModel.locale, "使用显式 platform 重新执行 grasseye:start，确认 startup gate、平台目标和本地 AI readiness 都通过。", "Relaunch via grasseye:start with an explicit platform target and confirm the startup gate, platform target, and local AI readiness all pass."),
+    owner: "Startup Entrypoint / Commander Console / AI Capability",
+  };
+}
+
 function createMissionBindingError(input: {
   viewModel: CommanderConsoleViewModel;
   detail: string;
@@ -112,9 +124,13 @@ function collectHealthErrors(viewModel: CommanderConsoleViewModel, hasAiFailure:
   const items: ActionableErrorView[] = [];
   const missionBindingHealth = viewModel.capabilityHealth.find((entry) => entry.id === "mission" && entry.tone !== "good");
   const localAiHealth = viewModel.capabilityHealth.find((entry) => entry.id === "localAi" && entry.tone === "danger");
+  const startupReadinessHealth = viewModel.capabilityHealth.find((entry) => entry.id === "startup-readiness" && entry.tone !== "good");
 
   if (!hasAiFailure && localAiHealth) {
     items.push(createLocalAiReadinessError(viewModel, localAiHealth.detail));
+  }
+  if (startupReadinessHealth) {
+    items.push(createStartupReadinessError(viewModel, startupReadinessHealth.detail, startupReadinessHealth.failureReason ?? null, startupReadinessHealth.missionRuntimeAvailable));
   }
   if (missionBindingHealth) {
     items.push(createMissionBindingError({

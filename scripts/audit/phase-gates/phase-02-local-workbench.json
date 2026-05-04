@@ -1,6 +1,6 @@
 {
   "phase": "phase-02-local-workbench",
-  "activeCapabilityDomains": [
+  "activeLawDomains": [
     "audit-system",
     "capability-group-governance",
     "type-safety",

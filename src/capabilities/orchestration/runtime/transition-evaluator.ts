@@ -17,9 +17,22 @@ type MissionStepResultRecord = z.output<typeof MissionStepResultSchema>;
 type TransitionOperator = OperationalMap["transitions"][number]["condition"]["operator"];
 type NumericConditionOperator = Extract<TransitionOperator, "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow">;
 type DirectConditionOperator = Exclude<TransitionOperator, NumericConditionOperator>;
+type TransitionConditionValue = string | number | boolean | null;
 
-function resolveConditionValue(result: MissionStepResultRecord, leftRef: "status" | "decision"): string | boolean | null {
-  return leftRef === "status" ? result.status : result.decision ?? null;
+function resolveConditionValue(result: MissionStepResultRecord, leftRef: string): { supported: boolean; actual: TransitionConditionValue } {
+  if (leftRef === "status") {
+    return { supported: true, actual: result.status };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(result.branchFieldValues, leftRef)) {
+    return { supported: true, actual: result.branchFieldValues[leftRef] ?? null };
+  }
+
+  if (leftRef === "decision") {
+    return { supported: true, actual: result.decision ?? null };
+  }
+
+  return { supported: false, actual: null };
 }
 
 function toNumericValue(value: string | number | boolean | null): number | null {
@@ -39,7 +52,7 @@ function isNumericOperator(operator: TransitionOperator): operator is NumericCon
 
 function matchesNumericCondition(input: {
   operator: OperationalMap["transitions"][number]["condition"]["operator"];
-  actual: string | boolean | null;
+  actual: TransitionConditionValue;
   expected: string | number | boolean | null;
 }): boolean {
   const numericActual = toNumericValue(input.actual);
@@ -54,7 +67,7 @@ function matchesNumericCondition(input: {
 }
 
 const DIRECT_CONDITION_MATCHERS: Record<DirectConditionOperator, (input: {
-  actual: string | boolean | null;
+  actual: TransitionConditionValue;
   expected: string | number | boolean | null;
   result: MissionStepResultRecord;
 }) => boolean> = {
@@ -68,7 +81,7 @@ const DIRECT_CONDITION_MATCHERS: Record<DirectConditionOperator, (input: {
 
 function matchesDirectCondition(input: {
   operator: DirectConditionOperator;
-  actual: string | boolean | null;
+  actual: TransitionConditionValue;
   expected: string | number | boolean | null;
   result: MissionStepResultRecord;
 }): boolean {
@@ -79,11 +92,14 @@ function matchesTransitionCondition(input: {
   condition: OperationalMap["transitions"][number]["condition"];
   result: MissionStepResultRecord;
 }): boolean {
-  const actual = resolveConditionValue(input.result, input.condition.leftRef);
+  const resolved = resolveConditionValue(input.result, input.condition.leftRef);
+  if (!resolved.supported) {
+    return false;
+  }
 
   return isNumericOperator(input.condition.operator)
-    ? matchesNumericCondition({ operator: input.condition.operator, actual, expected: input.condition.rightValue })
-    : matchesDirectCondition({ operator: input.condition.operator, actual, expected: input.condition.rightValue, result: input.result });
+    ? matchesNumericCondition({ operator: input.condition.operator, actual: resolved.actual, expected: input.condition.rightValue })
+    : matchesDirectCondition({ operator: input.condition.operator, actual: resolved.actual, expected: input.condition.rightValue, result: input.result });
 }
 
 function findMatchingTransitions(input: {

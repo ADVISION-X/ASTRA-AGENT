@@ -21,12 +21,27 @@ type HumanCommandDispatchCommand = {
   maxMinutes: number | null;
   operatorNote: string | null;
   targetRecordRef: HumanCommandDispatchTargetRecordRef | null;
+  payload?: unknown;
 };
 
 type HumanCommandTransportResultEnvelope = {
   status: "success" | "failed" | "review_required";
   failureReason: string | null;
   reviewRequiredReason: string | null;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+const readStartMissionPayloadField = (
+  command: HumanCommandDispatchCommand,
+  key: "targetUrl" | "targetTitle" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef",
+) => {
+  if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
+    return null;
+  }
+
+  const value = command.payload[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
 };
 
 type HumanCommandChain = {
@@ -67,6 +82,12 @@ const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => 
   maxMinutes: command.maxMinutes ?? null,
   operatorNote: command.operatorNote ?? null,
   targetRecordId: command.targetRecordRef?.recordId ?? null,
+  targetUrl: readStartMissionPayloadField(command, "targetUrl"),
+  targetTitle: readStartMissionPayloadField(command, "targetTitle"),
+  sourceEvidenceRef: readStartMissionPayloadField(command, "sourceEvidenceRef"),
+  sourceTargetRef: readStartMissionPayloadField(command, "sourceTargetRef"),
+  promptInputRef: readStartMissionPayloadField(command, "promptInputRef"),
+  commandInputRef: readStartMissionPayloadField(command, "commandInputRef"),
 });
 
 const buildHumanCommandInputPayload = (command: HumanCommandDispatchCommand) => {

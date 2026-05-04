@@ -1,6 +1,53 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { hashTextValue } from "../../capabilities/text-input/shared/text-input-types.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
+
+const collectPayloadEvidenceRefs = (payload: Record<string, string | number | boolean | null>) => {
+  return [
+    payloadValueToString(payload.sourceEvidenceRef),
+    payloadValueToString(payload.screenshotEvidenceRef),
+    payloadValueToString(payload.commentsEvidenceRef),
+  ].filter((value): value is string => Boolean(value));
+};
+
+const resolveGovernedTextSeed = (
+  envelope: AbilityCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+) => {
+  const commandInputText = payloadValueToString(payload.commandInputRef);
+  if (commandInputText) {
+    return {
+      text: commandInputText,
+      sourceKey: "commandInputRef",
+      sourceRef: `${envelope.inputRef}:command-input`,
+    };
+  }
+
+  const promptInputText = payloadValueToString(payload.promptInputRef);
+  if (promptInputText) {
+    return {
+      text: promptInputText,
+      sourceKey: "promptInputRef",
+      sourceRef: `${envelope.inputRef}:prompt-input`,
+    };
+  }
+
+  const targetUrlText = payloadValueToString(payload.targetUrl);
+  if (targetUrlText) {
+    return {
+      text: targetUrlText,
+      sourceKey: "targetUrl",
+      sourceRef: `${envelope.inputRef}:target-url`,
+    };
+  }
+
+  return {
+    text: null,
+    sourceKey: "missing",
+    sourceRef: `${envelope.inputRef}:missing-text-source`,
+  };
+};
 
 export const buildScreenshotCommand = (
   envelope: AbilityCommandEnvelope,
@@ -102,22 +149,42 @@ export const buildTextInputCommand = (
   const payload = payloadDocumentToObject(inputPayload);
   const geometryProofRef = payloadValueToString(payload.geometryProofRef) ?? envelope.inputRef;
   const targetRef = payloadValueToString(payload.sourceTargetRef) ?? envelope.inputRef;
+  const governedText = resolveGovernedTextSeed(envelope, payload);
+  const textValue = governedText.text ?? "";
+  const textHash = hashTextValue(textValue);
+  const approvedTextApprovalRef = `${envelope.inputRef}:approved-text-approval`;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "text-input",
     childCapabilityId: "type-text",
+    missionId: envelope.missionId,
+    runId: envelope.runId,
     sessionId: envelope.missionId,
     roundId: envelope.stepId,
     videoVisitId: null,
+    stepId: envelope.stepId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.selectedMapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationId: envelope.activationId,
+    activationSnapshotRef: envelope.activationSnapshotRef,
+    capabilityCallId: envelope.capabilityCallId,
+    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
     requestedBy: "orchestration",
     purpose: inputPayload.summary,
     sourceAbilityGroupId: "orchestration",
     sourceChildCapabilityId: envelope.commandName,
-    sourceOwner: "map-plugin",
+    sourceOwner: "orchestration",
     sourceProofRef: envelope.inputRef,
+    sourceRef: governedText.sourceRef,
+    inputRef: envelope.inputRef,
+    idempotencyKey: envelope.idempotencyKey,
+    inputTargetRef: targetRef,
     targetRef,
     targetProofRef: geometryProofRef,
     targetProofOwner: "geometry-guard",
     targetKind: "commentComposer",
+    targetEvidenceRefs: collectPayloadEvidenceRefs(payload),
     focusProofRef: envelope.inputRef,
     focusProofOwner: "post-action-verification",
     focusVerifiedAt: envelope.createdAt,
@@ -126,13 +193,15 @@ export const buildTextInputCommand = (
     postActionFocusVerificationRef: envelope.inputRef,
     operatorApprovalRef: null,
     humanApprovalRef: null,
-    mapPolicyApprovalRef: envelope.mapId,
-    inputText: "governed text input",
-    inputTextRef: `${envelope.inputRef}:input-text`,
-    inputTextHash: "sha256:governed-text-input",
-    approvedText: "governed text input",
-    approvedTextRef: `${envelope.inputRef}:approved-text`,
-    approvedTextHash: "sha256:governed-text-input",
+    mapPolicyApprovalRef: `${envelope.mapId}:map-policy-approval`,
+    inputText: governedText.text,
+    inputTextRef: `${governedText.sourceRef}:input-text`,
+    inputTextHash: textHash,
+    approvedText: governedText.text,
+    approvedTextRef: `${governedText.sourceRef}:approved-text`,
+    approvedTextHash: textHash,
+    approvedTextSourceRef: governedText.sourceRef,
+    approvedTextApprovalRef,
     approvedCommitRef: null,
   }));
 };

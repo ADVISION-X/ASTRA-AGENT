@@ -1,5 +1,7 @@
 import type { AiRuntimeExecutionOutput, AiRuntimeHealth, ParsedAiAbilityInput } from "../contract.js";
+import type { AiClockPort } from "../ports/ai-clock-port.js";
 import type { AiRuntimeExecuteOptions, AiRuntimePort } from "../ports/ai-runtime-port.js";
+import { createSystemAiClock } from "../runtime/ai-clock.js";
 import { AiRuntimeHealthSchema } from "../schema.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 import {
@@ -18,6 +20,7 @@ import {
 
 type ExternalProviderRuntimeInput = {
   dataDir?: string | null;
+  clock?: AiClockPort;
 };
 
 type RuntimeState = {
@@ -40,6 +43,7 @@ function buildHealth(input: {
   model: string | null;
   detail: string;
   state: RuntimeState;
+  checkedAt: string;
 }): AiRuntimeHealth {
   const model = input.model ?? "not-configured";
   return AiRuntimeHealthSchema.parse({
@@ -58,7 +62,7 @@ function buildHealth(input: {
       productSignal: model,
     },
     availableModels: input.model ? [input.model] : [],
-    lastCheckedAt: new Date().toISOString(),
+    lastCheckedAt: input.checkedAt,
     failureReason: input.overallStatus === "ready" ? null : input.detail,
     lastTaskType: input.state.lastTaskType,
     lastFailureReason: input.state.lastFailureReason,
@@ -144,7 +148,7 @@ function buildExternalProviderOutput(
   request: ParsedAiAbilityInput,
   configModel: string,
   payload: unknown,
-  startedAt: number,
+  timing: { createdAt: string; gatewayDurationMs: number },
 ): AiRuntimeExecutionOutput {
   const parsedResponse = parseExternalProviderResponseText(payload);
   if (!parsedResponse.text) {
@@ -167,13 +171,15 @@ function buildExternalProviderOutput(
     modelName: parsedResponse.model ?? configModel,
     responseId: parsedResponse.responseId,
     normalizedOutput: normalizedOutput.value,
-    startedAt,
+    createdAt: timing.createdAt,
+    gatewayDurationMs: timing.gatewayDurationMs,
   });
 }
 
 async function callExternalProvider(
   request: ParsedAiAbilityInput,
   input: ExternalProviderRuntimeInput,
+  clock: AiClockPort,
   options?: AiRuntimeExecuteOptions,
 ): Promise<AiRuntimeExecutionOutput> {
   if (!input.dataDir) {
@@ -197,14 +203,20 @@ async function callExternalProvider(
     });
   }
 
-  const startedAt = Date.now();
+  const started = clock.startRun();
   const payloadResult = await requestExternalPayload(config, messages, options);
+  const ended = clock.finishRun(started);
   return payloadResult.ok
-    ? buildExternalProviderOutput(request, config.model, payloadResult.payload, startedAt)
+    ? buildExternalProviderOutput(request, config.model, payloadResult.payload, {
+        createdAt: ended.endedAt,
+        gatewayDurationMs: ended.durationMs,
+      })
     : payloadResult.output;
 }
 
-async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, state: RuntimeState) {
+async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, clock: AiClockPort, state: RuntimeState) {
+  const checkedAt = clock.finishRun(clock.startRun()).endedAt;
+
   if (!input.dataDir) {
     const health = buildHealth({
       implementationStatus: "provider_not_configured",
@@ -212,6 +224,7 @@ async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, s
       model: null,
       detail: "external provider dataDir unavailable",
       state,
+      checkedAt,
     });
     return { ok: true, detail: health.dependencies.gateway, health };
   }
@@ -225,6 +238,7 @@ async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, s
       ? `openai-compatible:${providerState.model}`
       : "openai-compatible:not-configured",
     state,
+    checkedAt,
   });
   return { ok: true, detail: health.dependencies.gateway, health };
 }
@@ -241,20 +255,21 @@ function updateRuntimeState(
 
 export function createExternalProviderRuntimePort(input: ExternalProviderRuntimeInput = {}): AiRuntimePort {
   const state = createRuntimeState();
+  const clock = input.clock ?? createSystemAiClock();
 
   return {
     async execute(request, options) {
-      const result = await callExternalProvider(request, input, options);
+      const result = await callExternalProvider(request, input, clock, options);
       updateRuntimeState(state, request, result);
       return result;
     },
 
     async getHealth() {
-      return loadExternalProviderHealth(input, state);
+      return loadExternalProviderHealth(input, clock, state);
     },
 
     async getRuntimeHealth() {
-      return (await loadExternalProviderHealth(input, state)).health;
+      return (await loadExternalProviderHealth(input, clock, state)).health;
     },
   };
 }

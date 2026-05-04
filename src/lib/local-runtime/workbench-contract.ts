@@ -3,6 +3,7 @@ import type {
   WorkbenchCommanderConsoleAbilityGroup as CommanderConsoleAbilityGroup,
   WorkbenchCommanderMissionDashboardView as CommanderMissionDashboardView,
 } from "./workbench-commander-types.js";
+import type { LocalAiStartupReadiness } from "../../types/local-ai.js";
 import type { WorkbenchEvidenceStoreService as EvidenceStoreService } from "./workbench-evidence-store-types.js";
 import type { WorkbenchLocalModelRole as LocalModelRole } from "./workbench-local-ai-role-types.js";
 import type {
@@ -20,12 +21,13 @@ import type {
   MapLabSnapshot,
 } from "./map-lab/map-lab-types.js";
 
-export type GrassEyePlatformTarget = "tiktok-web";
+export type GrassEyePlatformTarget = "tiktok-web" | "facebook-web";
 
 export type GrassEyeWorkbenchOptions = {
   dataDir?: string;
   baseUrl: string;
   platformTarget: GrassEyePlatformTarget;
+  startupReadiness?: (LocalAiStartupReadiness & { platformTarget: GrassEyePlatformTarget }) | null;
   realPlatformUrl?: string;
   browserHeadless?: boolean;
   browserProfileDirectory?: string;
@@ -106,7 +108,7 @@ type WorkbenchMissionState = {
 };
 
 type WorkbenchOrchestrationAbilityGroup = {
-  getMissionState(): Promise<WorkbenchMissionState>;
+  getMissionState(missionId?: string | null): Promise<WorkbenchMissionState>;
   startMission(input: unknown): Promise<WorkbenchMissionState>;
   pauseMission(missionId: string): Promise<WorkbenchMissionState>;
   resumeMission(missionId: string): Promise<WorkbenchMissionState>;
@@ -202,7 +204,7 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     browserProfileDirectory: string;
     browserProfileProvisioning: string;
     browserProfileVerificationStatus: string;
-    browserProfileVerificationReason: string | null;
+    browserProfileVerificationReason: string;
     loginState: string;
     lastLoginCheckAt: string | null;
     loginRequiredReason: string | null;

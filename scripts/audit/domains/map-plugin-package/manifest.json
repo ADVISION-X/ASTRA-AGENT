@@ -17,7 +17,12 @@
     "GRASSEYE-MAP-PLUGIN-009-V2",
     "GRASSEYE-MAP-PLUGIN-010-V2",
     "GRASSEYE-MAP-PLUGIN-011-V2",
-    "GRASSEYE-MAP-PLUGIN-012-V2"
+    "GRASSEYE-MAP-PLUGIN-012-V2",
+    "GRASSEYE-MAP-PLUGIN-013-V2",
+    "GRASSEYE-MAP-PLUGIN-014-V2",
+    "GRASSEYE-MAP-PLUGIN-015-V2",
+    "GRASSEYE-MAP-PLUGIN-016-V2",
+    "GRASSEYE-MAP-PLUGIN-017-V2"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
@@ -27,6 +32,8 @@
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+    "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md",
+    "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md",
     "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
     "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
     "docs/法案辅助文件/GrassEye 执法系统施工图.md",

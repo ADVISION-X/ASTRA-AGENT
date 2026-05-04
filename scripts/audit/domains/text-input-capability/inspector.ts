@@ -4,8 +4,10 @@ import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
+import { runLawBaselineCheck } from "./run-law-baseline-check.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
+import { runWriteOwnershipAttack } from "./run-write-ownership-attack.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
 
@@ -19,9 +21,11 @@ export const textInputCapabilityInspector = createPendingDomainInspector({
   implementedSummary: "text-input-capability is implemented as a governed schema-first writing execution owner with AST-backed enforcement",
   extraChecks: async () => {
     const project = makeProject();
+    const lawBaseline = await runLawBaselineCheck();
     const required = await runRequiredShapeAttack(project);
     const forbidden = runForbiddenShapeAttack(project);
     const boundary = runBoundaryAttack(project);
+    const ownership = runWriteOwnershipAttack(project);
     const antiEscape = runAntiEscapeAttack(project);
     const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
       ? {
@@ -37,16 +41,20 @@ export const textInputCapabilityInspector = createPendingDomainInspector({
 
     return {
       findings: [
+        ...lawBaseline.findings,
         ...required.findings,
         ...forbidden.findings,
         ...boundary.findings,
+        ...ownership.findings,
         ...antiEscape.findings,
         ...negativeProof.findings,
       ],
       phases: [
+        lawBaseline.phase,
         required.phase,
         forbidden.phase,
         boundary.phase,
+        ownership.phase,
         antiEscape.phase,
         negativeProof.phase,
       ],

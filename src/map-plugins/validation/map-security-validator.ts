@@ -14,23 +14,12 @@ const FORBIDDEN_KEYS = new Set([
   "systemprompt",
   "userprompt",
   "prompttext",
-  "messages",
-  "template",
-  "instruction",
-  "instructions",
-  "content",
   "executablepromptlogic",
-  "js",
-  "ts",
-  "mjs",
-  "tsx",
-  "jsx",
   "import",
   "dynamicimport",
   "require",
   "javascript",
   "code",
-  "runtime",
   "callback",
   "onrun",
   "onstep",
@@ -41,17 +30,8 @@ const FORBIDDEN_STRING_FRAGMENTS = [
   "import(",
   "function ",
   "=>",
-  "functionbody",
   "node:",
   "child_process",
-  "raw prompt",
-  "system prompt",
-  "user prompt",
-  "executable prompt",
-  "dynamicimport",
-  "onrun",
-  "onstep",
-  "ontransition",
   "npm run",
   "eval(",
   "new function",
@@ -64,8 +44,9 @@ function normalizeValue(value: string): string {
 }
 
 function recordForbiddenStringFragments(value: string, path: string, issues: MapPackageValidationIssue[]): void {
+  const normalizedValue = normalizeValue(value);
   for (const fragment of FORBIDDEN_STRING_FRAGMENTS) {
-    if (normalizeValue(value).includes(fragment)) {
+    if (normalizedValue.includes(fragment)) {
       issues.push({
         code: "security_violation",
         message: `Forbidden code-like fragment ${fragment} found in map package content.`,

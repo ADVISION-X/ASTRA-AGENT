@@ -39,7 +39,9 @@ export const OPEN_SCHEMA_VALIDATION_MARKERS = [
   "success proof requires page-state handoff",
   "failed and review_required proof must expose diagnosticPayloadRef",
   "failed and review_required result must expose diagnosticPayloadRef",
+  "failed and review_required result must not expose output",
   "success result must not expose diagnosticPayloadRef",
+  "startedMonotonicMs must not be after endedMonotonicMs",
 ] as const;
 
 const openRuntimeProofIdentityShape = {
@@ -135,7 +137,7 @@ const OpenRuntimeProofBaseSchema = z.object({
 
 export const OpenRuntimeProofSchema = OpenRuntimeProofBaseSchema.superRefine(validateOpenRuntimeProof);
 
-export const OpenResultSchema = z.object({
+export const OpenResultBaseSchema = z.object({
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID),
   childCapabilityId: OpenChildCapabilityIdSchema.nullable().default(null),
   platformId: OpenPlatformIdSchema.nullable().default(null),
@@ -166,4 +168,6 @@ export const OpenResultSchema = z.object({
   diagnosticPayloadRef: nullableString,
   dataQualityFlags: z.array(OpenDataQualityFlagSchema).default([]),
   runtimeProof: OpenRuntimeProofSchema,
-}).strict().superRefine(validateOpenResult);
+}).strict();
+
+export const OpenResultSchema = OpenResultBaseSchema.superRefine(validateOpenResult);

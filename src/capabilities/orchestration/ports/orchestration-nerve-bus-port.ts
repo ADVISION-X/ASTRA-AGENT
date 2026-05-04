@@ -2,6 +2,7 @@ import type { z } from "zod";
 
 import type {
   AllowedAbilityGroupIdSchema,
+  BranchFieldValuesSchema,
   OperationalMapIdSchema,
   PayloadRefBundleSchema,
   TransitionStatusSchema,
@@ -28,6 +29,7 @@ export type OrchestrationDispatchResult = {
   envelopeId: string;
   resultRef: string;
   decision: string | null;
+  branchFieldValues: z.output<typeof BranchFieldValuesSchema>;
   failureReason: string | null;
   payloadRefs: OrchestrationDispatchPayload;
 };

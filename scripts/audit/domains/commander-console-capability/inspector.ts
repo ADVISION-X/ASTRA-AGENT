@@ -7,6 +7,7 @@ import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { runCommanderBoundaryChecks } from "./run-commander-boundary-checks.js";
 import { runCommanderChildChecks } from "./run-commander-child-checks.js";
 import { runCommanderRuntimeChecks } from "./run-commander-runtime-checks.js";
+import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-checks.js";
 import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
@@ -58,6 +59,16 @@ const createAntiEscapePhase = (antiEscapeViolation: boolean): InspectorPhase =>
     antiEscapeViolation ? "Anti-escape violations were detected inside Commander sources." : "Anti-escape checks passed.",
   );
 
+const createStartupGatePhase = (startupGateViolation: boolean): InspectorPhase =>
+  createPhase(
+    "commander-startup-readiness-gate",
+    startupGateViolation ? "CODE VIOLATION" : "PASS",
+    !startupGateViolation,
+    startupGateViolation
+      ? "Startup local-AI readiness gate drifted: update/preflight, fail-closed ordering, or bootstrap boundaries are no longer enforced."
+      : "Startup local-AI readiness gate remains enforced through Commander owner audit.",
+  );
+
 function createCommanderPhases(input: {
   findings: Finding[];
   exportStarPresent: boolean;
@@ -66,12 +77,14 @@ function createCommanderPhases(input: {
   childExecutorReceiptCount: number;
   boundaryViolation: boolean;
   antiEscapeViolation: boolean;
+  startupGateViolation: boolean;
 }): InspectorPhase[] {
   return [
     createRequiredPhase(input.findings),
     createForbiddenPhase(input),
     createBoundaryPhase(input.boundaryViolation),
     createAntiEscapePhase(input.antiEscapeViolation),
+    createStartupGatePhase(input.startupGateViolation),
   ];
 }
 
@@ -89,7 +102,8 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
     const childFindings = runCommanderChildChecks(project);
     const runtime = runCommanderRuntimeChecks(project);
     const boundary = await runCommanderBoundaryChecks(project);
-    const findings: Finding[] = [...structure.findings, ...childFindings, ...runtime.findings, ...boundary.findings];
+    const startupGateFindings = await runStartupReadinessGateChecks();
+    const findings: Finding[] = [...structure.findings, ...childFindings, ...runtime.findings, ...boundary.findings, ...startupGateFindings];
 
     return {
       findings,
@@ -101,6 +115,7 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
         childExecutorReceiptCount: runtime.childExecutorReceiptCount,
         boundaryViolation: boundary.boundaryViolation,
         antiEscapeViolation: boundary.antiEscapeViolation,
+        startupGateViolation: startupGateFindings.length > 0,
       }),
     };
   },

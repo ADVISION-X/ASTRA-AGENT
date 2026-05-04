@@ -1,0 +1,59 @@
+{
+  "scenarioId": "facebook-safe-comment-draft-product-video",
+  "scenarioKind": "mission-runtime",
+  "description": "Author, activate, and run the Facebook safe comment draft mission until it stops at the human review gate without auto-posting.",
+  "platformId": "facebook-web",
+  "browserHeadless": false,
+  "requiresAuth": true,
+  "entryMode": "commander-public-contract",
+  "humanGoal": "Inspect Facebook Reels, detect non-product videos, draft a safe comment, and stop for human review without posting.",
+  "operatorNote": "Never publish the comment. The only acceptable terminal gate is a human review hold.",
+  "targetUrl": "https://www.facebook.com/reel/",
+  "targetTitle": "Facebook Reels",
+  "sourceTargetRef": "facebook-comment-composer",
+  "commandInputRef": "Appreciate the storytelling here. The pacing and framing kept it easy to follow.",
+  "reviewRequiredBlockingSignal": "BLOCKED_SAFE_COMMENT_REQUIRES_HUMAN_APPROVAL",
+  "mapRequirement": {
+    "mode": "generate-draft-map",
+    "taskTemplateId": "facebook-safe-comment-draft-review",
+    "platformId": "facebook-web",
+    "generatedMapPath": "src/map-plugins/builtins/facebook-safe-comment-draft-review.map-package.json",
+    "requiredPromptContracts": true,
+    "allowAutoAuthoring": false,
+    "allowDraftExecution": false,
+    "authoringContext": {
+      "rawRequirement": "Do not auto-post comments. On Facebook Reels, when the current video is judged non-product, open the comments UI, type a safe draft comment, and stop at a human review gate. Product videos or ambiguous detections must not create an auto-post path.",
+      "safeExecutableRequirement": "Open Facebook Reels in a governed real Chrome session, classify the current reel with vision.productPresence.v1, branch only to non-product safe-draft flow, type the approved draft text without submit, persist runtime proof, and end in a mandatory human review gate.",
+      "generatedMapPath": "src/map-plugins/builtins/facebook-safe-comment-draft-review.map-package.json"
+    }
+  },
+  "expectedChain": [
+    "commander-console",
+    "nerve-bus",
+    "orchestration",
+    "open",
+    "page-state",
+    "screenshot",
+    "ai",
+    "visual-target",
+    "geometry-guard",
+    "mouse-click",
+    "post-action-verification",
+    "text-input",
+    "forensics-persistence"
+  ],
+  "successSignals": [
+    "missionStatus=review_required",
+    "humanReviewGateReached=true",
+    "safeDraftPrepared=true"
+  ],
+  "blockingSignals": [
+    "AUTH_REQUIRED",
+    "CAPTCHA_REQUIRED",
+    "SECURITY_CHECK_REQUIRED",
+    "PROFILE_INVALID",
+    "SESSION_EXPIRED",
+    "BLOCKED_SAFE_COMMENT_REQUIRES_HUMAN_APPROVAL"
+  ],
+  "maxRuntimeMs": 180000
+}

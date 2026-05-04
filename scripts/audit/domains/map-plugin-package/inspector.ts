@@ -3,6 +3,7 @@ import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createMapPluginAuditProject } from "./audit-project.js";
 import { runAntiEscape } from "./anti-escape.js";
+import { runAuthoringInputPackage } from "./authoring-input-package.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
@@ -29,9 +30,10 @@ const buildFoundationPhase = (foundationFindings: Awaited<ReturnType<typeof runD
 
 const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPluginAuditProject>) => {
   const required = await runRequiredShape(project);
+  const authoringInput = await runAuthoringInputPackage(project);
   const forbidden = await runForbiddenShape(project);
   const boundary = runBoundaryAttack(project);
-  return { required, forbidden, boundary };
+  return { required, authoringInput, forbidden, boundary };
 };
 
 const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginAuditProject>, context: Parameters<DomainInspector>[0]) => {
@@ -77,6 +79,7 @@ const collectFindings = (input: {
 }) => [
   ...input.foundationFindings,
   ...input.directPhases.required.findings,
+  ...input.directPhases.authoringInput.findings,
   ...input.directPhases.forbidden.findings,
   ...input.directPhases.boundary.findings,
   ...input.supplementalPhases.antiEscape.findings,
@@ -95,6 +98,7 @@ const collectPhases = (input: {
 }) => [
   input.foundationPhase,
   input.directPhases.required.phase,
+  input.directPhases.authoringInput.phase,
   input.directPhases.forbidden.phase,
   input.directPhases.boundary.phase,
   input.supplementalPhases.antiEscape.phase,

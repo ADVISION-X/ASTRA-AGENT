@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const DEFAULT_IGNORED_DIRS = new Set([".git", ".venv", "dist", "node_modules"]);
@@ -31,13 +31,14 @@ export const readJsonFile = async <T>(filePath: string): Promise<T> => {
 };
 
 export const writeJsonFile = async (filePath: string, value: unknown): Promise<void> => {
-  await ensureDirectory(path.dirname(filePath));
-  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await writeTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 };
 
 export const writeTextFile = async (filePath: string, value: string): Promise<void> => {
   await ensureDirectory(path.dirname(filePath));
-  await writeFile(filePath, value, "utf8");
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tempPath, value, "utf8");
+  await rename(tempPath, filePath);
 };
 
 export const listImmediateFiles = async (dirPath: string): Promise<string[]> => {

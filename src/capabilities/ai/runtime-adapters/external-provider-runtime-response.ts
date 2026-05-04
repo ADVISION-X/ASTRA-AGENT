@@ -60,7 +60,8 @@ export function buildExternalProviderSuccessOutput(input: {
   modelName: string;
   responseId: string | null;
   normalizedOutput: unknown;
-  startedAt: number;
+  createdAt: string;
+  gatewayDurationMs: number;
 }): AiRuntimeExecutionOutput {
   const proof = buildRawOutputProof(input.taskType, input.rawText);
   return AiRuntimeExecutionOutputSchema.parse({
@@ -69,7 +70,7 @@ export function buildExternalProviderSuccessOutput(input: {
     modelRole: "future",
     runtime: "openai-compatible",
     implementationStatus: "external_runtime",
-    createdAt: new Date().toISOString(),
+    createdAt: input.createdAt,
     confidence: resolveConfidence(input.normalizedOutput),
     costEstimate: null,
     output: input.normalizedOutput,
@@ -80,7 +81,7 @@ export function buildExternalProviderSuccessOutput(input: {
     attemptIndex: 0,
     retryCount: 0,
     circuitBreakerState: "not_applicable",
-    gatewayDurationMs: Date.now() - input.startedAt,
+    gatewayDurationMs: input.gatewayDurationMs,
     modelHealthBefore: "configured",
     modelHealthAfter: "ok",
   });

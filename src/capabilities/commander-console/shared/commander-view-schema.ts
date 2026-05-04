@@ -37,15 +37,29 @@ const CommanderRuntimeSummaryViewSchema = z.object({
 }).strict();
 
 const CommanderBrowserSummaryViewSchema = z.object({
+  dataMode: NonEmptyStringSchema,
+  platformId: NonEmptyStringSchema,
+  platformLabel: NonEmptyStringSchema,
+  realPlatformConnection: NonEmptyStringSchema,
   browserMode: NonEmptyStringSchema,
   browserExecutable: z.string().nullable(),
   browserProfileRef: NonEmptyStringSchema,
   browserProfileStatus: NonEmptyStringSchema,
+  browserProfileDirectory: NonEmptyStringSchema,
+  browserProfileProvisioning: NonEmptyStringSchema,
+  browserProfileVerificationStatus: NonEmptyStringSchema,
+  browserProfileVerificationReason: NonEmptyStringSchema,
   loginState: NonEmptyStringSchema,
+  lastLoginCheckAt: z.string().nullable(),
+  loginRequiredReason: z.string().nullable(),
+  reviewRequiredReason: z.string().nullable(),
+  storeScope: NonEmptyStringSchema,
   executionMode: NonEmptyStringSchema,
+  fallbackMode: NonEmptyStringSchema,
   geometryGuard: NonEmptyStringSchema,
   viewport: NonEmptyStringSchema,
   calibration: NonEmptyStringSchema,
+  orientation: NonEmptyStringSchema,
 }).strict();
 
 const CommanderCapabilityHealthEntrySchema = z.object({
@@ -55,6 +69,9 @@ const CommanderCapabilityHealthEntrySchema = z.object({
   detail: NonEmptyStringSchema,
   ownerResponsible: NonEmptyStringSchema.nullable().optional(),
   actionableMessage: NonEmptyStringSchema.nullable().optional(),
+  failureReason: z.string().nullable().optional(),
+  missionRuntimeAvailable: z.boolean().optional(),
+  checkedAt: z.string().nullable().optional(),
 }).strict();
 
 const CommanderCapabilityRosterEntrySchema = z.object({
@@ -94,7 +111,7 @@ const CommanderRuntimeProofTimelineEntrySchema = z.object({
 
 const CommanderAuditSummarySchema = z.object({
   phase: NonEmptyStringSchema,
-  activeCapabilityDomains: z.array(NonEmptyStringSchema),
+  activeLawDomains: z.array(NonEmptyStringSchema),
   lastGeneratedAt: z.string().nullable(),
   lastRunGeneratedAt: z.string().nullable(),
   totals: z.object({

@@ -24,6 +24,15 @@ type ActivationManifestRefs = {
   promptCatalogVersion: string;
 };
 
+type ActivationRecordInput = {
+  activationId: string;
+  mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>;
+  quarantined: QuarantinedMapRecord;
+  approvedBy: string;
+  reason: string;
+  manifestRefs: ActivationManifestRefs;
+};
+
 function createActivationFailure(reason: ActivationFailureReason): ActivationFailure {
   return { activated: false, reason };
 }
@@ -74,14 +83,7 @@ function resolveActivationManifestRefs(mapPackage: NonNullable<ReturnType<MapPlu
   };
 }
 
-function buildActivationRecord(input: {
-  activationId: string;
-  mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>;
-  quarantined: QuarantinedMapRecord;
-  approvedBy: string;
-  reason: string;
-  manifestRefs: ActivationManifestRefs;
-}) {
+function buildActivationSnapshotFields(input: ActivationRecordInput) {
   const activationSnapshotRef = buildActivationSnapshotRef({
     activationId: input.activationId,
     packageVersion: input.mapPackage.manifest.packageVersion,
@@ -103,9 +105,32 @@ function buildActivationRecord(input: {
   });
 
   return {
-    activationId: input.activationId,
     activationSnapshotRef,
     activationSnapshotHash,
+    mapPackageHash,
+    operationalMapHash,
+  };
+}
+
+function buildActivationProofFields(input: ActivationRecordInput) {
+  return {
+    importProofRef: input.quarantined.importProofRef,
+    quarantineProofRef: input.quarantined.quarantineProofRef,
+    activationProofRef: buildActivationProofRef({
+      activationId: input.activationId,
+      packageId: input.mapPackage.manifest.packageId,
+      packageVersion: input.mapPackage.manifest.packageVersion,
+    }),
+    authoringProofRef: resolveAuthoringProofRef(input.mapPackage),
+  };
+}
+
+function buildActivationRecord(input: ActivationRecordInput) {
+  const snapshotFields = buildActivationSnapshotFields(input);
+  return {
+    activationId: input.activationId,
+    activationSnapshotRef: snapshotFields.activationSnapshotRef,
+    activationSnapshotHash: snapshotFields.activationSnapshotHash,
     mapPackageId: input.mapPackage.manifest.packageId,
     mapPackageVersion: input.mapPackage.manifest.packageVersion,
     mapId: input.mapPackage.manifest.mapId,
@@ -119,12 +144,9 @@ function buildActivationRecord(input: {
     validationReportRef: input.manifestRefs.validationReportRef,
     capabilityCatalogVersion: input.manifestRefs.capabilityCatalogVersion,
     promptCatalogVersion: input.manifestRefs.promptCatalogVersion,
-    operationalMapHash,
-    mapPackageHash,
-    importProofRef: input.quarantined.importProofRef,
-    quarantineProofRef: input.quarantined.quarantineProofRef,
-    activationProofRef,
-    authoringProofRef: resolveAuthoringProofRef(input.mapPackage),
+    operationalMapHash: snapshotFields.operationalMapHash,
+    mapPackageHash: snapshotFields.mapPackageHash,
+    ...buildActivationProofFields(input),
   };
 }
 

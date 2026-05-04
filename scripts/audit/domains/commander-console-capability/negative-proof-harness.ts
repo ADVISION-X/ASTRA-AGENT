@@ -74,6 +74,66 @@ const MUTATIONS: Mutation[] = [
     search: "const payload = buildTransportPayload(parsed);",
     replace: "const payload = buildTransportPayload(parsed);\n  const escapedPayload = payload as any;",
   },
+  {
+    name: "startup local-ai gate after service mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "  const localAiReadiness = await ensureLocalAiReadiness();\n\n  await preparePort();\n  const serviceHandle = await startService(root, flags, localAiReadiness);",
+    replace: "  await preparePort();\n  const serviceHandle = await startService(root, flags, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
+  },
+  {
+    name: "startup update preflight removal mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "  await runUpdatePreflight(root, flags);\n",
+    replace: "",
+  },
+  {
+    name: "startup local-ai fail-open mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "  if (!gatePassed) {\n    throw new Error(`${readiness.failureReason ?? \"LOCAL_AI_NOT_READY\"}: ${readiness.detail}`);\n  }\n",
+    replace: "  if (!gatePassed) {\n    return readiness;\n  }\n",
+  },
+  {
+    name: "startup helper bypasses governed probe mutation",
+    file: "scripts/startup/lib/local-ai-runtime-readiness.mjs",
+    search: "const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"local-ai-runtime-readiness-probe.ts\");",
+    replace: "const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"local-ai-runtime-readiness-inline.ts\");",
+  },
+  {
+    name: "startup platform hardcode mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "      GRASSEYE_PLATFORM_TARGET: flags.platformTarget,",
+    replace: "      GRASSEYE_PLATFORM_TARGET: \"tiktok-web\",",
+  },
+  {
+    name: "startup readiness bridge removal mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "      GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),\n",
+    replace: "",
+  },
+  {
+    name: "package startup script hardcode mutation",
+    file: "package.json",
+    search: "    \"internal:app-server:dev\": \"tsx src/app/server.ts\",",
+    replace: "    \"internal:app-server:dev\": \"GRASSEYE_PLATFORM_TARGET=tiktok-web tsx src/app/server.ts\",",
+  },
+  {
+    name: "server single-platform guard mutation",
+    file: "src/app/server.ts",
+    search: "  if (value === \"tiktok-web\" || value === \"facebook-web\") {",
+    replace: "  if (value === \"tiktok-web\") {",
+  },
+  {
+    name: "server startup readiness handoff removal mutation",
+    file: "src/app/server.ts",
+    search: "  startupReadiness,\n",
+    replace: "",
+  },
+  {
+    name: "debug-loop local-ai bootstrap mutation",
+    file: "scripts/debug-loop/task-publisher.mjs",
+    search: "    \"const runtime = createWorkbenchRuntime(baseOptions);\",",
+    replace: "    \"await ensureLocalAiRuntimeReady();\",\n    \"const runtime = createWorkbenchRuntime(baseOptions);\",",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {

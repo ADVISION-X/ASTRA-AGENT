@@ -13,7 +13,11 @@ export const createWorkbenchRuntime = (
 ): WorkbenchRuntime => {
   const baseRuntime = createWorkbenchBaseRuntime(options);
   const runtime = baseRuntime as WorkbenchRuntime;
-  const mapLabService = createMapLabService(runtime);
+  let mapLabService: ReturnType<typeof createMapLabService> | null = null;
+  const getMapLabService = () => {
+    mapLabService ??= createMapLabService(runtime);
+    return mapLabService;
+  };
   runtime.nerveBusAbilityGroup = createWorkbenchNerveBus(runtime);
   runtime.orchestrationAbilityGroup = createWorkbenchOrchestration(runtime);
   runtime.commanderConsole = createWorkbenchCommanderConsole(runtime);
@@ -29,11 +33,11 @@ export const createWorkbenchRuntime = (
   runtime.setLocalAiRoleStartupState = (input) => setWorkbenchLocalAiRoleStartupState(input);
   runtime.deleteCandidate = (candidateId) => runtime.evidenceStore.deleteCandidate(candidateId);
   runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
-  runtime.getMapLabSnapshot = () => mapLabService.getSnapshot();
-  runtime.saveMapLabProviderConfig = (input) => mapLabService.saveProviderConfig(input);
-  runtime.generateMapLabDraft = (input) => mapLabService.generateDraft(input);
-  runtime.approveMapLabDraft = (input) => mapLabService.approveDraft(input);
-  runtime.activateMapLabDraft = (input) => mapLabService.activateDraft(input);
+  runtime.getMapLabSnapshot = () => getMapLabService().getSnapshot();
+  runtime.saveMapLabProviderConfig = (input) => getMapLabService().saveProviderConfig(input);
+  runtime.generateMapLabDraft = (input) => getMapLabService().generateDraft(input);
+  runtime.approveMapLabDraft = (input) => getMapLabService().approveDraft(input);
+  runtime.activateMapLabDraft = (input) => getMapLabService().activateDraft(input);
   runtime.getModeInfo = () => getModeInfo(runtime);
   return runtime;
 };

@@ -20,6 +20,42 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
   {
+    name: "manual-first-enforcement mutation",
+    file: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: mouse-click-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P0\ncapabilityDomain: mouse-click-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "warning-only-p0 mutation",
+    file: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
+    search: "status: active\ntier: P0\ncapabilityDomain: mouse-click-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+    replace: "status: active\ntier: P1\ncapabilityDomain: mouse-click-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
+  },
+  {
+    name: "browser-controller-public-contract mutation",
+    file: "src/capabilities/mouse-click/contract.ts",
+    search: "import type { z } from \"zod\";",
+    replace: "import type { z } from \"zod\";\nimport type { BrowserController } from \"../../lib/browser/browser-controller.js\";",
+  },
+  {
+    name: "platform-adapter-direct-click mutation",
+    file: "src/lib/local-runtime/workbench-mouse-click-runtime.ts",
+    search: "  mouseClickAbilityGroup: createWorkbenchMouseClickAbilityGroup({",
+    replace: "  platformClickStrategy: runtime.browserController.click({ x: 0, y: 0, button: \"left\", clickCount: 1 }),\n  mouseClickAbilityGroup: createWorkbenchMouseClickAbilityGroup({",
+  },
+  {
+    name: "mouse-click-final-action-log mutation",
+    file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
+    search: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,",
+    replace: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,\n    actionLogRef: input.seed.attemptRef,",
+  },
+  {
+    name: "platform-business-verb-child mutation",
+    file: "src/capabilities/mouse-click/registry.ts",
+    search: "  createClickDesktopCoordinateCapability(),",
+    replace: "  createClickDesktopCoordinateCapability(),\n  \"open_comments\" as never,",
+  },
+  {
     name: "export-star escape mutation",
     file: "src/capabilities/mouse-click/index.ts",
     search: 'export { listMouseClickChildren } from "./registry.js";',
@@ -165,7 +201,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations(runInspector);
 
-    return createPassResult("Mouse Click negative-proof harness rejects gate bypass, proof drop, timeout escape, computed click, and composition drift mutations.");
+    return createPassResult("Mouse Click negative-proof harness rejects baseline drift, BrowserController public-contract leak, platform direct click ownership, final action-log leakage, platform business-verb child drift, gate bypass, proof drop, timeout escape, computed click, and composition drift mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Mouse Click negative-proof harness failed.",

@@ -64,6 +64,11 @@ const buildFailurePayloadMetadata = (input: GovernedFailureEnvelopeInput, status
   attributes: [],
 });
 
+const buildTraceableDiagnosticPayloadRefs = (input: GovernedFailureEnvelopeInput) => {
+  const refs = [input.diagnosticPayloadRef.outputRef, ...input.diagnosticPayloadRef.payloadRefs];
+  return [...new Set(refs.filter((value) => typeof value === "string" && value.length > 0))];
+};
+
 const buildTransportChainFields = (input: GovernedFailureEnvelopeInput, channelId: SupportedResultEnvelope["channelId"]) => ({
   abilityGroupId: NERVE_BUS_ABILITY_GROUP_ID,
   channelId,
@@ -92,7 +97,7 @@ const buildExecutionChainFields = (input: GovernedFailureEnvelopeInput) => ({
   idempotencyKey: input.envelope.idempotencyKey,
   sequenceNo: input.envelope.sequenceNo,
   inputRef: input.envelope.inputRef,
-  payloadRef: input.diagnosticPayloadRef.payloadRefs,
+  payloadRef: buildTraceableDiagnosticPayloadRefs(input),
   payload: buildFailurePayloadMetadata(input, input.status ?? "failed"),
   createdAt: input.createdAt,
   expiresAt: input.envelope.expiresAt,

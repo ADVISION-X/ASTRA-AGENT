@@ -13,10 +13,12 @@
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2"
+    "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
+    "GRASSEYE-STARTUP-ENTRYPOINT-005-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
     ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
     ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
   ],

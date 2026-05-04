@@ -4,6 +4,7 @@ import type { GrassEyeWorkbenchOptions, WorkbenchRuntime } from "./workbench-con
 import { createWorkbenchFacade } from "./workbench-facade.js";
 import { createWorkbenchCommanderDependencies } from "./workbench-commander-dependencies.js";
 import { createCommandTransport } from "./workbench-commander-command-transport.js";
+import type { WorkbenchCommanderMissionSelectionState } from "./workbench-commander-mission-read-model.js";
 
 export type { GrassEyePlatformTarget } from "./workbench-contract.js";
 
@@ -15,11 +16,16 @@ export class GrassEyeWorkbench {
   constructor(options: GrassEyeWorkbenchOptions) {
     this.runtime = createWorkbenchRuntime(options);
     this.nerveBusAbilityGroup = this.runtime.nerveBusAbilityGroup;
-    const commandTransport = createCommandTransport(this.runtime);
+    const missionSelectionState: WorkbenchCommanderMissionSelectionState = { lastMissionId: null };
+    const commandTransport = createCommandTransport(
+      this.runtime,
+      missionSelectionState,
+      (input) => this.nerveBusAbilityGroup.dispatchHumanCommand(input),
+    );
     this.commanderConsole = createCommanderConsoleAbilityGroup({
       defaultOperatorRef: "commander-console:operator",
       commandTransport,
-      ...createWorkbenchCommanderDependencies(this.runtime),
+      ...createWorkbenchCommanderDependencies(this.runtime, missionSelectionState),
     });
     this.runtime.commanderConsole = this.commanderConsole;
   }

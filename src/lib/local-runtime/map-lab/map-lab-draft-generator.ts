@@ -105,6 +105,7 @@ export async function generateMapLabDraft(input: {
 
   const normalized = normalizeMapAuthoringDraft({
     request,
+    inputPackage: aiRequest.input,
     aiOutput: aiResult.output,
     promptContractId: aiRequest.promptContractId,
     promptVersion: aiResult.promptVersion ?? aiRequest.promptContractId,

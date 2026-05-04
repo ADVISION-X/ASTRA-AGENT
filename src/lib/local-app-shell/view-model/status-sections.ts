@@ -43,11 +43,25 @@ function createFailureItem(
   return { id, label, severity, detail };
 }
 
+function getStartupReadinessEntry(dashboard: CommanderMissionDashboardView) {
+  return dashboard.health.find((entry) => entry.id === "startup-readiness");
+}
+
 function collectBlockingFailures(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleFailureItem[] {
   const failures: CommanderConsoleFailureItem[] = [];
+  const startupReadiness = getStartupReadinessEntry(dashboard);
+
+  if (startupReadiness && (startupReadiness.tone === "danger" || startupReadiness.tone === "warn" || startupReadiness.missionRuntimeAvailable === false)) {
+    failures.push(createFailureItem(
+      "startup-readiness",
+      localizeCommanderText(locale, "启动门禁", "Startup readiness gate"),
+      startupReadiness.tone === "danger" || startupReadiness.missionRuntimeAvailable === false ? "blocked" : "attention",
+      startupReadiness.failureReason ? `${startupReadiness.failureReason}; ${startupReadiness.detail}` : startupReadiness.detail,
+    ));
+  }
 
   if (dashboard.runtime.reviewReason) {
     failures.push(createFailureItem(
@@ -144,7 +158,22 @@ export function buildPreflightSummary(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsolePreflightCheck[] {
+  const startupReadiness = getStartupReadinessEntry(dashboard);
+  const startupStatus = startupReadiness?.missionRuntimeAvailable
+    ? "ok"
+    : startupReadiness?.tone === "warn"
+      ? "attention"
+      : startupReadiness
+        ? "blocked"
+        : "attention";
+  const startupDetail = startupReadiness
+    ? startupReadiness.failureReason
+      ? localizeCommanderText(locale, `missionRuntimeAvailable=${startupReadiness.missionRuntimeAvailable ? "true" : "false"}; ${startupReadiness.failureReason}; ${startupReadiness.detail}`, `missionRuntimeAvailable=${startupReadiness.missionRuntimeAvailable ? "true" : "false"}; ${startupReadiness.failureReason}; ${startupReadiness.detail}`)
+      : localizeCommanderText(locale, `missionRuntimeAvailable=${startupReadiness.missionRuntimeAvailable ? "true" : "false"}; ${startupReadiness.detail}`, `missionRuntimeAvailable=${startupReadiness.missionRuntimeAvailable ? "true" : "false"}; ${startupReadiness.detail}`)
+    : localizeCommanderText(locale, "当前会话没有 startup readiness 上下文。", "This session has no startup readiness context.");
+
   return [
+    { id: "startup-readiness", label: localizeCommanderText(locale, "启动门禁", "Startup readiness gate"), status: startupStatus, detail: startupDetail },
     { id: "platform-binding", label: localizeCommanderText(locale, "平台绑定", "Platform binding"), status: dashboard.mission.requestedPlatform ? "ok" : "attention", detail: dashboard.mission.requestedPlatform ? localizeCommanderText(locale, `已指定 ${dashboard.mission.requestedPlatform}`, `Requested ${dashboard.mission.requestedPlatform}`) : localizeCommanderText(locale, "待启动时由已批准任务模板解析平台绑定。", "Platform binding will be resolved from the approved task template at launch time.") },
     { id: "map-selection", label: localizeCommanderText(locale, "地图选择", "Map selection"), status: dashboard.mission.selectedMapId ? "ok" : "attention", detail: dashboard.mission.selectedMapId ? localizeCommanderText(locale, "已绑定受治理任务程序", "Governed task program is bound.") : localizeCommanderText(locale, "待启动时由 active approved task template 解析运行地图。", "The active approved task template will resolve the runtime map at launch time.") },
     { id: "browser-login", label: localizeCommanderText(locale, "浏览器登录态", "Browser login"), status: dashboard.browser.loginState === "logged-in" ? "ok" : "attention", detail: localizeCommanderText(locale, `当前状态：${dashboard.browser.loginState}`, `Current state: ${dashboard.browser.loginState}`) },

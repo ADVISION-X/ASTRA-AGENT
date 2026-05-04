@@ -84,13 +84,13 @@ const resolveFrozenBaselineSection = (line: string): FrozenBaselineSection | und
 const collectFrozenBaselineDomain = (input: {
   line: string;
   section: FrozenBaselineSection;
-  activeCapabilityDomains: string[];
+  activeLawDomains: string[];
   deletedOwnerDomains: string[];
 }): void => {
   const numberedValue = readNumberedListValue(input.line);
   const activeDomainMap = input.section ? ACTIVE_DOMAIN_MAP_BY_SECTION[input.section] : undefined;
   if (numberedValue && activeDomainMap) {
-    pushMappedValue(input.activeCapabilityDomains, numberedValue, activeDomainMap);
+    pushMappedValue(input.activeLawDomains, numberedValue, activeDomainMap);
     return;
   }
 
@@ -100,8 +100,8 @@ const collectFrozenBaselineDomain = (input: {
   }
 };
 
-const collectFrozenBaselineDomains = (content: string): Pick<Awaited<ReturnType<typeof loadFrozenBaselineDomains>>, "activeCapabilityDomains" | "deletedOwnerDomains"> => {
-  const activeCapabilityDomains: string[] = [];
+const collectFrozenBaselineDomains = (content: string): Pick<Awaited<ReturnType<typeof loadFrozenBaselineDomains>>, "activeLawDomains" | "deletedOwnerDomains"> => {
+  const activeLawDomains: string[] = [];
   const deletedOwnerDomains: string[] = [];
   let section: FrozenBaselineSection = null;
 
@@ -113,23 +113,23 @@ const collectFrozenBaselineDomains = (content: string): Pick<Awaited<ReturnType<
       continue;
     }
 
-    collectFrozenBaselineDomain({ line, section, activeCapabilityDomains, deletedOwnerDomains });
+    collectFrozenBaselineDomain({ line, section, activeLawDomains, deletedOwnerDomains });
   }
 
-  return { activeCapabilityDomains, deletedOwnerDomains };
+  return { activeLawDomains, deletedOwnerDomains };
 };
 
 export const loadFrozenBaselineDomains = async (): Promise<{
-  activeCapabilityDomains: string[];
+  activeLawDomains: string[];
   deletedOwnerDomains: string[];
   baselineFile: string;
 }> => {
   const baselineFile = FROZEN_BASELINE_PATH;
   const content = await readTextFile(pathFromRepoRoot(baselineFile));
-  const { activeCapabilityDomains, deletedOwnerDomains } = collectFrozenBaselineDomains(content);
+  const { activeLawDomains, deletedOwnerDomains } = collectFrozenBaselineDomains(content);
 
   return {
-    activeCapabilityDomains,
+    activeLawDomains,
     deletedOwnerDomains,
     baselineFile,
   };

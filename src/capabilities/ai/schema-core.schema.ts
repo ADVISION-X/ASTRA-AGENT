@@ -56,6 +56,18 @@ import {
   AiMapAuthoringOutputSchema,
   MapAuthoringInputSchema,
 } from "./schema-map-authoring.schema.js";
+import { AiChainFieldSchemas } from "./schema-chain-fields.js";
+
+const AiCoreChainFieldSchema = z.object(AiChainFieldSchemas).strict();
+
+function validateAiCoreChainFields(value: unknown, context: z.RefinementCtx) {
+  const parsed = AiCoreChainFieldSchema.safeParse(value);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      context.addIssue(issue);
+    }
+  }
+}
 
 const AiInputSchema = z.discriminatedUnion("taskType", [
   ProductPresenceJudgmentInputSchema,
@@ -68,6 +80,8 @@ const AiInputSchema = z.discriminatedUnion("taskType", [
   MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
 ]).superRefine((value, context) => {
+  validateAiCoreChainFields(value, context);
+
   if (value.taskType === "map_authoring" && value.inputRefs.length === 0) {
     context.addIssue({
       code: z.ZodIssueCode.custom,

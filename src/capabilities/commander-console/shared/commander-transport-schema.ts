@@ -30,6 +30,12 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   maxRounds: CommanderMaxRoundsSchema.optional(),
   maxMinutes: CommanderMaxMinutesSchema.optional(),
   operatorNote: CommanderNoteSchema.optional(),
+  targetUrl: NonEmptyStringSchema.optional(),
+  targetTitle: NonEmptyStringSchema.optional(),
+  sourceEvidenceRef: NonEmptyStringSchema.optional(),
+  sourceTargetRef: NonEmptyStringSchema.optional(),
+  promptInputRef: NonEmptyStringSchema.optional(),
+  commandInputRef: NonEmptyStringSchema.optional(),
 }).strict();
 
 const validateStartMissionPayload = (

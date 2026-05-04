@@ -47,6 +47,7 @@ export class CurrentChromeBrowserController implements BrowserController {
 
     this.snapshot = {
       ...createInitialLocalBrowserSessionState(options.sessionConfig),
+      profileStatus: "profile_ready",
       profileVerificationStatus: "operator_verified",
       profileVerificationReason: "current local Chrome session reused as the governed real-platform browser",
       open: false,

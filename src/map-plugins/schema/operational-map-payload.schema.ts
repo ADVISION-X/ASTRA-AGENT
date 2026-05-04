@@ -23,7 +23,9 @@ export const MapPluginPayloadRefKeySchema = z.enum([
 
 export const MapPluginStepKindSchema = z.enum(["ability", "ai", "review", "finalize"]);
 export const MapPluginTransitionStatusSchema = z.enum(["success", "failed", "review_required"]);
-export const MapPluginTransitionConditionSourceSchema = z.enum(["status", "decision"]);
+export const MapPluginTransitionConditionSourceSchema = z.string().min(1).regex(/^[a-zA-Z][a-zA-Z0-9._-]*$/, {
+  message: "leftRef must be a declared field ref, not an executable expression.",
+});
 export const MapPluginMissionTerminalStatusSchema = z.enum(["completed", "failed", "review_required", "stopped"]);
 export const MapPluginTransitionConditionTypeSchema = z.enum(["comparison"]);
 export const MapPluginTransitionOperatorSchema = z.enum([

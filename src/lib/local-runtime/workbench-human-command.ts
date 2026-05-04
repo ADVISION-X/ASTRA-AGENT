@@ -106,18 +106,25 @@ const handleStartMission = async (
       maxRounds: payloadValueToInteger(payload.maxRounds),
       maxMinutes: payloadValueToInteger(payload.maxMinutes),
       operatorNote: payloadValueToString(payload.operatorNote),
-      targetUrl: null,
-      targetTitle: null,
-      sourceEvidenceRef: null,
-      sourceTargetRef: null,
-      promptInputRef: null,
-      commandInputRef: null,
+      targetUrl: payloadValueToString(payload.targetUrl),
+      targetTitle: payloadValueToString(payload.targetTitle),
+      sourceEvidenceRef: payloadValueToString(payload.sourceEvidenceRef),
+      sourceTargetRef: payloadValueToString(payload.sourceTargetRef),
+      promptInputRef: payloadValueToString(payload.promptInputRef),
+      commandInputRef: payloadValueToString(payload.commandInputRef),
     },
   });
+  const status: HumanCommandStatus = missionState.status === "review_required"
+    ? "review_required"
+    : missionState.status === "failed"
+      ? "failed"
+      : "success";
+  const failureReason = missionState.failureReason ?? missionState.reviewRequiredReason ?? null;
   return buildHumanCommandResultEnvelope({
     envelope,
-    status: missionState.status === "review_required" ? "review_required" : "success",
+    status,
     summary: `Mission ${missionState.missionId ?? envelope.missionId} is now ${missionState.status}.`,
+    ...(failureReason ? { failureReason } : {}),
   });
 };
 

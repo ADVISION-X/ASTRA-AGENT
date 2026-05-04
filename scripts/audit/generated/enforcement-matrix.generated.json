@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T21:02:22.236Z",
+  "generatedAt": "2026-05-04T09:31:14.033Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -28,10 +28,12 @@
         "GRASSEYE-AI-CAPABILITY-011-V1",
         "GRASSEYE-AI-CAPABILITY-012-V1",
         "GRASSEYE-AI-CAPABILITY-013-V1",
-        "GRASSEYE-AI-CAPABILITY-014-V1"
+        "GRASSEYE-AI-CAPABILITY-014-V1",
+        "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
         ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
         ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
         ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
@@ -130,10 +132,12 @@
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2"
+        "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
+        "GRASSEYE-STARTUP-ENTRYPOINT-005-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
         ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
         ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md"
       ],
@@ -144,6 +148,35 @@
         "docs/audit/commander-console-mac-app-shell-scorecard.md",
         "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
         "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "debug-loop-boundary-owner",
+      "capabilityDomain": "debug-loop-boundary",
+      "manifestPath": "scripts/audit/domains/debug-loop-boundary/manifest.json",
+      "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "config",
+        "hybrid"
+      ],
+      "lawIds": [
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
+        "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1"
+      ],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye Debug Loop Boundary 调试程序边界施工图.md"
       ]
     },
     {
@@ -209,6 +242,48 @@
       ]
     },
     {
+      "inspectorId": "index-owner",
+      "capabilityDomain": "index",
+      "manifestPath": "scripts/audit/domains/index/manifest.json",
+      "entry": "scripts/audit/domains/index/inspector.ts",
+      "engine": "law",
+      "supportsEvidenceModes": [
+        "law",
+        "schema"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md",
+        ".github/instructions/cursor-rules/grasseye-index.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye 法案冻结基线.md",
+        "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "kernel-owner",
+      "capabilityDomain": "kernel",
+      "manifestPath": "scripts/audit/domains/kernel/manifest.json",
+      "entry": "scripts/audit/domains/kernel/inspector.ts",
+      "engine": "law",
+      "supportsEvidenceModes": [
+        "law",
+        "fs",
+        "ast",
+        "import-graph",
+        "symbol"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye 法案冻结基线.md",
+        "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md"
+      ]
+    },
+    {
       "inspectorId": "map-plugin-package-governance",
       "capabilityDomain": "map-plugin-package",
       "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
@@ -231,7 +306,12 @@
         "GRASSEYE-MAP-PLUGIN-009-V2",
         "GRASSEYE-MAP-PLUGIN-010-V2",
         "GRASSEYE-MAP-PLUGIN-011-V2",
-        "GRASSEYE-MAP-PLUGIN-012-V2"
+        "GRASSEYE-MAP-PLUGIN-012-V2",
+        "GRASSEYE-MAP-PLUGIN-013-V2",
+        "GRASSEYE-MAP-PLUGIN-014-V2",
+        "GRASSEYE-MAP-PLUGIN-015-V2",
+        "GRASSEYE-MAP-PLUGIN-016-V2",
+        "GRASSEYE-MAP-PLUGIN-017-V2"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
@@ -241,6 +321,8 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+        "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md",
+        "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md",
         "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
         "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
         "docs/法案辅助文件/GrassEye 执法系统施工图.md",
@@ -303,8 +385,8 @@
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
         ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+        ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
         ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
         ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
         ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
@@ -312,7 +394,7 @@
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md",
         "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md",
+        "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md",
         "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
       ]
     },
@@ -430,12 +512,10 @@
         "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2"
       ],
       "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-page-state-capability.FINAL.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md"
       ],
       "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图_FINAL.md"
+        "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md"
       ]
     },
     {
@@ -460,11 +540,10 @@
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2"
       ],
       "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.FINAL.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md"
       ],
       "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图_FINAL.md"
+        "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md"
       ]
     },
     {

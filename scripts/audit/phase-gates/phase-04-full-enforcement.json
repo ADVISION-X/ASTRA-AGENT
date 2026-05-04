@@ -1,24 +1,25 @@
 {
-  "phase": "phase-04-full-enforcement",
-  "activeCapabilityDomains": [
-    "map-plugin-package",
-    "audit-system",
-    "capability-group-governance",
-    "type-safety",
-    "security-privacy",
-    "ai-capability",
-    "orchestration-capability",
-    "commander-console-capability",
-    "nerve-bus-capability",
-    "page-state-capability",
-    "post-action-verification-capability",
-    "open-capability",
-    "screenshot-capability",
-    "geometry-guard-capability",
-    "mouse-click-capability",
-    "text-input-capability",
-    "mouse-scroll-capability",
-    "visual-target-capability",
-    "forensics-persistence-capability"
-  ]
+	"phase": "phase-04-full-enforcement",
+	"activeLawDomains": [
+		"map-plugin-package",
+		"debug-loop-boundary",
+		"audit-system",
+		"capability-group-governance",
+		"type-safety",
+		"security-privacy",
+		"ai-capability",
+		"orchestration-capability",
+		"commander-console-capability",
+		"nerve-bus-capability",
+		"page-state-capability",
+		"post-action-verification-capability",
+		"open-capability",
+		"screenshot-capability",
+		"geometry-guard-capability",
+		"mouse-click-capability",
+		"text-input-capability",
+		"mouse-scroll-capability",
+		"visual-target-capability",
+		"forensics-persistence-capability"
+	]
 }

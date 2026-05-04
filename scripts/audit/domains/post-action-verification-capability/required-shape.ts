@@ -27,10 +27,19 @@ function collectAbilityAndContractFindings(project: Project): Finding[] {
 }
 
 function collectSchemaFindings(project: Project): Finding[] {
+  const schemaSource = getSource(project, PATHS.SCHEMA);
+  const schemaText = schemaSource.getFullText();
   const childIds = getZodEnumValues(getSource(project, PATHS.SCHEMA), "PostActionVerificationChildCapabilityIdSchema");
-  return childIds.sort().join(",") !== [...CHILDREN].sort().join(",")
+  const findings = childIds.sort().join(",") !== [...CHILDREN].sort().join(",")
     ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Schema child ids must match the frozen child registry." })]
     : [];
+  for (const snippet of ["missionId: requiredString", "runId: requiredString", "stepId: requiredString", "activationSnapshotRef: requiredString", "capabilityCallId: requiredString", "nerveBusEnvelopeId: requiredString", "idempotencyKey: requiredString"]) {
+    if (!schemaText.includes(snippet)) {
+      findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Post Action Verification input schema must keep the full mission/map/step chain fields machine-required." }));
+      break;
+    }
+  }
+  return findings;
 }
 
 function collectExecutorFindings(project: Project): Finding[] {
@@ -66,15 +75,44 @@ function collectExecutorFindings(project: Project): Finding[] {
 
 function collectBuilderFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-  if (!hasCallExpressionPath(getSource(project, PATHS.PROOF_BUILDER), ["PostActionRuntimeProofSchema", "parse"])) {
+  const proofBuilderSource = getSource(project, PATHS.PROOF_BUILDER);
+  const proofBuilderText = proofBuilderSource.getFullText();
+  if (!hasCallExpressionPath(proofBuilderSource, ["PostActionRuntimeProofSchema", "parse"])) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must parse PostActionRuntimeProofSchema." }));
+  }
+  if (!proofBuilderText.includes("missionId: request?.missionId ?? null")
+    || !proofBuilderText.includes("runId: request?.runId ?? null")
+    || !proofBuilderText.includes("activationSnapshotRef: request?.activationSnapshotRef ?? null")
+    || !proofBuilderText.includes("capabilityCallId: request?.capabilityCallId ?? null")
+    || !proofBuilderText.includes("nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null")
+    || proofBuilderText.includes("runId: `post-action-verification-run:${input.proofFingerprint}`")
+    || proofBuilderText.includes("missionId: request?.sessionId ?? null")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must preserve real mission/run chain fields and must not fabricate runId or missionId." }));
   }
   if (!hasCallExpressionPath(getSource(project, PATHS.RESULT_BUILDER), ["PostActionVerificationAbilityResultSchema", "parse"])) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must parse PostActionVerificationAbilityResultSchema." }));
   }
+  const resultBuilderText = getSource(project, PATHS.RESULT_BUILDER).getFullText();
+  if (!resultBuilderText.includes("missionId: input.request?.missionId ?? null")
+    || !resultBuilderText.includes("runId: input.request?.runId ?? null")
+    || !resultBuilderText.includes("activationSnapshotRef: input.request?.activationSnapshotRef ?? null")
+    || !resultBuilderText.includes("capabilityCallId: input.request?.capabilityCallId ?? null")
+    || !resultBuilderText.includes("nerveBusEnvelopeId: input.request?.nerveBusEnvelopeId ?? null")) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
+  }
   return !hasCallExpressionPath(getSource(project, PATHS.DISPATCH_FAILURE), ["PostActionVerificationAbilityInputSchema", "safeParse"])
     ? findings.concat(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.DISPATCH_FAILURE, line: 1, severity: "fatal", message: "Dispatch failure must terminate through the governed invalid-input envelope path." }))
     : findings;
+}
+
+function collectInspectorFindings(project: Project): Finding[] {
+  const inspectorSource = getSource(project, "scripts/audit/domains/post-action-verification-capability/inspector.ts");
+  const inspectorText = inspectorSource.getFullText();
+  return inspectorText.includes("import { runNegativeProofHarness }")
+    && inspectorText.includes("SKIP_NEGATIVE_PROOF_ENV")
+    && inspectorText.includes("await runNegativeProofHarness()")
+    ? []
+    : [createFinding({ lawId: LAW_IDS.PACKAGE, file: "scripts/audit/domains/post-action-verification-capability/inspector.ts", line: 1, severity: "fatal", message: "Post Action Verification inspector must invoke the negative-proof harness through a nested-skip guard." })];
 }
 
 export async function runRequiredShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
@@ -84,6 +122,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
   findings.push(...collectSchemaFindings(project));
   findings.push(...collectExecutorFindings(project));
   findings.push(...collectBuilderFindings(project));
+  findings.push(...collectInspectorFindings(project));
 
   const phasePassed = findings.length === 0;
   return {

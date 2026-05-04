@@ -1,8 +1,61 @@
 import { finalizeInspectorResult } from "../../core/result.js";
 import type { InspectorContext } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runAuditGovernanceChecks } from "./components/run-audit-governance-checks.js";
 import { runAuditRedLineChecks } from "./components/run-audit-red-line-checks.js";
+
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF";
+
+const createSkippedNegativeProofResult = () => {
+  return {
+    findings: [],
+    phase: {
+      name: "negative-proof-harness",
+      classification: "PASS" as const,
+      passed: true,
+      summary: "Audit-system negative-proof harness was skipped for nested inspector execution.",
+    },
+  };
+};
+
+const runAuditSystemParts = (context: InspectorContext) => {
+  return Promise.all([
+    runAuditGovernanceChecks(context),
+    runAuditRedLineChecks(context),
+    process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+      ? Promise.resolve(createSkippedNegativeProofResult())
+      : runNegativeProofHarness(),
+  ]);
+};
+
+const collectAuditSystemFindings = (
+  base: Awaited<ReturnType<typeof runDomainOwnerInspection>>,
+  governanceParts: Awaited<ReturnType<typeof runAuditGovernanceChecks>>,
+  redLineParts: Awaited<ReturnType<typeof runAuditRedLineChecks>>,
+  negativeProof: Awaited<ReturnType<typeof runNegativeProofHarness>>,
+) => {
+  return [
+    ...base.findings,
+    ...governanceParts.flatMap((part) => part.findings),
+    ...redLineParts.flatMap((part) => part.findings),
+    ...negativeProof.findings,
+  ];
+};
+
+const collectAuditSystemPhases = (
+  base: Awaited<ReturnType<typeof runDomainOwnerInspection>>,
+  governanceParts: Awaited<ReturnType<typeof runAuditGovernanceChecks>>,
+  redLineParts: Awaited<ReturnType<typeof runAuditRedLineChecks>>,
+  negativeProof: Awaited<ReturnType<typeof runNegativeProofHarness>>,
+) => {
+  return [
+    ...base.phases,
+    ...governanceParts.flatMap((part) => part.phases),
+    ...redLineParts.flatMap((part) => part.phases),
+    negativeProof.phase,
+  ];
+};
 
 export const inspectAuditSystem = async (context: InspectorContext) => {
   const base = await runDomainOwnerInspection(context, {
@@ -10,15 +63,9 @@ export const inspectAuditSystem = async (context: InspectorContext) => {
     inspectorId: "audit-system-owner",
     inspectorEntry: "scripts/audit/domains/audit-system/inspector.ts",
   });
-
-  const [governanceParts, redLineParts] = await Promise.all([
-    runAuditGovernanceChecks(context),
-    runAuditRedLineChecks(context),
-  ]);
-  const parts = [...governanceParts, ...redLineParts];
-
-  const findings = [...base.findings, ...parts.flatMap((part) => part.findings)];
-  const phases = [...base.phases, ...parts.flatMap((part) => part.phases)];
+  const [governanceParts, redLineParts, negativeProof] = await runAuditSystemParts(context);
+  const findings = collectAuditSystemFindings(base, governanceParts, redLineParts, negativeProof);
+  const phases = collectAuditSystemPhases(base, governanceParts, redLineParts, negativeProof);
 
   return finalizeInspectorResult({
     inspector: "GrassEye Audit System Owner Inspector",

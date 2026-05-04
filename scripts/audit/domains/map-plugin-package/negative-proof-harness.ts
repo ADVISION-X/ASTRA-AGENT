@@ -4,6 +4,7 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { AUTHORING_INPUT_PACKAGE_MUTATIONS } from "./authoring-input-package-negative-proof.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
 
 const { LAW_FILE: MAP_PLUGIN_LAW_FILE } = MAP_PLUGIN_PATHS;
@@ -20,6 +21,7 @@ const INSPECTOR_RUNNER = "scripts/audit/domains/map-plugin-package/run-inspector
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
+  ...AUTHORING_INPUT_PACKAGE_MUTATIONS,
   {
     name: "manual-first law regression mutation",
     file: MAP_PLUGIN_LAW_FILE,
@@ -101,8 +103,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "activation snapshot proof mutation",
     file: "src/map-plugins/import/map-package-activation.ts",
-    search: '  return {\n    activationId: input.activationId,\n    activationSnapshotRef,\n    activationSnapshotHash,\n',
-    replace: '  return {\n    activationId: input.activationId,\n    activationSnapshotHash,\n',
+    search: '  return {\n    activationId: input.activationId,\n    activationSnapshotRef: snapshotFields.activationSnapshotRef,\n    activationSnapshotHash: snapshotFields.activationSnapshotHash,\n',
+    replace: '  return {\n    activationId: input.activationId,\n    activationSnapshotHash: snapshotFields.activationSnapshotHash,\n',
   },
   {
     name: "generated capability catalog drift mutation",
@@ -121,6 +123,12 @@ const MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
     search: '"childCapabilityId": "detect-feed-ready"',
     replace: '"childCapabilityId": "missing-capability-child"',
+  },
+  {
+    name: "hardcoded capability list in prompt template mutation",
+    file: "src/map-plugins/authoring/map-authoring-template.ts",
+    search: '    "Allowed Capabilities:",\n    formatCapabilitySection(inputPackage),\n',
+    replace: '    "Allowed Capabilities:",\n    "- screenshot/full-screen-capture: stale manual catalog text",\n    formatCapabilitySection(inputPackage),\n',
   },
   {
     name: "approved manifest without validationReportRef mutation",
@@ -178,7 +186,27 @@ const MUTATIONS: Mutation[] = [
   },
 ];
 
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+type InspectorRunResult = {
+  passed: boolean;
+  violationCount: number;
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+};
+
+const summarizeInspectorFailure = (result: InspectorRunResult): string => {
+  const stdout = result.stdout.trim();
+  const stderr = result.stderr.trim();
+  return [
+    `exitCode=${result.exitCode}`,
+    stdout.length > 0 ? `stdout=${stdout}` : null,
+    stderr.length > 0 ? `stderr=${stderr}` : null,
+  ]
+    .filter((segment): segment is string => segment !== null)
+    .join(" | ");
+};
+
+async function runInspector(): Promise<InspectorRunResult> {
   return await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
@@ -188,6 +216,7 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
         env: {
           ...process.env,
           [SKIP_NEGATIVE_PROOF_ENV]: "1",
+          TSX_DISABLE_CACHE: "1",
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
@@ -216,6 +245,9 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
       resolve({
         passed: code === 0,
         violationCount,
+        stdout,
+        stderr,
+        exitCode: code,
       });
     });
   });
@@ -229,7 +261,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   try {
     const mutated = await runInspector();
     if (mutated.passed) {
-      throw new Error(`Inspector did not fail for ${mutation.name}`);
+      throw new Error(`Inspector did not fail for ${mutation.name}: ${summarizeInspectorFailure(mutated)}`);
     }
   } finally {
     await restoreAuditFileState(filePath, state);
@@ -237,7 +269,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
 
   const restored = await runInspector();
   if (!restored.passed) {
-    throw new Error(`Rollback verification failed for ${mutation.name}`);
+    throw new Error(`Rollback verification failed for ${mutation.name}: ${summarizeInspectorFailure(restored)}`);
   }
 }
 
@@ -274,7 +306,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
     const baseline = await runInspector();
     if (!baseline.passed) {
       return createFatalResult(
-        "Map package inspector baseline must pass before negative-proof mutations can run.",
+        `Map package inspector baseline must pass before negative-proof mutations can run: ${summarizeInspectorFailure(baseline)}`,
         "Map package negative-proof harness cannot start because the baseline inspector is not passing.",
       );
     }

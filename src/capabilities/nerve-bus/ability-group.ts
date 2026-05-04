@@ -15,84 +15,12 @@ import type {
   NerveBusMirroredTransportResult,
   NerveBusTransportResult,
 } from "./shared/nerve-bus-result.js";
-import { executeNerveBusChild } from "./runtime/nerve-bus-executor.js";
+import { executeTransportInput } from "./ability-group-transport-dispatch.js";
 import { createNerveBusRuntimeContext } from "./runtime/transport-context.js";
-import { getNerveBusChannelRegistryEntry, getNerveBusChild, listNerveBusChildren } from "./registry.js";
+import { listNerveBusChildren } from "./registry.js";
 
 type RuntimeContext = ReturnType<typeof createNerveBusRuntimeContext>;
 type TransportExecutionInput = Parameters<NerveBusAbilityGroup["transportEnvelope"]>[0];
-type TransportChannelId = TransportExecutionInput["envelope"]["channelId"];
-type TransportExecutionInputByChannel<TChannelId extends TransportChannelId> = Extract<
-  TransportExecutionInput,
-  { envelope: { channelId: TChannelId } }
->;
-
-const executeTransportInput = async (context: RuntimeContext, executionInput: TransportExecutionInput): Promise<NerveBusTransportResult> => {
-  const parsedInput = NerveBusTransportInputSchema.parse(executionInput);
-
-  switch (parsedInput.envelope.channelId) {
-    case "commander-to-orchestration": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"commander-to-orchestration">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("commander-to-orchestration"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("commander-to-orchestration"),
-        context,
-      });
-    }
-    case "orchestration-to-commander": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"orchestration-to-commander">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("orchestration-to-commander"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("orchestration-to-commander"),
-        context,
-      });
-    }
-    case "orchestration-to-ability": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"orchestration-to-ability">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("orchestration-to-ability"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("orchestration-to-ability"),
-        context,
-      });
-    }
-    case "ability-to-orchestration": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"ability-to-orchestration">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("ability-to-orchestration"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("ability-to-orchestration"),
-        context,
-      });
-    }
-    case "orchestration-to-ai": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"orchestration-to-ai">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("orchestration-to-ai"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("orchestration-to-ai"),
-        context,
-      });
-    }
-    case "ai-to-orchestration": {
-      const transportInput = parsedInput as TransportExecutionInputByChannel<"ai-to-orchestration">;
-      return executeNerveBusChild({
-        child: getNerveBusChild("ai-to-orchestration"),
-        envelope: transportInput.envelope,
-        inputPayload: transportInput.inputPayload,
-        registryEntry: getNerveBusChannelRegistryEntry("ai-to-orchestration"),
-        context,
-      });
-    }
-  }
-};
 
 const createTransportEnvelopeDispatcher = (context: RuntimeContext) => {
   return async (executionInput: Parameters<NerveBusAbilityGroup["transportEnvelope"]>[0]) => executeTransportInput(context, executionInput);

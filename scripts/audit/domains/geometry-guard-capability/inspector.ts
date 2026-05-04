@@ -95,7 +95,7 @@ const buildInspectorResult = (
       negativeProof.phase,
     ],
     summary: findings.length === 0
-      ? "geometry-guard-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, anti-escape, and negative-proof phases"
+      ? "geometry-guard-capability owner inspector passed owner-foundation, law-baseline, required-shape, forbidden-shape, boundary, anti-escape, law-001-ownership, and negative-proof phases"
       : "geometry-guard-capability owner inspector found chain, boundary, or enforcement violations",
   };
 };

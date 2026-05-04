@@ -51,6 +51,7 @@ export function buildUnavailableHealth(snapshot: LocalAiExecutionSnapshot, messa
     ollamaStatus: "unavailable",
     visionModelStatus: "unavailable",
     textModelStatus: "unavailable",
+    productSignalModelStatus: "unavailable",
     ocrStatus: "unavailable",
     configuredModels: {
       vision: "unknown",
@@ -75,27 +76,29 @@ export function buildReadyHealth(
   const availableModels = ollamaHealth.availableModels;
   const visionModelStatus = getModelStatus(availableModels, ollamaHealth.status, configuredModels.vision);
   const textModelStatus = getModelStatus(availableModels, ollamaHealth.status, configuredModels.commentUnderstanding);
+  const productSignalModelStatus = getModelStatus(availableModels, ollamaHealth.status, configuredModels.productSignal);
   const resolvedOcrStatus = getOcrStatus(ocrHealth.status);
-  const overallStatus = getOverallStatus([visionModelStatus, textModelStatus, resolvedOcrStatus]);
+  const overallStatus = getOverallStatus([visionModelStatus, textModelStatus, productSignalModelStatus, resolvedOcrStatus]);
   return LocalAiHealthSchema.parse({
     overallStatus,
     implementationStatus: overallStatus === "unavailable" ? "local_ai_unavailable" : "model_backed",
     ollamaStatus: toDependencyStatus(ollamaHealth.status),
     visionModelStatus,
     textModelStatus,
+    productSignalModelStatus,
     ocrStatus: resolvedOcrStatus,
     configuredModels,
     availableModels,
     lastCheckedAt: new Date().toISOString(),
     failureReason: overallStatus === "ready"
       ? null
-      : `ollama=${ollamaHealth.status}; vision=${visionModelStatus}; text=${textModelStatus}; ocr=${resolvedOcrStatus}`,
+      : `ollama=${ollamaHealth.status}; vision=${visionModelStatus}; text=${textModelStatus}; productSignal=${productSignalModelStatus}; ocr=${resolvedOcrStatus}`,
     ...snapshot,
   });
 }
 
 export function buildLocalAiHealthDetail(health: LocalAiHealth, promptCount: number): string {
-  return `ollama=${health.ollamaStatus}; vision=${health.visionModelStatus}; text=${health.textModelStatus}; ocr=${health.ocrStatus}; prompts=${promptCount}`;
+  return `ollama=${health.ollamaStatus}; vision=${health.visionModelStatus}; text=${health.textModelStatus}; productSignal=${health.productSignalModelStatus}; ocr=${health.ocrStatus}; prompts=${promptCount}`;
 }
 
 export type { LocalAiExecutionSnapshot };

@@ -12,3 +12,7 @@ export function getDefaultLocalDataDir(platform = process.platform): string {
 
   return path.join(os.homedir(), ".local", "share", "grasseye", "local-data");
 }
+
+export function getDefaultPhase04LocalDataDir(platform = process.platform): string {
+  return path.join(getDefaultLocalDataDir(platform), "phase-04-full-enforcement");
+}

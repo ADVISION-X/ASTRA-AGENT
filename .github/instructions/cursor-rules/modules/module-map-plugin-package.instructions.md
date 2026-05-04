@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Map Plugin Package Governance"
-description: "Use when governing controlled declarative operational-map packages, task-template packages, user-requirement map authoring, AI-generated map quarantine, prompt binding, catalog validation, activation snapshots, rollback, ordinary/developer task feeds, and the boundary that prevents maps from becoming runtime code, child abilities, prompt owners, or second Orchestration."
-applyTo: ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md, src/map-plugins/**, docs/法案辅助文件/GrassEye 地图插件包治理施工图.md, docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md, scripts/audit/domains/map-plugin-package/**, src/capabilities/orchestration/**, src/capabilities/ai/**, src/capabilities/commander-console/**"
+description: "Use when governing controlled declarative operational-map packages, task-template packages, Map Authoring Input Package, user-requirement map authoring, AI-generated map quarantine, prompt binding, capability/output-schema/safety/evidence catalog validation, activation snapshots, rollback, ordinary/developer task feeds, and the boundary that prevents maps from becoming runtime code, child abilities, prompt owners, or second Orchestration."
+applyTo: ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md, src/map-plugins/**, docs/法案辅助文件/GrassEye 地图插件包治理施工图.md, docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md, docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图.md, scripts/audit/domains/map-plugin-package/**, src/capabilities/orchestration/**, src/capabilities/ai/**, src/capabilities/commander-console/**"
 ---
 
 # GrassEye Map Plugin Package Governance FINAL
@@ -61,6 +61,7 @@ src/map-plugins/**
 scripts/audit/domains/map-plugin-package/**
 docs/法案辅助文件/GrassEye 地图插件包治理施工图.md
 docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md
+docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md
 .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md
 ```
 
@@ -1341,5 +1342,546 @@ Forensics-compatible proof records exist
 owner-local inspector PASS
 negative proof PASS
 ALL active law enforcement PASS
+CI-FULL PASS
+```
+
+
+---
+
+# Map Authoring Input Package FULL-MERGED Supplement
+
+> This supplement is part of the same active `map-plugin-package` law file.  
+> It does not retire or compress the previous V2 laws.  
+> It adds the missing first-class input contract required for advanced AI to generate GrassEye-compatible draft maps.
+
+## Supplemental Doctrine
+
+- Advanced AI map authoring is not valid unless driven by a complete Map Authoring Input Package.
+- User requirement alone is insufficient for production-grade map generation.
+- Capability Catalog tells AI what it can use.
+- Prompt Contract Catalog tells AI how AI judgment steps are governed.
+- Output Schema Catalog tells AI which fields may be used for map branching.
+- Map Package Schema tells AI how to write the route.
+- Safety and Human Approval Policies tell AI which actions must pause for user authorization.
+- Evidence, PAV, and Forensics Policies tell AI how actions must be proven and retained.
+- Target Platform Profile tells AI what platform constraints, login assumptions, rate limits, and prohibited operations apply.
+- If any required input package component is missing, AI map authoring must stop with `BLOCKED_AUTHORING_INPUT_INCOMPLETE`.
+- AI must never infer missing system capabilities, missing prompt contracts, missing output fields, missing approval rules, or missing evidence rules from natural language.
+
+---
+
+## Law GRASSEYE-MAP-PLUGIN-013-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.
+
+### 主题
+
+Map Authoring Input Package 完整输入契约
+
+### 法条
+
+Advanced AI map generation is valid only when driven by a complete Map Authoring Input Package.
+
+Required top-level input package fields:
+
+```txt
+inputPackageId
+inputPackageVersion
+generatedAt
+requesterRef
+userRequirement
+userRequirementRef
+sourceRequirementHash
+targetPlatformProfileRef
+targetPlatformProfile
+capabilityCatalog
+promptContractCatalog
+outputSchemaCatalog
+mapPackageSchema
+mapAuthoringOutputSchema
+safetyPolicy
+humanApprovalPolicy
+evidencePolicy
+pavPolicy
+forensicsPolicy
+privacyPolicy
+secretPolicy
+rateLimitPolicy
+exampleMaps
+validationPolicy
+expectedDraftStatus
+```
+
+Required:
+- `userRequirement` must describe the user goal in natural language and preserve target platform, allowed automation scope, required confirmations, failure handling, evidence preference, and run limits when provided.
+- `capabilityCatalog` must contain ability groups and child capabilities with ids, codes, descriptions, inputs, outputs, boundaries, routableByMap, proof/PAV/review requirements, sideEffectLevel, and forbidden responsibilities.
+- `promptContractCatalog` must contain promptContractId, versions, inputSchemaRef, outputSchemaRef, allowedInputRefs, dataPolicy, providerPolicy, reviewPolicy, failurePolicy, redactionPolicy, and forensicsPolicy.
+- `outputSchemaCatalog` must declare all branchable output fields for each outputSchemaRef.
+- `mapPackageSchema` must define manifest, taskTemplate, operationalMap, transitions, promptBindings, policy, proofPolicy, lifecycle status, and draft/activation fields.
+- `mapAuthoringOutputSchema` must define the exact AI output shape.
+- `safetyPolicy` and `humanApprovalPolicy` must define all operations that require user approval.
+- `evidencePolicy`, `pavPolicy`, and `forensicsPolicy` must define proof refs, screenshot retention, PAV handoff, evidence packet, redaction, and no-raw-secret rules.
+- `targetPlatformProfile` must define platform constraints, login/auth expectations, supported targets, prohibited operations, rate limits, security/captcha pause behavior, and human review rules.
+- `exampleMaps` must be optional but, when present, must be schema-valid and marked `exampleOnly=true`.
+- The AI map authoring prompt must be built only from this input package or refs derived from it.
+- The prompt template may hardcode generation rules only; it must not hardcode ability-group or child-capability lists.
+- `MapAuthoringInputPackage.capabilityCatalog` is the only ability truth consumed by advanced AI map authoring.
+- `abilityGroupId`, `childCapabilityId`, child codes, schema refs, routability, proof requirements, PAV requirements, and review requirements must come from governed `capabilityCatalog` entries, not manual prompt text.
+- Adding, deleting, renaming, or changing a child capability must update the capability registry and generated capability catalog, not the prompt template.
+- Missing or stale capability catalog truth must return `BLOCKED_CAPABILITY_CATALOG_STALE`.
+- Missing required field must return `BLOCKED_AUTHORING_INPUT_INCOMPLETE`.
+- Incomplete user requirement must return `requiredClarifications`.
+- Missing capability must return `needsCapabilityExpansion`.
+- AI must not generate a map when required package fields are missing.
+
+Forbidden:
+- advanced AI map generation with only userRequirement + freeform prompt.
+- generation without capabilityCatalog.
+- generation without promptContractCatalog.
+- generation without outputSchemaCatalog.
+- generation without mapPackageSchema.
+- generation without mapAuthoringOutputSchema.
+- generation without safetyPolicy or humanApprovalPolicy.
+- generation without evidencePolicy, pavPolicy, or forensicsPolicy.
+- generation without targetPlatformProfile.
+- examples treated as active maps.
+- hardcoded ability-group lists inside map-authoring prompt template.
+- hardcoded child-capability lists inside map-authoring prompt template.
+- manual duplicated ability descriptions inside prompt body.
+- prompt text acting as a second capability catalog.
+- AI instructed to infer missing system capabilities from natural language.
+- AI instructed to infer missing prompt contracts or output fields.
+- AI instructed to infer approval/evidence rules from natural language.
+
+Required inspector:
+- MapAuthoringInputPackageSchema required fields.
+- catalog completeness checks.
+- outputSchemaCatalog declared branch-field checks.
+- mapPackageSchema and mapAuthoringOutputSchema presence checks.
+- safety/humanApproval/evidence/PAV/Forensics/platform policy presence.
+- authoring prompt builder uses input package, not ad-hoc string.
+- prompt template contains rules only and reads ability data from governed capabilityCatalog input.
+- stale capability catalog blocks authoring.
+- missing input package blocks generation.
+- exampleMaps exampleOnly and not active checks.
+
+Required negative proof:
+- Remove capabilityCatalog → FAIL.
+- Remove promptContractCatalog → FAIL.
+- Remove outputSchemaCatalog → FAIL.
+- Remove mapPackageSchema → FAIL.
+- Remove mapAuthoringOutputSchema → FAIL.
+- Remove safetyPolicy → FAIL.
+- Remove humanApprovalPolicy → FAIL.
+- Remove evidencePolicy → FAIL.
+- Remove pavPolicy → FAIL.
+- Remove forensicsPolicy → FAIL.
+- Remove targetPlatformProfile → FAIL.
+- Hardcode childCapabilityId list in prompt template → FAIL.
+- Build authoring prompt from manual capability text instead of governed capabilityCatalog → FAIL.
+- Remove capability catalog freshness block → FAIL.
+- Build authoring prompt from userRequirement only → FAIL.
+- Treat exampleMap as active map → FAIL.
+
+---
+
+## Law GRASSEYE-MAP-PLUGIN-014-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.
+
+### 主题
+
+能力清单细粒度契约
+
+### 法条
+
+The Capability Catalog used for map authoring must describe every routable ability group and child capability in machine-readable detail.
+
+Required ability group fields:
+
+```txt
+abilityGroupId
+abilityGroupCode
+displayName
+description
+ownerDomain
+routableByMap
+publicContractRef
+inputSchemaRef
+outputSchemaRef
+forbiddenResponsibilities
+children
+```
+
+Required child capability fields:
+
+```txt
+childCapabilityId
+childCapabilityCode
+displayName
+description
+inputSchemaRef
+outputSchemaRef
+requiredInputRefs
+producedOutputRefs
+requiresGeometryProof
+requiresTargetProof
+requiresFocusProof
+requiresApprovedText
+requiresPostActionVerification
+requiresHumanReview
+sensitiveOperation
+sideEffectLevel = none | read | write | submit | delete | purchase
+allowedStepKinds
+supportedTargetKinds
+forbiddenResponsibilities
+proofRequirements
+failureModes
+```
+
+Required:
+- every map-routable child capability must be declared with explicit childCapabilityId and childCapabilityCode.
+- action children must declare PAV requirements.
+- coordinate-action children must declare Geometry Guard requirements.
+- visual-target children must declare target proof outputs and must not click/write.
+- screenshot children must declare capture proof, image refs, retention policy needs, and no judgment ownership.
+- text-input children must declare approvedText, target/focus proof, sensitive text, commit/human approval, and PAV requirements.
+- mouse-click children must declare geometry proof and PAV requirements.
+- mouse-scroll children must declare scroll bounds and post-scroll verification policy.
+- AI children must declare promptContract/outputSchema requirements.
+- Orchestration children must declare map/step dispatch boundary and must not execute primitives directly.
+- Nerve Bus children must declare transport envelope/result/proof refs and must not make business decisions.
+- Forensics children must declare evidence/proof refs and must not make product/business decisions.
+- non-routable children must be blocked from map generation.
+- ability catalog must be generated or governed; AI must not modify it.
+
+Forbidden:
+- ability entry without abilityGroupId.
+- child entry without childCapabilityId.
+- child capability without inputSchemaRef/outputSchemaRef.
+- vague capability descriptions with no boundary.
+- missing forbiddenResponsibilities.
+- missing proof/PAV/review requirements.
+- AI-generated map referencing unknown abilityGroupId or childCapabilityId.
+- AI-generated map referencing routableByMap=false capability.
+- AI inventing capability because userRequirement asks for it.
+
+Required inspector:
+- capability catalog schema requiredness.
+- routable child reference validation.
+- action/PAV/geometry/text-input/review requirement checks.
+- no unknown ability in generated draft.
+- no non-routable ability in generated draft.
+- missing boundary/forbiddenResponsibilities checks.
+
+Required negative proof:
+- capability child without outputSchemaRef → FAIL.
+- capability child without forbiddenResponsibilities → FAIL.
+- text-input child missing approvedText requirement → FAIL.
+- action child missing PAV requirement → FAIL.
+- coordinate child missing geometry proof requirement → FAIL.
+- AI map references unknown childCapabilityId → FAIL.
+- AI map references routableByMap=false child → FAIL.
+
+---
+
+## Law GRASSEYE-MAP-PLUGIN-015-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: prompt contract and output schema catalogs must define every AI step and branchable field used by maps.
+
+### 主题
+
+Prompt Contract 与 Output Schema Catalog 契约
+
+### 法条
+
+Map AI steps must bind to prompt contracts and output schemas declared in the Map Authoring Input Package.
+
+Required Prompt Contract Catalog fields:
+
+```txt
+promptContractId
+promptContractVersion
+promptHash
+displayName
+description
+inputSchemaRef
+outputSchemaRef
+allowedInputRefs
+dataPolicy
+providerPolicy
+reviewPolicy
+failurePolicy
+redactionPolicy
+forensicsPolicy
+forbiddenOutputs
+branchableOutputFields
+```
+
+Required Output Schema Catalog fields:
+
+```txt
+outputSchemaRef
+schemaVersion
+declaredFields
+branchableFields
+fieldTypes
+requiredFields
+reviewFields
+confidenceFields
+forbiddenFields
+exampleOutput
+```
+
+Required:
+- every AI step must have promptContractId.
+- every prompt binding must have outputSchemaRef.
+- promptContractId must exist in Prompt Contract Catalog.
+- outputSchemaRef must exist in Output Schema Catalog.
+- outputSchemaRef in prompt binding must match prompt contract outputSchemaRef.
+- branch DSL may reference only `branchableFields` or allowed status fields.
+- Prompt Contract Catalog is owned by AI Capability.
+- Map Plugin validates references only; it does not own prompt content.
+- Forensics proof records promptContractId, promptVersion, promptHash, outputSchemaRef, aiInputRefs, aiOutputRef, and aiProofRef.
+- map-authoring-from-user-requirement-v1 must consume a complete Map Authoring Input Package.
+
+Forbidden:
+- rawPrompt/systemPrompt/userPrompt/promptText in map package.
+- prompt text hardcoded in Orchestration/Nerve Bus/map adapter.
+- branch reads undeclared AI output field.
+- branch reads raw AI natural language.
+- outputSchemaRef mismatch between prompt contract and binding.
+- AI generated map invents promptContractId or outputSchemaRef.
+- Map Plugin Package selecting AI provider.
+- Map Plugin Package reading API key.
+
+Required inspector:
+- prompt binding parity.
+- prompt catalog reference check.
+- output schema catalog reference check.
+- branchable field check.
+- raw prompt ban across map/orchestration/nerve bus/map adapter.
+- Forensics proof field check.
+- map-authoring input package prompt contract reference check.
+
+Required negative proof:
+- AI step missing promptContractId → FAIL.
+- outputSchemaRef missing from catalog → FAIL.
+- prompt outputSchemaRef mismatch → FAIL.
+- branch reads undeclared field → FAIL.
+- rawPrompt in map → FAIL.
+- hardcoded prompt in Orchestration → FAIL.
+- invented promptContractId → FAIL.
+- invented outputSchemaRef → FAIL.
+
+---
+
+## Law GRASSEYE-MAP-PLUGIN-016-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: safety, human approval, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.
+
+### 主题
+
+安全授权与证据策略一等输入
+
+### 法条
+
+Advanced AI map generation must receive explicit policy catalogs and must not infer safety/evidence behavior from userRequirement alone.
+
+Required policy catalogs:
+
+```txt
+safetyPolicy
+humanApprovalPolicy
+evidencePolicy
+pavPolicy
+forensicsPolicy
+privacyPolicy
+secretPolicy
+rateLimitPolicy
+targetPlatformProfile
+```
+
+Required safety/human approval rules:
+- send message → human approval required.
+- submit form → human approval required.
+- purchase/payment → human approval required.
+- delete content → human approval required.
+- modify user data → human approval required.
+- bulk action → human approval + rate limit required.
+- text-input commit/send/publish semantics → explicit approval required.
+- external AI transmission of userRequirement → externalTransmissionApproval required.
+- activation of AI-generated map → human approval required.
+
+Required evidence/PAV/Forensics rules:
+- action step requires PAV when catalog says so.
+- mouse-click success requires PAV handoff.
+- text-input success requires PAV handoff.
+- screenshot step requires retention policy.
+- product candidate/evidence capture steps require evidencePacketRef or Forensics write request.
+- AI steps must record aiProofRef and promptContract refs.
+- map activation must record validationReportRef, humanApprovalRef, activationProofRef, activationSnapshotRef, and hashes.
+- raw API keys, cookies, secrets, raw prompt body, raw sensitive text, and raw clipboard text must not enter proof/log/map package.
+- Forensics stores refs/hashes, not raw sensitive content.
+
+Required platform profile rules:
+- target platform id.
+- login/auth expectations.
+- prohibited operations.
+- supported targets.
+- rate limit.
+- safety pause conditions.
+- captcha/security check behavior.
+- user review requirements.
+
+Forbidden:
+- generated map with high-risk side effect and no human review.
+- generated map with action step and missing PAV requirement.
+- generated map with evidence step and missing evidence policy.
+- generated map with screenshot step and missing retention policy.
+- generated map that persists raw secrets or raw sensitive text.
+- generated map that assumes platform login bypass.
+- generated map that ignores targetPlatformProfile constraints.
+- external AI authoring without transmission approval when policy requires it.
+
+Required inspector:
+- high-risk operation review gate check.
+- action/PAV policy check.
+- evidence/Forensics policy check.
+- screenshot retention policy check.
+- no raw secret/sensitive text proof check.
+- platform profile reference check.
+- external transmission approval check.
+- AI-generated map activation approval check.
+
+Required negative proof:
+- send-message map without human review → FAIL.
+- text-input commit without approval → FAIL.
+- mouse-click action without PAV → FAIL.
+- evidence step without Forensics/evidence policy → FAIL.
+- screenshot step without retention policy → FAIL.
+- raw secret in proof → FAIL.
+- external AI authoring without transmission approval → FAIL.
+- AI-generated map activation without humanApprovalRef → FAIL.
+
+---
+
+## Law GRASSEYE-MAP-PLUGIN-017-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.
+
+### 主题
+
+Map Authoring 执法闭环
+
+### 法条
+
+Map Plugin Package enforcement must close Map Authoring Input Package completeness and generated-map safety through owner-local audit.
+
+Required inspector coverage additions:
+1. Map Authoring Input Package schema exists.
+2. Map Authoring Input Package has all required fields.
+3. capabilityCatalog is detailed and child-capability complete.
+4. promptContractCatalog and outputSchemaCatalog are present and referenced.
+5. mapPackageSchema and mapAuthoringOutputSchema are present.
+6. safety/humanApproval/evidence/PAV/Forensics/privacy/secret/rateLimit/platform policies are present.
+7. authoring prompt builder uses only input package fields.
+8. generated map output is draft/quarantine only.
+9. generated map cannot invent ability/prompt/schema ids.
+10. generated map high-risk operations require review gates.
+11. generated map action steps require PAV.
+12. generated map evidence steps require evidence/Forensics policies.
+13. generated map screenshot steps require retention policy.
+14. ordinary/developer feed boundary remains enforced.
+15. activation proof and frozen snapshot fields remain enforced.
+16. user explanation schema and no runtime-internal leakage remain enforced.
+17. no raw prompt/secret/sensitive text leakage.
+18. all active map-plugin laws in registry/matrix/audit-plan/runner.
+19. negative-proof-harness executed.
+
+Required negative proof additions:
+
+```txt
+remove capabilityCatalog
+remove promptContractCatalog
+remove outputSchemaCatalog
+remove mapPackageSchema
+remove mapAuthoringOutputSchema
+remove safetyPolicy
+remove humanApprovalPolicy
+remove evidencePolicy
+remove pavPolicy
+remove forensicsPolicy
+remove targetPlatformProfile
+capability child without boundary
+capability child without forbiddenResponsibilities
+AI output unknown childCapabilityId
+AI output unknown promptContractId
+AI output unknown outputSchemaRef
+AI output branch over undeclared output field
+AI output active=true
+AI output approvalStatus=approved
+AI output activationSnapshotRef
+AI output rawPrompt
+AI output high-risk action without review
+AI output action without PAV
+AI output evidence step without Forensics/evidence policy
+AI output screenshot step without retention policy
+ordinary feed exposes mapId
+draft map appears runnable
+Map Plugin imports AI provider adapter
+Map Plugin imports secret resolver
+Commander direct active registry write
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+Final readiness additions:
+
+```txt
+Map Authoring Input Package complete
+capabilityCatalog detailed
+promptContractCatalog present
+outputSchemaCatalog present
+mapPackageSchema present
+mapAuthoringOutputSchema present
+safety/evidence/PAV/Forensics/platform policies enforced
+human approval enforced
+AI generated maps draft-only
+catalog references valid
+activation proof enforced
+ordinary feed safe
+inspector PASS
+negative proof PASS
 CI-FULL PASS
 ```

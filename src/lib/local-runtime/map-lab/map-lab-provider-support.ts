@@ -1,4 +1,4 @@
-import { getAiExternalProviderPublicState, saveAiExternalProviderConfig } from "../../../capabilities/ai/runtime/provider-config-store.js";
+import { getAiExternalProviderPublicState, saveAiExternalProviderConfig } from "../../../capabilities/ai/provider-config.js";
 import { getDefaultLocalDataDir } from "../default-data-dir.js";
 import type { WorkbenchRuntime } from "../workbench-contract.js";
 import type { MapLabProviderConfigInput, MapLabProviderState } from "./map-lab-types.js";
@@ -15,5 +15,8 @@ export function saveMapLabProviderConfig(
   runtime: WorkbenchRuntime,
   input: MapLabProviderConfigInput,
 ): Promise<MapLabProviderState> {
-  return saveAiExternalProviderConfig(resolveMapLabDataDir(runtime), input);
+  return saveAiExternalProviderConfig(resolveMapLabDataDir(runtime), {
+    ...input,
+    updatedAt: new Date().toISOString(),
+  });
 }

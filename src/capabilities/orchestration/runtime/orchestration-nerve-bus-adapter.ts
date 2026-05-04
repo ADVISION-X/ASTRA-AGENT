@@ -34,6 +34,7 @@ function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransport
       envelopeId: transport.commandEnvelope.envelopeId,
       resultRef: transport.resultEnvelope.resultId ?? `${envelopeId}:result`,
       decision: null,
+      branchFieldValues: {},
       failureReason: transport.resultEnvelope.failureReason ?? transport.resultEnvelope.reviewRequiredReason ?? null,
       payloadRefs: {
         ...input.payloadRefs,
@@ -57,6 +58,10 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       envelopeId: transport.requestEnvelope.envelopeId,
       resultRef: transport.responseEnvelope.responseId ?? `${envelopeId}:result`,
       decision: transport.responseEnvelope.decision ?? null,
+      branchFieldValues: {
+        decision: transport.responseEnvelope.decision ?? null,
+        confidence: transport.responseEnvelope.confidence ?? null,
+      },
       failureReason: transport.responseEnvelope.failureReason ?? transport.responseEnvelope.reviewRequiredReason ?? null,
       payloadRefs: {
         ...input.payloadRefs,

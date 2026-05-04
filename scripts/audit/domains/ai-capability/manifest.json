@@ -20,10 +20,12 @@
     "GRASSEYE-AI-CAPABILITY-011-V1",
     "GRASSEYE-AI-CAPABILITY-012-V1",
     "GRASSEYE-AI-CAPABILITY-013-V1",
-    "GRASSEYE-AI-CAPABILITY-014-V1"
+    "GRASSEYE-AI-CAPABILITY-014-V1",
+    "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
     ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
     ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
     ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"

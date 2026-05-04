@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { buildMapAuthoringInputPackage } from "../../../map-plugins/authoring/map-authoring-input-package-builder.js";
 import type { MapLabAuthoringRequest, MapLabProviderState } from "./map-lab-types.js";
 
 const MAP_AUTHORING_PROMPT_CONTRACT_ID = "map.authoring.v1";
@@ -19,11 +20,11 @@ const MAP_AUTHORING_SAFETY_POLICY = {
   reviewOnPolicyViolation: true,
 };
 
-function createInputRef(request: MapLabAuthoringRequest) {
+function createInputRef(inputPackageId: string, goal: string) {
   return {
-    id: `map-authoring-request:${request.missionId}`,
+    id: `map-authoring-input-package:${inputPackageId}`,
     kind: "ai-result" as const,
-    summary: `Map authoring request for ${request.objective}`,
+    summary: `Map authoring input package for ${goal}`,
   };
 }
 
@@ -42,11 +43,14 @@ export function buildMapAuthoringAiRequest(
   request: MapLabAuthoringRequest,
   providerState: MapLabProviderState,
 ) {
+  const inputPackage = buildMapAuthoringInputPackage(request, {
+    requesterRef: `commander-console:${request.missionId}`,
+  });
   const chainIds = createMapAuthoringChainIds(request.missionId);
   return {
     abilityGroupId: "ai" as const,
     missionId: request.missionId,
-    inputRefs: [createInputRef(request)],
+    inputRefs: [createInputRef(inputPackage.inputPackageId, inputPackage.userRequirement.goal)],
     promptContractId: MAP_AUTHORING_PROMPT_CONTRACT_ID,
     expectedOutputSchema: MAP_AUTHORING_OUTPUT_SCHEMA,
     requestedBy: "commander-console" as const,
@@ -77,6 +81,6 @@ export function buildMapAuthoringAiRequest(
     safetyPolicy: MAP_AUTHORING_SAFETY_POLICY,
     taskType: "map_authoring" as const,
     inputModality: "structured_record" as const,
-    input: request,
+    input: inputPackage,
   };
 }

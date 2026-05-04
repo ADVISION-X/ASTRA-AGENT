@@ -1309,7 +1309,7 @@ Codex 最终只允许输出：
 → READY / NOT_READY
 ```
 
-当 13 个能力组全部完成标准化后，后续新增 child、execution map、prompt contract、platform profile，都应在既有模式内扩展，不再出现大面积重构。
+当 14 个能力组全部完成标准化后，后续新增 child、execution map、prompt contract、platform profile，都应在既有模式内扩展，不再出现大面积重构。
 
 ---
 

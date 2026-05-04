@@ -50,7 +50,7 @@ type MatchedTransitionRecord = {
   finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed";
   toStepId: string | null;
   condition: {
-    leftRef: "status" | "decision";
+    leftRef: string;
     operator: "equals" | "notEquals" | "exists" | "notExists" | "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow" | "statusIs" | "reviewRequired";
     rightValue: string | number | boolean | null;
   };
@@ -124,7 +124,9 @@ function buildTransitionSuccessState(input: RunMissionLoopIterationInput, detail
 async function buildTransitionSuccessOutcome(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): Promise<MissionLoopIterationOutcome> {
   const state = buildTransitionSuccessState(input, details);
   const proof = buildTransitionSuccessProof(input, state, details);
-  const result = buildMissionExecutionResult({ missionState: state, currentStepResult: details.lastResult, runtimeProof: proof });
+  const result = state.status === "running"
+    ? null
+    : buildMissionExecutionResult({ missionState: state, currentStepResult: details.lastResult, runtimeProof: proof });
   return persistOutcome(input, { state, lastResult: details.lastResult, lastProof: proof, result });
 }
 

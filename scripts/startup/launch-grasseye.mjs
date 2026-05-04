@@ -2,7 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { probeCommanderConsolePage, probeHealth, waitForHealth } from "./lib/health-check.mjs";
+import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
+import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
@@ -12,8 +13,8 @@ const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
 const healthUrl = `${baseUrl}/api/runtime/health`;
-const missionReadinessUrl = `${baseUrl}/api/runtime/mission-readiness`;
 const terminalLogger = createTerminalStructuredLogger();
+const ALLOWED_PLATFORM_TARGETS = new Set(["tiktok-web", "facebook-web"]);
 
 function toFailureReason(error) {
   return error instanceof Error ? error.message : String(error);
@@ -31,20 +32,25 @@ function logFail(...[phase, component, eventType, status, message, extra = {}]) 
   terminalLogger.fail({ phase, component, eventType, status, message, ...extra });
 }
 
-function formatFailingComponents(report) {
-  if (!Array.isArray(report?.components)) {
-    return [];
+function parseFlags(argv) {
+  const platformFlagIndex = argv.findIndex((value) => value === "--platform" || value.startsWith("--platform="));
+  const inlinePlatformTarget = platformFlagIndex >= 0 && argv[platformFlagIndex]?.startsWith("--platform=")
+    ? argv[platformFlagIndex].slice("--platform=".length).trim()
+    : null;
+  const positionalPlatformTarget = platformFlagIndex >= 0 && argv[platformFlagIndex] === "--platform"
+    ? (argv[platformFlagIndex + 1] ?? "").trim()
+    : "";
+  const platformTarget = inlinePlatformTarget || positionalPlatformTarget || process.env.GRASSEYE_PLATFORM_TARGET?.trim() || "";
+  const platformSource = inlinePlatformTarget || positionalPlatformTarget ? "flag" : process.env.GRASSEYE_PLATFORM_TARGET?.trim() ? "env" : "missing";
+  if (!ALLOWED_PLATFORM_TARGETS.has(platformTarget)) {
+    throw new Error("STARTUP_PLATFORM_TARGET_REQUIRED: provide --platform=facebook-web|tiktok-web or set GRASSEYE_PLATFORM_TARGET explicitly.");
   }
 
-  return report.components
-    .filter((component) => component?.ok !== true)
-    .map((component) => `${component.name}=${component.detail}`);
-}
-
-function parseFlags(argv) {
   return {
     updateRequested: argv.includes("--update"),
     skipOpen: argv.includes("--no-open") || process.env.GRASSEYE_SKIP_OPEN === "1",
+    platformTarget,
+    platformSource,
   };
 }
 
@@ -75,23 +81,31 @@ async function ensureDependencies(root, flags) {
     await installDependencies({ rootDir: root });
   }
 
-  if (flags.updateRequested) {
-    if (!dependencyState.safeToUpdate) {
-      throw new Error(
-        `Refusing controlled update because dependency ranges are not bounded: ${dependencyState.unsafeUpdateRanges.join(", ")}.`,
-      );
-    }
-
-    logEvent("STARTUP", "bootstrap", "dependency_update", "started", "running controlled dependency refresh");
-    await installDependencies({ rootDir: root, updateRequested: true });
-  }
-
   const finalState = await assessDependencyState({ rootDir: root });
   if (finalState.requiresInstall) {
     throw new Error(`Dependency state is still not ready after repair: ${finalState.reasons.join(" ")}`);
   }
 
   logPass("STARTUP", "bootstrap", "dependency_check", "passed", "dependency readiness passed", {
+    durationMs: Date.now() - startedAt,
+  });
+}
+
+async function runUpdatePreflight(root, flags) {
+  const startedAt = Date.now();
+  logEvent("STARTUP", "bootstrap", "update_preflight_check", "started", flags.updateRequested ? "running controlled update preflight" : "no controlled update requested; validating update preflight");
+
+  if (flags.updateRequested) {
+    const dependencyState = await assessDependencyState({ rootDir: root, updateRequested: true });
+    if (!dependencyState.safeToUpdate) {
+      throw new Error(`UPDATE_PREFLIGHT_FAILED: ${dependencyState.unsafeUpdateRanges.join(", ")}`);
+    }
+
+    logEvent("STARTUP", "bootstrap", "dependency_update", "started", "running controlled dependency refresh");
+    await installDependencies({ rootDir: root, updateRequested: true });
+  }
+
+  logPass("STARTUP", "bootstrap", "update_preflight_check", "passed", "update preflight passed", {
     durationMs: Date.now() - startedAt,
   });
 }
@@ -109,20 +123,24 @@ async function preparePort() {
   });
 }
 
-async function startService(root) {
+async function startService(root, flags, localAiReadiness) {
   const serviceStart = Date.now();
-  logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
+  logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`, {
+    refs: [`platformTarget=${flags.platformTarget}`],
+  });
   const serviceHandle = await startLocalService({
     rootDir: root,
     preStartScripts: [],
     scriptName: "internal:app-server:dev",
     env: {
-      GRASSEYE_PLATFORM_TARGET: "tiktok-web",
+      GRASSEYE_PLATFORM_TARGET: flags.platformTarget,
+      GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
   });
   logPass("SERVICE", "app_server", "app_server", "ready", `local app shell process started for ${baseUrl}`, {
+    refs: [`platformTarget=${flags.platformTarget}`],
     durationMs: Date.now() - serviceStart,
   });
   return serviceHandle;
@@ -139,29 +157,52 @@ async function verifyAppHealth(serviceHandle) {
   });
 }
 
-async function checkMissionReadiness() {
-  const readinessStart = Date.now();
-  logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", `checking mission readiness at ${missionReadinessUrl}`);
-  try {
-    const missionReadiness = await probeHealth({ url: missionReadinessUrl });
-    const failingComponents = formatFailingComponents(missionReadiness);
-    if (failingComponents.length === 0 && missionReadiness?.status === "ready") {
-      logPass("MISSION", "mission_readiness", "MISSION_READINESS_PASSED", "passed", "mission readiness passed", {
-        durationMs: Date.now() - readinessStart,
-      });
-      return;
-    }
+function logLocalAiPhase(eventType, passed, message, extra = {}) {
+  const log = passed ? logPass : logFail;
+  log("AI", "local_ai_runtime", eventType, passed ? "passed" : "failed", message, extra);
+}
 
-    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "degraded", missionReadiness?.actionableMessage ?? "mission readiness degraded", {
-      refs: failingComponents,
-      durationMs: Date.now() - readinessStart,
-    });
-  } catch (error) {
-    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_FAILED", "failed", "mission readiness check failed after App Shell passed; keeping Commander Console alive", {
-      failureReason: toFailureReason(error),
-      durationMs: Date.now() - readinessStart,
-    });
+function isRuntimeFailureReason(reason) {
+  return reason === "LOCAL_AI_RUNTIME_NOT_FOUND" || reason === "LOCAL_AI_RUNTIME_START_FAILED" || reason === "LOCAL_AI_READINESS_TIMEOUT";
+}
+
+function getLocalAiRefs(readiness) {
+  return readiness.modelRoles.map((role) => `${role.modelRole}=${role.health}:${role.modelName}`);
+}
+
+async function ensureLocalAiReadiness() {
+  const startedAt = Date.now();
+  logEvent("AI", "local_ai_runtime", "local_ai_runtime_presence_check", "started", "checking local AI runtime presence");
+  logEvent("AI", "local_ai_runtime", "local_ai_model_roster_check", "started", "checking required local AI model roster");
+  logEvent("AI", "local_ai_runtime", "local_ai_start_or_connect", "started", "starting or connecting governed local AI runtime");
+  logEvent("AI", "local_ai_runtime", "local_ai_health_probe", "started", "probing governed local AI readiness");
+
+  const readiness = await ensureLocalAiRuntimeReady({
+    logger: (message) => logEvent("AI", "local_ai_runtime", "local_ai_start_or_connect_detail", "event", message),
+  });
+  const refs = getLocalAiRefs(readiness);
+  const runtimePassed = !isRuntimeFailureReason(readiness.failureReason);
+  const rosterPassed = readiness.failureReason !== "LOCAL_AI_MODEL_MISSING";
+  const gatePassed = readiness.missionRuntimeAvailable;
+  const extra = { refs, durationMs: Date.now() - startedAt, failureReason: readiness.failureReason ?? undefined };
+
+  logLocalAiPhase("local_ai_runtime_presence_check", runtimePassed, runtimePassed ? "local AI runtime presence passed" : readiness.detail, extra);
+  logLocalAiPhase("local_ai_model_roster_check", rosterPassed, rosterPassed ? "local AI model roster check passed" : readiness.detail, extra);
+  logLocalAiPhase("local_ai_start_or_connect", runtimePassed, runtimePassed ? "local AI start/connect passed" : readiness.detail, extra);
+  logLocalAiPhase("local_ai_health_probe", gatePassed, gatePassed ? "local AI health probe passed" : readiness.detail, extra);
+  logLocalAiPhase("ai_capability_readiness_gate", gatePassed, gatePassed ? "AI capability readiness gate passed" : readiness.detail, extra);
+
+  if (!gatePassed) {
+    throw new Error(`${readiness.failureReason ?? "LOCAL_AI_NOT_READY"}: ${readiness.detail}`);
   }
+
+  return readiness;
+}
+
+function markMissionRuntimeAvailable(readiness) {
+  logPass("MISSION", "mission_runtime", "mission_runtime_available", "passed", "mission runtime is available after startup gate passed", {
+    refs: getLocalAiRefs(readiness),
+  });
 }
 
 function logStartupReady() {
@@ -173,12 +214,17 @@ function logStartupReady() {
 
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
+  logEvent("STARTUP", "bootstrap", "platform_target_resolved", "ready", `resolved startup platform target ${flags.platformTarget}`, {
+    refs: [`source=${flags.platformSource}`],
+  });
+  await runUpdatePreflight(root, flags);
+  const localAiReadiness = await ensureLocalAiReadiness();
 
   await preparePort();
-  const serviceHandle = await startService(root);
+  const serviceHandle = await startService(root, flags, localAiReadiness);
   await verifyAppHealth(serviceHandle);
   await openReadyPage(flags);
-  await checkMissionReadiness();
+  markMissionRuntimeAvailable(localAiReadiness);
   logStartupReady();
   return serviceHandle;
 }

@@ -33,7 +33,7 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
     kind: "replace",
     name: "manual-first-enforcement-reintroduced",
-    file: ".github/instructions/cursor-rules/modules/module-page-state-capability.FINAL.instructions.md",
+    file: ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
     oldText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     newText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: manual-first  \nevidenceMode: law+inspector+negative-proof",
     expectedNeedle: "machine-blocking",
@@ -41,10 +41,32 @@ const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
     kind: "replace",
     name: "turn-p0-into-warning-only",
-    file: ".github/instructions/cursor-rules/modules/module-page-state-capability.FINAL.instructions.md",
+    file: ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
     oldText: "status: active  \ntier: P0  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     newText: "status: active  \ntier: P1  \ncapabilityDomain: page-state-capability  \nenforcementMode: machine-blocking  \nevidenceMode: law+inspector+negative-proof",
     expectedNeedle: "must remain P0",
+  },
+  {
+    kind: "create-file",
+    name: "open-feed-ready-classifier-outside-page-state",
+    file: "src/capabilities/open/runtime/page-state-feed-ready-classifier-probe.ts",
+    content: "export const feedReadyClassifier = () => \"feed_ready\";\n",
+    expectedNeedle: "truth classifiers or truth helpers",
+  },
+  {
+    kind: "create-file",
+    name: "platform-login-wall-truth-helper-outside-page-state",
+    file: "src/lib/browser/page-state-login-wall-truth-helper.ts",
+    content: "export const loginWallTruthHelper = () => \"login_required\";\n",
+    expectedNeedle: "truth classifiers or truth helpers",
+  },
+  {
+    kind: "replace",
+    name: "accept-action-completion-as-page-state-proof",
+    file: "src/capabilities/page-state/schema.ts",
+    oldText: "    kind: z.literal(\"post_action_verification\"),",
+    newText: "    kind: z.literal(\"action_completion\"),",
+    expectedNeedle: "action completion as governed page-state proof",
   },
   {
     kind: "replace",

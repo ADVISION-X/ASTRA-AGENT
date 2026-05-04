@@ -95,7 +95,7 @@ export async function loadAiExternalProviderConfig(dataDir: string): Promise<AiE
 
 export async function saveAiExternalProviderConfig(
   dataDir: string,
-  input: { baseUrl: string; model: string; apiKey: string; enabled?: boolean },
+  input: { baseUrl: string; model: string; apiKey: string; enabled?: boolean; updatedAt: string },
 ): Promise<AiExternalProviderPublicState> {
   const filePath = resolveProviderConfigPath(dataDir);
   const config = AiExternalProviderConfigSchema.parse({
@@ -106,7 +106,7 @@ export async function saveAiExternalProviderConfig(
     model: input.model.trim(),
     apiKey: input.apiKey.trim(),
     enabled: input.enabled ?? true,
-    updatedAt: new Date().toISOString(),
+    updatedAt: input.updatedAt,
   });
 
   await ensureConfigParent(filePath);

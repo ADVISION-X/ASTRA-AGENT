@@ -1,5 +1,6 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { buildHumanCommandDispatchInput, describeHumanCommandTransportMessage } from "./workbench-human-command-dispatch.js";
+import type { WorkbenchCommanderMissionSelectionState } from "./workbench-commander-mission-read-model.js";
 
 type CommanderHumanCommand = {
   commandId: string;
@@ -21,9 +22,15 @@ type CommanderHumanCommand = {
 
 export const createCommandTransport = (
   runtime: WorkbenchRuntime,
+  missionSelectionState: WorkbenchCommanderMissionSelectionState,
+  dispatchHumanCommand: (input: Awaited<ReturnType<typeof buildHumanCommandDispatchInput>>) => ReturnType<WorkbenchRuntime["nerveBusAbilityGroup"]["dispatchHumanCommand"]> = (input) =>
+    runtime.nerveBusAbilityGroup.dispatchHumanCommand(input),
  ) => ({
   emitHumanCommand: async (command: CommanderHumanCommand) => {
-    const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(await buildHumanCommandDispatchInput(runtime, command));
+    const transport = await dispatchHumanCommand(await buildHumanCommandDispatchInput(runtime, command));
+    if (command.commandType === "start-mission") {
+      missionSelectionState.lastMissionId = command.commandId;
+    }
     const status: "accepted" | "failed" | "review_required" = transport.resultEnvelope.status === "success"
       ? "accepted"
       : transport.resultEnvelope.status;

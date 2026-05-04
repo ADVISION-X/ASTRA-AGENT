@@ -26,8 +26,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "commander bypass mutation",
     file: "src/lib/local-runtime/workbench-commander-command-transport.ts",
-    search: "    const transport = await runtime.nerveBusAbilityGroup.dispatchHumanCommand(await buildHumanCommandDispatchInput(runtime, command));",
-    replace: "    const transport = await runtime.orchestrationAbilityGroup.executeMissionControlCommand(command as never);",
+    search: "    runtime.nerveBusAbilityGroup.dispatchHumanCommand(input),",
+    replace: "    runtime.orchestrationAbilityGroup.executeMissionControlCommand(input as never),",
   },
   {
     name: "review transport bypass mutation",

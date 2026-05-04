@@ -4,6 +4,19 @@ import type { CommanderConsoleViewModel } from "../types.js";
 
 export function renderCapabilityHealthList(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
+  const renderStartupMeta = (entry: CommanderConsoleViewModel["capabilityHealth"][number]) => {
+    if (entry.missionRuntimeAvailable === undefined && !entry.failureReason) {
+      return "";
+    }
+
+    const missionRuntime = entry.missionRuntimeAvailable === undefined
+      ? ""
+      : `<small>${escapeHtml(t("任务可运行", "Mission runtime"))}: ${escapeHtml(entry.missionRuntimeAvailable ? "true" : "false")}</small>`;
+    const failureReason = entry.failureReason
+      ? `<small>${escapeHtml(t("失败原因", "Failure reason"))}: ${escapeHtml(entry.failureReason)}</small>`
+      : "";
+    return `${missionRuntime}${failureReason}`;
+  };
 
   return renderCard(
     t("能力健康", "Capability Health"),
@@ -12,6 +25,7 @@ export function renderCapabilityHealthList(viewModel: CommanderConsoleViewModel)
       <div>
         <strong>${escapeHtml(entry.label)}</strong>
         <small>${escapeHtml(entry.detail)}</small>
+        ${renderStartupMeta(entry)}
       </div>
       ${renderStatusPill(entry.tone === "danger" ? t("阻断", "Blocked") : entry.tone === "warn" ? t("注意", "Attention") : t("正常", "Healthy"), entry.tone === "danger" ? "blocked" : entry.tone === "warn" ? "attention" : "ok")}
     </button>`).join("")}</div>`,
