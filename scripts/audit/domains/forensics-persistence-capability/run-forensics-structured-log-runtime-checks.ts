@@ -154,10 +154,13 @@ const hasBoundaryEmitterAbilityGroupWiring = (sourceFile: import("ts-morph").Sou
     }
 
     const structuredLogBusProperty = configuration.getProperty("structuredLogBus");
-    return !!structuredLogBusProperty
-      && Node.isPropertyAssignment(structuredLogBusProperty)
-      && Node.isIdentifier(structuredLogBusProperty.getInitializer())
-      && structuredLogBusProperty.getInitializer().getText() === "boundaryEventEmitter";
+    if (!structuredLogBusProperty || !Node.isPropertyAssignment(structuredLogBusProperty)) {
+      return false;
+    }
+    const initializer = structuredLogBusProperty.getInitializer();
+    return !!initializer
+      && Node.isIdentifier(initializer)
+      && initializer.getText() === "boundaryEventEmitter";
   });
 };
 

@@ -28,11 +28,14 @@ const buildOpenEntries = (): CapabilityCatalogEntry[] => {
         ],
       } : {}),
     } : undefined;
+    const supportedTargets = isLocalProgram
+      ? ["macos-local", "local-program-window", "desktop-screen"]
+      : child ? [child.platformId] : undefined;
     return buildEntry(
       "open",
       childCapabilityId,
       child?.purpose ?? `Open governed target ${humanize(childCapabilityId)}.`,
-      child ? [child.platformId] : undefined,
+      supportedTargets,
       metadata,
     );
   });

@@ -12,6 +12,7 @@ import {
   loadAuditSummary,
   mergeEvidenceMaps,
   resolveCommandStatuses,
+  type AuditSummaryEntry,
   type GlobalChainStatus,
   type SourceEvidence,
 } from "./static-clause-coverage-support.js";
@@ -103,7 +104,7 @@ const loadPackageScripts = async (): Promise<Record<string, string>> => {
 };
 
 const getOwnerAuditStatus = async (summary: Map<string, AuditSummaryEntry>, auditScript: string | null): Promise<boolean> => {
-  return Boolean(auditScript) && summary.get(auditScript)?.exitCode === 0;
+  return auditScript !== null && summary.get(auditScript)?.exitCode === 0;
 };
 
 const getDomainSourceFiles = async (capabilityDomain: string): Promise<string[]> => {

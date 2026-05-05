@@ -129,6 +129,30 @@ const MUTATIONS: Mutation[] = [
     replace: "    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: null,\n    localProgramSnapshotAvailable",
   },
   {
+    name: "remove OpenLocalProgramPort adapter injection mutation",
+    file: "src/lib/local-runtime/workbench-open-runtime.ts",
+    search: "    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),\n",
+    replace: "",
+  },
+  {
+    name: "remove local-program readiness block mutation",
+    file: "src/lib/local-runtime/workbench-status.ts",
+    search: "BLOCKED_OPEN_LOCAL_PROGRAM_PORT_NOT_CONFIGURED",
+    replace: "MUTATED_NO_LOCAL_PROGRAM_READINESS_BLOCK",
+  },
+  {
+    name: "local-program adapter raw shell mutation",
+    file: "src/lib/local-runtime/open-local-program-adapter.ts",
+    search: "shell: false",
+    replace: "shell: true",
+  },
+  {
+    name: "catalog omits open-local-program supported targets mutation",
+    file: "src/map-plugins/authoring/capability-catalog/builders/build-ai-open-entries.ts",
+    search: '["macos-local", "local-program-window", "desktop-screen"]',
+    replace: '["macos-local"]',
+  },
+  {
     name: "map workbench local-program confusion mutation",
     file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
     search: '"childCapabilityId": "open-local-program",',

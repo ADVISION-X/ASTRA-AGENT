@@ -4,7 +4,7 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 
 function resolveRequestedPlatform(payload: Record<string, string | number | boolean | null>) {
   const requestedPlatformId = payloadValueToString(payload.requestedPlatformId);
-  if (requestedPlatformId === "iphone-mirroring-facebook-app" || requestedPlatformId === "iphone-mirroring-tiktok-app") {
+  if (requestedPlatformId === "macos-local" || requestedPlatformId === "iphone-mirroring-facebook-app" || requestedPlatformId === "iphone-mirroring-tiktok-app") {
     return {
       childCapabilityId: "open-local-program",
       platformId: "macos-local",

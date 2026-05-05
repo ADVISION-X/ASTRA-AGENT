@@ -29,8 +29,8 @@
     "safetyLevel": "handoff-only",
     "userVisibleCapabilities": ["Open governed macOS app", "Hand off visible local app window", "Request human review"],
     "availabilityPolicy": "draft",
-    "requestedPlatformId": null,
-    "platformProfileRef": "macos-local:governed-profile",
+    "requestedPlatformId": "macos-local",
+    "platformProfileRef": "macos-local:iphone-mirroring",
     "targetProfileRef": "macos-app:iphone-mirroring",
     "defaultHumanGoal": "Open iPhone Mirroring and stop after the local app window handoff proof is available."
   },
@@ -128,7 +128,7 @@
     "requiredCapabilities": ["open", "post-action-verification", "forensics-persistence"],
     "requiredChildCapabilities": ["open-local-program", "verify-action-result", "write-structured-runtime-event", "request-human-review"],
     "requiredPromptContracts": [],
-    "requiredPlatformProfiles": ["macos-local:governed-profile"],
+    "requiredPlatformProfiles": ["macos-local:iphone-mirroring", "macos-app:iphone-mirroring"],
     "requiredForensicsRecords": ["structured_runtime_event"]
   },
   "compatibility": {
@@ -136,7 +136,7 @@
     "requiresMapSchema": "1",
     "requiresCapabilityRegistry": ["open", "post-action-verification", "forensics-persistence"],
     "requiresPromptRegistry": [],
-    "requiresPlatformProfileRegistry": ["macos-local:governed-profile"]
+    "requiresPlatformProfileRegistry": ["macos-local:iphone-mirroring", "macos-app:iphone-mirroring"]
   },
   "policy": {
     "safetyPolicy": "Open governed app/window only; no clicks, typing, scrolling, screenshots, shell commands, or internal app navigation.",

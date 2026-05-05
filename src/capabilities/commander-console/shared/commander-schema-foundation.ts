@@ -86,6 +86,7 @@ const CommanderOperatorRefSchema = NonEmptyStringSchema.max(160);
 const RequestedPlatformIdSchema = z.enum([
   "facebook-web",
   "tiktok-web",
+  "macos-local",
   "iphone-mirroring-facebook-app",
   "iphone-mirroring-tiktok-app",
 ]);

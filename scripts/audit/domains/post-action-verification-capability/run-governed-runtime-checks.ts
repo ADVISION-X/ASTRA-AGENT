@@ -2,12 +2,12 @@ import { SyntaxKind, type Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import type { PostActionVerificationRuntimeContext } from "../../../../src/capabilities/post-action-verification/runtime/post-action-verification-runtime-context.ts";
-import { createSystemPostActionVerificationClock } from "../../../../src/capabilities/post-action-verification/runtime/verification-clock.ts";
-import { dispatchPostActionVerificationFailure } from "../../../../src/capabilities/post-action-verification/runtime/verification-dispatch-failure.ts";
-import { PostActionVerificationAbilityInputSchema } from "../../../../src/capabilities/post-action-verification/schema.ts";
-import { createPostActionRuntime } from "../../../../src/lib/local-runtime/workbench-post-action-runtime.ts";
-import { buildPostActionVerificationInput } from "../../../../src/lib/local-runtime/workbench-post-action-dispatch-input.ts";
+import type { PostActionVerificationRuntimeContext } from "../../../../src/capabilities/post-action-verification/runtime/post-action-verification-runtime-context.js";
+import { createSystemPostActionVerificationClock } from "../../../../src/capabilities/post-action-verification/runtime/verification-clock.js";
+import { dispatchPostActionVerificationFailure } from "../../../../src/capabilities/post-action-verification/runtime/verification-dispatch-failure.js";
+import { PostActionVerificationAbilityInputSchema } from "../../../../src/capabilities/post-action-verification/schema.js";
+import { createPostActionRuntime } from "../../../../src/lib/local-runtime/workbench-post-action-runtime.js";
+import { buildPostActionVerificationInput } from "../../../../src/lib/local-runtime/workbench-post-action-dispatch-input.js";
 
 import { LAW_IDS } from "./config.js";
 import { getSource } from "./project-access.js";
@@ -145,7 +145,7 @@ async function runGovernedFixtureChecks(): Promise<Finding[]> {
     const invalidInputResult = dispatchPostActionVerificationFailure({
       rawInput: {
         ...parsedInput,
-        runId: null,
+        runId: "",
       },
       context: createFailureContext(),
       failureReason: "input_schema_invalid",

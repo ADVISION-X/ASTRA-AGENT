@@ -68,13 +68,14 @@ const IPHONE_MIRRORING_PACKAGE_IDS = new Set([
   "builtin.iphone-mirroring-facebook-seeding-video-discovery",
   "builtin.iphone-mirroring-tiktok-seeding-video-discovery",
 ]);
+const LOCAL_PROGRAM_SMOKE_PACKAGE_ID = "builtin.macos-local-program-open-smoke";
 
 const inspectIphoneMirroringMapBoundary = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
 
   for (const record of await loadBuiltinPackageRecords()) {
     const mapPackage = record.mapPackage;
-    if (!mapPackage || !IPHONE_MIRRORING_PACKAGE_IDS.has(mapPackage.manifest.packageId)) {
+    if (!mapPackage || (!IPHONE_MIRRORING_PACKAGE_IDS.has(mapPackage.manifest.packageId) && mapPackage.manifest.packageId !== LOCAL_PROGRAM_SMOKE_PACKAGE_ID)) {
       continue;
     }
 
@@ -96,6 +97,19 @@ const inspectIphoneMirroringMapBoundary = async (): Promise<Finding[]> => {
     }
     if (requestedPlatformId === "facebook-web" || requestedPlatformId === "tiktok-web") {
       findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not bind to web requestedPlatformId values." }));
+    }
+    if (mapPackage.manifest.packageId === LOCAL_PROGRAM_SMOKE_PACKAGE_ID) {
+      if (requestedPlatformId !== "macos-local") {
+        findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "macOS local-program smoke map must bind requestedPlatformId=macos-local." }));
+      }
+      if (!mapPackage.dependencies.requiredChildCapabilities.includes("open-local-program") || !mapPackage.compatibility.requiresPlatformProfileRegistry.includes("macos-app:iphone-mirroring")) {
+        findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "macOS local-program smoke map must reference open-local-program and macos-app:iphone-mirroring." }));
+      }
+      const forbiddenSmokeChildren = new Set(["capture-desktop-screen", "capture-region", "click-desktop-coordinate", "scroll-desktop-screen", "open-facebook", "open-tiktok", "open-local-workbench"]);
+      const forbiddenSmokeStep = steps.find((step) => forbiddenSmokeChildren.has(step.childCapabilityId));
+      if (forbiddenSmokeStep) {
+        findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "macOS local-program smoke map may only open, verify result signal, log proof, and request human review.", detail: forbiddenSmokeStep.stepId }));
+      }
     }
     if (stepUsesTargetUrl) {
       findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not route through targetUrl or web URL fallback input refs." }));

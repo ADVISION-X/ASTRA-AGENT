@@ -1,8 +1,10 @@
 import { createOpenAbilityGroup } from "../../capabilities/open/index.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
+import { createGovernedMacOSOpenLocalProgramAdapter } from "./open-local-program-adapter.js";
 
 export const createOpenRuntime = (runtime: WorkbenchBaseRuntime) =>
   createOpenAbilityGroup({
+    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),
     browser: {
       getSessionSnapshot: async () => runtime.browserController.getSessionState(),
       open: async (openInput) => {

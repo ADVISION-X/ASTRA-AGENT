@@ -43,13 +43,11 @@ const fail = (message: string): never => {
 };
 
 const assertEmptyStringArray = (name: string, value: unknown): void => {
-  if (!Array.isArray(value)) {
-    fail(`${name} must be an array.`);
-  }
-  if (!value.every((item) => typeof item === "string")) {
+  const items = Array.isArray(value) ? value : fail(`${name} must be an array.`);
+  if (!items.every((item: unknown) => typeof item === "string")) {
     fail(`${name} must contain only law ids.`);
   }
-  if (value.length > 0) {
+  if (items.length > 0) {
     fail(`${name} must be empty.`);
   }
 };
@@ -59,31 +57,29 @@ const assertRunnerPassed = (summary: RunnerSummary): void => {
   if (!summary.passed) {
     fail("runner-summary.json passed must be true.");
   }
-  if (!totals) {
-    fail("runner-summary.json totals are missing.");
-  }
-  if ((totals.inspectors ?? 0) <= 0) {
+  const resolvedTotals = totals ?? fail("runner-summary.json totals are missing.");
+  if ((resolvedTotals.inspectors ?? 0) <= 0) {
     fail("runner-summary.json must include at least one inspector result.");
   }
-  if (totals.failed !== 0 || totals.blocking !== 0) {
+  if (resolvedTotals.failed !== 0 || resolvedTotals.blocking !== 0) {
     fail("runner-summary.json must have zero failed and zero blocking inspectors.");
   }
-  if (totals.passed !== totals.inspectors) {
+  if (resolvedTotals.passed !== resolvedTotals.inspectors) {
     fail("runner-summary.json passed inspector count must equal inspector total.");
   }
 };
 
 const assertStaticCoverageComplete = (coverage: StaticCoverage): void => {
-  if (!Array.isArray(coverage.laws) || coverage.laws.length === 0) {
-    fail("static-clause-coverage.generated.json must include laws.");
-  }
+  const laws = Array.isArray(coverage.laws) && coverage.laws.length > 0
+    ? coverage.laws
+    : fail("static-clause-coverage.generated.json must include laws.");
 
-  const unresolved = coverage.laws.filter((law) => law.coverageStatus !== "ENFORCED");
+  const unresolved = laws.filter((law) => law.coverageStatus !== "ENFORCED");
   if (unresolved.length > 0) {
     fail(`static clause coverage still has ${unresolved.length} unresolved law(s); first=${unresolved[0]?.lawId ?? "unknown"}.`);
   }
 
-  const fallbackOnly = coverage.laws.find((law) => JSON.stringify(law).includes("allowedLawIds"));
+  const fallbackOnly = laws.find((law) => JSON.stringify(law).includes("allowedLawIds"));
   if (fallbackOnly) {
     fail(`static clause coverage still contains allowedLawIds fallback evidence for ${fallbackOnly.lawId ?? "unknown"}.`);
   }

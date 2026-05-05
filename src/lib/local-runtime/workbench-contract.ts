@@ -24,6 +24,7 @@ import type {
 export type RequestedPlatformId =
   | "tiktok-web"
   | "facebook-web"
+  | "macos-local"
   | "iphone-mirroring-facebook-app"
   | "iphone-mirroring-tiktok-app";
 
@@ -125,7 +126,7 @@ type WorkbenchOrchestrationAbilityGroup = {
 };
 
 export type MissionStartPreflightComponent = {
-  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "missionCommandSchema" | "browserController" | "localAi" | "dataStore";
+  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "missionCommandSchema" | "browserController" | "openLocalProgram" | "localAi" | "dataStore";
   ok: boolean;
   detail: string;
   ownerResponsible: string;

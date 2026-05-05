@@ -22,6 +22,13 @@ const {
   LAW_RUNTIME_GOVERNANCE,
   LAW_LOCAL_PROGRAM,
   LOCAL_PROGRAM_RUNNER_PATH,
+  LOCAL_PROGRAM_COMPLETION_PATH,
+  LOCAL_PROGRAM_LAUNCH_PATH,
+  LOCAL_PROGRAM_FAILURE_PATH,
+  LOCAL_PROGRAM_ADAPTER_PATH,
+  LOCAL_PROGRAM_ADAPTER_CONSTANTS_PATH,
+  WORKBENCH_PATH,
+  WORKBENCH_STATUS_PATH,
   NAVIGATION_RUNNER_PATH,
   NAVIGATION_RUNNER_SUPPORT_PATH,
   POST_OPEN_STATE_GATE_PATH,
@@ -230,20 +237,52 @@ const collectRuntimeDisciplineFindings = (project: import("ts-morph").Project): 
 
 const collectLocalProgramRuntimeFindings = (project: import("ts-morph").Project): Finding[] => {
   const localProgramRunnerSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_RUNNER_PATH);
+  const localProgramCompletionSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_COMPLETION_PATH);
+  const localProgramLaunchSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_LAUNCH_PATH);
+  const localProgramFailureSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_FAILURE_PATH);
+  const localProgramAdapterSource = project.getSourceFileOrThrow(LOCAL_PROGRAM_ADAPTER_PATH);
+  const localProgramAdapterConstantsSource = project.getSourceFileOrThrow(LOCAL_PROGRAM_ADAPTER_CONSTANTS_PATH);
+  const workbenchOpenSource = project.getSourceFileOrThrow(WORKBENCH_PATH);
+  const workbenchStatusSource = project.getSourceFileOrThrow(WORKBENCH_STATUS_PATH);
   const text = localProgramRunnerSource.getText();
+  const completionText = localProgramCompletionSource.getText();
+  const launchText = localProgramLaunchSource.getText();
+  const failureText = localProgramFailureSource.getText();
+  const adapterText = localProgramAdapterSource.getText();
+  const adapterConstantsText = localProgramAdapterConstantsSource.getText();
+  const workbenchText = workbenchOpenSource.getText();
+  const readinessText = workbenchStatusSource.getText();
   const findings: Finding[] = [];
 
-  if (!hasCallExpression(localProgramRunnerSource, "openLocalProgram") || !hasIdentifier(localProgramRunnerSource, "AbortController")) {
+  if (!hasCallExpression(localProgramLaunchSource, "openLocalProgram") || !hasIdentifier(localProgramLaunchSource, "AbortController")) {
     findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program branch must call OpenLocalProgramPort.openLocalProgram with timeout/cancellation." }));
   }
-  if (!text.includes("appLaunchAttemptRef: launch.launchResult?.appLaunchAttemptRef ?? null,\n    appName: input.profile.appName,\n    bundleId: input.profile.bundleId,\n    appPath: input.profile.appPath,\n    allowedLaunchMethod: input.profile.allowedLaunchMethod,\n    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: handoff.localAppStateHandoffRef")) {
+  if (!completionText.includes("appLaunchAttemptRef: launch.launchResult?.appLaunchAttemptRef ?? null") || !completionText.includes("windowHandoffRef: handoff.windowHandoffRef")) {
     findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program success proof must preserve windowHandoffRef from the governed handoff." }));
   }
-  if (!text.includes("localAppStateHandoffRef: handoff.localAppStateHandoffRef")) {
+  if (!completionText.includes("localAppStateHandoffRef: handoff.localAppStateHandoffRef")) {
     findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program success proof must preserve localAppStateHandoffRef from the governed handoff." }));
   }
   if (text.includes("targetUrl: \"http://127.0.0.1") || text.includes("localhost")) {
     findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program branch must not use localhost or fake URL fallback." }));
+  }
+  if (!workbenchText.includes("localProgram: createGovernedMacOSOpenLocalProgramAdapter()")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: WORKBENCH_PATH, line: 1, severity: "fatal", message: "Workbench Open runtime must inject the governed OpenLocalProgramPort adapter." }));
+  }
+  if (!readinessText.includes("BLOCKED_OPEN_LOCAL_PROGRAM_PORT_NOT_CONFIGURED") || !readinessText.includes("openLocalProgram")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: WORKBENCH_STATUS_PATH, line: 1, severity: "fatal", message: "Mission preflight must BLOCK local-program maps when the local program port/profile is not ready." }));
+  }
+  if (!adapterConstantsText.includes("GOVERNED_TARGET_PROFILE_REF = \"macos-app:iphone-mirroring\"") || !adapterConstantsText.includes("GOVERNED_BUNDLE_ID = \"com.apple.ScreenContinuity\"")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_ADAPTER_PATH, line: 1, severity: "fatal", message: "Local runtime adapter must hard-code the governed iPhone Mirroring profile instead of accepting raw app names." }));
+  }
+  if (adapterText.includes("osascript") || adapterText.includes("shellCommand") || adapterText.includes("shell: true")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_ADAPTER_PATH, line: 1, severity: "fatal", message: "Local runtime adapter must not use AppleScript, shellCommand fields, or shell execution." }));
+  }
+  if (!adapterText.includes("windowHandoffRef") || !adapterText.includes("localAppStateHandoffRef")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_ADAPTER_PATH, line: 1, severity: "fatal", message: "Local runtime adapter must return window and local app state handoff refs only after governed launch confirmation." }));
+  }
+  if (!launchText.includes("LOCAL_PROGRAM_PORT_NOT_CONFIGURED") || !failureText.includes("LOCAL_PROGRAM_APP_NOT_INSTALLED") || !failureText.includes("LOCAL_PROGRAM_WINDOW_HANDOFF_MISSING") || !failureText.includes("LOCAL_APP_STATE_HANDOFF_MISSING")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program failureReason codes must be specific enough for readiness and log triage." }));
   }
 
   return findings;

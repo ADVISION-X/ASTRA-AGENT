@@ -28,7 +28,7 @@ export type SourceEvidence = {
   checkKind: "required-shape" | "forbidden-shape" | "boundary-attack" | "anti-escape" | "runtime-proof";
 };
 
-type AuditSummaryEntry = {
+export type AuditSummaryEntry = {
   name: string;
   command?: string;
   exitCode: number;

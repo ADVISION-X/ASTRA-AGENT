@@ -1,6 +1,7 @@
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
 import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
+import { getOpenLocalProgramAdapterReadiness } from "./open-local-program-adapter.js";
 import { checkMissionCommandSchemaPreflight, describeMissionCommandSchemaPreflight } from "./workbench-mission-command-preflight.js";
 
 const PLATFORM_MODE_INFO = {
@@ -28,6 +29,15 @@ const PLATFORM_MODE_INFO = {
     fallbackMode: "No platform-owned fallback chain",
     geometryGuard: "Capability-owned at execution time",
     viewport: "Derived from governed browser session",
+    calibration: "Held by Geometry Guard runtime proof",
+    orientation: "capability-owned",
+  },
+  "macos-local": {
+    platformLabel: "macOS local program governed handoff runtime",
+    executionMode: "Open Local Program handoff only",
+    fallbackMode: "No raw app name, shell command, AppleScript, or local workbench substitution",
+    geometryGuard: "Desktop geometry owned by Geometry Guard runtime proof",
+    viewport: "Derived from governed local app window handoff",
     calibration: "Held by Geometry Guard runtime proof",
     orientation: "capability-owned",
   },
@@ -150,6 +160,9 @@ const buildMissionStartPreflightComponents = (input: {
   commandSchemaDetail: string;
   browserDetail: string;
   browserOk: boolean;
+  openLocalProgramDetail: string;
+  openLocalProgramOk: boolean;
+  requiresOpenLocalProgram: boolean;
   localAiDetail: string;
   localAiOk: boolean;
   dataStoreDetail: string;
@@ -160,6 +173,7 @@ const buildMissionStartPreflightComponents = (input: {
   { name: "commandTransportContract", ok: input.commandContractOk, detail: input.commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationId=${input.activationId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : "selected task binding is missing taskTemplateId, activationId, activationSnapshotRef, or targetProfileRef before command dispatch", ownerResponsible: "Commander Console / Nerve Bus / Orchestration", actionableMessage: "Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch." },
   { name: "missionCommandSchema", ok: input.commandSchemaOk, detail: input.commandSchemaOk ? "MissionCommandSchema accepts the final start-mission command shape before dispatch." : `MissionCommandSchema rejected the final start-mission command shape before dispatch: ${input.commandSchemaDetail}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Repair start-mission command construction before dispatch so COMMAND_REJECTED is not discovered after Nerve Bus dispatch." },
   { name: "browserController", ok: input.browserOk, detail: input.browserDetail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start." },
+  ...(input.requiresOpenLocalProgram ? [{ name: "openLocalProgram" as const, ok: input.openLocalProgramOk, detail: input.openLocalProgramDetail, ownerResponsible: "Open Capability / Local Runtime", actionableMessage: "Repair BLOCKED_OPEN_LOCAL_PROGRAM_PORT_NOT_CONFIGURED or install the governed iPhone Mirroring profile before starting this mission." }] : []),
   { name: "localAi", ok: input.localAiOk, detail: input.localAiDetail, ownerResponsible: "AI Capability / Local AI Runtime", actionableMessage: "Start Ollama or repair the local AI runtime before starting this mission." },
   { name: "dataStore", ok: input.dataStoreOk, detail: input.dataStoreDetail, ownerResponsible: "Forensics Persistence", actionableMessage: "Repair the local Forensics store before starting this mission." },
 ];
@@ -200,6 +214,8 @@ export const getMissionStartPreflight = async (
     runtime.aiAbilityGroup.getRuntimeHealth(),
   ]);
   const browserHealth = runtime.browserController.getHealth();
+  const openLocalProgramReadiness = getOpenLocalProgramAdapterReadiness();
+  const requiresOpenLocalProgram = input.requestedPlatformId === "macos-local" || input.requestedPlatformId === "iphone-mirroring-facebook-app" || input.requestedPlatformId === "iphone-mirroring-tiktok-app";
   const availableMapIds = new Set(runtime.orchestrationAbilityGroup.listMapIds());
   const selectedMapOk = availableMapIds.has(input.selectedMapId);
   const commandContractOk = Boolean(input.taskTemplateId && input.activationId && input.activationSnapshotRef && input.targetProfileRef);
@@ -218,6 +234,9 @@ export const getMissionStartPreflight = async (
     commandSchemaDetail: describeMissionCommandSchemaPreflight(commandSchemaCheck),
     browserDetail: browserHealth.detail,
     browserOk: browserHealth.ok,
+    openLocalProgramDetail: openLocalProgramReadiness.ok ? openLocalProgramReadiness.detail : `${openLocalProgramReadiness.code}: ${openLocalProgramReadiness.detail}`,
+    openLocalProgramOk: !requiresOpenLocalProgram || openLocalProgramReadiness.ok,
+    requiresOpenLocalProgram,
     localAiDetail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`,
     localAiOk: localAiHealth.ok,
     dataStoreDetail: dataStoreHealth.detail,

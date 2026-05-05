@@ -204,6 +204,30 @@ const MUTATIONS: Mutation[] = [
     replace: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n  getLocalAppShellMapRegistry().active.activate({} as never, {} as never);\n',
   },
   {
+    name: "map contains shellCommand mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '  "signature": null\n',
+    replace: '  "shellCommand": "open -a iPhone Mirroring",\n  "signature": null\n',
+  },
+  {
+    name: "map contains openApp mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '  "signature": null\n',
+    replace: '  "openApp": "iPhone Mirroring",\n  "signature": null\n',
+  },
+  {
+    name: "map contains osascript mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '  "signature": null\n',
+    replace: '  "osascript": "tell application \\"iPhone Mirroring\\" to activate",\n  "signature": null\n',
+  },
+  {
+    name: "macos local smoke missing open-local-program mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '"childCapabilityId": "open-local-program"',
+    replace: '"childCapabilityId": "open-local-workbench"',
+  },
+  {
     name: "forensics proof missing activationId mutation",
     file: "src/map-plugins/shared/map-package-proof.ts",
     search: '  activationId: string;\n',

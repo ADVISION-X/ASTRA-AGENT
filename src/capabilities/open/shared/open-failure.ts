@@ -11,6 +11,13 @@ export const OPEN_FAILURE_CODES = [
   "output_schema_invalid",
   "child_execution_failed",
   "duplicate_open_blocked",
+  "LOCAL_PROGRAM_PORT_NOT_CONFIGURED",
+  "LOCAL_PROGRAM_PROFILE_NOT_FOUND",
+  "LOCAL_PROGRAM_APP_NOT_INSTALLED",
+  "LOCAL_PROGRAM_LAUNCH_FAILED",
+  "LOCAL_PROGRAM_WINDOW_NOT_VISIBLE",
+  "LOCAL_PROGRAM_WINDOW_HANDOFF_MISSING",
+  "LOCAL_APP_STATE_HANDOFF_MISSING",
 ] as const;
 
 export function createOpenFailure(input: {

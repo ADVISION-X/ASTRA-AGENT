@@ -7,6 +7,7 @@ type ActiveMapRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperation
 export type RequestedPlatformId =
   | "facebook-web"
   | "tiktok-web"
+  | "macos-local"
   | "iphone-mirroring-facebook-app"
   | "iphone-mirroring-tiktok-app";
 

@@ -29,6 +29,13 @@ export const DEFAULT_PAGE_STATE_PLATFORM_PROFILES: readonly PageStatePlatformPro
     videoPathMarkers: ["/workbench"],
   },
   {
+    profileId: "macos-local",
+    kind: "real_platform",
+    hosts: ["iphone-mirroring"],
+    feedPathPrefixes: ["/"],
+    videoPathMarkers: ["/"],
+  },
+  {
     profileId: "iphone-mirroring-facebook-app",
     kind: "real_platform",
     hosts: ["iphone-mirroring"],

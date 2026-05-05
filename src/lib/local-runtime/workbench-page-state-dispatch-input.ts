@@ -7,6 +7,7 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 const DEFAULT_PLATFORM_URL = {
   "tiktok-web": "https://www.tiktok.com/foryou",
   "facebook-web": "https://www.facebook.com/reel/",
+  "macos-local": "grasseye-local-app://iphone-mirroring",
   "iphone-mirroring-facebook-app": "grasseye-local-app://iphone-mirroring/facebook",
   "iphone-mirroring-tiktok-app": "grasseye-local-app://iphone-mirroring/tiktok",
 } satisfies Record<RequestedPlatformId, string>;
@@ -39,7 +40,7 @@ const resolvePlatformFromUrl = (currentUrl: string): RequestedPlatformId | null 
 };
 
 const resolveShellPlatform = (platformTarget: WorkbenchRuntime["options"]["platformTarget"]): RequestedPlatformId | null => {
-  return platformTarget === "facebook-web" || platformTarget === "tiktok-web" || platformTarget === "iphone-mirroring-facebook-app" || platformTarget === "iphone-mirroring-tiktok-app"
+  return platformTarget === "facebook-web" || platformTarget === "tiktok-web" || platformTarget === "macos-local" || platformTarget === "iphone-mirroring-facebook-app" || platformTarget === "iphone-mirroring-tiktok-app"
     ? platformTarget
     : null;
 };

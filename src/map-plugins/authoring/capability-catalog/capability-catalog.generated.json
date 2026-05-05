@@ -663,7 +663,9 @@
       "platformId": "macos-local",
       "targetKind": "local-program",
       "supportedTargets": [
-        "macos-local"
+        "macos-local",
+        "local-program-window",
+        "desktop-screen"
       ],
       "routableByMap": true,
       "requiresPostOpenWindowHandoff": true,
