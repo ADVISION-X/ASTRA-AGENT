@@ -1,4 +1,6 @@
-import { fileExists, readTextFile } from "../../core/filesystem.js";
+import path from "node:path";
+
+import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { EnforcementStrength } from "./coverage-types.js";
 
@@ -46,13 +48,21 @@ const classifyNonStructuralStrength = (source: string, hasNegativeProof: boolean
   return "LEVEL_0_MANUAL_ONLY_OR_MISSING";
 };
 
+const readInspectorDomainSource = async (entry: string): Promise<string> => {
+  const absoluteEntry = pathFromRepoRoot(entry);
+  const domainDir = path.dirname(absoluteEntry);
+  const sourceFiles = await listFilesRecursive(domainDir, { extensions: [".ts"] });
+  const sources = await Promise.all(sourceFiles.map((sourceFile) => readTextFile(sourceFile)));
+  return sources.join("\n");
+};
+
 export const classifyInspectorStrength = async (entry: string, hasNegativeProof: boolean): Promise<EnforcementStrength> => {
   const absoluteEntry = pathFromRepoRoot(entry);
   if (!(await fileExists(absoluteEntry))) {
     return "LEVEL_0_MANUAL_ONLY_OR_MISSING";
   }
 
-  const source = await readTextFile(absoluteEntry);
+  const source = await readInspectorDomainSource(entry);
   const structuralStrength = classifyStructuralStrength(source, hasNegativeProof);
   if (structuralStrength) {
     return structuralStrength;

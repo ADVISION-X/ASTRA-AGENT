@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T18:30:53.581Z",
+  "generatedAt": "2026-05-05T19:43:35.704Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -15,11 +15,18 @@
       "capabilityDomain": "map-plugin-package",
       "findings": [
         {
+          "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
+          "file": "src/lib/local-app-shell/task-template-registry.ts",
+          "line": 1,
+          "severity": "fatal",
+          "message": "Commander task template registry must not directly write map registry state."
+        },
+        {
           "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
           "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
           "line": 1,
           "severity": "fatal",
-          "message": "Rollback verification failed for remove capabilityCatalog from input package mutation: exitCode=1 | stdout=[CODE VIOLATION] map-plugin-package: Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.\n- FATAL src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json:1 Generated capability catalog must match the governed build source exactly.\n- FATAL src/map-plugins/authoring/map-authoring-governed-catalogs.ts:1 BLOCKED_CAPABILITY_CATALOG_STALE"
+          "message": "Rollback verification failed for system prompt template hash mismatch mutation: exitCode=1 | stdout=[CODE VIOLATION] map-plugin-package: Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.\n- FATAL src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json:1 Builtin map package must parse under the governed schema: root: Unrecognized key(s) in object: 'osascript'\n- FATAL src/map-plugins/registry/map-plugin-registry.ts:1 MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=macos-local-program-open-smoke.meta.map-package.json ownerResponsible=map-plugin-package actionableMessage=\"Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.\""
         }
       ],
       "phases": [
@@ -49,9 +56,9 @@
         },
         {
           "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
+          "classification": "ENFORCEMENT MISS",
+          "passed": false,
+          "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages."
         },
         {
           "name": "anti-escape",
@@ -90,10 +97,10 @@
           "summary": "Map package negative-proof harness failed to prove mutation rejection and rollback recovery."
         }
       ],
-      "summary": "Map package negative-proof harness failed to prove mutation rejection and rollback recovery.",
+      "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 1
+      "violationCount": 2
     }
   ]
 }

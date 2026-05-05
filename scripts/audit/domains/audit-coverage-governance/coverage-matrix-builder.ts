@@ -136,14 +136,19 @@ export const buildCoverageSummary = (requirements: CoverageRequirement[], genera
   const negativeProofCovered = requirements.filter((requirement) => requirement.negativeProofCoverage.length > 0).length;
   const staticCovered = requirements.filter((requirement) => requirement.staticCoverage.length > 0).length;
   const manualOnly = requirements.filter((requirement) => requirement.enforcementStrength === "LEVEL_0_MANUAL_ONLY_OR_MISSING").length;
-  const warningOnlyP0 = requirements.filter((requirement) => requirement.tier === "P0" && /warning-only/i.test(requirement.sourceText)).length;
+  const warningOnlyP0 = requirements.filter((requirement) =>
+    requirement.tier === "P0"
+    && /warning-only/i.test(requirement.sourceText)
+    && !/must never|must not|forbid|forbidden|禁止|不得|严禁|不能/i.test(requirement.sourceText),
+  ).length;
   const finalVerdict = blockers.length === 0 && weakCoverage === 0 && missingCoverage === 0 && manualOnly === 0 && warningOnlyP0 === 0
     ? "PASS"
     : "BLOCKED";
+  const coverageMode = finalVerdict === "PASS" ? "blocking" : "inventory-only";
 
   return {
     generatedAt,
-    coverageMode: "inventory-only",
+    coverageMode,
     pilotOwners: [...PILOT_OWNER_DOMAINS],
     totalRequirements: requirements.length,
     lawRequirements: requirements.filter((requirement) => requirement.sourceType === "law").length,

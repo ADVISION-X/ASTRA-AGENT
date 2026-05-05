@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T18:55:55.709Z",
+  "generatedAt": "2026-05-05T19:46:30.313Z",
   "negativeProofs": [
     {
       "negativeProofId": "AI-CAPABILITY-NEG-001",
@@ -2342,6 +2342,24 @@
       "rollback": "PASS"
     },
     {
+      "negativeProofId": "SECURITY-PRIVACY-NEG-001",
+      "domain": "security-privacy",
+      "harnessPath": "scripts/audit/domains/security-privacy/negative-proof-harness.ts",
+      "mutation": "public host binding mutation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS"
+    },
+    {
+      "negativeProofId": "SECURITY-PRIVACY-NEG-002",
+      "domain": "security-privacy",
+      "harnessPath": "scripts/audit/domains/security-privacy/negative-proof-harness.ts",
+      "mutation": "sensitive evidence export mutation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS"
+    },
+    {
       "negativeProofId": "TEXT-INPUT-CAPABILITY-NEG-001",
       "domain": "text-input-capability",
       "harnessPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
@@ -2544,6 +2562,24 @@
       "domain": "text-input-capability",
       "harnessPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "mutation": "warning-only-p0 mutation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS"
+    },
+    {
+      "negativeProofId": "TYPE-SAFETY-NEG-001",
+      "domain": "type-safety",
+      "harnessPath": "scripts/audit/domains/type-safety/negative-proof-harness.ts",
+      "mutation": "disable noImplicitAny mutation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS"
+    },
+    {
+      "negativeProofId": "TYPE-SAFETY-NEG-002",
+      "domain": "type-safety",
+      "harnessPath": "scripts/audit/domains/type-safety/negative-proof-harness.ts",
+      "mutation": "explicit any source mutation",
       "expected": "FAIL",
       "actual": "FAIL",
       "rollback": "PASS"
@@ -15749,17 +15785,26 @@
     {
       "requirementId": "GRASSEYE-SECURITY-PRIVACY-001-V1#REQ-001",
       "owner": "security-privacy",
-      "negativeProofIds": []
+      "negativeProofIds": [
+        "SECURITY-PRIVACY-NEG-001",
+        "SECURITY-PRIVACY-NEG-002"
+      ]
     },
     {
       "requirementId": "GRASSEYE-SECURITY-PRIVACY-002-V1#REQ-001",
       "owner": "security-privacy",
-      "negativeProofIds": []
+      "negativeProofIds": [
+        "SECURITY-PRIVACY-NEG-001",
+        "SECURITY-PRIVACY-NEG-002"
+      ]
     },
     {
       "requirementId": "GRASSEYE-SECURITY-PRIVACY-003-V1#REQ-001",
       "owner": "security-privacy",
-      "negativeProofIds": []
+      "negativeProofIds": [
+        "SECURITY-PRIVACY-NEG-001",
+        "SECURITY-PRIVACY-NEG-002"
+      ]
     },
     {
       "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2#REQ-001",
@@ -16373,7 +16418,10 @@
     {
       "requirementId": "GRASSEYE-TYPE-SAFETY-001-V1#REQ-001",
       "owner": "type-safety",
-      "negativeProofIds": []
+      "negativeProofIds": [
+        "TYPE-SAFETY-NEG-001",
+        "TYPE-SAFETY-NEG-002"
+      ]
     },
     {
       "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2#REQ-001",

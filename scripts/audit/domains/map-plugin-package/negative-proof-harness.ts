@@ -1,4 +1,7 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import type { Readable } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { pathFromRepoRoot } from "../../core/paths.js";
@@ -23,13 +26,31 @@ type InspectorRunResult = {
 type HeartbeatStage = "baseline" | "mutate" | "expect-fail" | "rollback" | "verify-rollback" | "pass" | "fail";
 const ROLLBACK_VERIFY_RETRIES = 3;
 const ROLLBACK_VERIFY_RETRY_DELAY_MS = 300;
-let activeMutationState: { filePath: string; state: AuditFileState; mutationName: string } | null = null;
+const RANGE_START_ENV = "GRASSEYE_MAP_PLUGIN_NEGATIVE_PROOF_START";
+const RANGE_END_ENV = "GRASSEYE_MAP_PLUGIN_NEGATIVE_PROOF_END";
+let activeMutationState: { filePath: string; originalHash: string; state: AuditFileState; mutationName: string } | null = null;
+let activeInspectorChild: ChildProcessByStdio<null, Readable, Readable> | null = null;
 
 const restoreActiveMutationBeforeExit = async (signal: NodeJS.Signals) => {
+  if (activeInspectorChild && !activeInspectorChild.killed) {
+    activeInspectorChild.kill("SIGTERM");
+    activeInspectorChild = null;
+  }
   if (activeMutationState) {
-    emitNegativeProofHeartbeat({ stage: "rollback", mutationName: activeMutationState.mutationName, detail: `received ${signal}` });
-    await restoreAuditFileState(activeMutationState.filePath, activeMutationState.state);
+    const stateToRestore = activeMutationState;
     activeMutationState = null;
+    emitNegativeProofHeartbeat({ stage: "rollback", mutationName: stateToRestore.mutationName, detail: `received ${signal}` });
+    await restoreAuditFileState(stateToRestore.filePath, stateToRestore.state);
+    const restoredHash = await hashFile(stateToRestore.filePath);
+    if (restoredHash !== stateToRestore.originalHash) {
+      emitNegativeProofHeartbeat({
+        stage: "fail",
+        mutationName: stateToRestore.mutationName,
+        detail: `signal rollback hash mismatch before=${stateToRestore.originalHash} after=${restoredHash}`,
+      });
+      process.exit(1);
+    }
+    emitNegativeProofHeartbeat({ stage: "verify-rollback", mutationName: stateToRestore.mutationName, detail: `received ${signal}` });
   }
   process.exit(signal === "SIGINT" ? 130 : 143);
 };
@@ -85,6 +106,7 @@ async function runInspector(): Promise<InspectorRunResult> {
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
+    activeInspectorChild = child;
 
     let stdout = "";
     let stderr = "";
@@ -96,6 +118,9 @@ async function runInspector(): Promise<InspectorRunResult> {
     });
     child.on("error", reject);
     child.on("close", (code) => {
+      if (activeInspectorChild === child) {
+        activeInspectorChild = null;
+      }
       if (code === null) {
         reject(new Error(`Inspector process exited without code. stderr: ${stderr}`));
         return;
@@ -117,13 +142,26 @@ async function runInspector(): Promise<InspectorRunResult> {
   });
 }
 
+const hashFile = async (filePath: string): Promise<string> =>
+  createHash("sha256").update(await readFile(filePath)).digest("hex");
+
+const resolveMutationRange = (): Mutation[] => {
+  const start = Number(process.env[RANGE_START_ENV] ?? "1");
+  const end = Number(process.env[RANGE_END_ENV] ?? String(MUTATIONS.length));
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start || end > MUTATIONS.length) {
+    throw new Error(`Invalid map-plugin negative proof range: start=${process.env[RANGE_START_ENV] ?? ""} end=${process.env[RANGE_END_ENV] ?? ""}`);
+  }
+  return MUTATIONS.slice(start - 1, end);
+};
+
 async function mutateAndVerify(mutation: Mutation): Promise<void> {
   const mutationIndex = MUTATIONS.indexOf(mutation) + 1;
   const mutationStartedAt = Date.now();
   emitNegativeProofHeartbeat({ stage: "mutate", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length });
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
-  activeMutationState = { filePath, state, mutationName: mutation.name };
+  const originalHash = await hashFile(filePath);
+  activeMutationState = { filePath, originalHash, state, mutationName: mutation.name };
   await applyAuditMutation(filePath, state.original, mutation);
 
   try {
@@ -138,6 +176,10 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
     activeMutationState = null;
   }
 
+  const restoredHash = await hashFile(filePath);
+  if (restoredHash !== originalHash) {
+    throw new Error(`Rollback hash verification failed for ${mutation.name}: before=${originalHash} after=${restoredHash}`);
+  }
   await delay(50);
   emitNegativeProofHeartbeat({ stage: "verify-rollback", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length });
   let restored = await runInspector();
@@ -175,7 +217,7 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 }
 
 async function runMutations(): Promise<void> {
-  for (const mutation of MUTATIONS) {
+  for (const mutation of resolveMutationRange()) {
     await mutateAndVerify(mutation);
   }
 }

@@ -1,14 +1,11 @@
 {
-  "generatedAt": "2026-05-05T18:56:18.025Z",
+  "generatedAt": "2026-05-05T19:41:54.090Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/audit-coverage-governance/coverage-gate.ts",
     "scripts/audit/domains/audit-coverage-governance/coverage-matrix-builder.ts",
-    "scripts/audit/domains/audit-coverage-governance/coverage-types.ts",
     "scripts/audit/domains/audit-coverage-governance/enforcement-strength-classifier.ts",
-    "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+    "scripts/audit/domains/debug-loop-boundary/inspector.ts",
     "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-coverage-summary.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
@@ -22,7 +19,8 @@
     "scripts/audit/generated/negative-proof-coverage.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/uncovered-requirements.generated.json",
-    "src/map-plugins/builtins/index.ts"
+    "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
+    "src/map-plugins/authoring/map-authoring-template.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -262,7 +260,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2337,
+      "lines": 2305,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -292,7 +290,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13635,
+      "lines": 13163,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -307,7 +305,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 14285,
+      "lines": 13813,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -337,7 +335,7 @@
     },
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16800,
+      "lines": 16848,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -366,21 +364,6 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/generated/uncovered-requirements.generated.json",
-      "lines": 6719,
-      "fileType": "generated artifact",
-      "overLimitBy": 0,
-      "primaryRole": "read-model",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split generated artifact by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/orchestration/ability-group.ts",
       "lines": 115,
       "fileType": "ordinary implementation",
@@ -391,6 +374,21 @@
       "importCount": 9,
       "crossOwnerImports": 3,
       "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
+      "lines": 154,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -485,6 +483,21 @@
       "importCount": 9,
       "crossOwnerImports": 3,
       "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
+      "lines": 154,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -713,6 +726,24 @@
       ],
       "classMembers": 0,
       "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
+      "lines": 250,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "runInspector",
+        "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts:94"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -1244,7 +1275,7 @@
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16800,
+      "lines": 16848,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1259,7 +1290,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 14285,
+      "lines": 13813,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1274,7 +1305,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13635,
+      "lines": 13163,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1290,21 +1321,6 @@
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
       "lines": 7318,
-      "fileType": "generated artifact",
-      "overLimitBy": 0,
-      "primaryRole": "read-model",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split generated artifact by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/generated/uncovered-requirements.generated.json",
-      "lines": 6719,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1334,7 +1350,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2337,
+      "lines": 2305,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1406,6 +1422,21 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
+      "lines": 154,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/ability-group.ts",
@@ -1757,6 +1788,24 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
+      "lines": 250,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "runInspector",
+        "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts:94"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/open/schema-proof-refinements.ts",
@@ -2261,7 +2310,7 @@
   "firstPhysicalSplitPlan": [
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16800,
+      "lines": 16848,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2276,7 +2325,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 14285,
+      "lines": 13813,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2291,7 +2340,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13635,
+      "lines": 13163,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2320,8 +2369,8 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/generated/uncovered-requirements.generated.json",
-      "lines": 6719,
+      "file": "scripts/audit/generated/enforcement-strength.generated.json",
+      "lines": 4556,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

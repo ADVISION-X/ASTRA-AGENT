@@ -2,6 +2,7 @@ import type { Finding, InspectorContext } from "../../core/schema.js";
 import { listFilesRecursive, readJsonFile, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { collectDebugLoopImportGraphFindings } from "./import-graph-check.js";
 import { buildFinding, collectRuleFindings, createCheckPhase, extractArrayBlock, extractBlock, extractSection, requirePattern, type TextRule } from "./inspection-utils.js";
 
 const DOMAIN = "debug-loop-boundary";
@@ -109,7 +110,6 @@ const REPAIR_RULES: TextRule[] = [
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1", message: "repair packets must not include executable patch scripts.", pattern: /executablePatchScript|autoApplyPatch|auto apply patch/i },
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1", message: "repair packets must not target production source or generated artifacts.", pattern: /(?:src\/|scripts\/audit\/generated\/)/ },
 ];
-
 const collectIdentityFindings = async (context: InspectorContext, kernelContent: string, baselineContent: string): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const kernelGroups = extractSection(kernelContent, "## Active Ability Groups");
@@ -133,6 +133,7 @@ const collectRuntimeFindings = async (taskPublisherContent: string, debugLoopFil
   for (const absoluteFile of debugLoopFiles) {
     findings.push(...collectRuleFindings({ file: toRepoRelativePath(absoluteFile), content: await readTextFile(absoluteFile), rules: IMPORT_RULES }));
   }
+  findings.push(...collectDebugLoopImportGraphFindings(debugLoopFiles));
   findings.push(...collectRuleFindings({ file: TASK_PUBLISHER, content: missionBlock, rules: MISSION_RULES }));
   findings.push(...collectRuleFindings({ file: TASK_PUBLISHER, content: preflightBlock, rules: PREFLIGHT_RULES }));
   findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /childCapabilityId:\s*'issue-human-command'/, message: "mission-runtime must start missions through Commander issue-human-command." }));

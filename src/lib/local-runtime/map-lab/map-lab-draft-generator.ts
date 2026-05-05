@@ -1,4 +1,5 @@
 import { MapAuthoringRequestSchema } from "../../../map-plugins/authoring/map-authoring-request.schema.js";
+import { MapAuthoringInputPackageSchema } from "../../../map-plugins/authoring/map-authoring-input-package.schema.js";
 import { normalizeMapAuthoringDraft } from "../../../map-plugins/authoring/map-authoring-draft-normalizer.js";
 import type { WorkbenchRuntime } from "../workbench-contract.js";
 import { buildMapAuthoringAiRequest } from "./map-lab-draft-request.js";
@@ -133,9 +134,10 @@ export async function generateMapLabDraft(input: {
     return createAiFailureResult(aiResult);
   }
 
+  const inputPackage = MapAuthoringInputPackageSchema.parse(aiRequest.input);
   const normalized = normalizeMapAuthoringDraft({
     request,
-    inputPackage: aiRequest.input,
+    inputPackage,
     aiOutput: aiResult.output,
     promptContractId: aiRequest.promptContractId,
     promptVersion: aiResult.promptVersion ?? aiRequest.promptContractId,
