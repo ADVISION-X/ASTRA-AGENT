@@ -1,0 +1,7 @@
+mutationName: forbidden import mutation
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: AI negative-proof harness was skipped for nested inspector execution.
+
+FATAL GRASSEYE-AI-CAPABILITY-001-V1 src/capabilities/ai/runtime/ai-pre-runtime.ts:1 AI capability boundary must not resolve imports into action-capability owners.

@@ -1,3 +1,1 @@
-# BLOCKER-3 Mutation
-
-Changed readBuiltin back to direct MapPackageSchema.parse(JSON.parse(content)). Expected audit:map-plugin-package to fail because packageFile/ownerResponsible/actionableMessage diagnostics would be lost.
+Mutation: remove ownerResponsible propagation from scripts/startup/lib/terminal-structured-log.mjs runtime relay.

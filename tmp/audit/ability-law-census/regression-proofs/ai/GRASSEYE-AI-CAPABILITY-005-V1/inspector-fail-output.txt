@@ -1,0 +1,7 @@
+mutationName: paid execute mutation
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: AI negative-proof harness was skipped for nested inspector execution.
+
+FATAL GRASSEYE-AI-CAPABILITY-005B-V2 src/capabilities/ai/children/paid-analysis-ai/implementation.ts:1 Disabled AI children must not expose execute or call executor.

@@ -1,0 +1,7 @@
+mutationName: forbidden action output mutation
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: AI negative-proof harness was skipped for nested inspector execution.
+
+FATAL GRASSEYE-AI-CAPABILITY-006-V1 src/capabilities/ai/runtime/ai-output-boundary-gate.ts:1 AI output boundary must recursively reject forbidden action output fields and aliases.

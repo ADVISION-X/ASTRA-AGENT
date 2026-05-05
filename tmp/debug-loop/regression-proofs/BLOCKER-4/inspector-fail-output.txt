@@ -1,6 +1,7 @@
 
-> grasseye-local-workbench@0.1.0 audit:commander-console
-> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
+> grasseye-local-workbench@0.1.0 audit:orchestration
+> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
 
-[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
-- ERROR scripts/startup/launch-grasseye.mjs:1 Startup hard-failure catch path must write a current startup failure bundle.
+[FAKE ENFORCEMENT] orchestration-capability: Orchestration runtime proof schema or builder can still drop runId.
+- FATAL src/capabilities/orchestration/runtime/orchestration-proof-builder.ts:1 Orchestration runtime proof builder must accept and emit input.runId at symbol level.
+- FATAL scripts/audit/domains/orchestration-capability/inspector.ts:1 Orchestration inspector baseline must pass before negative-proof mutation checks.

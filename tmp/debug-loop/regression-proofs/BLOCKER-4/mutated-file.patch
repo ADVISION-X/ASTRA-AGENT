@@ -1,35 +1,13 @@
-diff --git a/scripts/startup/launch-grasseye.mjs b/scripts/startup/launch-grasseye.mjs
-index f73475c..04ee757 100644
---- a/scripts/startup/launch-grasseye.mjs
-+++ b/scripts/startup/launch-grasseye.mjs
-@@ -7,7 +7,7 @@ import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs"
- import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
- import { openCommanderConsole } from "./lib/open-commander-console.mjs";
- import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
--import { createStartupFailureReport } from "./lib/startup-failure-handler.mjs";
-+import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
- import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
- import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
- 
-@@ -279,21 +279,7 @@ async function main() {
-     }
-     return;
-   } catch (error) {
--    const failureReason = toFailureReason(error);
--    const failureReport = await createStartupFailureReport({
--      rootDir,
--      runId: startupRunId,
--      baseUrl,
--      failureReason,
--    });
--    logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
--      failureReason,
--      refs: [`startupFailureBundle=${failureReport.bundleDir}`],
--      ownerResponsible: failureReport.ownerResponsible,
--      actionableMessage: failureReport.actionableMessage,
--    });
--    await shutdown("SIGTERM");
--    process.exitCode = 1;
-+    logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", { failureReason: toFailureReason(error) });
-   }
+diff --git a/src/capabilities/orchestration/runtime/orchestration-proof-builder.ts b/src/capabilities/orchestration/runtime/orchestration-proof-builder.ts
+index 6b46d7a..a56bb02 100644
+--- a/src/capabilities/orchestration/runtime/orchestration-proof-builder.ts
++++ b/src/capabilities/orchestration/runtime/orchestration-proof-builder.ts
+@@ -97,7 +97,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
+   | "caller"
+   | "idempotencyKey"
+   | "sequenceNo"> {
+-	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
++	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
  }
+
+ function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,

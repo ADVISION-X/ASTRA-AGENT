@@ -1,0 +1,8 @@
+===== npm run audit:build =====
+
+> grasseye-local-workbench@0.1.0 audit:build
+> node --import tsx scripts/audit/build-audit-artifacts-cli.ts
+
+Generated 183 active laws, 22 owners, 20 planned inspections, 0 conflicts.
+[AUDIT-BUILD PASS] generated artifacts with zero conflicts.
+exitCode=0

@@ -1,5 +1,6 @@
-# Proof Summary: BLOCKER-4
+# BLOCKER-4 proof summary
 
-- Mutation FAIL: exitCode=1
-- Rollback PASS: exitCode=0
-- Evidence files: mutation-description.md, mutated-file.patch, inspector-fail-output.txt, rollback-proof.txt
+- Production mutation removed `runId: input.runId` from runtime proof identity builder.
+- `npm run audit:orchestration` failed while mutation was present.
+- Mutation was rolled back.
+- `npm run audit:orchestration` passed after rollback.

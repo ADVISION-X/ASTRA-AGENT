@@ -1,0 +1,14 @@
+$ npm run audit:ai
+exitCode=1
+signal=
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:ai
+> tsx scripts/audit/domains/ai-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] ai-capability: AI negative-proof harness has no mutation scenarios and cannot prove machine-blocking enforcement.
+- FATAL scripts/audit/domains/ai-capability/inspector.ts:1 AI negative-proof mutations must not be empty.
+
+
+--- stderr ---

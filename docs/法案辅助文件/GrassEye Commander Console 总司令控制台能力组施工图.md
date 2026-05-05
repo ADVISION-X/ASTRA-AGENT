@@ -700,6 +700,50 @@ turn P0 into warning-only
 
 ## 18. READY 标准
 
+### 18.1 start-mission runId 传输契约补充
+
+正确链路：
+
+```txt
+Commander commandId
+-> CommandTransportResultSchema.runId
+-> CommanderTransportSemanticResult.runId
+-> createTransportOutcome.runId
+-> Commander runtimeProof.runId
+```
+
+禁止链路：
+
+```txt
+MISSION_PREFLIGHT_PASSED 后 createTransportOutcome 写入 runId:null
+COMMAND_REJECTED 只暴露 raw ZodError 而没有 ownerResponsible/actionableMessage
+transport result 不带 runId 仍被 semantic gate 接受
+```
+
+inspector 必须覆盖：
+
+```txt
+CommandTransportResultSchema 必须声明 runId
+Commander transport semantic gate 必须读取并验证 input.result.runId
+createTransportOutcome 必须从 transport.runId 写入 outcome.runId
+dispatched command outcome 不得出现 runId:null
+```
+
+negative proof 必须覆盖：
+
+```txt
+删除 CommandTransportResultSchema.runId 必须 FAIL
+把 createTransportOutcome.runId 改回 null 必须 FAIL
+```
+
+READY 标准补充：
+
+```txt
+start-mission dispatch result has non-null runId
+Commander runtime proof preserves the same runId
+terminal COMMAND_REJECTED includes ownerResponsible/actionableMessage when dispatch fails
+```
+
 Commander READY only when:
 
 ```txt

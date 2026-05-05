@@ -1,4 +1,4 @@
-import { Node } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { readTextFile, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
@@ -21,6 +21,10 @@ const STARTUP_FAILURE_HANDLER_PATH = "scripts/startup/lib/startup-failure-handle
 const STARTUP_MAIN_SUPPORT_PATH = "scripts/startup/lib/startup-main-support.mjs";
 const STARTUP_CONTRACT_PATH = "src/lib/local-ai/startup-readiness.ts";
 const APP_SERVER_PATH = "src/app/server.ts";
+const TASK_START_FLOW_PATH = "src/lib/local-app-shell/task-start-flow.ts";
+const WORKBENCH_STATUS_PATH = "src/lib/local-runtime/workbench-status.ts";
+const TERMINAL_STRUCTURED_LOG_PATH = "scripts/startup/lib/terminal-structured-log.mjs";
+const STRUCTURED_LOG_PAYLOAD_PATH = "src/lib/local-runtime/structured-log-payload.ts";
 
 const ALLOWED_BOOTSTRAP_FILES = new Set([
   commanderConsoleInspectionConstants.STARTUP_PATH,
@@ -205,6 +209,43 @@ const collectFailureBundleHelperFindings = (failureBundleText: string): Finding[
   return [];
 };
 
+function collectMissionPreflightContractFindings(project: import("ts-morph").Project): Finding[] {
+  const taskStartFlow = project.getSourceFileOrThrow(pathFromRepoRoot(TASK_START_FLOW_PATH));
+  const workbenchStatus = project.getSourceFileOrThrow(pathFromRepoRoot(WORKBENCH_STATUS_PATH));
+  const taskStartCalls = taskStartFlow.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "getMissionStartPreflight";
+  });
+  const callCarriesContract = taskStartCalls.some((callExpression) => {
+    return ["taskTemplateId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName));
+  });
+  const statusHasContractComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "commandTransportContract");
+  const statusChecksBinding = ["taskTemplateId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => workbenchStatus.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === `input.${propertyName}`));
+  const findings: Finding[] = [];
+
+  if (!callCarriesContract) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TASK_START_FLOW_PATH, message: "Task start flow must pass taskTemplateId, activationSnapshotRef, and targetProfileRef into MissionStartPreflight before COMMANDER dispatch." }));
+  }
+  if (!statusHasContractComponent || !statusChecksBinding) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must include a commandTransportContract component that blocks missing task binding, activation snapshot, or target profile refs." }));
+  }
+
+  return findings;
+}
+
+function collectTerminalRelayFieldFindings(project: import("ts-morph").Project): Finding[] {
+  const terminalSource = project.addSourceFileAtPathIfExists(pathFromRepoRoot(TERMINAL_STRUCTURED_LOG_PATH)) ?? project.addSourceFileAtPath(pathFromRepoRoot(TERMINAL_STRUCTURED_LOG_PATH));
+  const payloadSource = project.getSourceFileOrThrow(pathFromRepoRoot(STRUCTURED_LOG_PAYLOAD_PATH));
+  const hasProperty = (sourceFile: import("ts-morph").SourceFile, propertyName: string) =>
+    sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
+  const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((propertyName) => hasProperty(payloadSource, propertyName));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((propertyName) => hasProperty(terminalSource, propertyName));
+
+  return payloadFields && terminalFields
+    ? []
+    : [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TERMINAL_STRUCTURED_LOG_PATH, severity: "fatal", message: "Terminal runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for COMMAND_REJECTED." })];
+}
+
 async function collectHelperDelegationFindings(project: import("ts-morph").Project): Promise<Finding[]> {
   const helperText = project.getSourceFile(pathFromRepoRoot(STARTUP_HELPER_PATH))?.getFullText() ?? await readTextFile(pathFromRepoRoot(STARTUP_HELPER_PATH));
   const mapPackageHelperText = project.getSourceFile(pathFromRepoRoot(MAP_PACKAGE_HELPER_PATH))?.getFullText() ?? await readTextFile(pathFromRepoRoot(MAP_PACKAGE_HELPER_PATH));
@@ -250,12 +291,17 @@ async function collectScatteredBootstrapFindings(): Promise<Finding[]> {
 export async function runStartupReadinessGateChecks(): Promise<Finding[]> {
   const startupProject = createStartupProject();
   startupProject.addSourceFileAtPath(pathFromRepoRoot(APP_SERVER_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(TASK_START_FLOW_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(WORKBENCH_STATUS_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(STRUCTURED_LOG_PAYLOAD_PATH));
   const launchSource = startupProject.getSourceFileOrThrow(pathFromRepoRoot(commanderConsoleInspectionConstants.STARTUP_PATH));
 
   return [
     ...collectStartupImportFindings(launchSource),
     ...collectPerformLaunchSequenceFindings(launchSource),
     ...collectFailClosedFindings(launchSource),
+    ...collectMissionPreflightContractFindings(startupProject),
+    ...collectTerminalRelayFieldFindings(startupProject),
     ...(await collectStartupPlatformGovernanceFindings(startupProject, launchSource)),
     ...(await collectHelperDelegationFindings(startupProject)),
     ...(await collectScatteredBootstrapFindings()),

@@ -1,23 +1,5 @@
 # Remaining Blockers
 
-## Phase-1 P0 Blockers
-
-No Phase-1 P0 startup/map-package blocker remains in the post-fix runtime verification.
-
-## Verification Blocker Preventing READY
-
-`npm run audit` and `npm run ci:full` still fail at the `audit-system` owner after the fixed owners pass.
-
-Evidence from `ci-full-output.txt`:
-
-- `typecheck`: PASS
-- `audit:build`: PASS
-- `map-plugin-package`: PASS
-- `debug-loop-boundary`: PASS
-- `audit-system`: FAIL, `CODE VIOLATION`
-
-Blocking category: existing code-purity violations, including file-size/function-shape/touched-file hard limits. This is not a law gap and not the original runtime blocker, but it prevents `FIX_AND_RECURRENCE_PREVENTION_READY` under the phase-2 READY rules.
-
-## BLOCKED_BY_LAW_GAP
-
-NO.
+- The original P0 `COMMAND_REJECTED` caused by `runId=null` did not recur in the post-fix 4183 scenario. The final command for trace `trace_95d9bb99-3bf2-4810-b82e-c3483a76eab6` reached `COMMAND_ACCEPTED`.
+- Post-fix runtime logs now include `runId`, `ownerResponsible`, `actionableMessage`, `traceId`, `selectedMapId`, and `activationSnapshotRef` on the command path.
+- Phase 2 is still NOT_READY because full script gating is red: `npm run audit` fails at existing `map-plugin-package` negative proof; `npm run typecheck`, `npm run lint`, and `npm run ci:full` fail in AI capability files outside the phase-1 blocker scope.

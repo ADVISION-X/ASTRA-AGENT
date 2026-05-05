@@ -1,0 +1,13 @@
+diff --git a/src/capabilities/ai/children/paid-analysis-ai/implementation.ts b/src/capabilities/ai/children/paid-analysis-ai/implementation.ts
+--- a/src/capabilities/ai/children/paid-analysis-ai/implementation.ts
++++ b/src/capabilities/ai/children/paid-analysis-ai/implementation.ts
+@@ -6,6 +6,9 @@
+   return {
+     contract,
+     implementation: {
++      async execute() {
++        return Promise.reject(new Error("mutated disabled execute"));
++      },
+       async checkReadiness() {
+         return PaidAnalysisAiChildReadinessSchema.parse({
+           abilityGroupId: "ai",

@@ -1,0 +1,7 @@
+mutationName: second prompt truth mutation
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: AI negative-proof harness was skipped for nested inspector execution.
+
+FATAL GRASSEYE-AI-CAPABILITY-006A-V1 src/lib/local-ai/prompt-registry.ts:1 Local AI prompt registry must derive prompt metadata from the AI prompt contract catalog and must not keep a second local prompt catalog.

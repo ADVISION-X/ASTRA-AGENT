@@ -1,13 +1,13 @@
-diff --git a/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json b/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
-index 6e45d25..7e40edd 100644
---- a/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
-+++ b/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
-@@ -1,7 +1,7 @@
- {
-   "manifest": {
-     "packageId": "builtin.tiktok-seeding-video-discovery",
--    "packageKind": "operational-map-package",
-+    "packageKind": "child-capability-package",
-     "packageVersion": "1.0.0",
-     "mapId": "tiktok.seeding-video.discovery.meta.v1",
-     "taskTemplateId": "tiktok-seeding-video-discovery",
+diff --git a/src/capabilities/commander-console/runtime/commander-command-outcomes.ts b/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
+index c0e17c7..fae6dfe 100644
+--- a/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
++++ b/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
+@@ -177,7 +177,7 @@ export const createTransportOutcome = (input: {
+     outputRef: `commander_receipt:${input.gated.command.commandId}`,
+     commandId: input.gated.command.commandId,
+     readRequestId: null,
+-    runId: input.transport.runId ?? resolveCommandRunId(input.gated.command.commandId),
++    runId: null,
+     missionId: input.gated.command.targetMissionId,
+     traceId: null,
+     commandEnvelopeRef: input.transport.envelopeRef,

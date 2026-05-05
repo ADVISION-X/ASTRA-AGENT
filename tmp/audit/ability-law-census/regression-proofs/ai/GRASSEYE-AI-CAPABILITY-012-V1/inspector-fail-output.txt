@@ -1,0 +1,7 @@
+mutationName: runtime signal mutation
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: AI negative-proof harness was skipped for nested inspector execution.
+
+FATAL GRASSEYE-AI-CAPABILITY-005A-V1 src/capabilities/ai/runtime/ai-runtime-call-runner.ts:1 AI runtime call runner must create AbortController timeout and pass controller.signal into runtime.execute.

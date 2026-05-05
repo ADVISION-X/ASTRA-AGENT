@@ -1,0 +1,16 @@
+diff --git a/src/capabilities/ai/runtime/ai-prompt-registry.ts b/src/capabilities/ai/runtime/ai-prompt-registry.ts
+--- a/src/capabilities/ai/runtime/ai-prompt-registry.ts
++++ b/src/capabilities/ai/runtime/ai-prompt-registry.ts
+@@ -50,11 +50,7 @@
+ 
+   const contract = tryGetPromptContractCatalogEntry(input.promptContractId);
+   if (!contract) {
+-    return {
+-      ok: false,
+-      failureReason: "unknown_prompt_contract",
+-      message: `Unknown prompt contract: ${input.promptContractId}`,
+-    };
++    throw new Error(`Unknown prompt contract: ${input.promptContractId}`);
+   }
+ 
+   if (contract.taskType !== input.taskType) {

@@ -19,6 +19,22 @@ const {
 const RESERVED_AUDIT_SCRIPT_NAMES = ["audit", "audit:build"] as const;
 const ROUTING_AUDIT_SCRIPT_NAMES = ["audit:kernel", "audit:index"] as const;
 const LOCAL_DEVELOPMENT_AUDIT_SCRIPT_NAMES = ["audit:debug-loop-boundary"] as const;
+const REQUIRED_ABILITY_AUDIT_SCRIPT_NAMES = [
+  "audit:commander-console",
+  "audit:orchestration",
+  "audit:nerve-bus",
+  "audit:ai",
+  "audit:open",
+  "audit:screenshot",
+  "audit:visual-target",
+  "audit:geometry-guard",
+  "audit:mouse-click",
+  "audit:text-input-capability",
+  "audit:mouse-scroll",
+  "audit:post-action-verification",
+  "audit:forensics-persistence",
+  "audit:page-state",
+] as const;
 
 const collectAllowedAuditScriptNames = (): Set<string> => {
   const allowed = new Set<string>([
@@ -58,6 +74,17 @@ const collectUnauthorizedAuditScriptFindings = (scripts: Record<string, string>)
     }));
 };
 
+const collectMissingRequiredAuditScriptFindings = (scripts: Record<string, string>): Finding[] =>
+  REQUIRED_ABILITY_AUDIT_SCRIPT_NAMES
+    .filter((scriptName) => !scripts[scriptName])
+    .map((scriptName) => createFinding({
+      lawId: LAW_ID_001,
+      file: "package.json",
+      line: 1,
+      severity: "fatal",
+      message: `package.json must expose ${scriptName}; every active ability group owner audit entrypoint is machine-blocking.`,
+    }));
+
 const createPackageAuditScriptPhase = (findings: Finding[]): InspectorPhase =>
   createPhase(
     "package-audit-entrypoints",
@@ -70,7 +97,11 @@ const createPackageAuditScriptPhase = (findings: Finding[]): InspectorPhase =>
 
 export async function runPackageAuditScriptChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
   const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
-  const findings = collectUnauthorizedAuditScriptFindings(packageJson.scripts ?? {});
+  const scripts = packageJson.scripts ?? {};
+  const findings = [
+    ...collectUnauthorizedAuditScriptFindings(scripts),
+    ...collectMissingRequiredAuditScriptFindings(scripts),
+  ];
   return {
     findings,
     phases: [createPackageAuditScriptPhase(findings)],

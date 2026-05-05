@@ -812,6 +812,52 @@ turn P0 into warning-only
 
 ## 21. READY 标准
 
+### 21.1 runtime proof runId 链路补充
+
+正确链路：
+
+```txt
+Nerve Bus human_command.runId
+-> MissionCommand.runId
+-> MissionState.activeTaskRunId
+-> RuntimeProofSchema.runId
+-> buildOrchestrationRuntimeProof(input.runId)
+```
+
+禁止链路：
+
+```txt
+MissionCommand 不接收 runId
+activeTaskRunId 由 selectedMapId 重新拼接
+RuntimeProofSchema 缺 runId
+buildOrchestrationRuntimeProof 不能发出 runId
+preflight passed 后才发现 runId null
+```
+
+inspector 必须覆盖：
+
+```txt
+MissionCommandSchema 必须声明 runId
+RuntimeProofSchema 必须声明 runId
+BuildProofInput 必须声明 runId
+buildOrchestrationProofIdentityFields 必须发出 input.runId
+```
+
+negative proof 必须覆盖：
+
+```txt
+删除 RuntimeProofSchema.runId 必须 FAIL
+删除 proof builder 的 runId 发出必须 FAIL
+```
+
+READY 标准补充：
+
+```txt
+Orchestration accepted mission proof has non-null runId
+failure proof has explicit failure runId and owner/actionable log
+Mission preflight has commandTransportContract component
+```
+
 Orchestration READY 仅当：
 
 ```txt

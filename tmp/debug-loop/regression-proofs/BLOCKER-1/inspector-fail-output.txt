@@ -1,67 +1,7 @@
 
-> grasseye-local-workbench@0.1.0 audit:map-plugin-package
-> tsx scripts/audit/domains/map-plugin-package/run-inspector.ts
+> grasseye-local-workbench@0.1.0 audit:commander-console
+> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
 
-/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:45
-      throw new BuiltinMapPackageLoadError({
-            ^
-
-
-BuiltinMapPackageLoadError: MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=tiktok-seeding-video-discovery.meta.map-package.json ownerResponsible=map-plugin-package actionableMessage="Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package."
-    at parseBuiltinPackage (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:45:13)
-    at readBuiltin (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:57:10)
-    ... 5 lines matching cause stack trace ...
-    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)
-    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)
-    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20) {
-  ownerResponsible: 'map-plugin-package',
-  actionableMessage: 'Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.',
-  packageFile: 'tiktok-seeding-video-discovery.meta.map-package.json',
-  expectedPackageKind: 'operational-map-package',
-  receivedPackageKind: 'child-capability-package',
-  cause: ZodError: [
-    {
-      "received": "child-capability-package",
-      "code": "invalid_literal",
-      "expected": "operational-map-package",
-      "path": [
-        "manifest",
-        "packageKind"
-      ],
-      "message": "Invalid literal value, expected \"operational-map-package\""
-    }
-  ]
-      at get error (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:39:31)
-      at ZodEffects.parse (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/zod/v3/types.js:114:22)
-      at parseBuiltinPackage (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:42:29)
-      at readBuiltin (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:57:10)
-      at loadBuiltinMapPackages (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:63:5)
-      at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:106:32)
-      at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:140:5)
-      at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:165:20)
-      at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)
-      at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20) {
-    issues: [
-      {
-        received: 'child-capability-package',
-        code: 'invalid_literal',
-        expected: 'operational-map-package',
-        path: [ 'manifest', 'packageKind' ],
-        message: 'Invalid literal value, expected "operational-map-package"'
-      }
-    ],
-    addIssue: [Function (anonymous)],
-    addIssues: [Function (anonymous)],
-    errors: [
-      {
-        received: 'child-capability-package',
-        code: 'invalid_literal',
-        expected: 'operational-map-package',
-        path: [ 'manifest', 'packageKind' ],
-        message: 'Invalid literal value, expected "operational-map-package"'
-      }
-    ]
-  }
-}
-
-Node.js v24.4.1
+[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
+- FATAL src/capabilities/commander-console/runtime/commander-command-outcomes.ts:1 createTransportOutcome must preserve runId from the governed transport result instead of nulling or fabricating it.
+- FATAL src/capabilities/commander-console/runtime/commander-command-outcomes.ts:1 Dispatched command outcome must not assign runId:null.

@@ -274,6 +274,41 @@ Commander 通过重新探测或临时推断来替代 mission/requestedPlatform �
 
 ## 终端结构化日志格式
 
+### Runtime command rejection 字段补充
+
+正确链路：
+
+```txt
+StructuredRuntimeEvent.ownerResponsible/actionableMessage/runId
+-> structured-log-payload
+-> grasseye:event stdout payload
+-> terminal-structured-log runtime relay
+-> [GRASSEYE][RUNTIME][FAIL] COMMAND_REJECTED line
+```
+
+禁止链路：
+
+```txt
+COMMAND_REJECTED 只显示 failureReason/raw ZodError
+terminal relay 丢弃 ownerResponsible/actionableMessage
+terminal relay 无 traceId/runId/selectedMapId/activationSnapshotRef
+```
+
+inspector 必须覆盖：
+
+```txt
+StructuredRuntimeEventSchema 包含 runId
+structured-log-payload 输出 runId/ownerResponsible/actionableMessage
+terminal runtime relay 输出 runId/ownerResponsible/actionableMessage/traceId/selectedMapId/activationSnapshotRef
+```
+
+negative proof 必须覆盖：
+
+```txt
+删除 terminal relay ownerResponsible/actionableMessage/runId 任一字段必须 FAIL
+删除 structured-log-payload runId 必须 FAIL
+```
+
 TerminalStructuredLogEvent 字段：
 - timestamp
 - level: PASS | FAIL | EVENT

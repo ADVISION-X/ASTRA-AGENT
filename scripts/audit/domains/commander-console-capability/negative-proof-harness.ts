@@ -27,6 +27,18 @@ const MUTATIONS: Mutation[] = [
     replace: "    runId: null,",
   },
   {
+    name: "mission preflight command contract removal mutation",
+    file: "src/lib/local-runtime/workbench-status.ts",
+    search: "    { name: \"commandTransportContract\", ok: commandContractOk, detail: commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : \"selected task binding is missing taskTemplateId, activationSnapshotRef, or targetProfileRef before command dispatch\", ownerResponsible: \"Commander Console / Nerve Bus / Orchestration\", actionableMessage: \"Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch.\" },\n",
+    replace: "",
+  },
+  {
+    name: "terminal command rejection owner field removal mutation",
+    file: "scripts/startup/lib/terminal-structured-log.mjs",
+    search: "      ownerResponsible: payload.ownerResponsible ?? null,\n",
+    replace: "",
+  },
+  {
     name: "weak start-mission gate mutation",
     file: "src/capabilities/commander-console/shared/commander-transport-schema.ts",
     search: "if (!value.requestedPlatformId || !value.selectedMapId) {",

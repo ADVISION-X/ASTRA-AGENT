@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/ai/runtime/ai-pre-runtime.ts b/src/capabilities/ai/runtime/ai-pre-runtime.ts
+--- a/src/capabilities/ai/runtime/ai-pre-runtime.ts
++++ b/src/capabilities/ai/runtime/ai-pre-runtime.ts
+@@ -8,6 +8,7 @@
+ import { evaluateAiProviderPolicy } from "./ai-provider-policy-gate.js";
+ import { evaluateAiRuntimeHealthGate } from "./ai-runtime-health-gate.js";
+ import { resolveAiSchemaContract, validateAiInternalCandidate } from "./ai-schema-gate.js";
++import type { MouseClickAbilityGroup } from "../../mouse-click/contract.js";
+ import { finalizeTerminalResult } from "./ai-terminal-result.js";
+ 
+ type AiExecutionSeed = {

@@ -1,3 +1,3 @@
-# BLOCKER-4 Mutation
+# BLOCKER-4 production mutation
 
-Replaced handleStartupBootstrapFailure in the startup hard-failure catch path with a direct logFail call. Expected audit:commander-console to fail because current startup failures would no longer produce a correlated debug-loop bundle.
+Mutation: removed `runId: input.runId` from `buildOrchestrationProofIdentityFields` in `src/capabilities/orchestration/runtime/orchestration-proof-builder.ts`, causing runtime proof identity to omit the command runId.

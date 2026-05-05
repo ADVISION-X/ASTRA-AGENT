@@ -1,10 +1,6 @@
 
-> grasseye-local-workbench@0.1.0 audit:map-plugin-package
-> tsx scripts/audit/domains/map-plugin-package/run-inspector.ts
+> grasseye-local-workbench@0.1.0 audit:commander-console
+> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
 
-[FAKE ENFORCEMENT] map-plugin-package: Map package enforcement still has placeholder or owner-chain escape gaps.
-- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must call parseBuiltinPackage so package file context is preserved.
-- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must not call MapPackageSchema.parse directly because direct parse loses package file diagnostics.
-- FATAL scripts/audit/domains/map-plugin-package/inspector.ts:1 Map package inspector baseline must pass before negative-proof mutations can run: exitCode=1 | stdout=[FAKE ENFORCEMENT] map-plugin-package: Map package enforcement still has placeholder or owner-chain escape gaps.
-- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must call parseBuiltinPackage so package file context is preserved.
-- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must not call MapPackageSchema.parse directly because direct parse loses package file diagnostics.
+[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
+- FATAL scripts/startup/lib/terminal-structured-log.mjs:1 Terminal runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for COMMAND_REJECTED.

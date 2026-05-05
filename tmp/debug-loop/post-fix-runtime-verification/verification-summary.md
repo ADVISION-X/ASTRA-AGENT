@@ -1,32 +1,11 @@
-# Verification Summary
+# Post-Fix Runtime Verification Summary
 
-## Commands
+Command used: `GRASSEYE_PORT=4183 GRASSEYE_SKIP_OPEN=1 npm run grasseye:start -- --no-open`.
 
-- `npm run typecheck`: PASS
-- `npm run lint`: PASS
-- `npm run audit:build`: PASS
-- `npm run audit:map-plugin-package`: PASS
-- `npm run audit:commander-console`: PASS
-- `git diff --check`: PASS
-- `npm run audit`: FAIL at `audit-system`
-- `npm run ci:full`: FAIL at `audit-system`
-- `npm run audit:meta`: script missing
-- `npm run audit:runner`: script missing
+Task start command used: `POST /api/tasks/start` with `taskTemplateId=facebook-seeding-video-discovery`, `maxRounds=1`, `maxMinutes=1`.
 
-## Runtime
+Observed result: the final verification command returned `transportStatus=accepted` and terminal structured logs emitted `COMMAND_ACCEPTED` instead of the previous `COMMAND_REJECTED` with `runId=null`.
 
-`npm run grasseye:start -- --no-open` reached `mission_runtime_available`. A default Facebook task start reached Commander validation, mission preflight, command envelope construction, Nerve Bus envelope creation, and dispatch start.
+Key proof: `COMMAND_ACCEPTED` includes `traceId=trace_95d9bb99-3bf2-4810-b82e-c3483a76eab6`, `runId=trace_95d9bb99-3bf2-4810-b82e-c3483a76eab6`, `ownerResponsible="Commander Console / Nerve Bus / Orchestration"`, and actionable message `Mission dispatch succeeded. Monitor the mission page and runtime proof timeline.`
 
-The final task response was `review_required` due to `issue-human-command timed out after 5000ms.`, not due to missing map package readiness, missing `targetProfileRef`, schema rejection, or silent defaulting.
-
-## Recurrence Proofs
-
-- `tmp/debug-loop/regression-proofs/BLOCKER-1`: builtin packageKind mutation FAIL, rollback PASS
-- `tmp/debug-loop/regression-proofs/BLOCKER-2`: startup map-package gate removal FAIL, rollback PASS
-- `tmp/debug-loop/regression-proofs/BLOCKER-3`: builtin loader direct parse bypass FAIL, rollback PASS
-- `tmp/debug-loop/regression-proofs/BLOCKER-4`: startup failure bundle bypass FAIL, rollback PASS
-- `tmp/debug-loop/regression-proofs/POST-FIX-TARGET-PROFILE`: target profile drift FAIL, rollback PASS
-
-## Final Status
-
-`FIX_AND_RECURRENCE_PREVENTION_NOT_READY` because full audit/CI remain blocked by audit-system code-purity findings outside the original startup/map-package blockers.
+The temporary 4183 service was stopped after verification.

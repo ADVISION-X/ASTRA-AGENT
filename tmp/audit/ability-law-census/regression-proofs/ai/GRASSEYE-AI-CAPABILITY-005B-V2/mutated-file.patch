@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/ai/runtime/ai-output-boundary-gate.ts b/src/capabilities/ai/runtime/ai-output-boundary-gate.ts
+--- a/src/capabilities/ai/runtime/ai-output-boundary-gate.ts
++++ b/src/capabilities/ai/runtime/ai-output-boundary-gate.ts
+@@ -63,7 +63,7 @@
+   "nerveBusDispatch",
+ ] as const;
+ 
+-const FORBIDDEN_OUTPUT_KEYS = new Set<string>([
++const FORBIDDEN_OUTPUT_KEYS_REMOVED = new Set<string>([
+   ...FORBIDDEN_ACTION_FIELDS,
+   ...FORBIDDEN_ACTION_ALIASES,
+   ...FORBIDDEN_ACTION_EXTENDED_FIELDS,
