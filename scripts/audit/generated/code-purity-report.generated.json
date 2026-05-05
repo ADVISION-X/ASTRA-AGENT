@@ -1,42 +1,13 @@
 {
-  "generatedAt": "2026-05-05T01:07:16.214Z",
+  "generatedAt": "2026-05-05T01:12:30.263Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/kernel/kernel-negative-proof-mutations.ts",
-    "scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts",
-    "scripts/audit/domains/map-plugin-package/file-lists.ts",
-    "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape-runtime.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape.ts",
-    "scripts/audit/domains/map-prompt-contract/ast-utils.ts",
-    "scripts/audit/domains/map-prompt-contract/forbidden-shape.ts",
-    "scripts/audit/domains/map-prompt-contract/negative-proof-harness.ts",
-    "scripts/audit/domains/map-prompt-contract/required-shape.ts",
-    "scripts/audit/domains/orchestration-capability/inspection-constants.ts",
+    "scripts/audit/domains/map-plugin-package/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
-    "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    "scripts/audit/generated/law-registry.generated.json",
-    "scripts/audit/generated/runner-summary.json",
-    "scripts/debug-loop/scenarios/facebook-safe-comment-draft-product-video.scenario.json",
-    "src/capabilities/ai/shared/ai-output.ts",
-    "src/capabilities/orchestration/runtime/transition-evaluator.ts",
-    "src/lib/local-ai/governed-task-execution.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",
-    "src/lib/local-ai/local-ai-runtime-vision.ts",
-    "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
-    "src/lib/local-ai/vision-task-result.ts",
-    "src/map-plugins.zip",
-    "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
-    "src/map-plugins/builtins/facebook-safe-comment-draft-review.map-package.json",
-    "src/map-plugins/builtins/index.ts",
-    "src/map-plugins/builtins/tiktok-comment-evidence.map-package.json",
-    "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
-    "src/map-plugins/schema/operational-map-payload.schema.ts",
-    "src/map-plugins/validation/prompt-contract-step-validator.ts",
-    "src/types/vision-product-presence.ts"
+    "scripts/audit/generated/law-registry.generated.json"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -147,25 +118,7 @@
     }
   ],
   "ownerMixingInventory": [],
-  "oversizedTouchedFileInventory": [
-    {
-      "file": "src/map-plugins/validation/prompt-contract-step-validator.ts",
-      "lines": 307,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 7,
-      "primaryRole": "validator",
-      "functionsOverLimit": [
-        "validateAllowedBranchFields"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
+  "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
       "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
