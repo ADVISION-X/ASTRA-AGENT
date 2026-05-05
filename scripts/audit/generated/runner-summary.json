@@ -1,105 +1,72 @@
 {
-  "generatedAt": "2026-05-05T05:05:58.936Z",
+  "generatedAt": "2026-05-05T06:01:31.104Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 1,
-    "passed": 0,
-    "failed": 1,
-    "blocking": 1
+    "passed": 1,
+    "failed": 0,
+    "blocking": 0
   },
   "results": [
     {
-      "inspector": "GrassEye Map Plugin Package Governance Inspector",
-      "inspectorId": "map-plugin-package-governance",
-      "capabilityDomain": "map-plugin-package",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
-          "file": "src/lib/local-app-shell/task-template-registry.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Commander task template registry must not directly write map registry state."
-        },
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
-          "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Map package inspector baseline must pass before negative-proof mutations can run: exitCode=1 | stdout=[ENFORCEMENT MISS] map-plugin-package: Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.\n- FATAL src/lib/local-app-shell/task-template-registry.ts:1 Commander task template registry must not directly write map registry state."
-        }
-      ],
+      "inspector": "GrassEye Page State Capability Owner Inspector",
+      "inspectorId": "page-state-capability-owner",
+      "capabilityDomain": "page-state-capability",
+      "findings": [],
       "phases": [
         {
           "name": "owner-foundation",
           "classification": "PASS",
           "passed": true,
-          "summary": "Manifest and generated matrix align for the standalone non-phase-gated map package inspector."
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
         },
         {
-          "name": "required-shape",
+          "name": "page-state-required-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
+          "summary": "Page State V2 canonical package shape is present."
         },
         {
-          "name": "authoring-input-package",
+          "name": "page-state-forbidden-shape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map Authoring Input Package schema, builder, prompt builder, and AI input boundary are governed and owner-local."
+          "summary": "Page State forbidden V2 shapes are absent."
         },
         {
-          "name": "forbidden-shape",
+          "name": "page-state-boundary-attack",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map package builtins remain declarative JSON and the package layer has no executable escape surfaces."
+          "summary": "Page State owner boundary is isolated."
         },
         {
-          "name": "boundary-attack",
-          "classification": "ENFORCEMENT MISS",
-          "passed": false,
-          "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages."
-        },
-        {
-          "name": "anti-escape",
+          "name": "page-state-truth-ownership",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map package enforcement closes through a real inspector, full audit support files, and a direct runner entry."
+          "summary": "Page State truth ownership remains exclusive to the Page State ability group."
         },
         {
-          "name": "scorecard-gate",
+          "name": "page-state-anti-escape",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map package scorecard remains explicit, provisional, and aligned with the governed closeout gate."
+          "summary": "Page State anti-escape checks are closed."
         },
         {
-          "name": "required-shape",
+          "name": "page-state-enforcement-coverage",
           "classification": "PASS",
           "passed": true,
-          "summary": "Map-plugin integration required schema, registry, task-template, and proof shape are established."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Forbidden reverse-schema imports, platform fallback paths, ordinary mapBinding surfaces, and legacy static maps are gone."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Schema ownership, active map resolution, and ordinary task-template launch boundaries are enforced through the right seams."
+          "summary": "Page State FINAL law, manifest, matrix, audit-plan, and runner-summary are aligned."
         },
         {
           "name": "negative-proof-harness",
-          "classification": "FAKE ENFORCEMENT",
-          "passed": false,
-          "summary": "Map package negative-proof harness cannot start because the baseline inspector is not passing."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State negative-proof harness rejects manual-first-enforcement-reintroduced: manual-first-enforcement-reintroduced fail-ok, turn-p0-into-warning-only: turn-p0-into-warning-only fail-ok, truth-ownership:skip-build: open-feed-ready-classifier-outside-page-state, platform-login-wall-truth-helper-outside-page-state, accept-action-completion-as-page-state-proof fail-ok, required:skip-build: remove-capabilityCallId-from-input, remove-activationSnapshotRef-from-input, remove-nerveBusEnvelopeId-from-input, remove-snapshot-sourceProofRef, observation-without-sourceProofRef, proof-runId-from-fingerprint, proof-missing-activationSnapshotRef, local-runtime-page-state-hardcodes-child-capability, local-runtime-page-state-drops-governed-observations, local-runtime-page-state-executor-drops-input-payload, non-success-page-state-proof-drops-diagnostic-payload-ref, non-success-page-state-result-drops-runtime-proof-fingerprint, non-success-page-state-result-drops-runtime-proof-observation-refs, child-returns-boolean fail-ok, anti-escape:skip-build: success-without-evidenceRefs, failed-result-retains-output, child-hardcodes-tiktok-feed-path, remove-negative-proof-invocation, remove-negative-proof-phase-grouping fail-ok, forbidden:skip-build: result-adds-verificationDecision, child-imports-screenshot-implementation, add-verify-page-state-capabilities fail-ok, boundary:skip-build: external-import-of-child-implementation fail-ok."
         }
       ],
-      "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.",
-      "passed": false,
-      "classification": "FAKE ENFORCEMENT",
-      "violationCount": 2
+      "summary": "page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
     }
   ]
 }

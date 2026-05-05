@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T05:25:19.047Z",
+  "generatedAt": "2026-05-05T06:01:29.690Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -4536,18 +4536,32 @@
       "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:page-state",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectLocalRuntimeDispatchBuilderFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectLocalRuntimeExecutorFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectLocalRuntimeExecutorFindings",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4591,6 +4605,13 @@
           "checkFunction": "inspectSchemaShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
           "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectLocalRuntimeDispatchBuilderFindings",
           "checkKind": "required-shape"
         }
       ],
@@ -4659,6 +4680,20 @@
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
           "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectNonSuccessParityFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectNonSuccessParityFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectNonSuccessParityFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectNonSuccessParityFindings",
           "checkKind": "required-shape"
         }
       ],
@@ -4769,6 +4804,13 @@
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
           "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectNonSuccessParityFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "collectNonSuccessParityFindings",
           "checkKind": "required-shape"
         }
       ],

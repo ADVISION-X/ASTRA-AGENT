@@ -86,6 +86,9 @@ export async function buildPageStateSuccessResult(input: {
     pageStateType: outcome.pageStateType,
     observationRefs,
   });
+  const diagnosticPayloadRef = outcome.status === "success"
+    ? null
+    : `page-state-diagnostic:${input.request.runId}:${input.request.childCapabilityId}:${outcome.failureReason ?? outcome.decision}`;
   const runtimeProof = buildPageStateRuntimeProof({
     request: input.request,
     timing: { startedAt: input.startedAt, endedAt },
@@ -101,6 +104,7 @@ export async function buildPageStateSuccessResult(input: {
     dataQualityFlags: outcome.dataQualityFlags,
     resolvedPlatformProfileId: outcome.resolvedProfileId,
     matchedHost: outcome.matchedHost,
+    diagnosticPayloadRef,
   });
 
   return buildPageStateResult({

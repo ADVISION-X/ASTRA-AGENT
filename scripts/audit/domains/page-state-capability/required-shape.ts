@@ -62,6 +62,9 @@ const EXECUTION_ROUTE_SOURCES = {
   buildPageStateResult: `${ROOT}/runtime/page-state-success-result.ts`,
 } as const;
 
+const LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT = "src/lib/local-runtime/workbench-page-state-dispatch-input.ts";
+const LOCAL_RUNTIME_ABILITY_EXECUTOR = "src/lib/local-runtime/workbench-ability-command-executor.ts";
+
 function resolveZodObjectLiteral(node: Node | undefined): ObjectLiteralExpression | null {
   if (!node || !Node.isCallExpression(node)) {
     return null;
@@ -110,6 +113,19 @@ function hasPropertyAssignmentInitializer(sourceFile: SourceFile, propertyName: 
   return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
     property.getName() === propertyName && property.getInitializer()?.getText() === expectedInitializer,
   );
+}
+
+function hasCallWithArguments(sourceFile: SourceFile, calleeName: string, argumentTexts: readonly string[]): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    const calleeMatches = Node.isIdentifier(expression)
+      ? expression.getText() === calleeName
+      : Node.isPropertyAccessExpression(expression) && expression.getName() === calleeName;
+
+    return calleeMatches
+      && callExpression.getArguments().length === argumentTexts.length
+      && callExpression.getArguments().every((argument, index) => argument.getText() === argumentTexts[index]);
+  });
 }
 
 function getMissingRequiredFields(fieldSet: Set<string>, requiredFields: readonly string[]): string[] {
@@ -288,6 +304,70 @@ function collectChildOutputParseFindings(project: Project): Finding[] {
   });
 }
 
+function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[] {
+  const builder = getSource(project, LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT);
+  const findings: Finding[] = [];
+  const requiredAssignments = [
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "abilityGroupId", expectedInitializer: '"page-state"', message: 'Local runtime page-state dispatch must stamp abilityGroupId: "page-state".' },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "runId", expectedInitializer: "envelope.runId", message: "Local runtime page-state dispatch must propagate envelope.runId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "sessionId", expectedInitializer: "envelope.sessionId", message: "Local runtime page-state dispatch must propagate envelope.sessionId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "stepId", expectedInitializer: "envelope.stepId", message: "Local runtime page-state dispatch must propagate envelope.stepId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageId", expectedInitializer: "envelope.mapPackageId", message: "Local runtime page-state dispatch must propagate envelope.mapPackageId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageVersion", expectedInitializer: "envelope.mapPackageVersion", message: "Local runtime page-state dispatch must propagate envelope.mapPackageVersion." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapId", expectedInitializer: "envelope.selectedMapId", message: "Local runtime page-state dispatch must propagate envelope.selectedMapId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapVersion", expectedInitializer: "envelope.selectedMapVersion", message: "Local runtime page-state dispatch must propagate envelope.selectedMapVersion." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "activationSnapshotRef", expectedInitializer: "envelope.activationSnapshotRef", message: "Local runtime page-state dispatch must propagate envelope.activationSnapshotRef." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "capabilityCallId", expectedInitializer: "envelope.capabilityCallId", message: "Local runtime page-state dispatch must propagate envelope.capabilityCallId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "nerveBusEnvelopeId", expectedInitializer: "envelope.nerveBusEnvelopeId", message: "Local runtime page-state dispatch must propagate envelope.nerveBusEnvelopeId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "inputRef", expectedInitializer: "envelope.inputRef", message: "Local runtime page-state dispatch must propagate envelope.inputRef." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "idempotencyKey", expectedInitializer: "envelope.idempotencyKey", message: "Local runtime page-state dispatch must propagate envelope.idempotencyKey." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "browserSessionRef", expectedInitializer: "session.browserProfileRef", message: "Local runtime page-state dispatch must bind openHandoff.browserSessionRef to the active browser session." },
+  ] as const;
+
+  for (const assignment of requiredAssignments) {
+    if (!hasPropertyAssignmentInitializer(builder, assignment.propertyName, assignment.expectedInitializer)) {
+      findings.push(createFinding({ lawId: assignment.lawId, file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: assignment.message }));
+    }
+  }
+
+  if (!hasCallExpression(builder, "resolvePageStateChildCapabilityId")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Local runtime page-state dispatch must derive childCapabilityId from envelope.commandName." }));
+  }
+
+  if (!hasCallExpression(builder, "buildPageStateObservations")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2", file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Local runtime page-state dispatch must emit governed observations for observation-required Page State steps." }));
+  }
+
+  return findings;
+}
+
+function collectLocalRuntimeExecutorFindings(project: Project): Finding[] {
+  const executor = getSource(project, LOCAL_RUNTIME_ABILITY_EXECUTOR);
+  return hasCallWithArguments(executor, "buildPageStateDispatchInput", ["runtime", "envelope", "inputPayload"])
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", file: LOCAL_RUNTIME_ABILITY_EXECUTOR, line: 1, severity: "fatal", message: "Local runtime executor must pass inputPayload into buildPageStateDispatchInput." })];
+}
+
+function collectNonSuccessParityFindings(project: Project): Finding[] {
+  const successResult = getSource(project, `${ROOT}/runtime/page-state-success-result.ts`);
+  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builder.ts`);
+  const findings: Finding[] = [];
+
+  if (!successResult.getFullText().includes('const diagnosticPayloadRef = outcome.status === "success"')) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-success-result.ts`, line: 1, severity: "fatal", message: "Page State success-result builder must retain diagnosticPayloadRef for non-success outcomes." }));
+  }
+
+  if (!hasPropertyAssignmentInitializer(resultBuilder, "observationRefs", "input.output?.observationRefs ?? [...input.runtimeProof.observationRefs]")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof observationRefs on failed or review_required results." }));
+  }
+
+  if (!hasPropertyAssignmentInitializer(resultBuilder, "pageStateFingerprint", "input.output?.pageStateFingerprint ?? input.runtimeProof.pageStateFingerprint")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof pageStateFingerprint on failed or review_required results." }));
+  }
+
+  return findings;
+}
+
 const inspectBuilderShape = (project: Project): Finding[] => {
   return [
     ...collectBuilderParseFindings(project),
@@ -295,6 +375,9 @@ const inspectBuilderShape = (project: Project): Finding[] => {
     ...collectProofBuilderAssignmentFindings(project),
     ...collectResultBuilderPathFindings(project),
     ...collectChildOutputParseFindings(project),
+    ...collectLocalRuntimeDispatchBuilderFindings(project),
+    ...collectLocalRuntimeExecutorFindings(project),
+    ...collectNonSuccessParityFindings(project),
   ];
 };
 

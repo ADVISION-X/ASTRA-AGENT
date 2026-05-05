@@ -1,99 +1,74 @@
-# GrassEye Phase 1 - Runtime Log Blocker Mining & Root Cause Analysis
+# Phase 1 Report
 
-Final status: `LOG_BLOCKER_ANALYSIS_READY`
+Status: `LOG_BLOCKER_ANALYSIS_READY`
 
-## Inputs used
+Scope: Runtime Log Blocker Mining & Root Cause Analysis only. No production code, law files, blueprints, inspectors, or negative proofs were modified. Generated analysis artifacts only under `tmp/debug-loop/root-cause-analysis/`.
 
-1. Latest saved real terminal log: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`.
-2. Contrast-only stored artifacts:
-   - `tmp/debug-loop/root-cause-analysis/current-runtime-log-snapshot.json`
-   - `tmp/debug-loop/root-cause-analysis/current-runtime-snapshot.json`
-3. Audit output: `tmp/debug-loop/regression-proofs/BLOCKER-4/inspector-fail-output.txt`.
-4. Law files under `.github/instructions/cursor-rules/**`.
-5. Blueprints under `docs/法案辅助文件/**`.
-6. Audit scripts under `scripts/audit/**`.
-7. Production code under `src/**`.
+## Inputs Used
 
-## Evidence separation
+- Latest real terminal log pasted from `npm run grasseye:start`, runId `2026-05-05T05:41:00.956Z`.
+- Live runtime API: `http://127.0.0.1:4173/api/runtime/logs`.
+- Live mission readiness API: `http://127.0.0.1:4173/api/runtime/mission-readiness`.
+- Latest startup failure bundle list under `tmp/debug-loop/startup-failures/`.
+- Existing post-fix runtime verification artifacts under `tmp/debug-loop/post-fix-runtime-verification/`.
+- Current git diff/status.
+- Law files under `.github/instructions/cursor-rules/**`.
+- Blueprints under `docs/法案辅助文件/**`.
+- Audit scripts under `scripts/audit/**`.
+- Production code under `src/**`.
 
-This phase uses a strict evidence priority:
+## Summary
 
-1. The authoritative runtime chain is the latest real terminal session captured in `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`.
-2. The stored `current-runtime-log-snapshot.json` and `current-runtime-snapshot.json` are historical corroboration only. They are not the latest truth because they conflict with the raw terminal session and represent older 03:04 / 03:28 state.
-3. Current worktree hardening under `src/**` and `scripts/audit/**` is treated as in-flight mitigation context, not as proof that the live blocker is resolved.
+Startup is not currently blocked. Dependency readiness, map package readiness, local AI readiness, port clear, app server start, app shell health, console open, and mission runtime availability all passed.
 
-## Timeline
+The active P0 blocker is command dispatch: MissionReadiness and preflight passed, Commander built a command envelope, Nerve Bus dispatched `start-mission`, Orchestration received it, then the command was rejected with `failureReason=invalid_input`. This violates the Orchestration blueprint requirement that final command shape / binding failures be caught before Nerve Bus envelope creation.
 
-See `tmp/debug-loop/root-cause-analysis/runtime-timeline.md`.
+The key observability problem is that the runtime log does not expose the actual failing map step/capability. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is marked failed even though it contains an activation snapshot ref, because the event status follows the returned mission state rather than snapshot-freeze proof semantics.
+
+An adjacent live runtime API attempt shows a concrete first-step class of failure: Open can reject after preflight with `open requires targetUrl or explicit targetProfileRef ...; silent profile defaulting is forbidden`. Open is doing the right thing locally; upstream propagation/preflight did not prove the target binding reached the first open input.
 
 ## Blockers
 
-See `tmp/debug-loop/root-cause-analysis/blocker-list.md`.
+1. P0: Preflight passed, Nerve Bus dispatched, then `COMMAND_REJECTED failureReason=invalid_input`.
+2. P1: `MISSION_ACTIVATION_SNAPSHOT_FROZEN failed` is semantically contradictory when snapshot ref exists.
+3. P1: Required loop phase structured logs are missing after Orchestration start.
+4. P0: Adjacent runtime proof shows Open target binding can be missing after preflight.
 
-Priority order:
+## Root Cause Files
 
-1. `P0` - `ORCHESTRATION_START_RECEIVED` already happened, but `MISSION_ACTIVATION_SNAPSHOT_FROZEN` failed because a deeper object still exposed `runId=null`.
-2. `P0` - `MISSION_PREFLIGHT_PASSED` happened before the actual failing contract was fully proven.
-3. `P1` - persisted runtime/debug evidence is stale or under-linked, so logs alone cannot localize the nested null source.
-4. `P1` - owner-local enforcement is being hardened in the current worktree, but there is no fresh real rerun proving the live blocker is already machine-blocked.
+- `src/lib/local-app-shell/task-start-flow.ts`
+- `src/lib/local-runtime/workbench-human-command.ts`
+- `src/lib/local-runtime/workbench-human-command-debug-events.ts`
+- `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`
+- `src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts`
+- `src/lib/local-runtime/workbench-open-dispatch-input.ts`
+- `src/capabilities/open/runtime/target-policy-gate.ts`
 
-## Key root-cause conclusion
+## Enforcement Gap Files
 
-The primary blocker is no longer a startup problem. Startup, map readiness, AI readiness, app shell health, console opening, and mission runtime availability all passed.
+- `scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts`
+- `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`
+- `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts`
+- `scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts`
+- `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts`
+- `scripts/audit/domains/open-capability/run-open-runtime-checks.ts`
+- `scripts/audit/domains/open-capability/negative-proof-harness.ts`
 
-The latest authoritative runtime chain is:
+## Generated Files
 
-```txt
-HUMAN_COMMAND_VALIDATED
--> MISSION_READINESS_CHECK_STARTED
--> MISSION_PREFLIGHT_STARTED
--> MISSION_PREFLIGHT_PASSED
--> COMMANDER_COMMAND_ENVELOPE_BUILT
--> NERVE_BUS_ENVELOPE_CREATED
--> NERVE_BUS_DISPATCH_STARTED
--> ORCHESTRATION_START_RECEIVED
--> MISSION_ACTIVATION_SNAPSHOT_FROZEN failed(path=runId/null)
--> COMMAND_REJECTED
-```
+- `tmp/debug-loop/root-cause-analysis/runtime-timeline.md`
+- `tmp/debug-loop/root-cause-analysis/blocker-list.md`
+- `tmp/debug-loop/root-cause-analysis/law-blueprint-mapping.md`
+- `tmp/debug-loop/root-cause-analysis/root-cause-matrix.md`
+- `tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md`
+- `tmp/debug-loop/root-cause-analysis/phase-1-report.md`
 
-This matters because it falsifies the older repository narrative that `runId` was already lost on the Commander side before Orchestration start.
+## READY Criteria Check
 
-Current code inspection shows:
-
-- `src/lib/local-runtime/workbench-human-command.ts` passes `envelope.runId` into `startMission(...)`.
-- `src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts` sets `activeTaskRunId: command.runId` in the initial mission state.
-- `src/capabilities/orchestration/runtime/orchestration-proof-builder.ts` emits `runId: input.runId` into the runtime proof.
-- `src/capabilities/orchestration/schema.ts` requires non-null `runId` on both `MissionCommandSchema` and `RuntimeProofSchema`.
-
-Therefore this phase can conclude, without guessing, that:
-
-1. The latest live failure does not prove a Commander-side boundary drop before Orchestration start.
-2. The null is now narrowed to a deeper nested object inside the Orchestration activation-snapshot / result / proof path, or to a code state older than the current dirty worktree hardening.
-3. The current logs still do not surface that exact failing nested object. That observability gap is itself an active blocker.
-
-## Law / blueprint mapping
-
-See `tmp/debug-loop/root-cause-analysis/law-blueprint-mapping.md`.
-
-## Root-cause matrix
-
-See `tmp/debug-loop/root-cause-analysis/root-cause-matrix.md`.
-
-## Enforcement-gap matrix
-
-See `tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md`.
-
-## Analysis boundaries
-
-- No production source code was modified in this phase.
-- No law files were modified in this phase.
-- No blueprint files were modified in this phase.
-- No inspector files were modified in this phase.
-- No repair patch was generated in this phase.
-- Only the analysis markdown files under `tmp/debug-loop/root-cause-analysis/` were rewritten.
-
-## Final determination
-
-All required phase-1 analysis artifacts are now rebuilt around the latest authoritative real runtime chain, with stale stored artifacts explicitly separated from current worktree hardening.
-
-`LOG_BLOCKER_ANALYSIS_READY`
+- 所有日志阻塞点已列出: yes.
+- 每个阻塞点都有日志证据: yes; missing phase events are explicitly marked `LOG_EVENT_MISSING`.
+- 每个阻塞点都有法案/施工图对照: yes.
+- 每个阻塞点都有生产代码根因文件: yes.
+- 每个阻塞点都有 inspector / negative proof 缺口分析: yes.
+- 每个阻塞点都有“为什么没拦住”的归类: yes.
+- 没有进行代码修复: yes.

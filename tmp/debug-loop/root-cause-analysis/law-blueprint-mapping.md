@@ -1,23 +1,60 @@
 # Law / Blueprint Mapping
 
-## Evidence note
+## BLOCKER-1
 
-- Primary runtime truth: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`.
-- Contrast-only stale artifacts: `current-runtime-log-snapshot.json` and `current-runtime-snapshot.json`.
-- Current worktree hardening exists, but it is not accepted as runtime proof until a fresh real rerun validates it.
+- Problem: `MISSION_PREFLIGHT_PASSED` and `NERVE_BUS_DISPATCH_STARTED`, then `COMMAND_REJECTED failureReason=invalid_input`.
+- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1`; start boundary supplement `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
+- Law requirement: final readiness requires `activationSnapshotRef frozen and non-null in valid execution`, `dispatch only through Nerve Bus envelope`, and `step payload/proof carries full chain fields`.
+- Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
+- Blueprint section: `start-mission preflight 补充`, lines 683-691.
+- Blueprint requirement: Local App Shell must dry-run the final `MissionCommandSchema` before Nerve Bus dispatch; dry-run must include requestedPlatform, selectedMapId/preferredMapId, taskTemplateId, activationId, targetProfileRef, and non-null generated runId. Failure must return `MISSION_PREFLIGHT_FAILED / COMMAND_REJECTED` before envelope creation.
+- Violation: rejection happened after passed preflight and Nerve Bus dispatch.
+- Gap status: law exists, blueprint exists, enforcement is incomplete for end-to-end post-preflight rejection prevention.
 
-| Blocker | Primary runtime violation | Law file | lawId | Law requirement | Blueprint file | Blueprint section | Blueprint requirement | Current violation |
-|---|---|---|---|---|---|---|---|---|
-| BLOCKER-1 | `ORCHESTRATION_START_RECEIVED` observed, then `MISSION_ACTIVATION_SNAPSHOT_FROZEN` fails on nested `runId=null` | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3` | Orchestration result/proof must preserve real upstream chain, activation snapshot chain, and non-null `runId` parity | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `### 21.1 runtime proof runId 链路补充` | `Nerve Bus human_command.runId -> MissionCommand.runId -> MissionState.activeTaskRunId -> RuntimeProofSchema.runId -> buildOrchestrationRuntimeProof(input.runId)` | latest real runtime reaches Orchestration start boundary but still exposes a deeper object with `runId=null` |
-| BLOCKER-1 | activation snapshot was not frozen successfully | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3` | valid running execution cannot keep activation/map chain nullable | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `start-mission preflight 补充` and READY supplement | `preflight passed 后不允许出现仅因 MissionCommandSchema path=runId/null 导致的 COMMAND_REJECTED` and activation snapshot must become valid | activation snapshot freeze failed after Orchestration start |
-| BLOCKER-2 | `MISSION_PREFLIGHT_PASSED` then downstream `COMMAND_REJECTED(path=runId/null)` | `.github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md` | `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2` | command path must complete semantic validation before transport | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `start-mission preflight 补充` | `MissionCommandSchema` dry-run must happen before Nerve Bus dispatch; READY forbids preflight-pass then `runId/null` reject | latest real runtime still shows preflight pass before reject |
-| BLOCKER-2 | start command binding looked resolved but failure still escaped | `.github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md` | `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2` | start-mission envelope must resolve approved map/platform before emission and semantic mismatch must fail | `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md` | `### 18.1 start-mission runId 传输契约补充` | command dispatch result must preserve non-null runId and reject null-proof paths | latest real runtime still emits command rejection after dispatch started |
-| BLOCKER-3 | persisted snapshot conflicts with latest terminal chain and carries empty refs/proofRefs | `.github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md` | `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2` | runtime result/proof and public boundary must preserve command/read chain and cannot devolve into untraceable failure | `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md` | `### 18.1 start-mission runId 传输契约补充` | `COMMAND_REJECTED` must expose command/result/proof refs and preserve runId chain | old persisted snapshot lacks enough refs to localize failure |
-| BLOCKER-3 | terminal/debug observability still not enough on authoritative failure | existing startup and structured runtime logging requirements | no new law needed | runtime failure must remain traceable through owner/actionable/run identity and refs | `docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md` | runtime relay supplement around `StructuredRuntimeEvent.ownerResponsible/actionableMessage/runId` | terminal relay and runtime debug API must carry `runId/ownerResponsible/actionableMessage/traceId/selectedMapId/activationSnapshotRef` plus refs/proofRefs | old stored snapshot and old reports violate the blueprint even if the latest terminal line is better |
-| BLOCKER-4 | live runtime failed before audit closed the loop | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3` | law is machine-blocking and requires inspector + negative proof for chain integrity | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `### 21.1 runtime proof runId 链路补充` | inspector must cover `MissionCommandSchema.runId`, `RuntimeProofSchema.runId`, `BuildProofInput.runId`, proof builder emission, and corresponding negative proof | current workspace contains these hardenings, but authoritative live failure still happened before a validated rerun |
+## BLOCKER-2
 
-## Mapping conclusion
+- Problem: `MISSION_ACTIVATION_SNAPSHOT_FROZEN failed` includes `activationSnapshotRef=...` and actionableMessage says continue the loop.
+- Law file: `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md`
+- lawId: structured logging human command / mission preflight event law
+- Law requirement: command rejection logs must include failureReason, ownerResponsible, actionableMessage, inspect/debug refs.
+- Blueprint file: `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md`
+- Blueprint section: `Human Command / Mission Preflight Events`, lines 131-135.
+- Blueprint requirement: governed event chain must make rejection traceable.
+- Violation: event semantics are contradictory; snapshot-freeze proof and later mission-loop failure are conflated.
+- Gap status: law exists, blueprint exists, inspector only checks event literal presence.
 
-- No `LAW_GAP_CANDIDATE` was confirmed in this phase.
-- No `BLUEPRINT_DETAIL_GAP` was confirmed in this phase.
-- The dominant issue is not missing law text. The dominant issue is mismatch between latest real runtime behavior, stale stored artifacts, and owner-local enforcement depth.
+## BLOCKER-3
+
+- Problem: `MAP_STEP_SELECTED`, `CAPABILITY_CALL_*`, `POST_ACTION_VERIFICATION_*`, `FORENSICS_RECORD_*`, `STEP_TRANSITION_EVALUATED`, and mission finalization events are missing.
+- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1`
+- Law requirement: step payload/proof must carry full chain fields; PAV-after-action and Forensics routing must be enforced.
+- Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
+- Blueprint section: final readiness lines 873-890.
+- Blueprint requirement: dispatch only through Nerve Bus envelope, PAV-after-action, Forensics routing, transition evaluation through declared schema fields.
+- Violation: runtime logs do not prove or localize those phases.
+- Gap status: blueprint/law require behavior, but structured logging event emission is not enforced.
+
+## BLOCKER-4
+
+- Problem: older live runtime logs show `open requires targetUrl or explicit targetProfileRef ...; silent profile defaulting is forbidden` after preflight.
+- Law file: `.github/instructions/cursor-rules/modules/module-open-capability.instructions.md`
+- lawId: `GRASSEYE-OPEN-CAPABILITY-003-V2`
+- Law requirement: Open input must have `targetUrl or targetProfileRef`; target URL may be resolved only by governed target profile/explicit policy.
+- Forbidden: silent default platform, silent default URL, fabricated target profile.
+- Blueprint file: `docs/法案辅助文件/GrassEye Open 能力组施工图.md`
+- Blueprint section: target profile governance lines 290-299; output proof fields lines 535-545.
+- Blueprint requirement: target profile is a governed profile, not silent fallback; results/proofs carry targetProfileRef, targetUrl, targetUrlSource.
+- Violation: upstream dispatch can reach open without explicit target binding.
+- Gap status: Open law/inspector guard the open module, but cross-domain propagation is missing.
+
+## Law Gap Candidates
+
+No direct law change is required for this phase. The gaps are enforcement and blueprint-detail gaps, not clear law absence.
+
+## Blueprint Detail Gaps
+
+- The Orchestration blueprint should explicitly distinguish `MISSION_ACTIVATION_SNAPSHOT_FROZEN` proof semantics from mission-loop execution outcome.
+- The structured logging blueprint should require every listed mission-loop phase to be emitted by the production loop, not only named in relay allowlists.
+- The cross-domain Commander/Orchestration/Open path needs an explicit proof: task binding `targetProfileRef` must reach first open step input or preflight must block before transport.

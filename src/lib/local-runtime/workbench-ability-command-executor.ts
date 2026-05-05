@@ -67,7 +67,7 @@ const executeRuntimeAbilityCommand = async (
     case "forensics-persistence":
       return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
     case "page-state":
-      return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope));
+      return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope, inputPayload));
   }
 
   throw new Error(`Unsupported runtime ability target: ${envelope.to}`);

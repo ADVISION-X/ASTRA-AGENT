@@ -1,0 +1,1 @@
+BLOCKER-PAGE-STATE-DISPATCH-INVALID-INPUT proof: mutating the local-runtime Page State dispatch builder back to a hardcoded child capability made the page-state owner inspector fail; rollback restored PASS.
