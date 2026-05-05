@@ -1,45 +1,18 @@
 {
-  "generatedAt": "2026-05-05T14:16:50.303Z",
+  "generatedAt": "2026-05-05T16:19:51.050Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/open-capability/inspection-constants.ts",
-    "scripts/audit/domains/open-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/open-capability/run-open-boundary-checks.ts",
-    "scripts/audit/domains/open-capability/run-open-runtime-checks.ts",
-    "scripts/audit/domains/open-capability/run-open-schema-shape-checks.ts",
-    "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
-    "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/screenshot-capability/config.ts",
-    "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/screenshot-capability/required-shape.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
-    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
-    "src/capabilities/open/runtime/local-program-runner.ts",
-    "src/capabilities/open/runtime/open-executor-completion.ts",
-    "src/capabilities/open/runtime/open-executor-preflight.ts",
-    "src/capabilities/open/runtime/open-result-builder.ts",
-    "src/capabilities/open/runtime/post-open-state-gate-helpers.ts",
-    "src/capabilities/open/runtime/post-open-state-gate.ts",
-    "src/capabilities/open/runtime/target-policy-gate.ts",
-    "src/capabilities/open/runtime/url-safety-gate.ts",
-    "src/capabilities/open/schema-proof.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
-    "src/capabilities/page-state/shared/page-state-profile.ts",
-    "src/lib/local-app-shell/task-start-binding.ts",
-    "src/lib/local-runtime/workbench-action-dispatch-inputs.ts",
-    "src/lib/local-runtime/workbench-contract.ts",
-    "src/lib/local-runtime/workbench-open-dispatch-input.ts",
-    "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
-    "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json",
-    "src/map-plugins/builtins/index.ts",
-    "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
-    "src/map-plugins/schema/operational-map-payload.schema.ts",
-    "src/map-plugins/schema/platform-id.schema.ts"
+    "src/lib/local-app-shell/commander-console-shell-client.ts",
+    "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts",
+    "src/lib/local-app-shell/pages/HomeStartPage.ts",
+    "src/lib/local-app-shell/styles/commander-console-styles.ts",
+    "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -200,13 +173,28 @@
     },
     {
       "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
-      "lines": 359,
+      "lines": 409,
       "fileType": "ordinary implementation",
-      "overLimitBy": 59,
+      "overLimitBy": 109,
       "primaryRole": "read-model",
       "functionsOverLimit": [],
       "classMembers": 0,
       "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/styles/commander-console-styles.ts",
+      "lines": 400,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 100,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -279,7 +267,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 1744,
+      "lines": 2026,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -432,7 +420,38 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
-  "oversizedTouchedFileInventory": [],
+  "oversizedTouchedFileInventory": [
+    {
+      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
+      "lines": 409,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 109,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/styles/commander-console-styles.ts",
+      "lines": 400,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 100,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "functionOverLimitInventory": [
     {
       "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
@@ -496,6 +515,7 @@
       "overLimitBy": 0,
       "primaryRole": "adapter",
       "functionsOverLimit": [
+        "getReturnedObjectLiteral",
         "inspectScreenshotDispatchAdapter"
       ],
       "classMembers": 0,
@@ -640,6 +660,23 @@
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
+      "lines": 151,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectIphoneMirroringMapBoundary"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
@@ -929,6 +966,24 @@
       "primaryRole": "executor",
       "functionsOverLimit": [
         "parseCommanderAppPageId"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts",
+      "lines": 131,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "renderTaskTemplateLauncherModule",
+        "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts:64"
       ],
       "classMembers": 0,
       "importCount": 4,
@@ -1126,7 +1181,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 1744,
+      "lines": 2026,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1298,6 +1353,36 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
+      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
+      "lines": 409,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 109,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/styles/commander-console-styles.ts",
+      "lines": 400,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 100,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
       "lines": 392,
       "fileType": "audit phase",
@@ -1313,21 +1398,6 @@
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
-      "lines": 359,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 59,
-      "primaryRole": "read-model",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
@@ -1741,6 +1811,23 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
+      "lines": 151,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectIphoneMirroringMapBoundary"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "src/app/map-lab-api-handlers.ts",
       "lines": 151,
       "fileType": "app/api handler",
@@ -1781,6 +1868,7 @@
       "overLimitBy": 0,
       "primaryRole": "adapter",
       "functionsOverLimit": [
+        "getReturnedObjectLiteral",
         "inspectScreenshotDispatchAdapter"
       ],
       "classMembers": 0,
@@ -1807,6 +1895,24 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts",
+      "lines": 131,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "renderTaskTemplateLauncherModule",
+        "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts:64"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
@@ -1978,7 +2084,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 1744,
+      "lines": 2026,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

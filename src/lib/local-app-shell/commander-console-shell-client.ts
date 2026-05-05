@@ -75,6 +75,18 @@ export const commanderConsoleShellClient = `(function () {
   function getSelectedTaskDescription() {
     return document.querySelector("[data-selected-task-description]");
   }
+  function localizeSafetyLevel(safetyLevel) {
+    switch (String(safetyLevel || "").trim().toLowerCase()) {
+      case "guarded autopilot":
+        return locale === "zh" ? "守护自动执行" : "Guarded Autopilot";
+      case "review-first":
+        return locale === "zh" ? "先审后跑" : "Review First";
+      case "execution blocked":
+        return locale === "zh" ? "禁止直接执行" : "Execution Blocked";
+      default:
+        return safetyLevel || "";
+    }
+  }
   function getInspectNodes() {
     return {
       title: document.querySelector("[data-inspect-title]"),
@@ -98,7 +110,7 @@ export const commanderConsoleShellClient = `(function () {
       banner = document.createElement("section");
       banner.setAttribute("data-error-banner", "");
       banner.setAttribute("data-runtime-start-error", "true");
-      const grid = homePage.querySelector(".cc-page-stack.cc-home-grid");
+      const grid = homePage.querySelector(".cc-home-grid");
       if (grid instanceof HTMLElement) { homePage.insertBefore(banner, grid); } else { homePage.appendChild(banner); }
     }
     banner.className = "cc-error-banner cc-tone-blocked";
@@ -136,12 +148,19 @@ export const commanderConsoleShellClient = `(function () {
     });
     if (!template) {
       setTextContent(getSelectedTaskDescription(), locale === "zh" ? "请先选择一个任务。" : "Select a task first.");
+      setTextContent(document.querySelector("[data-selected-task-title]"), locale === "zh" ? "请选择一个地图" : "Choose a map");
+      setTextContent(document.querySelector("[data-selected-task-category]"), locale === "zh" ? "未选择" : "None");
+      setTextContent(document.querySelector("[data-selected-task-safety]"), locale === "zh" ? "未选择" : "None");
       return;
     }
     setTextContent(getSelectedTaskDescription(), template.description);
+    setTextContent(document.querySelector("[data-selected-task-title]"), template.displayName);
+    setTextContent(document.querySelector("[data-selected-task-category]"), template.taskCategory);
+    setTextContent(document.querySelector("[data-selected-task-safety]"), localizeSafetyLevel(template.safetyLevel));
     const goalInput = document.querySelector("#cc-human-goal");
-    if (goalInput instanceof HTMLTextAreaElement && !goalInput.value.trim()) {
+    if (goalInput instanceof HTMLTextAreaElement && (!goalInput.value.trim() || goalInput.dataset.currentDefaultGoal === goalInput.value)) {
       goalInput.value = template.defaultHumanGoal || "";
+      goalInput.dataset.currentDefaultGoal = template.defaultHumanGoal || "";
     }
     const startForm = getStartForm();
     if (startForm instanceof HTMLFormElement) {
@@ -149,13 +168,33 @@ export const commanderConsoleShellClient = `(function () {
       const maxMinutesInput = startForm.querySelector("#cc-max-minutes");
       if (maxRoundsInput instanceof HTMLInputElement) {
         maxRoundsInput.max = String(template.maxAllowedRunLimit.maxRounds);
-        maxRoundsInput.value = String(state.maxRounds || template.defaultRunLimit.maxRounds);
+        const nextRounds = Math.min(Number(state.maxRounds || template.defaultRunLimit.maxRounds), template.maxAllowedRunLimit.maxRounds);
+        state.maxRounds = nextRounds;
+        maxRoundsInput.value = String(nextRounds);
       }
       if (maxMinutesInput instanceof HTMLInputElement) {
         maxMinutesInput.max = String(template.maxAllowedRunLimit.maxMinutes);
-        maxMinutesInput.value = String(state.maxMinutes || template.defaultRunLimit.maxMinutes);
+        const nextMinutes = Math.min(Number(state.maxMinutes || template.defaultRunLimit.maxMinutes), template.maxAllowedRunLimit.maxMinutes);
+        state.maxMinutes = nextMinutes;
+        maxMinutesInput.value = String(nextMinutes);
       }
     }
+  }
+  function applyTemplateFilters() {
+    const searchInput = document.querySelector("[data-template-search]");
+    const query = searchInput instanceof HTMLInputElement ? searchInput.value.trim().toLowerCase() : "";
+    const activeFilter = document.querySelector("[data-template-filter].is-active");
+    const filter = activeFilter instanceof HTMLElement ? activeFilter.getAttribute("data-template-filter") || "all" : "all";
+    document.querySelectorAll("[data-task-template-card]").forEach((card) => {
+      if (!(card instanceof HTMLElement)) { return; }
+      const text = card.getAttribute("data-template-search-text") || "";
+      const category = card.getAttribute("data-template-category") || "";
+      const ready = card.getAttribute("data-template-ready") === "true";
+      const recommended = card.getAttribute("data-template-recommended") === "true";
+      const matchesQuery = !query || text.indexOf(query) >= 0;
+      const matchesFilter = filter === "all" || (filter === "ready" && ready) || (filter === "recommended" && recommended) || category === filter;
+      card.hidden = !(matchesQuery && matchesFilter);
+    });
   }
   function syncHomeUi() {
     const startForm = getStartForm();
@@ -327,6 +366,17 @@ export const commanderConsoleShellClient = `(function () {
       const summary = nodes.summary ? nodes.summary.textContent || "" : "";
       const body = nodes.body ? nodes.body.textContent || "" : "";
       navigator.clipboard.writeText(title + "\\n" + summary + "\\n\\n" + body).then(() => showToast(text.copied)).catch(() => showToast(text.clipboardFailed));
+    }
+    const filterButton = target.closest("[data-template-filter]");
+    if (filterButton instanceof HTMLElement) {
+      document.querySelectorAll("[data-template-filter]").forEach((button) => button.classList.toggle("is-active", button === filterButton));
+      applyTemplateFilters();
+    }
+  });
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.matches("[data-template-search]")) {
+      applyTemplateFilters();
     }
   });
   document.addEventListener("change", (event) => {
