@@ -7,6 +7,7 @@ const INTERNAL_TYPES_PATH = "src/capabilities/orchestration/internal.ts";
 const ABILITY_GROUP_PATH = "src/capabilities/orchestration/ability-group.ts";
 const LOOP_ITERATION_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts";
 const LOOP_EVENTS_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts";
+const LOOP_EVENTS_SHARED_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts";
 const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts";
 const WORKBENCH_ORCHESTRATION_PATH = "src/lib/local-runtime/workbench-orchestration.ts";
 
@@ -93,6 +94,7 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
   const loopIterationSource = getSourceFileOrThrow(project, LOOP_ITERATION_PATH);
   const loopEventsSource = getSourceFileOrThrow(project, LOOP_EVENTS_PATH);
+  const loopEventsSharedSource = getSourceFileOrThrow(project, LOOP_EVENTS_SHARED_PATH);
   const stepTraceRecorderSource = getSourceFileOrThrow(project, STEP_TRACE_RECORDER_PATH);
   const workbenchOrchestrationSource = getSourceFileOrThrow(project, WORKBENCH_ORCHESTRATION_PATH);
   const buildTransitionSuccessState = loopIterationSource.getFunction("buildTransitionSuccessState");
@@ -100,14 +102,15 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const recordDispatchStarted = loopEventsSource.getFunction("recordDispatchStarted");
   const dispatchStartedText = recordDispatchStarted?.getFullText() ?? "";
   const runtimeEventTypes = new Set(
-    loopEventsSource
+    [loopEventsSource, loopEventsSharedSource].flatMap((sourceFile) => sourceFile
       .getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .map((literal) => literal.getLiteralText()),
+      .map((literal) => literal.getLiteralText())),
   );
   const emitsPavStartedEvent = loopEventsSource.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "POST_ACTION_VERIFICATION_STARTED");
   const guardsRoundIncrementByInitialStep = transitionStateText.includes("nextStepId === input.map.initialStepId")
     && transitionStateText.includes("details.currentStepId !== input.map.initialStepId");
   const usesPerStepRoundIncrement = transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
+  const dispatchCallsCapabilityStart = dispatchStartedText.includes("recordCapabilityCallStarted");
   const dispatchCallsPavStart = dispatchStartedText.includes("recordPostActionVerificationStarted");
   const runtimeContextFields = getTypeAliasPropertyNames(internalSource, "OrchestrationRuntimeContext");
   const abilityGroupInputFields = getTypeAliasPropertyNames(abilityGroupSource, "CreateOrchestrationAbilityGroupInput");
@@ -126,6 +129,7 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
     "MAP_STEP_SELECTED",
     "STEP_PRECONDITION_CHECKED",
     "STEP_DISPATCH_STARTED",
+    "CAPABILITY_CALL_STARTED",
     "STEP_TRANSITION_EVALUATED",
   ];
   const missingEventTypes = requiredEventTypes.filter((eventType) => !runtimeEventTypes.has(eventType));
@@ -150,6 +154,9 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
 
   if (!guardsRoundIncrementByInitialStep || usesPerStepRoundIncrement) {
     findings.push(createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Transition success state must increment currentRoundIndex only when the governed loop explicitly returns to map.initialStepId." }));
+  }
+  if (!dispatchCallsCapabilityStart) {
+    findings.push(createFatalFinding({ file: LOOP_EVENTS_PATH, message: "Mission loop dispatch must emit CAPABILITY_CALL_STARTED when a governed ability enters owner execution." }));
   }
   if (!emitsPavStartedEvent || !dispatchCallsPavStart) {
     findings.push(createFatalFinding({ file: LOOP_EVENTS_PATH, message: "Mission loop dispatch must emit POST_ACTION_VERIFICATION_STARTED before awaiting the governed verification result." }));

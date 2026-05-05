@@ -10,7 +10,8 @@ import type {
 } from "../contract.js";
 import type { OpenLocalProgramLaunchResult, OpenLocalProgramSnapshot } from "../ports/open-local-program-port.js";
 import { createOpenFailure } from "../shared/open-failure.js";
-import { buildTargetPolicyFailureResult, createUnavailableSession, makeDataFlag } from "./open-execution-builders.js";
+import { buildTargetPolicyFailureResult } from "./open-execution-builders.js";
+import { createUnavailableSession, makeDataFlag } from "./open-executor-failure-builders.js";
 import { evaluateOpenTargetPolicy } from "./target-policy-gate.js";
 import type { OpenChildExecutionContext } from "./open-runtime-types.js";
 import { resolveOpenTimeoutMs } from "./open-timeout-policy.js";
@@ -250,7 +251,7 @@ export async function executeOpenLocalProgramChildFlow(input: {
     startedMonotonicMs: started.monotonicMs,
     endedMonotonicMs: ended.monotonicMs,
     failureReason: success ? null : createOpenFailure({
-      code: idempotency.ok ? "post_open_state_failed" : "idempotency_duplicate",
+      code: idempotency.ok ? "post_open_state_failed" : "duplicate_open_blocked",
       message: launch.reason ?? "local program open failed",
     }),
     reviewRequiredReason: null,

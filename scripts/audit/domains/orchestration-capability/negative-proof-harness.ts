@@ -89,6 +89,12 @@ const MUTATIONS: Mutation[] = [
     replace: 'eventType: "STEP_TRANSITION_SKIPPED",',
   },
   {
+    name: "capability call started event removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
+    search: '    eventType: "CAPABILITY_CALL_STARTED",',
+    replace: '    eventType: "CAPABILITY_CALL_SKIPPED",',
+  },
+  {
     name: "round budget per-step mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
     search: "  const nextRoundIndex = nextStatus === \"running\"\n    && nextStepId === input.map.initialStepId\n    && details.currentStepId !== input.map.initialStepId\n    ? input.state.currentRoundIndex + 1\n    : input.state.currentRoundIndex;\n",
@@ -194,7 +200,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
+    return createPassResult("Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, capability-call-start event loss, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Orchestration negative-proof harness failed.",

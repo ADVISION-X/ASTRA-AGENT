@@ -1,5 +1,5 @@
 # Fresh Enforcement Gap Matrix
 
-| Blocker | Inspector | Negative proof | Coverage | Gap class | Next action |
+| Blocker | Inspector | Negative proof | Current coverage | Gap class | Next action |
 |---|---|---|---|---|---|
-| BLOCKER-POSTFIX-1 | `scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts` | `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts` | Covers startup gate order, fail-closed throw, and governed readiness helper usage | J: runtime dependency unavailable, not a static enforcement miss | Bring Local AI runtime/models healthy, then rerun real restart and task trigger |
+| BLOCKER-POSTFIX-1 | `scripts/audit/domains/screenshot-capability/required-shape.ts` | `scripts/audit/domains/screenshot-capability/negative-proof-harness.ts` | Covers dispatch adapter chain mapping, schema marker presence, builder routing, generic chain nullability mutation on `capabilityCallId`, and result/proof parity markers | Screenshot owner has no AST/schema parity rule that compares `ScreenshotRuntimeProofIdentitySchema.videoVisitId`, `ScreenshotCapturePolicySchema.allowMissingVideoVisitId`, blueprint optionality, and `validateScreenshotRuntimeProofChain`. Negative proof also does not simulate the first capture path where `videoVisitId=null` is legitimate. | Add a screenshot-owner enforcement that fails when runtimeProof refine makes `videoVisitId` mandatory on early capture steps, and add a targeted negative-proof mutation for `videoVisitId` requiredness/null rejection |

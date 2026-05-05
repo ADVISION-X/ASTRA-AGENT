@@ -6,8 +6,6 @@ export const MapPluginPayloadRefKeySchema = z.enum([
   "operatorNote",
   "targetUrl",
   "targetTitle",
-  "targetProfileRef",
-  "localAppStateHandoffRef",
   "sourceEvidenceRef",
   "sourceTargetRef",
   "screenshotEvidenceRef",

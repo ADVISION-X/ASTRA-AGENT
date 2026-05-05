@@ -1,2 +1,4 @@
-===== git diff --check =====
-exitCode=0
+.github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md:112: trailing whitespace.
++tier: P1  
+.github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md:114: trailing whitespace.
++enforcementMode: manual-first  

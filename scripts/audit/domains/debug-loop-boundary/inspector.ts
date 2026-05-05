@@ -16,6 +16,9 @@ const PACKAGE_JSON = "package.json";
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const BASELINE_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
 const FORBIDDEN_SCENARIO_FIELDS = new Set([
+  "openApp",
+  "shellCommand",
+  "osascript",
   "clickSelector",
   "typeText",
   "scrollScript",
@@ -50,6 +53,9 @@ const REQUIRED_MUTATION_NAMES = [
   "scenario contains clickSelector",
   "scenario contains pageEvaluate",
   "scenario contains abilityCall",
+  "scenario contains openApp",
+  "scenario contains shellCommand",
+  "scenario contains osascript",
   "scenario contains autoPostComment=true",
   "debug-loop imports Forensics writer",
   "debug-loop writes active registry",

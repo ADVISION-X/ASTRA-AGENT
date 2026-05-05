@@ -2,6 +2,8 @@ import type { ParsedOpenRequest, OpenTargetPolicyDecision, OpenTargetProfile } f
 import type { OpenProfileOverride } from "../ports/open-profile-port.js";
 import { OpenTargetPolicyDecisionSchema } from "../schema.js";
 
+type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
+
 function buildTargetProfileRef(childCapabilityId: OpenTargetProfile["childCapabilityId"]): string {
   return `open-target-profile:${childCapabilityId}`;
 }
@@ -72,7 +74,7 @@ const buildTargetPolicyOutcome = (input: {
 
 const buildAllowedProvidedTargetPolicyOutcome = (
   input: ParsedOpenRequest,
-  profile: OpenTargetProfile,
+  profile: WebOpenTargetProfile,
   profileOverride: OpenProfileOverride | null,
   targetProfileRef: string,
 ): OpenTargetPolicyOutcome => buildTargetPolicyOutcome({
@@ -87,7 +89,7 @@ const buildAllowedProvidedTargetPolicyOutcome = (
 });
 
 const buildRegisteredProfileTargetPolicyOutcome = (
-  profile: OpenTargetProfile,
+  profile: WebOpenTargetProfile,
   profileOverride: OpenProfileOverride | null,
   targetProfileRef: string,
   input: ParsedOpenRequest,

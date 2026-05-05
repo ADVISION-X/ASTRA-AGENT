@@ -255,6 +255,39 @@ idempotencyKey
 timeout policy
 ```
 
+### 5.1 Local Runtime Dispatch Adapter
+
+正确链路：
+
+```txt
+Orchestration AbilityCommandEnvelope
+-> src/lib/local-runtime/workbench-screenshot-dispatch-input.ts buildScreenshotCommonFields
+-> ScreenshotAbilityInput
+-> screenshot-input-gate
+-> browser-session/page-state/source gates
+```
+
+`capture-browser-viewport` 的 local-runtime adapter 额外必须做到：
+
+```txt
+payload.targetUrl -> source.pageUrl
+payload.targetTitle -> source.pageTitle
+payload.pageStateRef -> pageStateProof.proofRef
+envelope.sessionId/roundId/videoVisitId -> pageStateProof session chain
+envelope.createdAt -> pageStateProof.observedAt
+envelope.createdAt/expiresAt -> timeoutMs
+```
+
+错误链路：
+
+```txt
+envelope.missionId -> sessionId
+envelope.stepId -> roundId
+envelope.mapId -> runId
+drop mapPackageVersion / selectedMapVersion / activationSnapshotRef / capabilityCallId / nerveBusEnvelopeId / inputRef / idempotencyKey / timeoutMs
+capture-browser-viewport enters Screenshot without pageStateProof when payload.pageStateRef exists
+```
+
 ---
 
 ## 6. Source Proof
@@ -780,6 +813,17 @@ verify script as release truth
 19. negative-proof-harness executed.
 ```
 
+### 19.1 当前 blocker 补充
+
+Screenshot owner inspector 必须额外覆盖：
+
+```txt
+cross-boundary local-runtime dispatch adapter uses a dedicated screenshot builder
+builder preserves mission/run/session/round/step/map/activation/capability/envelope/input/idempotency/timeout truth from AbilityCommandEnvelope
+capture-browser-viewport builder derives browser_viewport source and pageStateProof from governed payload refs
+该条检查必须以 AST / symbol 方式完成，不能把 grep/includes 当最终结论
+```
+
 ---
 
 ## 20. Negative Proof 最低清单
@@ -809,6 +853,16 @@ remove negative proof invocation
 turn P0 into warning-only
 ```
 
+### 20.1 当前 blocker 补充
+
+必须 fail → rollback → pass：
+
+```txt
+local-runtime screenshot dispatch adapter maps capabilityCallId to missionId
+local-runtime screenshot dispatch adapter drops timeoutMs derivation
+capture-browser-viewport builder removes pageStateProof handoff while payload.pageStateRef still exists
+```
+
 ---
 
 ## 21. READY 标准
@@ -827,6 +881,15 @@ prepare-ai-input always preserves scaleMapping
 result/proof/input chain parity passes
 children narrow capture/transform bindings
 negative proof PASS
+```
+
+### 21.1 当前 blocker 补充
+
+```txt
+local-runtime screenshot dispatch adapter emits full governed chain into ScreenshotAbilityInput
+browser viewport capture receives source + pageStateProof handoff before owner-side gates
+真实重启后的 fresh runtime log 不再出现 screenshot invalid-input missing activationSnapshotRef/capabilityCallId/nerveBusEnvelopeId/inputRef 类 P0 阻断
+只有真实 restart + fresh log re-analysis 证实旧 blocker 消失后，才能把这一条标 READY
 ```
 
 ---

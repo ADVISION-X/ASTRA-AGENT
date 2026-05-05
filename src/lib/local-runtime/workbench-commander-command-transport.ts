@@ -1,4 +1,5 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
+import type { RequestedPlatformId } from "./workbench-contract.js";
 import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { buildHumanCommandDispatchInput, describeHumanCommandTransportMessage } from "./workbench-human-command-dispatch.js";
 import type { WorkbenchCommanderMissionSelectionState } from "./workbench-commander-mission-read-model.js";
@@ -14,7 +15,7 @@ type CommanderHumanCommand = {
   targetMissionId: string | null;
   selectedMapId: string | null;
   targetRecordRef: { recordId: string } | null;
-  requestedPlatformId: "facebook-web" | "tiktok-web" | null;
+  requestedPlatformId: RequestedPlatformId | null;
   humanGoal: string | null;
   maxRounds: number | null;
   maxMinutes: number | null;

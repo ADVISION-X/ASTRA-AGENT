@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T13:01:03.749Z",
+  "generatedAt": "2026-05-05T16:15:03.280Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 129,
+  "totalActiveLaws": 130,
   "globalChain": {
     "observed": true,
     "passed": false,
@@ -4026,6 +4026,39 @@
         "ci:full failed or is missing fresh evidence."
       ],
       "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
+      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md"
+    },
+    {
+      "lawId": "GRASSEYE-OPEN-CAPABILITY-009-V1",
+      "capabilityDomain": "open-capability",
+      "abilityGroupId": "open",
+      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
+      "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+      "ownerAuditScript": "audit:open",
+      "ownerAuditScriptDeclared": true,
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "negativeProofMapped": true,
+      "mutationProofPresent": false,
+      "ownerBindingProofPresent": false,
+      "ownerAuditPassed": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "Production mutation proof bundle is missing.",
+        "Owner-binding proof bundle is missing.",
+        "Owner audit command is failing or missing fresh evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "audit:capability-group-governance failed or is missing fresh evidence.",
+        "audit failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ],
+      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-009-V1/proof-summary.md",
       "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md"
     },
     {

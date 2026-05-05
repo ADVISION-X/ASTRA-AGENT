@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7f6f2"/>
+      <stop offset="1" stop-color="#ebe7df"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#f8f4ec"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#2c2114" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <rect x="60" y="60" width="1480" height="880" rx="28" fill="#fcfaf6" stroke="#ffffff" filter="url(#shadow)"/>
+  <rect x="60" y="60" width="1480" height="58" rx="28" fill="#ffffff" opacity="0.72"/>
+  <circle cx="88" cy="89" r="7" fill="#ec6a5e"/>
+  <circle cx="112" cy="89" r="7" fill="#f4bf4f"/>
+  <circle cx="136" cy="89" r="7" fill="#61c554"/>
+  <text x="166" y="95" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="15" font-weight="700" fill="#1c2e38">GrassEye Commander Console</text>
+  <rect x="1372" y="75" width="126" height="30" rx="15" fill="#f4f7f4" stroke="#d9e2dd"/>
+  <text x="1408" y="95" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#1f6e63">中文</text>
+  <text x="1456" y="95" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#6b7780">英文</text>
+
+  <rect x="60" y="118" width="1480" height="72" fill="#fbf8f1" stroke="#e7e0d6"/>
+  <text x="86" y="150" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#61717b">当前任务</text>
+  <text x="86" y="174" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="22" font-weight="800" fill="#1c2e38">Facebook 种草视频挖掘</text>
+  <rect x="840" y="136" width="138" height="38" rx="10" fill="#ffffff" stroke="#dce2df"/>
+  <text x="860" y="160" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#61717b">当前动作</text>
+  <text x="928" y="160" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#1f6e63">未启动</text>
+  <rect x="992" y="136" width="118" height="38" rx="10" fill="#ffffff" stroke="#dce2df"/>
+  <text x="1012" y="160" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#61717b">已处理 0</text>
+  <rect x="1124" y="136" width="118" height="38" rx="10" fill="#ffffff" stroke="#dce2df"/>
+  <text x="1144" y="160" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#61717b">待复核 0</text>
+  <rect x="1438" y="136" width="70" height="38" rx="12" fill="#fff5ef" stroke="#ecd2c6"/>
+  <text x="1458" y="160" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#bd4f3a">急停</text>
+
+  <rect x="60" y="190" width="220" height="750" fill="#f4f0e7" stroke="#ddd6c9"/>
+  <text x="92" y="244" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="700" fill="#61717b">工作区</text>
+  <g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="15" font-weight="700">
+    <rect x="82" y="282" width="176" height="52" rx="10" fill="#e8eee8" stroke="#c7d5ce"/>
+    <text x="104" y="314" fill="#1c2e38">开始</text>
+    <text x="104" y="374" fill="#1c2e38">地图工坊</text>
+    <text x="104" y="434" fill="#1c2e38">运行</text>
+    <text x="104" y="494" fill="#1c2e38">结果</text>
+    <text x="104" y="554" fill="#1c2e38">复核</text>
+    <text x="104" y="614" fill="#1c2e38">设置</text>
+  </g>
+
+  <rect x="280" y="190" width="1260" height="750" fill="#fffbf5"/>
+  <text x="324" y="240" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="28" font-weight="850" fill="#1c2e38">开始</text>
+  <text x="324" y="266" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="14" fill="#61717b">左侧浏览几十个默认地图，右侧始终固定启动确认与运行边界。</text>
+
+  <rect x="318" y="292" width="770" height="584" rx="18" fill="url(#panel)" stroke="#d8ddd9"/>
+  <text x="344" y="330" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">地图库 / 任务模板</text>
+  <rect x="344" y="350" width="718" height="42" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="366" y="377" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="14" fill="#8a949a">搜索地图、平台、用途...</text>
+  <rect x="344" y="408" width="96" height="28" rx="14" fill="#e9f0eb" stroke="#cad8cf"/>
+  <text x="369" y="427" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="12" font-weight="800" fill="#1f6e63">全部</text>
+  <rect x="452" y="408" width="108" height="28" rx="14" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="477" y="427" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="12" font-weight="800" fill="#61717b">Facebook</text>
+  <rect x="572" y="408" width="84" height="28" rx="14" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="599" y="427" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="12" font-weight="800" fill="#61717b">TikTok</text>
+  <rect x="668" y="408" width="92" height="28" rx="14" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="693" y="427" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="12" font-weight="800" fill="#61717b">iPhone</text>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif">
+    <rect x="344" y="456" width="718" height="64" rx="12" fill="#edf5ef" stroke="#96bbb0"/>
+    <text x="366" y="484" font-size="16" font-weight="800" fill="#1c2e38">Facebook 种草视频挖掘</text>
+    <text x="366" y="506" font-size="13" fill="#61717b">守护自动执行 · 默认 20 分钟 / 3 条 · public-page safety</text>
+    <text x="1012" y="493" font-size="13" font-weight="800" fill="#1f6e63">已选</text>
+    <rect x="344" y="532" width="718" height="54" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+    <text x="366" y="564" font-size="15" font-weight="800" fill="#1c2e38">iPhone Mirroring Facebook Seeding Video Discovery</text>
+    <rect x="344" y="598" width="718" height="54" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+    <text x="366" y="630" font-size="15" font-weight="800" fill="#1c2e38">iPhone Mirroring TikTok Seeding Video Discovery</text>
+    <rect x="344" y="664" width="718" height="54" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+    <text x="366" y="696" font-size="15" font-weight="800" fill="#1c2e38">TikTok 种草视频挖掘</text>
+    <rect x="344" y="730" width="718" height="54" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+    <text x="366" y="762" font-size="15" font-weight="800" fill="#1c2e38">更多默认地图...</text>
+    <rect x="344" y="796" width="718" height="54" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+    <text x="366" y="828" font-size="15" font-weight="800" fill="#1c2e38">更多默认地图...</text>
+  </g>
+  <rect x="1048" y="456" width="10" height="394" rx="5" fill="#eee7dd"/>
+  <rect x="1048" y="456" width="10" height="96" rx="5" fill="#b9c8c0"/>
+
+  <rect x="1112" y="292" width="374" height="584" rx="18" fill="url(#panel)" stroke="#d8ddd9"/>
+  <text x="1140" y="330" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">启动确认</text>
+  <text x="1140" y="362" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="22" font-weight="850" fill="#1c2e38">Facebook 种草视频挖掘</text>
+  <rect x="1140" y="392" width="318" height="74" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="1162" y="420" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">任务摘要</text>
+  <text x="1162" y="446" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="14" fill="#1c2e38">打开 Reels、判断种草证据、保留候选摘要。</text>
+  <rect x="1140" y="486" width="150" height="62" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="1162" y="514" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">运行时长</text>
+  <text x="1162" y="538" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="18" font-weight="850" fill="#1c2e38">20 分钟</text>
+  <rect x="1308" y="486" width="150" height="62" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="1330" y="514" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">最多处理</text>
+  <text x="1330" y="538" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="18" font-weight="850" fill="#1c2e38">3 条</text>
+  <rect x="1140" y="570" width="318" height="118" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="1162" y="600" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#61717b">本次目标</text>
+  <text x="1162" y="628" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="14" fill="#1c2e38">Browse Facebook Reels, identify candidates, capture evidence.</text>
+  <rect x="1140" y="708" width="318" height="54" rx="14" fill="#1f6e63"/>
+  <text x="1263" y="742" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="16" font-weight="850" fill="#ffffff">开始任务</text>
+  <rect x="1140" y="778" width="150" height="42" rx="12" fill="#ffffff" stroke="#dfe4e0"/>
+  <text x="1182" y="805" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#1f6e63">查看运行页</text>
+  <rect x="1308" y="778" width="150" height="42" rx="12" fill="#fff5ef" stroke="#ecd2c6"/>
+  <text x="1367" y="805" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="13" font-weight="800" fill="#bd4f3a">急停</text>
+
+  <rect x="318" y="896" width="1168" height="26" rx="13" fill="#f4f0e7" stroke="#e2dbd0"/>
+  <text x="344" y="914" font-family="-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif" font-size="12" font-weight="700" fill="#61717b">底部状态条：runtime ready · AI ready · map catalog 24 ready · start action fixed in inspector</text>
+</svg>

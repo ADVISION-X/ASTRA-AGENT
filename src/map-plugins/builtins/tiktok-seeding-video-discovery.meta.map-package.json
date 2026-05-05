@@ -165,5 +165,6 @@
     ]
   },
   "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain.",
+  "rawPrompt": "Do the platform action directly.",
   "signature": null
 }

@@ -29,6 +29,7 @@ export const openInspectionConstants = {
   EXECUTOR_PATH: `${OPEN_ROOT}/runtime/open-executor.ts`,
   EXECUTOR_FLOW_PATH: `${OPEN_ROOT}/runtime/open-executor-flow.ts`,
   EXECUTOR_FLOW_SUPPORT_PATH: `${OPEN_ROOT}/runtime/open-executor-flow-support.ts`,
+  LOCAL_PROGRAM_RUNNER_PATH: `${OPEN_ROOT}/runtime/local-program-runner.ts`,
   EXECUTOR_PREFLIGHT_PATH: `${OPEN_ROOT}/runtime/open-executor-preflight.ts`,
   EXECUTOR_COMPLETION_PATH: `${OPEN_ROOT}/runtime/open-executor-completion.ts`,
   INPUT_GATE_PATH: `${OPEN_ROOT}/runtime/open-input-gate.ts`,

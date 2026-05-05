@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T13:01:02.414Z",
+  "generatedAt": "2026-05-05T16:15:01.803Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -1308,7 +1308,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open Ability Group is the only owner of governed open behavior.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 92
+      "line": 93
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -1319,7 +1319,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open boundary stays pure and cannot own state, verification, AI, screenshot, visual target, action, Forensics, or mission branching truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 140
+      "line": 141
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
@@ -1330,7 +1330,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open input must carry governed chain fields, target profile context, source proof, timeout, and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 197
+      "line": 198
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -1341,7 +1341,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open must run a fixed target/profile/session/navigation/idempotency/timeout/page-state-handoff pipeline.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 276
+      "line": 277
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
@@ -1352,7 +1352,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open success requires page-state handoff and must not claim page-state readiness or action-result verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 351
+      "line": 352
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
@@ -1363,7 +1363,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open result and runtime proof must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency, and page-state handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 430
+      "line": 431
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -1374,7 +1374,18 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "child capabilities are narrow target-open bindings and must use unified Open runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 580
+      "line": 581
+    },
+    {
+      "lawId": "GRASSEYE-OPEN-CAPABILITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "open-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
+      "line": 645
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -1385,7 +1396,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 636
+      "line": 730
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",

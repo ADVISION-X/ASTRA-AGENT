@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/index.js";
+export { buildScreenshotCommand } from "./workbench-screenshot-dispatch-input.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
@@ -53,24 +54,6 @@ const resolveGovernedTextSeed = (
     sourceRef: `${envelope.inputRef}:missing-text-source`,
   };
 };
-
-export const buildScreenshotCommand = (
-  envelope: AbilityCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-) => JSON.parse(JSON.stringify({
-  abilityGroupId: "screenshot",
-  childCapabilityId: envelope.commandName === "prepare-ai-input" ? "prepare-ai-input" : "capture-browser-viewport",
-  sessionId: envelope.missionId,
-  roundId: envelope.stepId,
-  videoVisitId: null,
-  missionId: envelope.missionId,
-  runId: envelope.mapId,
-  requestedBy: "orchestration",
-  purpose: inputPayload.summary,
-  sourceAbilityGroupId: "orchestration",
-  sourceChildCapabilityId: envelope.commandName,
-  idempotencyKey: envelope.idempotencyKey,
-}));
 
 export const buildVisualTargetCommand = (
   envelope: AbilityCommandEnvelope,

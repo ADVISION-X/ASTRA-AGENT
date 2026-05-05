@@ -29,7 +29,7 @@
     "safetyLevel": "handoff-only",
     "userVisibleCapabilities": ["Open governed macOS app", "Hand off visible local app window", "Request human review"],
     "availabilityPolicy": "draft",
-    "requestedPlatformId": "macos-local",
+    "requestedPlatformId": null,
     "platformProfileRef": "macos-local:governed-profile",
     "targetProfileRef": "macos-app:iphone-mirroring",
     "defaultHumanGoal": "Open iPhone Mirroring and stop after the local app window handoff proof is available."
@@ -38,7 +38,7 @@
     "mapId": "macos.local-program.open-smoke.v1",
     "displayName": "macOS Local Program Open Smoke",
     "humanGoal": "Open iPhone Mirroring as a governed macOS local program without clicking, typing, scrolling, screenshotting, or opening an app inside it.",
-    "allowedAbilityGroups": ["open"],
+    "allowedAbilityGroups": ["open", "post-action-verification", "forensics-persistence"],
     "initialStepId": "open-iphone-mirroring",
     "steps": [
       {
@@ -47,13 +47,44 @@
         "childCapabilityId": "open-local-program",
         "stepKind": "ability",
         "targetAbilityGroupId": "open",
-        "inputRefs": ["requestedPlatformId", "targetProfileRef", "targetTitle"],
-        "outputRefPolicy": { "storeAs": ["abilityResultRef", "localAppStateHandoffRef"] },
+        "inputRefs": ["sourceTargetRef", "targetTitle"],
+        "outputRefPolicy": { "storeAs": ["abilityResultRef"] },
         "promptContractId": null,
         "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" },
         "failureBranch": "open-iphone-mirroring:failed",
         "reviewBranch": "open-iphone-mirroring:review",
+        "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "local-app-window-handoff", "timeoutMs": 5000, "onPassTransitionId": "verify-iphone-mirroring-window-opened:success", "onFailTransitionId": "verify-iphone-mirroring-window-opened:failed", "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:review" },
         "timeoutPolicy": { "maxDurationMs": 10000 },
+        "proofPolicy": { "requiresRuntimeProof": true }
+      },
+      {
+        "stepId": "verify-iphone-mirroring-window-opened",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "verify-action-result",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "post-action-verification",
+        "inputRefs": ["abilityResultRef"],
+        "outputRefPolicy": { "storeAs": ["abilityResultRef"] },
+        "promptContractId": null,
+        "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" },
+        "failureBranch": "verify-iphone-mirroring-window-opened:failed",
+        "reviewBranch": "verify-iphone-mirroring-window-opened:review",
+        "timeoutPolicy": { "maxDurationMs": 5000 },
+        "proofPolicy": { "requiresRuntimeProof": true }
+      },
+      {
+        "stepId": "write-open-handoff-runtime-event",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "write-structured-runtime-event",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "forensics-persistence",
+        "inputRefs": ["abilityResultRef"],
+        "outputRefPolicy": { "storeAs": ["runtimeLogRef"] },
+        "promptContractId": null,
+        "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" },
+        "failureBranch": "write-open-handoff-runtime-event:failed",
+        "reviewBranch": "write-open-handoff-runtime-event:review",
+        "timeoutPolicy": { "maxDurationMs": 5000 },
         "proofPolicy": { "requiresRuntimeProof": true }
       },
       {
@@ -62,7 +93,7 @@
         "childCapabilityId": "request-human-review",
         "stepKind": "review",
         "targetAbilityGroupId": null,
-        "inputRefs": ["abilityResultRef", "localAppStateHandoffRef"],
+        "inputRefs": ["abilityResultRef", "runtimeLogRef"],
         "outputRefPolicy": { "storeAs": ["reviewReasonRef"] },
         "promptContractId": null,
         "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" },
@@ -73,14 +104,20 @@
       }
     ],
     "transitions": [
-      { "transitionId": "open-iphone-mirroring:success", "fromStepId": "open-iphone-mirroring", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "request-human-review", "finalStatus": null },
+      { "transitionId": "open-iphone-mirroring:success", "fromStepId": "open-iphone-mirroring", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-iphone-mirroring-window-opened", "finalStatus": null },
+      { "transitionId": "verify-iphone-mirroring-window-opened:success", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "write-open-handoff-runtime-event", "finalStatus": null },
+      { "transitionId": "verify-iphone-mirroring-window-opened:failed", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "verify-iphone-mirroring-window-opened:review", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+      { "transitionId": "write-open-handoff-runtime-event:success", "fromStepId": "write-open-handoff-runtime-event", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "request-human-review", "finalStatus": null },
       { "transitionId": "open-iphone-mirroring:failed", "fromStepId": "open-iphone-mirroring", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
       { "transitionId": "open-iphone-mirroring:review", "fromStepId": "open-iphone-mirroring", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+      { "transitionId": "write-open-handoff-runtime-event:failed", "fromStepId": "write-open-handoff-runtime-event", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "write-open-handoff-runtime-event:review", "fromStepId": "write-open-handoff-runtime-event", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
       { "transitionId": "request-human-review:failed", "fromStepId": "request-human-review", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
       { "transitionId": "request-human-review:review", "fromStepId": "request-human-review", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
     ],
-    "failureBranches": ["open-iphone-mirroring:failed", "request-human-review:failed"],
-    "reviewBranches": ["open-iphone-mirroring:review", "request-human-review:review"],
+    "failureBranches": ["open-iphone-mirroring:failed", "verify-iphone-mirroring-window-opened:failed", "write-open-handoff-runtime-event:failed", "request-human-review:failed"],
+    "reviewBranches": ["open-iphone-mirroring:review", "verify-iphone-mirroring-window-opened:review", "write-open-handoff-runtime-event:review", "request-human-review:review"],
     "finalStates": ["failed", "review_required"],
     "forbiddenDirectCalls": ["shellCommand", "openApp", "osascript", "clickSelector", "typeText"],
     "sequencePolicy": { "maxHops": 3, "maxRetriesPerStep": 0, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },
@@ -88,8 +125,8 @@
     "proofPolicy": { "runtimeProof": "required", "recordPackageSelection": true }
   },
   "dependencies": {
-    "requiredCapabilities": ["open"],
-    "requiredChildCapabilities": ["open-local-program", "request-human-review"],
+    "requiredCapabilities": ["open", "post-action-verification", "forensics-persistence"],
+    "requiredChildCapabilities": ["open-local-program", "verify-action-result", "write-structured-runtime-event", "request-human-review"],
     "requiredPromptContracts": [],
     "requiredPlatformProfiles": ["macos-local:governed-profile"],
     "requiredForensicsRecords": ["structured_runtime_event"]
@@ -97,7 +134,7 @@
   "compatibility": {
     "requiresGrassEye": "0.1.0",
     "requiresMapSchema": "1",
-    "requiresCapabilityRegistry": ["open"],
+    "requiresCapabilityRegistry": ["open", "post-action-verification", "forensics-persistence"],
     "requiresPromptRegistry": [],
     "requiresPlatformProfileRegistry": ["macos-local:governed-profile"]
   },

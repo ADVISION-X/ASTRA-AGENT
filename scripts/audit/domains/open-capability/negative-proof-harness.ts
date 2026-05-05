@@ -86,6 +86,60 @@ const MUTATIONS: Mutation[] = [
     search: 'import { createOpenAbilityGroup } from "../../capabilities/open/index.js";',
     replace: 'import { createOpenAbilityGroup } from "../../capabilities/open/index.js";\nimport { executeOpenChild } from "../../capabilities/open/runtime/open-executor.js";\nvoid executeOpenChild;',
   },
+  {
+    name: "remove open-local-program child mutation",
+    file: "src/capabilities/open/shared/open-target-profile.ts",
+    search: '  "open-local-program",',
+    replace: "  // mutated open-local-program removed,",
+  },
+  {
+    name: "remove macos-local platform mutation",
+    file: "src/capabilities/open/shared/open-target-profile.ts",
+    search: '  "macos-local",',
+    replace: "  // mutated macos-local removed,",
+  },
+  {
+    name: "remove local-program target kind mutation",
+    file: "src/capabilities/open/shared/open-target-profile.ts",
+    search: '  "local-program",',
+    replace: "  // mutated local-program removed,",
+  },
+  {
+    name: "registry local-program fake localhost mutation",
+    file: "src/capabilities/open/registry.ts",
+    search: '    targetProfileRef: OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,',
+    replace: '    allowedHostnames: ["localhost"],\n    defaultUrl: "http://127.0.0.1:3000",\n    allowedSchemes: ["http"],\n    targetProfileRef: OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,',
+  },
+  {
+    name: "local-program child raw shell mutation",
+    file: "src/capabilities/open/children/open-local-program/implementation.ts",
+    search: 'import { executeOpenChild } from "../../runtime/open-executor.js";',
+    replace: 'import { executeOpenChild } from "../../runtime/open-executor.js";\nimport { spawn } from "node:child_process";\nvoid spawn;',
+  },
+  {
+    name: "local-program missing window handoff proof mutation",
+    file: "src/capabilities/open/runtime/local-program-runner.ts",
+    search: "    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: handoff.localAppStateHandoffRef,\n    localProgramSnapshotAvailable",
+    replace: "    windowHandoffRef: null,\n    localAppStateHandoffRef: handoff.localAppStateHandoffRef,\n    localProgramSnapshotAvailable",
+  },
+  {
+    name: "local-program missing local app state handoff proof mutation",
+    file: "src/capabilities/open/runtime/local-program-runner.ts",
+    search: "    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: handoff.localAppStateHandoffRef,\n    localProgramSnapshotAvailable",
+    replace: "    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: null,\n    localProgramSnapshotAvailable",
+  },
+  {
+    name: "map workbench local-program confusion mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '"childCapabilityId": "open-local-program",',
+    replace: '"childCapabilityId": "open-local-workbench", "targetKind": "local-program",',
+  },
+  {
+    name: "debug-loop direct local app launch mutation",
+    file: "scripts/debug-loop/run-debug-loop.mjs",
+    search: "import",
+    replace: "const shellCommand = 'open -a iPhone Mirroring';\nvoid shellCommand;\nimport",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {

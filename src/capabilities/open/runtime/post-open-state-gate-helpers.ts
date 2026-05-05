@@ -8,6 +8,8 @@ import type {
 import { PostOpenStateDecisionSchema } from "../schema.js";
 import { matchesAllowedHostname, normalizeOpenUrl } from "../shared/open-url.js";
 
+type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
+
 export type PostOpenStateEvaluationResult = {
   status: "success" | "failed" | "review_required";
   failureCode: "post_open_state_failed" | null;
@@ -202,7 +204,7 @@ const resolveOpenedUrlResult = (input: {
 };
 
 const resolveAllowedHostnameResult = (input: {
-  profile: OpenTargetProfile;
+  profile: WebOpenTargetProfile;
   openedUrl: URL;
   afterSession: BrowserSessionSnapshot;
 }): PostOpenStateEvaluationResult | null => {
@@ -220,7 +222,7 @@ const resolveAllowedHostnameResult = (input: {
 };
 
 const resolveEmptyTitleResult = (input: {
-  profile: OpenTargetProfile;
+  profile: WebOpenTargetProfile;
   afterSession: BrowserSessionSnapshot;
 }): PostOpenStateEvaluationResult | null => {
   if (!input.profile.postOpenStatePolicy.requirePageTitle || input.afterSession.currentTitle) {
@@ -237,7 +239,7 @@ const resolveEmptyTitleResult = (input: {
 };
 
 export function evaluatePostOpenStateSnapshot(input: {
-  profile: OpenTargetProfile;
+  profile: WebOpenTargetProfile;
   beforeSession: BrowserSessionSnapshot;
   afterSession: BrowserSessionSnapshot;
   navigationDecision: OpenNavigationDecision;

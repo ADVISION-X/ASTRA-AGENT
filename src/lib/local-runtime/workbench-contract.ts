@@ -21,7 +21,11 @@ import type {
   MapLabSnapshot,
 } from "./map-lab/map-lab-types.js";
 
-export type RequestedPlatformId = "tiktok-web" | "facebook-web";
+export type RequestedPlatformId =
+  | "tiktok-web"
+  | "facebook-web"
+  | "iphone-mirroring-facebook-app"
+  | "iphone-mirroring-tiktok-app";
 
 export type GrassEyePlatformTarget = RequestedPlatformId | "agent-shell";
 

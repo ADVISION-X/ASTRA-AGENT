@@ -31,6 +31,24 @@ const PLATFORM_MODE_INFO = {
     calibration: "Held by Geometry Guard runtime proof",
     orientation: "capability-owned",
   },
+  "iphone-mirroring-facebook-app": {
+    platformLabel: "iPhone Mirroring Facebook app governed visual runtime",
+    executionMode: "Open Local Program handoff followed by capability-owned visual chain",
+    fallbackMode: "No web URL, workbench, or debug-loop local app fallback",
+    geometryGuard: "Desktop geometry owned by Geometry Guard runtime proof",
+    viewport: "Derived from governed local app window handoff and screenshots",
+    calibration: "Held by Geometry Guard runtime proof",
+    orientation: "capability-owned",
+  },
+  "iphone-mirroring-tiktok-app": {
+    platformLabel: "iPhone Mirroring TikTok app governed visual runtime",
+    executionMode: "Open Local Program handoff followed by capability-owned visual chain",
+    fallbackMode: "No web URL, workbench, or debug-loop local app fallback",
+    geometryGuard: "Desktop geometry owned by Geometry Guard runtime proof",
+    viewport: "Derived from governed local app window handoff and screenshots",
+    calibration: "Held by Geometry Guard runtime proof",
+    orientation: "capability-owned",
+  },
 } as const;
 
 const CAPABILITY_ROSTER = [
@@ -190,10 +208,10 @@ export const getMissionStartPreflight = async (
   const components = buildMissionStartPreflightComponents({
     requestedPlatformId: input.requestedPlatformId,
     selectedMapId: input.selectedMapId,
-    taskTemplateId: input.taskTemplateId,
-    activationId: input.activationId,
-    activationSnapshotRef: input.activationSnapshotRef,
-    targetProfileRef: input.targetProfileRef,
+    taskTemplateId: input.taskTemplateId ?? null,
+    activationId: input.activationId ?? null,
+    activationSnapshotRef: input.activationSnapshotRef ?? null,
+    targetProfileRef: input.targetProfileRef ?? null,
     selectedMapOk,
     commandContractOk,
     commandSchemaOk,

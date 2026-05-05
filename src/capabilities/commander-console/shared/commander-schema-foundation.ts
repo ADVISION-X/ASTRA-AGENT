@@ -83,7 +83,12 @@ const CommanderTimeoutDecisionSchema = z.enum([
   "timed-out-review-required",
 ]);
 const CommanderOperatorRefSchema = NonEmptyStringSchema.max(160);
-const RequestedPlatformIdSchema = z.enum(["facebook-web", "tiktok-web"]);
+const RequestedPlatformIdSchema = z.enum([
+  "facebook-web",
+  "tiktok-web",
+  "iphone-mirroring-facebook-app",
+  "iphone-mirroring-tiktok-app",
+]);
 const CommanderCommandTypeSchema = z.enum([
   "start-mission",
   "pause-mission",

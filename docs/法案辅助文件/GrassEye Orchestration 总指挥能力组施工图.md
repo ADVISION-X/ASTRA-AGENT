@@ -440,6 +440,36 @@ resultRef or outputRef according to step kind
 dispatchResultStatus exists
 ```
 
+### 9.1 Dispatch Lifecycle Runtime Events
+
+正确链路：
+
+```txt
+STEP_DISPATCH_STARTED
+-> CAPABILITY_CALL_STARTED (ordinary ability step)
+-> CAPABILITY_CALL_COMPLETED / CAPABILITY_CALL_FAILED / CAPABILITY_CALL_REVIEW_REQUIRED
+-> STEP_TRANSITION_EVALUATED
+-> MISSION_FINALIZED / MISSION_FAILED / MISSION_REVIEW_REQUIRED / MISSION_STOPPED
+```
+
+PAV 特例链路：
+
+```txt
+STEP_DISPATCH_STARTED
+-> POST_ACTION_VERIFICATION_STARTED
+-> POST_ACTION_VERIFICATION_PASSED / POST_ACTION_VERIFICATION_FAILED / POST_ACTION_VERIFICATION_REVIEW_REQUIRED
+-> STEP_TRANSITION_EVALUATED
+```
+
+错误链路：
+
+```txt
+把 STEP_DISPATCH_STARTED 当成 capability owner 已开始执行的唯一证明
+ordinary ability step 缺少显式 CAPABILITY_CALL_STARTED
+terminal mission state 没有映射成明确 runtime eventType
+用推断代替结构化 started event
+```
+
 ---
 
 ## 10. Step Preconditions
@@ -786,6 +816,17 @@ verify script as release truth
 21. negative proof executed.
 ```
 
+### 19.1 当前 blocker 补充
+
+Orchestration owner inspector 必须额外覆盖：
+
+```txt
+recordDispatchStarted emits CAPABILITY_CALL_STARTED for ordinary ability steps
+recordDispatchStarted still emits POST_ACTION_VERIFICATION_STARTED for PAV steps
+mission-loop event semantics survives file splits and still covers terminal mission event mapping
+该条检查必须通过 AST / symbol / structured parser 完成，不能用 grep/includes 作为最终结论
+```
+
 ---
 
 ## 20. Negative Proof 最低清单
@@ -818,6 +859,16 @@ activate unapproved map
 capability-check.ts added
 remove negative proof invocation
 turn P0 into warning-only
+```
+
+### 20.1 当前 blocker 补充
+
+必须 fail → rollback → pass：
+
+```txt
+remove CAPABILITY_CALL_STARTED eventType from orchestration-loop-iteration-events
+remove recordCapabilityCallStarted call from recordDispatchStarted
+rename terminal mission eventType so runtime semantics no longer exposes MISSION_FAILED / MISSION_FINALIZED / MISSION_REVIEW_REQUIRED / MISSION_STOPPED
 ```
 
 ---
@@ -868,6 +919,15 @@ READY 标准补充：
 Orchestration accepted mission proof has non-null runId
 failure proof has explicit failure runId and owner/actionable log
 Mission preflight has commandTransportContract component
+```
+
+### 21.2 当前 blocker 补充
+
+```txt
+ordinary ability step dispatch has explicit CAPABILITY_CALL_STARTED proof in structured runtime log
+PAV step keeps explicit POST_ACTION_VERIFICATION_STARTED proof and is not conflated with ordinary capability start
+terminal mission statuses still map to explicit runtime event types after runtime file splits
+只有真实 restart + real task + fresh log re-analysis 确认旧的 missing CAPABILITY_CALL_STARTED blocker 消失后，才能把这一条标 READY
 ```
 
 Orchestration READY 仅当：

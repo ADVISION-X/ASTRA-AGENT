@@ -2,21 +2,21 @@
   "kind": "mission-readiness",
   "status": "ready",
   "actionableMessage": "Mission dependencies are ready for command preflight.",
-  "generatedAt": "2026-05-05T11:58:47.742Z",
+  "generatedAt": "2026-05-05T14:29:26.710Z",
   "components": [
     {
       "name": "mission",
       "ok": true,
-      "detail": "mission_status=review_required; selectedMapId=facebook.seeding-video.discovery.meta.v1; requestedPlatformId=facebook-web; round=0",
-      "ownerResponsible": "Orchestration",
-      "actionableMessage": "Mission binding already exists for the active run.",
+      "detail": "launchBinding taskTemplateId=facebook-seeding-video-discovery; selectedMapId=facebook.seeding-video.discovery.meta.v1; requestedPlatformId=facebook-web; readyTemplates=4",
+      "ownerResponsible": "Orchestration / Map Plugin Registry",
+      "actionableMessage": "Mission start binding will be resolved from the selected approved task template at command time.",
       "severity": "info",
-      "source": "active-mission"
+      "source": "active-task-template-feed"
     },
     {
       "name": "browserController",
       "ok": true,
-      "detail": "current Chrome session active on https://www.facebook.com/reel/",
+      "detail": "current Chrome session active on https://www.tiktok.com/foryou",
       "ownerResponsible": "Commander Console / Local Browser Session",
       "actionableMessage": "Restore the governed local browser session before retrying mission start.",
       "severity": "info",

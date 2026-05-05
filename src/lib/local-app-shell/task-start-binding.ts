@@ -4,7 +4,11 @@ type ActiveRegistry = ReturnType<typeof getLocalAppShellMapRegistry>["active"];
 type TaskTemplateLaunchRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecordByTaskTemplateId"]>>;
 type ActiveMapRecord = NonNullable<ReturnType<ActiveRegistry["getActiveOperationalMapRecord"]>>;
 
-export type RequestedPlatformId = "facebook-web" | "tiktok-web";
+export type RequestedPlatformId =
+  | "facebook-web"
+  | "tiktok-web"
+  | "iphone-mirroring-facebook-app"
+  | "iphone-mirroring-tiktok-app";
 
 type RunLimitInput = {
   maxRounds: number | undefined;
@@ -130,7 +134,12 @@ const resolveExplicitBinding = (activeRegistry: ActiveRegistry, input: MissionSt
 };
 
 export function normalizeRequestedPlatformId(value?: string): RequestedPlatformId | null {
-  return value === "tiktok-web" || value === "facebook-web" ? value : null;
+  return value === "tiktok-web"
+    || value === "facebook-web"
+    || value === "iphone-mirroring-facebook-app"
+    || value === "iphone-mirroring-tiktok-app"
+    ? value
+    : null;
 }
 
 export function normalizePositiveInteger(value: unknown, max: number): number | undefined {

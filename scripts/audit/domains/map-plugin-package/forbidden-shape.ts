@@ -64,6 +64,50 @@ const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
   return findings;
 };
 
+const IPHONE_MIRRORING_PACKAGE_IDS = new Set([
+  "builtin.iphone-mirroring-facebook-seeding-video-discovery",
+  "builtin.iphone-mirroring-tiktok-seeding-video-discovery",
+]);
+
+const inspectIphoneMirroringMapBoundary = async (): Promise<Finding[]> => {
+  const findings: Finding[] = [];
+
+  for (const record of await loadBuiltinPackageRecords()) {
+    const mapPackage = record.mapPackage;
+    if (!mapPackage || !IPHONE_MIRRORING_PACKAGE_IDS.has(mapPackage.manifest.packageId)) {
+      continue;
+    }
+
+    const steps = mapPackage.operationalMap.steps;
+    const initialStep = steps.find((step) => step.stepId === mapPackage.operationalMap.initialStepId);
+    const childIds = new Set(steps.map((step) => step.childCapabilityId));
+    const requestedPlatformId = mapPackage.taskTemplate.requestedPlatformId;
+    const stepUsesTargetUrl = steps.some((step) => step.inputRefs.includes("targetUrl"));
+    const actionSteps = steps.filter((step) => step.targetAbilityGroupId === "mouse-click" || step.targetAbilityGroupId === "mouse-scroll");
+    const actionWithoutVisualGeometryOrPav = actionSteps.find((step) =>
+      !step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryProofRef") || step.postActionVerification === null
+    );
+
+    if (initialStep?.childCapabilityId !== "open-local-program") {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must start through open-local-program." }));
+    }
+    if (childIds.has("open-local-workbench") || childIds.has("open-facebook") || childIds.has("open-tiktok")) {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not use local workbench or web-platform Open children." }));
+    }
+    if (requestedPlatformId === "facebook-web" || requestedPlatformId === "tiktok-web") {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not bind to web requestedPlatformId values." }));
+    }
+    if (stepUsesTargetUrl) {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not route through targetUrl or web URL fallback input refs." }));
+    }
+    if (actionWithoutVisualGeometryOrPav) {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef, geometryProofRef, and postActionVerification.", detail: actionWithoutVisualGeometryOrPav.stepId }));
+    }
+  }
+
+  return findings;
+};
+
 const inspectSourceFileImports = async (project: Project): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const sourceFiles = (await listMapPluginFiles()).filter((filePath) => filePath.endsWith(".ts"));
@@ -87,6 +131,7 @@ export async function runForbiddenShape(project: Project): Promise<{ findings: F
   const findings = [
     ...(await inspectBuiltinFileSet()),
     ...(await inspectBuiltinRecordSafety()),
+    ...(await inspectIphoneMirroringMapBoundary()),
     ...(await inspectSourceFileImports(project)),
   ];
 

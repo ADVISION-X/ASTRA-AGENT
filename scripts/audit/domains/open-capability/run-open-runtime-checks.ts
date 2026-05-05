@@ -20,6 +20,8 @@ const {
   LAW_PAGE_STATE_HANDOFF,
   LAW_RESULT_PROOF,
   LAW_RUNTIME_GOVERNANCE,
+  LAW_LOCAL_PROGRAM,
+  LOCAL_PROGRAM_RUNNER_PATH,
   NAVIGATION_RUNNER_PATH,
   NAVIGATION_RUNNER_SUPPORT_PATH,
   POST_OPEN_STATE_GATE_PATH,
@@ -162,6 +164,9 @@ const collectResultBuilderFindings = (project: import("ts-morph").Project): Find
   if (!hasCallExpression(resultBuilderSource, "buildOpenProof")) {
     findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Open result builder must always route through buildOpenProof." }));
   }
+  if (!resultBuilderSource.getText().includes("pageStateHandoffRef,\n    pageStateHandoffRequired: true")) {
+    findings.push(createFinding({ lawId: LAW_PAGE_STATE_HANDOFF, file: RESULT_BUILDER_PATH, line: 1, severity: "fatal", message: "Open success output must preserve pageStateHandoffRef." }));
+  }
   if (!hasPropertyNamed(proofBuilderSource, "targetUrlSource") || !hasPropertyNamed(proofBuilderSource, "failureInputParseDecision")) {
     findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: PROOF_BUILDER_PATH, line: 1, severity: "fatal", message: "Open proof builder must record trace-field provenance and parse decision data." }));
   }
@@ -223,6 +228,27 @@ const collectRuntimeDisciplineFindings = (project: import("ts-morph").Project): 
   return findings;
 };
 
+const collectLocalProgramRuntimeFindings = (project: import("ts-morph").Project): Finding[] => {
+  const localProgramRunnerSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_RUNNER_PATH);
+  const text = localProgramRunnerSource.getText();
+  const findings: Finding[] = [];
+
+  if (!hasCallExpression(localProgramRunnerSource, "openLocalProgram") || !hasIdentifier(localProgramRunnerSource, "AbortController")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program branch must call OpenLocalProgramPort.openLocalProgram with timeout/cancellation." }));
+  }
+  if (!text.includes("appLaunchAttemptRef: launch.launchResult?.appLaunchAttemptRef ?? null,\n    appName: input.profile.appName,\n    bundleId: input.profile.bundleId,\n    appPath: input.profile.appPath,\n    allowedLaunchMethod: input.profile.allowedLaunchMethod,\n    windowHandoffRef: handoff.windowHandoffRef,\n    localAppStateHandoffRef: handoff.localAppStateHandoffRef")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program success proof must preserve windowHandoffRef from the governed handoff." }));
+  }
+  if (!text.includes("localAppStateHandoffRef: handoff.localAppStateHandoffRef")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program success proof must preserve localAppStateHandoffRef from the governed handoff." }));
+  }
+  if (text.includes("targetUrl: \"http://127.0.0.1") || text.includes("localhost")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: LOCAL_PROGRAM_RUNNER_PATH, line: 1, severity: "fatal", message: "Local program branch must not use localhost or fake URL fallback." }));
+  }
+
+  return findings;
+};
+
 export function runOpenRuntimeChecks(project: import("ts-morph").Project): Finding[] {
   return [
     ...collectExecutorFindings(project),
@@ -232,5 +258,6 @@ export function runOpenRuntimeChecks(project: import("ts-morph").Project): Findi
     ...collectInputGateFinding(project),
     ...collectChainBuilderFindings(project),
     ...collectRuntimeDisciplineFindings(project),
+    ...collectLocalProgramRuntimeFindings(project),
   ];
 }

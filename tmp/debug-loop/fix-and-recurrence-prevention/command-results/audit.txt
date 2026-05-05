@@ -1,4 +1,3 @@
-===== npm run audit =====
 
 > grasseye-local-workbench@0.1.0 audit
 > node --import tsx scripts/audit/runner.ts
@@ -7,6 +6,9 @@
 [AUDIT] generated artifacts rebuilt; loading audit plan...
 [AUDIT] running 20 planned inspections with fail-fast enabled...
 [AUDIT] starting map-plugin-package...
-[FAKE ENFORCEMENT] map-plugin-package: Map package negative-proof harness failed to prove mutation rejection and rollback recovery.
-[AUDIT FAIL-FAST] stopped at map-plugin-package; 1 blocking issue(s) recorded.
-exitCode=1
+[PASS] map-plugin-package: Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.
+[AUDIT] starting debug-loop-boundary...
+[PASS] debug-loop-boundary: repair packets, fake authoring, package wiring, and negative proof remain governed.
+[AUDIT] starting audit-system...
+[FAKE ENFORCEMENT] audit-system: audit main chain has blocking law, manifest, runner, or purity-red-line defects
+[AUDIT FAIL-FAST] stopped at audit-system; 1 blocking issue(s) recorded.

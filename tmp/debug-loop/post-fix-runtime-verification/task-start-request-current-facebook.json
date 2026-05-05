@@ -1,0 +1,8 @@
+{
+  "taskTemplateId": "facebook-seeding-video-discovery",
+  "selectedMapId": "facebook.seeding-video.discovery.meta.v1",
+  "requestedPlatformId": "facebook-web",
+  "humanGoal": "Browse Facebook Reels, identify product-seeding candidates, capture public evidence, and preserve candidate summaries for review.",
+  "maxRounds": 3,
+  "maxMinutes": 20
+}

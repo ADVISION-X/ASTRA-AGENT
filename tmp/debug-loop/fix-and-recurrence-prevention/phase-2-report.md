@@ -1,162 +1,104 @@
-# GrassEye Phase 2 Fix & Recurrence Prevention Report
+# GrassEye Phase 2 Fix, Recurrence Prevention, and Fresh Verification Report
 
-Final status: FIX_AND_RECURRENCE_PREVENTION_NOT_READY
+Final status: `PHASE_2_NOT_READY_NEW_P0_BLOCKER`
 
 ## Source Phase 1 Reports
 
-- tmp/debug-loop/root-cause-analysis/phase-1-report.md
-- tmp/debug-loop/root-cause-analysis/root-cause-matrix.md
-- tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md
+- `tmp/debug-loop/root-cause-analysis/phase-1-report.md`
+- `tmp/debug-loop/root-cause-analysis/root-cause-matrix.md`
+- `tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md`
 
-## FIX-1: Command transport result must preserve non-null runId
-
-### 1. 修复了什么
-
-- 生产文件:
-  - src/capabilities/commander-console/shared/commander-transport-schema.ts
-  - src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
-  - src/lib/local-runtime/workbench-commander-command-transport.ts
-  - src/capabilities/commander-console/runtime/commander-command-outcomes.ts
-  - src/capabilities/commander-console/runtime/commander-command-transport-failure.ts
-- 施工图文件:
-  - docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md
-- inspector 文件:
-  - scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts
-  - scripts/audit/domains/commander-console-capability/negative-proof-harness.ts
-- negative proof 文件:
-  - tmp/debug-loop/regression-proofs/BLOCKER-1/*
-
-### 2. 为什么这是根因修复，不是表面修复
-
-Phase 1 的失败点是 command dispatch 后，Commander transport semantic gate 解析结果时看到 `runId:null`，导致 `COMMAND_REJECTED`。修复后 transport schema 要求 result runId，workbench transport 从 Nerve Bus command envelope 透传 runId，Commander outcome 失败/超时路径也生成非空 runId，不再把 null 写进 command result envelope。
-
-### 3. 防复发证据
-
-- 生产突变: 在真实生产文件中把 `createTransportOutcome` 的 runId 改回 null。
-- 突变后 inspector FAIL: tmp/debug-loop/regression-proofs/BLOCKER-1/inspector-fail-output.txt
-- 回滚后 inspector PASS: tmp/debug-loop/regression-proofs/BLOCKER-1/rollback-proof.txt
-- Anti-escape: Commander owner negative-proof harness 新增 transport schema removal 与 runId-null mutation；尚未完成删除 inspector/manifest binding 的显式生产突变验证，因此最终 NOT_READY。
-
-## FIX-2: Mission preflight must cover selected command/result/proof contract
+## FIX-1: Screenshot dispatch chain and page-state proof handoff
 
 ### 1. 修复了什么
 
 - 生产文件:
-  - src/lib/local-runtime/workbench-contract.ts
-  - src/lib/local-runtime/workbench-status.ts
-  - src/lib/local-app-shell/task-start-flow.ts
+  - `src/lib/local-runtime/workbench-screenshot-dispatch-input.ts`
+  - `src/lib/local-runtime/workbench-action-dispatch-inputs.ts`
 - 施工图文件:
-  - docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md
+  - `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md`
 - inspector 文件:
-  - scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts
-  - scripts/audit/domains/commander-console-capability/negative-proof-harness.ts
+  - `scripts/audit/domains/_shared/screenshot-dispatch-adapter-check.ts`
+  - `scripts/audit/domains/screenshot-capability/required-shape.ts`
+  - `scripts/audit/domains/screenshot-capability/config.ts`
 - negative proof 文件:
-  - tmp/debug-loop/regression-proofs/BLOCKER-2/*
+  - `scripts/audit/domains/screenshot-capability/negative-proof-harness.ts`
+  - `tmp/debug-loop/regression-proofs/BLOCKER-SCREENSHOT-DISPATCH-CHAIN/*`
 
 ### 2. 为什么这是根因修复，不是表面修复
 
-Phase 1 显示 Mission preflight passed 后才由 command semantic gate 发现契约不完整。修复后 task start flow 把 `taskTemplateId`、`activationSnapshotRef`、`targetProfileRef` 传入 mission-start preflight，preflight 增加 `commandTransportContract` 组件，缺少任务绑定/激活快照/目标 profile 时必须在 dispatch 前阻断。
+Phase 1 的 screenshot blocker 不是 screenshot owner 本体先坏掉，而是 local-runtime 到 screenshot owner 的 governed chain 没有完整映射。修复后 screenshot request 会带上完整 envelope chain，并在 `capture-browser-viewport` 路径补齐 page-state proof handoff。Fresh runtime 已经证明这一根因被移除，因为新的真实失败不再是 chain 字段缺失，而是更深一层的 screenshot runtimeProof 约束冲突。
 
 ### 3. 防复发证据
 
-- 生产突变: 从真实生产文件 `src/lib/local-runtime/workbench-status.ts` 删除 `commandTransportContract` component。
-- 突变后 inspector FAIL: tmp/debug-loop/regression-proofs/BLOCKER-2/inspector-fail-output.txt
-- 回滚后 inspector PASS: tmp/debug-loop/regression-proofs/BLOCKER-2/rollback-proof.txt
-- Anti-escape: Commander startup readiness gate inspector 用 AST 检查 task-start-flow 参数与 workbench-status preflight component；尚未完成 manifest unbinding/delete-inspector 显式验证。
+- Screenshot owner audit: PASS.
+- 生产突变验证: `tmp/debug-loop/regression-proofs/BLOCKER-SCREENSHOT-DISPATCH-CHAIN/inspector-fail-output.txt`
+- 回滚后恢复: `tmp/debug-loop/regression-proofs/BLOCKER-SCREENSHOT-DISPATCH-CHAIN/rollback-proof.txt`
 
-## FIX-3: COMMAND_REJECTED terminal relay must include owner/actionable/run identity
+## FIX-2: Orchestration must emit explicit `CAPABILITY_CALL_STARTED`
 
 ### 1. 修复了什么
 
 - 生产文件:
-  - src/types/structured-log.ts
-  - src/lib/local-runtime/structured-log-payload.ts
-  - src/lib/local-runtime/workbench-commander-debug.ts
-  - scripts/startup/lib/terminal-structured-log.mjs
+  - `src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts`
+  - `src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts`
 - 施工图文件:
-  - docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md
+  - `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
 - inspector 文件:
-  - scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts
-  - scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts
-  - scripts/audit/domains/structured-logging/run-structured-logging-checks.ts
+  - `scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts`
 - negative proof 文件:
-  - tmp/debug-loop/regression-proofs/BLOCKER-3/*
+  - `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts`
+  - `tmp/debug-loop/regression-proofs/BLOCKER-ORCHESTRATION-CAPABILITY-CALL-STARTED/*`
 
 ### 2. 为什么这是根因修复，不是表面修复
 
-Phase 1 的 terminal log 对 `COMMAND_REJECTED` 缺 owner/actionable/schema owner 与 run identity，导致只能看到 Zod 失败而不能定位治理责任。修复后 structured log schema/payload/terminal relay 都保留 runId、ownerResponsible、actionableMessage、traceId、selectedMapId、activationSnapshotRef。
+Phase 1 的 Orchestration blocker 是生命周期语义不完整: `STEP_DISPATCH_STARTED` 已出现，但普通能力步骤没有显式 `CAPABILITY_CALL_STARTED`。修复后 Orchestration 在普通能力步骤进入 owner 执行前稳定落这个事件。Fresh runtime 已在 Facebook 和 TikTok 的 screenshot step 上观测到该事件，说明根因修复已经在真实任务里生效。
 
 ### 3. 防复发证据
 
-- 生产突变: 从真实 startup terminal relay 删除 `ownerResponsible` 透传。
-- 突变后 inspector FAIL: tmp/debug-loop/regression-proofs/BLOCKER-3/inspector-fail-output.txt
-- 回滚后 inspector PASS: tmp/debug-loop/regression-proofs/BLOCKER-3/rollback-proof.txt
-- Anti-escape: Commander startup readiness inspector 已用 AST 覆盖 terminal relay 关键字段；structured-logging/forensics domain 仍有既存基线失败，最终 NOT_READY。
+- Orchestration owner audit: PASS.
+- 生产突变验证: `tmp/debug-loop/regression-proofs/BLOCKER-ORCHESTRATION-CAPABILITY-CALL-STARTED/inspector-fail-output.txt`
+- 回滚后恢复: `tmp/debug-loop/regression-proofs/BLOCKER-ORCHESTRATION-CAPABILITY-CALL-STARTED/rollback-proof.txt`
 
-## FIX-4: Runtime proof chain must carry command runId after acceptance
+## Static Command Matrix
 
-### 1. 修复了什么
+- `npm run audit:build`: PASS.
+- `npm run audit`: FAIL-FAST at unrelated `audit-system` fake enforcement.
+- `npm run typecheck`: FAIL on non-current-owner TypeScript errors listed in `tmp/debug-loop/fix-verification/non-current-owner-ci-blockers.md`.
+- `npm run lint`: FAIL because lint delegates to typecheck.
+- `npm run ci:full`: FAIL-FAST at typecheck.
 
-- 生产文件:
-  - src/lib/local-runtime/workbench-human-command.ts
-  - src/capabilities/orchestration/schema.ts
-  - src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts
-  - src/capabilities/orchestration/runtime/orchestration-state-support.ts
-  - src/capabilities/orchestration/runtime/orchestration-proof-builder.ts
-  - src/capabilities/orchestration/runtime/orchestration-executor-loop.ts
-  - src/capabilities/orchestration/runtime/orchestration-execute-result.ts
-  - src/capabilities/orchestration/runtime/orchestration-dispatch-failure.ts
-  - src/capabilities/orchestration/runtime/orchestration-loop-proof-builders.ts
-  - src/capabilities/orchestration/runtime/orchestration-transition-success-proof.ts
-- 施工图文件:
-  - docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md
-- inspector 文件:
-  - scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts
-  - scripts/audit/domains/orchestration-capability/negative-proof-harness.ts
-- negative proof 文件:
-  - tmp/debug-loop/regression-proofs/BLOCKER-4/*
+These failures remain real, but they are outside the two phase-1 blocker roots fixed in this session.
 
-### 2. 为什么这是根因修复，不是表面修复
+## Real Restart and Fresh Runtime Verification
 
-Phase 1 的 command 被拒挡住了 downstream lifecycle；修复后 command runId 从 human command envelope 进入 MissionCommand、MissionState.activeTaskRunId、RuntimeProofSchema 与 proof builder identity，确保 accepted command 后的 orchestration proof 链可关联到同一个 run。
+- Real restart succeeded on port `4173`.
+- Fresh `mission-readiness.json` reported `status=ready`.
+- Real Facebook task trigger returned success with `transportStatus=accepted`.
+- Real TikTok task trigger returned success with `transportStatus=accepted`.
+- Fresh runtime proved both original blockers resolved:
+  - old screenshot dispatch-chain blocker not observed
+  - old missing `CAPABILITY_CALL_STARTED` blocker not observed
 
-### 3. 防复发证据
+## Fresh Re-analysis Result
 
-- 生产突变: 从真实生产文件 `orchestration-proof-builder.ts` 删除 `runId: input.runId`。
-- 突变后 inspector FAIL: tmp/debug-loop/regression-proofs/BLOCKER-4/inspector-fail-output.txt
-- 回滚后 inspector PASS: tmp/debug-loop/regression-proofs/BLOCKER-4/rollback-proof.txt
-- Anti-escape: Orchestration owner inspector 检查 RuntimeProofSchema、BuildProofInput、proof builder symbol-level emission；尚未完成删除 inspector/negative proof/manifest binding 显式验证。
+Fresh runtime exposed a new shared blocker after the old blockers were removed:
 
-## Command Results
-
-- npm run audit:build: PASS, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/audit-build.txt
-- npm run audit: FAIL at map-plugin-package negative-proof harness, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/audit.txt
-- npm run audit:meta: MISSING_SCRIPT
-- npm run audit:runner: MISSING_SCRIPT
-- npm run typecheck: FAIL in AI capability files, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/typecheck.txt
-- npm run lint: FAIL because lint delegates to typecheck, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/lint.txt
-- npm run ci:full: FAIL at typecheck, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/ci-full.txt
-- git diff --check: PASS, see tmp/debug-loop/fix-and-recurrence-prevention/command-results/git-diff-check.txt
-
-## Post-Fix Runtime Verification
-
-- Runtime log: tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt
-- Runtime timeline: tmp/debug-loop/post-fix-runtime-verification/runtime-timeline.md
-- Remaining blockers: tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md
-- Verification summary: tmp/debug-loop/post-fix-runtime-verification/verification-summary.md
-
-Observed current-code scenario on port 4183: `POST /api/tasks/start` for `facebook-seeding-video-discovery` returned `transportStatus=accepted`, and terminal structured logs emitted `COMMAND_ACCEPTED` with runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef. The original `runId=null` COMMAND_REJECTED did not recur in the final verification command.
+- current blocker: screenshot runtimeProof rejects null `videoVisitId`
+- failing step: `capture-video-viewport`
+- affected maps:
+  - `facebook.seeding-video.discovery.meta.v1`
+  - `tiktok.seeding-video.discovery.meta.v1`
+- fresh analysis folder:
+  - `tmp/debug-loop/post-fix-runtime-verification/fresh-root-cause-analysis/`
 
 ## Remaining NOT_READY Reasons
 
-- Full `npm run audit` fails at `map-plugin-package` negative proof harness before the rest of the plan can pass.
-- `npm run typecheck`, `npm run lint`, and `npm run ci:full` fail in AI capability files outside the phase-1 blocker root cause set.
-- Explicit anti-escape mutation checks for deleting inspector / deleting negative proof / unbinding manifest / warning-only downgrade were not completed for every touched owner.
-- Structured-logging and forensics domain checks still have stale or failing baseline paths, so they cannot be used as complete proof for BLOCKER-3.
+- A new screenshot-owner P0 blocker remains in production: `videoVisitId is required in runtimeProof`.
+- `npm run audit`, `npm run typecheck`, `npm run lint`, and `npm run ci:full` are still not globally green because of unrelated baseline failures.
 
 ## Next Minimal Actions
 
-1. Repair the existing `map-plugin-package` negative-proof harness failure so full audit can progress.
-2. Repair the AI capability typecheck errors reported in command-results/typecheck.txt.
-3. Complete anti-escape mutation proofs for inspector deletion, negative proof deletion, manifest unbinding, owner mapping deletion, and machine-blocking downgrade.
-4. Rerun the full script matrix and keep the 4183 runtime scenario green.
+1. Fix screenshot runtimeProof `videoVisitId` contract mismatch at the owner level.
+2. Add screenshot-owner recurrence prevention for nullable `videoVisitId` parity between schema, refine rules, and first-capture map semantics.
+3. Rerun real restart plus fresh Facebook and TikTok task triggers after the screenshot fix.

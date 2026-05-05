@@ -28,6 +28,20 @@ export const DEFAULT_PAGE_STATE_PLATFORM_PROFILES: readonly PageStatePlatformPro
     feedPathPrefixes: ["/", "/workbench"],
     videoPathMarkers: ["/workbench"],
   },
+  {
+    profileId: "iphone-mirroring-facebook-app",
+    kind: "real_platform",
+    hosts: ["iphone-mirroring"],
+    feedPathPrefixes: ["/facebook"],
+    videoPathMarkers: ["/facebook"],
+  },
+  {
+    profileId: "iphone-mirroring-tiktok-app",
+    kind: "real_platform",
+    hosts: ["iphone-mirroring"],
+    feedPathPrefixes: ["/tiktok"],
+    videoPathMarkers: ["/tiktok"],
+  },
 ];
 
 function normalizeHost(host: string): string {

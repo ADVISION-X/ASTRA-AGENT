@@ -8,6 +8,8 @@ import { evaluatePostOpenState } from "./post-open-state-gate.js";
 import { runOpenNavigation } from "./navigation-runner.js";
 import { resolveOpenTimeoutMs } from "./open-timeout-policy.js";
 
+type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
+
 async function resolveCompletedNavigation(input: Parameters<typeof completeOpenChildExecution>[0], beforeSession: NonNullable<OpenChildPreflightState["sessionGate"]["sessionSnapshot"]>) {
   return runOpenNavigation({
     browser: input.context.browser,
@@ -37,7 +39,7 @@ function reconcileIdempotencyReservation(input: Parameters<typeof completeOpenCh
 
 export async function completeOpenChildExecution(input: {
   request: ParsedOpenRequest;
-  profile: OpenTargetProfile;
+  profile: WebOpenTargetProfile;
   context: OpenChildExecutionContext;
   state: OpenChildPreflightState;
 }): Promise<OpenResult> {

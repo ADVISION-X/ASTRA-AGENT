@@ -19,6 +19,8 @@ import type {
   UrlSafetyResult,
 } from "./open-executor-flow-types.js";
 
+type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
+
 export type OpenChildTargetAndUrlState = {
   started: ClockSnapshot;
   targetPolicy: TargetPolicyResult;
@@ -80,7 +82,7 @@ function resolveUrlSafetyFailureOrState(input: {
   }
 
   const urlSafety = evaluateUrlSafety({
-    profile: input.profile,
+    profile: input.profile as WebOpenTargetProfile,
     targetUrl: resolvedTargetUrl,
   });
   const failureResult = resolveUrlSafetyFailureResult({

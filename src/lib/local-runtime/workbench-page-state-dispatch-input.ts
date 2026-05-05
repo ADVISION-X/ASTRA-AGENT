@@ -7,6 +7,8 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 const DEFAULT_PLATFORM_URL = {
   "tiktok-web": "https://www.tiktok.com/foryou",
   "facebook-web": "https://www.facebook.com/reel/",
+  "iphone-mirroring-facebook-app": "grasseye-local-app://iphone-mirroring/facebook",
+  "iphone-mirroring-tiktok-app": "grasseye-local-app://iphone-mirroring/tiktok",
 } satisfies Record<RequestedPlatformId, string>;
 
 const PAGE_STATE_CHILD_CAPABILITY_IDS = new Set([
@@ -37,7 +39,9 @@ const resolvePlatformFromUrl = (currentUrl: string): RequestedPlatformId | null 
 };
 
 const resolveShellPlatform = (platformTarget: WorkbenchRuntime["options"]["platformTarget"]): RequestedPlatformId | null => {
-  return platformTarget === "facebook-web" || platformTarget === "tiktok-web" ? platformTarget : null;
+  return platformTarget === "facebook-web" || platformTarget === "tiktok-web" || platformTarget === "iphone-mirroring-facebook-app" || platformTarget === "iphone-mirroring-tiktok-app"
+    ? platformTarget
+    : null;
 };
 
 const resolvePageStateChildCapabilityId = (commandName: string) => {

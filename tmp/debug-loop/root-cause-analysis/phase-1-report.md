@@ -2,41 +2,68 @@
 
 Status: `LOG_BLOCKER_ANALYSIS_READY`
 
-## Scope
+## Boundary
 
-This phase performed Runtime Log Blocker Mining & Root Cause Analysis only. No production source, law, blueprint, inspector, or negative proof code was modified. The generated artifacts in this folder are analysis outputs.
+This phase performed Runtime Log Blocker Mining & Root Cause Analysis only.
 
-## Current Runtime Finding
+- No production code changed.
+- No law changed.
+- No blueprint changed.
+- No inspector changed.
+- No negative-proof harness changed.
+- No repair patch was generated.
 
-Startup is healthy. Map package readiness, AI readiness, app shell, Commander, Nerve Bus, Orchestration activation snapshot, open step, post-action verification, and login-state detection all pass.
+## What The Latest Real Log Proves
 
-The current runtime blockers are:
+The latest real runtime log is not failing at startup, Commander acceptance, or Page State safety detection.
 
-1. P0: Commander `issue-human-command` records `COMMAND_REJECTED` after `COMMAND_ACCEPTED` because the 5s child timeout wraps long-running mission execution.
-2. P0: `detect-safety-page` cannot prove normal page state because it ignores governed negative observations (`captcha=false`, `safety_wall=false`) as supporting refs.
+Confirmed from the latest log:
 
-## P0 Details
+1. Startup passes.
+2. AI readiness passes.
+3. Commander Console reaches governed command dispatch.
+4. Orchestration freezes activation snapshot and progresses through multiple map steps.
+5. `detect-safety-page` is now `success` on both Facebook and TikTok in the latest run.
+6. Both platform missions stop at the same screenshot step: `capture-video-viewport`.
 
-### BLOCKER-1
+## Confirmed Blockers
 
-`src/lib/local-runtime/workbench-human-command.ts` records command acceptance before mission execution, then awaits `runtime.orchestrationAbilityGroup.startMission(...)`. That long-running promise is wrapped by `runCommanderTimeoutGate` in `src/capabilities/commander-console/runtime/commander-command-child-executor.ts`, with `maxDurationMs: 5000` from `src/capabilities/commander-console/children/issue-human-command/contract.ts`.
+### P0
 
-Result: command acceptance and command rejection both appear for the same command path.
+1. Screenshot dispatch builder drops governed chain fields before `ScreenshotAbilityInput` enters the Screenshot owner boundary.
 
-### BLOCKER-2
+Current production root cause:
 
-`src/lib/local-runtime/workbench-page-state-dispatch-input.ts` emits governed observations. `src/capabilities/page-state/children/detect-safety-page/implementation.ts` filters safety/captcha markers to `present=true` only, so normal page negative observations are not included in `matchedObservationIds`. `src/capabilities/page-state/page-state-result-validation.ts` correctly rejects a success with no observation refs and `insufficient_signal`.
+- `src/lib/local-runtime/workbench-action-dispatch-inputs.ts::buildScreenshotCommand`
 
-Result: Facebook and TikTok both transition to `request-human-review` after `detect-safety-page`.
+Current enforcement gap:
 
-## P1 Backlog
+- Screenshot owner audit only inspects `src/capabilities/screenshot/**`; it does not inspect the local-runtime adapter that translates Nerve Bus envelope into `ScreenshotAbilityInput`.
 
-- Runtime taxonomy lacks distinct `CAPABILITY_CALL_STARTED` and review-path `MISSION_FINALIZED`.
-- Page State review logs do not surface enough diagnostic/proof refs for immediate root-cause inspection.
+### P1
 
-## P2 Backlog
+1. Runtime lifecycle lacks explicit `CAPABILITY_CALL_STARTED`; operators must infer call start from `STEP_DISPATCH_STARTED`.
 
-- Event owner/target wording is sometimes ambiguous for Page State review events.
+Current production root cause:
+
+- `src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts::recordDispatchStarted`
+
+Current enforcement gap:
+
+- Orchestration mission-loop semantics audit requires `STEP_DISPATCH_STARTED` but not `CAPABILITY_CALL_STARTED`.
+
+### P2
+
+No confirmed P2 blocker was identified from the latest real runtime log.
+
+## Not Promoted In This Phase
+
+The latest pasted terminal excerpt also shows two LOG_EVENT_MISSING anomalies:
+
+1. `HUMAN_COMMAND_RECEIVED`
+2. `FORENSICS_RECORD_WRITTEN`
+
+They were not promoted to blockers because the latest pasted log, by itself, does not localize a production root cause strongly enough. Code and static audit still declare both events, so promoting them without a fresh live rerun or persisted-record dump would overstate certainty.
 
 ## Required Output Files
 
@@ -47,6 +74,10 @@ Result: Facebook and TikTok both transition to `request-human-review` after `det
 - `tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md`
 - `tmp/debug-loop/root-cause-analysis/phase-1-report.md`
 
-## Next Phase Default
+## Next-Phase Default Scope
 
-Repair only P0 runtime blockers unless P1 logging gaps prevent proving the P0 fix.
+Next phase should repair only the P0 runtime blocker by default:
+
+1. Fix screenshot envelope-to-input projection so `capture-video-viewport` receives the full governed chain fields.
+
+P1 stays in backlog unless it prevents proving the P0 fix.

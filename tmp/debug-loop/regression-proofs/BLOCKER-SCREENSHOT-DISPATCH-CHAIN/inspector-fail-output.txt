@@ -1,0 +1,7 @@
+
+> grasseye-local-workbench@0.1.0 audit:screenshot
+> node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] screenshot-capability: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+- FATAL src/lib/local-runtime/workbench-screenshot-dispatch-input.ts:1 Screenshot local-runtime dispatch adapter must preserve governed chain fields, inputRef, idempotencyKey, and timeoutMs before entering the Screenshot owner boundary.
+- FATAL scripts/audit/domains/screenshot-capability/inspector.ts:1 Screenshot inspector baseline must pass before negative-proof mutation checks.

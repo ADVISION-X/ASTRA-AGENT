@@ -1,5 +1,10 @@
 import { z } from "zod";
 
-export const MAP_PLUGIN_REQUESTED_PLATFORM_IDS = ["tiktok-web", "facebook-web", "macos-local"] as const;
+export const MAP_PLUGIN_REQUESTED_PLATFORM_IDS = [
+  "tiktok-web",
+  "facebook-web",
+  "iphone-mirroring-facebook-app",
+  "iphone-mirroring-tiktok-app",
+] as const;
 
 export const RequestedPlatformIdSchema = z.enum(MAP_PLUGIN_REQUESTED_PLATFORM_IDS);

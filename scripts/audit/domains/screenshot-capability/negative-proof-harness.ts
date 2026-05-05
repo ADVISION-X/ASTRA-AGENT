@@ -68,6 +68,12 @@ const MUTATIONS: Mutation[] = [
     replace: "from \"../../capabilities/screenshot/runtime/workbench-screenshot-ability-group.js\";",
   },
   {
+    name: "local-runtime screenshot chain mapping regression mutation",
+    file: "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
+    search: "    capabilityCallId: envelope.capabilityCallId,\n",
+    replace: "    capabilityCallId: envelope.missionId,\n",
+  },
+  {
     name: "nullable chain field regression mutation",
     file: "src/capabilities/screenshot/shared/screenshot-governance.ts",
     search: "  capabilityCallId: limitedString(200),",
@@ -191,7 +197,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, nullable chain regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
+    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, local-runtime screenshot chain mapping regression, nullable chain regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",

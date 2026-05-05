@@ -4,16 +4,25 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 
 function resolveRequestedPlatform(payload: Record<string, string | number | boolean | null>) {
   const requestedPlatformId = payloadValueToString(payload.requestedPlatformId);
+  if (requestedPlatformId === "iphone-mirroring-facebook-app" || requestedPlatformId === "iphone-mirroring-tiktok-app") {
+    return {
+      childCapabilityId: "open-local-program",
+      platformId: "macos-local",
+      targetKind: "local-program",
+    } as const;
+  }
   if (requestedPlatformId === "facebook-web") {
     return {
       childCapabilityId: "open-facebook",
       platformId: "facebook-web",
+      targetKind: "platform-feed",
     } as const;
   }
 
   return {
     childCapabilityId: "open-tiktok",
     platformId: "tiktok-web",
+    targetKind: "platform-feed",
   } as const;
 }
 
@@ -50,7 +59,7 @@ export const buildOpenAbilityInput = (
     capabilityCallId: envelope.capabilityCallId,
     nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
     platformId: targetPlatform.platformId,
-    targetKind: "platform-feed",
+    targetKind: targetPlatform.targetKind,
     requestedBy: "orchestration",
     sourceAbilityGroupId: "orchestration",
     sourceChildCapabilityId: envelope.commandName,

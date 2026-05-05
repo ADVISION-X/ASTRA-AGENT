@@ -1,53 +1,30 @@
 # Law / Blueprint Mapping
 
-## BLOCKER-1: Commander start-mission timeout after acceptance
+## BLOCKER-1: Screenshot dispatch builder drops required chain fields
 
-| Layer | Evidence |
-|---|---|
-| Law file | `.github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md` |
-| lawId | `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2`; also touches `006/007` proof/result semantics |
-| Law requirement | Command envelope must be explicit, timeout-governed, idempotent, and semantically validated. Timeout results must be typed and governed. |
-| Law violation | Timeout is real, but it is scoped to the whole long-running mission loop. This allows `COMMAND_ACCEPTED` and `COMMAND_REJECTED` for the same start command. |
-| Blueprint file | `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md` |
-| Blueprint section | timeout gate; local app shell `COMMAND_ACCEPTED / COMMAND_REJECTED` refs |
-| Blueprint requirement | timeout produces typed failed/review result; local shell rejected path includes owner/actionable/proof refs. |
-| Blueprint gap | It does not clearly state that start-mission command acceptance must return before mission terminal execution. |
-| Fix layer | Production + blueprint + commander inspector + negative proof + structured log semantics |
+| Layer | Reference | Requirement | Current violation |
+|---|---|---|---|
+| Law | `.github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md` | `GRASSEYE-SCREENSHOT-CAPABILITY-003-V2`: every `ScreenshotAbilityInput` must carry full chain fields, `inputRef`, `idempotencyKey`, timeout policy | Latest real log shows Screenshot input reaching the gate without `stepId/mapPackageId/mapPackageVersion/selectedMapId/selectedMapVersion/activationSnapshotRef/capabilityCallId/nerveBusEnvelopeId/inputRef` |
+| Supporting law | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3`: every ability input generated from Orchestration must include full dispatch chain | Orchestration envelope has the fields, but local-runtime screenshot adapter fails to preserve them |
+| Blueprint | `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md` | `5. Input Boundary` / `6. Source Proof`: Screenshot input requires the same chain fields and cannot success when they are missing | Production runtime enters Screenshot with those fields undefined |
+| Supporting blueprint | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `9. Dispatch Through Nerve Bus`: dispatch payload must contain full chain fields | Dispatch payload exists, but adapter projection into Screenshot input is incomplete |
+| Law/blueprint conclusion | No law gap | Governance already states the right behavior | Failure is implementation + enforcement-scope drift, not missing governance |
 
-## BLOCKER-2: `detect-safety-page` normal page lacks supporting negative observations
+## BLOCKER-2: CAPABILITY_CALL_STARTED event is missing from runtime lifecycle
 
-| Layer | Evidence |
-|---|---|
-| Law file | `.github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md` |
-| lawId | `GRASSEYE-PAGE-STATE-CAPABILITY-004-V2`, `GRASSEYE-PAGE-STATE-CAPABILITY-005-V2` |
-| Law requirement | Observations must be source-bound/fresh; observation-required child success must retain observationRefs; success must not retain critical data-quality flags. |
-| Law violation | Normal page branch ignores source-bound negative safety observations, leading to empty observation refs and `insufficient_signal`. |
-| Blueprint file | `docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md` |
-| Blueprint section | 7 Observation; 9 Child Capabilities; 12 Output Boundary |
-| Blueprint requirement | `detect-safety-page` must judge safety/captcha from `page_marker / platform_capture`; success cannot miss observationRefs. |
-| Blueprint gap | It does not explicitly spell out that `page_normal` can be proven by negative `captcha=false` and `safety_wall=false` observations. |
-| Fix layer | Production child implementation + blueprint clarification + Page State inspector + negative proof |
+| Layer | Reference | Requirement | Current violation |
+|---|---|---|---|
+| Law | `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md` | `GRASSEYE-STRUCTURED-LOGGING-003-V1`: structured DEBUG events must make runtime behavior root-causeable without hidden in-memory inference | Current lifecycle exposes dispatch-start and terminal result, but not explicit capability-call start |
+| Supporting law | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3`: dispatch semantics and chain proof must remain explicit through governed work | Operators must infer ability-call start from `STEP_DISPATCH_STARTED` |
+| Blueprint | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `9. Dispatch Through Nerve Bus`: dispatch payload/proof must expose governed step execution chain | Runtime lifecycle has no dedicated capability-start event stage |
+| Supporting blueprint | `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md` | structured event chain must not silently skip required operator-visible stages | latest log silently jumps from dispatch-start to terminal result |
+| Law/blueprint conclusion | No hard law change needed; blueprint detail should be sharpened | Governance wants traceable lifecycle already | Current gap is an implementation and enforcement omission |
 
-## BLOCKER-3: Missing explicit capability-start and mission-finalized taxonomy
+## Not Promoted In This Phase
 
-| Layer | Evidence |
-|---|---|
-| Law file | `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md` |
-| lawId | Structured logging lifecycle law set, exact clause not narrowed in this phase |
-| Law requirement | Runtime structured logs must allow lifecycle reconstruction with trace/run/span/refs and owner/actionable fields. |
-| Law violation | `CAPABILITY_CALL_STARTED` and review-path `MISSION_FINALIZED` are missing as explicit event names. |
-| Blueprint file | `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md` |
-| Blueprint section | Runtime event lifecycle |
-| Fix layer | Structured log production emitters + inspector + negative proof |
+These observations are retained for backlog triage but not promoted to confirmed blockers because the latest pasted terminal log alone does not localize a production root cause strongly enough:
 
-## BLOCKER-4: Page State review logs do not surface diagnostic/proof refs
-
-| Layer | Evidence |
-|---|---|
-| Law file | `.github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md` |
-| lawId | `GRASSEYE-PAGE-STATE-CAPABILITY-005-V2`, `GRASSEYE-PAGE-STATE-CAPABILITY-006-V2` |
-| Law requirement | Review/failed result keeps diagnosticPayloadRef and runtimeProof. |
-| Law violation | Terminal review event does not surface enough Page State diagnostic/proof refs. |
-| Blueprint file | `docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md` |
-| Blueprint section | 10 Output Model; 11 Runtime Proof |
-| Fix layer | Orchestration review log mapping + structured logging inspector |
+| Observation | Evidence | Why not promoted |
+|---|---|---|
+| `HUMAN_COMMAND_RECEIVED` missing in pasted terminal text | latest log jumps from startup ready to Forensics write requests and `HUMAN_COMMAND_VALIDATED` | code path and blueprint still declare the event; this phase did not rerun the mission to determine whether the loss is runtime, relay, or capture-side |
+| `FORENSICS_RECORD_WRITTEN` missing in pasted terminal text | latest log repeatedly shows `FORENSICS_RECORD_WRITE_REQUESTED` only | code and audit both declare the completion event, so latest pasted terminal excerpt alone is insufficient to pin a live production defect |

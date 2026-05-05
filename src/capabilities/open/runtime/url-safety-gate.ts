@@ -6,6 +6,8 @@ import {
   normalizeOpenUrl,
 } from "../shared/open-url.js";
 
+type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
+
 const resolveOpenScheme = (protocol: string): "http" | "https" | null =>
   protocol === "https:" ? "https" : protocol === "http:" ? "http" : null;
 
@@ -77,7 +79,7 @@ const buildForbiddenProtocolPolicyBlockResult = (parsedUrl: URL): ReturnType<typ
 
 const buildDisallowedSchemePolicyBlockResult = (
   parsedUrl: URL,
-  profile: OpenTargetProfile,
+  profile: WebOpenTargetProfile,
   scheme: "http" | "https" | null,
 ): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
   ok: false,
@@ -91,7 +93,7 @@ const buildDisallowedSchemePolicyBlockResult = (
 
 const buildHostnamePolicyBlockResult = (
   parsedUrl: URL,
-  profile: OpenTargetProfile,
+  profile: WebOpenTargetProfile,
   scheme: "http" | "https" | null,
 ): ReturnType<typeof buildUrlSafetyResult> => buildUrlSafetyResult({
   ok: false,
@@ -114,7 +116,7 @@ const buildAllowedUrlPolicyResult = (parsedUrl: URL, scheme: "http" | "https" | 
 });
 
 export function evaluateUrlSafety(input: {
-  profile: OpenTargetProfile;
+  profile: WebOpenTargetProfile;
   targetUrl: string;
 }): {
   ok: boolean;

@@ -37,6 +37,8 @@ export const OPEN_SCHEMA_VALIDATION_MARKERS = [
   "parsed runtime proof requires browserSessionRef",
   "fallback_trace_only runtime proof requires receivedShapeHash",
   "success proof requires page-state handoff",
+  "local program success proof requires windowHandoffRef",
+  "local program success proof requires localAppStateHandoffRef",
   "failed and review_required proof must expose diagnosticPayloadRef",
   "failed and review_required result must expose diagnosticPayloadRef",
   "failed and review_required result must not expose output",

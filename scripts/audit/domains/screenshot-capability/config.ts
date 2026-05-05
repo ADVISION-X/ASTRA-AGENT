@@ -40,6 +40,7 @@ export const PATHS = {
   IDEMPOTENCY: "src/capabilities/screenshot/runtime/screenshot-idempotency.ts",
   GOVERNANCE: "src/capabilities/screenshot/shared/screenshot-governance.ts",
   CHAIN: "src/capabilities/screenshot/runtime/screenshot-chain.ts",
+  WORKBENCH_DISPATCH_INPUT: "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
 } as const;
 
 export const CHILDREN = [

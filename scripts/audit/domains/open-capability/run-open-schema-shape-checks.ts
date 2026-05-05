@@ -38,6 +38,8 @@ const REQUIRED_VALIDATION_MARKERS = [
 
 type OpenSchemaContext = {
   childIds: string[];
+  platformIds: string[];
+  targetKinds: string[];
   exportedDeclarations: ReadonlyMap<string, import("ts-morph").ExportedDeclarations[]>;
   proofFields: Set<string>;
   requestFields: Set<string>;
@@ -74,8 +76,11 @@ function collectForbiddenFieldFindings(input: {
 const createOpenSchemaContext = (project: import("ts-morph").Project): OpenSchemaContext => {
   const schemaSource = getOpenSourceOrThrow(project, SCHEMA_PATH);
   const schemaProofSource = getOpenSourceOrThrow(project, SCHEMA_PROOF_PATH);
+  const schemaBaseSource = getOpenSourceOrThrow(project, SCHEMA_BASE_PATH);
   return {
-    childIds: getZodEnumValues(getOpenSourceOrThrow(project, SCHEMA_BASE_PATH), "OpenChildCapabilityIdSchema"),
+    childIds: getZodEnumValues(schemaBaseSource, "OpenChildCapabilityIdSchema"),
+    platformIds: getZodEnumValues(schemaBaseSource, "OpenPlatformIdSchema"),
+    targetKinds: getZodEnumValues(schemaBaseSource, "OpenTargetKindSchema"),
     exportedDeclarations: schemaSource.getExportedDeclarations(),
     proofFields: new Set([
       ...getObjectLiteralPropertyNames(schemaProofSource, "openRuntimeProofIdentityShape"),
@@ -94,6 +99,12 @@ const collectPackageShapeFindings = (context: OpenSchemaContext): Finding[] => {
 
   if (context.childIds.sort().join(",") !== [...CHILDREN].sort().join(",")) {
     findings.push(createFinding({ lawId: LAW_PACKAGE_SHAPE, file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Open schema child ids must match the governed child catalog exactly." }));
+  }
+  if (!context.platformIds.includes("macos-local")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Open platform ids must include macos-local for governed local program launch." }));
+  }
+  if (!context.targetKinds.includes("local-program")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: SCHEMA_PATH, line: 1, severity: "fatal", message: "Open target kinds must include local-program for governed local program launch." }));
   }
 
   for (const schemaName of REQUIRED_SCHEMA_DECLARATIONS) {

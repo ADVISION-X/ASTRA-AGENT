@@ -2,6 +2,7 @@ import type { Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { inspectScreenshotDispatchAdapter } from "../_shared/screenshot-dispatch-adapter-check.js";
 import { getZodEnumValues, hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
 import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 
@@ -315,6 +316,7 @@ function collectV2ChainTruthFindings(project: Project): Finding[] {
     ...collectIdempotencyFindings(project),
     ...collectTransformTruthFindings(project),
     ...collectLifecycleTruthFindings(project),
+    ...inspectScreenshotDispatchAdapter(project, LAW_IDS.SHAPE),
   ];
 }
 

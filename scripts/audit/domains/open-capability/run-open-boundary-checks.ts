@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { toRepoRelativePath } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -85,6 +88,20 @@ const collectBoundaryFindings = (project: import("ts-morph").Project): Finding[]
     }
     if (repoPath.startsWith("scripts/debug-loop/") && (text.includes("open -a") || text.includes("openApp") || text.includes("shellCommand") || text.includes("osascript"))) {
       findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: repoPath, line: 1, severity: "fatal", message: "debug-loop must not directly launch local programs during mission runtime." }));
+    }
+  }
+  for (const fileName of readdirSync("src/map-plugins/builtins").filter((file) => file.endsWith(".json"))) {
+    const filePath = join("src/map-plugins/builtins", fileName);
+    const text = readFileSync(filePath, "utf8");
+    if (text.includes('"childCapabilityId": "open-local-workbench"') && text.includes('"targetKind": "local-program"')) {
+      findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: filePath, line: 1, severity: "fatal", message: "Builtin map packages must not use open-local-workbench for targetKind=local-program." }));
+    }
+  }
+  for (const fileName of readdirSync("scripts/debug-loop").filter((file) => file.endsWith(".mjs"))) {
+    const filePath = join("scripts/debug-loop", fileName);
+    const text = readFileSync(filePath, "utf8");
+    if (text.includes("open -a") || text.includes("openApp") || text.includes("shellCommand") || text.includes("osascript")) {
+      findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: filePath, line: 1, severity: "fatal", message: "debug-loop must not directly launch local programs during mission runtime." }));
     }
   }
 
