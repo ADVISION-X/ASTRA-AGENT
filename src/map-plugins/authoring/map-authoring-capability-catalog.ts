@@ -20,6 +20,25 @@ const PRODUCED_OUTPUT_REFS_BY_ABILITY_GROUP: Record<string, string[]> = {
   "forensics-persistence": ["forensicsRecordRef"],
 };
 
+const ACTIVE_ABILITY_GROUP_IDS = [
+  "commander-console",
+  "orchestration",
+  "nerve-bus",
+  "ai",
+  "open",
+  "screenshot",
+  "visual-target",
+  "geometry-guard",
+  "mouse-click",
+  "text-input",
+  "mouse-scroll",
+  "post-action-verification",
+  "forensics-persistence",
+  "page-state",
+] as const;
+
+const RUNTIME_ONLY_OWNER_IDS = ["commander-console", "orchestration", "nerve-bus"] as const;
+
 const REQUIRED_INPUT_REFS_BY_ABILITY_GROUP: Record<string, string[]> = {
   ai: ["promptInputRef"],
   "visual-target": ["sourceImageRef"],
@@ -132,6 +151,44 @@ const buildCapabilityChild = (
   };
 };
 
+const buildRuntimeOnlyChild = (abilityGroupId: string): MapAuthoringCapabilityChild => ({
+  childCapabilityId: `${abilityGroupId}:runtime-owner-boundary`,
+  childCapabilityCode: "runtime-owner-boundary",
+  displayName: `${humanize(abilityGroupId)} Runtime Owner Boundary`,
+  description: `${humanize(abilityGroupId)} is an active GrassEye ability-group boundary truth, but it is not routable as a generated map action step.`,
+  inputSchemaRef: `${abilityGroupId}.runtime-boundary.input`,
+  outputSchemaRef: `${abilityGroupId}.runtime-boundary.output`,
+  requiredInputRefs: [],
+  producedOutputRefs: ["runtimeBoundaryRef"],
+  requiresGeometryProof: false,
+  requiresTargetProof: false,
+  requiresFocusProof: false,
+  requiresApprovedText: false,
+  requiresPostActionVerification: false,
+  requiresHumanReview: true,
+  sensitiveOperation: false,
+  sideEffectLevel: "none",
+  allowedStepKinds: ["runtime-owner-boundary"],
+  supportedTargetKinds: [],
+  forbiddenResponsibilities: ["generated_map_step_routing", "direct_runtime_execution", "provider_or_secret_access"],
+  proofRequirements: ["runtimeBoundaryRef"],
+  failureModes: ["not_map_routable"],
+});
+
+const buildRuntimeOnlyGroup = (abilityGroupId: string): MapAuthoringCapabilityGroup => ({
+  abilityGroupId,
+  abilityGroupCode: abilityGroupId,
+  displayName: humanize(abilityGroupId),
+  description: `${humanize(abilityGroupId)} active GrassEye ability-group boundary truth. This owner is runtime-only for map authoring and must not be emitted as an executable map step.`,
+  ownerDomain: abilityGroupId,
+  routableByMap: false,
+  publicContractRef: `contract://${abilityGroupId}/public/v1`,
+  inputSchemaRef: `${abilityGroupId}.group.input`,
+  outputSchemaRef: `${abilityGroupId}.group.output`,
+  forbiddenResponsibilities: ["generated_map_step_routing", "direct_runtime_execution", "provider_or_secret_access"],
+  children: [buildRuntimeOnlyChild(abilityGroupId)],
+});
+
 export const buildCapabilityGroupsFromCatalog = (
   capabilityCatalog: CapabilityCatalogDocument,
   generatedAt: string,
@@ -143,7 +200,7 @@ export const buildCapabilityGroupsFromCatalog = (
     grouped.set(entry.abilityGroupId, children);
   }
 
-  const abilityGroups: MapAuthoringCapabilityGroup[] = [...grouped.entries()].map(([abilityGroupId, children]) => ({
+  const routableGroups: MapAuthoringCapabilityGroup[] = [...grouped.entries()].map(([abilityGroupId, children]) => ({
     abilityGroupId,
     abilityGroupCode: abilityGroupId,
     displayName: humanize(abilityGroupId),
@@ -156,12 +213,27 @@ export const buildCapabilityGroupsFromCatalog = (
     forbiddenResponsibilities: [...new Set(children.flatMap((child) => child.forbiddenResponsibilities))],
     children,
   }));
+  const routableById = new Map(routableGroups.map((group) => [group.abilityGroupId, group]));
+  const abilityGroups = ACTIVE_ABILITY_GROUP_IDS.map((abilityGroupId) =>
+    routableById.get(abilityGroupId) ?? buildRuntimeOnlyGroup(abilityGroupId),
+  );
+  const mapRoutableChildren = abilityGroups
+    .filter((group) => group.routableByMap)
+    .flatMap((group) => group.children);
 
   return {
     version: CAPABILITY_CATALOG_VERSION,
     generatedAt,
     generatedFrom: "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
+    activeAbilityGroupCount: 14,
     abilityGroups,
+    mapRoutableChildren,
+    runtimeOnlyOwners: [...RUNTIME_ONLY_OWNER_IDS],
+    authoringVisibilityPolicy: {
+      abilityTruthSource: "capabilityCatalog.abilityGroups",
+      routableStepSource: "capabilityCatalog.mapRoutableChildren",
+      aiMustNotInvent: true,
+    },
   };
 };
 

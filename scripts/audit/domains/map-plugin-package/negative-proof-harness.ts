@@ -127,8 +127,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "hardcoded capability list in prompt template mutation",
     file: "src/map-plugins/authoring/map-authoring-template.ts",
-    search: '    "Allowed Capabilities:",\n    formatCapabilitySection(inputPackage),\n',
-    replace: '    "Allowed Capabilities:",\n    "- screenshot/full-screen-capture: stale manual catalog text",\n    formatCapabilitySection(inputPackage),\n',
+    search: '    "Static Governance Rules:",\n',
+    replace: '    "Static Governance Rules:",\n    "- open-tiktok: stale manual childCapabilityId text",\n',
   },
   {
     name: "approved manifest without validationReportRef mutation",

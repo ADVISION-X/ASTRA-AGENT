@@ -61,7 +61,17 @@ import { AiChainFieldSchemas } from "./schema-chain-fields.js";
 const AiCoreChainFieldSchema = z.object(AiChainFieldSchemas).strict();
 
 function validateAiCoreChainFields(value: unknown, context: z.RefinementCtx) {
-  const parsed = AiCoreChainFieldSchema.safeParse(value);
+  if (!value || typeof value !== "object") {
+    const parsed = AiCoreChainFieldSchema.safeParse(value);
+    for (const issue of parsed.success ? [] : parsed.error.issues) {
+      context.addIssue(issue);
+    }
+    return;
+  }
+  const source = value as Record<string, unknown>;
+  const parsed = AiCoreChainFieldSchema.safeParse(
+    Object.fromEntries(Object.keys(AiChainFieldSchemas).map((field) => [field, source[field]])),
+  );
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       context.addIssue(issue);

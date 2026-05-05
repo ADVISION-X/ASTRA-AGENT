@@ -25,9 +25,12 @@ export const PromptContractCatalogModelRoleSchema = z.enum([
   "commentUnderstanding",
   "productSignal",
   "schemaValidator",
+  "map-authoring",
   "multi-role",
   "future",
 ]);
+
+const Sha256HashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
 export const PromptContractCatalogLegacyTaskTypeSchema = z.enum([
   "vision.productPresence",
@@ -43,13 +46,18 @@ export const PromptContractCatalogEntrySchema = z.object({
   legacyTaskType: PromptContractCatalogLegacyTaskTypeSchema,
   modelRole: PromptContractCatalogModelRoleSchema,
   promptVersion: z.string().min(1),
+  promptContractVersion: z.string().min(1).optional(),
+  version: z.string().min(1).optional(),
   schemaVersion: z.string().min(1),
   inputContract: z.string().min(1),
   requiredInputRefs: z.array(z.string().min(1)).min(1),
   outputSchemaRef: z.string().min(1),
+  outputSchema: z.record(z.string(), z.unknown()).optional(),
   allowedBranchFields: z.array(z.string().min(1)).default([]),
   systemPromptTemplateRef: z.string().min(1).nullable().default(null),
   userPromptTemplateRef: z.string().min(1).nullable().default(null),
+  systemPromptTemplateHash: Sha256HashSchema.optional(),
+  userPromptTemplateHash: Sha256HashSchema.optional(),
   purpose: z.string().min(1),
   forbiddenOutputs: z.array(z.string().min(1)).default([]),
   prohibitedActions: z.array(z.string().min(1)).default([]),
@@ -57,8 +65,11 @@ export const PromptContractCatalogEntrySchema = z.object({
   confidencePolicy: PromptContractConfidencePolicySchema,
   reviewPolicy: PromptContractReviewPolicySchema,
   failurePolicy: PromptContractFailurePolicySchema,
+  dataPolicy: z.record(z.string(), z.unknown()).optional(),
+  safetyPolicy: z.record(z.string(), z.unknown()).optional(),
   debugPolicy: PromptContractDebugPolicySchema,
-  promptHash: z.string().min(1),
+  promptHash: Sha256HashSchema,
+  promptContractHash: Sha256HashSchema.optional(),
   sensitiveOperation: z.boolean().default(false),
 }).strict();
 

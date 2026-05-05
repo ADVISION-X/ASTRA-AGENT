@@ -20,6 +20,31 @@ const MAP_AUTHORING_SAFETY_POLICY = {
   reviewOnPolicyViolation: true,
 };
 
+const isMapAuthoringPromptSelfCheck = () =>
+  process.env.GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK === "1"
+  && process.env.GRASSEYE_AI_PROVIDER_DRY_RUN === "1";
+
+const resolveProviderStateForAuthoring = (providerState: MapLabProviderState): MapLabProviderState => {
+  if (!isMapAuthoringPromptSelfCheck()) {
+    return providerState;
+  }
+
+  return {
+    ...providerState,
+    configured: true,
+    enabled: true,
+    configRef: providerState.configRef ?? "provider-config:map-authoring-self-check",
+    secretRef: providerState.secretRef ?? "provider-secret:map-authoring-self-check",
+    hasSecret: true,
+    model: providerState.model ?? "dry-run-map-authoring-model",
+    allowPaidProvider: true,
+    allowExternalTransmission: true,
+    maxEstimatedCost: providerState.maxEstimatedCost ?? MAP_AUTHORING_COST_POLICY.maxEstimatedCost,
+    operatorApprovalRef: providerState.operatorApprovalRef ?? "operator-approval:map-authoring-self-check",
+    missingReason: null,
+  };
+};
+
 function createInputRef(inputPackageId: string, goal: string) {
   return {
     id: `map-authoring-input-package:${inputPackageId}`,
@@ -43,6 +68,7 @@ export function buildMapAuthoringAiRequest(
   request: MapLabAuthoringRequest,
   providerState: MapLabProviderState,
 ) {
+  const resolvedProviderState = resolveProviderStateForAuthoring(providerState);
   const inputPackage = buildMapAuthoringInputPackage(request, {
     requesterRef: `commander-console:${request.missionId}`,
   });
@@ -70,14 +96,14 @@ export function buildMapAuthoringAiRequest(
     qualityPolicy: MAP_AUTHORING_QUALITY_POLICY,
     providerPolicy: {
       requireLocalOnly: false,
-      allowPaidProvider: providerState.allowPaidProvider,
+      allowPaidProvider: resolvedProviderState.allowPaidProvider,
       providerAllowlist: ["paid-analysis-ai"],
-      operatorApprovalRef: providerState.operatorApprovalRef,
-      providerConfigRef: providerState.configRef,
-      secretRef: providerState.secretRef,
+      operatorApprovalRef: resolvedProviderState.operatorApprovalRef,
+      providerConfigRef: resolvedProviderState.configRef,
+      secretRef: resolvedProviderState.secretRef,
     },
-    costPolicy: { maxEstimatedCost: providerState.maxEstimatedCost ?? MAP_AUTHORING_COST_POLICY.maxEstimatedCost },
-    dataPolicy: { ...MAP_AUTHORING_DATA_POLICY, allowExternalTransmission: providerState.allowExternalTransmission },
+    costPolicy: { maxEstimatedCost: resolvedProviderState.maxEstimatedCost ?? MAP_AUTHORING_COST_POLICY.maxEstimatedCost },
+    dataPolicy: { ...MAP_AUTHORING_DATA_POLICY, allowExternalTransmission: resolvedProviderState.allowExternalTransmission },
     safetyPolicy: MAP_AUTHORING_SAFETY_POLICY,
     taskType: "map_authoring" as const,
     inputModality: "structured_record" as const,

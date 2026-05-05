@@ -106,6 +106,9 @@ export function buildMapAuthoringInputPackage(
     privacyPolicy: buildPolicyDescriptor("policy://map-authoring/privacy/v1", "Sensitive content must be redacted before proof persistence.", ["redact_sensitive_text", "no_raw_clipboard_text", "no_raw_prompt_body"]),
     secretPolicy: buildPolicyDescriptor("policy://map-authoring/secret/v1", "Secrets and credentials must never enter the map package, prompt, or proof payload.", ["no_api_keys_in_map", "no_cookies_in_map", "no_credentials_in_proof"]),
     rateLimitPolicy: buildPolicyDescriptor("policy://map-authoring/rate-limit/v1", "Bulk or repeated operations must respect platform rate limits and review gates.", ["bulk_actions_require_review", "respect_platform_rate_limit", "pause_on_limit_exceeded"]),
+    exampleMaps: [],
+    exampleMapsVersion: "map-authoring-example-maps.v1",
+    exampleMapsSourceRef: "catalog://map-authoring/example-maps/empty-governed-v1",
     validationPolicy: {
       policyRef: "policy://map-authoring/validation/v1",
       blockedOnMissingInputs: true,

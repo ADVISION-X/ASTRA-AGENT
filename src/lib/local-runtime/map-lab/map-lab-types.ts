@@ -41,9 +41,13 @@ export type MapLabProviderState = {
 export type MapLabAuthoringRequest = z.output<typeof MapAuthoringRequestSchema>;
 
 export type MapLabGenerateDraftResult = {
-  status: "success" | "failed" | "review_required";
+  status: "success" | "failed" | "review_required" | "dry_run_captured";
   failureReason: string | null;
   reviewRequiredReason: string | null;
+  dryRunCaptured?: boolean;
+  wouldSendToProvider?: boolean;
+  externalHttpSent?: boolean;
+  realAiCalled?: boolean;
   packageId: string | null;
   packageVersion: string | null;
   mapPackage: MapPackage | null;

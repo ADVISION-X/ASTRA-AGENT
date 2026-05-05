@@ -33,6 +33,10 @@ type RuntimeState = {
   lastFailureReason: string | null;
 };
 
+const isMapAuthoringProviderDryRun = () =>
+  process.env.GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK === "1"
+  && process.env.GRASSEYE_AI_PROVIDER_DRY_RUN === "1";
+
 function createRuntimeState(): RuntimeState {
   return {
     lastTaskType: null,
@@ -79,6 +83,14 @@ function buildProviderNotConfiguredOutput(): AiRuntimeExecutionOutput {
     implementationStatus: "provider_not_configured",
     modelName: "not-configured",
     failureReason: "provider_not_configured",
+  });
+}
+
+function buildDryRunCapturedOutput(modelName: string): AiRuntimeExecutionOutput {
+  return buildExternalProviderFailureOutput({
+    implementationStatus: "DRY_RUN_CAPTURED",
+    modelName,
+    failureReason: "WOULD_SEND_TO_PROVIDER",
   });
 }
 
@@ -196,6 +208,38 @@ async function callExternalProvider(
   clock: AiClockPort,
   options?: AiRuntimeExecuteOptions,
 ): Promise<AiRuntimeExecutionOutput> {
+  if (isMapAuthoringProviderDryRun() && request.taskType === "map_authoring") {
+    const config = {
+      providerId: "openai-compatible",
+      displayName: "Dry-run map authoring provider",
+      providerKind: "openai-compatible",
+      providerCompany: "openai",
+      model: "dry-run-map-authoring-model",
+      configRef: request.providerPolicy.providerConfigRef ?? "provider-config:map-authoring-self-check",
+      secretRef: request.providerPolicy.secretRef ?? "provider-secret:map-authoring-self-check",
+      baseUrl: "dry-run://blocked-before-external-provider-call",
+      apiKey: "[REDACTED]",
+      allowPaidProvider: true,
+      providerAllowlist: ["paid-analysis-ai"] as ["paid-analysis-ai"],
+      dataPolicy: { allowExternalTransmission: false },
+      costPolicy: { maxEstimatedCost: 1 },
+      operatorApprovalRef: request.providerPolicy.operatorApprovalRef,
+      approvalReason: "dry-run map authoring self-check",
+      enabled: true,
+      updatedAt: new Date(0).toISOString(),
+    } as const;
+    const messages = buildExternalProviderMessages(request);
+    if (messages === null) {
+      return buildExternalProviderFailureOutput({
+        implementationStatus: "task_type_mismatch",
+        modelName: config.model,
+        failureReason: "task_type_mismatch",
+      });
+    }
+    await emitExternalRequestDebug({ runtimeInput: input, request, config, messages });
+    return buildDryRunCapturedOutput(config.model);
+  }
+
   if (!input.dataDir) {
     return buildProviderNotConfiguredOutput();
   }
@@ -237,6 +281,18 @@ async function callExternalProvider(
 
 async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, clock: AiClockPort, state: RuntimeState) {
   const checkedAt = clock.finishRun(clock.startRun()).endedAt;
+
+  if (isMapAuthoringProviderDryRun()) {
+    const health = buildHealth({
+      implementationStatus: "DRY_RUN_CAPTURED",
+      overallStatus: "ready",
+      model: "dry-run-map-authoring-model",
+      detail: "openai-compatible:dry-run-block-before-external-provider-call",
+      state,
+      checkedAt,
+    });
+    return { ok: true, detail: health.dependencies.gateway, health };
+  }
 
   if (!input.dataDir) {
     const health = buildHealth({

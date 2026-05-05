@@ -1,7 +1,11 @@
 {
-  "generatedAt": "2026-05-04T17:56:02.674Z",
+  "generatedAt": "2026-05-04T20:47:43.510Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
+    "scripts/audit/domains/map-plugin-package/authoring-input-package-negative-proof.ts",
+    "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+    "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
+    "scripts/audit/domains/map-plugin-package/required-shape-authoring-prompts.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
@@ -9,13 +13,31 @@
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/runner-summary.json",
+    "src/capabilities/ai/prompt-contracts/builtins/ai.evidence_packet_analysis.disabled.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/ai.schema_validation_only.internal.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/comments.intent_analysis.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/comments.ocr_cleanup.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/map.authoring.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/product.signal_summary.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/builtins/vision.productPresence.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/registry.ts",
+    "src/capabilities/ai/prompt-contracts/schema.ts",
     "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
     "src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts",
-    "src/capabilities/ai/runtime/provider-config-store.ts",
-    "src/capabilities/geometry-guard/runtime/geometry-proof-builder.ts",
-    "src/lib/local-runtime/workbench-ai-debug-support.ts",
-    "src/map-plugins/authoring/capability-catalog/policies.ts"
+    "src/capabilities/ai/runtime/ai-runtime-result.ts",
+    "src/capabilities/ai/schema-core.schema.ts",
+    "src/capabilities/ai/shared/ai-types.ts",
+    "src/lib/local-app-shell/map-lab-client.ts",
+    "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
+    "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
+    "src/lib/local-runtime/map-lab/map-lab-types.ts",
+    "src/map-plugins/authoring/map-authoring-capability-catalog.ts",
+    "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
+    "src/map-plugins/authoring/map-authoring-input-package.schema.ts",
+    "src/map-plugins/authoring/map-authoring-prompt-output-catalog.ts",
+    "src/map-plugins/authoring/map-authoring-request.schema.ts",
+    "src/map-plugins/authoring/map-authoring-template.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -25,7 +47,57 @@
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
     "scripts/audit/generated/**/*.json"
   ],
-  "godFileInventory": [],
+  "godFileInventory": [
+    {
+      "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+      "lines": 412,
+      "fileType": "audit phase",
+      "overLimitBy": 62,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectInputPackageSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+      "lines": 353,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 53,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "callExternalProvider"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
+      "lines": 359,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 59,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "disasterFileInventory": [
     {
       "file": "scripts/audit/generated/law-registry.generated.json",
@@ -59,8 +131,198 @@
     }
   ],
   "ownerMixingInventory": [],
-  "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [],
+  "oversizedTouchedFileInventory": [
+    {
+      "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+      "lines": 412,
+      "fileType": "audit phase",
+      "overLimitBy": 62,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectInputPackageSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+      "lines": 353,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 53,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "callExternalProvider"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
+  "functionOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+      "lines": 412,
+      "fileType": "audit phase",
+      "overLimitBy": 62,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectInputPackageSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/app/map-lab-api-handlers.ts",
+      "lines": 151,
+      "fileType": "app/api handler",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "handleProviderConfigRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split app/api handler by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+      "lines": 353,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 53,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "callExternalProvider"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
+      "lines": 192,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildMapAuthoringRefs"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/commander-app.view-model.ts",
+      "lines": 101,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "parseCommanderAppPageId"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 119,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "runTaskStartFlow"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
+      "lines": 113,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildMapAuthoringAiRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-commander-command-transport.ts",
+      "lines": 77,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createCommandTransport",
+        "createCommandTransport"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
+      "lines": 122,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildMapAuthoringInputPackage"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [],
   "remediationQueue": [
@@ -93,6 +355,175 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+      "lines": 412,
+      "fileType": "audit phase",
+      "overLimitBy": 62,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectInputPackageSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
+      "lines": 359,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 59,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+      "lines": 353,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 53,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "callExternalProvider"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
+      "lines": 192,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildMapAuthoringRefs"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/app/map-lab-api-handlers.ts",
+      "lines": 151,
+      "fileType": "app/api handler",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "handleProviderConfigRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split app/api handler by owner-local collaborators."
+    },
+    {
+      "file": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
+      "lines": 122,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildMapAuthoringInputPackage"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "lines": 119,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "runTaskStartFlow"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
+      "lines": 113,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildMapAuthoringAiRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/commander-app.view-model.ts",
+      "lines": 101,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "parseCommanderAppPageId"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-commander-command-transport.ts",
+      "lines": 77,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createCommandTransport",
+        "createCommandTransport"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -125,6 +556,55 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
+      "lines": 412,
+      "fileType": "audit phase",
+      "overLimitBy": 62,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "inspectInputPackageSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
+      "lines": 359,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 59,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+      "lines": 353,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 53,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "callExternalProvider"
+      ],
+      "classMembers": 0,
+      "importCount": 12,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     }
   ]
 }

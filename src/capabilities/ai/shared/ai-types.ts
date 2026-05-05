@@ -23,7 +23,7 @@ const AI_TASK_TYPES = [
 ] as const;
 
 const AI_PROVIDER_KINDS = ["local", "paid", "future", "internal"] as const;
-const AI_MODEL_ROLES = ["vision", "ocr", "commentUnderstanding", "productSignal", "schemaValidator", "multi-role", "future"] as const;
+const AI_MODEL_ROLES = ["vision", "ocr", "commentUnderstanding", "productSignal", "schemaValidator", "map-authoring", "multi-role", "future"] as const;
 const AI_INPUT_MODALITIES = ["image_collection", "text_blocks", "structured_record", "mixed", "none"] as const;
 const AI_EXECUTION_STATUSES = ["success", "failed", "review_required"] as const;
 const AI_SCHEMA_VALIDATION_STATUSES = ["valid", "invalid", "not_applicable"] as const;

@@ -25,7 +25,7 @@ const MapAuthoringRateLimitSchema = z.object({
 const MapAuthoringUserRequirementSchema = z.object({
   goal: z.string().min(1),
   targetPlatform: RequestedPlatformIdSchema,
-  allowedAutomationScope: z.string().min(1),
+  allowedAutomationScope: NonEmptyStringListSchema,
   mustAskBefore: z.array(z.string().min(1)).default([]),
   failureHandlingPreference: OptionalStringSchema,
   evidencePreference: OptionalStringSchema,
@@ -76,7 +76,15 @@ const MapAuthoringCapabilityCatalogSchema = z.object({
   version: z.string().min(1),
   generatedAt: z.string().datetime(),
   generatedFrom: z.string().min(1),
-  abilityGroups: z.array(MapAuthoringCapabilityGroupSchema).min(1),
+  activeAbilityGroupCount: z.literal(14),
+  abilityGroups: z.array(MapAuthoringCapabilityGroupSchema).length(14),
+  mapRoutableChildren: z.array(MapAuthoringCapabilityChildSchema).min(1),
+  runtimeOnlyOwners: z.array(z.string().min(1)).min(1),
+  authoringVisibilityPolicy: z.object({
+    abilityTruthSource: z.literal("capabilityCatalog.abilityGroups"),
+    routableStepSource: z.literal("capabilityCatalog.mapRoutableChildren"),
+    aiMustNotInvent: z.literal(true),
+  }).strict(),
 }).strict();
 
 const MapAuthoringPromptContractCatalogEntrySchema = z.object({
@@ -87,6 +95,9 @@ const MapAuthoringPromptContractCatalogEntrySchema = z.object({
   description: z.string().min(1),
   inputSchemaRef: z.string().min(1),
   outputSchemaRef: z.string().min(1),
+  promptContractHash: z.string().min(1).optional(),
+  systemPromptTemplateHash: z.string().min(1).optional(),
+  userPromptTemplateHash: z.string().min(1).optional(),
   allowedInputRefs: z.array(z.string().min(1)).default([]),
   dataPolicy: MapAuthoringPolicyDescriptorSchema,
   providerPolicy: MapAuthoringPolicyDescriptorSchema,
@@ -191,7 +202,9 @@ const MapAuthoringInputPackageSchema = z.object({
   privacyPolicy: MapAuthoringPolicyDescriptorSchema,
   secretPolicy: MapAuthoringPolicyDescriptorSchema,
   rateLimitPolicy: MapAuthoringPolicyDescriptorSchema,
-  exampleMaps: z.array(MapAuthoringExampleMapSchema).optional(),
+  exampleMaps: z.array(MapAuthoringExampleMapSchema),
+  exampleMapsVersion: z.string().min(1),
+  exampleMapsSourceRef: z.string().min(1),
   validationPolicy: MapAuthoringValidationPolicySchema,
   expectedDraftStatus: z.literal("draft"),
 }).strict();

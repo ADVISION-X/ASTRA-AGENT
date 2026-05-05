@@ -7,21 +7,38 @@
   "promptVersion": "comments.ocr_cleanup.v1",
   "schemaVersion": "ocr-text.v1",
   "inputContract": "text_blocks.comment_capture",
-  "requiredInputRefs": ["commentsEvidenceRef"],
+  "requiredInputRefs": [
+    "commentsEvidenceRef"
+  ],
   "outputSchemaRef": "ai.ocr_cleanup.v1",
   "allowedBranchFields": [],
   "systemPromptTemplateRef": null,
   "userPromptTemplateRef": null,
   "purpose": "Clean OCR comment blocks into governed structured text while preserving uncertainty.",
-  "forbiddenOutputs": ["编造评论", "补写不存在文本"],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "forbiddenOutputs": [
+    "编造评论",
+    "补写不存在文本"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 0.6,
     "belowMin": "review_required"
   },
   "reviewPolicy": {
-    "requiredWhen": ["low_confidence"]
+    "requiredWhen": [
+      "low_confidence"
+    ]
   },
   "failurePolicy": {
     "badJson": "review_required",
@@ -33,6 +50,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:comments-ocr-cleanup-v1",
-  "sensitiveOperation": false
+  "promptHash": "sha256:a3d3de2acb9470621b55a224552d414ec8f31f10a4077ea8331d0f2348c5ad2d",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:a3d3de2acb9470621b55a224552d414ec8f31f10a4077ea8331d0f2348c5ad2d"
 }

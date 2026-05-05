@@ -7,21 +7,38 @@
   "promptVersion": "evidence_packet_analysis.v1",
   "schemaVersion": "ai.evidence_packet_analysis.v1",
   "inputContract": "structured_record.evidence_packet_summary",
-  "requiredInputRefs": ["aiResultRef"],
+  "requiredInputRefs": [
+    "aiResultRef"
+  ],
   "outputSchemaRef": "ai.evidence_packet_analysis.v1",
   "allowedBranchFields": [],
   "systemPromptTemplateRef": null,
   "userPromptTemplateRef": null,
   "purpose": "Reserved paid evidence analysis path that remains disabled by policy in the current phase.",
-  "forbiddenOutputs": ["platform_action", "paid_fallback_to_local"],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "forbiddenOutputs": [
+    "platform_action",
+    "paid_fallback_to_local"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 1,
     "belowMin": "failed"
   },
   "reviewPolicy": {
-    "requiredWhen": ["disabled_by_policy"]
+    "requiredWhen": [
+      "disabled_by_policy"
+    ]
   },
   "failurePolicy": {
     "badJson": "failed",
@@ -33,6 +50,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:evidence-packet-analysis-disabled",
-  "sensitiveOperation": false
+  "promptHash": "sha256:e88a3ec6e0c74643168657da3b6e121cea6c81789de84941e2b397851354fc23",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:e88a3ec6e0c74643168657da3b6e121cea6c81789de84941e2b397851354fc23"
 }

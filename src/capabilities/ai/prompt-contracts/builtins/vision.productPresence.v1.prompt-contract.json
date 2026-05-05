@@ -7,9 +7,13 @@
   "promptVersion": "v1",
   "schemaVersion": "vision.productPresence.schema.v1",
   "inputContract": "image_collection.ai_input",
-  "requiredInputRefs": ["promptInputRef"],
+  "requiredInputRefs": [
+    "promptInputRef"
+  ],
   "outputSchemaRef": "ai.product_presence_judgment.v1",
-  "allowedBranchFields": ["decision"],
+  "allowedBranchFields": [
+    "decision"
+  ],
   "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "purpose": "Determine whether the current visual evidence shows a concrete product demonstration before downstream branch selection.",
@@ -22,14 +26,26 @@
     "fabricated invisible product",
     "page assumptions outside the sampled frames"
   ],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 0.6,
     "belowMin": "review_required"
   },
   "reviewPolicy": {
-    "requiredWhen": ["low_confidence"]
+    "requiredWhen": [
+      "low_confidence"
+    ]
   },
   "failurePolicy": {
     "badJson": "review_required",
@@ -41,6 +57,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:vision-productPresence-v1",
-  "sensitiveOperation": false
+  "promptHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81"
 }

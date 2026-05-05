@@ -1,0 +1,472 @@
+{
+  "noRealAiCalled": true,
+  "externalHttpSent": false,
+  "dryRunCaptured": true,
+  "wouldSendToProvider": true,
+  "serviceTriggerPath": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts#generateMapLabDraft -> runtime.aiAbilityGroup.execute -> AI Capability -> Prompt Contract Registry -> external provider adapter dry-run",
+  "dryRunEnv": {
+    "GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK": "1",
+    "GRASSEYE_DEBUG_AI_IO": "full",
+    "GRASSEYE_AI_PROVIDER_DRY_RUN": "1"
+  },
+  "result": {
+    "status": "dry_run_captured",
+    "failureReason": "WOULD_SEND_TO_PROVIDER",
+    "reviewRequiredReason": null,
+    "dryRunCaptured": true,
+    "wouldSendToProvider": true,
+    "externalHttpSent": false,
+    "realAiCalled": false,
+    "packageId": null,
+    "packageVersion": null,
+    "mapPackage": null,
+    "humanReadableExplanation": null,
+    "requiredClarifications": [],
+    "riskWarnings": [],
+    "validationHints": [],
+    "validationIssues": [],
+    "needsCapabilityExpansion": false,
+    "draftStatus": null
+  },
+  "requiredTopLevelFields": [
+    {
+      "field": "inputPackageId",
+      "present": true
+    },
+    {
+      "field": "inputPackageVersion",
+      "present": true
+    },
+    {
+      "field": "generatedAt",
+      "present": true
+    },
+    {
+      "field": "requesterRef",
+      "present": true
+    },
+    {
+      "field": "userRequirement",
+      "present": true
+    },
+    {
+      "field": "userRequirementRef",
+      "present": true
+    },
+    {
+      "field": "sourceRequirementHash",
+      "present": true
+    },
+    {
+      "field": "targetPlatformProfileRef",
+      "present": true
+    },
+    {
+      "field": "targetPlatformProfile",
+      "present": true
+    },
+    {
+      "field": "capabilityCatalog",
+      "present": true
+    },
+    {
+      "field": "promptContractCatalog",
+      "present": true
+    },
+    {
+      "field": "outputSchemaCatalog",
+      "present": true
+    },
+    {
+      "field": "mapPackageSchema",
+      "present": true
+    },
+    {
+      "field": "mapAuthoringOutputSchema",
+      "present": true
+    },
+    {
+      "field": "safetyPolicy",
+      "present": true
+    },
+    {
+      "field": "humanApprovalPolicy",
+      "present": true
+    },
+    {
+      "field": "evidencePolicy",
+      "present": true
+    },
+    {
+      "field": "pavPolicy",
+      "present": true
+    },
+    {
+      "field": "forensicsPolicy",
+      "present": true
+    },
+    {
+      "field": "privacyPolicy",
+      "present": true
+    },
+    {
+      "field": "secretPolicy",
+      "present": true
+    },
+    {
+      "field": "rateLimitPolicy",
+      "present": true
+    },
+    {
+      "field": "exampleMaps",
+      "present": true
+    },
+    {
+      "field": "exampleMapsVersion",
+      "present": true
+    },
+    {
+      "field": "exampleMapsSourceRef",
+      "present": true
+    },
+    {
+      "field": "validationPolicy",
+      "present": true
+    },
+    {
+      "field": "expectedDraftStatus",
+      "present": true
+    }
+  ],
+  "exampleMapsPresent": true,
+  "allowedAutomationScopeIsArray": true,
+  "expectedDraftStatus": "draft",
+  "capabilityCatalogHas14ActiveGroups": true,
+  "hashChecks": {
+    "promptContractHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+    "promptHashMatchesContractHash": true,
+    "promptContractHashMatches": true,
+    "systemPromptTemplateHashMatches": true,
+    "userPromptTemplateHashMatches": true,
+    "systemPromptHashMatchesProviderMessage": true,
+    "userPromptHashMatchesProviderMessage": true,
+    "providerRequestBodyHashMatches": true,
+    "inputPackageHashMatches": true
+  },
+  "debugValidation": {
+    "ok": true,
+    "checks": [
+      {
+        "field": "eventType",
+        "ok": true
+      },
+      {
+        "field": "level",
+        "ok": true
+      },
+      {
+        "field": "status",
+        "ok": true
+      },
+      {
+        "field": "owner",
+        "ok": true
+      },
+      {
+        "field": "ownerResponsible",
+        "ok": true
+      },
+      {
+        "field": "abilityGroupId",
+        "ok": true
+      },
+      {
+        "field": "taskType",
+        "ok": true
+      },
+      {
+        "field": "requestedBy",
+        "ok": true
+      },
+      {
+        "field": "transportedBy",
+        "ok": true
+      },
+      {
+        "field": "promptDebugRef",
+        "ok": true
+      },
+      {
+        "field": "systemPromptHash",
+        "ok": true
+      },
+      {
+        "field": "userPromptHash",
+        "ok": true
+      },
+      {
+        "field": "providerRequestBodyHash",
+        "ok": true
+      }
+    ]
+  },
+  "negativeTests": [
+    {
+      "id": "remove exampleMaps",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove capabilityCatalog",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove promptContractCatalog",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove outputSchemaCatalog",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove mapPackageSchema",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove mapAuthoringOutputSchema",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove safetyPolicy",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove humanApprovalPolicy",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove evidencePolicy",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove pavPolicy",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove forensicsPolicy",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "remove targetPlatformProfile",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "allowedAutomationScope as comma string",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "capabilityCatalog activeAbilityGroupCount < 14",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "missing commander-console boundary owner",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "missing orchestration boundary owner",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "missing nerve-bus boundary owner",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "build prompt from userRequirement only",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "promptHash missing",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "promptHash placeholder sha256:map-authoring-v1",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "promptContractHash mismatch",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "systemPromptTemplateHash mismatch",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "userPromptTemplateHash mismatch",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "AI_REQUEST_DEBUG.systemPromptHash mismatch",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "AI_REQUEST_DEBUG.userPromptHash mismatch",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "AI_REQUEST_DEBUG.providerRequestBodyHash missing",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "AI_REQUEST_DEBUG without promptDebugRef",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "provider call before AI_REQUEST_DEBUG",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "map-authoring-template.ts contains hardcoded childCapabilityId string literal",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "template contains current 14 ability group list as static string",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "template contains hand-written capability table",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "rawPrompt inside map package",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "systemPrompt inside map package",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "handler/script/exec/shell/import/require inside map package",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "approvalStatus=approved in AI output",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "availabilityPolicy=active in AI output",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "humanApprovalRef emitted by AI",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "validationReportRef emitted by AI",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "activationSnapshotRef emitted by AI",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "unknown abilityGroupId",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "unknown childCapabilityId",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "unknown promptContractId",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "unknown outputSchemaRef",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "raw Authorization header",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "raw API key",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "Bearer token",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "cookie value",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    },
+    {
+      "id": "credential/password/session secret",
+      "expected": "FAIL",
+      "actual": "FAIL"
+    }
+  ],
+  "secretScan": {
+    "realSecretMatches": 0,
+    "redactedHeaderMatches": 3,
+    "policyWordMatches": 107,
+    "broadGrepMatches": 115
+  },
+  "commandResults": {
+    "selfCheck": "PASS",
+    "auditBuild": "PASS",
+    "audit": "FAIL audit-system code-purity",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "ciFull": "FAIL audit-system code-purity",
+    "gitDiffCheck": "PASS"
+  },
+  "repositoryReady": false,
+  "finalStatus": "MAP_AUTHORING_PROMPT_SELF_CHECK_NOT_READY"
+}

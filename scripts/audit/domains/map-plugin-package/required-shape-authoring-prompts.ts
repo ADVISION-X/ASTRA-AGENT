@@ -74,18 +74,18 @@ const collectAuthoringTemplateSectionFindings = (templateSource: ReturnType<type
   }
 
   const elements = templateArray.getElements();
-  const allowedCapabilitiesIndex = elements.findIndex((element: Expression) => Node.isStringLiteral(element) && element.getLiteralValue() === "Allowed Capabilities:");
-  const allowedPromptContractsIndex = elements.findIndex((element: Expression) => Node.isStringLiteral(element) && element.getLiteralValue() === "Allowed Prompt Contracts:");
-  const capabilitySectionElements = allowedCapabilitiesIndex >= 0 && allowedPromptContractsIndex > allowedCapabilitiesIndex
-    ? elements.slice(allowedCapabilitiesIndex + 1, allowedPromptContractsIndex)
+  const completeInputPackageIndex = elements.findIndex((element: Expression) => Node.isStringLiteral(element) && element.getLiteralValue() === "Complete Map Authoring Input Package JSON:");
+  const outputRequirementsIndex = elements.findIndex((element: Expression) => Node.isStringLiteral(element) && element.getLiteralValue() === "Output Requirements:");
+  const inputPackageSectionElements = completeInputPackageIndex >= 0 && outputRequirementsIndex > completeInputPackageIndex
+    ? elements.slice(completeInputPackageIndex + 1, outputRequirementsIndex)
     : [];
-  const capabilitySectionIsGoverned = capabilitySectionElements.length === 1
-    && Node.isCallExpression(capabilitySectionElements[0])
-    && capabilitySectionElements[0].getExpression().getText() === "formatCapabilitySection";
+  const inputPackageJsonIsGoverned = inputPackageSectionElements.length === 1
+    && Node.isCallExpression(inputPackageSectionElements[0])
+    && inputPackageSectionElements[0].getExpression().getText() === "JSON.stringify";
 
-  return capabilitySectionIsGoverned
+  return inputPackageJsonIsGoverned
     ? []
-    : [createFinding({ lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL, file: AUTHORING_TEMPLATE_PATH, line: 1, severity: "fatal", message: "Map authoring prompt template must keep the Allowed Capabilities section sourced only from formatCapabilitySection(inputPackage)." })];
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL, file: AUTHORING_TEMPLATE_PATH, line: 1, severity: "fatal", message: "Map authoring prompt template must use the complete Map Authoring Input Package JSON as the only catalog truth source." })];
 };
 
 const inspectAuthoringTemplateSingleTruth = (project: Project): Finding[] => {

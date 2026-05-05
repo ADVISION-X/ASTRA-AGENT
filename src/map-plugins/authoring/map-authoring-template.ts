@@ -18,6 +18,40 @@ type MapAuthoringTemplateContract = {
   promptCatalogVersion?: string;
 };
 
+export const MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE = [
+  "You are GrassEye Map Authoring Agent.",
+  "You receive a complete Map Authoring Input Package.",
+  "You generate declarative operational-map package candidates only.",
+  "You cannot write code.",
+  "You cannot write raw prompts.",
+  "You cannot execute tools.",
+  "You cannot call APIs.",
+  "You cannot activate maps.",
+  "You cannot approve maps.",
+  "You cannot emit humanApprovalRef.",
+  "You cannot emit validationReportRef.",
+  "You cannot emit activationSnapshotRef.",
+  "You cannot invent abilityGroupId.",
+  "You cannot invent childCapabilityId.",
+  "You cannot invent promptContractId.",
+  "You cannot invent outputSchemaRef.",
+  "You must use only capabilityCatalog, promptContractCatalog, outputSchemaCatalog, and policy catalogs.",
+  "If catalogs are stale, missing, or inconsistent, return the governed blocking code.",
+  "Return strict JSON matching MapAuthoringAiOutputSchema.",
+].join("\n");
+
+export const MAP_AUTHORING_USER_PROMPT_TEMPLATE = [
+  "Map Authoring Request Metadata:",
+  "- inputPackageId",
+  "- promptContractId",
+  "- taskType",
+  "- outputSchemaRef",
+  "- language requirement",
+  "Complete Map Authoring Input Package JSON:",
+  "{{MapAuthoringInputPackage}}",
+  "Return JSON only.",
+].join("\n");
+
 const resolveTemplateContract = (
   inputPackage: MapAuthoringInputPackage,
   contract: MapAuthoringTemplateContract = {},
@@ -31,25 +65,6 @@ const resolveTemplateContract = (
   promptCatalogVersion: contract.promptCatalogVersion ?? inputPackage.promptContractCatalog.version,
 });
 
-const formatCapabilitySection = (inputPackage: MapAuthoringInputPackage): string =>
-  inputPackage.capabilityCatalog.abilityGroups
-    .flatMap((group) =>
-      group.children.map((child) =>
-        `- ${group.abilityGroupId}/${child.childCapabilityId}: ${child.description} | input=${child.inputSchemaRef} | output=${child.outputSchemaRef} | sideEffect=${child.sideEffectLevel} | PAV=${child.requiresPostActionVerification}`,
-      ),
-    )
-    .join("\n");
-
-const formatPromptContractSection = (inputPackage: MapAuthoringInputPackage): string =>
-  inputPackage.promptContractCatalog.entries
-    .map((entry) => `- ${entry.promptContractId}: version=${entry.promptContractVersion} | output=${entry.outputSchemaRef} | requiredInputRefs=${entry.allowedInputRefs.join(", ")}`)
-    .join("\n");
-
-const formatOutputSchemaSection = (inputPackage: MapAuthoringInputPackage): string =>
-  inputPackage.outputSchemaCatalog.entries
-    .map((entry) => `- ${entry.outputSchemaRef}: declared=${entry.declaredFields.join(", ")} | branchable=${entry.branchableFields.join(", ") || "none"}`)
-    .join("\n");
-
 const resolveLanguageInstruction = (inputPackage: MapAuthoringInputPackage): string =>
   inputPackage.userRequirement.outputLanguage === "zh-CN"
     ? "Use simplified Chinese for human-readable fields in the output package."
@@ -62,19 +77,11 @@ function buildTemplateHeaderLines(
   return [
     "You are GrassEye Map Authoring Agent.",
     `Input Package ID: ${inputPackage.inputPackageId}`,
-    `Requester Ref: ${inputPackage.requesterRef}`,
-    `User Goal: ${inputPackage.userRequirement.goal}`,
-    `Target Platform: ${inputPackage.userRequirement.targetPlatform}`,
-    `Allowed Automation Scope: ${inputPackage.userRequirement.allowedAutomationScope}`,
-    `Operator Notes: ${inputPackage.userRequirement.operatorNotes || "none"}`,
-    resolveLanguageInstruction(inputPackage),
-    `Authoring Prompt Contract: ${resolvedContract.promptContractId}`,
-    `Authoring Prompt Version: ${resolvedContract.promptContractVersion}`,
-    `Capability Catalog Version: ${resolvedContract.capabilityCatalogVersion}`,
-    `Prompt Contract Catalog Version: ${resolvedContract.promptCatalogVersion}`,
-    `Map Package Schema Version: ${resolvedContract.mapPackageSchemaVersion}`,
-    `Output Format Version: ${resolvedContract.outputFormatVersion}`,
-    `Security Policy Ref: ${resolvedContract.securityPolicyRef}`,
+    `Prompt Contract ID: ${resolvedContract.promptContractId}`,
+    "Task Type: map_authoring",
+    `Output Schema Ref: ${inputPackage.mapAuthoringOutputSchema.schemaRef}`,
+    `Language Requirement: ${resolveLanguageInstruction(inputPackage)}`,
+    "Facts Source: the complete Map Authoring Input Package JSON below is the only capability, prompt-contract, output-schema, platform, and policy truth.",
   ];
 }
 
@@ -97,39 +104,6 @@ function buildOutputRequirementLines(): string[] {
   ];
 }
 
-const formatUserRequirementSection = (inputPackage: MapAuthoringInputPackage): string[] => [
-  `- Goal: ${inputPackage.userRequirement.goal}`,
-  `- Must Ask Before: ${inputPackage.userRequirement.mustAskBefore.join(", ")}`,
-  `- Failure Handling: ${inputPackage.userRequirement.failureHandlingPreference ?? "review_required"}`,
-  `- Evidence Preference: ${inputPackage.userRequirement.evidencePreference ?? "retain_refs_only"}`,
-];
-
-const formatPolicySection = (inputPackage: MapAuthoringInputPackage): string[] => [
-  `- Safety: ${inputPackage.safetyPolicy.rules.join(", ")}`,
-  `- Human Approval: ${inputPackage.humanApprovalPolicy.rules.join(", ")}`,
-  `- Evidence: ${inputPackage.evidencePolicy.rules.join(", ")}`,
-  `- PAV: ${inputPackage.pavPolicy.rules.join(", ")}`,
-  `- Forensics: ${inputPackage.forensicsPolicy.rules.join(", ")}`,
-  `- Privacy: ${inputPackage.privacyPolicy.rules.join(", ")}`,
-  `- Secret: ${inputPackage.secretPolicy.rules.join(", ")}`,
-  `- Rate Limit: ${inputPackage.rateLimitPolicy.rules.join(", ")}`,
-];
-
-const formatPlatformProfileSection = (inputPackage: MapAuthoringInputPackage): string[] => [
-  `- Platform Profile Ref: ${inputPackage.targetPlatformProfile.platformProfileRef}`,
-  `- Login/Auth Expectations: ${inputPackage.targetPlatformProfile.loginAuthExpectations.join(", ")}`,
-  `- Prohibited Operations: ${inputPackage.targetPlatformProfile.prohibitedOperations.join(", ")}`,
-  `- Supported Targets: ${inputPackage.targetPlatformProfile.supportedTargets.join(", ")}`,
-  `- Human Review Rules: ${inputPackage.targetPlatformProfile.humanReviewRules.join(", ")}`,
-];
-
-const formatSchemaSection = (inputPackage: MapAuthoringInputPackage): string[] => [
-  `- Map Package Required Sections: ${inputPackage.mapPackageSchema.requiredSections.join(", ")}`,
-  `- Map Package Draft-Only Fields: ${inputPackage.mapPackageSchema.draftOnlyFields.join(", ")}`,
-  `- Output Schema Required Fields: ${inputPackage.mapAuthoringOutputSchema.requiredTopLevelFields.join(", ")}`,
-  `- Draft Status Values: ${inputPackage.mapAuthoringOutputSchema.draftStatusValues.join(", ")}`,
-];
-
 export const buildMapAuthoringTemplate = (
   inputPackage: MapAuthoringInputPackage,
   contract: MapAuthoringTemplateContract = {},
@@ -138,22 +112,10 @@ export const buildMapAuthoringTemplate = (
 
   return [
     ...buildTemplateHeaderLines(inputPackage, resolvedContract),
-    "User Requirement:",
-    ...formatUserRequirementSection(inputPackage),
-    "Safety Policy:",
+    "Static Governance Rules:",
     ...MAP_AUTHORING_SAFETY_POLICY.map((policy) => `- ${policy}`),
-    "Governed Policies:",
-    ...formatPolicySection(inputPackage),
-    "Platform Profile:",
-    ...formatPlatformProfileSection(inputPackage),
-    "Map Schema Contract:",
-    ...formatSchemaSection(inputPackage),
-    "Allowed Capabilities:",
-    formatCapabilitySection(inputPackage),
-    "Allowed Prompt Contracts:",
-    formatPromptContractSection(inputPackage),
-    "Allowed Output Schemas:",
-    formatOutputSchemaSection(inputPackage),
+    "Complete Map Authoring Input Package JSON:",
+    JSON.stringify(inputPackage, null, 2),
     "Output Requirements:",
     ...buildOutputRequirementLines(),
   ].join("\n");

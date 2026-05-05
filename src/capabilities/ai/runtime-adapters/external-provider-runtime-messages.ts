@@ -1,6 +1,9 @@
 import type { ParsedAiAbilityInput } from "../contract.js";
 import { AiEvidencePacketAnalysisInputSchema } from "../schema.js";
-import { buildMapAuthoringTemplate } from "../../../map-plugins/authoring/map-authoring-template.js";
+import {
+  MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE,
+  buildMapAuthoringTemplate,
+} from "../../../map-plugins/authoring/map-authoring-template.js";
 import { MapAuthoringAiOutputSchema } from "../shared/ai-map-authoring-schemas.js";
 
 export type ExternalProviderMessages = {
@@ -8,37 +11,8 @@ export type ExternalProviderMessages = {
   user: string;
 };
 
-const MAP_AUTHORING_SYSTEM_LINES = [
-  "You are GrassEye Map Authoring Agent.",
-  "You receive a complete Map Authoring Input Package.",
-  "You generate declarative operational-map package candidates only.",
-  "You cannot write code.",
-  "You cannot write raw prompts.",
-  "You cannot execute tools.",
-  "You cannot call APIs.",
-  "You cannot activate maps.",
-  "You cannot approve maps.",
-  "You cannot emit humanApprovalRef.",
-  "You cannot emit validationReportRef.",
-  "You cannot emit activationSnapshotRef.",
-  "You cannot invent abilityGroupId.",
-  "You cannot invent childCapabilityId.",
-  "You cannot invent promptContractId.",
-  "You cannot invent outputSchemaRef.",
-  "You must use only capabilityCatalog, promptContractCatalog, outputSchemaCatalog, and policy catalogs.",
-  "You must treat capabilityCatalog as the only ability truth and must not rely on a hardcoded ability list inside prompt text.",
-  "If requirement is unclear, output requiredClarifications.",
-  "If current abilities are insufficient, output needsCapabilityExpansion.",
-  "If capabilityCatalog is missing, stale, or inconsistent with governed capability truth, return BLOCKED_CAPABILITY_CATALOG_STALE.",
-  "If operation sends/deletes/buys/submits/modifies user data, add review gate.",
-  "If operation involves commit/send/publish behavior, require explicit human confirmation.",
-  "Return strict JSON matching MapAuthoringAiOutputSchema.",
-];
-
 const buildMapAuthoringUserSections = (request: Extract<ParsedAiAbilityInput, { taskType: "map_authoring" }>): string[] => [
   buildMapAuthoringTemplate(request.input),
-  "Complete Map Authoring Input Package JSON:",
-  JSON.stringify(request.input, null, 2),
   "Return a JSON object with:",
   "- draftPackage: declarative draft sections for task template, operational map, dependencies, policy, and prompt bindings.",
   "- humanReadableExplanation: brief operator-facing explanation.",
@@ -52,7 +26,7 @@ const buildMapAuthoringUserSections = (request: Extract<ParsedAiAbilityInput, { 
 
 function buildMapAuthoringMessages(request: Extract<ParsedAiAbilityInput, { taskType: "map_authoring" }>): ExternalProviderMessages {
   return {
-    system: MAP_AUTHORING_SYSTEM_LINES.join("\n"),
+    system: MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE,
     user: buildMapAuthoringUserSections(request).join("\n\n"),
   };
 }

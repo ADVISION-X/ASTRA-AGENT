@@ -1,0 +1,94 @@
+{
+  "promptContractId": "map-authoring-from-user-requirement-v1",
+  "promptId": "map-authoring-from-user-requirement-v1",
+  "taskType": "map_authoring",
+  "legacyTaskType": null,
+  "modelRole": "map-authoring",
+  "promptVersion": "map-authoring-from-user-requirement-v1",
+  "promptContractVersion": "map-authoring-from-user-requirement-v1",
+  "version": "map-authoring-from-user-requirement-v1",
+  "schemaVersion": "map-authoring-draft.v1",
+  "inputContract": "structured_record.map_authoring_input_package",
+  "requiredInputRefs": [
+    "mapAuthoringInputPackageRef"
+  ],
+  "outputSchemaRef": "ai.map_authoring.v1",
+  "outputSchema": {
+    "outputSchemaRef": "ai.map_authoring.v1",
+    "bindingProof": "output-schema-catalog://ai.map_authoring.v1"
+  },
+  "allowedBranchFields": [],
+  "systemPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#system",
+  "userPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#user",
+  "systemPromptTemplateHash": "sha256:0701d42362eda0f049cccab863001e75e3c8decea6b0f07ac01330045774c8d8",
+  "userPromptTemplateHash": "sha256:03b247ed24f9b2a1899b6f802af88a16dcd67f594062e5341e9589e41a4482bb",
+  "purpose": "Draft a governed GrassEye map package candidate from Commander operator requirements.",
+  "forbiddenOutputs": [
+    "rawPrompt",
+    "functionBody",
+    "script",
+    "eval",
+    "import",
+    "require",
+    "active=true",
+    "approvalStatus=approved",
+    "humanApprovalRef",
+    "validationReportRef",
+    "activationSnapshotRef",
+    "unknown abilityGroupId",
+    "unknown childCapabilityId",
+    "unknown promptContractId",
+    "unknown outputSchemaRef"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
+  "confidencePolicy": {
+    "minConfidence": 0.6,
+    "belowMin": "review_required"
+  },
+  "reviewPolicy": {
+    "requiredWhen": [
+      "low_confidence",
+      "schema_mismatch",
+      "prompt_contract_failure"
+    ]
+  },
+  "failurePolicy": {
+    "badJson": "review_required",
+    "schemaMismatch": "review_required",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "dataPolicy": {
+    "allowedInput": "MapAuthoringInputPackage only",
+    "restrictedDataAccess": [
+      "cookies",
+      "credentials",
+      "hidden_token"
+    ],
+    "redactionRequired": true
+  },
+  "safetyPolicy": {
+    "draftOnly": true,
+    "forbidRuntimeActions": true,
+    "forbidCodeGeneration": true,
+    "requireHumanReviewForSensitiveOperations": true
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
+  "promptHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+  "promptContractHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+  "sensitiveOperation": true
+}

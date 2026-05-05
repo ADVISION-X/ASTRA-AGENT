@@ -50,6 +50,33 @@ function createAiFailureResult(aiResult: MapLabAiResult): MapLabGenerateDraftRes
   };
 }
 
+function createDryRunCapturedResult(aiResult: MapLabAiResult): MapLabGenerateDraftResult {
+  return {
+    status: "dry_run_captured",
+    failureReason: "WOULD_SEND_TO_PROVIDER",
+    reviewRequiredReason: null,
+    dryRunCaptured: true,
+    wouldSendToProvider: true,
+    externalHttpSent: false,
+    realAiCalled: false,
+    packageId: null,
+    packageVersion: null,
+    mapPackage: null,
+    humanReadableExplanation: null,
+    requiredClarifications: [],
+    riskWarnings: [],
+    validationHints: [],
+    validationIssues: [],
+    needsCapabilityExpansion: false,
+    draftStatus: null,
+  };
+}
+
+const isDryRunCaptured = (aiResult: MapLabAiResult): boolean =>
+  process.env.GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK === "1"
+  && process.env.GRASSEYE_AI_PROVIDER_DRY_RUN === "1"
+  && stringifyFailureReason(aiResult.failureReason) === "DRY_RUN_CAPTURED";
+
 function createImportedDraftResult(
   normalized: NormalizedDraft,
   imported: ReturnType<MapLabDraftRegistry["importPackage"]>,
@@ -99,6 +126,9 @@ export async function generateMapLabDraft(input: {
   const providerState = await buildProviderStateSnapshot(input.runtime);
   const aiRequest = buildMapAuthoringAiRequest(request, providerState);
   const aiResult = await input.runtime.aiAbilityGroup.execute(aiRequest);
+  if (isDryRunCaptured(aiResult)) {
+    return createDryRunCapturedResult(aiResult);
+  }
   if (aiResult.status !== "success" || aiResult.output === null) {
     return createAiFailureResult(aiResult);
   }

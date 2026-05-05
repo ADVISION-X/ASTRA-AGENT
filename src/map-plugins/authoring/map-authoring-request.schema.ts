@@ -6,7 +6,11 @@ export const MapAuthoringRequestSchema = z.object({
   missionId: z.string().min(1),
   objective: z.string().min(1),
   targetPlatform: RequestedPlatformIdSchema,
-  allowedAutomationScope: z.string().min(1).default("observe_and_prepare_draft_only"),
+  allowedAutomationScope: z.union([z.array(z.string().min(1)), z.string()]).default(["observe_and_prepare_draft_only"]).transform((value) =>
+    Array.isArray(value)
+      ? value
+      : value.split(",").map((item) => item.trim()).filter((item) => item.length > 0),
+  ),
   mustAskBefore: z.union([z.array(z.string().min(1)), z.string()]).default([]).transform((value) =>
     Array.isArray(value)
       ? value

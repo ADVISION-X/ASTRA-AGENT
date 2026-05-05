@@ -96,6 +96,7 @@ const resolveAiTerminalRuntimeFailure = (
     "provider_secret_missing",
     "runtime_invalid_response",
     "runtime_http_failed",
+    "DRY_RUN_CAPTURED",
   ].includes(runtimeResult.implementationStatus)
     ? runtimeResult.implementationStatus
     : null

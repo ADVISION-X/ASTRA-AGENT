@@ -7,21 +7,38 @@
   "promptVersion": "comments.intent_analysis.v1",
   "schemaVersion": "comment-signal.v1",
   "inputContract": "structured_record.cleaned_comments",
-  "requiredInputRefs": ["commentsEvidenceRef"],
+  "requiredInputRefs": [
+    "commentsEvidenceRef"
+  ],
   "outputSchemaRef": "ai.comment_signal_summary.v1",
   "allowedBranchFields": [],
   "systemPromptTemplateRef": null,
   "userPromptTemplateRef": null,
   "purpose": "Summarize comment signals into purchase intent, pain points, complaints, and demand terms.",
-  "forbiddenOutputs": ["个人画像", "跨评论追踪"],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "forbiddenOutputs": [
+    "个人画像",
+    "跨评论追踪"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 0.6,
     "belowMin": "review_required"
   },
   "reviewPolicy": {
-    "requiredWhen": ["low_confidence"]
+    "requiredWhen": [
+      "low_confidence"
+    ]
   },
   "failurePolicy": {
     "badJson": "review_required",
@@ -33,6 +50,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:comments-intent-analysis-v1",
-  "sensitiveOperation": false
+  "promptHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627"
 }

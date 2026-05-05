@@ -7,21 +7,38 @@
   "promptVersion": "schema_validation_only.v1",
   "schemaVersion": "ai.schema_validation_only.v1",
   "inputContract": "structured_record.ai_candidate",
-  "requiredInputRefs": ["aiResultRef"],
+  "requiredInputRefs": [
+    "aiResultRef"
+  ],
   "outputSchemaRef": "ai.schema_validation_only.v1",
   "allowedBranchFields": [],
   "systemPromptTemplateRef": null,
   "userPromptTemplateRef": null,
   "purpose": "Validate an AI candidate against the declared output schema without entering the LocalAiGateway.",
-  "forbiddenOutputs": ["platform_action", "schema_bypass"],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "forbiddenOutputs": [
+    "platform_action",
+    "schema_bypass"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 1,
     "belowMin": "failed"
   },
   "reviewPolicy": {
-    "requiredWhen": ["schema_mismatch"]
+    "requiredWhen": [
+      "schema_mismatch"
+    ]
   },
   "failurePolicy": {
     "badJson": "failed",
@@ -33,6 +50,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:schema-validation-only",
-  "sensitiveOperation": false
+  "promptHash": "sha256:b16fefbe80816bb449c9a92819d36e442a29bbfac1b490651ed9f299078197d0",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:b16fefbe80816bb449c9a92819d36e442a29bbfac1b490651ed9f299078197d0"
 }

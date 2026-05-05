@@ -1,0 +1,102 @@
+{
+  "capabilityCatalog": {
+    "version": "2026-04-map-prompt-contract-v1",
+    "generatedFrom": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
+    "activeAbilityGroupCount": 14,
+    "abilityGroupCount": 14,
+    "mapRoutableChildrenCount": 64,
+    "runtimeOnlyOwners": [
+      "commander-console",
+      "orchestration",
+      "nerve-bus"
+    ]
+  },
+  "promptContractCatalog": {
+    "version": "map-prompt-contract-catalog.v1",
+    "aiCapabilityRegistryVersion": "map-prompt-contract-catalog.v1",
+    "entries": [
+      {
+        "promptContractId": "ai.evidence_packet_analysis.disabled",
+        "promptContractVersion": "evidence_packet_analysis.v1",
+        "promptHash": "sha256:e88a3ec6e0c74643168657da3b6e121cea6c81789de84941e2b397851354fc23",
+        "promptContractHash": "sha256:e88a3ec6e0c74643168657da3b6e121cea6c81789de84941e2b397851354fc23",
+        "outputSchemaRef": "ai.evidence_packet_analysis.v1"
+      },
+      {
+        "promptContractId": "map-authoring-from-user-requirement-v1",
+        "promptContractVersion": "map-authoring-from-user-requirement-v1",
+        "promptHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+        "promptContractHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+        "outputSchemaRef": "ai.map_authoring.v1"
+      },
+      {
+        "promptContractId": "ai.schema_validation_only.internal",
+        "promptContractVersion": "schema_validation_only.v1",
+        "promptHash": "sha256:b16fefbe80816bb449c9a92819d36e442a29bbfac1b490651ed9f299078197d0",
+        "promptContractHash": "sha256:b16fefbe80816bb449c9a92819d36e442a29bbfac1b490651ed9f299078197d0",
+        "outputSchemaRef": "ai.schema_validation_only.v1"
+      },
+      {
+        "promptContractId": "vision.productPresence.v1",
+        "promptContractVersion": "v1",
+        "promptHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81",
+        "promptContractHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81",
+        "outputSchemaRef": "ai.product_presence_judgment.v1"
+      },
+      {
+        "promptContractId": "comments.ocr_cleanup.v1",
+        "promptContractVersion": "comments.ocr_cleanup.v1",
+        "promptHash": "sha256:a3d3de2acb9470621b55a224552d414ec8f31f10a4077ea8331d0f2348c5ad2d",
+        "promptContractHash": "sha256:a3d3de2acb9470621b55a224552d414ec8f31f10a4077ea8331d0f2348c5ad2d",
+        "outputSchemaRef": "ai.ocr_cleanup.v1"
+      },
+      {
+        "promptContractId": "comments.intent_analysis.v1",
+        "promptContractVersion": "comments.intent_analysis.v1",
+        "promptHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627",
+        "promptContractHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627",
+        "outputSchemaRef": "ai.comment_signal_summary.v1"
+      },
+      {
+        "promptContractId": "product.signal_summary.v1",
+        "promptContractVersion": "product.signal_summary.v1",
+        "promptHash": "sha256:8ee3f980aa3cba8b5912ba44c38b77b44d8a4ceded7ed39e10531eb13a3fd27b",
+        "promptContractHash": "sha256:8ee3f980aa3cba8b5912ba44c38b77b44d8a4ceded7ed39e10531eb13a3fd27b",
+        "outputSchemaRef": "ai.product_signal_summary.v1"
+      }
+    ]
+  },
+  "outputSchemaCatalog": {
+    "version": "map-authoring-output-schema-catalog.v1",
+    "entries": [
+      {
+        "outputSchemaRef": "ai.evidence_packet_analysis.v1",
+        "schemaVersion": "ai.evidence_packet_analysis.v1"
+      },
+      {
+        "outputSchemaRef": "ai.map_authoring.v1",
+        "schemaVersion": "ai.map_authoring.v1"
+      },
+      {
+        "outputSchemaRef": "ai.schema_validation_only.v1",
+        "schemaVersion": "ai.schema_validation_only.v1"
+      },
+      {
+        "outputSchemaRef": "ai.product_presence_judgment.v1",
+        "schemaVersion": "ai.product_presence_judgment.v1"
+      },
+      {
+        "outputSchemaRef": "ai.ocr_cleanup.v1",
+        "schemaVersion": "ai.ocr_cleanup.v1"
+      },
+      {
+        "outputSchemaRef": "ai.comment_signal_summary.v1",
+        "schemaVersion": "ai.comment_signal_summary.v1"
+      },
+      {
+        "outputSchemaRef": "ai.product_signal_summary.v1",
+        "schemaVersion": "ai.product_signal_summary.v1"
+      }
+    ]
+  }
+}

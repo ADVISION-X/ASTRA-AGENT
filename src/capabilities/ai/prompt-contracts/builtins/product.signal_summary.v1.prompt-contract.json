@@ -7,21 +7,39 @@
   "promptVersion": "product.signal_summary.v1",
   "schemaVersion": "product-opportunity-candidate.v1",
   "inputContract": "structured_record.product_signal_inputs",
-  "requiredInputRefs": ["aiResultRef"],
+  "requiredInputRefs": [
+    "aiResultRef"
+  ],
   "outputSchemaRef": "ai.product_signal_summary.v1",
   "allowedBranchFields": [],
   "systemPromptTemplateRef": null,
   "userPromptTemplateRef": null,
   "purpose": "Produce a governed product opportunity summary backed by upstream AI evidence.",
-  "forbiddenOutputs": ["采购决定", "广告决定", "上架决定"],
-  "prohibitedActions": ["click", "scroll", "type", "open_page", "dispatch_action"],
-  "restrictedDataAccess": ["cookies", "credentials", "hidden_token"],
+  "forbiddenOutputs": [
+    "采购决定",
+    "广告决定",
+    "上架决定"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
   "confidencePolicy": {
     "minConfidence": 0.6,
     "belowMin": "review_required"
   },
   "reviewPolicy": {
-    "requiredWhen": ["low_confidence"]
+    "requiredWhen": [
+      "low_confidence"
+    ]
   },
   "failurePolicy": {
     "badJson": "review_required",
@@ -33,6 +51,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:product-signal-summary-v1",
-  "sensitiveOperation": false
+  "promptHash": "sha256:8ee3f980aa3cba8b5912ba44c38b77b44d8a4ceded7ed39e10531eb13a3fd27b",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:8ee3f980aa3cba8b5912ba44c38b77b44d8a4ceded7ed39e10531eb13a3fd27b"
 }
