@@ -37,6 +37,8 @@ type RuntimeEventInput = {
   outputRefs?: string[];
   proofRefs?: string[];
   actionLogRefs?: string[];
+  actionRef?: string | null;
+  postActionVerificationRef?: string | null;
   createdAt?: string;
 };
 
@@ -59,6 +61,12 @@ type ActionLogInput = {
   stepResult: StepResultRecord;
   createdAt: string;
   durationMs?: number | null;
+};
+
+type PersistedActionLogRecord = {
+  actionLogId: string;
+  actionRef: string;
+  postActionVerificationRef: string;
 };
 
 function resolveSessionId(state: MissionState): string {
@@ -129,6 +137,8 @@ function buildRuntimeEvent(input: RuntimeEventInput) {
     attemptId: `${sessionId}:${input.step.stepId}:${input.state.sequenceNo}`,
     activationSnapshotRef: input.state.activationSnapshotRef ?? null,
     capabilityCallId: input.capabilityCallId ?? null,
+    actionRef: input.actionRef ?? null,
+    postActionVerificationRef: input.postActionVerificationRef ?? null,
     step,
     previousStep: null,
     nextStep: null,
@@ -180,6 +190,8 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
     sourceRecordRefs: [],
     parentRefs: [],
     artifactRefs: [],
+    actionRef: input.actionRef ?? null,
+    postActionVerificationRef: input.postActionVerificationRef ?? null,
     persistencePolicy: { mode: "append", allowPartialRefs: true },
     dataQualityFlags: [],
     payload: { structuredRuntimeEvent },
@@ -210,7 +222,7 @@ function resolvePostActionVerificationRef(stepResult: StepResultRecord): string 
   );
 }
 
-function buildStructuredActionLog(input: ActionLogInput, runtimeStep: ReturnType<typeof resolveVerifiedActionStep>): StructuredActionLog {
+function buildStructuredActionLog(input: ActionLogInput, runtimeStep: NonNullable<ReturnType<typeof resolveVerifiedActionStep>>): StructuredActionLog {
   return StructuredActionLogSchema.parse({
     actionLogId: randomUUID(),
     abilityGroupId: "orchestration",
@@ -246,7 +258,7 @@ function buildStructuredActionLog(input: ActionLogInput, runtimeStep: ReturnType
   });
 }
 
-export async function recordPostActionVerificationActionLog(input: ActionLogInput): Promise<string | null> {
+export async function recordPostActionVerificationActionLog(input: ActionLogInput): Promise<PersistedActionLogRecord | null> {
   const runtimeStep = resolveVerifiedActionStep(input.step);
   if (!runtimeStep) {
     return null;
@@ -261,7 +273,7 @@ export async function recordPostActionVerificationActionLog(input: ActionLogInpu
   const structuredActionLog = buildStructuredActionLog(input, runtimeStep);
   const mapChain = resolveMapChain(input.state, input.mapRecord);
 
-  await input.context.forensics.writeStructuredActionLog({
+  const result = await input.context.forensics.writeStructuredActionLog({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-action-log",
     recordType: "structured_action_log",
@@ -292,5 +304,13 @@ export async function recordPostActionVerificationActionLog(input: ActionLogInpu
     payload: { structuredActionLog },
   });
 
-  return structuredActionLog.actionLogId;
+  if (result.status === "failed") {
+    return null;
+  }
+
+  return {
+    actionLogId: structuredActionLog.actionLogId,
+    actionRef,
+    postActionVerificationRef,
+  };
 }

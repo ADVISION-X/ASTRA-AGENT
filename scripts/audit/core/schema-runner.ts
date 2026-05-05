@@ -3,6 +3,7 @@ import type { InspectorResult } from "./schema.js";
 export interface RunnerSummary {
   generatedAt: string;
   phase: string;
+  passed: boolean;
   totals: {
     inspectors: number;
     passed: number;

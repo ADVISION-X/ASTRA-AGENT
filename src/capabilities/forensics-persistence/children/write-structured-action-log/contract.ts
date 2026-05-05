@@ -6,7 +6,7 @@ export const WRITE_STRUCTURED_ACTION_LOG_CHILD = {
   allowExternalArtifactRef: false,
   onArtifactWriteFailure: "failed",
   requireSourceRecordRefs: false,
-  requireParentRefs: true,
+  requireParentRefs: false,
   requireArtifactRefs: false,
   requireStorageRef: false,
 } as const;

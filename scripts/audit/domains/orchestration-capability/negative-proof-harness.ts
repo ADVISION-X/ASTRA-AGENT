@@ -70,6 +70,24 @@ const MUTATIONS: Mutation[] = [
     search: "const postActionVerificationReason = ensurePostActionVerificationDispatchGate(input.map, input.step.stepId);",
     replace: "const postActionVerificationReason = null;",
   },
+  {
+    name: "step transition runtime event removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+    search: 'eventType: "STEP_TRANSITION_EVALUATED",',
+    replace: 'eventType: "STEP_TRANSITION_SKIPPED",',
+  },
+  {
+    name: "success proof ref closure removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+    search: "const persistedState = toMissionControlState(state, details.endedAt, {\n    lastRuntimeProofRef: runtimeProofId,\n    runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId],\n  });",
+    replace: "const persistedState = toMissionControlState(state, details.endedAt, {\n    lastRuntimeProofRef: null,\n    runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId],\n  });",
+  },
+  {
+    name: "post-action action log writer removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
+    search: "writeStructuredActionLog({",
+    replace: "writeStructuredRuntimeEvent({",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
@@ -152,7 +170,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, unknown-child proof drop, and post-action verification bypass mutations.");
+    return createPassResult("Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Orchestration negative-proof harness failed.",

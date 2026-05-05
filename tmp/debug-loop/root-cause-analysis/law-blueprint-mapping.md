@@ -1,57 +1,26 @@
-# Law / Blueprint Mapping
+# Law And Blueprint Mapping
 
-## BLOCKER-1: Accepted Command With No Post-Acceptance Step Chain
+Status: each confirmed blocker is mapped to the active governing law or blueprint surface, the production root path, the current inspector blind spot, and the missing negative proof.
 
-- Problem: latest Facebook and TikTok traces both reach `COMMAND_ACCEPTED`, then no governed step / capability / PAV / finalization event becomes visible.
-- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3`
-- Law requirement: step execution must remain map-driven, bounded, auditable, PAV-after-action enforced, Forensics routing enforced.
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
-- Law requirement: runtime proof must preserve dispatch, transition, loop, and finalization chain.
-- Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
-- Blueprint requirement: Orchestration story chain explicitly includes `step dispatch through Nerve Bus`, `transition evaluation`, and `Forensics persistence request`; Runtime Proof section requires transition and finalization proof fields.
-- Blueprint file: `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md`
-- Blueprint requirement: terminal relay is only display; structured runtime proof must still exist as governed persisted/read-model truth.
-- Current violation: task-start acceptance is visible, but the mission loop is not.
-- Gap status: active laws and blueprint exist; production emitters and enforcement coverage do not.
+## Mapping Table
 
-## BLOCKER-2: Action Timeline And Evidence Read Models Stay Empty
+| ID | Blocker | Governing Law / Blueprint Surface | Why This Surface Owns The Truth | Production Root Files | Inspector Gap | Missing Negative Proof |
+|---|---|---|---|---|---|---|
+| B1 | `maxRounds` step-budget collision | Orchestration capability law; Orchestration blueprint; Map Plugin Package blueprint | Orchestration owns mission loop semantics and frozen map execution. Map packages define that `detect-safety-page:success` transitions to `detect-feed-ready`, so early terminal completion cannot be attributed to map intent. | `src/lib/local-app-shell/task-start-binding.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`, `src/capabilities/orchestration/runtime/loop-guard.ts`, built-in Facebook/TikTok map packages | Existing inspectors do not validate the semantic relationship between configured rounds and per-step loop counters. | No inspector proves that `configuredMaxRounds` is preserved as a mission-round budget rather than consumed one step at a time. |
+| B2 | Late `MISSION_ACTIVATION_SNAPSHOT_FROZEN` | Commander Console capability law; Orchestration capability law; Commander Console blueprint | Commander owns human command entry proof, while Orchestration owns mission activation. The activation-snapshot event must be emitted before any terminal mission outcome if it is to describe mission activation truth. | `src/lib/local-runtime/workbench-human-command.ts`, `src/lib/local-runtime/workbench-human-command-debug-events.ts` | `start-mission-boundary-checks.ts` verifies literal presence but not event order relative to terminalization. | No inspector asserts that activation snapshot freeze must occur before step execution or before mission finalization. |
+| B3 | Late `COMMAND_ACCEPTED` | Commander Console capability law; Nerve Bus capability law; Commander Console blueprint | Acceptance belongs to governed command transport, not to the end of the awaited mission execution promise. | `src/lib/local-runtime/workbench-commander-command-transport.ts`, `src/lib/local-app-shell/task-start-flow.ts` | Current runId/integrity checks confirm the event exists but do not verify lifecycle timing semantics. | No negative proof catches that `COMMAND_ACCEPTED` is emitted only after the whole mission call returns. |
+| B4 | Missing `POST_ACTION_VERIFICATION_STARTED` | Post-action Verification capability blueprint; Structured logging and runtime-proof blueprint | PAV owns action-result verification truth. Persisted proof requires both entry and exit of the verification phase, not only the result. | PAV emission path as exercised from `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` | No current inspector explicitly requires the PAV start event in the real persisted proof set. | No negative proof demonstrates that verification can appear to complete without ever being observed to start. |
+| B5 | Missing `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN` | Forensics Persistence capability law; Structured logging and runtime-proof blueprint; Forensics persistence blueprint | Forensics owns append-only persistence truth. Runtime proof should show when a structured event or action log is requested for write and when the write succeeds. | `src/lib/local-runtime/workbench-commander-debug.ts` and other direct Forensics write call paths | Current persistence inspectors focus on literal event presence and basic storage outputs, not on required request/write-complete boundary events. | No negative proof detects direct persistence writes that bypass explicit persisted write-request/write-complete events. |
+| B6 | Startup exit `143` misclassified as failure | Startup entrypoint law; startup structured terminal logging blueprint | The canonical startup entrypoint owns service exit classification and terminal startup truth. Once the system is ready, exit classification must not retroactively label the run as a startup failure without contextual distinction. | `scripts/startup/launch-grasseye.mjs`, `scripts/startup/lib/service-process.mjs` | Existing startup inspectors accept presence of failure-classification literals without checking whether the process had already reached healthy ready state. | No negative proof rejects a post-ready exit path being reported as `SERVICE_UNEXPECTED_EXIT failed`. |
 
-- Problem: `/api/runtime/actions` is empty and Commander snapshot still shows zero evidence/action outputs after accepted mission starts.
-- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3`
-- Law requirement: evidence output must route to Forensics Persistence through governed request.
-- Blueprint file: `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md`
-- Blueprint requirement:
-	- `structured_action_log` is an active governed payload type.
-	- structured runtime/action payloads are generated upstream and persisted through Forensics.
-	- browse ledger and evidence packet flows must be able to link back to structured records.
-- Blueprint file: `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md`
-- Blueprint requirement: Commander must display proof-backed runtime timeline, evidence packets, browse ledger, and other governed read models.
-- Current violation: action/evidence read models remain empty because no upstream structured action-log producer is active.
-- Gap status: blueprint expectation exists; producer presence is not enforced.
+## Structured Logging Note
 
-## BLOCKER-3: Success-Path Runtime Proof Does Not Reach Commander Timeline
+The current structured-logging governance for this Phase 1 analysis is effectively blueprint-driven and inspector-driven rather than protected by a dedicated always-on active law module. That matters for B4 and B5:
 
-- Problem: the accepted task-start chain tells the operator to monitor the runtime proof timeline, but Commander runtime proof view only contains task-start events and returns mission/runtime `idle` afterward.
-- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3`
-- Law requirement: mission state, step dispatch proof, loop proof, and result proof must all carry frozen `activationSnapshotRef` and remain traceable to the selected activation snapshot.
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
-- Law requirement: result/proof/state/input parity must preserve the real upstream chain.
-- Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
-- Blueprint requirement: Runtime Proof section requires transition and finalization proof closure; READY gate requires `result/proof/state/input chain parity`.
-- Blueprint file: `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md`
-- Blueprint requirement: Commander runtime proof timeline must be proof-backed governed read model output, not proofless UI summary.
-- Current violation: success-path proof is not surfaced in Commander read models after acceptance.
-- Gap status: law and blueprint exist; success-path persistence/read-model parity is not enforced.
+- the runtime-proof expectations exist in blueprint form and in inspector scripts,
+- but the present inspector set is still mostly literal-presence oriented,
+- so lifecycle-order failures and missing start/write-boundary events can escape enforcement even while other log surfaces look healthy.
 
-## No New Law Required
+## Mapping Verdict
 
-Current gaps are implementation and enforcement gaps, not a missing-law gap. The active Orchestration and Commander requirements already describe the expected outcome.
-
-## Blueprint Detail Gaps Exposed By Current Evidence
-
-- The Orchestration blueprint currently assumes runtime proof closure, but the production success path can remain invisible if only task-start structured events are written.
-- The structured logging blueprint says terminal relay is not truth; current runtime still relies on task-start structured events as the only Commander-visible proof timeline.
-- The Commander blueprint expects proof-backed read models, but current accepted traces show a dashboard-compatible read model with no post-acceptance proof chain.
+The six confirmed blockers all map to existing governed surfaces. The issue is not “missing law ownership”; the issue is that production semantics and current inspectors diverge from the intended law/blueprint truth in six concrete places.

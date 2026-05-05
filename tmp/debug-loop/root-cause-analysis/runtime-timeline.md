@@ -1,130 +1,148 @@
 # Runtime Timeline
 
-Status: latest primary blocker is no longer startup failure or `runId=null`. The current blocker is post-acceptance proof collapse: the command is accepted, but no step/action/finalization chain becomes visible afterward.
+Status: Phase 1 blocker set is confirmed from the latest full real terminal run, the local Forensics state store, the active governed map packages, the current production code paths, and the current inspector implementations.
 
-## Sources
+## Primary Evidence Set
 
-- Latest real terminal log pasted from `npm run grasseye:start`, startup runId `2026-05-05T06:06:28.324Z`.
-- Live read-only runtime endpoints:
-	- `http://127.0.0.1:4173/api/runtime/logs`
-	- `http://127.0.0.1:4173/api/runtime/actions`
-	- `http://127.0.0.1:4173/api/runtime/snapshot`
-	- `http://127.0.0.1:4173/api/runtime/mission-readiness`
-- Historical context only:
-	- `tmp/debug-loop/startup-failures/2026-05-05T05-32-13-380Z/startup-failure.json`
-	- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md`
+- Latest full real startup/task terminal run:
+  - source: conversation transcript terminal notification for `npm run grasseye:start`
+  - transcript file: `/Users/nexgen/Library/Application Support/Code/User/workspaceStorage/52fcb0a45da9d53d15815e6cdc89969b/GitHub.copilot-chat/transcripts/854f4c1e-dcf3-4761-8e43-6071aa24ca87.jsonl`
+  - latest full block located by transcript grep output at line `1844`
+  - startup runId: `2026-05-05T07:25:44.447Z`
+- Local Forensics persistence store:
+  - `/Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement/state.json`
+  - grep confirmed `HUMAN_COMMAND_DRAFTED` at lines `27467` and `44123`
+  - grep confirmed `HUMAN_COMMAND_RECEIVED` at lines `27571` and `44227`
+  - grep found `structuredActionLogs` beginning at line `57926`
+  - grep found no persisted matches for `POST_ACTION_VERIFICATION_STARTED`, `FORENSICS_RECORD_WRITE_REQUESTED`, or `FORENSICS_RECORD_WRITTEN`
+- Active governed maps:
+  - `src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json`
+  - `src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json`
+- Production control paths used for root cause confirmation:
+  - `src/lib/local-app-shell/task-start-binding.ts`
+  - `src/lib/local-app-shell/task-start-flow.ts`
+  - `src/lib/local-runtime/workbench-commander-command-transport.ts`
+  - `src/lib/local-runtime/workbench-human-command.ts`
+  - `src/lib/local-runtime/workbench-human-command-debug-events.ts`
+  - `src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts`
+  - `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`
+  - `src/capabilities/orchestration/runtime/loop-guard.ts`
+  - `scripts/startup/launch-grasseye.mjs`
+  - `scripts/startup/lib/service-process.mjs`
 
-## 1. Startup And Readiness
+## Disconfirmed Older Hypotheses
 
-| Surface | Status | Evidence | Judgment |
-|---|---|---|---|
-| dependency_check | PASS | Latest pasted log starts with dependency/runtime readiness PASS under runId `2026-05-05T06:06:28.324Z`. | Startup is not blocked here. |
-| map_package_readiness | PASS | Latest pasted log reports builtin Facebook/TikTok map package readiness PASS. | Active builtin maps are loaded and approved. |
-| local_ai_runtime | PASS | Latest pasted log reports local AI presence, roster, start/connect, and health probe PASS. | Local AI is not the current blocker. |
-| app shell / console | PASS | Latest pasted log reports app server ready, app shell health passed, Commander Console opened, mission runtime available. | Shell and console are healthy. |
-| mission-readiness endpoint | READY | Live `/api/runtime/mission-readiness` returned `status=ready` with mission, browserController, localAi, and dataStore all `ok=true`. | Current environment is ready to accept mission preflight. |
+- `HUMAN_COMMAND_DRAFTED` missing: false.
+- `HUMAN_COMMAND_RECEIVED` missing: false.
+- Structured action log producer absent: false.
+- Empty map or finalize-only map selected: false.
+- Startup readiness blocked mission start: false.
 
-Judgment: current blocker is not startup, bootstrap, shell reachability, or readiness.
+The older copied terminal file under `docs/Codex提示词/终端日志复制.md` is not complete enough to decide event absence by itself. The later full transcript run and the local Forensics state supersede it for presence/absence judgments.
 
-## 2. Latest Accepted Facebook Trace
+## Latest Real Sequence
 
-Trace identity:
+### 1. Startup passes
 
-- `traceId=trace_e555f140-1580-4aef-9b01-43ecacb0f32f`
-- `runId=commander_command_311b3de7-ad54-4b5e-af96-2c419e9797d1:run`
-- `selectedMapId=facebook.seeding-video.discovery.meta.v1`
-- `activationSnapshotRef=activation-snapshot:3561c46d-c41d-4b02-a900-75004c958334:1.0.0:1.0.0`
+Observed in the latest real run:
 
-Observed event chain:
+```txt
+dependency_check passed
+update_preflight_check passed
+map_package_readiness_check passed
+local_ai_runtime_presence_check passed
+local_ai_model_roster_check passed
+local_ai_start_or_connect passed
+local_ai_health_probe passed
+ai_capability_readiness_gate passed
+port_clear passed
+app_server ready
+APP_SHELL_HEALTH_PASSED
+mission_runtime_available
+terminal_structured_log_relay ready
+waiting_for_human_command
+```
 
-1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_READINESS_CHECK_STARTED`
-3. `MISSION_PREFLIGHT_STARTED`
-4. `MISSION_PREFLIGHT_PASSED`
-5. `COMMANDER_COMMAND_ENVELOPE_BUILT`
-6. `NERVE_BUS_ENVELOPE_CREATED`
-7. `NERVE_BUS_DISPATCH_STARTED`
-8. `ORCHESTRATION_START_RECEIVED`
-9. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` with status `success`
-10. `COMMAND_ACCEPTED` with status `success`
+Judgment: latest primary blockers are not dependency/bootstrap/app-shell readiness failures.
 
-Judgment: the latest Facebook start path is accepted all the way through the Commander / Nerve Bus / Orchestration task-start boundary.
+### 2. Human command chain is present
 
-## 3. Latest Accepted TikTok Trace
+Observed in the same latest run:
 
-Trace identity:
+```txt
+HUMAN_COMMAND_DRAFTED
+HUMAN_COMMAND_RECEIVED
+HUMAN_COMMAND_VALIDATED
+MISSION_READINESS_CHECK_STARTED
+MISSION_PREFLIGHT_STARTED
+MISSION_PREFLIGHT_PASSED
+COMMANDER_COMMAND_ENVELOPE_BUILT
+NERVE_BUS_ENVELOPE_CREATED
+NERVE_BUS_DISPATCH_STARTED
+```
 
-- `traceId=trace_feb01658-a755-4837-a635-ade1c146fb32`
-- `runId=commander_command_52abe135-b468-4c61-9e39-0b98b0e2ad0d:run`
-- `selectedMapId=tiktok.seeding-video.discovery.meta.v1`
-- `activationSnapshotRef=activation-snapshot:97f67205-11bc-4bbd-9507-dda1090c1cc6:1.0.0:1.0.0`
+Judgment: the command-entry chain is real and persisted. Older “command receipt missing” analysis is falsified.
 
-Observed event chain:
+### 3. Orchestration runs into the detect-safety-page stop condition
 
-1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_READINESS_CHECK_STARTED`
-3. `MISSION_PREFLIGHT_STARTED`
-4. `MISSION_PREFLIGHT_PASSED`
-5. `COMMANDER_COMMAND_ENVELOPE_BUILT`
-6. `NERVE_BUS_ENVELOPE_CREATED`
-7. `NERVE_BUS_DISPATCH_STARTED`
-8. `ORCHESTRATION_START_RECEIVED`
-9. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` with status `success`
-10. `COMMAND_ACCEPTED` with status `success`
+Observed in the same latest run:
 
-Judgment: the latest TikTok start path also reaches accepted mission dispatch, not rejection.
+```txt
+ORCHESTRATION_START_RECEIVED
+MAP_STEP_SELECTED open-facebook-reels
+STEP_PRECONDITION_CHECKED success
+STEP_DISPATCH_STARTED
+CAPABILITY_CALL_COMPLETED success
+STEP_TRANSITION_EVALUATED success
 
-## 4. Missing Post-Acceptance Events
+MAP_STEP_SELECTED verify-facebook-reels-open
+STEP_PRECONDITION_CHECKED success
+STEP_DISPATCH_STARTED
+ACTION PASS open_target_page
+POST_ACTION_VERIFICATION_PASSED
+STEP_TRANSITION_EVALUATED success
 
-No later structured runtime events were found after either accepted trace for:
+MAP_STEP_SELECTED detect-login-state
+STEP_PRECONDITION_CHECKED success
+STEP_DISPATCH_STARTED
+CAPABILITY_CALL_COMPLETED success
+STEP_TRANSITION_EVALUATED success
 
-- `MAP_STEP_SELECTED`
-- `STEP_PRECONDITION_CHECKED`
-- `STEP_DISPATCH_STARTED`
-- `CAPABILITY_CALL_STARTED`
-- `CAPABILITY_CALL_COMPLETED`
-- `CAPABILITY_CALL_FAILED`
-- `CAPABILITY_CALL_REVIEW_REQUIRED`
+MAP_STEP_SELECTED detect-safety-page
+STEP_PRECONDITION_CHECKED failed: Loop guard prevented step "detect-safety-page" from dispatching
+MISSION_FINALIZED success: terminal status "completed"
+MISSION_ACTIVATION_SNAPSHOT_FROZEN success
+COMMAND_ACCEPTED success
+SERVICE_UNEXPECTED_EXIT failed: code 143
+SERVICE_EXIT_CLASSIFICATION failed: code 143
+```
+
+Judgment: the latest run does not “disappear after accept”. It actually runs three steps, then stops incorrectly at `detect-safety-page`, logs terminal completion, logs two late commander-side boundary events, and finally classifies service exit `143` as failure.
+
+## Negative Evidence From Latest Real Data
+
+Confirmed absent from the persisted local Forensics store:
+
 - `POST_ACTION_VERIFICATION_STARTED`
-- `POST_ACTION_VERIFICATION_PASSED`
-- `POST_ACTION_VERIFICATION_FAILED`
-- `POST_ACTION_VERIFICATION_REVIEW_REQUIRED`
 - `FORENSICS_RECORD_WRITE_REQUESTED`
 - `FORENSICS_RECORD_WRITTEN`
-- `STEP_TRANSITION_EVALUATED`
-- `MISSION_FINALIZED`
-- `MISSION_STOPPED`
-- `MISSION_FAILED`
-- `MISSION_REVIEW_REQUIRED`
 
-Judgment: the runtime visibly reaches task-start acceptance, then loses the governed mission loop proof chain.
+Confirmed present in the persisted local Forensics store:
 
-## 5. Live Read Models After Acceptance
+- `HUMAN_COMMAND_DRAFTED`
+- `HUMAN_COMMAND_RECEIVED`
+- `POST_ACTION_VERIFICATION_PASSED`
+- `structuredActionLogs`
 
-- Live `/api/runtime/actions` returned `[]`.
-- Live `/api/runtime/snapshot` returned:
-	- `mission.status=idle`
-	- `runtime.runtimeStatus=idle`
-	- `runtime.currentStep=null`
-	- `evidencePacketCount=0`
-	- `browseLedgerCount=0`
-	- `candidateCount=0`
-	- `reviewQueue=[]`
-- Live `/api/runtime/snapshot.runtimeProof` contains only task-start structured runtime events such as:
-	- `Orchestration received governed start-mission command from Nerve Bus.`
-	- `activationSnapshotRef=...; selectedMapId=...`
-	- `command accepted`
-- Live `/api/runtime/snapshot.failedRecords` still contains older historical failures including:
-	- `invalid_input`
-	- `Expected string, received null` at `runId`
-	- `Unrecognized key(s) in object: 'targetProfileRef'`
-	- `open requires targetUrl or explicit targetProfileRef ...`
+Judgment: the current transparency gap is narrower than the older draft analysis. Command-entry events and action logs exist. The missing events are the PAV start event and the explicit Forensics write-request/write-complete events.
 
-Judgment: after accepted task-start traces, the Commander read models still do not show any action logs, evidence packets, browse ledger entries, or non-task-start proof events.
+## Timeline Verdict
 
-## 6. Historical But Non-Primary Context
+Current blockers proven by the latest real run:
 
-- `tmp/debug-loop/startup-failures/2026-05-05T05-32-13-380Z/startup-failure.json` records a stale `fetch failed` startup case. It does not match the current healthy startup run.
-- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md` already records that the original `runId=null` rejection did not recur in an accepted post-fix scenario.
-
-Final judgment: the leading current blocker is `COMMAND_ACCEPTED` followed by no step/action/finalization proof chain, not the older startup or `runId=null` failures.
+1. `maxRounds` is being consumed as a per-step budget, causing `detect-safety-page` to be loop-guard blocked and the mission to finalize as `completed` too early.
+2. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is emitted after `MISSION_FINALIZED`, so the activation-snapshot event is chronologically false.
+3. `COMMAND_ACCEPTED` is emitted after mission terminalization, so “accepted” currently means “the whole mission command call already finished”, not “transport accepted”.
+4. `POST_ACTION_VERIFICATION_STARTED` is missing from real persisted proof.
+5. `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN` are missing from real persisted proof.
+6. Startup-entrypoint classifies post-ready service exit `143` as unexpected failure.

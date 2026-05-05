@@ -43,6 +43,7 @@
     "audit:mouse-click": "node --import tsx scripts/audit/domains/mouse-click-capability/run-inspector.ts",
     "audit:mouse-scroll": "node --import tsx scripts/audit/domains/mouse-scroll-capability/run-inspector.ts",
     "audit:post-action-verification": "node --import tsx scripts/audit/domains/post-action-verification-capability/run-inspector.ts",
+    "audit:census:assert-complete": "node --import tsx scripts/audit/census/assert-census-complete.ts",
     "acceptance:local-ai-health": "npm run build && node scripts/acceptance/local-ai-health.mjs",
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",

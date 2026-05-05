@@ -23,6 +23,7 @@ import { toMissionControlState } from "./orchestration-state-support.js";
 
 type StepDispatchResult = Awaited<ReturnType<typeof dispatchOperationalStep>>;
 type OrchestrationStepResultRecord = Extract<StepDispatchResult, { dispatched: true }>["stepResult"];
+type PostActionVerificationActionLogRecord = Awaited<ReturnType<typeof recordPostActionVerificationActionLog>>;
 type RuntimeProofRecord = ReturnType<typeof buildDispatchGateFailureProof>;
 
 type MissionLoopIterationOutcome = {
@@ -160,14 +161,14 @@ function buildStepDispatchFailureEvent(step: OperationalStep, failureReason: str
     return {
       eventType: "POST_ACTION_VERIFICATION_FAILED",
       ownerResponsible: "Orchestration / Post-action Verification",
-      reason: `Post-action verification step \"${step.stepId}\" failed before a governed result was returned.",
+      reason: `Post-action verification step "${step.stepId}" failed before a governed result was returned.`,
     };
   }
 
   return {
     eventType: "CAPABILITY_CALL_FAILED",
     ownerResponsible: `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
-    reason: `Governed ability call for step \"${step.stepId}\" failed before transition evaluation.",
+    reason: `Governed ability call for step "${step.stepId}" failed before transition evaluation.`,
   };
 }
 
@@ -208,7 +209,7 @@ async function recordStepResult(
   step: OperationalStep,
   lastResult: OrchestrationStepResultRecord,
   durationMs: number,
-  actionLogId: string | null,
+  actionLog: PostActionVerificationActionLogRecord,
 ): Promise<void> {
   await recordMissionRuntimeEvent({
     context: input.context,
@@ -227,7 +228,9 @@ async function recordStepResult(
     durationMs,
     capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
     outputRefs: collectLastResultRefs(lastResult),
-    actionLogRefs: actionLogId ? [actionLogId] : [],
+    actionLogRefs: actionLog ? [actionLog.actionLogId] : [],
+    actionRef: actionLog?.actionRef ?? null,
+    postActionVerificationRef: actionLog?.postActionVerificationRef ?? null,
   });
 }
 
@@ -404,7 +407,7 @@ export async function runMissionLoopIteration(input: RunMissionLoopIterationInpu
     return outcome;
   }
   const lastResult = stepDispatch.stepResult;
-  const actionLogId = await recordPostActionVerificationActionLog({
+  const actionLog = await recordPostActionVerificationActionLog({
     context: input.context,
     state: input.state,
     mapRecord: input.mapRecord,
@@ -413,7 +416,7 @@ export async function runMissionLoopIteration(input: RunMissionLoopIterationInpu
     createdAt: endedSnapshot.isoTimestamp,
     durationMs,
   });
-  await recordStepResult(input, step, lastResult, durationMs, actionLogId);
+  await recordStepResult(input, step, lastResult, durationMs, actionLog);
   const transitionResult = evaluateStepTransition({ map: input.map, currentStepId, result: lastResult });
   if (transitionResult.decision !== "matched") {
     const outcome = await buildTransitionFailureOutcome(input, { currentStepId, stepDispatchCallId, nerveBusEnvelopeId: lastResult.envelopeId ?? null, transitionEvaluationDecision: transitionResult.decision, stateRevisionBefore, stateHashBefore, proofContext: currentProofContext, startedAt: startedSnapshot.isoTimestamp, endedAt: endedSnapshot.isoTimestamp, failureReason: transitionResult.failureReason });

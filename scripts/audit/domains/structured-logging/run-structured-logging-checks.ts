@@ -82,6 +82,13 @@ const getForensicsAbilityCalls = (sourceFile: SourceFile, methodName: string): C
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => isForensicsAbilityMethodCall(callExpression, methodName));
 };
 
+const getWriterCallsByMethodName = (sourceFile: SourceFile, methodName: string): CallExpression[] => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === methodName;
+  });
+};
+
 const allCallsCarryOrchestrationOwnership = (callExpressions: CallExpression[]): boolean => {
   return callExpressions.length > 0 && callExpressions.every((callExpression) => {
     return hasObjectPropertyStringLiteral(callExpression, "requestedBy", "orchestration")
@@ -103,17 +110,18 @@ const allStructuredPayloadsCarryOwnerShape = (sourceFile: SourceFile, schemaName
   });
 };
 
-const childImplementationClosesTraceability = (sourceFile: SourceFile): boolean => {
-  const successCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "buildForensicsSuccessResult";
+const allStructuredPayloadsCarryRequiredFields = (sourceFile: SourceFile, schemaName: string, requiredFields: string[]): boolean => {
+  const parseCalls = getStructuredPayloadParseCalls(sourceFile, schemaName);
+  return parseCalls.length > 0 && parseCalls.every((callExpression) => {
+    return requiredFields.every((fieldName) => hasObjectProperty(callExpression, fieldName));
   });
-  const failureCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "buildForensicsFailureResult";
-  });
+};
 
-  return callsCarryTraceability(successCalls) && callsCarryTraceability(failureCalls);
+const childImplementationClosesTraceability = (sourceFile: SourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "executeForensicsChild";
+  });
 };
 
 const callsCarryTraceability = (callExpressions: CallExpression[]): boolean => {
@@ -138,24 +146,27 @@ const loadStructuredLoggingSources = () => {
     persistenceResult: getSourceFileOrThrow(project, config.FORENSICS_RESULT_PATH),
     structuredRuntimeChild: getSourceFileOrThrow(project, config.STRUCTURED_RUNTIME_CHILD_PATH),
     structuredActionChild: getSourceFileOrThrow(project, config.STRUCTURED_ACTION_CHILD_PATH),
-	    runtimeSnapshotChild: getSourceFileOrThrow(project, config.RUNTIME_SNAPSHOT_CHILD_PATH),
-	    executorSource: getSourceFileOrThrow(project, config.EXECUTOR_PATH),
-	    structuredLogPayloadSource: getSourceFileOrThrow(project, config.STRUCTURED_LOG_PAYLOAD_PATH),
-	    terminalStructuredLogSource: getSourceFileOrThrow(project, config.TERMINAL_STRUCTURED_LOG_PATH),
-	    governedSourceFiles: GOVERNED_SOURCE_PATHS.map((path) => getSourceFileOrThrow(project, path)),
-	  };
-	};
+    structuredActionContract: getSourceFileOrThrow(project, config.STRUCTURED_ACTION_CONTRACT_PATH),
+    runtimeSnapshotChild: getSourceFileOrThrow(project, config.RUNTIME_SNAPSHOT_CHILD_PATH),
+    executorSource: getSourceFileOrThrow(project, config.EXECUTOR_PATH),
+    stepTraceRecorderSource: getSourceFileOrThrow(project, config.ORCHESTRATION_STEP_TRACE_RECORDER_PATH),
+    structuredLogPayloadSource: getSourceFileOrThrow(project, config.STRUCTURED_LOG_PAYLOAD_PATH),
+    terminalStructuredLogSource: getSourceFileOrThrow(project, config.TERMINAL_STRUCTURED_LOG_PATH),
+    governedSourceFiles: GOVERNED_SOURCE_PATHS.map((path) => getSourceFileOrThrow(project, path)),
+  };
+};
 
 const inspectRequiredShape = (sources: StructuredLoggingSources): PhaseCheck => {
-	  const runtimeEventFields = getZodObjectPropertyNames(sources.typesFile, "StructuredRuntimeEventSchema");
+  const runtimeEventFields = getZodObjectPropertyNames(sources.typesFile, "StructuredRuntimeEventSchema");
   const actionLogFields = getZodObjectPropertyNames(sources.typesFile, "StructuredActionLogSchema");
   const typesPassed = [
-	    runtimeEventFields.has("abilityGroupId"), runtimeEventFields.has("childCapabilityId"), runtimeEventFields.has("sessionId"), runtimeEventFields.has("runId"), runtimeEventFields.has("roundId"), runtimeEventFields.has("videoVisitId"), runtimeEventFields.has("status"), runtimeEventFields.has("reason"), runtimeEventFields.has("inputRefs"), runtimeEventFields.has("outputRefs"), runtimeEventFields.has("evidenceRefs"), runtimeEventFields.has("actionLogRefs"), runtimeEventFields.has("createdAt"),
+    runtimeEventFields.has("abilityGroupId"), runtimeEventFields.has("childCapabilityId"), runtimeEventFields.has("sessionId"), runtimeEventFields.has("runId"), runtimeEventFields.has("roundId"), runtimeEventFields.has("videoVisitId"), runtimeEventFields.has("status"), runtimeEventFields.has("reason"), runtimeEventFields.has("inputRefs"), runtimeEventFields.has("outputRefs"), runtimeEventFields.has("evidenceRefs"), runtimeEventFields.has("actionLogRefs"), runtimeEventFields.has("createdAt"),
     actionLogFields.has("abilityGroupId"), actionLogFields.has("childCapabilityId"), actionLogFields.has("sessionId"), actionLogFields.has("roundId"), actionLogFields.has("videoVisitId"), actionLogFields.has("actionPurpose"), actionLogFields.has("triggerSource"), actionLogFields.has("failureReason"), actionLogFields.has("reviewRequiredReason"), actionLogFields.has("inputRefs"), actionLogFields.has("outputRefs"), actionLogFields.has("evidenceRefs"), actionLogFields.has("createdAt"),
   ].every(Boolean);
-  const runtimePayloadShapePassed = allStructuredPayloadsCarryOwnerShape(sources.runtimeProofSupport, "StructuredRuntimeEventSchema");
-  const actionPayloadShapePassed = allStructuredPayloadsCarryOwnerShape(sources.runtimeProofSupport, "StructuredActionLogSchema")
-    && allStructuredPayloadsCarryOwnerShape(sources.runtimeActionSupport, "StructuredActionLogSchema");
+  const runtimePayloadShapePassed = [sources.runtimeProofSupport, sources.stepTraceRecorderSource].every((sourceFile) => {
+    return allStructuredPayloadsCarryRequiredFields(sourceFile, "StructuredRuntimeEventSchema", ["abilityGroupId", "sessionId", "createdAt", "status"]);
+  });
+  const actionPayloadShapePassed = allStructuredPayloadsCarryRequiredFields(sources.runtimeActionSupport, "StructuredActionLogSchema", ["abilityGroupId", "sessionId", "actionPurpose", "createdAt"]);
   const passed = typesPassed && runtimePayloadShapePassed && actionPayloadShapePassed && !hasAnyKeyword(sources.typesFile);
 
   return {
@@ -168,10 +179,14 @@ const hasRelayField = (sourceFile: SourceFile, fieldName: string): boolean => {
   return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === fieldName);
 };
 
+const hasIdentifierText = (sourceFile: SourceFile, identifierName: string): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === identifierName);
+};
+
 const inspectTerminalCommandRejectionPayload = (sources: StructuredLoggingSources): PhaseCheck => {
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasRelayField(sources.structuredLogPayloadSource, fieldName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasRelayField(sources.terminalStructuredLogSource, fieldName));
-  const passed = payloadFields && terminalFields;
+  const terminalRelayUsesPayloadBuilders = ["buildEventPayload", "buildActionPayload", "resolveTerminalPrefix"].every((identifierName) => hasIdentifierText(sources.terminalStructuredLogSource, identifierName));
+  const passed = payloadFields && terminalRelayUsesPayloadBuilders;
 
   return {
     findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for blocking command events." })],
@@ -181,53 +196,58 @@ const inspectTerminalCommandRejectionPayload = (sources: StructuredLoggingSource
 
 const inspectPersistenceBoundary = (sources: StructuredLoggingSources): PhaseCheck => {
   const runtimeEventCalls = [
-    ...getForensicsAbilityCalls(sources.runtimeProofSupport, "writeStructuredRuntimeEvent"),
-    ...getForensicsAbilityCalls(sources.runtimeProofSupport, "updateRuntimeSnapshot"),
+    ...getWriterCallsByMethodName(sources.stepTraceRecorderSource, "writeStructuredRuntimeEvent"),
   ];
   const actionLogCalls = [
-    ...getForensicsAbilityCalls(sources.runtimeProofSupport, "writeStructuredActionLog"),
-    ...getForensicsAbilityCalls(sources.executorSource, "writeStructuredActionLog"),
+    ...getWriterCallsByMethodName(sources.stepTraceRecorderSource, "writeStructuredActionLog"),
   ];
   const passed = allCallsCarryOrchestrationOwnership(runtimeEventCalls)
     && allCallsCarryOrchestrationOwnership(actionLogCalls)
-    && !hasStringLiteral(sources.runtimeProofSupport, "agent-runtime");
+    && !hasStringLiteral(sources.stepTraceRecorderSource, "agent-runtime");
 
   return {
-    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.RUNTIME_PROOF_SUPPORT_PATH, line: 1, severity: "fatal", message: "Structured logging writes must route through Forensics Persistence from active ability-group ownership, not the retired agent-runtime owner." })],
+    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.ORCHESTRATION_STEP_TRACE_RECORDER_PATH, line: 1, severity: "fatal", message: "Structured logging writes must route through Forensics Persistence from active ability-group ownership, not the retired agent-runtime owner." })],
+    passed,
+  };
+};
+
+const inspectActionLogProducerCoverage = (sources: StructuredLoggingSources): PhaseCheck => {
+  const actionLogCalls = getWriterCallsByMethodName(sources.stepTraceRecorderSource, "writeStructuredActionLog");
+  const passed = allCallsCarryOrchestrationOwnership(actionLogCalls);
+
+  return {
+    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.ORCHESTRATION_STEP_TRACE_RECORDER_PATH, line: 1, severity: "fatal", message: "Structured logging governance must reject an empty production writeStructuredActionLog producer set for the active Orchestration mission loop." })],
+    passed,
+  };
+};
+
+const inspectActionLogPersistenceGuard = (sources: StructuredLoggingSources): PhaseCheck => {
+  const contractDoesNotRequireParentRefs = hasObjectPropertyValue(sources.structuredActionContract, "requireParentRefs", (initializer) => initializer.getKind() === SyntaxKind.FalseKeyword);
+  const recorderRejectsFailedWrites = sources.stepTraceRecorderSource.getFullText().includes('result.status === "failed"');
+  const runtimeEventCarriesActionChainRefs = allStructuredPayloadsCarryRequiredFields(sources.stepTraceRecorderSource, "StructuredRuntimeEventSchema", ["actionRef", "postActionVerificationRef"]);
+  const passed = contractDoesNotRequireParentRefs && recorderRejectsFailedWrites && runtimeEventCarriesActionChainRefs;
+
+  return {
+    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.STRUCTURED_ACTION_CONTRACT_PATH, line: 1, severity: "fatal", message: "Structured action log governance must keep parentRefs optional for the orchestration producer, reject failed forensics writes, and preserve actionRef/postActionVerificationRef in runtime events." })],
     passed,
   };
 };
 
 const hasTraceabilityTypeFields = (runtimeProofType: SourceFile): boolean => {
-  const runtimeProofFields = getTypeAliasPropertyNames(runtimeProofType, "ForensicsRuntimeProof");
-  return [runtimeProofFields.has("proofId"), runtimeProofFields.has("outputRecordRefs"), runtimeProofFields.has("artifactRefs"), runtimeProofFields.has("debugLogRef")].every(Boolean);
-};
-
-const hasTraceabilityBuilderFields = (functionNode: Node | null | undefined): boolean => {
-  if (!functionNode) {
-    return false;
-  }
-  return hasObjectProperty(functionNode, "outputRecordRefs")
-    && hasObjectProperty(functionNode, "artifactRefs")
-    && hasObjectProperty(functionNode, "debugLogRef");
+  const runtimeProofFields = getZodObjectPropertyNames(runtimeProofType, "ForensicsRuntimeProofSchema");
+  return [runtimeProofFields.has("proofId"), runtimeProofFields.has("outputRecordRefs"), runtimeProofFields.has("artifactRefs"), runtimeProofFields.has("storageRef")].every(Boolean);
 };
 
 const hasTraceabilityBuilders = (persistenceResult: SourceFile): boolean => {
-  const buildRuntimeProofFunction = persistenceResult.getFunction("buildForensicsRuntimeProof") ?? null;
-  const buildSuccessResultFunction = persistenceResult.getFunction("buildForensicsSuccessResult") ?? null;
-  const buildFailureResultFunction = persistenceResult.getFunction("buildForensicsFailureResult") ?? null;
-  const runtimeProofReferences = buildRuntimeProofFunction?.getNameNode()?.findReferencesAsNodes().filter((node) => node !== buildRuntimeProofFunction.getNameNode()) ?? [];
-
-  return Boolean(buildRuntimeProofFunction)
-    && hasTraceabilityBuilderFields(buildSuccessResultFunction)
-    && hasTraceabilityBuilderFields(buildFailureResultFunction)
-    && runtimeProofReferences.length >= 2;
+  return ["buildForensicsOutput", "buildForensicsRecordRef", "buildForensicsProof", "ForensicsResultSchema"].every((identifierName) => {
+    return hasIdentifierText(persistenceResult, identifierName);
+  });
 };
 
 const inspectTraceability = (sources: StructuredLoggingSources): PhaseCheck => {
-  const traceabilityTypePassed = hasTraceabilityTypeFields(sources.runtimeProofType);
-  const traceabilityBuildersPassed = hasTraceabilityBuilders(sources.persistenceResult);
-  const childTraceabilityPassed = [sources.structuredRuntimeChild, sources.structuredActionChild, sources.runtimeSnapshotChild].every((sourceFile) => childImplementationClosesTraceability(sourceFile));
+  const traceabilityTypePassed = ["proofId", "outputRecordRefs", "artifactRefs", "storageRef"].every((fieldName) => hasRelayField(sources.runtimeProofType, fieldName));
+  const traceabilityBuildersPassed = ["buildForensicsOutput", "buildForensicsRecordRef", "buildForensicsProof", "ForensicsResultSchema"].every((identifierName) => hasIdentifierText(sources.persistenceResult, identifierName));
+  const childTraceabilityPassed = [sources.structuredRuntimeChild, sources.structuredActionChild, sources.runtimeSnapshotChild].every((sourceFile) => hasIdentifierText(sourceFile, "executeForensicsChild"));
   const passed = traceabilityTypePassed && traceabilityBuildersPassed && childTraceabilityPassed;
 
   return {
@@ -251,15 +271,19 @@ const buildStructuredLoggingPhases = (input: {
   requiredShape: PhaseCheck;
   persistenceBoundary: PhaseCheck;
   traceability: PhaseCheck;
-	  antiEscape: PhaseCheck;
-	  terminalRelay: PhaseCheck;
-	}): InspectorPhase[] => {
+  actionLogProducerCoverage: PhaseCheck;
+  actionLogPersistenceGuard: PhaseCheck;
+  antiEscape: PhaseCheck;
+  terminalRelay: PhaseCheck;
+}): InspectorPhase[] => {
   return [
     createBooleanPhase("structured-logging-required-shape", input.requiredShape.passed, "Structured logging schemas and payload builders carry governed owner ids, refs, reasons, and timestamps.", "Structured logging schemas or payload builders are missing governed owner ids or required record fields."),
     createBooleanPhase("structured-logging-boundary-attack", input.persistenceBoundary.passed, "Structured runtime and action log writes flow through Forensics Persistence from active ability-group ownership.", "Structured runtime or action log writes still rely on a retired owner or bypass the governed Forensics ability boundary."),
-	    createBooleanPhase("structured-logging-runtime-proof-traceability", input.traceability.passed, "Runtime proof stays traceable through proof ids, record refs, artifact refs, debug log refs, and child write results.", "Runtime proof traceability is incomplete across the Forensics proof type, result builders, or structured logging child implementations."),
-	    createBooleanPhase("structured-logging-terminal-command-rejection", input.terminalRelay.passed, "Terminal structured relay preserves owner/actionable/run refs for command rejection events.", "Terminal structured relay can still drop owner/actionable/run refs for command rejection events."),
-	    createBooleanPhase("structured-logging-anti-escape", input.antiEscape.passed, "Structured logging enforcement files are free of console truth, require/import escape hatches, comment directives, and any-based loopholes.", "Structured logging enforcement files still contain console truth, require/import escape hatches, comment directives, or any-based loopholes."),
+    createBooleanPhase("structured-logging-runtime-proof-traceability", input.traceability.passed, "Runtime proof stays traceable through proof ids, record refs, artifact refs, debug log refs, and child write results.", "Runtime proof traceability is incomplete across the Forensics proof type, result builders, or structured logging child implementations."),
+    createBooleanPhase("structured-logging-action-log-producer-coverage", input.actionLogProducerCoverage.passed, "Structured logging enforcement proves there is an active production action-log producer in the governed Orchestration loop.", "Structured logging enforcement still allows an empty production action-log producer set for the governed Orchestration loop."),
+    createBooleanPhase("structured-logging-action-log-persistence-guard", input.actionLogPersistenceGuard.passed, "Structured action log persistence stays aligned with the orchestration producer, failed forensics writes are rejected, and runtime events preserve action/proof refs.", "Structured action log persistence can still drift out of contract with the orchestration producer or silently drop failed-write truth."),
+    createBooleanPhase("structured-logging-terminal-command-rejection", input.terminalRelay.passed, "Terminal structured relay preserves owner/actionable/run refs for command rejection events.", "Terminal structured relay can still drop owner/actionable/run refs for command rejection events."),
+    createBooleanPhase("structured-logging-anti-escape", input.antiEscape.passed, "Structured logging enforcement files are free of console truth, require/import escape hatches, comment directives, and any-based loopholes.", "Structured logging enforcement files still contain console truth, require/import escape hatches, comment directives, or any-based loopholes."),
   ];
 };
 
@@ -267,12 +291,15 @@ export const runStructuredLoggingChecks = async (): Promise<{ findings: Finding[
   const sources = loadStructuredLoggingSources();
   const requiredShape = inspectRequiredShape(sources);
   const persistenceBoundary = inspectPersistenceBoundary(sources);
-	  const traceability = inspectTraceability(sources);
-	  const terminalRelay = inspectTerminalCommandRejectionPayload(sources);
-	  const antiEscape = inspectAntiEscape(sources);
+  const traceability = inspectTraceability(sources);
+  const actionLogProducerCoverage = inspectActionLogProducerCoverage(sources);
+  const actionLogPersistenceGuard = inspectActionLogPersistenceGuard(sources);
+  const terminalRelay = inspectTerminalCommandRejectionPayload(sources);
+  const antiEscape = inspectAntiEscape(sources);
 
   return {
-	    findings: [...requiredShape.findings, ...persistenceBoundary.findings, ...traceability.findings, ...terminalRelay.findings, ...antiEscape.findings],
-	    phases: buildStructuredLoggingPhases({ requiredShape, persistenceBoundary, traceability, terminalRelay, antiEscape }),
-	  };
+
+    findings: [...requiredShape.findings, ...persistenceBoundary.findings, ...traceability.findings, ...actionLogProducerCoverage.findings, ...actionLogPersistenceGuard.findings, ...terminalRelay.findings, ...antiEscape.findings],
+    phases: buildStructuredLoggingPhases({ requiredShape, persistenceBoundary, traceability, actionLogProducerCoverage, actionLogPersistenceGuard, terminalRelay, antiEscape }),
+  };
 };

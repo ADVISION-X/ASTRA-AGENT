@@ -158,7 +158,7 @@ const findDisabledChildExecutionViolations = (project: Project): Finding[] => {
     if (!hasExecuteMethod && !hasCallExpression(source, "executeAiChild")) {
       continue;
     }
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005B-V2", file: `${AI_ROOT}/children/${childId}/implementation.ts`, line: 1, severity: "fatal", message: "Disabled AI children must not expose execute or call executor." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-005-V1", file: `${AI_ROOT}/children/${childId}/implementation.ts`, line: 1, severity: "fatal", message: "Disabled AI children must not expose execute or call executor." }));
   }
 
   return findings;

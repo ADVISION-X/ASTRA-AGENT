@@ -1,37 +1,22 @@
 # Root Cause Matrix
 
-| 序号 | 当前问题 | 直接证据 | 生产根因 | 执法缺口 | 为什么没拦住 | 修复优先级 |
-|---|---|---|---|---|---|---|
-| 1 | 接受命令后没有 step 级证明链 | Latest Facebook/TikTok traces both end at `COMMAND_ACCEPTED`; no `MAP_STEP_SELECTED`, `CAPABILITY_CALL_*`, `STEP_TRANSITION_EVALUATED`, or mission outcome event appears afterward. | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` and `src/capabilities/orchestration/runtime/step-dispatcher.ts` execute the loop but emit no step-phase structured runtime event; `src/lib/local-runtime/structured-log-terminal.ts` only mirrors event names if producers exist. | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | Inspectors validate schema/gate presence, not post-acceptance event emission or live phase sequence. | P0 |
-| 2 | 动作时间线为空 | Live `/api/runtime/actions` returned `[]` after accepted traces. | `src/lib/local-runtime/workbench-runtime.ts` exposes actions from `evidenceStore.listStructuredActionLogs`; repository search shows no producer call sites for `writeStructuredActionLog(` outside the Forensics contract definition. | `scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts`; `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` | Existing checks validate ownership/shape if calls exist, but do not require that at least one production action-log writer exists. | P0 |
-| 3 | Commander proof timeline只剩 task_start 事件 | Live `/api/runtime/snapshot.runtimeProof` shows task-start entries only; mission/runtime are already `idle` after acceptance. | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` failure branches persist `lastRuntimeProofRef/runtimeProofRefs`, but success path does not; `src/lib/local-runtime/workbench-commander-runtime-proof-read-model.ts` projects only `structuredRuntimeEvents`. | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts` | No inspector asserts success-path proof persistence or Commander read-model parity after accepted mission start. | P1 |
-| 4 | 当前 accepted trace 使用的不是空地图 | Latest accepted traces use `facebook.seeding-video.discovery.meta.v1` and `tiktok.seeding-video.discovery.meta.v1`; both builtin maps declare `initialStepId` as real open steps. | Builtin map packages under `src/map-plugins/builtins/*.meta.map-package.json` start with `open-facebook-reels` and `open-tiktok-feed`, not `finalize-mission`. | No direct enforcement gap here; this row removes a false hypothesis. | The silence after acceptance cannot be dismissed as a finalize-only map or empty map selection artifact. | Supporting evidence |
+Status: this matrix traces each confirmed blocker to the exact production control path that creates it.
 
-## Production Root Cause Notes
+| ID | Blocker | Root Cause Chain | Production Root Files | Why This Is The Production Root Cause |
+|---|---|---|---|---|
+| B1 | `maxRounds` step-budget collision | `clampStartRunLimits(...)` injects the task-template default `maxRounds=3` -> `buildInitialMissionRuntimeState(...)` stores that value as `configuredMaxRounds` -> `buildTransitionSuccessState(...)` increments `currentRoundIndex` after every successful step transition -> `evaluateLoopGuard(...)` stops when `currentRoundIndex >= configuredMaxRounds` -> `buildLoopGuardFailureOutcome(...)` maps `stop_completed` to mission status `completed`. | `src/lib/local-app-shell/task-start-binding.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`, `src/capabilities/orchestration/runtime/loop-guard.ts` | The active maps prove `detect-safety-page` is not terminal by design. The only path that explains the latest real `detect-safety-page` precondition failure plus false `completed` terminal state is this step-counter/loop-guard chain. |
+| B2 | Late `MISSION_ACTIVATION_SNAPSHOT_FROZEN` | `handleStartMission(...)` awaits `runtime.orchestrationAbilityGroup.startMission(...)` first -> only after that promise returns does it call `recordMissionActivationSnapshotFrozen(...)`. | `src/lib/local-runtime/workbench-human-command.ts`, `src/lib/local-runtime/workbench-human-command-debug-events.ts` | This ordering guarantees the activation-snapshot event can trail the whole orchestration run, which is exactly what the latest real trace shows. |
+| B3 | Late `COMMAND_ACCEPTED` | Commander transport builds the envelope and dispatches through Nerve Bus -> `emitHumanCommand(...)` waits for the final result of the human-command execution -> `executeApprovedTaskStart(...)` writes the dispatch result only after that wait completes -> `COMMAND_ACCEPTED` therefore lands after mission execution instead of at acceptance time. | `src/lib/local-runtime/workbench-commander-command-transport.ts`, `src/lib/local-app-shell/task-start-flow.ts` | The latest real run shows `COMMAND_ACCEPTED` after `MISSION_FINALIZED`, which matches a transport implementation that equates “accepted” with “the awaited command call has fully returned”. |
+| B4 | Missing `POST_ACTION_VERIFICATION_STARTED` | The orchestration runtime records PAV end-state events like `POST_ACTION_VERIFICATION_PASSED`, but no production emitter adds the corresponding start event before verification begins. | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` and the invoked PAV emission path | Local Forensics persistence shows the verification result exists while the start marker does not. That isolates the defect to the production event-emission path, not to persistence availability. |
+| B5 | Missing `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN` | Commander/runtime debug events are converted to `StructuredRuntimeEvent` and written directly through Forensics persistence helpers without first emitting persisted request/write-complete boundary events. | `src/lib/local-runtime/workbench-commander-debug.ts` and other direct structured-event write paths | The persisted store contains the business events themselves, proving writes happen, but no explicit persisted Forensics request/completion events are recorded. That is a boundary-proof omission, not a storage outage. |
+| B6 | Startup exit `143` misclassified as failure | `performLaunch(...)` starts the service and later awaits `serviceHandle.waitForExit()` -> `main(...)` treats any non-shutdown exit as unexpected -> the branch emits `SERVICE_UNEXPECTED_EXIT` and `SERVICE_EXIT_CLASSIFICATION` as failure for exit code `143`. | `scripts/startup/launch-grasseye.mjs`, `scripts/startup/lib/service-process.mjs` | The latest real run had already reached healthy ready state before the `143` classification. The current startup control flow still labels that exit path as failure. |
 
-1. `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`
-	- dispatches steps and evaluates transitions;
-	- emits no step-level structured runtime event;
-	- persists proof refs only on failure branches.
+## Cross-Checks Used To Reject Alternative Explanations
 
-2. `src/capabilities/orchestration/runtime/orchestration-transition-success-proof.ts`
-	- builds success proof objects;
-	- does not itself make them Commander-visible.
+- Built-in Facebook and TikTok maps both route `detect-safety-page:success` to `detect-feed-ready`, so the early completion is not authored by the map package.
+- `src/capabilities/page-state/children/detect-safety-page/implementation.ts` only returns page-state classifications and does not finalize the mission.
+- Local Forensics state proves command draft/receipt events and structured action logs exist, so the current root cause is not a total proof blackout.
 
-3. `src/lib/local-runtime/workbench-commander-runtime-proof-read-model.ts`
-	- runtime proof timeline is a view over `structuredRuntimeEvents`, not over Orchestration proof objects.
+## Matrix Verdict
 
-4. `src/lib/local-runtime/workbench-runtime.ts`
-	- `/api/runtime/actions` is a pure read of persisted `structuredActionLogs`.
-
-5. `src/capabilities/forensics-persistence/contract.ts`
-	- `writeStructuredActionLog` exists as a capability contract;
-	- no production writer currently calls it.
-
-## Root Cause Classification
-
-- Confirmed observability gap: yes.
-- Confirmed structured action-log producer gap: yes.
-- Confirmed success-path proof/read-model gap: yes.
-- Confirmed startup blocker: no.
-- Confirmed `runId=null` as current leading blocker: no.
+Each blocker is tied to a concrete production control path. The blockers are not speculative and do not require law or blueprint changes to be identified.

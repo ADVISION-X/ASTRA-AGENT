@@ -75,7 +75,7 @@ const MUTATIONS: Mutation[] = [
     name: "map package functionBody mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
     search: '  "signature": null\n',
-    replace: '  "functionBody": "return \"mutated\";",\n  "signature": null\n',
+    replace: '  "functionBody": "return \\"mutated\\";",\n  "signature": null\n',
   },
   {
     name: "map package eval string mutation",

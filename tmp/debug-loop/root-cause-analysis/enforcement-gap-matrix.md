@@ -1,47 +1,26 @@
 # Enforcement Gap Matrix
 
-Legend:
+Status: current inspectors can see parts of the runtime proof chain, but they do not yet enforce the six failure modes proven in the latest real run.
 
-- `C`: static presence / ownership check only
-- `D`: no live runtime sequence assertion
-- `E`: no success-path negative proof
-- `G`: no read-model parity assertion
-- `J`: no non-empty producer assertion
+| ID | Blocker | Expected Enforcement | Current Inspector Surface | Confirmed Gap | Missing Negative Proof |
+|---|---|---|---|---|---|
+| B1 | `maxRounds` step-budget collision | Inspectors should reject any runtime where configured mission rounds are consumed as step-count budget and can stop the map before the next governed step. | Existing start-mission and runtime-log checks focus on event presence and integrity, not on mission-loop semantics. | No current inspector compares `configuredMaxRounds`, `currentRoundIndex`, active map transitions, and terminal status semantics together. | No inspector demonstrates that three successful steps can incorrectly force `detect-safety-page` to fail precondition and finalize `completed`. |
+| B2 | Late `MISSION_ACTIVATION_SNAPSHOT_FROZEN` | Inspectors should require activation-snapshot proof before terminal mission proof. | `start-mission-boundary-checks.ts` verifies literal boundary events. | Literal presence passes even if `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is logged after `MISSION_FINALIZED`. | No order-aware negative proof rejects activation snapshot freeze occurring after mission terminalization. |
+| B3 | Late `COMMAND_ACCEPTED` | Inspectors should require acceptance to mean transport acceptance, not completion of the awaited mission promise. | `run-commander-runtime-runid-checks.ts` validates integrity and runId shape. | Integrity checks do not enforce lifecycle timing. `COMMAND_ACCEPTED` can exist with valid fields but still be semantically late. | No negative proof fails when `COMMAND_ACCEPTED` occurs only after mission finalization. |
+| B4 | Missing `POST_ACTION_VERIFICATION_STARTED` | Inspectors should require both entry and exit markers for PAV in persisted runtime proof. | Current structured-log inspections do not require this event. | The persisted store can contain `POST_ACTION_VERIFICATION_PASSED` without a corresponding `POST_ACTION_VERIFICATION_STARTED` and still pass. | No negative proof asserts that verification may not complete unless verification start was recorded first. |
+| B5 | Missing `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN` | Inspectors should require explicit persisted Forensics write-boundary events for structured-event and action-log writes. | Current structured logging / persistence checks focus on outcome presence, not write-boundary proof. | Direct persistence writes can succeed without any explicit request/write-complete event trail and still satisfy current checks. | No negative proof rejects runtime/event persistence that bypasses explicit `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN`. |
+| B6 | Startup exit `143` misclassified as failure | Inspectors should distinguish startup failure from post-ready service termination. | `run-forensics-structured-log-runtime-checks.ts` and related startup checks consume failure-literal presence. | A run can fully reach healthy ready state and still end with `SERVICE_UNEXPECTED_EXIT failed` for code `143` without inspector rejection. | No negative proof ties exit classification to the already-proven ready/healthy state of the service. |
 
-| Blocker | Inspector file | Negative proof file | Current coverage | Missed production problem | Why it did not block | Category |
-|---|---|---|---|---|---|---|
-| 1. No step chain after acceptance | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts` | `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | Checks frozen activation, proof fields, PAV gate, and map lookup boundaries | No `MAP_STEP_SELECTED`, `STEP_DISPATCH_STARTED`, `CAPABILITY_CALL_*`, `STEP_TRANSITION_EVALUATED`, or mission outcome events are emitted after accepted command | Inspector validates structure, not emitted runtime sequence | C, D, E |
-| 2. Empty action timeline | `scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts`; `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` | No current negative proof targets empty action-log producer set | Checks command flow event names, terminal fields, and ownership of `writeStructuredActionLog` calls if present | Repository contains zero production `writeStructuredActionLog` call sites, so `/api/runtime/actions` can stay permanently empty and still pass | Checks do not require any producer to exist | C, D, J |
-| 3. Commander proof timeline lacks success-path proof | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts` | `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts`; `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts` | Checks runtime proof schemas, runId handling, transport semantics, and gate wiring | Success-path proof refs are not persisted into mission state and runtime proof read model depends only on `structuredRuntimeEvents` | No inspector compares accepted-command outcome with Commander-visible proof timeline | C, D, E, G |
+## Specific Inspector Notes
 
-## Detailed Findings
+- `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` does include `inspectActionLogProducerCoverage(...)`, so the earlier “producer coverage missing” claim is stale.
+- `scripts/audit/domains/commander-console-capability/start-mission-boundary-checks.ts` is currently literal-presence oriented rather than order-aware.
+- `run-commander-runtime-runid-checks.ts` is integrity-aware rather than lifecycle-aware.
+- `run-forensics-structured-log-runtime-checks.ts` can accept failure-classification literals without checking that the service had already reached ready state.
+- No current inspector explicitly enforces `POST_ACTION_VERIFICATION_STARTED`.
+- No current inspector explicitly enforces `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN`.
+- No current inspector enforces the semantic relationship between `configuredMaxRounds`, `currentRoundIndex`, and the governed map step graph.
 
-### Orchestration inspector gap
+## Enforcement Verdict
 
-`scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts` is useful for activation/proof/gate invariants, but repository search shows no audit coverage for:
-
-- `MAP_STEP_SELECTED`
-- `STEP_PRECONDITION_CHECKED`
-- `CAPABILITY_CALL_STARTED`
-- `STEP_TRANSITION_EVALUATED`
-
-That means the current accepted-command silence is outside the active blocking assertions.
-
-### Structured action-log gap
-
-`scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` builds `actionLogCalls` and validates ownership through `allCallsCarryOrchestrationOwnership(actionLogCalls)`, but does not fail when `actionLogCalls` is empty. Current repository state matches that blind spot exactly: the action-log contract exists, but no producer calls it.
-
-### Commander read-model gap
-
-`scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts` validates Commander runtime gates and proof schema surfaces, but does not assert that:
-
-- accepted mission start creates a Commander-visible post-acceptance proof chain;
-- runtime proof timeline contains step/transition/finalization entries;
-- mission dashboard can read back the last accepted mission state after task start.
-
-## Required Enforcement Additions
-
-- Add a machine-blocking inspector phase that requires post-acceptance emission or persistence of step-phase proof, not just task-start events.
-- Add a negative proof that removes success-path proof persistence and requires failure.
-- Add a producer-existence audit for `writeStructuredActionLog`, not just ownership validation if calls happen to exist.
-- Add a Commander read-model parity check: accepted mission start must produce a non-empty governed post-acceptance proof timeline or an explicit terminal outcome record.
+The enforcement gap is not “no audits exist”. The real gap is that the current audit set is still too literal and too non-semantic to stop the six confirmed blockers.
