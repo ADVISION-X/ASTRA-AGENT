@@ -131,7 +131,7 @@ const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").Source
 };
 
 const hasPersistedBoundaryEventEmitter = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  const emitterDeclaration = sourceFile.getVariableDeclaration("boundaryEventEmitter");
+  const emitterDeclaration = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((declaration) => declaration.getName() === "boundaryEventEmitter");
   if (!emitterDeclaration) {
     return false;
   }

@@ -59,23 +59,12 @@ const hasWrittenBoundaryFailureOnlyGate = (sourceFile) => {
 };
 
 const hasPersistedBoundaryEventEmitter = (sourceFile) => {
-  const emitterDeclaration = sourceFile.getVariableDeclaration("boundaryEventEmitter");
-  const emitterObject = emitterDeclaration?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-  if (!emitterObject) {
+  const emitterDeclaration = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((declaration) => declaration.getName() === "boundaryEventEmitter");
+  if (!emitterDeclaration) {
     return false;
   }
 
-  const emitRuntimeEventProperty = emitterObject.getProperty("emitRuntimeEvent");
-  if (!emitRuntimeEventProperty || !Node.isPropertyAssignment(emitRuntimeEventProperty)) {
-    return false;
-  }
-
-  const initializer = emitRuntimeEventProperty.getInitializer();
-  if (!initializer || (!Node.isArrowFunction(initializer) && !Node.isFunctionExpression(initializer))) {
-    return false;
-  }
-
-  return initializer.getDescendantsOfKind(SyntaxKind.CallExpression).map((callExpression) => flattenPropertyAccess(callExpression.getExpression()).join("."));
+  return emitterDeclaration.getDescendantsOfKind(SyntaxKind.CallExpression).map((callExpression) => flattenPropertyAccess(callExpression.getExpression()).join("."));
 };
 
 const hasBoundaryEmitterAbilityGroupWiring = (sourceFile) => {

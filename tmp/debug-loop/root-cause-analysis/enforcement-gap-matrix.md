@@ -1,26 +1,19 @@
 # Enforcement Gap Matrix
 
-Status: current inspectors can see parts of the runtime proof chain, but they do not yet enforce the six failure modes proven in the latest real run.
-
-| ID | Blocker | Expected Enforcement | Current Inspector Surface | Confirmed Gap | Missing Negative Proof |
+| Blocker | Inspector / proof that should have caught it | Current coverage | Gap category | Why it escaped | Required enforcement improvement |
 |---|---|---|---|---|---|
-| B1 | `maxRounds` step-budget collision | Inspectors should reject any runtime where configured mission rounds are consumed as step-count budget and can stop the map before the next governed step. | Existing start-mission and runtime-log checks focus on event presence and integrity, not on mission-loop semantics. | No current inspector compares `configuredMaxRounds`, `currentRoundIndex`, active map transitions, and terminal status semantics together. | No inspector demonstrates that three successful steps can incorrectly force `detect-safety-page` to fail precondition and finalize `completed`. |
-| B2 | Late `MISSION_ACTIVATION_SNAPSHOT_FROZEN` | Inspectors should require activation-snapshot proof before terminal mission proof. | `start-mission-boundary-checks.ts` verifies literal boundary events. | Literal presence passes even if `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is logged after `MISSION_FINALIZED`. | No order-aware negative proof rejects activation snapshot freeze occurring after mission terminalization. |
-| B3 | Late `COMMAND_ACCEPTED` | Inspectors should require acceptance to mean transport acceptance, not completion of the awaited mission promise. | `run-commander-runtime-runid-checks.ts` validates integrity and runId shape. | Integrity checks do not enforce lifecycle timing. `COMMAND_ACCEPTED` can exist with valid fields but still be semantically late. | No negative proof fails when `COMMAND_ACCEPTED` occurs only after mission finalization. |
-| B4 | Missing `POST_ACTION_VERIFICATION_STARTED` | Inspectors should require both entry and exit markers for PAV in persisted runtime proof. | Current structured-log inspections do not require this event. | The persisted store can contain `POST_ACTION_VERIFICATION_PASSED` without a corresponding `POST_ACTION_VERIFICATION_STARTED` and still pass. | No negative proof asserts that verification may not complete unless verification start was recorded first. |
-| B5 | Missing `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN` | Inspectors should require explicit persisted Forensics write-boundary events for structured-event and action-log writes. | Current structured logging / persistence checks focus on outcome presence, not write-boundary proof. | Direct persistence writes can succeed without any explicit request/write-complete event trail and still satisfy current checks. | No negative proof rejects runtime/event persistence that bypasses explicit `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN`. |
-| B6 | Startup exit `143` misclassified as failure | Inspectors should distinguish startup failure from post-ready service termination. | `run-forensics-structured-log-runtime-checks.ts` and related startup checks consume failure-literal presence. | A run can fully reach healthy ready state and still end with `SERVICE_UNEXPECTED_EXIT failed` for code `143` without inspector rejection. | No negative proof ties exit classification to the already-proven ready/healthy state of the service. |
+| BLOCKER-1 | `scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts`; `negative-proof-harness.ts` | Checks timeout gate exists, timeout outcome strings exist, and refs are preserved on rejected path | D, E, H | No check for async boundary: `issue-human-command` should not await full mission terminal state after `COMMAND_ACCEPTED` | Add AST check/negative proof for start-mission handler awaiting `orchestrationAbilityGroup.startMission` inside command transport; assert accepted command cannot later emit child-level `COMMAND_REJECTED` |
+| BLOCKER-2 | `scripts/audit/domains/page-state-capability/required-shape.ts`; `anti-escape.ts`; `negative-proof-mutations.ts` | Checks observations exist, output boundary blocks missing observations, child output parses schema | C, D, E | No child-specific check that normal safety classification binds negative `captcha`/`safety_wall` observations into support refs | Add dataflow/AST check and mutation: remove negative normal safety refs should fail |
+| BLOCKER-3 | Structured logging / orchestration lifecycle inspectors | Checks many required fields and command rejected field propagation | E, H | Event taxonomy completeness not enforced for capability-start and review terminal finalization | Add required lifecycle event matrix and negative proof deleting `CAPABILITY_CALL_STARTED` / review finalization |
+| BLOCKER-4 | Page State result/proof inspector and structured logging inspector | Checks result/proof schema retains diagnostic refs | C, H | Does not require those refs to be surfaced in orchestration terminal review log | Add review-log mapping inspector for diagnosticPayloadRef/runtimeProofRef/observationRefs |
 
-## Specific Inspector Notes
+## Inspector Deletion / Warning-Only Status
 
-- `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` does include `inspectActionLogProducerCoverage(...)`, so the earlier “producer coverage missing” claim is stale.
-- `scripts/audit/domains/commander-console-capability/start-mission-boundary-checks.ts` is currently literal-presence oriented rather than order-aware.
-- `run-commander-runtime-runid-checks.ts` is integrity-aware rather than lifecycle-aware.
-- `run-forensics-structured-log-runtime-checks.ts` can accept failure-classification literals without checking that the service had already reached ready state.
-- No current inspector explicitly enforces `POST_ACTION_VERIFICATION_STARTED`.
-- No current inspector explicitly enforces `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN`.
-- No current inspector enforces the semantic relationship between `configuredMaxRounds`, `currentRoundIndex`, and the governed map step graph.
+No evidence found in this phase that the relevant Page State or Commander inspector is deleted or warning-only. The failure is coverage precision, not inspector absence.
 
-## Enforcement Verdict
+## Negative Proof Gap Summary
 
-The enforcement gap is not “no audits exist”. The real gap is that the current audit set is still too literal and too non-semantic to stop the six confirmed blockers.
+- Existing Page State negative proof includes `local-runtime-page-state-drops-governed-observations`.
+- Missing Page State negative proof: `detect-safety-page` normal branch ignores governed negative observations while observations still exist.
+- Existing Commander negative proof includes timeout gate bypass.
+- Missing Commander negative proof: start mission emits accepted event but command child still times out because transport awaits terminal mission loop.

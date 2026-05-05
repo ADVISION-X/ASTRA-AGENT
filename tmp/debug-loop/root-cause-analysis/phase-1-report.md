@@ -4,47 +4,49 @@ Status: `LOG_BLOCKER_ANALYSIS_READY`
 
 ## Scope
 
-This Phase 1 pass is analysis-only. No production source files, law files, blueprint files, or inspector files were modified during this reporting pass. Only the analysis artifacts under `tmp/debug-loop/root-cause-analysis/` were rewritten.
+This phase performed Runtime Log Blocker Mining & Root Cause Analysis only. No production source, law, blueprint, inspector, or negative proof code was modified. The generated artifacts in this folder are analysis outputs.
 
-## Evidence Used
+## Current Runtime Finding
 
-- Latest full real startup/task transcript run with startup runId `2026-05-05T07:25:44.447Z`
-- Local Forensics persistence store at `/Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement/state.json`
-- Active built-in Facebook and TikTok governed map packages
-- Current production control paths for Commander, Orchestration, Forensics, and startup entrypoint
-- Current inspector implementations used to identify enforcement gaps
+Startup is healthy. Map package readiness, AI readiness, app shell, Commander, Nerve Bus, Orchestration activation snapshot, open step, post-action verification, and login-state detection all pass.
 
-## Confirmed Findings
+The current runtime blockers are:
 
-The corrected Phase 1 blocker set contains exactly six live blockers:
+1. P0: Commander `issue-human-command` records `COMMAND_REJECTED` after `COMMAND_ACCEPTED` because the 5s child timeout wraps long-running mission execution.
+2. P0: `detect-safety-page` cannot prove normal page state because it ignores governed negative observations (`captcha=false`, `safety_wall=false`) as supporting refs.
 
-1. `maxRounds` step-budget collision causes false terminal completion at `detect-safety-page`.
-2. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is emitted too late.
-3. `COMMAND_ACCEPTED` is emitted too late.
-4. `POST_ACTION_VERIFICATION_STARTED` is missing from persisted proof.
-5. `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN` are missing from persisted proof.
-6. Startup exit `143` is misclassified as failure.
+## P0 Details
 
-## Older Hypotheses Falsified
+### BLOCKER-1
 
-The following older claims are now explicitly rejected by newer real evidence:
+`src/lib/local-runtime/workbench-human-command.ts` records command acceptance before mission execution, then awaits `runtime.orchestrationAbilityGroup.startMission(...)`. That long-running promise is wrapped by `runCommanderTimeoutGate` in `src/capabilities/commander-console/runtime/commander-command-child-executor.ts`, with `maxDurationMs: 5000` from `src/capabilities/commander-console/children/issue-human-command/contract.ts`.
 
-- missing `HUMAN_COMMAND_DRAFTED`
-- missing `HUMAN_COMMAND_RECEIVED`
-- missing action-log producer coverage
-- no real step execution after acceptance
+Result: command acceptance and command rejection both appear for the same command path.
 
-## Artifact Set Rewritten
+### BLOCKER-2
 
-- `runtime-timeline.md`
-- `blocker-list.md`
-- `law-blueprint-mapping.md`
-- `root-cause-matrix.md`
-- `enforcement-gap-matrix.md`
-- `phase-1-report.md`
+`src/lib/local-runtime/workbench-page-state-dispatch-input.ts` emits governed observations. `src/capabilities/page-state/children/detect-safety-page/implementation.ts` filters safety/captcha markers to `present=true` only, so normal page negative observations are not included in `matchedObservationIds`. `src/capabilities/page-state/page-state-result-validation.ts` correctly rejects a success with no observation refs and `insufficient_signal`.
 
-## Readiness Verdict
+Result: Facebook and TikTok both transition to `request-human-review` after `detect-safety-page`.
 
-The required Phase 1 analysis artifacts are now aligned with the latest real evidence and the current production root-cause model.
+## P1 Backlog
 
-Final readiness token: `LOG_BLOCKER_ANALYSIS_READY`
+- Runtime taxonomy lacks distinct `CAPABILITY_CALL_STARTED` and review-path `MISSION_FINALIZED`.
+- Page State review logs do not surface enough diagnostic/proof refs for immediate root-cause inspection.
+
+## P2 Backlog
+
+- Event owner/target wording is sometimes ambiguous for Page State review events.
+
+## Required Output Files
+
+- `tmp/debug-loop/root-cause-analysis/runtime-timeline.md`
+- `tmp/debug-loop/root-cause-analysis/blocker-list.md`
+- `tmp/debug-loop/root-cause-analysis/law-blueprint-mapping.md`
+- `tmp/debug-loop/root-cause-analysis/root-cause-matrix.md`
+- `tmp/debug-loop/root-cause-analysis/enforcement-gap-matrix.md`
+- `tmp/debug-loop/root-cause-analysis/phase-1-report.md`
+
+## Next Phase Default
+
+Repair only P0 runtime blockers unless P1 logging gaps prevent proving the P0 fix.

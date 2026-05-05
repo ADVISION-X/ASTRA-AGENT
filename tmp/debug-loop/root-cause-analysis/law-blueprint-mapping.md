@@ -1,26 +1,53 @@
-# Law And Blueprint Mapping
+# Law / Blueprint Mapping
 
-Status: each confirmed blocker is mapped to the active governing law or blueprint surface, the production root path, the current inspector blind spot, and the missing negative proof.
+## BLOCKER-1: Commander start-mission timeout after acceptance
 
-## Mapping Table
+| Layer | Evidence |
+|---|---|
+| Law file | `.github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md` |
+| lawId | `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2`; also touches `006/007` proof/result semantics |
+| Law requirement | Command envelope must be explicit, timeout-governed, idempotent, and semantically validated. Timeout results must be typed and governed. |
+| Law violation | Timeout is real, but it is scoped to the whole long-running mission loop. This allows `COMMAND_ACCEPTED` and `COMMAND_REJECTED` for the same start command. |
+| Blueprint file | `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md` |
+| Blueprint section | timeout gate; local app shell `COMMAND_ACCEPTED / COMMAND_REJECTED` refs |
+| Blueprint requirement | timeout produces typed failed/review result; local shell rejected path includes owner/actionable/proof refs. |
+| Blueprint gap | It does not clearly state that start-mission command acceptance must return before mission terminal execution. |
+| Fix layer | Production + blueprint + commander inspector + negative proof + structured log semantics |
 
-| ID | Blocker | Governing Law / Blueprint Surface | Why This Surface Owns The Truth | Production Root Files | Inspector Gap | Missing Negative Proof |
-|---|---|---|---|---|---|---|
-| B1 | `maxRounds` step-budget collision | Orchestration capability law; Orchestration blueprint; Map Plugin Package blueprint | Orchestration owns mission loop semantics and frozen map execution. Map packages define that `detect-safety-page:success` transitions to `detect-feed-ready`, so early terminal completion cannot be attributed to map intent. | `src/lib/local-app-shell/task-start-binding.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-command-support.ts`, `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`, `src/capabilities/orchestration/runtime/loop-guard.ts`, built-in Facebook/TikTok map packages | Existing inspectors do not validate the semantic relationship between configured rounds and per-step loop counters. | No inspector proves that `configuredMaxRounds` is preserved as a mission-round budget rather than consumed one step at a time. |
-| B2 | Late `MISSION_ACTIVATION_SNAPSHOT_FROZEN` | Commander Console capability law; Orchestration capability law; Commander Console blueprint | Commander owns human command entry proof, while Orchestration owns mission activation. The activation-snapshot event must be emitted before any terminal mission outcome if it is to describe mission activation truth. | `src/lib/local-runtime/workbench-human-command.ts`, `src/lib/local-runtime/workbench-human-command-debug-events.ts` | `start-mission-boundary-checks.ts` verifies literal presence but not event order relative to terminalization. | No inspector asserts that activation snapshot freeze must occur before step execution or before mission finalization. |
-| B3 | Late `COMMAND_ACCEPTED` | Commander Console capability law; Nerve Bus capability law; Commander Console blueprint | Acceptance belongs to governed command transport, not to the end of the awaited mission execution promise. | `src/lib/local-runtime/workbench-commander-command-transport.ts`, `src/lib/local-app-shell/task-start-flow.ts` | Current runId/integrity checks confirm the event exists but do not verify lifecycle timing semantics. | No negative proof catches that `COMMAND_ACCEPTED` is emitted only after the whole mission call returns. |
-| B4 | Missing `POST_ACTION_VERIFICATION_STARTED` | Post-action Verification capability blueprint; Structured logging and runtime-proof blueprint | PAV owns action-result verification truth. Persisted proof requires both entry and exit of the verification phase, not only the result. | PAV emission path as exercised from `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` | No current inspector explicitly requires the PAV start event in the real persisted proof set. | No negative proof demonstrates that verification can appear to complete without ever being observed to start. |
-| B5 | Missing `FORENSICS_RECORD_WRITE_REQUESTED` and `FORENSICS_RECORD_WRITTEN` | Forensics Persistence capability law; Structured logging and runtime-proof blueprint; Forensics persistence blueprint | Forensics owns append-only persistence truth. Runtime proof should show when a structured event or action log is requested for write and when the write succeeds. | `src/lib/local-runtime/workbench-commander-debug.ts` and other direct Forensics write call paths | Current persistence inspectors focus on literal event presence and basic storage outputs, not on required request/write-complete boundary events. | No negative proof detects direct persistence writes that bypass explicit persisted write-request/write-complete events. |
-| B6 | Startup exit `143` misclassified as failure | Startup entrypoint law; startup structured terminal logging blueprint | The canonical startup entrypoint owns service exit classification and terminal startup truth. Once the system is ready, exit classification must not retroactively label the run as a startup failure without contextual distinction. | `scripts/startup/launch-grasseye.mjs`, `scripts/startup/lib/service-process.mjs` | Existing startup inspectors accept presence of failure-classification literals without checking whether the process had already reached healthy ready state. | No negative proof rejects a post-ready exit path being reported as `SERVICE_UNEXPECTED_EXIT failed`. |
+## BLOCKER-2: `detect-safety-page` normal page lacks supporting negative observations
 
-## Structured Logging Note
+| Layer | Evidence |
+|---|---|
+| Law file | `.github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md` |
+| lawId | `GRASSEYE-PAGE-STATE-CAPABILITY-004-V2`, `GRASSEYE-PAGE-STATE-CAPABILITY-005-V2` |
+| Law requirement | Observations must be source-bound/fresh; observation-required child success must retain observationRefs; success must not retain critical data-quality flags. |
+| Law violation | Normal page branch ignores source-bound negative safety observations, leading to empty observation refs and `insufficient_signal`. |
+| Blueprint file | `docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md` |
+| Blueprint section | 7 Observation; 9 Child Capabilities; 12 Output Boundary |
+| Blueprint requirement | `detect-safety-page` must judge safety/captcha from `page_marker / platform_capture`; success cannot miss observationRefs. |
+| Blueprint gap | It does not explicitly spell out that `page_normal` can be proven by negative `captcha=false` and `safety_wall=false` observations. |
+| Fix layer | Production child implementation + blueprint clarification + Page State inspector + negative proof |
 
-The current structured-logging governance for this Phase 1 analysis is effectively blueprint-driven and inspector-driven rather than protected by a dedicated always-on active law module. That matters for B4 and B5:
+## BLOCKER-3: Missing explicit capability-start and mission-finalized taxonomy
 
-- the runtime-proof expectations exist in blueprint form and in inspector scripts,
-- but the present inspector set is still mostly literal-presence oriented,
-- so lifecycle-order failures and missing start/write-boundary events can escape enforcement even while other log surfaces look healthy.
+| Layer | Evidence |
+|---|---|
+| Law file | `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md` |
+| lawId | Structured logging lifecycle law set, exact clause not narrowed in this phase |
+| Law requirement | Runtime structured logs must allow lifecycle reconstruction with trace/run/span/refs and owner/actionable fields. |
+| Law violation | `CAPABILITY_CALL_STARTED` and review-path `MISSION_FINALIZED` are missing as explicit event names. |
+| Blueprint file | `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md` |
+| Blueprint section | Runtime event lifecycle |
+| Fix layer | Structured log production emitters + inspector + negative proof |
 
-## Mapping Verdict
+## BLOCKER-4: Page State review logs do not surface diagnostic/proof refs
 
-The six confirmed blockers all map to existing governed surfaces. The issue is not “missing law ownership”; the issue is that production semantics and current inspectors diverge from the intended law/blueprint truth in six concrete places.
+| Layer | Evidence |
+|---|---|
+| Law file | `.github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md` |
+| lawId | `GRASSEYE-PAGE-STATE-CAPABILITY-005-V2`, `GRASSEYE-PAGE-STATE-CAPABILITY-006-V2` |
+| Law requirement | Review/failed result keeps diagnosticPayloadRef and runtimeProof. |
+| Law violation | Terminal review event does not surface enough Page State diagnostic/proof refs. |
+| Blueprint file | `docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md` |
+| Blueprint section | 10 Output Model; 11 Runtime Proof |
+| Fix layer | Orchestration review log mapping + structured logging inspector |

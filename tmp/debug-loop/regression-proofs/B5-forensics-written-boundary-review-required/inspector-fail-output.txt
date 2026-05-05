@@ -1,0 +1,9 @@
+[
+  {
+    "lawId": "GRASSEYE-STRUCTURED-LOGGING-001-V1",
+    "file": "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    "line": 1,
+    "severity": "fatal",
+    "message": "Forensics structured log writes must emit explicit FORENSICS_RECORD_WRITE_REQUESTED/WRITTEN events through the public ability-group wrapper and structured log bus."
+  }
+]

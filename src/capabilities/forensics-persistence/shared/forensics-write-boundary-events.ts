@@ -118,7 +118,7 @@ export async function emitForensicsRecordWritten(
   request: StructuredWriteRequest,
   result: ForensicsPersistenceAbilityResult,
 ): Promise<void> {
-  if (!emitter || result.status === "failed") {
+  if (!emitter || result.status !== "success") {
     return;
   }
 
