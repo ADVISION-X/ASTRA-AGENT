@@ -323,7 +323,7 @@ const MUTATION_LAW_COVERAGE: Record<string, {
 };
 
 const formatInspectorOutput = (input: {
-  mutationName?: string;
+  mutationName?: string | undefined;
   result: InspectorResult;
 }): string => [
   input.mutationName ? `mutationName: ${input.mutationName}` : "baseline",

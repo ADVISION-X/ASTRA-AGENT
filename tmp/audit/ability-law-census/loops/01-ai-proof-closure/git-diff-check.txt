@@ -1,0 +1,9 @@
+$ git diff --check
+exitCode=0
+signal=
+durationMs=38
+
+--- stdout ---
+
+
+--- stderr ---

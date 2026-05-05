@@ -1,39 +1,268 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
+import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
+
+type SupportedPostActionChildCapabilityId =
+  | "verify-page-opened"
+  | "verify-comments-panel-opened"
+  | "verify-comments-panel-closed"
+  | "verify-video-changed-after-scroll"
+  | "verify-not-interested-result"
+  | "verify-target-state-changed";
+
+type PostActionInputPolicy = {
+  childCapabilityId: SupportedPostActionChildCapabilityId;
+  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "video_changed_after_scroll" | "not_interested_result" | "target_state_changed";
+  sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
+  sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "open-local-workbench" | "click-browser-coordinate" | "scroll-browser-viewport";
+  sourceActionType: string;
+  verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
+  requireAfterEvidence: boolean;
+  requireBeforeAfterComparison: boolean;
+  requiresVisualEvidence: boolean;
+  executionRefField: "navigationAttemptRef" | "primitiveExecutionRef" | "scrollExecutionRef";
+};
+
+const DEFAULT_PAGE_URL_BY_MAP = {
+  "facebook.seeding-video.discovery.meta.v1": "https://www.facebook.com/reel/",
+  "tiktok.seeding-video.discovery.meta.v1": "https://www.tiktok.com/foryou",
+} as const;
+
+const normalizePageStateLogin = (loginState: string | null | undefined) => {
+  if (loginState === "logged_in") {
+    return "ready" as const;
+  }
+  if (loginState === "login_required" || loginState === "review_required") {
+    return loginState;
+  }
+  return "unknown" as const;
+};
+
+const resolveOpenSourceChildCapabilityId = (selectedMapId: string) => {
+  if (selectedMapId.includes("facebook")) {
+    return "open-facebook" as const;
+  }
+  if (selectedMapId.includes("tiktok")) {
+    return "open-tiktok" as const;
+  }
+  return "open-local-workbench" as const;
+};
+
+const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {
+  switch (envelope.commandName) {
+    case "verify-page-opened":
+      return {
+        childCapabilityId: "verify-page-opened",
+        outcomeType: "page_opened",
+        sourceAbilityGroupId: "open",
+        sourceChildCapabilityId: resolveOpenSourceChildCapabilityId(envelope.selectedMapId),
+        sourceActionType: "open_feed",
+        verificationMode: "observation_only",
+        requireAfterEvidence: false,
+        requireBeforeAfterComparison: false,
+        requiresVisualEvidence: false,
+        executionRefField: "navigationAttemptRef",
+      };
+    case "verify-comments-panel-opened":
+      return {
+        childCapabilityId: "verify-comments-panel-opened",
+        outcomeType: "comments_panel_opened",
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: "click-browser-coordinate",
+        sourceActionType: "open_comments",
+        verificationMode: "visual_evidence",
+        requireAfterEvidence: true,
+        requireBeforeAfterComparison: false,
+        requiresVisualEvidence: true,
+        executionRefField: "primitiveExecutionRef",
+      };
+    case "verify-comments-panel-closed":
+      return {
+        childCapabilityId: "verify-comments-panel-closed",
+        outcomeType: "comments_panel_closed",
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: "click-browser-coordinate",
+        sourceActionType: "close_comments",
+        verificationMode: "visual_evidence",
+        requireAfterEvidence: true,
+        requireBeforeAfterComparison: false,
+        requiresVisualEvidence: true,
+        executionRefField: "primitiveExecutionRef",
+      };
+    case "verify-video-changed-after-scroll":
+      return {
+        childCapabilityId: "verify-video-changed-after-scroll",
+        outcomeType: "video_changed_after_scroll",
+        sourceAbilityGroupId: "mouse-scroll",
+        sourceChildCapabilityId: "scroll-browser-viewport",
+        sourceActionType: "scroll_next_video",
+        verificationMode: "before_after_comparison",
+        requireAfterEvidence: true,
+        requireBeforeAfterComparison: true,
+        requiresVisualEvidence: false,
+        executionRefField: "scrollExecutionRef",
+      };
+    case "verify-not-interested-result":
+      return {
+        childCapabilityId: "verify-not-interested-result",
+        outcomeType: "not_interested_result",
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: "click-browser-coordinate",
+        sourceActionType: "not_interested",
+        verificationMode: "before_after_comparison",
+        requireAfterEvidence: true,
+        requireBeforeAfterComparison: true,
+        requiresVisualEvidence: false,
+        executionRefField: "primitiveExecutionRef",
+      };
+    default:
+      return {
+        childCapabilityId: "verify-target-state-changed",
+        outcomeType: "target_state_changed",
+        sourceAbilityGroupId: "mouse-click",
+        sourceChildCapabilityId: "click-browser-coordinate",
+        sourceActionType: "click_target_state_change",
+        verificationMode: "before_after_comparison",
+        requireAfterEvidence: true,
+        requireBeforeAfterComparison: true,
+        requiresVisualEvidence: false,
+        executionRefField: "primitiveExecutionRef",
+      };
+  }
+};
+
+const resolveSourceProofRef = (
+  envelope: AbilityCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+) => {
+  return payloadValueToString(payload.abilityResultRef)
+    ?? payloadValueToString(payload.sourceEvidenceRef)
+    ?? envelope.inputRef;
+};
+
+const resolveExpectedUrlHost = (selectedMapId: string) => {
+  if (selectedMapId.includes("facebook")) {
+    return "www.facebook.com";
+  }
+  if (selectedMapId.includes("tiktok")) {
+    return "www.tiktok.com";
+  }
+  return null;
+};
+
+const buildPageStateObservation = (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  sourceProofRef: string,
+  summary: string,
+) => {
+  const session = runtime.browserController.getSessionState();
+  const currentUrl = session.currentUrl || DEFAULT_PAGE_URL_BY_MAP[envelope.selectedMapId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] || null;
+  return {
+    ref: `${envelope.inputRef}:page-state`,
+    kind: "page_state" as const,
+    source: {
+      sourceAbilityGroupId: "page-state" as const,
+      sourceChildCapabilityId: "detect-platform-page-kind",
+      sourceProofRef,
+    },
+    capturedAt: new Date().toISOString(),
+    sessionId: envelope.sessionId,
+    roundId: envelope.roundId,
+    videoVisitId: envelope.videoVisitId,
+    payload: {
+      kind: "page_state" as const,
+      currentUrl,
+      loginState: normalizePageStateLogin(session.loginState),
+      commentsPanelOpen: null,
+      modalOverlayPresent: null,
+      recommendationChanged: null,
+      changeSummary: summary,
+      targetStateChanged: null,
+      targetType: null,
+      wrongDomain: null,
+    },
+  };
+};
+
+const buildActionProof = (input: {
+  envelope: AbilityCommandEnvelope;
+  sourceProofRef: string;
+  policy: PostActionInputPolicy;
+}) => ({
+  actionProofRef: input.sourceProofRef,
+  actionLogRef: input.sourceProofRef,
+  actionRecordRef: null,
+  sourceRuntimeProofRef: input.sourceProofRef,
+  sourceActionResultRef: input.sourceProofRef,
+  sourceActionOutputRef: input.sourceProofRef,
+  sourceAbilityGroupId: input.policy.sourceAbilityGroupId,
+  sourceChildCapabilityId: input.policy.sourceChildCapabilityId,
+  actionType: input.policy.sourceActionType,
+  actionStatus: "success" as const,
+  primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef" ? input.sourceProofRef : null,
+  navigationAttemptRef: input.policy.executionRefField === "navigationAttemptRef" ? input.sourceProofRef : null,
+  scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef" ? input.sourceProofRef : null,
+  sessionId: input.envelope.sessionId,
+  roundId: input.envelope.roundId,
+  videoVisitId: input.envelope.videoVisitId,
+  startedAt: input.envelope.createdAt,
+  endedAt: input.envelope.createdAt,
+  selfReportedOnly: false,
+});
 
 export const buildPostActionVerificationInput = (
+  runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
-) => JSON.parse(JSON.stringify({
-  abilityGroupId: "post-action-verification",
-  childCapabilityId: envelope.commandName === "verify-comments-open" ? "verify-comments-panel-opened" : "verify-action-result",
-  requestedBy: "orchestration",
-  sessionId: envelope.missionId,
-  roundId: envelope.stepId,
-  videoVisitId: null,
-  expectedOutcome: { outcomeKind: "state_change", summary: inputPayload.summary },
-  actionProof: {
-    actionProofRef: envelope.inputRef,
-    sourceAbilityGroupId: "mouse-click",
-    sourceChildCapabilityId: "click-browser-coordinate",
-    sourceRuntimeProofRef: envelope.inputRef,
-    sourceActionResultRef: envelope.inputRef,
-    sourceActionOutputRef: envelope.inputRef,
-    actionLogRef: envelope.inputRef,
-    actionRecordRef: envelope.inputRef,
-  },
-  beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
-  observationSet: {
-    observations: [{
-      ref: `${envelope.inputRef}:observation`,
-      kind: "runtime_signal",
-      observedAt: new Date().toISOString(),
-      confidence: 0.5,
-      source: { sourceAbilityGroupId: "post-action-verification", sourceChildCapabilityId: envelope.commandName, sourceProofRef: envelope.inputRef },
-      payload: { signalType: "action_completed", value: true, detail: inputPayload.summary },
-    }],
-  },
-  verificationPolicy: { requireBeforeAfterEvidence: false, requireObservationSupport: false, allowReviewRequired: true },
-  confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
-  inputRef: envelope.inputRef,
-}));
+) => {
+  const payload = payloadDocumentToObject(inputPayload);
+  const policy = resolvePostActionInputPolicy(envelope);
+  const sourceProofRef = resolveSourceProofRef(envelope, payload);
+  return JSON.parse(JSON.stringify({
+    abilityGroupId: "post-action-verification",
+    childCapabilityId: policy.childCapabilityId,
+    requestedBy: "orchestration",
+    missionId: envelope.missionId,
+    runId: envelope.runId,
+    sessionId: envelope.sessionId,
+    roundId: envelope.roundId,
+    videoVisitId: envelope.videoVisitId,
+    stepId: envelope.stepId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.selectedMapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationSnapshotRef: envelope.activationSnapshotRef,
+    capabilityCallId: envelope.capabilityCallId,
+    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+    sourceAbilityGroupId: policy.sourceAbilityGroupId,
+    sourceChildCapabilityId: policy.sourceChildCapabilityId,
+    sourceActionType: policy.sourceActionType,
+    expectedOutcome: {
+      outcomeType: policy.outcomeType,
+      description: inputPayload.summary,
+      expectedUrlHost: policy.childCapabilityId === "verify-page-opened" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
+      expectedUrlPrefix: null,
+      expectedState: null,
+      expectedTargetType: null,
+      requiresBeforeAfterComparison: policy.requireBeforeAfterComparison,
+      requiresVisualEvidence: policy.requiresVisualEvidence,
+    },
+    actionProof: buildActionProof({ envelope, sourceProofRef, policy }),
+    beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
+    observationSet: {
+      observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
+    },
+    verificationPolicy: {
+      verificationMode: policy.verificationMode,
+      requireAfterEvidence: policy.requireAfterEvidence,
+      requireBeforeAfterComparison: policy.requireBeforeAfterComparison,
+      allowSelfReportedSuccess: false,
+    },
+    confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
+    inputRef: envelope.inputRef,
+    idempotencyKey: envelope.idempotencyKey,
+  }));
+};

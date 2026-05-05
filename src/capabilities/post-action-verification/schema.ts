@@ -407,6 +407,8 @@ const RESULT_RUNTIME_PROOF_CHAIN_FIELDS = [
   "nerveBusEnvelopeId",
 ] as const;
 
+const OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS = new Set<ResultRuntimeProofChainField>(["videoVisitId"]);
+
 type ResultRuntimeProofChainField = (typeof RESULT_RUNTIME_PROOF_CHAIN_FIELDS)[number];
 
 function postActionVerificationAbilityResultSuperRefine(
@@ -473,6 +475,9 @@ const validatePostActionVerificationAbilityResultGovernedFields = (
     context.addIssue({ code: z.ZodIssueCode.custom, message: "childCapabilityId is required for governed results", path: ["childCapabilityId"] });
   }
   for (const field of RESULT_RUNTIME_PROOF_CHAIN_FIELDS) {
+    if (OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS.has(field)) {
+      continue;
+    }
     if (value[field] === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${field} is required for governed results`, path: [field] });
     }

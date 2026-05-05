@@ -1,1 +1,1 @@
-Mutation: remove commandTransportContract preflight component from src/lib/local-runtime/workbench-status.ts.
+Mutation: removed missionCommandSchema preflight component from src/lib/local-runtime/workbench-status.ts.

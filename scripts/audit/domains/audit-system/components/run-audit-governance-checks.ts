@@ -5,6 +5,7 @@ import { validateManifestOwnership } from "./validate-manifest-ownership.js";
 import { validateOwnerEvidence } from "./validate-owner-evidence.js";
 import { validateRequiredPhaseDomains } from "./validate-required-phase-domains.js";
 import { validateRunnerBoundary } from "./validate-runner-boundary.js";
+import { validateStaticClauseCoverage } from "./validate-static-clause-coverage.js";
 
 type AuditCheckResult = {
   findings: Finding[];
@@ -18,6 +19,7 @@ export const runAuditGovernanceChecks = async (
     validateLawHome(context),
     validateManifestOwnership(context),
     validateGeneratedArtifacts(context),
+    validateStaticClauseCoverage(context),
     validateRequiredPhaseDomains(context),
     validateRunnerBoundary(context),
     validateOwnerEvidence(context),

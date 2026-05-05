@@ -1,0 +1,19 @@
+$ npm run lint
+exitCode=2
+signal=
+durationMs=7642
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 lint
+> npm run typecheck
+
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+src/lib/local-app-shell/task-start-flow.ts(93,5): error TS2353: Object literal may only specify known properties, and 'activationId' does not exist in type '{ requestedPlatformId: RequestedPlatformId; selectedMapId: string; taskTemplateId?: string | null; activationSnapshotRef?: string | null; targetProfileRef?: string | null; }'.
+src/lib/local-runtime/workbench-status.ts(170,7): error TS2322: Type '"missionCommandSchema"' is not assignable to type '"requestedPlatform" | "browserController" | "dataStore" | "localAi" | "selectedMap" | "commandTransportContract"'.
+
+
+--- stderr ---

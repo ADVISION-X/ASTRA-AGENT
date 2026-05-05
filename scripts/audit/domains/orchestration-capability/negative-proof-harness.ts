@@ -29,6 +29,24 @@ const MUTATIONS: Mutation[] = [
     replace: "missionId: input.missionId",
   },
   {
+    name: "human command start runId drop mutation",
+    file: "src/lib/local-runtime/workbench-human-command.ts",
+    search: "    missionId: envelope.missionId,\n    runId: envelope.runId,\n    humanGoal:",
+    replace: "    missionId: envelope.missionId,\n    runId: null,\n    humanGoal:",
+  },
+  {
+    name: "orchestration start received log removal mutation",
+    file: "src/lib/local-runtime/workbench-human-command-debug-events.ts",
+    search: "ORCHESTRATION_START_RECEIVED",
+    replace: "ORCHESTRATION_START_MISSING",
+  },
+  {
+    name: "mission command schema preflight dry-run removal mutation",
+    file: "src/lib/local-runtime/workbench-mission-command-preflight.ts",
+    search: "}) => MissionCommandSchema.safeParse({",
+    replace: "}) => MissionCommandSchema.parse({",
+  },
+  {
     name: "governed execute type escape mutation",
     file: "src/capabilities/orchestration/contract.ts",
     search: "execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult>;",

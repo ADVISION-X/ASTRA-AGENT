@@ -64,6 +64,11 @@ const buildCommanderDebugOutcome = (
     ownerResponsible?: string | null;
     decision?: string | null;
     durationMs?: number | null;
+    refs?: string[];
+    inputRefs?: string[];
+    outputRefs?: string[];
+    proofRefs?: string[];
+    artifactRefs?: string[];
   },
 ) => ({
   browserProfileRef: runtime.browserSessionConfig.profileRef,
@@ -88,12 +93,12 @@ const buildCommanderDebugOutcome = (
   snapshotSummary: null,
   createdAt: new Date().toISOString(),
   durationMs: input.durationMs ?? null,
-  refs: [],
-  inputRefs: [],
-  outputRefs: [],
+  refs: input.refs ?? [],
+  inputRefs: input.inputRefs ?? [],
+  outputRefs: input.outputRefs ?? [],
   evidenceRefs: [],
-  proofRefs: [],
-  artifactRefs: [],
+  proofRefs: input.proofRefs ?? [],
+  artifactRefs: input.artifactRefs ?? [],
   actionLogRefs: [],
   dataQualityFlags: [],
 });
@@ -116,6 +121,11 @@ const buildCommanderDebugStructuredRuntimeEvent = (
     ownerResponsible?: string | null;
     decision?: string | null;
     durationMs?: number | null;
+    refs?: string[];
+    inputRefs?: string[];
+    outputRefs?: string[];
+    proofRefs?: string[];
+    artifactRefs?: string[];
   },
 ) => StructuredRuntimeEventSchema.parse({
   ...buildCommanderDebugIdentity(input),
@@ -140,6 +150,11 @@ export const recordCommanderDebugEvent = async (
     ownerResponsible?: string | null;
     decision?: string | null;
     durationMs?: number | null;
+    refs?: string[];
+    inputRefs?: string[];
+    outputRefs?: string[];
+    proofRefs?: string[];
+    artifactRefs?: string[];
   },
 ): Promise<void> => {
   const structuredRuntimeEvent = buildCommanderDebugStructuredRuntimeEvent(runtime, input);
@@ -152,7 +167,7 @@ export const recordCommanderDebugEvent = async (
     sourceAbilityGroupId: "commander-console",
     sourceChildCapabilityId: "issue-human-command-debug",
     missionId: input.missionId ?? input.traceId,
-    runId: input.traceId,
+    runId: input.runId ?? input.traceId,
     sessionId: input.traceId,
     roundId: input.attemptId,
     videoVisitId: null,
@@ -163,11 +178,11 @@ export const recordCommanderDebugEvent = async (
     selectedMapVersion: mapChain.selectedMapVersion,
     activationSnapshotRef: mapChain.activationSnapshotRef,
     capabilityCallId: input.spanId,
-    inputRefs: [],
-    outputRefs: [],
+    inputRefs: input.inputRefs ?? [],
+    outputRefs: input.outputRefs ?? [],
     sourceRecordRefs: [],
     parentRefs: [],
-    artifactRefs: [],
+    artifactRefs: input.artifactRefs ?? [],
     persistencePolicy: { mode: "append", allowPartialRefs: true },
     dataQualityFlags: [],
     payload: {

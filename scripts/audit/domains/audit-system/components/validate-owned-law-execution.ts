@@ -18,6 +18,12 @@ const REQUIRED_INSPECTOR_CALLS = [
     importName: "validateRequiredPhaseDomains",
   },
   {
+    localName: "validateStaticClauseCoverage",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+    importPath: "./validate-static-clause-coverage.js",
+    importName: "validateStaticClauseCoverage",
+  },
+  {
     localName: "validateNoSimulatedProductionPaths",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./validate-no-simulated-production-paths.js",

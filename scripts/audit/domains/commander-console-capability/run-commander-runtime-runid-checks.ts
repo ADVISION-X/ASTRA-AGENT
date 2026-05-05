@@ -1,0 +1,139 @@
+import { Node, SyntaxKind } from "ts-morph";
+
+import { createFinding } from "../../core/result.js";
+import type { Finding } from "../../core/schema.js";
+import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
+
+const {
+  COMMAND_OUTCOMES_PATH,
+  RUNTIME_PROOF_SCHEMA_PATH,
+  TASK_START_DISPATCH_RESULT_PATH,
+  TRANSPORT_SCHEMA_PATH,
+  TRANSPORT_SEMANTIC_GATE_PATH,
+  WORKBENCH_COMMANDER_DEBUG_PATH,
+} = commanderConsoleInspectionConstants;
+
+const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
+
+const getObjectLiteralPropertyNamesFromVariable = (sourceFile: import("ts-morph").SourceFile, variableName: string): Set<string> => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
+  const objectCall = initializer && Node.isCallExpression(initializer) && initializer.getExpression().getText().endsWith(".object")
+    ? initializer
+    : initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText().endsWith(".object"));
+  const objectLiteral = objectCall?.getArguments()[0] ?? null;
+  if (!objectLiteral || !Node.isObjectLiteralExpression(objectLiteral)) {
+    return new Set();
+  }
+  return new Set(objectLiteral.getProperties().flatMap((property) => Node.isPropertyAssignment(property) ? [property.getName()] : []));
+};
+
+const getVariableFunctionBody = (sourceFile: import("ts-morph").SourceFile, variableName: string) => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
+  return initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer)) ? initializer.getBody() : null;
+};
+
+const getFunctionLikeBody = (sourceFile: import("ts-morph").SourceFile, functionName: string) =>
+  sourceFile.getFunction(functionName)?.getBody() ?? getVariableFunctionBody(sourceFile, functionName);
+
+const hasRunIdPropertyFromTransport = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
+  const body = getFunctionLikeBody(sourceFile, functionName);
+  return Boolean(body?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    const initializer = property.getInitializer();
+    return property.getName() === "runId"
+      && Boolean(initializer?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.transport.runId"));
+  }));
+};
+
+const hasRunIdNullInsideFunction = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
+  const body = getFunctionLikeBody(sourceFile, functionName);
+  return Boolean(body?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === "runId" && property.getInitializer()?.getKind() === SyntaxKind.NullKeyword));
+};
+
+const hasRunIdPropertyFromInput = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
+  const body = getFunctionLikeBody(sourceFile, functionName);
+  return Boolean(body?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === "runId" && property.getInitializer()?.getText() === "input.runId"));
+};
+
+const hasCommandProofRunIdGuard = (sourceFile: import("ts-morph").SourceFile): boolean => sourceFile.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => {
+  const expression = statement.getExpression().getText();
+  return expression.includes('value.childKind === "command"') && expression.includes("!value.runId");
+});
+
+const hasDebugRefsPassthrough = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const required = new Map([
+    ["refs", "input.refs ?? []"],
+    ["inputRefs", "input.inputRefs ?? []"],
+    ["outputRefs", "input.outputRefs ?? []"],
+    ["proofRefs", "input.proofRefs ?? []"],
+    ["artifactRefs", "input.artifactRefs ?? []"],
+  ]);
+  return [...required].every(([propertyName, initializerText]) =>
+    sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName && property.getInitializer()?.getText() === initializerText),
+  );
+};
+
+const hasTaskStartDispatchRefs = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const functionNames = new Set([
+    ...sourceFile.getFunctions().map((declaration) => declaration.getName()).filter((name): name is string => Boolean(name)),
+    ...sourceFile.getVariableDeclarations().map((declaration) => declaration.getName()),
+  ]);
+  const dispatchResultCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression) && expression.getName() === "recordCommanderDebugEvent";
+  });
+  const callsCarryRefs = dispatchResultCalls.some((callExpression) =>
+    ["refs", "proofRefs", "runId"].every((propertyName) =>
+      callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName)
+      || callExpression.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment).some((property) => property.getName() === propertyName),
+    ),
+  );
+  return functionNames.has("collectDispatchResultRefs") && functionNames.has("collectDispatchProofRefs") && callsCarryRefs;
+};
+
+export const collectTransportRunIdFindings = (input: {
+  transportSchemaSource: import("ts-morph").SourceFile;
+  transportSemanticGateSource: import("ts-morph").SourceFile;
+  commandOutcomesSource: import("ts-morph").SourceFile;
+}): Finding[] => {
+  const findings: Finding[] = [];
+  const transportResultFields = getObjectLiteralPropertyNamesFromVariable(input.transportSchemaSource, "CommandTransportResultSchema");
+  if (!transportResultFields.has("runId")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SCHEMA_PATH, "Commander transport result schema must require runId before command outcomes can build runtime proof."));
+  }
+  if (!hasRunIdPropertyFromTransport(input.commandOutcomesSource, "createTransportOutcome")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "createTransportOutcome must preserve runId from the governed transport result instead of nulling or fabricating it."));
+  }
+  if (hasRunIdNullInsideFunction(input.commandOutcomesSource, "createTransportOutcome")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "Dispatched command outcome must not assign runId:null."));
+  }
+  if (hasRunIdNullInsideFunction(input.transportSemanticGateSource, "buildSemanticFailure") || hasRunIdNullInsideFunction(input.transportSemanticGateSource, "buildSemanticReviewRequired")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic failure and review builders must preserve a non-null runId instead of returning runId:null."));
+  }
+  if (!hasRunIdPropertyFromInput(input.transportSemanticGateSource, "buildSemanticReviewRequired")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic review path must preserve the accepted transport runId."));
+  }
+  if (!input.transportSemanticGateSource.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.result.runId")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic gate must validate transport result runId."));
+  }
+  return findings;
+};
+
+export const collectRuntimeProofRunIdFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] => {
+  return hasCommandProofRunIdGuard(sourceFile)
+    ? []
+    : [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", RUNTIME_PROOF_SCHEMA_PATH, "Commander command runtime proofs must reject runId:null at schema level.")];
+};
+
+export const collectDebugRefFindings = (input: {
+  workbenchDebugSource: import("ts-morph").SourceFile;
+  taskStartSupportSource: import("ts-morph").SourceFile;
+}): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasDebugRefsPassthrough(input.workbenchDebugSource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_COMMANDER_DEBUG_PATH, "Commander debug event builder must preserve refs/proofRefs/inputRefs/outputRefs/artifactRefs from dispatch results."));
+  }
+  if (!hasTaskStartDispatchRefs(input.taskStartSupportSource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task start dispatch result must publish commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef through COMMAND_ACCEPTED/COMMAND_REJECTED refs and proofRefs."));
+  }
+  return findings;
+};

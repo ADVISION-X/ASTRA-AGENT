@@ -17,8 +17,8 @@ import {
   recordCommanderEnvelopeBuilt,
   sendBlockedTaskStartPreflight,
   sendTaskStartBindingFailure,
-  writeTaskStartDispatchResult,
 } from "./task-start-support.js";
+import { writeTaskStartDispatchResult } from "./task-start-dispatch-result.js";
 import type { StartApproval, StartDraft, StartTaskBody } from "./task-start-types.js";
 
 const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> => {
@@ -70,6 +70,58 @@ const buildStartMissionInput = (approval: StartApproval) => {
   };
 };
 
+const getApprovedTaskStartPreflight = async (
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+) => {
+  await recordTaskStartPreflightStart(activeWorkbench, approval);
+  const preflight = await activeWorkbench.getMissionStartPreflight({
+    requestedPlatformId: approval.binding.requestedPlatformId,
+    selectedMapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    activationId: approval.binding.activationId,
+    activationSnapshotRef: approval.binding.activationSnapshotRef,
+    targetProfileRef: approval.binding.targetProfileRef,
+  });
+  await recordTaskStartLocalAiReadiness(activeWorkbench, approval, preflight.components.find((component) => component.name === "localAi"));
+  return preflight;
+};
+
+const recordMissionPreflightPassed = async (
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+  reason: string,
+) => {
+  await activeWorkbench.recordCommanderDebugEvent({
+    eventType: "MISSION_PREFLIGHT_PASSED",
+    status: "success",
+    traceId: approval.traceId,
+    spanId: "mission-preflight-passed",
+    attemptId: approval.attemptId,
+    mapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    reason,
+    actionableMessage: "Dispatch the governed human command through Commander Console and Nerve Bus.",
+    ownerResponsible: "Commander Console / Nerve Bus",
+  });
+};
+
+const executeApprovedTaskStart = async (
+  response: ServerResponse,
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+  preflightReason: string,
+) => {
+  await recordMissionPreflightPassed(activeWorkbench, approval, preflightReason);
+  await recordCommanderEnvelopeBuilt(activeWorkbench, approval);
+  const result = await activeWorkbench.commanderConsole.execute({
+    childCapabilityId: "issue-human-command",
+    operatorRef: "commander-console:http",
+    input: buildStartMissionInput(approval),
+  });
+  await writeTaskStartDispatchResult(response, activeWorkbench, approval, result);
+};
+
 export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<true> {
   const draft = await buildStartDraft(request);
   const binding = resolveMissionStartBinding({
@@ -85,38 +137,12 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
   }
 
   const approval = buildApproval(draft, binding);
-  await recordTaskStartPreflightStart(activeWorkbench, approval);
-  const preflight = await activeWorkbench.getMissionStartPreflight({
-    requestedPlatformId: approval.binding.requestedPlatformId,
-    selectedMapId: approval.binding.selectedMapId,
-    taskTemplateId: approval.binding.taskTemplateId,
-    activationSnapshotRef: approval.binding.activationSnapshotRef,
-    targetProfileRef: approval.binding.targetProfileRef,
-  });
-  await recordTaskStartLocalAiReadiness(activeWorkbench, approval, preflight.components.find((component) => component.name === "localAi"));
+  const preflight = await getApprovedTaskStartPreflight(activeWorkbench, approval);
   if (preflight.status === "blocked") {
     await sendBlockedTaskStartPreflight(response, activeWorkbench, approval, preflight);
     return true;
   }
 
-  await activeWorkbench.recordCommanderDebugEvent({
-    eventType: "MISSION_PREFLIGHT_PASSED",
-    status: "success",
-    traceId: approval.traceId,
-    spanId: "mission-preflight-passed",
-    attemptId: approval.attemptId,
-    mapId: approval.binding.selectedMapId,
-    taskTemplateId: approval.binding.taskTemplateId,
-    reason: preflight.actionableMessage,
-    actionableMessage: "Dispatch the governed human command through Commander Console and Nerve Bus.",
-    ownerResponsible: "Commander Console / Nerve Bus",
-  });
-  await recordCommanderEnvelopeBuilt(activeWorkbench, approval);
-  const result = await activeWorkbench.commanderConsole.execute({
-    childCapabilityId: "issue-human-command",
-    operatorRef: "commander-console:http",
-    input: buildStartMissionInput(approval),
-  });
-  await writeTaskStartDispatchResult(response, activeWorkbench, approval, result);
+  await executeApprovedTaskStart(response, activeWorkbench, approval, preflight.actionableMessage);
   return true;
 }

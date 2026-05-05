@@ -55,8 +55,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -91,8 +103,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -151,8 +175,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -187,8 +223,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -240,8 +288,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -303,8 +364,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -356,8 +430,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "commander-console",
@@ -393,8 +479,69 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:commander-console",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
+  },
+  {
+    "abilityGroupId": "commander-console",
+    "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
+    "lawFile": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+    "lawStatus": "active",
+    "tier": "P0",
+    "capabilityDomain": "commander-console-capability",
+    "enforcementMode": "machine-blocking",
+    "evidenceMode": "law+inspector+negative-proof",
+    "lawTitle": "启动前更新检查与本地 AI 就绪门禁",
+    "summary": "startup must complete update preflight and local AI readiness gate before mission runtime becomes available.",
+    "requiredClauses": [],
+    "forbiddenClauses": [],
+    "requiredInspectorClauses": [
+      "check startup launch order keeps update preflight and local AI readiness before service start and mission runtime availability.",
+      "check startup reads typed local AI readiness result and fail-closes when readiness fails.",
+      "check startup helper delegates to the governed local AI readiness probe.",
+      "check debug-loop and consumers do not start local AI runtime ad hoc."
+    ],
+    "requiredNegativeProofClauses": [
+      "move local AI readiness after service start or Commander open -> FAIL.",
+      "remove update_preflight_check -> FAIL.",
+      "remove local_ai_model_roster_check -> FAIL.",
+      "remove fail-closed throw from startup readiness gate -> FAIL.",
+      "bypass the governed local AI readiness probe -> FAIL.",
+      "debug-loop starts local AI runtime directly -> FAIL."
+    ],
+    "clauseHash": "7863d3d7ae13e3d7464573f4de7b2785dc0799c611fadb5c8eca83d398c20fae",
+    "blueprintRefs": [
+      "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
+      "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
+    ],
+    "ownerInspectorPath": "scripts/audit/domains/commander-console-capability/inspector.ts",
+    "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
+    "auditScript": "npm run audit:commander-console",
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -448,8 +595,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -496,8 +656,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -543,8 +716,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -604,8 +790,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -658,8 +857,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -703,8 +915,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -754,8 +979,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -799,8 +1037,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -845,8 +1095,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "orchestration",
@@ -885,8 +1148,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/orchestration-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/orchestration/GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3/proof-summary.md",
     "auditScript": "npm run audit:orchestration",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -932,8 +1208,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -975,8 +1263,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1015,8 +1315,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1067,8 +1379,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1114,8 +1438,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1151,8 +1487,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1194,8 +1542,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1238,8 +1598,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1283,8 +1656,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-009-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "nerve-bus",
@@ -1323,8 +1709,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/nerve-bus/GRASSEYE-NERVE-BUS-CAPABILITY-010-V2/proof-summary.md",
     "auditScript": "npm run audit:nerve-bus",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1348,8 +1746,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-001-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1373,8 +1780,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1398,8 +1814,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-003-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1423,8 +1848,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-004-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1448,8 +1882,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-005-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1473,8 +1917,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-005B-V2/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1498,8 +1951,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-006-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1523,8 +1985,17 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-007-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+    "blockers": [
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1548,8 +2019,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-008-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1573,8 +2054,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-009-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1598,8 +2089,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-010-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1623,8 +2124,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-011-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1648,8 +2159,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-012-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1673,8 +2194,18 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-013-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "ai",
@@ -1698,8 +2229,64 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-014-V1/proof-summary.md",
     "auditScript": "npm run audit:ai",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
+  },
+  {
+    "abilityGroupId": "ai",
+    "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1",
+    "lawFile": ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
+    "lawStatus": "active",
+    "tier": "P0",
+    "capabilityDomain": "ai-capability",
+    "enforcementMode": "machine-blocking",
+    "evidenceMode": "law+inspector+negative-proof",
+    "lawTitle": "本地 AI 启动就绪契约",
+    "summary": "local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.",
+    "requiredClauses": [],
+    "forbiddenClauses": [],
+    "requiredInspectorClauses": [
+      "exactly one governed local-ai startup readiness contract.",
+      "startup probe imports the governed local-ai startup readiness contract.",
+      "no consumers or debug-loop start local AI runtime directly.",
+      "readiness result includes modelRole, modelName, provider, runtime, health, failureReason, and missionRuntimeAvailable."
+    ],
+    "requiredNegativeProofClauses": [
+      "consumer or debug-loop starts local AI runtime -> FAIL.",
+      "readiness returns success without full required model-role roster -> FAIL.",
+      "readiness uses business inference as startup proof -> FAIL.",
+      "readiness contract drifts away from the governed probe path -> FAIL."
+    ],
+    "clauseHash": "2bc2e214a69741b883d9ba4ec8fc5adec352b1e9b9dcf9d9dac912a396ff27b7",
+    "blueprintRefs": [
+      "docs/法案辅助文件/GrassEye AI 大脑能力组施工图.md",
+      "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
+    ],
+    "ownerInspectorPath": "scripts/audit/domains/ai-capability/inspector.ts",
+    "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-LOCAL-AI-RUNTIME-006-V1/proof-summary.md",
+    "auditScript": "npm run audit:ai",
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -1754,8 +2341,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -1802,8 +2402,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -1856,8 +2469,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -1923,8 +2549,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -1980,8 +2619,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -2037,8 +2689,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -2094,8 +2759,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "open",
@@ -2134,8 +2812,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/open-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:open",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2191,8 +2882,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2240,8 +2943,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2295,8 +3010,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2354,8 +3081,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2416,8 +3155,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2475,8 +3226,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2532,8 +3295,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2572,8 +3348,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "screenshot",
@@ -2652,8 +3440,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/screenshot-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1/proof-summary.md",
     "auditScript": "npm run audit:screenshot",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2693,8 +3493,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2745,8 +3558,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2788,8 +3614,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2824,8 +3663,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2888,8 +3740,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -2947,8 +3812,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -3005,8 +3883,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "visual-target",
@@ -3045,8 +3936,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/visual-target-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/visual-target/GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:visual-target",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3090,8 +3993,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3126,8 +4041,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3171,8 +4098,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3224,8 +4164,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3295,8 +4247,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3340,8 +4304,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3384,8 +4361,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "geometry-guard",
@@ -3424,8 +4414,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/geometry-guard/GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3/proof-summary.md",
     "auditScript": "npm run audit:geometry-guard",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3468,8 +4470,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3520,8 +4534,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3569,8 +4595,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3617,8 +4655,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3653,8 +4703,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3698,8 +4761,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3744,8 +4820,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-click",
@@ -3784,8 +4872,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-click-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-click",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -3827,8 +4927,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -3876,8 +4988,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -3923,8 +5048,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -3971,8 +5108,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -4018,8 +5167,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -4055,8 +5216,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -4099,8 +5272,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -4150,8 +5335,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "text-input",
@@ -4190,8 +5387,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/text-input-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/text-input/GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2/proof-summary.md",
     "auditScript": "npm run audit:text-input-capability",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4235,8 +5444,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4288,8 +5509,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4342,8 +5575,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4387,8 +5632,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4437,8 +5695,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4474,8 +5744,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4519,8 +5802,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4567,8 +5863,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "mouse-scroll",
@@ -4607,8 +5916,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2/proof-summary.md",
     "auditScript": "npm run audit:mouse-scroll",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4641,8 +5962,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4687,8 +6020,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4721,8 +6066,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4765,8 +6122,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4800,8 +6169,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4842,8 +6223,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4884,8 +6277,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "post-action-verification",
@@ -4937,8 +6343,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/post-action-verification/GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:post-action-verification",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -4972,8 +6390,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-001-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5006,8 +6437,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-002-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5052,8 +6496,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-003-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5085,8 +6542,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-004-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5122,8 +6592,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-005-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5156,8 +6639,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-006-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5214,8 +6710,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-007-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5267,8 +6776,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-008-V2/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "forensics-persistence",
@@ -5332,8 +6853,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/forensics-persistence/GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1/proof-summary.md",
     "auditScript": "npm run audit:forensics-persistence",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5385,8 +6919,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-001-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5436,8 +6982,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-002-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5490,8 +7048,21 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-003-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NOT_COVERED",
+    "blockers": [
+      "Owner inspector source does not expose concrete law coverage evidence.",
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5547,8 +7118,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-004-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5592,8 +7175,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-005-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5636,8 +7231,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-006-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5693,8 +7300,20 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-007-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   },
   {
     "abilityGroupId": "page-state",
@@ -5733,7 +7352,19 @@
     ],
     "ownerInspectorPath": "scripts/audit/domains/page-state-capability/inspector.ts",
     "negativeProofPath": "scripts/audit/domains/page-state-capability/negative-proof-harness.ts",
+    "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/owner-binding/owner-binding-proof-summary.md",
+    "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/page-state/GRASSEYE-PAGE-STATE-CAPABILITY-008-V2/proof-summary.md",
     "auditScript": "npm run audit:page-state",
-    "coverageStatus": "PARTIALLY_ENFORCED"
+    "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+    "blockers": [
+      "Production mutation proof bundle is missing.",
+      "Owner-binding proof bundle is missing.",
+      "Owner audit command is failing or missing fresh evidence.",
+      "typecheck failed or is missing fresh evidence.",
+      "lint failed or is missing fresh evidence.",
+      "audit:capability-group-governance failed or is missing fresh evidence.",
+      "audit failed or is missing fresh evidence.",
+      "ci:full failed or is missing fresh evidence."
+    ]
   }
 ]

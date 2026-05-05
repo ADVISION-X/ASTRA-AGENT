@@ -2,6 +2,7 @@ const ROOT = "src/capabilities/commander-console";
 const CHILDREN_ROOT = `${ROOT}/children`;
 const SHARED_SCHEMA_BASE_PATH = `${ROOT}/shared/commander-schema-base.ts`;
 const TRANSPORT_SCHEMA_PATH = `${ROOT}/shared/commander-transport-schema.ts`;
+const RUNTIME_PROOF_SCHEMA_PATH = `${ROOT}/shared/commander-runtime-proof-schema.ts`;
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const ABILITY_GROUP_PATH = `${ROOT}/ability-group.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
@@ -32,6 +33,8 @@ const MANIFEST_PATH = "scripts/audit/domains/commander-console-capability/manife
 const TASK_HANDLER_PATH = "src/app/task-api-handlers.ts";
 const CANDIDATE_HANDLER_PATH = "src/app/candidate-api-handlers.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
+const WORKBENCH_COMMANDER_DEBUG_PATH = "src/lib/local-runtime/workbench-commander-debug.ts";
+const TASK_START_DISPATCH_RESULT_PATH = "src/lib/local-app-shell/task-start-dispatch-result.ts";
 const SHELL_RENDER_PATH = "src/lib/local-app-shell/render-commander-console-page.ts";
 const SHELL_PAGE_CLIENT_PATH = "src/lib/local-app-shell/commander-console-shell-client.ts";
 const STARTUP_PATH = "scripts/startup/launch-grasseye.mjs";
@@ -72,6 +75,7 @@ const COMMAND_CHILD_IDS = new Set([
 const REQUIRED_FILES = [
   SHARED_SCHEMA_BASE_PATH,
   TRANSPORT_SCHEMA_PATH,
+  RUNTIME_PROOF_SCHEMA_PATH,
   CONTRACT_PATH,
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
@@ -130,6 +134,7 @@ export const commanderConsoleInspectionConstants = {
   CHILDREN_ROOT,
   SHARED_SCHEMA_BASE_PATH,
   TRANSPORT_SCHEMA_PATH,
+  RUNTIME_PROOF_SCHEMA_PATH,
   CONTRACT_PATH,
   ABILITY_GROUP_PATH,
   SCHEMA_PATH,
@@ -160,6 +165,8 @@ export const commanderConsoleInspectionConstants = {
   TASK_HANDLER_PATH,
   CANDIDATE_HANDLER_PATH,
   WORKBENCH_PATH,
+  WORKBENCH_COMMANDER_DEBUG_PATH,
+  TASK_START_DISPATCH_RESULT_PATH,
   SHELL_RENDER_PATH,
   SHELL_PAGE_CLIENT_PATH,
   STARTUP_PATH,

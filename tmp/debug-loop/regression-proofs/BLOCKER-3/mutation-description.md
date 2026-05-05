@@ -1,1 +1,1 @@
-Mutation: remove ownerResponsible propagation from scripts/startup/lib/terminal-structured-log.mjs runtime relay.
+Mutation: renamed collectDispatchResultRefs so COMMAND_REJECTED cannot derive command/result/proof refs.

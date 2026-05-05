@@ -44,6 +44,12 @@ const resolveRuntimeProofChild = (input: {
     readModelSource: null,
   };
 
+const resolveSchemaFailureRunId = (child: CommanderConsoleChildDefinition<unknown, unknown>) =>
+  child.childKind === "command" ? `${child.childCapabilityId}:schema-failure:run` : null;
+
+const resolveExecutionErrorRunId = (child: CommanderConsoleChildDefinition<unknown, unknown>) =>
+  child.childKind === "command" ? `${child.childCapabilityId}:execution-error:run` : null;
+
 function createInputSchemaFailureOutcome<TOutput>(
   child: CommanderConsoleChildDefinition<unknown, TOutput>,
   message: string,
@@ -57,7 +63,7 @@ function createInputSchemaFailureOutcome<TOutput>(
     outputRef: null,
     commandId: null,
     readRequestId: null,
-    runId: null,
+    runId: resolveSchemaFailureRunId(child),
     missionId: null,
     traceId: null,
     commandEnvelopeRef: null,
@@ -105,7 +111,7 @@ function createExecutionErrorOutcome<TInput, TOutput>(
     outputRef: null,
     commandId: null,
     readRequestId: null,
-    runId: null,
+    runId: resolveExecutionErrorRunId(child),
     missionId: null,
     traceId: null,
     commandEnvelopeRef: null,

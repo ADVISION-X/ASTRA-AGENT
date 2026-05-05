@@ -1,1 +1,1 @@
-Production mutation failed as expected and rollback passed commander-console inspector.
+BLOCKER-3 proof: disabling dispatch result refs failed commander inspector; rollback passed commander inspector.

@@ -27,10 +27,40 @@ const MUTATIONS: Mutation[] = [
     replace: "    runId: null,",
   },
   {
+    name: "transport semantic failure runId null mutation",
+    file: "src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts",
+    search: "    runId: resolveCommandRunId(command),",
+    replace: "    runId: null,",
+  },
+  {
+    name: "transport semantic review runId null mutation",
+    file: "src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts",
+    search: "    runId: input.runId,",
+    replace: "    runId: null,",
+  },
+  {
+    name: "command runtime proof runId guard removal mutation",
+    file: "src/capabilities/commander-console/shared/commander-runtime-proof-schema.ts",
+    search: "  if (value.childKind === \"command\" && !value.runId) {\n    addProofIssue(ctx, \"command proof requires runId\");\n  }\n",
+    replace: "",
+  },
+  {
     name: "mission preflight command contract removal mutation",
     file: "src/lib/local-runtime/workbench-status.ts",
-    search: "    { name: \"commandTransportContract\", ok: commandContractOk, detail: commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : \"selected task binding is missing taskTemplateId, activationSnapshotRef, or targetProfileRef before command dispatch\", ownerResponsible: \"Commander Console / Nerve Bus / Orchestration\", actionableMessage: \"Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch.\" },\n",
+    search: "    { name: \"commandTransportContract\", ok: commandContractOk, detail: commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationId=${input.activationId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : \"selected task binding is missing taskTemplateId, activationId, activationSnapshotRef, or targetProfileRef before command dispatch\", ownerResponsible: \"Commander Console / Nerve Bus / Orchestration\", actionableMessage: \"Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch.\" },\n",
     replace: "",
+  },
+  {
+    name: "mission command schema preflight removal mutation",
+    file: "src/lib/local-runtime/workbench-mission-command-preflight.ts",
+    search: "export const checkMissionCommandSchemaPreflight =",
+    replace: "export const checkMissionCommandSchemaPreflightDisabled =",
+  },
+  {
+    name: "task start dispatch refs removal mutation",
+    file: "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    search: "const collectDispatchResultRefs = (result: StartCommandResult): string[] => {",
+    replace: "const collectDispatchResultRefsDisabled = (result: StartCommandResult): string[] => {",
   },
   {
     name: "terminal command rejection owner field removal mutation",

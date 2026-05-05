@@ -1,7 +1,10 @@
+import { Node, SyntaxKind } from "ts-morph";
+
 import { prepareAuditArtifactsSnapshot } from "../../../build-audit-artifacts.js";
 import { createFinding, createPhase } from "../../../core/result.js";
 import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { generatedArtifactPaths } from "../../../core/generated-artifact-paths.js";
+import { getAuditProject, getNodeLine, getSourceFileOrThrow, toRelativeSourcePath } from "../../../core/ts-morph.js";
 import { stringifyYaml } from "../../../core/yaml.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
@@ -15,6 +18,7 @@ const getMissingGeneratedArtifactFindings = async (): Promise<Finding[]> => {
     generatedArtifactPaths.enforcementMatrixYaml,
     generatedArtifactPaths.auditPlan,
     generatedArtifactPaths.auditConflicts,
+    generatedArtifactPaths.staticClauseCoverage,
     generatedArtifactPaths.touchedFiles,
   ];
 
@@ -94,6 +98,72 @@ const buildExpectedArtifactContent = async (): Promise<Map<string, string>> => {
   ]);
 };
 
+const getStaticClauseCoverageWriterFindings = (): Finding[] => {
+  const project = getAuditProject();
+  const sourceFile = getSourceFileOrThrow(project, "scripts/audit/core/artifact-writers.ts");
+  const relativePath = toRelativeSourcePath(sourceFile);
+  const importDeclaration = sourceFile.getImportDeclarations().find((declaration) => {
+    return declaration.getModuleSpecifierValue() === "./static-clause-coverage-artifact.js";
+  });
+  const importedBuilder = importDeclaration?.getNamedImports().find((namedImport) => {
+    return namedImport.getName() === "buildStaticClauseCoverageArtifact";
+  });
+  const builderCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression)
+      && expression.getText() === "buildStaticClauseCoverageArtifact";
+  });
+  const staticWriteCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "writeJsonFile") {
+      return false;
+    }
+    const [firstArg] = callExpression.getArguments();
+    return firstArg?.getText() === "generatedArtifactPaths.staticClauseCoverage";
+  });
+  const findings: Finding[] = [];
+
+  if (!importedBuilder) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: relativePath,
+      line: 1,
+      severity: "fatal",
+      message: "artifact-writers.ts must import buildStaticClauseCoverageArtifact from the canonical helper.",
+    }));
+  }
+  if (!builderCall) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: relativePath,
+      line: 1,
+      severity: "fatal",
+      message: "artifact-writers.ts must build static-clause-coverage during generated artifact writes.",
+    }));
+  }
+  if (!staticWriteCall) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: relativePath,
+      line: 1,
+      severity: "fatal",
+      message: "artifact-writers.ts must write static-clause-coverage to the canonical generated artifact path.",
+    }));
+  }
+
+  if (staticWriteCall && builderCall && staticWriteCall.getStart() < builderCall.getStart()) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: relativePath,
+      line: getNodeLine(staticWriteCall),
+      severity: "error",
+      message: "artifact-writers.ts must build static-clause-coverage before writing the generated artifact.",
+    }));
+  }
+
+  return findings;
+};
+
 const getGeneratedArtifactFreshnessFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const expectedArtifactContent = await buildExpectedArtifactContent();
@@ -140,6 +210,7 @@ export const validateGeneratedArtifacts = async (
   const yamlFinding = await getGeneratedYamlFinding();
   const auditPlanFinding = getEmptyAuditPlanFinding(context);
   const freshnessFindings = await getGeneratedArtifactFreshnessFindings();
+  const staticWriterFindings = getStaticClauseCoverageWriterFindings();
 
   if (yamlFinding) {
     findings.push(yamlFinding);
@@ -150,6 +221,7 @@ export const validateGeneratedArtifacts = async (
   }
 
   findings.push(...freshnessFindings);
+  findings.push(...staticWriterFindings);
 
   return { findings, phases: [createGeneratedArtifactsPhase(findings)] };
 };

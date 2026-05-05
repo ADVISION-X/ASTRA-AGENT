@@ -1,0 +1,701 @@
+{
+  "mission": {
+    "missionId": null,
+    "humanGoal": "",
+    "status": "idle",
+    "missionRunRef": null,
+    "currentRoundIndex": 0,
+    "requestedPlatform": null,
+    "selectedMapId": null,
+    "lastHumanCommand": null,
+    "reviewRequiredReason": null,
+    "failureReason": null,
+    "startedAt": null,
+    "updatedAt": null,
+    "endedAt": null
+  },
+  "runtime": {
+    "runtimeStatus": "idle",
+    "currentStep": null,
+    "reviewReason": null,
+    "totalSeenCount": 0,
+    "evidencePacketCount": 0,
+    "browseLedgerCount": 0,
+    "candidateCount": 0,
+    "lastAiFailureReason": null
+  },
+  "browser": {
+    "dataMode": "Real Platform",
+    "platformId": "tiktok-web",
+    "platformLabel": "TikTok web governed map runtime",
+    "realPlatformConnection": "current Chrome session ready for tiktok-web:persistent-local-profile",
+    "browserMode": "real_chrome_persistent",
+    "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "browserProfileRef": "tiktok-web:persistent-local-profile",
+    "browserProfileStatus": "profile_ready",
+    "browserProfileDirectory": "Default",
+    "browserProfileProvisioning": "managed_default",
+    "browserProfileVerificationStatus": "operator_verified",
+    "browserProfileVerificationReason": "current local Chrome session reused as the governed real-platform browser",
+    "loginState": "unknown",
+    "lastLoginCheckAt": null,
+    "loginRequiredReason": null,
+    "reviewRequiredReason": null,
+    "storeScope": "Authorized local profile + local evidence store",
+    "executionMode": "Ability-group governed runtime",
+    "fallbackMode": "No platform-owned fallback chain",
+    "geometryGuard": "Capability-owned at execution time",
+    "viewport": "Derived from governed browser session",
+    "calibration": "Held by Geometry Guard runtime proof",
+    "orientation": "capability-owned"
+  },
+  "health": [
+    {
+      "id": "app-shell",
+      "label": "app-shell",
+      "tone": "good",
+      "detail": "App Shell ready. Commander Console can stay open while mission dependencies are checked separately.",
+      "ownerResponsible": null,
+      "actionableMessage": "App Shell ready. Commander Console can stay open while mission dependencies are checked separately.",
+      "failureReason": null,
+      "checkedAt": "2026-05-05T03:28:30.923Z"
+    },
+    {
+      "id": "startup-readiness",
+      "label": "startup-readiness",
+      "tone": "good",
+      "detail": "status=ready; startupShell=tiktok-web; local-ai startup ready; vision=ready:qwen2.5vl:3b; ocr=ready:apple-vision-or-paddleocr; commentUnderstanding=ready:qwen2.5:3b; productSignal=ready:qwen2.5:3b",
+      "ownerResponsible": "Startup Entrypoint / AI Capability / Commander Console",
+      "actionableMessage": "Startup gate passed before Commander Console opened mission runtime.",
+      "failureReason": null,
+      "missionRuntimeAvailable": true,
+      "checkedAt": "2026-05-05T03:28:29.833Z"
+    },
+    {
+      "id": "mission",
+      "label": "mission",
+      "tone": "good",
+      "detail": "launchBinding taskTemplateId=facebook-seeding-video-discovery; selectedMapId=facebook.seeding-video.discovery.meta.v1; requestedPlatformId=facebook-web; readyTemplates=2",
+      "ownerResponsible": "Orchestration / Map Plugin Registry",
+      "actionableMessage": "Mission start binding will be resolved from the selected approved task template at command time.",
+      "failureReason": null,
+      "checkedAt": "2026-05-05T03:28:30.937Z"
+    },
+    {
+      "id": "browserController",
+      "label": "browserController",
+      "tone": "good",
+      "detail": "current Chrome session ready for tiktok-web:persistent-local-profile",
+      "ownerResponsible": "Commander Console / Local Browser Session",
+      "actionableMessage": "Restore the governed local browser session before retrying mission start.",
+      "failureReason": null,
+      "checkedAt": "2026-05-05T03:28:30.937Z"
+    },
+    {
+      "id": "localAi",
+      "label": "localAi",
+      "tone": "good",
+      "detail": "ollama=ready; vision=ready; text=ready; productSignal=ready; ocr=ready; prompts=4; external=openai-compatible:not-configured; lastTask=none; lastStatus=none; lastFailure=none",
+      "ownerResponsible": "AI Capability / Local AI Runtime",
+      "actionableMessage": "Start Ollama or repair the local AI runtime before starting this mission.",
+      "failureReason": null,
+      "missionRuntimeAvailable": true,
+      "checkedAt": "2026-05-05T03:28:30.937Z"
+    },
+    {
+      "id": "dataStore",
+      "label": "dataStore",
+      "tone": "good",
+      "detail": "local evidence store ready at /Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement",
+      "ownerResponsible": "Forensics Persistence",
+      "actionableMessage": "Repair the local Forensics store before starting this mission.",
+      "failureReason": null,
+      "checkedAt": "2026-05-05T03:28:30.937Z"
+    }
+  ],
+  "capabilityRoster": [
+    {
+      "abilityGroupId": "commander-console",
+      "displayName": "Commander Console",
+      "currentStrength": "governed",
+      "purpose": "Mission command and read-only operator console"
+    },
+    {
+      "abilityGroupId": "orchestration",
+      "displayName": "Orchestration",
+      "currentStrength": "governed",
+      "purpose": "Mission command, map execution, and controlled transitions"
+    },
+    {
+      "abilityGroupId": "nerve-bus",
+      "displayName": "Nerve Bus",
+      "currentStrength": "governed",
+      "purpose": "Governed transport between orchestration, abilities, AI, and commander"
+    },
+    {
+      "abilityGroupId": "ai",
+      "displayName": "AI",
+      "currentStrength": "specialized",
+      "purpose": "Local model execution under governed contracts"
+    },
+    {
+      "abilityGroupId": "open",
+      "displayName": "Open",
+      "currentStrength": "governed",
+      "purpose": "Governed target-page opening and session-safe navigation"
+    },
+    {
+      "abilityGroupId": "screenshot",
+      "displayName": "Screenshot",
+      "currentStrength": "governed",
+      "purpose": "Governed capture and image preparation"
+    },
+    {
+      "abilityGroupId": "visual-target",
+      "displayName": "Visual Target",
+      "currentStrength": "governed",
+      "purpose": "Visual target detection and coordinate truth"
+    },
+    {
+      "abilityGroupId": "geometry-guard",
+      "displayName": "Geometry Guard",
+      "currentStrength": "governed",
+      "purpose": "Coordinate normalization and geometry safety"
+    },
+    {
+      "abilityGroupId": "mouse-click",
+      "displayName": "Mouse Click",
+      "currentStrength": "governed",
+      "purpose": "Governed click execution"
+    },
+    {
+      "abilityGroupId": "text-input",
+      "displayName": "Text Input",
+      "currentStrength": "governed",
+      "purpose": "Governed approved-text writing"
+    },
+    {
+      "abilityGroupId": "mouse-scroll",
+      "displayName": "Mouse Scroll",
+      "currentStrength": "governed",
+      "purpose": "Governed scroll execution"
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "displayName": "Post-action Verification",
+      "currentStrength": "governed",
+      "purpose": "Action-result verification after platform operations"
+    },
+    {
+      "abilityGroupId": "forensics-persistence",
+      "displayName": "Forensics Persistence",
+      "currentStrength": "governed",
+      "purpose": "Evidence, ledger, and runtime proof persistence"
+    },
+    {
+      "abilityGroupId": "page-state",
+      "displayName": "Page State",
+      "currentStrength": "governed",
+      "purpose": "Page readiness and safety-state truth"
+    }
+  ],
+  "candidates": [],
+  "reviewQueue": [],
+  "evidencePackets": [],
+  "browseLedger": [],
+  "failedRecords": [
+    {
+      "id": "event_7abba413-2b20-425a-8791-bf579b3d8435",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_8d307bcb-0686-4e9a-b3cd-ec4c7a0623b6",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_b87ef9cd-33dd-4055-846e-c7fa6822c9ad",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_13c1a268-2127-4913-8ec9-15af7f714c87",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_4aea6c8a-a506-45af-8f71-259995a67593",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_06d68046-5738-4e3f-9f64-12b824e17909",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "issue-human-command timed out after 5000ms."
+    },
+    {
+      "id": "event_3d0924de-1e9f-4b53-92bf-a24907a18771",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "Unrecognized key(s) in object: 'targetProfileRef'"
+    },
+    {
+      "id": "event_8a79ef2f-b906-4e89-af1c-41a17438ad7d",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "Unrecognized key(s) in object: 'targetProfileRef'"
+    },
+    {
+      "id": "event_7a1904c0-64f1-4e7e-b103-331a769e705f",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "Unrecognized key(s) in object: 'targetProfileRef'"
+    },
+    {
+      "id": "event_0746098b-c545-4d8f-966c-34c515191c69",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "Unrecognized key(s) in object: 'targetProfileRef'"
+    },
+    {
+      "id": "event_6a604b94-4761-4494-9ed5-28696875eaf5",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "Unrecognized key(s) in object: 'targetProfileRef'"
+    },
+    {
+      "id": "event_826007e3-819e-4a4f-a8b8-1935ff5c688b",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-facebook; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_6683f4d2-f4e0-495f-829a-ce83d56f23b7",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-facebook; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_81edba8b-5a42-4e71-ad6b-580d0311a33f",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-tiktok; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_a5601eb5-eeb8-4d60-9bcb-91d9258374ec",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-facebook; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_037e6b00-1fbe-4803-8247-c2dc34701ee5",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-tiktok; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_0f4e1a57-9123-4921-9d85-c2f19c66f61f",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-facebook; silent profile defaulting is forbidden"
+    },
+    {
+      "id": "event_0d8cdd77-216e-4573-b120-7bc96da4eff4",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "open requires targetUrl or explicit targetProfileRef open-target-profile:open-facebook; silent profile defaulting is forbidden"
+    }
+  ],
+  "runtimeProof": [
+    {
+      "id": "event_025f8288-3845-4c24-8d6d-9950638c5588",
+      "createdAt": "2026-05-05T03:26:22.344Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "command accepted"
+    },
+    {
+      "id": "event_5830a81f-1b73-4949-92f1-731035349bb6",
+      "createdAt": "2026-05-05T03:26:20.485Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Dispatching start-mission via CommandTransportPort."
+    },
+    {
+      "id": "event_964cb745-49bf-4185-af92-90dbc0985c4d",
+      "createdAt": "2026-05-05T03:26:20.474Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Nerve Bus governed envelope created for start-mission."
+    },
+    {
+      "id": "event_17f74391-4ddd-4bd9-b201-cd384af17d77",
+      "createdAt": "2026-05-05T03:26:20.461Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:9dae22b7-352f-4c51-95e4-9e7e23d6afdb:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_0b76f602-37f9-4824-af09-43624471fc76",
+      "createdAt": "2026-05-05T03:26:20.450Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_342db6f7-ba96-411a-90aa-47a031423180",
+      "createdAt": "2026-05-05T03:26:20.440Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_79e2bb97-acec-4d37-b1ba-4e391925570d",
+      "createdAt": "2026-05-05T03:26:20.417Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_eefa2ec4-c0fb-4ed8-8512-1aa12e93b2e5",
+      "createdAt": "2026-05-05T03:26:20.396Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_e1904a5b-e982-498f-8dca-d20f330c3601",
+      "createdAt": "2026-05-05T03:26:20.382Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "event_7abba413-2b20-425a-8791-bf579b3d8435",
+      "createdAt": "2026-05-05T03:04:50.958Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_de48ba89-3383-4e0f-9a76-3eb22f38f3d4",
+      "createdAt": "2026-05-05T03:04:50.947Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:01ed033f-f4b9-4128-9b54-f2cb3d87fa10:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_0ce7e4a5-dac7-4779-a60b-fb5ca7a2a6a4",
+      "createdAt": "2026-05-05T03:04:50.936Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_73f4d1a7-5513-44a3-bf5a-1720f94540f8",
+      "createdAt": "2026-05-05T03:04:50.925Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_4d19fb5b-fec1-48da-b62b-b3bd3657f9aa",
+      "createdAt": "2026-05-05T03:04:50.895Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_e25025c8-943f-4939-917f-33a3fa341dad",
+      "createdAt": "2026-05-05T03:04:50.871Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_6713ed4e-40f7-4eed-a094-771cbb34b1c6",
+      "createdAt": "2026-05-05T03:04:50.844Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "event_8d307bcb-0686-4e9a-b3cd-ec4c7a0623b6",
+      "createdAt": "2026-05-05T03:04:24.784Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_57706cfc-55d0-482b-8458-de7ab5062574",
+      "createdAt": "2026-05-05T03:04:24.773Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e090cb41-1d0e-4c06-99f9-5d1f6693cfa1:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_76ce209f-6494-41a3-8aee-8db3a3c696b6",
+      "createdAt": "2026-05-05T03:04:24.761Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_cdf3a7a5-d9ed-4e62-9b41-f74829d1f29a",
+      "createdAt": "2026-05-05T03:04:24.746Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_8ab94a64-20a0-40a0-ad15-41061416b431",
+      "createdAt": "2026-05-05T03:04:24.707Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_7dde3fdc-44b0-4caf-a4ef-4850171a35ae",
+      "createdAt": "2026-05-05T03:04:24.692Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_36fd2844-d0db-4306-a519-b8bf02a2ad61",
+      "createdAt": "2026-05-05T03:04:24.662Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "event_b87ef9cd-33dd-4055-846e-c7fa6822c9ad",
+      "createdAt": "2026-05-05T02:59:23.375Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_4a732884-ad70-4421-a8e3-78a1da2525fd",
+      "createdAt": "2026-05-05T02:59:21.565Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Dispatching start-mission via CommandTransportPort."
+    },
+    {
+      "id": "event_80992499-fdf6-4439-8698-5b2650fd4310",
+      "createdAt": "2026-05-05T02:59:21.552Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Nerve Bus governed envelope created for start-mission."
+    },
+    {
+      "id": "event_18769675-22c9-4c68-a077-ea26b1e0829a",
+      "createdAt": "2026-05-05T02:59:21.534Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:01ed033f-f4b9-4128-9b54-f2cb3d87fa10:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_e7e31c69-8038-4aae-b6bf-6a1d49f5852d",
+      "createdAt": "2026-05-05T02:59:21.517Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_1c17b9a0-f7e9-4f3b-a6e2-7b8ad717bc88",
+      "createdAt": "2026-05-05T02:59:21.506Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_5b1f63a0-f869-44e1-bcf0-a564248e78f9",
+      "createdAt": "2026-05-05T02:59:21.473Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_7473caa8-a0df-4c91-9830-d1323793c016",
+      "createdAt": "2026-05-05T02:59:21.458Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_29044909-455b-4739-a686-896d0f62e888",
+      "createdAt": "2026-05-05T02:59:21.432Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "event_13c1a268-2127-4913-8ec9-15af7f714c87",
+      "createdAt": "2026-05-05T02:59:17.933Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_63226dde-2220-41e2-b394-61734b2da580",
+      "createdAt": "2026-05-05T02:59:16.143Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Dispatching start-mission via CommandTransportPort."
+    },
+    {
+      "id": "event_f9d67e42-456e-4d4b-9570-e5e982782a16",
+      "createdAt": "2026-05-05T02:59:16.131Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Nerve Bus governed envelope created for start-mission."
+    },
+    {
+      "id": "event_ff32860a-518c-4f3e-812d-9da42057d059",
+      "createdAt": "2026-05-05T02:59:16.121Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e090cb41-1d0e-4c06-99f9-5d1f6693cfa1:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_0f787767-cf61-4b04-aee9-c11a83cebb97",
+      "createdAt": "2026-05-05T02:59:16.107Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_9d0ce932-5210-488b-a6ad-6c454c607cf9",
+      "createdAt": "2026-05-05T02:59:16.092Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_cac39bdf-ddfb-4126-9fa8-b1f5b5c646a0",
+      "createdAt": "2026-05-05T02:59:16.073Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_314e38c7-9826-49c2-9795-0af17c4f8967",
+      "createdAt": "2026-05-05T02:59:16.063Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_7aadab06-6cf5-4f4b-8650-33eabbb974ae",
+      "createdAt": "2026-05-05T02:59:16.035Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "event_4aea6c8a-a506-45af-8f71-259995a67593",
+      "createdAt": "2026-05-05T02:52:17.116Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_a35db1e2-f3fc-4ff2-b02c-c2d2b4feec77",
+      "createdAt": "2026-05-05T02:52:15.383Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Dispatching start-mission via CommandTransportPort."
+    },
+    {
+      "id": "event_d4b297b0-1ba8-467d-a1a8-9c5d3060645b",
+      "createdAt": "2026-05-05T02:52:15.374Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Nerve Bus governed envelope created for start-mission."
+    },
+    {
+      "id": "event_78d4a5f5-9324-410e-9694-dd02ad81ec90",
+      "createdAt": "2026-05-05T02:52:15.363Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e18dbda5-a717-4e38-aa23-452d2a42c2a8:1.0.0:1.0.0"
+    },
+    {
+      "id": "event_3405f6b4-e0d7-4375-8f64-a30be3be790a",
+      "createdAt": "2026-05-05T02:52:15.355Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
+    },
+    {
+      "id": "event_49486787-c3c6-483d-bb0a-be6090a88669",
+      "createdAt": "2026-05-05T02:52:15.348Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is evaluating local AI readiness."
+    },
+    {
+      "id": "event_4f62aef2-c34c-41c2-a83c-0fe93e08f42a",
+      "createdAt": "2026-05-05T02:52:15.327Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Mission preflight is checking readiness before command dispatch."
+    },
+    {
+      "id": "event_4f3fc8c7-2625-4d05-b353-be3c44eb926b",
+      "createdAt": "2026-05-05T02:52:15.317Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
+    },
+    {
+      "id": "event_60b49204-c3cc-4d28-89d6-6da53811781f",
+      "createdAt": "2026-05-05T02:52:15.295Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
+    }
+  ],
+  "auditSummary": {
+    "phase": "phase-04-full-enforcement",
+    "activeLawDomains": [
+      "map-plugin-package",
+      "debug-loop-boundary",
+      "audit-system",
+      "capability-group-governance",
+      "type-safety",
+      "security-privacy",
+      "ai-capability",
+      "orchestration-capability",
+      "commander-console-capability",
+      "nerve-bus-capability",
+      "page-state-capability",
+      "post-action-verification-capability",
+      "open-capability",
+      "screenshot-capability",
+      "geometry-guard-capability",
+      "mouse-click-capability",
+      "text-input-capability",
+      "mouse-scroll-capability",
+      "visual-target-capability",
+      "forensics-persistence-capability"
+    ],
+    "lastGeneratedAt": "2026-05-05T03:25:17.147Z",
+    "lastRunGeneratedAt": "2026-05-05T03:25:17.147Z",
+    "totals": {
+      "inspectors": 1,
+      "passed": 0,
+      "failed": 1,
+      "blocking": 1
+    }
+  }
+}

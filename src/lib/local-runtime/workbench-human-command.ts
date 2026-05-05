@@ -1,4 +1,5 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
+import { recordMissionActivationSnapshotFrozen, recordOrchestrationStartReceived } from "./workbench-human-command-debug-events.js";
 import {
   buildMirroredEnvelopeBase,
   buildPayloadDocument,
@@ -17,6 +18,8 @@ type HumanCommandHandledResult = {
 };
 
 type HumanCommandPayloadDocument = ReturnType<typeof buildPayloadDocument>;
+
+const DEFAULT_START_MISSION_GOAL = "Discover evidence-backed product opportunities from the active social feed.";
 
 const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {
@@ -81,6 +84,30 @@ const resolveHumanCommandMissionId = async (
   return missionId;
 };
 
+const buildStartMissionInitialPayload = (
+  payload: Record<string, string | number | boolean | null>,
+  parsedSelectedMapId: string | null,
+) => ({
+  requestedBy: "commander-console",
+  selectedMapId: parsedSelectedMapId,
+  maxRounds: payloadValueToInteger(payload.maxRounds),
+  maxMinutes: payloadValueToInteger(payload.maxMinutes),
+  operatorNote: payloadValueToString(payload.operatorNote),
+  targetUrl: payloadValueToString(payload.targetUrl),
+  targetTitle: payloadValueToString(payload.targetTitle),
+  targetProfileRef: payloadValueToString(payload.targetProfileRef),
+  sourceEvidenceRef: payloadValueToString(payload.sourceEvidenceRef),
+  sourceTargetRef: payloadValueToString(payload.sourceTargetRef),
+  promptInputRef: payloadValueToString(payload.promptInputRef),
+  commandInputRef: payloadValueToString(payload.commandInputRef),
+});
+
+const resolveMissionCommandStatus = (status: string): HumanCommandStatus => status === "review_required"
+  ? "review_required"
+  : status === "failed"
+    ? "failed"
+    : "success";
+
 const handleStartMission = async (
   runtime: WorkbenchRuntime,
   envelope: HumanCommandEnvelope,
@@ -91,36 +118,23 @@ const handleStartMission = async (
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
   const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
+  const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef);
+  const taskTemplateId = payloadValueToString(payload.taskTemplateId);
+  await recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId });
   const missionState = await runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     runId: envelope.runId,
-    humanGoal: payloadValueToString(payload.humanGoal) ?? "Discover evidence-backed product opportunities from the active social feed.",
+    humanGoal: payloadValueToString(payload.humanGoal) ?? DEFAULT_START_MISSION_GOAL,
     requestedPlatform: requestedPlatformId,
     preferredMapId: parsedSelectedMapId,
-    taskTemplateId: payloadValueToString(payload.taskTemplateId),
+    taskTemplateId,
     activationId: payloadValueToString(payload.activationId),
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
-    initialPayload: {
-      requestedBy: "commander-console",
-      selectedMapId: parsedSelectedMapId,
-      maxRounds: payloadValueToInteger(payload.maxRounds),
-      maxMinutes: payloadValueToInteger(payload.maxMinutes),
-      operatorNote: payloadValueToString(payload.operatorNote),
-      targetUrl: payloadValueToString(payload.targetUrl),
-      targetTitle: payloadValueToString(payload.targetTitle),
-      targetProfileRef: payloadValueToString(payload.targetProfileRef),
-      sourceEvidenceRef: payloadValueToString(payload.sourceEvidenceRef),
-      sourceTargetRef: payloadValueToString(payload.sourceTargetRef),
-      promptInputRef: payloadValueToString(payload.promptInputRef),
-      commandInputRef: payloadValueToString(payload.commandInputRef),
-    },
+    initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
-  const status: HumanCommandStatus = missionState.status === "review_required"
-    ? "review_required"
-    : missionState.status === "failed"
-      ? "failed"
-      : "success";
+  await recordMissionActivationSnapshotFrozen(runtime, { envelope, missionState, selectedMapId: parsedSelectedMapId, taskTemplateId, activationSnapshotRef });
+  const status = resolveMissionCommandStatus(missionState.status);
   const failureReason = missionState.failureReason ?? missionState.reviewRequiredReason ?? null;
   return buildHumanCommandResultEnvelope({
     envelope,

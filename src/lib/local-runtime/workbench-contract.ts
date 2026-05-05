@@ -120,7 +120,7 @@ type WorkbenchOrchestrationAbilityGroup = {
 };
 
 export type MissionStartPreflightComponent = {
-  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "browserController" | "localAi" | "dataStore";
+  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "missionCommandSchema" | "browserController" | "localAi" | "dataStore";
   ok: boolean;
   detail: string;
   ownerResponsible: string;
@@ -157,6 +157,7 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     requestedPlatformId: RequestedPlatformId;
     selectedMapId: string;
     taskTemplateId?: string | null;
+    activationId?: string | null;
     activationSnapshotRef?: string | null;
     targetProfileRef?: string | null;
   }): Promise<{
@@ -174,6 +175,7 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     spanId: string;
     attemptId: string;
     missionId?: string | null;
+    runId?: string | null;
     mapId?: string | null;
     taskTemplateId?: string | null;
     reason?: string | null;
@@ -182,6 +184,11 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     ownerResponsible?: string | null;
     decision?: string | null;
     durationMs?: number | null;
+    refs?: string[];
+    inputRefs?: string[];
+    outputRefs?: string[];
+    proofRefs?: string[];
+    artifactRefs?: string[];
   }): Promise<void>;
   getCommanderConsoleSnapshot(): Promise<CommanderMissionDashboardView>;
   listRuntimeDebugEvents(tail?: number): Promise<unknown>;

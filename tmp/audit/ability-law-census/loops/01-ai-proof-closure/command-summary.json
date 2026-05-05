@@ -1,0 +1,58 @@
+[
+  {
+    "name": "audit-ai",
+    "command": "npm run audit:ai",
+    "exitCode": 0,
+    "signal": null,
+    "durationMs": 170786
+  },
+  {
+    "name": "capability-group-governance",
+    "command": "npm run audit:capability-group-governance",
+    "exitCode": 1,
+    "signal": null,
+    "durationMs": 6542
+  },
+  {
+    "name": "audit-build",
+    "command": "npm run audit:build",
+    "exitCode": 0,
+    "signal": null,
+    "durationMs": 277
+  },
+  {
+    "name": "typecheck",
+    "command": "npm run typecheck",
+    "exitCode": 2,
+    "signal": null,
+    "durationMs": 7333
+  },
+  {
+    "name": "lint",
+    "command": "npm run lint",
+    "exitCode": 2,
+    "signal": null,
+    "durationMs": 7642
+  },
+  {
+    "name": "audit",
+    "command": "npm run audit",
+    "exitCode": 1,
+    "signal": null,
+    "durationMs": 318236
+  },
+  {
+    "name": "ci-full",
+    "command": "npm run ci:full",
+    "exitCode": 2,
+    "signal": null,
+    "durationMs": 7732
+  },
+  {
+    "name": "git-diff-check",
+    "command": "git diff --check",
+    "exitCode": 0,
+    "signal": null,
+    "durationMs": 38
+  }
+]

@@ -1,6 +1,7 @@
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
 import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
+import { checkMissionCommandSchemaPreflight, describeMissionCommandSchemaPreflight } from "./workbench-mission-command-preflight.js";
 
 const PLATFORM_MODE_INFO = {
   "agent-shell": {
@@ -118,12 +119,52 @@ export const getMissionReadinessReport = async (
   };
 };
 
+const buildMissionStartPreflightComponents = (input: {
+  requestedPlatformId: RequestedPlatformId;
+  selectedMapId: string;
+  taskTemplateId?: string | null;
+  activationId?: string | null;
+  activationSnapshotRef?: string | null;
+  targetProfileRef?: string | null;
+  selectedMapOk: boolean;
+  commandContractOk: boolean;
+  commandSchemaOk: boolean;
+  commandSchemaDetail: string;
+  browserDetail: string;
+  browserOk: boolean;
+  localAiDetail: string;
+  localAiOk: boolean;
+  dataStoreDetail: string;
+  dataStoreOk: boolean;
+}): MissionStartPreflightComponent[] => [
+  { name: "requestedPlatform", ok: true, detail: `requestedPlatformId=${input.requestedPlatformId}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Provide an explicit requestedPlatformId before dispatching the mission command." },
+  { name: "selectedMap", ok: input.selectedMapOk, detail: input.selectedMapOk ? `selectedMapId=${input.selectedMapId}` : `selectedMapId=${input.selectedMapId} is not an active approved map`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Choose an active approved task template or map binding before retrying mission start." },
+  { name: "commandTransportContract", ok: input.commandContractOk, detail: input.commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationId=${input.activationId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : "selected task binding is missing taskTemplateId, activationId, activationSnapshotRef, or targetProfileRef before command dispatch", ownerResponsible: "Commander Console / Nerve Bus / Orchestration", actionableMessage: "Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch." },
+  { name: "missionCommandSchema", ok: input.commandSchemaOk, detail: input.commandSchemaOk ? "MissionCommandSchema accepts the final start-mission command shape before dispatch." : `MissionCommandSchema rejected the final start-mission command shape before dispatch: ${input.commandSchemaDetail}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Repair start-mission command construction before dispatch so COMMAND_REJECTED is not discovered after Nerve Bus dispatch." },
+  { name: "browserController", ok: input.browserOk, detail: input.browserDetail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start." },
+  { name: "localAi", ok: input.localAiOk, detail: input.localAiDetail, ownerResponsible: "AI Capability / Local AI Runtime", actionableMessage: "Start Ollama or repair the local AI runtime before starting this mission." },
+  { name: "dataStore", ok: input.dataStoreOk, detail: input.dataStoreDetail, ownerResponsible: "Forensics Persistence", actionableMessage: "Repair the local Forensics store before starting this mission." },
+];
+
+const buildBlockedMissionStartPreflight = (components: MissionStartPreflightComponent[]) => {
+  const blockingComponents = components.filter((component) => component.ok !== true);
+  return {
+    status: "blocked" as const,
+    actionableMessage: `Mission start is blocked: ${blockingComponents.map((component) => `${component.name}=${component.detail}`).join("; ")}`,
+    failureReason: blockingComponents.map((component) => `${component.name}=${component.detail}`).join("; "),
+    nextAction: blockingComponents.map((component) => component.actionableMessage).join(" "),
+    ownerResponsible: [...new Set(blockingComponents.map((component) => component.ownerResponsible))].join(" / "),
+    components,
+  };
+};
+
 export const getMissionStartPreflight = async (
   runtime: WorkbenchRuntime,
   input: {
     requestedPlatformId: RequestedPlatformId;
     selectedMapId: string;
     taskTemplateId?: string | null;
+    activationId?: string | null;
     activationSnapshotRef?: string | null;
     targetProfileRef?: string | null;
   },
@@ -143,27 +184,31 @@ export const getMissionStartPreflight = async (
   const browserHealth = runtime.browserController.getHealth();
   const availableMapIds = new Set(runtime.orchestrationAbilityGroup.listMapIds());
   const selectedMapOk = availableMapIds.has(input.selectedMapId);
-  const commandContractOk = Boolean(input.taskTemplateId && input.activationSnapshotRef && input.targetProfileRef);
-  const components: MissionStartPreflightComponent[] = [
-    { name: "requestedPlatform", ok: true, detail: `requestedPlatformId=${input.requestedPlatformId}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Provide an explicit requestedPlatformId before dispatching the mission command." },
-    { name: "selectedMap", ok: selectedMapOk, detail: selectedMapOk ? `selectedMapId=${input.selectedMapId}` : `selectedMapId=${input.selectedMapId} is not an active approved map`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Choose an active approved task template or map binding before retrying mission start." },
-    { name: "commandTransportContract", ok: commandContractOk, detail: commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : "selected task binding is missing taskTemplateId, activationSnapshotRef, or targetProfileRef before command dispatch", ownerResponsible: "Commander Console / Nerve Bus / Orchestration", actionableMessage: "Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch." },
-    { name: "browserController", ok: browserHealth.ok, detail: browserHealth.detail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start." },
-    { name: "localAi", ok: localAiHealth.ok, detail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`, ownerResponsible: "AI Capability / Local AI Runtime", actionableMessage: "Start Ollama or repair the local AI runtime before starting this mission." },
-    { name: "dataStore", ok: dataStoreHealth.ok, detail: dataStoreHealth.detail, ownerResponsible: "Forensics Persistence", actionableMessage: "Repair the local Forensics store before starting this mission." },
-  ];
-  const blockingComponents = components.filter((component) => component.ok !== true);
-  if (blockingComponents.length === 0) {
+  const commandContractOk = Boolean(input.taskTemplateId && input.activationId && input.activationSnapshotRef && input.targetProfileRef);
+  const commandSchemaCheck = checkMissionCommandSchemaPreflight(input);
+  const commandSchemaOk = commandContractOk && commandSchemaCheck.success;
+  const components = buildMissionStartPreflightComponents({
+    requestedPlatformId: input.requestedPlatformId,
+    selectedMapId: input.selectedMapId,
+    taskTemplateId: input.taskTemplateId,
+    activationId: input.activationId,
+    activationSnapshotRef: input.activationSnapshotRef,
+    targetProfileRef: input.targetProfileRef,
+    selectedMapOk,
+    commandContractOk,
+    commandSchemaOk,
+    commandSchemaDetail: describeMissionCommandSchemaPreflight(commandSchemaCheck),
+    browserDetail: browserHealth.detail,
+    browserOk: browserHealth.ok,
+    localAiDetail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`,
+    localAiOk: localAiHealth.ok,
+    dataStoreDetail: dataStoreHealth.detail,
+    dataStoreOk: dataStoreHealth.ok,
+  });
+  if (components.every((component) => component.ok === true)) {
     return { status: "passed", actionableMessage: "Mission preflight passed. Commander Console can dispatch the governed human command.", failureReason: null, nextAction: "Dispatch the governed human command through Commander Console and Nerve Bus.", ownerResponsible: "Commander Console", components };
   }
-  return {
-    status: "blocked",
-    actionableMessage: `Mission start is blocked: ${blockingComponents.map((component) => `${component.name}=${component.detail}`).join("; ")}`,
-    failureReason: blockingComponents.map((component) => `${component.name}=${component.detail}`).join("; "),
-    nextAction: blockingComponents.map((component) => component.actionableMessage).join(" "),
-    ownerResponsible: [...new Set(blockingComponents.map((component) => component.ownerResponsible))].join(" / "),
-    components,
-  };
+  return buildBlockedMissionStartPreflight(components);
 };
 
 export const getModeInfo = (runtime: WorkbenchRuntime) => {

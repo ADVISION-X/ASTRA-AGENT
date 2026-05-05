@@ -73,6 +73,24 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     newText: "  nerveBusEnvelopeId: nullableString,",
   },
   {
+    name: "local-runtime-builder-drops-run-id",
+    file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
+    oldText: "    runId: envelope.runId,",
+    newText: "    runId: null,",
+  },
+  {
+    name: "local-runtime-builder-strips-www-host",
+    file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
+    oldText: "    return \"www.tiktok.com\";",
+    newText: "    return \"tiktok.com\";",
+  },
+  {
+    name: "observation-only-boundary-regression",
+    file: "src/capabilities/post-action-verification/runtime/post-action-output-boundary-gate.ts",
+    oldText: "  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2 || hasObservationOnlySupport) {",
+    newText: "  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2) {",
+  },
+  {
     name: "external-imports-runtime-path",
     file: "src/lib/local-runtime/workbench-post-action-runtime.ts",
     oldText: "import { createPostActionVerificationAbilityGroup } from \"../../capabilities/post-action-verification/index.js\";",
@@ -99,7 +117,7 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
     name: "proof-builder-fabricates-run-id",
     file: "src/capabilities/post-action-verification/runtime/verification-proof-builder.ts",
-    oldText: "    runId: request?.runId ?? null,",
+    oldText: "    runId: request?.runId ?? input.inputRef,",
     newText: "    runId: `post-action-verification-run:${input.proofFingerprint}`,",
   },
   {
@@ -229,7 +247,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
       throw new Error(`Post Action Verification mutations did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
     }
 
-    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");
+    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, local-runtime builder drift, observation-only boundary regressions, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Post Action Verification negative-proof harness failed.",

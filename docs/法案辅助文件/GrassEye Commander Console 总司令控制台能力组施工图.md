@@ -710,12 +710,15 @@ Commander commandId
 -> CommanderTransportSemanticResult.runId
 -> createTransportOutcome.runId
 -> Commander runtimeProof.runId
+-> Local App Shell COMMAND_ACCEPTED / COMMAND_REJECTED refs
 ```
 
 禁止链路：
 
 ```txt
 MISSION_PREFLIGHT_PASSED 后 createTransportOutcome 写入 runId:null
+semantic failure / review_required path 写入 CommanderTransportSemanticResult.runId:null
+command child runtimeProof 对 command proof 接受 runId:null
 COMMAND_REJECTED 只暴露 raw ZodError 而没有 ownerResponsible/actionableMessage
 transport result 不带 runId 仍被 semantic gate 接受
 ```
@@ -725,8 +728,11 @@ inspector 必须覆盖：
 ```txt
 CommandTransportResultSchema 必须声明 runId
 Commander transport semantic gate 必须读取并验证 input.result.runId
+Commander transport semantic gate 的 schema failure / semantic failure / review_required builder 必须继承 commandId 派生的 non-null runId 或 transport runId，不得写 null
 createTransportOutcome 必须从 transport.runId 写入 outcome.runId
 dispatched command outcome 不得出现 runId:null
+RuntimeProofSchema 必须对 childKind=command 拒绝 runId:null
+Local App Shell 写 COMMAND_REJECTED 时必须把 commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef 放入 refs/proofRefs
 ```
 
 negative proof 必须覆盖：
@@ -734,6 +740,9 @@ negative proof 必须覆盖：
 ```txt
 删除 CommandTransportResultSchema.runId 必须 FAIL
 把 createTransportOutcome.runId 改回 null 必须 FAIL
+把 buildSemanticFailure / buildSemanticReviewRequired 的 runId 改回 null 必须 FAIL
+把 command proof runId 校验删除必须 FAIL
+删除 COMMAND_REJECTED refs/proofRefs 传播必须 FAIL
 ```
 
 READY 标准补充：
@@ -741,7 +750,7 @@ READY 标准补充：
 ```txt
 start-mission dispatch result has non-null runId
 Commander runtime proof preserves the same runId
-terminal COMMAND_REJECTED includes ownerResponsible/actionableMessage when dispatch fails
+terminal and runtime debug API COMMAND_REJECTED include ownerResponsible/actionableMessage plus command/result/proof refs when dispatch fails
 ```
 
 Commander READY only when:

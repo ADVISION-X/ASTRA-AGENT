@@ -1,12 +1,16 @@
 # LOOP-0 Inventory Report
 
-generatedAt: 2026-05-05T02:38:18.947Z
+generatedAt: 2026-05-05T05:08:39.071Z
 
-Total active laws: 127
-ENFORCED: 0
-PARTIALLY_ENFORCED: 127
-NOT_ENFORCED: 0
+Total active laws: 129
+NEGATIVE_PROOF_MAPPED: 64
+NOT_COVERED: 58
+OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED: 7
 
-LOOP-0 performed inventory only. No inspector, law, blueprint, or production source files were modified.
+This report now mirrors audit-system static clause coverage status. It is evidence output only and no longer self-determines ENFORCED.
 
-Primary gap: ENFORCED requires per-law production mutation proof plus deletion/unbinding failure proof. Existing owner inspector and negative proof presence alone is insufficient.
+Global blocker: typecheck failed or is missing fresh evidence.
+Global blocker: lint failed or is missing fresh evidence.
+Global blocker: audit:capability-group-governance failed or is missing fresh evidence.
+Global blocker: audit failed or is missing fresh evidence.
+Global blocker: ci:full failed or is missing fresh evidence.

@@ -677,6 +677,18 @@ activationSnapshotRef nullable in valid running mission
 step success without nerveBusEnvelopeId
 transition success without transitionId
 runId fabricated from missionId/step
+MISSION_PREFLIGHT_PASSED 后才由 MissionCommandSchema 发现 start-mission command shape 无效
+```
+
+start-mission preflight 补充：
+
+```txt
+Local App Shell 在 Nerve Bus dispatch 前必须用 Orchestration MissionCommandSchema 对最终 start-mission command 形状做 dry-run validation。
+dry-run 必须包含 requestedPlatform、selectedMapId/preferredMapId、taskTemplateId、activationId、targetProfileRef、non-null generated runId。
+MissionCommandSchema dry-run failed 时必须返回 MISSION_PREFLIGHT_FAILED / COMMAND_REJECTED，不得继续创建 Nerve Bus envelope。
+inspector 必须覆盖 task-start-flow 传入 activationId/activationSnapshotRef/targetProfileRef，workbench-status 调用 MissionCommandSchema.safeParse，且存在 missionCommandSchema preflight component。
+negative proof 必须覆盖删除 missionCommandSchema component、删除 MissionCommandSchema.safeParse、删除 activationId 传递三类生产突变。
+READY 标准：preflight passed 后不允许出现仅因 MissionCommandSchema path=runId/null 导致的 COMMAND_REJECTED。
 ```
 
 ---

@@ -78,6 +78,9 @@ const validateProofKindState = (
   if (value.childKind === "command" && (!value.commandDecision || !value.transportDecision)) {
     addProofIssue(ctx, "command proof requires commandDecision and transportDecision");
   }
+  if (value.childKind === "command" && !value.runId) {
+    addProofIssue(ctx, "command proof requires runId");
+  }
   if (value.childKind === "read" && !value.readDecision) {
     addProofIssue(ctx, "read proof requires readDecision");
   }

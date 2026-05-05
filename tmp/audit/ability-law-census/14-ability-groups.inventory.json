@@ -2,6 +2,9 @@
   {
     "abilityGroupId": "commander-console",
     "lawFile": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
+    "additionalLawFiles": [
+      ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md"
+    ],
     "blueprintFile": "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md",
     "sourceRoot": "src/capabilities/commander-console",
     "inspectorDomain": "commander-console-capability",
@@ -63,6 +66,7 @@
   {
     "abilityGroupId": "orchestration",
     "lawFile": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
     "sourceRoot": "src/capabilities/orchestration",
     "inspectorDomain": "orchestration-capability",
@@ -137,6 +141,7 @@
   {
     "abilityGroupId": "nerve-bus",
     "lawFile": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md",
     "sourceRoot": "src/capabilities/nerve-bus",
     "inspectorDomain": "nerve-bus-capability",
@@ -199,6 +204,9 @@
   {
     "abilityGroupId": "ai",
     "lawFile": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+    "additionalLawFiles": [
+      ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md"
+    ],
     "blueprintFile": "docs/法案辅助文件/GrassEye AI 大脑能力组施工图.md",
     "sourceRoot": "src/capabilities/ai",
     "inspectorDomain": "ai-capability",
@@ -279,6 +287,7 @@
   {
     "abilityGroupId": "open",
     "lawFile": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Open 能力组施工图.md",
     "sourceRoot": "src/capabilities/open",
     "inspectorDomain": "open-capability",
@@ -345,6 +354,7 @@
   {
     "abilityGroupId": "screenshot",
     "lawFile": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md",
     "sourceRoot": "src/capabilities/screenshot",
     "inspectorDomain": "screenshot-capability",
@@ -413,6 +423,7 @@
   {
     "abilityGroupId": "visual-target",
     "lawFile": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Visual Target 视觉目标定位能力组施工图.md",
     "sourceRoot": "src/capabilities/visual-target",
     "inspectorDomain": "visual-target-capability",
@@ -473,6 +484,7 @@
   {
     "abilityGroupId": "geometry-guard",
     "lawFile": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md",
     "sourceRoot": "src/capabilities/geometry-guard",
     "inspectorDomain": "geometry-guard-capability",
@@ -525,6 +537,7 @@
   {
     "abilityGroupId": "mouse-click",
     "lawFile": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md",
     "sourceRoot": "src/capabilities/mouse-click",
     "inspectorDomain": "mouse-click-capability",
@@ -583,6 +596,7 @@
   {
     "abilityGroupId": "text-input",
     "lawFile": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Text Input 输入能力组施工图.md",
     "sourceRoot": "src/capabilities/text-input",
     "inspectorDomain": "text-input-capability",
@@ -651,6 +665,7 @@
   {
     "abilityGroupId": "mouse-scroll",
     "lawFile": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md",
     "sourceRoot": "src/capabilities/mouse-scroll",
     "inspectorDomain": "mouse-scroll-capability",
@@ -718,6 +733,7 @@
   {
     "abilityGroupId": "post-action-verification",
     "lawFile": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md",
     "sourceRoot": "src/capabilities/post-action-verification",
     "inspectorDomain": "post-action-verification-capability",
@@ -773,6 +789,7 @@
   {
     "abilityGroupId": "forensics-persistence",
     "lawFile": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md",
     "sourceRoot": "src/capabilities/forensics-persistence",
     "inspectorDomain": "forensics-persistence-capability",
@@ -821,6 +838,7 @@
   {
     "abilityGroupId": "page-state",
     "lawFile": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
+    "additionalLawFiles": [],
     "blueprintFile": "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md",
     "sourceRoot": "src/capabilities/page-state",
     "inspectorDomain": "page-state-capability",

@@ -1,1 +1,1 @@
-Mutation: set createTransportOutcome runId back to null in src/capabilities/commander-console/runtime/commander-command-outcomes.ts.
+Mutation: changed buildSemanticFailure runId from resolveCommandRunId(command) to null in src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts.

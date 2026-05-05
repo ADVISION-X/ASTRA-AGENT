@@ -37,12 +37,13 @@ function buildPostActionRuntimeProofHashes(input: {
 function buildPostActionRuntimeProofIdentityFields(input: {
   request: ParsedPostActionVerificationAbilityInput | null;
   proofFingerprint: string;
+  inputRef: string;
 }) {
   const request = input.request;
   return {
     proofId: `post-action-verification-proof:${input.proofFingerprint}`,
     missionId: request?.missionId ?? null,
-    runId: request?.runId ?? null,
+    runId: request?.runId ?? input.inputRef,
     sessionId: request?.sessionId ?? null,
     roundId: request?.roundId ?? null, videoVisitId: request?.videoVisitId ?? null,
     stepId: request?.stepId ?? null,
@@ -190,7 +191,7 @@ function buildPostActionRuntimeProofCoreFields(input: {
   endedMonotonicMs: number;
 }) {
   return {
-    ...buildPostActionRuntimeProofIdentityFields({ request: input.request, proofFingerprint: input.proofFingerprint }),
+    ...buildPostActionRuntimeProofIdentityFields({ request: input.request, proofFingerprint: input.proofFingerprint, inputRef: input.inputRef }),
     ...buildPostActionRuntimeProofReferenceFields({
       request: input.request,
       inputRef: input.inputRef,

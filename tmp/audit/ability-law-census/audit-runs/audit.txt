@@ -1,8 +1,3 @@
-$ npm run audit
-exitCode=1
-durationMs=3214
-
---- stdout ---
 
 > grasseye-local-workbench@0.1.0 audit
 > node --import tsx scripts/audit/runner.ts
@@ -11,17 +6,5 @@ durationMs=3214
 [AUDIT] generated artifacts rebuilt; loading audit plan...
 [AUDIT] running 20 planned inspections with fail-fast enabled...
 [AUDIT] starting map-plugin-package...
-
-
---- stderr ---
-[AUDIT ERROR] Error: Builtin map package builtin.facebook-seeding-video-discovery failed development approval. validationIssues=operationalMap.steps.click-comments-button: missing_dependency: Target child capability mouse-click/click-browser-coordinate requires geometryProofRef.
-    at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:131:13)
-    at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:149:5)
-    at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:174:20)
-    at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)
-    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)
-    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)
-    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20)
-    at async runSupplementalPhases (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:42:29)
-    at async inspector (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:116:30)
-    at async runWithTimeout (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/runner.ts:47:10)
+[FAKE ENFORCEMENT] map-plugin-package: Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.
+[AUDIT FAIL-FAST] stopped at map-plugin-package; 1 blocking issue(s) recorded.

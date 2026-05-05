@@ -76,7 +76,7 @@ function collectExecutorFindings(project: Project): Finding[] {
 const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean => {
   return [
     "missionId: request?.missionId ?? null",
-    "runId: request?.runId ?? null",
+    "runId: request?.runId ?? input.inputRef",
     "activationSnapshotRef: request?.activationSnapshotRef ?? null",
     "capabilityCallId: request?.capabilityCallId ?? null",
     "nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null",
@@ -110,7 +110,7 @@ function collectResultBuilderFindings(project: Project): Finding[] {
   }
   const resultBuilderText = resultBuilderSource.getFullText();
   if (!resultBuilderText.includes("missionId: input.request?.missionId ?? null")
-    || !resultBuilderText.includes("runId: input.request?.runId ?? null")
+    || !resultBuilderText.includes("runId: input.request?.runId ?? input.runtimeProof.runId")
     || !resultBuilderText.includes("activationSnapshotRef: input.request?.activationSnapshotRef ?? null")
     || !resultBuilderText.includes("capabilityCallId: input.request?.capabilityCallId ?? null")
     || !resultBuilderText.includes("nerveBusEnvelopeId: input.request?.nerveBusEnvelopeId ?? null")) {

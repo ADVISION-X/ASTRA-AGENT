@@ -1,0 +1,73 @@
+import type { WorkbenchRuntime } from "./workbench-contract.js";
+import type { HumanCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+
+type MissionStartState = {
+  missionId: string | null;
+  status: string;
+  activeTaskRunId: string | null;
+  mapId: string | null;
+  activationSnapshotRef: string | null;
+  reviewRequiredReason: string | null;
+  failureReason: string | null;
+};
+
+export const recordOrchestrationStartReceived = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+  },
+) => runtime.recordCommanderDebugEvent({
+  eventType: "ORCHESTRATION_START_RECEIVED",
+  status: "started",
+  traceId: input.envelope.traceId,
+  spanId: `${input.envelope.envelopeId}:orchestration-start`,
+  attemptId: input.envelope.attemptId,
+  missionId: input.envelope.missionId,
+  runId: input.envelope.runId,
+  mapId: input.selectedMapId,
+  taskTemplateId: input.taskTemplateId,
+  reason: "Orchestration received governed start-mission command from Nerve Bus.",
+  actionableMessage: "Freeze activation snapshot and select the governed operational map.",
+  ownerResponsible: "Orchestration",
+  refs: [`commandEnvelopeRef=${input.envelope.envelopeId}`, `inputRef=${input.envelope.inputRef}`],
+});
+
+export const recordMissionActivationSnapshotFrozen = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    missionState: MissionStartState;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+    activationSnapshotRef: string | null;
+  },
+) => {
+  const activationSnapshotRef = input.missionState.activationSnapshotRef ?? input.activationSnapshotRef;
+
+  return runtime.recordCommanderDebugEvent({
+    eventType: "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+    status: input.missionState.status === "failed" ? "failed" : input.missionState.status === "review_required" ? "review_required" : "success",
+    traceId: input.envelope.traceId,
+    spanId: `${input.envelope.envelopeId}:activation-snapshot`,
+    attemptId: input.envelope.attemptId,
+    missionId: input.missionState.missionId ?? input.envelope.missionId,
+    runId: input.missionState.activeTaskRunId ?? input.envelope.runId,
+    mapId: input.missionState.mapId ?? input.selectedMapId,
+    taskTemplateId: input.taskTemplateId,
+    reason: activationSnapshotRef
+      ? `activationSnapshotRef=${activationSnapshotRef}; selectedMapId=${input.missionState.mapId ?? input.selectedMapId}`
+      : "Mission start completed without a frozen activation snapshot.",
+    failureReason: input.missionState.failureReason,
+    actionableMessage: activationSnapshotRef
+      ? "Continue the governed mission loop with the frozen activation snapshot."
+      : "Inspect Orchestration map selection and activation snapshot proof before retrying.",
+    ownerResponsible: "Orchestration / Map Plugin Registry",
+    refs: [
+      `commandEnvelopeRef=${input.envelope.envelopeId}`,
+      `activationSnapshotRef=${activationSnapshotRef ?? "MISSING"}`,
+      `selectedMapId=${input.missionState.mapId ?? input.selectedMapId ?? "MISSING"}`,
+    ],
+  });
+};

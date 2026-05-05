@@ -1,8 +1,3 @@
-$ npm run lint
-exitCode=2
-durationMs=6503
-
---- stdout ---
 
 > grasseye-local-workbench@0.1.0 lint
 > npm run typecheck
@@ -11,10 +6,10 @@ durationMs=6503
 > grasseye-local-workbench@0.1.0 typecheck
 > tsc -p tsconfig.json --noEmit
 
-src/map-plugins/import/map-package-activation.ts(177,36): error TS2345: Argument of type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' is not assignable to parameter of type 'MapActivationRecord'.
-  Property 'activationSnapshotRef' is missing in type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' but required in type 'MapActivationRecord'.
-src/map-plugins/import/map-package-activation.ts(178,64): error TS2345: Argument of type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' is not assignable to parameter of type 'MapActivationRecord'.
-  Property 'activationSnapshotRef' is missing in type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' but required in type 'MapActivationRecord'.
-
-
---- stderr ---
+scripts/audit/core/static-clause-coverage-artifact.ts(105,57): error TS2304: Cannot find name 'AuditSummaryEntry'.
+scripts/audit/core/static-clause-coverage-artifact.ts(106,46): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/local-runtime/workbench-status.ts(190,59): error TS2379: Argument of type '{ requestedPlatformId: RequestedPlatformId; selectedMapId: string; taskTemplateId: string | null | undefined; activationId: string | null | undefined; activationSnapshotRef: string | ... 1 more ... | undefined; ... 10 more ...; dataStoreOk: boolean; }' is not assignable to parameter of type '{ requestedPlatformId: RequestedPlatformId; selectedMapId: string; taskTemplateId?: string | null; activationId?: string | null; activationSnapshotRef?: string | null; ... 10 more ...; dataStoreOk: boolean; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'taskTemplateId' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string | null'.
+      Type 'undefined' is not assignable to type 'string | null'.

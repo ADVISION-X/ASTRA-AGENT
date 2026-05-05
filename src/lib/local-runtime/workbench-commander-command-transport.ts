@@ -3,6 +3,9 @@ import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { buildHumanCommandDispatchInput, describeHumanCommandTransportMessage } from "./workbench-human-command-dispatch.js";
 import type { WorkbenchCommanderMissionSelectionState } from "./workbench-commander-mission-read-model.js";
 
+type HumanCommandDispatchInput = Awaited<ReturnType<typeof buildHumanCommandDispatchInput>>;
+type HumanCommandTransportResult = Awaited<ReturnType<WorkbenchRuntime["nerveBusAbilityGroup"]["dispatchHumanCommand"]>>;
+
 type CommanderHumanCommand = {
   commandId: string;
   commandType: string;
@@ -21,6 +24,75 @@ type CommanderHumanCommand = {
   payload: unknown;
 };
 
+const recordEnvelopeCreated = async (
+  runtime: WorkbenchRuntime,
+  command: CommanderHumanCommand,
+  dispatchInput: HumanCommandDispatchInput,
+) => {
+  await recordCommanderDebugEvent(runtime, {
+    eventType: "NERVE_BUS_ENVELOPE_CREATED",
+    status: "success",
+    traceId: command.commandId,
+    spanId: dispatchInput.envelope.envelopeId,
+    attemptId: command.commandId,
+    missionId: dispatchInput.envelope.missionId,
+    mapId: dispatchInput.envelope.mapId,
+    taskTemplateId: dispatchInput.envelope.taskTemplateId,
+    reason: `Nerve Bus governed envelope created for ${command.commandType}.`,
+    actionableMessage: "Dispatch through Nerve Bus governed transport.",
+    ownerResponsible: "Commander Console / Nerve Bus",
+  });
+};
+
+const recordDispatchStarted = async (
+  runtime: WorkbenchRuntime,
+  command: CommanderHumanCommand,
+  dispatchInput: HumanCommandDispatchInput,
+) => {
+  await recordCommanderDebugEvent(runtime, {
+    eventType: "NERVE_BUS_DISPATCH_STARTED",
+    status: "started",
+    traceId: command.commandId,
+    spanId: `${dispatchInput.envelope.envelopeId}:dispatch`,
+    attemptId: command.commandId,
+    missionId: dispatchInput.envelope.missionId,
+    mapId: dispatchInput.envelope.mapId,
+    taskTemplateId: dispatchInput.envelope.taskTemplateId,
+    reason: `Dispatching ${command.commandType} via CommandTransportPort.`,
+    actionableMessage: "Wait for governed result envelope and semantic gate validation.",
+    ownerResponsible: "Nerve Bus",
+  });
+};
+
+const updateMissionSelectionState = (
+  missionSelectionState: WorkbenchCommanderMissionSelectionState,
+  command: CommanderHumanCommand,
+) => {
+  if (command.commandType === "start-mission") {
+    missionSelectionState.lastMissionId = command.commandId;
+  }
+};
+
+const buildTransportResult = (
+  command: CommanderHumanCommand,
+  transport: HumanCommandTransportResult,
+) => {
+  const status: "accepted" | "failed" | "review_required" = transport.resultEnvelope.status === "success"
+    ? "accepted"
+    : transport.resultEnvelope.status;
+  return {
+    commandId: command.commandId,
+    runId: transport.commandEnvelope.runId,
+    envelopeRef: transport.commandEnvelope.envelopeId,
+    resultEnvelopeRef: transport.resultEnvelope.envelopeId,
+    status,
+    failureReason: transport.resultEnvelope.failureReason,
+    reviewRequiredReason: transport.resultEnvelope.status === "review_required" ? transport.resultEnvelope.failureReason ?? "review required" : null,
+    message: describeHumanCommandTransportMessage(transport.resultEnvelope),
+    debugLogRef: null,
+  };
+};
+
 export const createCommandTransport = (
   runtime: WorkbenchRuntime,
   missionSelectionState: WorkbenchCommanderMissionSelectionState,
@@ -29,49 +101,10 @@ export const createCommandTransport = (
  ) => ({
   emitHumanCommand: async (command: CommanderHumanCommand) => {
     const dispatchInput = await buildHumanCommandDispatchInput(runtime, command);
-    await recordCommanderDebugEvent(runtime, {
-      eventType: "NERVE_BUS_ENVELOPE_CREATED",
-      status: "success",
-      traceId: command.commandId,
-      spanId: dispatchInput.envelope.envelopeId,
-      attemptId: command.commandId,
-      missionId: dispatchInput.envelope.missionId,
-      mapId: dispatchInput.envelope.mapId,
-      taskTemplateId: dispatchInput.envelope.taskTemplateId,
-      reason: `Nerve Bus governed envelope created for ${command.commandType}.`,
-      actionableMessage: "Dispatch through Nerve Bus governed transport.",
-      ownerResponsible: "Commander Console / Nerve Bus",
-    });
-    await recordCommanderDebugEvent(runtime, {
-      eventType: "NERVE_BUS_DISPATCH_STARTED",
-      status: "started",
-      traceId: command.commandId,
-      spanId: `${dispatchInput.envelope.envelopeId}:dispatch`,
-      attemptId: command.commandId,
-      missionId: dispatchInput.envelope.missionId,
-      mapId: dispatchInput.envelope.mapId,
-      taskTemplateId: dispatchInput.envelope.taskTemplateId,
-      reason: `Dispatching ${command.commandType} via CommandTransportPort.`,
-      actionableMessage: "Wait for governed result envelope and semantic gate validation.",
-      ownerResponsible: "Nerve Bus",
-    });
+    await recordEnvelopeCreated(runtime, command, dispatchInput);
+    await recordDispatchStarted(runtime, command, dispatchInput);
     const transport = await dispatchHumanCommand(dispatchInput);
-    if (command.commandType === "start-mission") {
-      missionSelectionState.lastMissionId = command.commandId;
-    }
-    const status: "accepted" | "failed" | "review_required" = transport.resultEnvelope.status === "success"
-      ? "accepted"
-      : transport.resultEnvelope.status;
-    return {
-      commandId: command.commandId,
-      runId: transport.commandEnvelope.runId,
-      envelopeRef: transport.commandEnvelope.envelopeId,
-      resultEnvelopeRef: transport.resultEnvelope.envelopeId,
-      status,
-      failureReason: transport.resultEnvelope.failureReason,
-      reviewRequiredReason: transport.resultEnvelope.status === "review_required" ? transport.resultEnvelope.failureReason ?? "review required" : null,
-      message: describeHumanCommandTransportMessage(transport.resultEnvelope),
-      debugLogRef: null,
-    };
+    updateMissionSelectionState(missionSelectionState, command);
+    return buildTransportResult(command, transport);
   },
 });

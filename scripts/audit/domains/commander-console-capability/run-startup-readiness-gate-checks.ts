@@ -23,6 +23,7 @@ const STARTUP_CONTRACT_PATH = "src/lib/local-ai/startup-readiness.ts";
 const APP_SERVER_PATH = "src/app/server.ts";
 const TASK_START_FLOW_PATH = "src/lib/local-app-shell/task-start-flow.ts";
 const WORKBENCH_STATUS_PATH = "src/lib/local-runtime/workbench-status.ts";
+const WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH = "src/lib/local-runtime/workbench-mission-command-preflight.ts";
 const TERMINAL_STRUCTURED_LOG_PATH = "scripts/startup/lib/terminal-structured-log.mjs";
 const STRUCTURED_LOG_PAYLOAD_PATH = "src/lib/local-runtime/structured-log-payload.ts";
 
@@ -212,22 +213,35 @@ const collectFailureBundleHelperFindings = (failureBundleText: string): Finding[
 function collectMissionPreflightContractFindings(project: import("ts-morph").Project): Finding[] {
   const taskStartFlow = project.getSourceFileOrThrow(pathFromRepoRoot(TASK_START_FLOW_PATH));
   const workbenchStatus = project.getSourceFileOrThrow(pathFromRepoRoot(WORKBENCH_STATUS_PATH));
+  const commandPreflight = project.getSourceFileOrThrow(pathFromRepoRoot(WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH));
   const taskStartCalls = taskStartFlow.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isPropertyAccessExpression(expression) && expression.getName() === "getMissionStartPreflight";
   });
   const callCarriesContract = taskStartCalls.some((callExpression) => {
-    return ["taskTemplateId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName));
+    return ["taskTemplateId", "activationId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName));
   });
   const statusHasContractComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "commandTransportContract");
-  const statusChecksBinding = ["taskTemplateId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => workbenchStatus.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === `input.${propertyName}`));
+  const statusHasMissionCommandSchemaComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "missionCommandSchema");
+  const statusImportsMissionCommandPreflight = hasNamedImport(workbenchStatus, "./workbench-mission-command-preflight.js", "checkMissionCommandSchemaPreflight");
+  const preflightImportsMissionCommandSchema = hasNamedImport(commandPreflight, "../../capabilities/orchestration/schema.js", "MissionCommandSchema");
+  const statusValidatesMissionCommandSchema = commandPreflight.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && expression.getExpression().getText() === "MissionCommandSchema"
+      && expression.getName() === "safeParse";
+  });
+  const statusChecksBinding = ["taskTemplateId", "activationId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => workbenchStatus.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === `input.${propertyName}`));
   const findings: Finding[] = [];
 
   if (!callCarriesContract) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TASK_START_FLOW_PATH, message: "Task start flow must pass taskTemplateId, activationSnapshotRef, and targetProfileRef into MissionStartPreflight before COMMANDER dispatch." }));
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TASK_START_FLOW_PATH, message: "Task start flow must pass taskTemplateId, activationId, activationSnapshotRef, and targetProfileRef into MissionStartPreflight before COMMANDER dispatch." }));
   }
   if (!statusHasContractComponent || !statusChecksBinding) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must include a commandTransportContract component that blocks missing task binding, activation snapshot, or target profile refs." }));
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must include a commandTransportContract component that blocks missing task binding, activation id, activation snapshot, or target profile refs." }));
+  }
+  if (!statusHasMissionCommandSchemaComponent || !statusImportsMissionCommandPreflight || !preflightImportsMissionCommandSchema || !statusValidatesMissionCommandSchema) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must dry-run MissionCommandSchema before COMMANDER dispatch so command schema failures cannot appear only after Nerve Bus dispatch." }));
   }
 
   return findings;
@@ -293,6 +307,7 @@ export async function runStartupReadinessGateChecks(): Promise<Finding[]> {
   startupProject.addSourceFileAtPath(pathFromRepoRoot(APP_SERVER_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(TASK_START_FLOW_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(WORKBENCH_STATUS_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(STRUCTURED_LOG_PAYLOAD_PATH));
   const launchSource = startupProject.getSourceFileOrThrow(pathFromRepoRoot(commanderConsoleInspectionConstants.STARTUP_PATH));
 

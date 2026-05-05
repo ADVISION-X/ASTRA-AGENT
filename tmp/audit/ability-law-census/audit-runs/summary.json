@@ -1,128 +1,62 @@
 [
   {
-    "name": "audit:commander-console",
-    "command": "npm run audit:commander-console",
+    "name": "audit:build",
+    "command": "npm run audit:build",
     "exitCode": 0,
-    "durationMs": 3442
+    "durationMs": 1759
   },
   {
-    "name": "audit:orchestration",
-    "command": "npm run audit:orchestration",
-    "exitCode": 0,
-    "durationMs": 28715
-  },
-  {
-    "name": "audit:nerve-bus",
-    "command": "npm run audit:nerve-bus",
-    "exitCode": 0,
-    "durationMs": 72693
-  },
-  {
-    "name": "audit:ai",
-    "command": "npm run audit:ai",
+    "name": "audit:audit-system",
+    "command": "npm run audit:audit-system",
     "exitCode": 1,
-    "durationMs": 6248
-  },
-  {
-    "name": "audit:open",
-    "command": "npm run audit:open",
-    "exitCode": 0,
-    "durationMs": 4601
-  },
-  {
-    "name": "audit:screenshot",
-    "command": "npm run audit:screenshot",
-    "exitCode": 0,
-    "durationMs": 80828
-  },
-  {
-    "name": "audit:visual-target",
-    "command": "npm run audit:visual-target",
-    "exitCode": 1,
-    "durationMs": 5254
-  },
-  {
-    "name": "audit:geometry-guard",
-    "command": "npm run audit:geometry-guard",
-    "exitCode": 1,
-    "durationMs": 4133
-  },
-  {
-    "name": "audit:mouse-click",
-    "command": "npm run audit:mouse-click",
-    "exitCode": 0,
-    "durationMs": 78352
-  },
-  {
-    "name": "audit:text-input-capability",
-    "command": "npm run audit:text-input-capability",
-    "exitCode": 0,
-    "durationMs": 92693
-  },
-  {
-    "name": "audit:mouse-scroll",
-    "command": "npm run audit:mouse-scroll",
-    "exitCode": 0,
-    "durationMs": 188301
-  },
-  {
-    "name": "audit:post-action-verification",
-    "command": "npm run audit:post-action-verification",
-    "exitCode": 0,
-    "durationMs": 18803
-  },
-  {
-    "name": "audit:forensics-persistence",
-    "command": "npm run audit:forensics-persistence",
-    "exitCode": 1,
-    "durationMs": 4223
-  },
-  {
-    "name": "audit:page-state",
-    "command": "npm run audit:page-state",
-    "exitCode": 0,
-    "durationMs": 21408
+    "durationMs": 124415
   },
   {
     "name": "audit:capability-group-governance",
     "command": "npm run audit:capability-group-governance",
-    "exitCode": 0,
-    "durationMs": 20991
-  },
-  {
-    "name": "audit:build",
-    "command": "npm run audit:build",
-    "exitCode": 0,
-    "durationMs": 298
-  },
-  {
-    "name": "audit",
-    "command": "npm run audit",
     "exitCode": 1,
-    "durationMs": 3214
+    "durationMs": 6941
+  },
+  {
+    "name": "audit:ai",
+    "command": "npm run audit:ai",
+    "exitCode": 0,
+    "durationMs": 224292
   },
   {
     "name": "typecheck",
     "command": "npm run typecheck",
-    "exitCode": 0,
-    "durationMs": 6366
+    "exitCode": 2,
+    "durationMs": 6117
   },
   {
     "name": "lint",
     "command": "npm run lint",
     "exitCode": 2,
-    "durationMs": 6503
+    "durationMs": 6117
+  },
+  {
+    "name": "audit",
+    "command": "npm run audit",
+    "exitCode": 1,
+    "durationMs": 8046
   },
   {
     "name": "ci:full",
     "command": "npm run ci:full",
-    "exitCode": 1,
-    "durationMs": 9874
+    "exitCode": 2,
+    "durationMs": 6326
   },
   {
     "name": "git-diff-check",
     "command": "git diff --check",
     "exitCode": 0,
-    "durationMs": 26
+    "durationMs": 38
+  },
+  {
+    "name": "audit:build-final",
+    "command": "npm run audit:build",
+    "exitCode": 0,
+    "durationMs": 1771
   }
 ]

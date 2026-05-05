@@ -6,10 +6,10 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, "tmp/audit/ability-law-census");
 
 const groups = [
-  ["commander-console", "GrassEye Commander Console 总司令控制台能力组施工图.md", "audit:commander-console"],
+  ["commander-console", "GrassEye Commander Console 总司令控制台能力组施工图.md", "audit:commander-console", [".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md"]],
   ["orchestration", "GrassEye Orchestration 总指挥能力组施工图.md", "audit:orchestration"],
   ["nerve-bus", "GrassEye Nerve Bus 神经网络传输能力组施工图.md", "audit:nerve-bus"],
-  ["ai", "GrassEye AI 大脑能力组施工图.md", "audit:ai"],
+  ["ai", "GrassEye AI 大脑能力组施工图.md", "audit:ai", [".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md"]],
   ["open", "GrassEye Open 能力组施工图.md", "audit:open"],
   ["screenshot", "GrassEye Screenshot 能力组施工图.md", "audit:screenshot"],
   ["visual-target", "GrassEye Visual Target 视觉目标定位能力组施工图.md", "audit:visual-target"],
@@ -31,6 +31,7 @@ const write = (rel, content) => {
 };
 const sha = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const getPackageScripts = () => JSON.parse(read("package.json")).scripts ?? {};
+const loadJson = (rel, fallback) => exists(rel) ? JSON.parse(read(rel)) : fallback;
 
 const extractField = (block, name) => {
   const match = block.match(new RegExp(`^${name}:\\s*(.+)$`, "m"));
@@ -115,7 +116,7 @@ const findRuntimeProofFiles = (sourceRoot) =>
 const findChildCatalogFile = (sourceRoot) =>
   listFiles(sourceRoot).find((file) => /registry|child|catalog/i.test(file)) ?? "";
 
-const makeInventory = (scripts) => groups.map(([abilityGroupId, blueprintName, npmAuditScript]) => {
+const makeInventory = (scripts) => groups.map(([abilityGroupId, blueprintName, npmAuditScript, additionalLawFiles = []]) => {
   const domain = `${abilityGroupId}-capability`;
   const domainDir = `scripts/audit/domains/${domain}`;
   const manifestPath = `${domainDir}/manifest.json`;
@@ -124,6 +125,7 @@ const makeInventory = (scripts) => groups.map(([abilityGroupId, blueprintName, n
   return {
     abilityGroupId,
     lawFile: `.github/instructions/cursor-rules/modules/module-${abilityGroupId}-capability.instructions.md`,
+    additionalLawFiles,
     blueprintFile: `docs/法案辅助文件/${blueprintName}`,
     sourceRoot,
     inspectorDomain: domain,
@@ -145,47 +147,44 @@ const makeInventory = (scripts) => groups.map(([abilityGroupId, blueprintName, n
   };
 });
 
-const determineStatus = (law, inv) => {
-  const domainDir = `scripts/audit/domains/${inv.inspectorDomain}`;
-  const ownerInspectorPath = inv.ownerBoundaryFiles.find((file) => file.endsWith("/inspector.ts")) ?? `${domainDir}/inspector.ts`;
-  const negativeProofPath = inv.negativeProofHarness;
-  const hasOwnerInspector = exists(ownerInspectorPath) && inv.manifestLawIds.includes(law.lawId);
-  const hasNegativeProof = exists(negativeProofPath);
-  const scriptExists = inv.scriptExists;
-  const structured = hasStructuredInspection(domainDir);
-  const stringScanOnly = hasCoreStringScanOnlySmell(domainDir);
-  const mutationProofPath = `tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}/proof-summary.md`;
-  const hasMutationProof = exists(mutationProofPath);
-  if (hasOwnerInspector && hasNegativeProof && scriptExists && structured && !stringScanOnly && hasMutationProof) {
-    return "ENFORCED";
-  }
-  if (hasOwnerInspector || hasNegativeProof || scriptExists || structured) {
-    return "PARTIALLY_ENFORCED";
-  }
-  return "NOT_ENFORCED";
-};
-
 const scripts = getPackageScripts();
+const previousValveStatePath = "tmp/audit/ability-law-census/one-way-valve-state.json";
+const previousValveState = loadJson(previousValveStatePath, null);
 const auditSummaryPath = "tmp/audit/ability-law-census/audit-runs/summary.json";
-const auditSummary = exists(auditSummaryPath) ? JSON.parse(read(auditSummaryPath)) : [];
+const auditSummary = loadJson(auditSummaryPath, []);
 const auditSummaryByName = new Map(auditSummary.map((item) => [item.name, item]));
+const staticClauseCoveragePath = "scripts/audit/generated/static-clause-coverage.generated.json";
+const staticClauseCoverage = loadJson(staticClauseCoveragePath, {
+  laws: [],
+  globalChain: {
+    observed: false,
+    passed: false,
+    blockers: ["static-clause-coverage.generated.json is missing."],
+  },
+});
+const staticCoverageByLawId = new Map(staticClauseCoverage.laws.map((law) => [law.lawId, law]));
 const inventory = makeInventory(scripts);
 const inventoryByGroup = new Map(inventory.map((item) => [item.abilityGroupId, item]));
-const laws = inventory.flatMap((inv) => parseLaws(inv.abilityGroupId, inv.lawFile));
+const laws = inventory.flatMap((inv) => [inv.lawFile, ...inv.additionalLawFiles].flatMap((lawFile) => parseLaws(inv.abilityGroupId, lawFile)));
 
 const ledger = laws.map((law) => {
   const inv = inventoryByGroup.get(law.abilityGroupId);
-  const ownerInspectorPath = `${path.dirname(inv.inspectorManifest)}/inspector.ts`;
-  const negativeProofPath = inv.negativeProofHarness;
-  const coverageStatus = determineStatus(law, inv);
+  const coverageRecord = staticCoverageByLawId.get(law.lawId);
+  const ownerInspectorPath = coverageRecord?.ownerInspectorEntry ?? `${path.dirname(inv.inspectorManifest)}/inspector.ts`;
+  const negativeProofPath = coverageRecord?.negativeProofPath ?? inv.negativeProofHarness;
+  const ownerBindingProofPath = coverageRecord?.ownerBindingProofPath ?? `tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/owner-binding/owner-binding-proof-summary.md`;
+  const mutationProofPath = coverageRecord?.mutationProofPath ?? `tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}/proof-summary.md`;
   return {
     ...law,
     lawTitle: law.lawTitle,
     blueprintRefs: [inv.blueprintFile, "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"],
     ownerInspectorPath,
     negativeProofPath,
-    auditScript: `npm run ${inv.npmAuditScript}`,
-    coverageStatus,
+    ownerBindingProofPath,
+    mutationProofPath,
+    auditScript: `npm run ${coverageRecord?.ownerAuditScript ?? inv.npmAuditScript}`,
+    coverageStatus: coverageRecord?.coverageStatus ?? "MISSING_STATIC_CLAUSE_COVERAGE_ENTRY",
+    blockers: coverageRecord?.blockers ?? ["Missing static clause coverage entry."],
   };
 });
 
@@ -193,6 +192,9 @@ const counts = ledger.reduce((acc, law) => {
   acc[law.coverageStatus] = (acc[law.coverageStatus] ?? 0) + 1;
   return acc;
 }, {});
+const countLines = Object.entries(counts)
+  .sort(([left], [right]) => left.localeCompare(right))
+  .map(([status, count]) => `${status}: ${count}`);
 
 const coverageHash = sha(JSON.stringify(ledger.map((law) => ({
   abilityGroupId: law.abilityGroupId,
@@ -280,8 +282,7 @@ write("tmp/audit/ability-law-census/production-mutation-proof-index.md", [
   "# Production Mutation Proof Index",
   "",
   mdTable(["abilityGroupId", "lawId", "proof directory", "status"], ledger.map((law) => {
-    const dir = `tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}`;
-    return [law.abilityGroupId, law.lawId, dir, exists(`${dir}/proof-summary.md`) ? "PRESENT" : "MISSING"];
+    return [law.abilityGroupId, law.lawId, path.dirname(law.mutationProofPath), exists(law.mutationProofPath) ? "PRESENT" : "MISSING"];
   })),
   "",
 ].join("\n"));
@@ -292,13 +293,11 @@ write("tmp/audit/ability-law-census/loop-0-inventory-report.md", [
   `generatedAt: ${new Date().toISOString()}`,
   "",
   `Total active laws: ${ledger.length}`,
-  `ENFORCED: ${counts.ENFORCED ?? 0}`,
-  `PARTIALLY_ENFORCED: ${counts.PARTIALLY_ENFORCED ?? 0}`,
-  `NOT_ENFORCED: ${counts.NOT_ENFORCED ?? 0}`,
+  ...countLines,
   "",
-  "LOOP-0 performed inventory only. No inspector, law, blueprint, or production source files were modified.",
+  "This report now mirrors audit-system static clause coverage status. It is evidence output only and no longer self-determines ENFORCED.",
   "",
-  "Primary gap: ENFORCED requires per-law production mutation proof plus deletion/unbinding failure proof. Existing owner inspector and negative proof presence alone is insufficient.",
+  ...staticClauseCoverage.globalChain.blockers.map((blocker) => `Global blocker: ${blocker}`),
   "",
 ].join("\n"));
 
@@ -330,13 +329,13 @@ write("tmp/audit/ability-law-census/final-coverage-report.md", [
         law.ownerInspectorPath,
         "Required Shape / Forbidden Shape / Boundary Attack / Anti-Escape / Runtime Proof",
         law.negativeProofPath,
-        `tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}/`,
+        path.dirname(law.mutationProofPath),
         law.coverageStatus,
       ])),
       "",
       "### 缺口",
       "",
-      groupGaps.length === 0 ? "NONE" : groupGaps.map((law) => `- ${law.lawId}: 缺口类型=${law.coverageStatus}; 为什么没覆盖=缺少逐法条生产突变证明/删除绑定失败证明的完整证据; 需要修复文件=${law.ownerInspectorPath}, ${law.negativeProofPath}, tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}/; 是否施工图缺失=UNKNOWN_UNTIL_LOOP_N; 是否需要申请修改法案=NO`).join("\n"),
+      groupGaps.length === 0 ? "NONE" : groupGaps.map((law) => `- ${law.lawId}: 缺口类型=${law.coverageStatus}; 为什么没覆盖=${law.blockers.join(" ")}; 需要修复文件=${law.ownerInspectorPath}, ${law.negativeProofPath}, ${path.dirname(law.mutationProofPath)}; 是否施工图缺失=UNKNOWN_UNTIL_LOOP_N; 是否需要申请修改法案=NO`).join("\n"),
       "",
       "### 本组运行结果",
       "",
@@ -359,11 +358,13 @@ write("tmp/audit/ability-law-census/final-ready-decision.md", [
   "ABILITY_LAW_ENFORCEMENT_CENSUS_NOT_READY",
   "",
   `Total active laws: ${ledger.length}`,
-  `ENFORCED: ${counts.ENFORCED ?? 0}`,
-  `PARTIALLY_ENFORCED: ${counts.PARTIALLY_ENFORCED ?? 0}`,
-  `NOT_ENFORCED: ${counts.NOT_ENFORCED ?? 0}`,
+  ...countLines,
   "",
-  "Reason: LOOP-0 found owner inspector/negative proof/audit-script coverage, but ENFORCED cannot be claimed without per-law production mutation FAIL→rollback→PASS proof and deletion/unbinding failure proof.",
+  "Reason: audit-system static-clause-coverage is the single source of truth, and the global chain is still blocked.",
+  "",
+  "## Global Chain Blockers",
+  "",
+  ...staticClauseCoverage.globalChain.blockers.map((blocker) => `- ${blocker}`),
   "",
   "## Failed Commands",
   "",
@@ -374,28 +375,30 @@ write("tmp/audit/ability-law-census/final-ready-decision.md", [
   mdTable(["lawId", "owner", "why", "fix files", "下一轮最小治理步骤"], gaps.map((law) => [
     law.lawId,
     law.abilityGroupId,
-    "coverageStatus is not ENFORCED because per-law production mutation proof and deletion/unbinding failure proof are missing; some owner audits also fail in the current baseline.",
-    `${law.ownerInspectorPath}; ${law.negativeProofPath}; tmp/audit/ability-law-census/regression-proofs/${law.abilityGroupId}/${law.lawId}/`,
+    law.blockers.join(" "),
+    `${law.ownerInspectorPath}; ${law.negativeProofPath}; ${path.dirname(law.mutationProofPath)}`,
     `Run LOOP-N for ${law.abilityGroupId}: fix current owner audit failure if any, map clauses to structured checks, add/verify negative proof, perform production mutation FAIL→rollback→PASS proof, then rerun npm run ${inventoryByGroup.get(law.abilityGroupId).npmAuditScript}.`,
   ])),
   "",
 ].join("\n"));
 
+const generatedFakePassDetected = ledger.some((law) => law.coverageStatus === "ENFORCED" && !staticClauseCoverage.globalChain.passed);
 write("tmp/audit/ability-law-census/one-way-valve-state.json", `${JSON.stringify({
   generatedAt: new Date().toISOString(),
-  previousCoverageHash: null,
+  previousCoverageHash: previousValveState?.currentCoverageHash ?? null,
   currentCoverageHash: coverageHash,
   totalActiveLaws: ledger.length,
   enforcedCount: counts.ENFORCED ?? 0,
-  partialCount: counts.PARTIALLY_ENFORCED ?? 0,
-  notEnforcedCount: counts.NOT_ENFORCED ?? 0,
+  partialCount: counts.OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED ?? 0,
+  notEnforcedCount: (counts.NOT_COVERED ?? 0) + (counts.MISSING_STATIC_CLAUSE_COVERAGE_ENTRY ?? 0),
   blockedCount: (counts.BLOCKED_BY_BLUEPRINT_DETAIL_GAP ?? 0) + (counts.LAW_CHANGE_APPLICATION_REQUIRED ?? 0),
-  regressionDetected: false,
+  globalChainPassed: Boolean(staticClauseCoverage.globalChain.passed),
+  regressionDetected: !staticClauseCoverage.globalChain.passed || generatedFakePassDetected,
   removedInspectorDetected: ledger.some((law) => !exists(law.ownerInspectorPath)),
   removedNegativeProofDetected: ledger.some((law) => !exists(law.negativeProofPath)),
   weakenedEnforcementDetected: ledger.some((law) => law.enforcementMode !== "machine-blocking"),
   warningOnlyDetected: false,
-  generatedFakePassDetected: false,
+  generatedFakePassDetected,
 }, null, 2)}\n`);
 
 console.log(JSON.stringify({

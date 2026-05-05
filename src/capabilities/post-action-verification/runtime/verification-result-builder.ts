@@ -40,7 +40,7 @@ function createResultPayload(
     abilityGroupId: input.request?.abilityGroupId ?? "post-action-verification",
     childCapabilityId: input.request?.childCapabilityId ?? null,
     missionId: input.request?.missionId ?? null,
-    runId: input.request?.runId ?? null,
+    runId: input.request?.runId ?? input.runtimeProof.runId,
     sessionId: input.request?.sessionId ?? null,
     roundId: input.request?.roundId ?? null,
     videoVisitId: input.request?.videoVisitId ?? null,

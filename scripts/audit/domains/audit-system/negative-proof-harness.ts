@@ -4,14 +4,26 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { writeStaticClauseCoverageProof } from "./write-static-clause-coverage-proof.js";
 
 type Mutation = {
   name: string;
   file: string;
-  search: string;
-  replace: string;
+  mode?: "replace" | "write";
+  search?: string;
+  replace?: string;
+  content?: string;
   expectedNeedle: string;
   skipBuild?: boolean;
+};
+
+type MutationProof = {
+  name: string;
+  file: string;
+  expectedNeedle: string;
+  originalContent: string;
+  mutatedContent: string;
+  failOutput: string;
 };
 
 type InspectorProcessResult = {
@@ -26,6 +38,7 @@ const RUN_INSPECTOR_ENTRY = "scripts/audit/domains/audit-system/run-inspector.ts
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF";
 const SKIP_CODE_PURITY_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF";
 const SKIP_AUDIT_SYSTEM_CODE_PURITY_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
+const NEGATIVE_PROOF_PHASE_ENV = "GRASSEYE_AUDIT_NEGATIVE_PROOF_PHASE";
 
 const MUTATIONS: Mutation[] = [
   {
@@ -53,6 +66,58 @@ const MUTATIONS: Mutation[] = [
     skipBuild: true,
   },
   {
+    name: "static-clause-coverage phase removed mutation",
+    file: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+    search: "    validateStaticClauseCoverage(context),",
+    replace: "    validateGeneratedArtifacts(context),",
+    expectedNeedle: "Audit-system inspector must execute validateStaticClauseCoverage inside its Promise.all owner chain.",
+    skipBuild: true,
+  },
+  {
+    name: "static-clause-coverage fake ENFORCED mutation",
+    file: "scripts/audit/generated/static-clause-coverage.generated.json",
+    search: '"coverageStatus": "OWNER_BINDING_PROOF_CAPTURED"',
+    replace: '"coverageStatus": "ENFORCED"',
+    expectedNeedle: "No law may be marked ENFORCED while the global chain is failing.",
+    skipBuild: true,
+  },
+  {
+    name: "ai mutation proof bundle emptied mutation",
+    file: "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-001-V1/proof-summary.md",
+    mode: "write",
+    content: "",
+    expectedNeedle: "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-001-V1/proof-summary.md",
+  },
+  {
+    name: "ai owner binding proof bundle emptied mutation",
+    file: "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+    mode: "write",
+    content: "",
+    expectedNeedle: "tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/owner-binding-proof-summary.md",
+  },
+  {
+    name: "audit ai script removed mutation",
+    file: "package.json",
+    search: '    "audit:ai": "tsx scripts/audit/domains/ai-capability/run-inspector.ts",\n',
+    replace: "",
+    expectedNeedle: "package.json must keep the owner audit script bound for every governed ability group.",
+  },
+  {
+    name: "generated enforcement matrix ai law removed mutation",
+    file: "scripts/audit/generated/enforcement-matrix.generated.json",
+    search: '        "GRASSEYE-AI-CAPABILITY-001-V1",\n',
+    replace: "",
+    expectedNeedle: "Generated artifact content drifted away from the rebuild output; generated files must not be hand-edited.",
+    skipBuild: true,
+  },
+  {
+    name: "static-clause-coverage writer removed mutation",
+    file: "scripts/audit/core/artifact-writers.ts",
+    search: "    writeJsonFile(generatedArtifactPaths.staticClauseCoverage, staticClauseCoverage),",
+    replace: "    Promise.resolve(),",
+    expectedNeedle: "artifact-writers.ts must write static-clause-coverage to the canonical generated artifact path.",
+  },
+  {
     name: "negative-proof invocation removed mutation",
     file: INSPECTOR_ENTRY,
     search: "      : runNegativeProofHarness(),",
@@ -61,6 +126,19 @@ const MUTATIONS: Mutation[] = [
     skipBuild: true,
   },
 ];
+
+function createMutationGroups(): Mutation[][] {
+  return MUTATIONS.reduce<Mutation[][]>((groups, mutation) => {
+    const lastGroup = groups.at(-1);
+    if (!lastGroup || Boolean(lastGroup[0]?.skipBuild) !== Boolean(mutation.skipBuild)) {
+      groups.push([mutation]);
+      return groups;
+    }
+
+    lastGroup.push(mutation);
+    return groups;
+  }, []);
+}
 
 function runInspectorProcess(skipBuild = false): InspectorProcessResult {
   const result = spawnSync(
@@ -74,6 +152,7 @@ function runInspectorProcess(skipBuild = false): InspectorProcessResult {
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
         [SKIP_CODE_PURITY_NEGATIVE_PROOF_ENV]: "1",
         [SKIP_AUDIT_SYSTEM_CODE_PURITY_ENV]: "1",
+        [NEGATIVE_PROOF_PHASE_ENV]: "static-clause-coverage",
         TSX_DISABLE_CACHE: "1",
       },
     },
@@ -88,9 +167,21 @@ function runInspectorProcess(skipBuild = false): InspectorProcessResult {
 
 const formatInspectorOutput = (result: InspectorProcessResult): string => `${result.stdout}\n${result.stderr}`;
 
-async function mutateAndVerify(mutation: Mutation, baseline: InspectorProcessResult): Promise<string> {
+const getMutatedContent = (mutation: Mutation, original: string): string => {
+  if (mutation.mode === "write") {
+    return mutation.content ?? "";
+  }
+  if (!mutation.search || mutation.replace === undefined) {
+    throw new Error(`Mutation ${mutation.name} is missing search/replace content.`);
+  }
+
+  return original.replace(mutation.search, mutation.replace);
+};
+
+async function mutateAndVerify(mutation: Mutation, baseline: InspectorProcessResult): Promise<MutationProof> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
+  const mutatedContent = getMutatedContent(mutation, state.original);
   await applyAuditMutation(filePath, state.original, mutation);
 
   try {
@@ -102,16 +193,25 @@ async function mutateAndVerify(mutation: Mutation, baseline: InspectorProcessRes
     if (!combinedOutput.includes(mutation.expectedNeedle)) {
       throw new Error(`Mutation ${mutation.name} failed, but not for the expected reason. Missing needle: ${mutation.expectedNeedle}`);
     }
+
+    return {
+      name: mutation.name,
+      file: mutation.file,
+      expectedNeedle: mutation.expectedNeedle,
+      originalContent: state.original,
+      mutatedContent,
+      failOutput: combinedOutput,
+    };
   } finally {
     await restoreAuditFileState(filePath, state);
   }
+}
 
+async function verifyRollback(mutation: Mutation, baseline: InspectorProcessResult): Promise<void> {
   const rollbackRun = runInspectorProcess(mutation.skipBuild);
   if (rollbackRun.status !== baseline.status || formatInspectorOutput(rollbackRun) !== formatInspectorOutput(baseline)) {
     throw new Error(`Mutation ${mutation.name} did not restore the baseline inspector result after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
   }
-
-  return `${mutation.name}: fail-ok rollback-ok`;
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
@@ -148,10 +248,18 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
       );
     }
 
-    const reports: string[] = [];
-    for (const mutation of MUTATIONS) {
-      reports.push(await mutateAndVerify(mutation, baseline));
+    const proofs: MutationProof[] = [];
+    for (const mutationGroup of createMutationGroups()) {
+      for (const mutation of mutationGroup) {
+        const proof = await mutateAndVerify(mutation, baseline);
+        await verifyRollback(mutation, baseline);
+        proofs.push(proof);
+      }
     }
+
+    await writeStaticClauseCoverageProof({ scenarios: proofs, rollbackOutput: baselineOutput });
+
+    const reports = proofs.map((proof) => `${proof.name}: fail-ok rollback-ok`);
 
     return createPassResult(`Audit-system negative-proof harness rejects ${reports.join(", ")}.`);
   } catch (error) {

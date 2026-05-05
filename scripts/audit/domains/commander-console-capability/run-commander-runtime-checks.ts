@@ -6,27 +6,10 @@ import { getSourceFileOrThrow, hasCallExpression, hasImportModuleSpecifier } fro
 
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { commanderConsoleInspectionUtils } from "./inspection-utils.js";
+import { collectDebugRefFindings, collectRuntimeProofRunIdFindings, collectTransportRunIdFindings } from "./run-commander-runtime-runid-checks.js";
 
-const {
-  ABILITY_GROUP_PATH,
-  BOUNDARY_POLICY_PATH,
-  CHILD_EXECUTORS_PATH,
-  COMMAND_CHILD_EXECUTOR_PATH,
-  COMMAND_GATE_PATH,
-  COMMAND_OUTCOMES_PATH,
-  COMMAND_PAYLOAD_PATH,
-  DISPATCH_FAILURE_PATH,
-  EXECUTOR_PATH,
-  IDEMPOTENCY_GATE_PATH,
-  PROOF_BUILDER_PATH,
-  READ_CHILD_EXECUTOR_PATH,
-  READ_GATE_PATH,
-  READ_PROOF_GATE_PATH,
-  RESULT_BUILDER_PATH,
-  TIMEOUT_GATE_PATH,
-  TRANSPORT_SCHEMA_PATH,
-  TRANSPORT_SEMANTIC_GATE_PATH,
-} = commanderConsoleInspectionConstants;
+const { ABILITY_GROUP_PATH, BOUNDARY_POLICY_PATH, CHILD_EXECUTORS_PATH, COMMAND_CHILD_EXECUTOR_PATH, COMMAND_GATE_PATH, COMMAND_OUTCOMES_PATH, COMMAND_PAYLOAD_PATH, DISPATCH_FAILURE_PATH, EXECUTOR_PATH, IDEMPOTENCY_GATE_PATH, PROOF_BUILDER_PATH } = commanderConsoleInspectionConstants;
+const { READ_CHILD_EXECUTOR_PATH, READ_GATE_PATH, READ_PROOF_GATE_PATH, RESULT_BUILDER_PATH, RUNTIME_PROOF_SCHEMA_PATH, TASK_START_DISPATCH_RESULT_PATH, TIMEOUT_GATE_PATH, TRANSPORT_SCHEMA_PATH, TRANSPORT_SEMANTIC_GATE_PATH, WORKBENCH_COMMANDER_DEBUG_PATH } = commanderConsoleInspectionConstants;
 const { countOccurrences, hasPassthrough } = commanderConsoleInspectionUtils;
 
 type RuntimeCheckResult = {
@@ -206,69 +189,6 @@ const isTransportSemanticGateValid = (sourceFile: import("ts-morph").SourceFile)
 	    && text.includes('if (result.status !== "accepted" || result.resultEnvelopeRef) {');
 };
 
-const getObjectLiteralPropertyNamesFromVariable = (sourceFile: import("ts-morph").SourceFile, variableName: string): Set<string> => {
-  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
-  const objectCall = initializer && Node.isCallExpression(initializer) && initializer.getExpression().getText().endsWith(".object")
-    ? initializer
-    : initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText().endsWith(".object"));
-  const objectLiteral = objectCall?.getArguments()[0] ?? null;
-  if (!objectLiteral || !Node.isObjectLiteralExpression(objectLiteral)) {
-    return new Set();
-  }
-  return new Set(objectLiteral.getProperties().flatMap((property) => Node.isPropertyAssignment(property) ? [property.getName()] : []));
-};
-
-const getVariableFunctionBody = (sourceFile: import("ts-morph").SourceFile, variableName: string) => {
-  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
-  return initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))
-    ? initializer.getBody()
-    : null;
-};
-
-const hasRunIdPropertyFromTransport = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
-  const body = getVariableFunctionBody(sourceFile, functionName);
-  if (!body) {
-    return false;
-  }
-  return body.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
-    if (property.getName() !== "runId") {
-      return false;
-    }
-    const initializer = property.getInitializer();
-    return Boolean(initializer && initializer.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.transport.runId"));
-  });
-};
-
-const hasRunIdNullInsideFunction = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
-  const body = getVariableFunctionBody(sourceFile, functionName);
-  if (!body) {
-    return false;
-  }
-  return body.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === "runId" && property.getInitializer()?.getKind() === SyntaxKind.NullKeyword);
-};
-
-const collectTransportRunIdFindings = (input: {
-  transportSchemaSource: import("ts-morph").SourceFile;
-  transportSemanticGateSource: import("ts-morph").SourceFile;
-  commandOutcomesSource: import("ts-morph").SourceFile;
-}): Finding[] => {
-  const findings: Finding[] = [];
-  const transportResultFields = getObjectLiteralPropertyNamesFromVariable(input.transportSchemaSource, "CommandTransportResultSchema");
-  if (!transportResultFields.has("runId")) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SCHEMA_PATH, "Commander transport result schema must require runId before command outcomes can build runtime proof."));
-  }
-  if (!hasRunIdPropertyFromTransport(input.commandOutcomesSource, "createTransportOutcome")) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "createTransportOutcome must preserve runId from the governed transport result instead of nulling or fabricating it."));
-  }
-  if (hasRunIdNullInsideFunction(input.commandOutcomesSource, "createTransportOutcome")) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "Dispatched command outcome must not assign runId:null."));
-  }
-  if (!input.transportSemanticGateSource.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.result.runId")) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic gate must validate transport result runId."));
-  }
-  return findings;
-};
-
 const isReadProofGateValid = (sourceFile: import("ts-morph").SourceFile) => {
   const text = sourceFile.getFullText();
   return text.includes("input.contract.readModelSource")
@@ -383,6 +303,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
   const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
   const resultBuilderSource = getSourceFileOrThrow(project, RESULT_BUILDER_PATH);
   const proofBuilderSource = getSourceFileOrThrow(project, PROOF_BUILDER_PATH);
+  const runtimeProofSchemaSource = getSourceFileOrThrow(project, RUNTIME_PROOF_SCHEMA_PATH);
   const dispatchFailureSource = getSourceFileOrThrow(project, DISPATCH_FAILURE_PATH);
   const boundaryPolicySource = getSourceFileOrThrow(project, BOUNDARY_POLICY_PATH);
   const childExecutorsSource = getSourceFileOrThrow(project, CHILD_EXECUTORS_PATH);
@@ -390,6 +311,8 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
   const idempotencyGateSource = getSourceFileOrThrow(project, IDEMPOTENCY_GATE_PATH);
   const transportSemanticGateSource = getSourceFileOrThrow(project, TRANSPORT_SEMANTIC_GATE_PATH);
   const readProofGateSource = getSourceFileOrThrow(project, READ_PROOF_GATE_PATH);
+  const workbenchDebugSource = getSourceFileOrThrow(project, WORKBENCH_COMMANDER_DEBUG_PATH);
+  const taskStartSupportSource = getSourceFileOrThrow(project, TASK_START_DISPATCH_RESULT_PATH);
 
   const gateResult = collectGateFindings({ commandGateSource, commandPayloadSource, readGateSource, transportSchemaSource });
   const childExecutorResult = collectChildExecutorFindings(childExecutorsSource);
@@ -400,6 +323,8 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
       ...gateResult.findings,
 	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource }),
 	      ...collectTransportRunIdFindings({ transportSchemaSource, transportSemanticGateSource, commandOutcomesSource }),
+      ...collectRuntimeProofRunIdFindings(runtimeProofSchemaSource),
+      ...collectDebugRefFindings({ workbenchDebugSource, taskStartSupportSource }),
       ...collectReadRuntimeFindings(readChildExecutorSource),
       ...collectExecutorSurfaceFindings({ executorSource, resultBuilderSource }),
       ...collectProofAndBoundaryFindings({ proofBuilderSource, dispatchFailureSource, boundaryPolicySource }),

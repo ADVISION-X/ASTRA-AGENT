@@ -1,0 +1,8 @@
+{
+  "runId": "2026-05-05T05:32:13.380Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "ownerResponsible": "startup-entrypoint",
+  "failureReason": "fetch failed",
+  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
+  "writtenAt": "2026-05-05T05:32:15.212Z"
+}

@@ -1,13 +1,72 @@
-diff --git a/src/capabilities/commander-console/runtime/commander-command-outcomes.ts b/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
-index c0e17c7..fae6dfe 100644
---- a/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
-+++ b/src/capabilities/commander-console/runtime/commander-command-outcomes.ts
-@@ -177,7 +177,7 @@ export const createTransportOutcome = (input: {
-     outputRef: `commander_receipt:${input.gated.command.commandId}`,
-     commandId: input.gated.command.commandId,
-     readRequestId: null,
--    runId: input.transport.runId ?? resolveCommandRunId(input.gated.command.commandId),
-+    runId: null,
-     missionId: input.gated.command.targetMissionId,
-     traceId: null,
-     commandEnvelopeRef: input.transport.envelopeRef,
+diff --git a/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts b/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
+index 90cd4f0..5346d79 100644
+--- a/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
++++ b/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
+@@ -4,7 +4,7 @@ import { commanderFlag, type CommanderDataQualityFlag } from "../shared/commande
+ export type CommanderTransportSemanticResult = {
+   status: "accepted" | "failed" | "review_required";
+-  runId: string | null;
++  runId: string;
+   envelopeRef: string | null;
+   resultEnvelopeRef: string | null;
+   failureReason: string | null;
+@@ -13,7 +13,9 @@ export type CommanderTransportSemanticResult = {
+   dataQualityFlags: CommanderDataQualityFlag[];
+ };
+-function buildSemanticFailure(reason: string): CommanderTransportSemanticResult {
++const resolveCommandRunId = (command: CommanderHumanCommand) => `${command.commandId}:run`;
++
++function buildSemanticFailure(command: CommanderHumanCommand, reason: string): CommanderTransportSemanticResult {
+   return {
+     status: "failed",
+     runId: null,
+@@ -27,13 +29,14 @@ function buildSemanticFailure(reason: string): CommanderTransportSemanticResult
+ }
+ function buildSemanticReviewRequired(input: {
++  runId: string;
+   envelopeRef: string | null;
+   message: string;
+   reason: string;
+ }): CommanderTransportSemanticResult {
+   return {
+     status: "review_required",
+-    runId: null,
++    runId: input.runId,
+     envelopeRef: input.envelopeRef,
+     resultEnvelopeRef: null,
+     failureReason: null,
+@@ -43,11 +46,11 @@ function buildSemanticReviewRequired(input: {
+   };
+ }
+-const parseTransportResult = (transport: HumanCommandTransportResult) => {
++const parseTransportResult = (command: CommanderHumanCommand, transport: HumanCommandTransportResult) => {
+   const parsed = CommandTransportResultSchema.safeParse(transport);
+   return parsed.success
+     ? { ok: true as const, result: parsed.data }
+-    : { ok: false as const, failure: buildSemanticFailure(parsed.error.issues[0]?.message ?? "Commander transport result failed schema validation.") };
++    : { ok: false as const, failure: buildSemanticFailure(command, parsed.error.issues[0]?.message ?? "Commander transport result failed schema validation.") };
+ };
+ const getTransportSemanticFailureReason = (input: {
+@@ -77,6 +80,7 @@ const getAcceptedTransportReview = (result: HumanCommandTransportResult) => {
+     return null;
+   }
+   return buildSemanticReviewRequired({
++    runId: result.runId,
+     envelopeRef: result.envelopeRef,
+     message: result.message,
+     reason: "accepted transport result requires resultEnvelopeRef for governed success handling.",
+@@ -98,14 +102,14 @@ export function applyCommanderTransportSemanticGate(input: {
+   command: CommanderHumanCommand;
+   transport: HumanCommandTransportResult;
+ }): CommanderTransportSemanticResult {
+-  const parsed = parseTransportResult(input.transport);
++  const parsed = parseTransportResult(input.command, input.transport);
+   if (!parsed.ok) {
+     return parsed.failure;
+   }
+   const failureReason = getTransportSemanticFailureReason({ command: input.command, result: parsed.result });
+   if (failureReason) {
+-    return buildSemanticFailure(failureReason);
++    return buildSemanticFailure(input.command, failureReason);
+   }
+   const acceptedReview = getAcceptedTransportReview(parsed.result);

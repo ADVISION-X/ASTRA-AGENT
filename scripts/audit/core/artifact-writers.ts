@@ -1,5 +1,6 @@
 import { writeJsonFile, writeTextFile } from "./filesystem.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
+import { buildStaticClauseCoverageArtifact } from "./static-clause-coverage-artifact.js";
 import { stringifyYaml } from "./yaml.js";
 import type {
   AuditConflictsSnapshot,
@@ -22,12 +23,14 @@ export type GeneratedArtifactsWriteInput = CoreGeneratedArtifacts & {
 };
 
 const writeCoreGeneratedArtifacts = async (input: CoreGeneratedArtifacts): Promise<void> => {
+  const staticClauseCoverage = await buildStaticClauseCoverageArtifact(input);
   await Promise.all([
     writeJsonFile(generatedArtifactPaths.lawRegistry, input.lawRegistry),
     writeJsonFile(generatedArtifactPaths.enforcementMatrixJson, input.enforcementMatrix),
     writeTextFile(generatedArtifactPaths.enforcementMatrixYaml, `${stringifyYaml(input.enforcementMatrix)}\n`),
     writeJsonFile(generatedArtifactPaths.auditPlan, input.auditPlan),
     writeJsonFile(generatedArtifactPaths.auditConflicts, input.auditConflicts),
+    writeJsonFile(generatedArtifactPaths.staticClauseCoverage, staticClauseCoverage),
   ]);
 };
 

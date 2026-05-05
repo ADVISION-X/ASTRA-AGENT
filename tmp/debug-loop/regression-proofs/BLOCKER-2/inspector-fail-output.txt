@@ -3,4 +3,4 @@
 > node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
 
 [CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
-- ERROR src/lib/local-runtime/workbench-status.ts:1 MissionStartPreflight must include a commandTransportContract component that blocks missing task binding, activation snapshot, or target profile refs.
+- ERROR src/lib/local-runtime/workbench-status.ts:1 MissionStartPreflight must dry-run MissionCommandSchema before COMMANDER dispatch so command schema failures cannot appear only after Nerve Bus dispatch.

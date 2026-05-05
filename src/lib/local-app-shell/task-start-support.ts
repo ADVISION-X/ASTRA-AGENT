@@ -3,7 +3,7 @@ import type { ServerResponse } from "node:http";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { writeTaskJsonResponse } from "./task-http-helpers.js";
 import type { MissionStartBinding } from "./task-start-binding.js";
-import type { StartApproval, StartCommandResult, StartDraft } from "./task-start-types.js";
+import type { StartApproval, StartDraft } from "./task-start-types.js";
 
 const toNullableString = (value: string | undefined): string | null => value ?? null;
 
@@ -234,61 +234,4 @@ export async function sendBlockedTaskStartPreflight(
     attemptId: approval.attemptId,
     components: preflight.components,
   });
-}
-
-const resolveResultMessage = (output: unknown): string => {
-  return output !== null && typeof output === "object" && "message" in output && typeof output.message === "string"
-    ? output.message
-    : "Commander Console completed the governed human command dispatch.";
-};
-
-const resolveTargetMissionId = (output: unknown): string | null => {
-  return output !== null && typeof output === "object" && "targetMissionId" in output && typeof output.targetMissionId === "string"
-    ? output.targetMissionId
-    : null;
-};
-
-export async function writeTaskStartDispatchResult(
-  response: ServerResponse,
-  activeWorkbench: GrassEyeWorkbenchHandle,
-  approval: StartApproval,
-  result: StartCommandResult,
-) {
-  const resultMessage = resolveResultMessage(result.output);
-  const targetMissionId = resolveTargetMissionId(result.output);
-  const failureReason = result.failureReason ?? result.reviewRequiredReason ?? resultMessage;
-  if (result.status === "success") {
-    await activeWorkbench.recordCommanderDebugEvent({
-      eventType: "COMMAND_ACCEPTED",
-      status: "success",
-      traceId: approval.traceId,
-      spanId: "command-accepted",
-      attemptId: approval.attemptId,
-      missionId: targetMissionId,
-      mapId: approval.binding.selectedMapId,
-      taskTemplateId: approval.binding.taskTemplateId,
-      reason: resultMessage,
-      actionableMessage: "Mission dispatch succeeded. Monitor the mission page and runtime proof timeline.",
-      ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
-    });
-    writeTaskJsonResponse(response, 200, result);
-    return;
-  }
-
-  await activeWorkbench.recordCommanderDebugEvent({
-    eventType: "COMMAND_REJECTED",
-    status: result.status === "review_required" ? "review_required" : "failed",
-    traceId: approval.traceId,
-    spanId: "command-rejected",
-    attemptId: approval.attemptId,
-    missionId: targetMissionId,
-    mapId: approval.binding.selectedMapId,
-    taskTemplateId: approval.binding.taskTemplateId,
-    failureReason,
-    actionableMessage: result.reviewRequiredReason
-      ? "Open the review queue and inspect the guarded command result before retrying."
-      : "Inspect the latest debug bundle and fix the blocking dependency before retrying.",
-    ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
-  });
-  writeTaskJsonResponse(response, 409, { ...result, traceId: approval.traceId, attemptId: approval.attemptId });
 }

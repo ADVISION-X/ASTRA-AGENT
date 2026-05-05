@@ -33,4 +33,12 @@ export type StartCommandResult = {
   output: unknown;
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
+  runtimeProof?: {
+    proofId?: string | null;
+    runId?: string | null;
+    inputRef?: string | null;
+    outputRef?: string | null;
+    commandEnvelopeRef?: string | null;
+    resultEnvelopeRef?: string | null;
+  } | null;
 };

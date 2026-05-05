@@ -4,6 +4,7 @@ import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createFinding, createPhase, fileExists, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
 import { createAuditProject, getSourceFileOrThrow, hasCallExpressionPath } from "./inspection-ast-helpers.js";
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
+import { inspectStartMissionCommandBoundary } from "./start-mission-boundary-checks.js";
 
 const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts";
 const LAW_PATH = ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md";
@@ -304,13 +305,14 @@ async function inspectForensicsRetentionBoundary(): Promise<PhaseResult> {
 
 export async function runOrchestrationGovernedRuntimeChecks() {
   const project = createAuditProject();
-  const [publicSurface, frozenActivation, unifiedChildEnvelope, runtimeProofRunIdChain, typedFailureBoundary, postActionVerification, forensicsRetentionBoundary, negativeProof] = await Promise.all([
+  const [publicSurface, frozenActivation, unifiedChildEnvelope, runtimeProofRunIdChain, typedFailureBoundary, postActionVerification, startMissionCommandBoundary, forensicsRetentionBoundary, negativeProof] = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
     Promise.resolve(inspectRuntimeProofRunIdChain(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
+    Promise.resolve(inspectStartMissionCommandBoundary(project)),
     inspectForensicsRetentionBoundary(),
     inspectNegativeProofReadiness(),
   ]);
@@ -323,6 +325,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       ...runtimeProofRunIdChain.findings,
       ...typedFailureBoundary.findings,
       ...postActionVerification.findings,
+      ...startMissionCommandBoundary.findings,
       ...forensicsRetentionBoundary.findings,
       ...negativeProof.findings,
     ],
@@ -333,6 +336,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       runtimeProofRunIdChain.phase,
       typedFailureBoundary.phase,
       postActionVerification.phase,
+      startMissionCommandBoundary.phase,
       forensicsRetentionBoundary.phase,
       negativeProof.phase,
     ],

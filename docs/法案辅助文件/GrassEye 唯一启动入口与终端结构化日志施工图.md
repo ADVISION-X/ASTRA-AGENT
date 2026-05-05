@@ -280,6 +280,7 @@ Commander 通过重新探测或临时推断来替代 mission/requestedPlatform �
 
 ```txt
 StructuredRuntimeEvent.ownerResponsible/actionableMessage/runId
+-> StructuredRuntimeEvent.refs/proofRefs include commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef when available
 -> structured-log-payload
 -> grasseye:event stdout payload
 -> terminal-structured-log runtime relay
@@ -290,6 +291,7 @@ StructuredRuntimeEvent.ownerResponsible/actionableMessage/runId
 
 ```txt
 COMMAND_REJECTED 只显示 failureReason/raw ZodError
+runtime debug API COMMAND_REJECTED refs 为空，无法定位 command/result/proof 链
 terminal relay 丢弃 ownerResponsible/actionableMessage
 terminal relay 无 traceId/runId/selectedMapId/activationSnapshotRef
 ```
@@ -299,6 +301,8 @@ inspector 必须覆盖：
 ```txt
 StructuredRuntimeEventSchema 包含 runId
 structured-log-payload 输出 runId/ownerResponsible/actionableMessage
+Commander debug event builder 必须允许 refs/proofRefs/inputRefs/outputRefs/artifactRefs 从 dispatch result 进入 StructuredRuntimeEvent
+Task start dispatch result 必须从 runtimeProof 派生 commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef
 terminal runtime relay 输出 runId/ownerResponsible/actionableMessage/traceId/selectedMapId/activationSnapshotRef
 ```
 
@@ -307,6 +311,8 @@ negative proof 必须覆盖：
 ```txt
 删除 terminal relay ownerResponsible/actionableMessage/runId 任一字段必须 FAIL
 删除 structured-log-payload runId 必须 FAIL
+删除 Commander debug refs/proofRefs 透传必须 FAIL
+删除 task-start COMMAND_REJECTED runtimeProof refs 派生必须 FAIL
 ```
 
 TerminalStructuredLogEvent 字段：

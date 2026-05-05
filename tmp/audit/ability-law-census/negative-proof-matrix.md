@@ -10,6 +10,7 @@
 | commander-console | GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2 | scripts/audit/domains/commander-console-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | commander-console | GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2 | scripts/audit/domains/commander-console-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | commander-console | GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2 | scripts/audit/domains/commander-console-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
+| commander-console | GRASSEYE-STARTUP-ENTRYPOINT-005-V1 | scripts/audit/domains/commander-console-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | orchestration | GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3 | scripts/audit/domains/orchestration-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | orchestration | GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3 | scripts/audit/domains/orchestration-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | orchestration | GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3 | scripts/audit/domains/orchestration-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
@@ -45,6 +46,7 @@
 | ai | GRASSEYE-AI-CAPABILITY-012-V1 | scripts/audit/domains/ai-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | ai | GRASSEYE-AI-CAPABILITY-013-V1 | scripts/audit/domains/ai-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | ai | GRASSEYE-AI-CAPABILITY-014-V1 | scripts/audit/domains/ai-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
+| ai | GRASSEYE-LOCAL-AI-RUNTIME-006-V1 | scripts/audit/domains/ai-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | open | GRASSEYE-OPEN-CAPABILITY-001-V2 | scripts/audit/domains/open-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | open | GRASSEYE-OPEN-CAPABILITY-002-V2 | scripts/audit/domains/open-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |
 | open | GRASSEYE-OPEN-CAPABILITY-003-V2 | scripts/audit/domains/open-capability/negative-proof-harness.ts | PRESENT_NEEDS_CLAUSE_MAPPING_AND_MUTATION_VALIDATION |

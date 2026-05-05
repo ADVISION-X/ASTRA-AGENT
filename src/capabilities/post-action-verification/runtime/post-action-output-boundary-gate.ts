@@ -78,9 +78,14 @@ function resolveMissingSourceProofFailure(input: {
 }
 
 function resolveInsufficientEvidenceFailure(input: {
+  request: ParsedPostActionVerificationAbilityInput;
   assessment: PostActionChildAssessment;
 }) {
-  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2) {
+  const hasObservationOnlySupport = input.request.verificationPolicy.verificationMode === "observation_only"
+    && input.assessment.supportingObservationRefs.length >= 1
+    && input.assessment.supportingSourceProofRefs.length >= 1;
+
+  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2 || hasObservationOnlySupport) {
     return null;
   }
 
@@ -136,7 +141,7 @@ function resolvePostActionOutputBoundary(input: {
     resolveVerifiedBoundaryFailure({ request: input.request, assessment: input.assessment, hasCriticalFlag }),
     resolveCriticalFlagFailure({ assessment: input.assessment }),
     resolveMissingSourceProofFailure({ assessment: input.assessment }),
-    resolveInsufficientEvidenceFailure({ assessment: input.assessment }),
+    resolveInsufficientEvidenceFailure({ request: input.request, assessment: input.assessment }),
     resolveLowConfidenceFailure({ request: input.request, assessment: input.assessment }),
   ]) {
     if (failure) return failure;
