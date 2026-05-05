@@ -73,67 +73,51 @@ export const getOpenLocalProgramAdapterReadiness = (): Readiness => {
   };
 };
 
+type OpenLocalProgramInput = Parameters<OpenLocalProgramPort["openLocalProgram"]>[0];
+type SnapshotInput = Parameters<OpenLocalProgramPort["getLocalProgramSnapshot"]>[0];
+
+const failProfile = (input: OpenLocalProgramInput, createdAt: string) => failedLocalProgramLaunch({
+  message: "LOCAL_PROGRAM_PROFILE_NOT_FOUND: only macos-app:iphone-mirroring is governed for local program open",
+  createdAt,
+  appLaunchAttemptRef: `${input.openAttemptRef}:blocked-profile`,
+});
+
+const failMissingApp = (input: OpenLocalProgramInput, createdAt: string) => failedLocalProgramLaunch({
+  message: "LOCAL_PROGRAM_APP_NOT_INSTALLED: governed iPhone Mirroring app is not installed or discoverable",
+  createdAt,
+  appLaunchAttemptRef: `${input.openAttemptRef}:missing-app`,
+});
+
+const failLaunch = (input: OpenLocalProgramInput, createdAt: string, launch: Awaited<ReturnType<typeof runFixedMacOSCommand>>) => failedLocalProgramLaunch({
+  message: `LOCAL_PROGRAM_LAUNCH_FAILED: macOS open returned ${launch.exitCode ?? "unknown"}${launch.stderr ? ` (${launch.stderr.trim()})` : ""}`,
+  createdAt,
+  appLaunchAttemptRef: `${input.openAttemptRef}:launch-failed`,
+});
+
+const failWindow = (input: OpenLocalProgramInput, createdAt: string) => failedLocalProgramLaunch({
+  message: "LOCAL_PROGRAM_WINDOW_NOT_VISIBLE: governed app launch returned but no visible app process was confirmed",
+  createdAt,
+  appLaunchAttemptRef: `${input.openAttemptRef}:window-not-visible`,
+});
+
+async function openGovernedLocalProgram(input: OpenLocalProgramInput) {
+  const createdAt = new Date().toISOString();
+  if (!isGovernedProfile(input)) return failProfile(input, createdAt);
+  if (!isGovernedAppInstalled()) return failMissingApp(input, createdAt);
+  const launch = await runFixedMacOSCommand(MACOS_OPEN_BIN, ["-b", GOVERNED_BUNDLE_ID], input.abortSignal);
+  if (launch.exitCode !== 0) return failLaunch(input, createdAt, launch);
+  await waitForLocalProgram(Math.min(1200, Math.max(250, input.timeoutMs / 4)), input.abortSignal);
+  if (!(await isGovernedAppRunning())) return failWindow(input, createdAt);
+  return { localProgramActionId: `${input.openAttemptRef}:macos-open`, ok: true, message: "governed iPhone Mirroring launch handed off to local app window chain", createdAt, appLaunchAttemptRef: `${input.openAttemptRef}:launched`, windowHandoffRef: buildRef("local-app-window", input), localAppStateHandoffRef: buildRef("local-app-state", input), portKind: "open-local-program-port" as const };
+}
+
+async function getGovernedLocalProgramSnapshot(input: SnapshotInput) {
+  const governed = input.targetProfileRef === GOVERNED_TARGET_PROFILE_REF && input.appName === GOVERNED_APP_NAME && input.bundleId === GOVERNED_BUNDLE_ID;
+  const visibleWindowAvailable = governed && await isGovernedAppRunning();
+  return { appName: input.appName, bundleId: input.bundleId, visibleWindowAvailable, windowTitle: visibleWindowAvailable ? GOVERNED_APP_NAME : null, windowHandoffRef: visibleWindowAvailable ? `local-app-window:snapshot:${GOVERNED_TARGET_PROFILE_REF}` : null, localAppStateHandoffRef: visibleWindowAvailable ? `local-app-state:snapshot:${GOVERNED_TARGET_PROFILE_REF}` : null, snapshotFailureReason: visibleWindowAvailable ? null : "LOCAL_PROGRAM_WINDOW_NOT_VISIBLE: governed local app window is not visible" };
+}
+
 export const createGovernedMacOSOpenLocalProgramAdapter = (): OpenLocalProgramPort => ({
-  async openLocalProgram(input) {
-    const createdAt = new Date().toISOString();
-    if (!isGovernedProfile(input)) {
-      return failedLocalProgramLaunch({
-        message: "LOCAL_PROGRAM_PROFILE_NOT_FOUND: only macos-app:iphone-mirroring is governed for local program open",
-        createdAt,
-        appLaunchAttemptRef: `${input.openAttemptRef}:blocked-profile`,
-      });
-    }
-    if (!isGovernedAppInstalled()) {
-      return failedLocalProgramLaunch({
-        message: "LOCAL_PROGRAM_APP_NOT_INSTALLED: governed iPhone Mirroring app is not installed or discoverable",
-        createdAt,
-        appLaunchAttemptRef: `${input.openAttemptRef}:missing-app`,
-      });
-    }
-
-    const launch = await runFixedMacOSCommand(MACOS_OPEN_BIN, ["-b", GOVERNED_BUNDLE_ID], input.abortSignal);
-    if (launch.exitCode !== 0) {
-      return failedLocalProgramLaunch({
-        message: `LOCAL_PROGRAM_LAUNCH_FAILED: macOS open returned ${launch.exitCode ?? "unknown"}${launch.stderr ? ` (${launch.stderr.trim()})` : ""}`,
-        createdAt,
-        appLaunchAttemptRef: `${input.openAttemptRef}:launch-failed`,
-      });
-    }
-
-    await waitForLocalProgram(Math.min(1200, Math.max(250, input.timeoutMs / 4)), input.abortSignal);
-    if (!(await isGovernedAppRunning())) {
-      return failedLocalProgramLaunch({
-        message: "LOCAL_PROGRAM_WINDOW_NOT_VISIBLE: governed app launch returned but no visible app process was confirmed",
-        createdAt,
-        appLaunchAttemptRef: `${input.openAttemptRef}:window-not-visible`,
-      });
-    }
-
-    return {
-      localProgramActionId: `${input.openAttemptRef}:macos-open`,
-      ok: true,
-      message: "governed iPhone Mirroring launch handed off to local app window chain",
-      createdAt,
-      appLaunchAttemptRef: `${input.openAttemptRef}:launched`,
-      windowHandoffRef: buildRef("local-app-window", input),
-      localAppStateHandoffRef: buildRef("local-app-state", input),
-      portKind: "open-local-program-port",
-    };
-  },
-
-  async getLocalProgramSnapshot(input) {
-    const governed = input.targetProfileRef === GOVERNED_TARGET_PROFILE_REF
-      && input.appName === GOVERNED_APP_NAME
-      && input.bundleId === GOVERNED_BUNDLE_ID;
-    const visibleWindowAvailable = governed && await isGovernedAppRunning();
-    return {
-      appName: input.appName,
-      bundleId: input.bundleId,
-      visibleWindowAvailable,
-      windowTitle: visibleWindowAvailable ? GOVERNED_APP_NAME : null,
-      windowHandoffRef: visibleWindowAvailable ? `local-app-window:snapshot:${GOVERNED_TARGET_PROFILE_REF}` : null,
-      localAppStateHandoffRef: visibleWindowAvailable ? `local-app-state:snapshot:${GOVERNED_TARGET_PROFILE_REF}` : null,
-      snapshotFailureReason: visibleWindowAvailable ? null : "LOCAL_PROGRAM_WINDOW_NOT_VISIBLE: governed local app window is not visible",
-    };
-  },
+  openLocalProgram: openGovernedLocalProgram,
+  getLocalProgramSnapshot: getGovernedLocalProgramSnapshot,
 });

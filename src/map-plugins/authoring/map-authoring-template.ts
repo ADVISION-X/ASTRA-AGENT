@@ -113,7 +113,6 @@ export const buildMapAuthoringTemplate = (
   return [
     ...buildTemplateHeaderLines(inputPackage, resolvedContract),
     "Static Governance Rules:",
-    "- open-tiktok: stale manual childCapabilityId text",
     ...MAP_AUTHORING_SAFETY_POLICY.map((policy) => `- ${policy}`),
     "Complete Map Authoring Input Package JSON:",
     JSON.stringify(inputPackage, null, 2),

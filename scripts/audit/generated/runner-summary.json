@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T16:58:48.252Z",
+  "generatedAt": "2026-05-05T18:04:07.853Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -2584,28 +2584,28 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
-          "line": 142,
+          "line": 143,
           "severity": "error",
           "message": "Function determineCoverageStatus exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
-          "line": 177,
+          "line": 178,
           "severity": "error",
           "message": "Function collectBlockers exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
-          "line": 217,
+          "line": 218,
           "severity": "error",
           "message": "Function buildStaticClauseCoverageArtifact exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
-          "line": 241,
+          "line": 242,
           "severity": "error",
           "message": "Function laws exceeds code-purity function limits."
         },
@@ -2705,7 +2705,14 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-          "line": 174,
+          "line": 145,
+          "severity": "error",
+          "message": "Function hasBoundaryEmitterAbilityGroupWiring exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
+          "line": 177,
           "severity": "error",
           "message": "Function collectForensicsWriteBoundaryFinding exceeds code-purity function limits."
         },
@@ -2727,7 +2734,7 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-          "line": 72,
+          "line": 73,
           "severity": "error",
           "message": "Function inspectIphoneMirroringMapBoundary exceeds code-purity function limits."
         },
@@ -2737,7 +2744,7 @@
           "line": 1,
           "severity": "error",
           "message": "File exceeds the audit phase hard limit of 350 lines.",
-          "detail": "357"
+          "detail": "381"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -2752,6 +2759,13 @@
           "line": 11,
           "severity": "error",
           "message": "Function runOpenRegistryShapeChecks exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/open-capability/run-open-runtime-checks.ts",
+          "line": 238,
+          "severity": "error",
+          "message": "Function collectLocalProgramRuntimeFindings exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -2905,17 +2919,10 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/open/runtime/local-program-runner.ts",
-          "line": 126,
+          "file": "src/capabilities/open/runtime/local-program-completion.ts",
+          "line": 17,
           "severity": "error",
-          "message": "Function runLocalProgramLaunch contains a silent catch clause."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/open/runtime/local-program-runner.ts",
-          "line": 170,
-          "severity": "error",
-          "message": "Function executeOpenLocalProgramChildFlow exceeds code-purity function limits."
+          "message": "Function completeLocalProgramOpen exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -3055,13 +3062,6 @@
           "detail": "446"
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "src/lib/local-app-shell/styles/commander-console-styles.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
-        },
-        {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
           "line": 67,
@@ -3071,14 +3071,14 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
-          "line": 66,
+          "line": 67,
           "severity": "error",
           "message": "Function buildPageStateObservations exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
-          "line": 151,
+          "line": 152,
           "severity": "error",
           "message": "Function buildPageStateDispatchInput exceeds code-purity function limits."
         },
@@ -3095,6 +3095,13 @@
           "line": 215,
           "severity": "error",
           "message": "Function buildPostActionVerificationInput exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/lib/local-runtime/workbench-status.ts",
+          "line": 193,
+          "severity": "error",
+          "message": "Function getMissionStartPreflight exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -3224,7 +3231,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1891 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1899 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -3234,9 +3241,9 @@
         },
         {
           "name": "touched-file-rule",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Touched active files still exceed their hard limits."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Touched active files stay within hard limits."
         },
         {
           "name": "function-shape-limits",
@@ -3326,7 +3333,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 419
+      "violationCount": 420
     }
   ]
 }
