@@ -7,7 +7,7 @@ import type {
 } from "../contract.js";
 
 export type ForensicsRuntimeEventEmitter = {
-  emitRuntimeEvent(entry: StructuredRuntimeEvent): void;
+  emitRuntimeEvent(entry: StructuredRuntimeEvent): Promise<void> | void;
 };
 
 type StructuredWriteRequest = ForensicsStructuredRuntimeEventInput | ForensicsStructuredActionLogInput;
@@ -96,15 +96,15 @@ function buildBoundaryEvent(
   });
 }
 
-export function emitForensicsRecordWriteRequested(
+export async function emitForensicsRecordWriteRequested(
   emitter: ForensicsRuntimeEventEmitter | undefined,
   request: StructuredWriteRequest,
-): void {
+): Promise<void> {
   if (!emitter) {
     return;
   }
 
-  emitter.emitRuntimeEvent(
+  await emitter.emitRuntimeEvent(
     buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started", [
       `recordType=${request.recordType}`,
       `sourceAbilityGroupId=${request.sourceAbilityGroupId}`,
@@ -113,22 +113,23 @@ export function emitForensicsRecordWriteRequested(
   );
 }
 
-export function emitForensicsRecordWritten(
+export async function emitForensicsRecordWritten(
   emitter: ForensicsRuntimeEventEmitter | undefined,
   request: StructuredWriteRequest,
   result: ForensicsPersistenceAbilityResult,
-): void {
-  if (!emitter || result.status !== "success") {
+): Promise<void> {
+  if (!emitter || result.status === "failed") {
     return;
   }
 
-  emitter.emitRuntimeEvent(
+  await emitter.emitRuntimeEvent(
     buildBoundaryEvent(
       request,
       "FORENSICS_RECORD_WRITTEN",
       "success",
       [
         `recordType=${request.recordType}`,
+        `forensicsResultStatus=${result.status}`,
         `recordRef=${result.recordRef.recordId}`,
         `storageRef=${result.storageRef ?? "MISSING"}`,
       ],

@@ -28,9 +28,9 @@ const createStructuredWriteWrapper = (
   execute: ForensicsPersistenceAbilityGroup["execute"],
   structuredLogBus: ForensicsRuntimeEventEmitter | undefined,
 ) => async (request: ForensicsStructuredRuntimeEventInput | ForensicsStructuredActionLogInput) => {
-  emitForensicsRecordWriteRequested(structuredLogBus, request);
+  await emitForensicsRecordWriteRequested(structuredLogBus, request);
   const result = await execute(request);
-  emitForensicsRecordWritten(structuredLogBus, request, result);
+  await emitForensicsRecordWritten(structuredLogBus, request, result);
   return result;
 };
 

@@ -1,10 +1,10 @@
 import { pathFromRepoRoot } from "../../core/paths.js";
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { hasStringLiteral } from "../_shared/ast-literal-queries.js";
-import { getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
+import { hasLiteralTextFragment, hasStringLiteral } from "../_shared/ast-literal-queries.js";
+import { flattenPropertyAccess, getSourceFileOrThrow, hasCallExpression, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
 
@@ -81,6 +81,86 @@ const hasObjectProperty = (sourceFile: import("ts-morph").SourceFile, propertyNa
   return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
 };
 
+const isLiteralValue = (node: import("ts-morph").Node | undefined, value: string): boolean => {
+  return (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node))
+    && node.getLiteralText() === value;
+};
+
+const matchesStatusComparison = (expression: import("ts-morph").BinaryExpression, operatorKind: SyntaxKind, literal: string): boolean => {
+  if (expression.getOperatorToken().getKind() !== operatorKind) {
+    return false;
+  }
+
+  const leftPath = flattenPropertyAccess(expression.getLeft()).join(".");
+  const rightPath = flattenPropertyAccess(expression.getRight()).join(".");
+
+  return (leftPath === "result.status" && isLiteralValue(expression.getRight(), literal))
+    || (rightPath === "result.status" && isLiteralValue(expression.getLeft(), literal));
+};
+
+const hasBoundaryEventCall = (
+  sourceFile: import("ts-morph").SourceFile,
+  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN",
+  status: "started" | "success",
+): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "buildBoundaryEvent") {
+      return false;
+    }
+
+    const [, eventArgument, statusArgument] = callExpression.getArguments();
+    return isLiteralValue(eventArgument, eventType) && isLiteralValue(statusArgument, status);
+  });
+};
+
+const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
+  if (!emitWritten) {
+    return false;
+  }
+
+  const comparisons = emitWritten.getDescendantsOfKind(SyntaxKind.BinaryExpression);
+  const hasFailedGate = comparisons.some((expression) => matchesStatusComparison(expression, SyntaxKind.EqualsEqualsEqualsToken, "failed"));
+  const hasSuccessOnlyGate = comparisons.some((expression) => {
+    return matchesStatusComparison(expression, SyntaxKind.ExclamationEqualsEqualsToken, "success")
+      || matchesStatusComparison(expression, SyntaxKind.EqualsEqualsEqualsToken, "success");
+  });
+
+  return hasFailedGate && !hasSuccessOnlyGate;
+};
+
+const hasPersistedBoundaryEventEmitter = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const emitterDeclaration = sourceFile.getVariableDeclaration("boundaryEventEmitter");
+  if (!emitterDeclaration) {
+    return false;
+  }
+
+  return emitterDeclaration.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    return flattenPropertyAccess(callExpression.getExpression()).join(".") === "storage.evidenceStore.saveStructuredRuntimeEvent";
+  });
+};
+
+const hasBoundaryEmitterAbilityGroupWiring = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "createForensicsPersistenceAbilityGroup") {
+      return false;
+    }
+
+    const [configuration] = callExpression.getArguments();
+    if (!configuration || !Node.isObjectLiteralExpression(configuration)) {
+      return false;
+    }
+
+    const structuredLogBusProperty = configuration.getProperty("structuredLogBus");
+    return !!structuredLogBusProperty
+      && Node.isPropertyAssignment(structuredLogBusProperty)
+      && Node.isIdentifier(structuredLogBusProperty.getInitializer())
+      && structuredLogBusProperty.getInitializer().getText() === "boundaryEventEmitter";
+  });
+};
+
 const collectTerminalRelayFinding = (project: import("ts-morph").Project): Finding[] => {
   const terminalSource = getScriptSource(project, TERMINAL_STRUCTURED_LOG_PATH);
   const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
@@ -95,18 +175,22 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
   const boundarySource = getSourceFileOrThrow(project, WRITE_BOUNDARY_EVENTS_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
-  const boundaryText = boundarySource.getFullText();
-  const abilityGroupText = abilityGroupSource.getFullText();
-  const workbenchText = workbenchSource.getFullText();
   const hasBoundaryEvents = hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITE_REQUESTED")
     && hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITTEN");
-  const hasBoundaryEmitCalls = boundaryText.includes('buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started"')
-    && boundaryText.includes('buildBoundaryEvent(\n      request,\n      "FORENSICS_RECORD_WRITTEN",\n      "success"');
-  const hasAbilityGroupBoundaryWiring = abilityGroupText.includes("emitForensicsRecordWriteRequested")
-    && abilityGroupText.includes("emitForensicsRecordWritten");
-  const hasWorkbenchBoundaryWiring = workbenchText.includes("structuredLogBus,");
+  const hasBoundaryEmitCalls = hasBoundaryEventCall(boundarySource, "FORENSICS_RECORD_WRITE_REQUESTED", "started")
+    && hasBoundaryEventCall(boundarySource, "FORENSICS_RECORD_WRITTEN", "success");
+  const hasAbilityGroupBoundaryWiring = hasCallExpression(abilityGroupSource, "emitForensicsRecordWriteRequested")
+    && hasCallExpression(abilityGroupSource, "emitForensicsRecordWritten");
+  const hasWorkbenchBoundaryWiring = hasPersistedBoundaryEventEmitter(workbenchSource)
+    && hasBoundaryEmitterAbilityGroupWiring(workbenchSource);
+  const hasReviewRequiredWriteCompletion = hasWrittenBoundaryFailureOnlyGate(boundarySource);
 
-  return hasBoundaryEvents && hasBoundaryEmitCalls && hasAbilityGroupBoundaryWiring && hasWorkbenchBoundaryWiring && boundaryText.includes("recordType=")
+  return hasBoundaryEvents
+    && hasBoundaryEmitCalls
+    && hasAbilityGroupBoundaryWiring
+    && hasWorkbenchBoundaryWiring
+    && hasReviewRequiredWriteCompletion
+    && hasLiteralTextFragment(boundarySource, "recordType=")
     ? []
     : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: WRITE_BOUNDARY_EVENTS_PATH, line: 1, severity: "fatal", message: "Forensics structured log writes must emit explicit FORENSICS_RECORD_WRITE_REQUESTED/WRITTEN events through the public ability-group wrapper and structured log bus." })];
 };

@@ -80,9 +80,15 @@ const MUTATIONS: Mutation[] = [
     replace: '    buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_PENDING", "started", [',
   },
   {
+    name: "forensics written review-required gate mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    search: '  if (!emitter || result.status === "failed") {',
+    replace: '  if (!emitter || result.status !== "success") {',
+  },
+  {
     name: "forensics structured log bus wiring mutation",
     file: "src/lib/local-runtime/workbench-persistence-runtime.ts",
-    search: "      structuredLogBus,\n",
+    search: "      structuredLogBus: boundaryEventEmitter,\n",
     replace: "",
   },
   {

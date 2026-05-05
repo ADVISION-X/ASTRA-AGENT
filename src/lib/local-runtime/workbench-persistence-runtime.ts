@@ -7,12 +7,18 @@ export const createPersistenceRuntime = (
   structuredLogBus: StructuredLogBus,
 ) => {
   const storage = createForensicsPersistenceStorage({ dataDir, structuredLogBus });
+  const boundaryEventEmitter = {
+    emitRuntimeEvent: async (entry: Parameters<typeof storage.evidenceStore.saveStructuredRuntimeEvent>[0]) => {
+      await storage.evidenceStore.saveStructuredRuntimeEvent(entry);
+    },
+  };
+
   return {
     evidenceStore: storage.evidenceStore,
     forensicsPersistenceAbilityGroup: createForensicsPersistenceAbilityGroup({
       recordStorage: storage.recordStorage,
       artifactStorage: storage.artifactStorage,
-      structuredLogBus,
+      structuredLogBus: boundaryEventEmitter,
     }),
   };
 };

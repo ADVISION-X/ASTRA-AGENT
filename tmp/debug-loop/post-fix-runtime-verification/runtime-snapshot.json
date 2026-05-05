@@ -58,7 +58,7 @@
       "ownerResponsible": null,
       "actionableMessage": "App Shell ready. Commander Console can stay open while mission dependencies are checked separately.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T03:26:08.966Z"
+      "checkedAt": "2026-05-05T11:58:13.642Z"
     },
     {
       "id": "startup-readiness",
@@ -69,7 +69,7 @@
       "actionableMessage": "Startup gate passed before Commander Console opened mission runtime.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T03:26:07.874Z"
+      "checkedAt": "2026-05-05T11:58:11.986Z"
     },
     {
       "id": "mission",
@@ -79,7 +79,7 @@
       "ownerResponsible": "Orchestration / Map Plugin Registry",
       "actionableMessage": "Mission start binding will be resolved from the selected approved task template at command time.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T03:26:08.975Z"
+      "checkedAt": "2026-05-05T11:58:13.650Z"
     },
     {
       "id": "browserController",
@@ -89,7 +89,7 @@
       "ownerResponsible": "Commander Console / Local Browser Session",
       "actionableMessage": "Restore the governed local browser session before retrying mission start.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T03:26:08.975Z"
+      "checkedAt": "2026-05-05T11:58:13.650Z"
     },
     {
       "id": "localAi",
@@ -100,7 +100,7 @@
       "actionableMessage": "Start Ollama or repair the local AI runtime before starting this mission.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T03:26:08.975Z"
+      "checkedAt": "2026-05-05T11:58:13.650Z"
     },
     {
       "id": "dataStore",
@@ -110,7 +110,7 @@
       "ownerResponsible": "Forensics Persistence",
       "actionableMessage": "Repair the local Forensics store before starting this mission.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T03:26:08.975Z"
+      "checkedAt": "2026-05-05T11:58:13.650Z"
     }
   ],
   "capabilityRoster": [
@@ -204,6 +204,180 @@
   "evidencePackets": [],
   "browseLedger": [],
   "failedRecords": [
+    {
+      "id": "c482d6e8-ef2f-4c7f-aadb-190d15486221",
+      "primary": "MISSION_REVIEW_REQUIRED",
+      "secondary": "review_required",
+      "detail": "orchestration requires human review"
+    },
+    {
+      "id": "a02241dd-4ddd-4676-972f-27b388a8b46d",
+      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
+      "secondary": "review_required",
+      "detail": "orchestration requires human review"
+    },
+    {
+      "id": "7ffee38d-f907-43c5-977b-4e00c9c024f3",
+      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
+      "secondary": "detect_login_or_safety",
+      "detail": "Child detect-safety-page requires governed observation refs before success."
+    },
+    {
+      "id": "event_2a2748fb-8080-4b1d-b12c-d76b4b03d011",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "activation snapshot missing before mission execution"
+    },
+    {
+      "id": "82e07159-0caa-49a7-89b1-3f4fd47dab30",
+      "primary": "MISSION_REVIEW_REQUIRED",
+      "secondary": "review_required",
+      "detail": "orchestration requires human review"
+    },
+    {
+      "id": "0d99ac93-c53b-4608-83c8-044b97cc321f",
+      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
+      "secondary": "review_required",
+      "detail": "orchestration requires human review"
+    },
+    {
+      "id": "37a308ad-80a6-4fd1-b7bd-ac0f87f15f4c",
+      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
+      "secondary": "detect_login_or_safety",
+      "detail": "Child detect-safety-page requires governed observation refs before success."
+    },
+    {
+      "id": "event_af1e4eeb-8313-458a-bc26-eab72ba18a8b",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "activation snapshot missing before mission execution"
+    },
+    {
+      "id": "cc3925db-5b29-4e01-82e7-ed974b68f55e",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "0b8c06a8-12c3-402c-a9b6-3b1f6acdb28d",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "ee368fdf-f0c0-450c-9700-a9ef9c030a2a",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "5084d8fe-79ca-4f50-90ac-fdedb8d9b3d5",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "f3232f23-fad2-471a-8636-f07cc3b8a661",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "069683d2-e1c4-4252-805a-bea34170a77a",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "fd47d718-4fbd-4c14-8cd5-caf2efc3e425",
+      "primary": "STEP_PRECONDITION_CHECKED",
+      "secondary": "detect_login_or_safety",
+      "detail": "loop guard prevented dispatch"
+    },
+    {
+      "id": "event_3d514a8f-2f37-44d3-b85a-cef8b82e3dc9",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "invalid_input"
+    },
+    {
+      "id": "event_e6f04ed6-6260-449f-aeed-35956b1ac784",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "invalid_input"
+    },
+    {
+      "id": "event_fefb2226-5dc8-4d50-9420-7c31c3c1a8cd",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "invalid_input"
+    },
+    {
+      "id": "event_94974cef-e448-4811-a6b5-9b5dc40604e6",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "invalid_input"
+    },
+    {
+      "id": "event_a6be737b-93b9-4ee0-8867-42144c845d9c",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "invalid_input"
+    },
+    {
+      "id": "event_f19daab9-1d79-4e24-bda4-0c0f68cbcac0",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_ef8ebfe7-cd66-427e-b00d-b0e3207a2b63",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_171ee520-2677-4c9d-8055-ec8e31fd41f3",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_79992f30-21ca-4ede-a4a1-42e2f83b4e14",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_88cc0175-cefc-4c5a-92f8-8264e3cb2633",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_2e10bb4f-ab13-434f-aec0-9eb8206d7572",
+      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_3bf53a5e-91ba-4d5f-81a8-f6f1c05c5225",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_7ad79bb9-c8d3-42f1-83f9-c870f1f7476a",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
+    {
+      "id": "event_4f49c956-507a-4322-a42c-407daf65bde4",
+      "primary": "COMMAND_REJECTED",
+      "secondary": "task_start",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
+    },
     {
       "id": "event_7abba413-2b20-425a-8791-bf579b3d8435",
       "primary": "COMMAND_REJECTED",
@@ -315,354 +489,354 @@
   ],
   "runtimeProof": [
     {
-      "id": "event_7abba413-2b20-425a-8791-bf579b3d8435",
-      "createdAt": "2026-05-05T03:04:50.958Z",
-      "step": "task_start",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
-    },
-    {
-      "id": "event_de48ba89-3383-4e0f-9a76-3eb22f38f3d4",
-      "createdAt": "2026-05-05T03:04:50.947Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:01ed033f-f4b9-4128-9b54-f2cb3d87fa10:1.0.0:1.0.0"
-    },
-    {
-      "id": "event_0ce7e4a5-dac7-4779-a60b-fb5ca7a2a6a4",
-      "createdAt": "2026-05-05T03:04:50.936Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
-    },
-    {
-      "id": "event_73f4d1a7-5513-44a3-bf5a-1720f94540f8",
-      "createdAt": "2026-05-05T03:04:50.925Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is evaluating local AI readiness."
-    },
-    {
-      "id": "event_4d19fb5b-fec1-48da-b62b-b3bd3657f9aa",
-      "createdAt": "2026-05-05T03:04:50.895Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is checking readiness before command dispatch."
-    },
-    {
-      "id": "event_e25025c8-943f-4939-917f-33a3fa341dad",
-      "createdAt": "2026-05-05T03:04:50.871Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
-    },
-    {
-      "id": "event_6713ed4e-40f7-4eed-a094-771cbb34b1c6",
-      "createdAt": "2026-05-05T03:04:50.844Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1"
-    },
-    {
-      "id": "event_8d307bcb-0686-4e9a-b3cd-ec4c7a0623b6",
-      "createdAt": "2026-05-05T03:04:24.784Z",
-      "step": "task_start",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
-    },
-    {
-      "id": "event_57706cfc-55d0-482b-8458-de7ab5062574",
-      "createdAt": "2026-05-05T03:04:24.773Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e090cb41-1d0e-4c06-99f9-5d1f6693cfa1:1.0.0:1.0.0"
-    },
-    {
-      "id": "event_76ce209f-6494-41a3-8aee-8db3a3c696b6",
-      "createdAt": "2026-05-05T03:04:24.761Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
-    },
-    {
-      "id": "event_cdf3a7a5-d9ed-4e62-9b41-f74829d1f29a",
-      "createdAt": "2026-05-05T03:04:24.746Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is evaluating local AI readiness."
-    },
-    {
-      "id": "event_8ab94a64-20a0-40a0-ad15-41061416b431",
-      "createdAt": "2026-05-05T03:04:24.707Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is checking readiness before command dispatch."
-    },
-    {
-      "id": "event_7dde3fdc-44b0-4caf-a4ef-4850171a35ae",
-      "createdAt": "2026-05-05T03:04:24.692Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
-    },
-    {
-      "id": "event_36fd2844-d0db-4306-a519-b8bf02a2ad61",
-      "createdAt": "2026-05-05T03:04:24.662Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
-    },
-    {
-      "id": "event_b87ef9cd-33dd-4055-846e-c7fa6822c9ad",
-      "createdAt": "2026-05-05T02:59:23.375Z",
-      "step": "task_start",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
-    },
-    {
-      "id": "event_4a732884-ad70-4421-a8e3-78a1da2525fd",
-      "createdAt": "2026-05-05T02:59:21.565Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Dispatching start-mission via CommandTransportPort."
-    },
-    {
-      "id": "event_80992499-fdf6-4439-8698-5b2650fd4310",
-      "createdAt": "2026-05-05T02:59:21.552Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Nerve Bus governed envelope created for start-mission."
-    },
-    {
-      "id": "event_18769675-22c9-4c68-a077-ea26b1e0829a",
-      "createdAt": "2026-05-05T02:59:21.534Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:01ed033f-f4b9-4128-9b54-f2cb3d87fa10:1.0.0:1.0.0"
-    },
-    {
-      "id": "event_e7e31c69-8038-4aae-b6bf-6a1d49f5852d",
-      "createdAt": "2026-05-05T02:59:21.517Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
-    },
-    {
-      "id": "event_1c17b9a0-f7e9-4f3b-a6e2-7b8ad717bc88",
-      "createdAt": "2026-05-05T02:59:21.506Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is evaluating local AI readiness."
-    },
-    {
-      "id": "event_5b1f63a0-f869-44e1-bcf0-a564248e78f9",
-      "createdAt": "2026-05-05T02:59:21.473Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is checking readiness before command dispatch."
-    },
-    {
-      "id": "event_7473caa8-a0df-4c91-9830-d1323793c016",
-      "createdAt": "2026-05-05T02:59:21.458Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
-    },
-    {
-      "id": "event_29044909-455b-4739-a686-896d0f62e888",
-      "createdAt": "2026-05-05T02:59:21.432Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1"
-    },
-    {
-      "id": "event_13c1a268-2127-4913-8ec9-15af7f714c87",
-      "createdAt": "2026-05-05T02:59:17.933Z",
-      "step": "task_start",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
-    },
-    {
-      "id": "event_63226dde-2220-41e2-b394-61734b2da580",
-      "createdAt": "2026-05-05T02:59:16.143Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Dispatching start-mission via CommandTransportPort."
-    },
-    {
-      "id": "event_f9d67e42-456e-4d4b-9570-e5e982782a16",
-      "createdAt": "2026-05-05T02:59:16.131Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Nerve Bus governed envelope created for start-mission."
-    },
-    {
-      "id": "event_ff32860a-518c-4f3e-812d-9da42057d059",
-      "createdAt": "2026-05-05T02:59:16.121Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e090cb41-1d0e-4c06-99f9-5d1f6693cfa1:1.0.0:1.0.0"
-    },
-    {
-      "id": "event_0f787767-cf61-4b04-aee9-c11a83cebb97",
-      "createdAt": "2026-05-05T02:59:16.107Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
-    },
-    {
-      "id": "event_9d0ce932-5210-488b-a6ad-6c454c607cf9",
-      "createdAt": "2026-05-05T02:59:16.092Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is evaluating local AI readiness."
-    },
-    {
-      "id": "event_cac39bdf-ddfb-4126-9fa8-b1f5b5c646a0",
-      "createdAt": "2026-05-05T02:59:16.073Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is checking readiness before command dispatch."
-    },
-    {
-      "id": "event_314e38c7-9826-49c2-9795-0af17c4f8967",
-      "createdAt": "2026-05-05T02:59:16.063Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
-    },
-    {
-      "id": "event_7aadab06-6cf5-4f4b-8650-33eabbb974ae",
-      "createdAt": "2026-05-05T02:59:16.035Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
-    },
-    {
-      "id": "event_4aea6c8a-a506-45af-8f71-259995a67593",
-      "createdAt": "2026-05-05T02:52:17.116Z",
-      "step": "task_start",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"runId\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]"
-    },
-    {
-      "id": "event_a35db1e2-f3fc-4ff2-b02c-c2d2b4feec77",
-      "createdAt": "2026-05-05T02:52:15.383Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Dispatching start-mission via CommandTransportPort."
-    },
-    {
-      "id": "event_d4b297b0-1ba8-467d-a1a8-9c5d3060645b",
-      "createdAt": "2026-05-05T02:52:15.374Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Nerve Bus governed envelope created for start-mission."
-    },
-    {
-      "id": "event_78d4a5f5-9324-410e-9694-dd02ad81ec90",
-      "createdAt": "2026-05-05T02:52:15.363Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:e18dbda5-a717-4e38-aa23-452d2a42c2a8:1.0.0:1.0.0"
-    },
-    {
-      "id": "event_3405f6b4-e0d7-4375-8f64-a30be3be790a",
-      "createdAt": "2026-05-05T02:52:15.355Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
-    },
-    {
-      "id": "event_49486787-c3c6-483d-bb0a-be6090a88669",
-      "createdAt": "2026-05-05T02:52:15.348Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is evaluating local AI readiness."
-    },
-    {
-      "id": "event_4f62aef2-c34c-41c2-a83c-0fe93e08f42a",
-      "createdAt": "2026-05-05T02:52:15.327Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "Mission preflight is checking readiness before command dispatch."
-    },
-    {
-      "id": "event_4f3fc8c7-2625-4d05-b353-be3c44eb926b",
-      "createdAt": "2026-05-05T02:52:15.317Z",
-      "step": "task_start",
-      "status": "started",
-      "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
-    },
-    {
-      "id": "event_60b49204-c3cc-4d28-89d6-6da53811781f",
-      "createdAt": "2026-05-05T02:52:15.295Z",
-      "step": "task_start",
-      "status": "success",
-      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
-    },
-    {
-      "id": "event_06d68046-5738-4e3f-9f64-12b824e17909",
-      "createdAt": "2026-05-05T02:40:57.370Z",
-      "step": "task_start",
+      "id": "c482d6e8-ef2f-4c7f-aadb-190d15486221",
+      "createdAt": "2026-05-05T11:50:55.880Z",
+      "step": "review_required",
       "status": "review_required",
-      "message": "issue-human-command timed out after 5000ms."
+      "message": "orchestration requires human review"
     },
     {
-      "id": "event_4dad4569-e256-4fd1-b896-97267052d596",
-      "createdAt": "2026-05-05T02:40:52.373Z",
+      "id": "2955d8e1-3043-4620-b038-ac557d9353e4",
+      "createdAt": "2026-05-05T11:50:55.834Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Transition \"request-human-review:review\" matched for step \"request-human-review\"."
+    },
+    {
+      "id": "a02241dd-4ddd-4676-972f-27b388a8b46d",
+      "createdAt": "2026-05-05T11:50:55.799Z",
+      "step": "review_required",
+      "status": "review_required",
+      "message": "orchestration requires human review"
+    },
+    {
+      "id": "183fd754-326f-49f0-8ffa-a92f703d3d57",
+      "createdAt": "2026-05-05T11:50:55.764Z",
+      "step": "review_required",
+      "status": "started",
+      "message": "Dispatching step \"request-human-review\" to ability group \"orchestration\"."
+    },
+    {
+      "id": "dfe30d8e-6f33-4070-a5c9-286b5b1f4d25",
+      "createdAt": "2026-05-05T11:50:55.729Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Step \"request-human-review\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "885edd91-f0a6-446d-9ecf-5ee230043e05",
+      "createdAt": "2026-05-05T11:50:55.691Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Orchestration selected governed step \"request-human-review\" from the frozen operational map."
+    },
+    {
+      "id": "3900587b-a030-41f7-8043-51e9560d2bc8",
+      "createdAt": "2026-05-05T11:50:55.655Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Transition \"detect-safety-page:review\" matched for step \"detect-safety-page\"."
+    },
+    {
+      "id": "7ffee38d-f907-43c5-977b-4e00c9c024f3",
+      "createdAt": "2026-05-05T11:50:55.621Z",
+      "step": "detect_login_or_safety",
+      "status": "review_required",
+      "message": "Child detect-safety-page requires governed observation refs before success."
+    },
+    {
+      "id": "1280b87d-25af-4e7b-96a9-1804d8193a8b",
+      "createdAt": "2026-05-05T11:50:55.584Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Dispatching step \"detect-safety-page\" to ability group \"page-state\"."
+    },
+    {
+      "id": "0eb385a5-61d5-4759-a6e0-ff66318f0bbb",
+      "createdAt": "2026-05-05T11:50:55.550Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Step \"detect-safety-page\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "936a3ffc-f7b5-4589-b507-a57b9fcf528a",
+      "createdAt": "2026-05-05T11:50:55.515Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Orchestration selected governed step \"detect-safety-page\" from the frozen operational map."
+    },
+    {
+      "id": "a963ce4b-e6a6-4093-abb2-76cf14c5da89",
+      "createdAt": "2026-05-05T11:50:55.468Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Transition \"detect-login-state:success\" matched for step \"detect-login-state\"."
+    },
+    {
+      "id": "4403372a-163b-45b2-8b76-0aa0a13d8768",
+      "createdAt": "2026-05-05T11:50:55.430Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Governed step \"detect-login-state\" returned status \"success\"."
+    },
+    {
+      "id": "0579fc33-ef22-408b-9cc7-69b9fd44bac5",
+      "createdAt": "2026-05-05T11:50:55.393Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Dispatching step \"detect-login-state\" to ability group \"page-state\"."
+    },
+    {
+      "id": "8b7d0d4c-c1d2-4dd0-a615-214054a3ba4d",
+      "createdAt": "2026-05-05T11:50:55.360Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Step \"detect-login-state\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "c1911f44-9382-4e25-9ba2-b6ef528df9d8",
+      "createdAt": "2026-05-05T11:50:55.323Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Orchestration selected governed step \"detect-login-state\" from the frozen operational map."
+    },
+    {
+      "id": "a5b2c66e-18ba-4d20-a2c4-58275ab17349",
+      "createdAt": "2026-05-05T11:50:55.269Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Transition \"verify-tiktok-feed-open:success\" matched for step \"verify-tiktok-feed-open\"."
+    },
+    {
+      "id": "d0ad7b65-d738-4711-ae4e-521d959a2956",
+      "createdAt": "2026-05-05T11:50:55.236Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Governed step \"verify-tiktok-feed-open\" returned status \"success\"."
+    },
+    {
+      "id": "e496295c-be57-4758-8a7c-100fbf8f892b",
+      "createdAt": "2026-05-05T11:50:55.171Z",
+      "step": "open_target_page",
+      "status": "started",
+      "message": "Dispatching post-action verification step \"verify-tiktok-feed-open\" through governed transport."
+    },
+    {
+      "id": "325d8c3a-5a37-47ae-825b-f8d48c4555b1",
+      "createdAt": "2026-05-05T11:50:55.137Z",
+      "step": "open_target_page",
+      "status": "started",
+      "message": "Dispatching step \"verify-tiktok-feed-open\" to ability group \"post-action-verification\"."
+    },
+    {
+      "id": "e4f8f241-cde3-4693-b6bd-46a05717bdd5",
+      "createdAt": "2026-05-05T11:50:55.102Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Step \"verify-tiktok-feed-open\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "34cd1500-f72c-4446-86a6-ca86a2376da0",
+      "createdAt": "2026-05-05T11:50:55.071Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Orchestration selected governed step \"verify-tiktok-feed-open\" from the frozen operational map."
+    },
+    {
+      "id": "7dca1fc2-08f6-457a-83a1-2cdd32647e7a",
+      "createdAt": "2026-05-05T11:50:55.036Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Transition \"open-tiktok-feed:success\" matched for step \"open-tiktok-feed\"."
+    },
+    {
+      "id": "73ec44d7-90c6-4eab-acfe-73f2d9c3b8c0",
+      "createdAt": "2026-05-05T11:50:55.004Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Governed step \"open-tiktok-feed\" returned status \"success\"."
+    },
+    {
+      "id": "1d596585-ec00-4901-a4e0-203376d0b741",
+      "createdAt": "2026-05-05T11:50:53.108Z",
+      "step": "open_target_page",
+      "status": "started",
+      "message": "Dispatching step \"open-tiktok-feed\" to ability group \"open\"."
+    },
+    {
+      "id": "a40820a9-6557-44b0-a274-1df2883a7767",
+      "createdAt": "2026-05-05T11:50:53.076Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Step \"open-tiktok-feed\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "2d08bf62-571a-4388-b396-c51cf4f8be4d",
+      "createdAt": "2026-05-05T11:50:53.045Z",
+      "step": "open_target_page",
+      "status": "success",
+      "message": "Orchestration selected governed step \"open-tiktok-feed\" from the frozen operational map."
+    },
+    {
+      "id": "event_becaac01-78f9-4619-b84c-d6d8b976e2bf",
+      "createdAt": "2026-05-05T11:50:53.014Z",
+      "step": "task_start",
+      "status": "success",
+      "message": "Governed start-mission command was accepted before mission execution began."
+    },
+    {
+      "id": "event_2a2748fb-8080-4b1d-b12c-d76b4b03d011",
+      "createdAt": "2026-05-05T11:50:52.983Z",
+      "step": "task_start",
+      "status": "failed",
+      "message": "activation snapshot missing before mission execution"
+    },
+    {
+      "id": "event_96e567b1-977c-4e98-91e5-7e1b5c81cc03",
+      "createdAt": "2026-05-05T11:50:52.953Z",
+      "step": "task_start",
+      "status": "started",
+      "message": "Orchestration received governed start-mission command from Nerve Bus."
+    },
+    {
+      "id": "event_d3852397-4f9e-4b9c-a704-e5cc32e4ed5e",
+      "createdAt": "2026-05-05T11:50:52.922Z",
       "step": "task_start",
       "status": "started",
       "message": "Dispatching start-mission via CommandTransportPort."
     },
     {
-      "id": "event_f072e045-2e53-4ef8-9378-6a70619ed98a",
-      "createdAt": "2026-05-05T02:40:52.366Z",
+      "id": "event_c12683df-6758-4cde-97e1-43ccf10df658",
+      "createdAt": "2026-05-05T11:50:52.892Z",
       "step": "task_start",
       "status": "success",
       "message": "Nerve Bus governed envelope created for start-mission."
     },
     {
-      "id": "event_2ede1d75-90b7-4ec1-aedc-c299df178f8e",
-      "createdAt": "2026-05-05T02:40:52.359Z",
+      "id": "event_5d4e89c0-5159-46e5-afaf-9d2d571f3ee2",
+      "createdAt": "2026-05-05T11:50:52.860Z",
       "step": "task_start",
       "status": "success",
-      "message": "taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:d2eca47c-2050-41ea-bb4a-ab42c98dba59:1.0.0:1.0.0"
+      "message": "taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:a251952c-61f5-4544-b786-78b1cdf32b55:1.0.0:1.0.0"
     },
     {
-      "id": "event_064c91a5-a3c7-4a08-b0db-0c3b7816f18f",
-      "createdAt": "2026-05-05T02:40:52.352Z",
+      "id": "event_d10bf538-1daf-43b6-a840-b85719956389",
+      "createdAt": "2026-05-05T11:50:52.831Z",
       "step": "task_start",
       "status": "success",
       "message": "Mission preflight passed. Commander Console can dispatch the governed human command."
     },
     {
-      "id": "event_de28ddb3-a9d5-4b2c-a957-fe011b9ca5de",
-      "createdAt": "2026-05-05T02:40:52.346Z",
+      "id": "event_8a1d395a-764f-426a-bde4-eeaa39fa04ec",
+      "createdAt": "2026-05-05T11:50:52.800Z",
       "step": "task_start",
       "status": "started",
       "message": "Mission preflight is evaluating local AI readiness."
     },
     {
-      "id": "event_733e0962-db70-454b-a423-27ae61f73abb",
-      "createdAt": "2026-05-05T02:40:52.326Z",
+      "id": "event_df6a5952-0941-4bb9-802b-721eb8c325e7",
+      "createdAt": "2026-05-05T11:50:52.759Z",
       "step": "task_start",
       "status": "started",
       "message": "Mission preflight is checking readiness before command dispatch."
     },
     {
-      "id": "event_a3aae937-dc6a-47d3-a383-ac1cddae7cab",
-      "createdAt": "2026-05-05T02:40:52.318Z",
+      "id": "event_5c82e684-1e81-410c-992b-017427ce07aa",
+      "createdAt": "2026-05-05T11:50:52.726Z",
       "step": "task_start",
       "status": "started",
       "message": "MissionReadiness is scoped to the selected task binding, not the app shell."
     },
     {
-      "id": "event_570c90f8-f236-4a6c-b109-719f8943a84c",
-      "createdAt": "2026-05-05T02:40:52.309Z",
+      "id": "event_53f7f3e0-85b2-456d-b290-9dcab365df1c",
+      "createdAt": "2026-05-05T11:50:52.672Z",
       "step": "task_start",
       "status": "success",
-      "message": "requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1"
+      "message": "requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1"
+    },
+    {
+      "id": "82e07159-0caa-49a7-89b1-3f4fd47dab30",
+      "createdAt": "2026-05-05T11:50:29.665Z",
+      "step": "review_required",
+      "status": "review_required",
+      "message": "orchestration requires human review"
+    },
+    {
+      "id": "146a186d-b20b-4c9b-9e03-b7fc91e7a0e3",
+      "createdAt": "2026-05-05T11:50:29.635Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Transition \"request-human-review:review\" matched for step \"request-human-review\"."
+    },
+    {
+      "id": "0d99ac93-c53b-4608-83c8-044b97cc321f",
+      "createdAt": "2026-05-05T11:50:29.605Z",
+      "step": "review_required",
+      "status": "review_required",
+      "message": "orchestration requires human review"
+    },
+    {
+      "id": "5a3b1f37-4c7a-41a2-83bf-77c203c1154d",
+      "createdAt": "2026-05-05T11:50:29.573Z",
+      "step": "review_required",
+      "status": "started",
+      "message": "Dispatching step \"request-human-review\" to ability group \"orchestration\"."
+    },
+    {
+      "id": "deb115ff-6ee2-4e5d-9aeb-13527abf7ca9",
+      "createdAt": "2026-05-05T11:50:29.542Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Step \"request-human-review\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "bedfaf2d-a1d2-4fa0-a2b0-41b0e8eca977",
+      "createdAt": "2026-05-05T11:50:29.499Z",
+      "step": "review_required",
+      "status": "success",
+      "message": "Orchestration selected governed step \"request-human-review\" from the frozen operational map."
+    },
+    {
+      "id": "4b418d74-dbcb-4515-9f92-4e0aae6caf22",
+      "createdAt": "2026-05-05T11:50:29.470Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Transition \"detect-safety-page:review\" matched for step \"detect-safety-page\"."
+    },
+    {
+      "id": "37a308ad-80a6-4fd1-b7bd-ac0f87f15f4c",
+      "createdAt": "2026-05-05T11:50:29.439Z",
+      "step": "detect_login_or_safety",
+      "status": "review_required",
+      "message": "Child detect-safety-page requires governed observation refs before success."
+    },
+    {
+      "id": "a7b2d838-c310-4f7a-8ac7-1ee382235742",
+      "createdAt": "2026-05-05T11:50:29.409Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Dispatching step \"detect-safety-page\" to ability group \"page-state\"."
+    },
+    {
+      "id": "161f661e-ed9b-4b1b-b1bd-8db7c4e7fabd",
+      "createdAt": "2026-05-05T11:50:29.379Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Step \"detect-safety-page\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "5b1e998e-5607-4e84-9c48-f8cb25d17de0",
+      "createdAt": "2026-05-05T11:50:29.350Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Orchestration selected governed step \"detect-safety-page\" from the frozen operational map."
+    },
+    {
+      "id": "0a99c148-7821-45fa-9d42-fb53a7a9ee9a",
+      "createdAt": "2026-05-05T11:50:29.320Z",
+      "step": "detect_login_or_safety",
+      "status": "success",
+      "message": "Transition \"detect-login-state:success\" matched for step \"detect-login-state\"."
     }
   ],
   "auditSummary": {
@@ -689,11 +863,11 @@
       "visual-target-capability",
       "forensics-persistence-capability"
     ],
-    "lastGeneratedAt": "2026-05-05T03:25:17.147Z",
-    "lastRunGeneratedAt": "2026-05-05T03:25:17.147Z",
+    "lastGeneratedAt": "2026-05-05T11:36:44.535Z",
+    "lastRunGeneratedAt": "2026-05-05T11:36:44.535Z",
     "totals": {
-      "inspectors": 1,
-      "passed": 0,
+      "inspectors": 3,
+      "passed": 2,
       "failed": 1,
       "blocking": 1
     }

@@ -122,7 +122,8 @@ const handleStartMission = async (
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
   const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
-  const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef);
+  const activationId = payloadValueToString(payload.activationId) ?? envelope.activationId;
+  const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef) ?? envelope.activationSnapshotRef;
   const taskTemplateId = payloadValueToString(payload.taskTemplateId);
   await recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId });
   await recordMissionActivationSnapshotFrozen(runtime, {
@@ -144,7 +145,7 @@ const handleStartMission = async (
     requestedPlatform: requestedPlatformId,
     preferredMapId: parsedSelectedMapId,
     taskTemplateId,
-    activationId: payloadValueToString(payload.activationId),
+    activationId,
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),

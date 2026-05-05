@@ -34,7 +34,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const readStartMissionPayloadField = (
   command: HumanCommandDispatchCommand,
-  key: "targetUrl" | "targetTitle" | "targetProfileRef" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef" | "taskTemplateId",
+  key: "targetUrl" | "targetTitle" | "targetProfileRef" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef" | "taskTemplateId" | "activationId" | "activationSnapshotRef",
 ) => {
   if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
     return null;
@@ -82,6 +82,8 @@ const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => 
   maxMinutes: command.maxMinutes ?? null,
   operatorNote: command.operatorNote ?? null,
   taskTemplateId: readStartMissionPayloadField(command, "taskTemplateId"),
+  activationId: readStartMissionPayloadField(command, "activationId"),
+  activationSnapshotRef: readStartMissionPayloadField(command, "activationSnapshotRef"),
   targetRecordId: command.targetRecordRef?.recordId ?? null,
   targetUrl: readStartMissionPayloadField(command, "targetUrl"),
   targetTitle: readStartMissionPayloadField(command, "targetTitle"),

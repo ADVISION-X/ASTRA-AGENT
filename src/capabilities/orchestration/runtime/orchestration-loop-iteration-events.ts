@@ -256,7 +256,7 @@ export async function recordTransitionEvaluation(
     state: input.state,
     mapRecord: input.mapRecord,
     step,
-    eventType: "STEP_TRANSITION_SKIPPED",
+    eventType: "STEP_TRANSITION_EVALUATED",
     status: details.status,
     reason: details.reason,
     failureReason: details.failureReason ?? null,
