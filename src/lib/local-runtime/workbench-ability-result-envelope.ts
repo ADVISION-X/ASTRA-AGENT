@@ -5,6 +5,7 @@ import type {
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
 import { buildMirroredEnvelopeBase, buildPayloadDocument } from "./workbench-payload.js";
+import { recordScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
 const describeAbilityFailure = (
   failure: WorkbenchAbilityExecutionResult["failureReason"],
@@ -82,6 +83,7 @@ export const buildAbilityCommandResultEnvelope = (input: {
   const failureReason = describeAbilityFailure(input.result.failureReason);
   const summary = buildAbilityResultSummary({ envelope: input.envelope, result: input.result, failureReason });
   const outputPayload = buildAbilityResultPayload({ envelope: input.envelope, result: input.result, summary, failureReason });
+  recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });
 
   return {
     envelope: buildAbilityResultEnvelope({ envelope: input.envelope, result: input.result, outputPayload, summary, failureReason }),

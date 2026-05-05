@@ -11,18 +11,16 @@ export function createInMemoryNerveBusTransportPort(): NerveBusTransportPort {
     async bindInputPayload(input) {
       const payload = NerveBusPayloadDocumentSchema.parse(input.payload);
       inputStore.set(input.inputRef, payload);
-      for (const ref of input.payloadRefs) {
-        inputStore.set(ref, payload);
-      }
     },
     async loadInputPayload(inputRef) {
-      return inputStore.get(inputRef) ?? null;
+      return inputStore.get(inputRef) ?? outputStore.get(inputRef) ?? null;
     },
     async writeOutputPayload(input) {
       const payload = NerveBusPayloadDocumentSchema.parse(input.payload);
       const outputRef = `${input.channelId}:${input.resultRef}:output`;
       const payloadRef = createId("nerve_bus_payload");
       outputStore.set(outputRef, payload);
+      outputStore.set(payload.documentRef, payload);
       outputStore.set(payloadRef, payload);
       return { outputRef, payloadRefs: [payloadRef] };
     },

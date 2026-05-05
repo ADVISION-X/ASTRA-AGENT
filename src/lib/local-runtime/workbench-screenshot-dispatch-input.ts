@@ -2,6 +2,7 @@ import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared
 
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
+import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
 function resolveTransportTimeoutMs(envelope: AbilityCommandEnvelope) {
   const startedAt = Date.parse(envelope.createdAt);
@@ -78,10 +79,21 @@ function buildCaptureBrowserViewportCommand(
   };
 }
 
-function buildPrepareAiInputCommand(envelope: AbilityCommandEnvelope, inputPayload: NerveBusPayloadDocument) {
+function buildPrepareAiInputCommand(
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+  payload: Record<string, string | number | boolean | null>,
+) {
+  const source = resolveScreenshotSourceHandoff([
+    payloadValueToString(payload.screenshotEvidenceRef),
+    payloadValueToString(payload.abilityResultRef),
+    envelope.inputRef,
+  ]);
+
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
     childCapabilityId: "prepare-ai-input",
+    ...(source ? { source } : {}),
   };
 }
 
@@ -91,7 +103,7 @@ export function buildScreenshotCommand(
 ) {
   const payload = payloadDocumentToObject(inputPayload);
   const command = envelope.commandName === "prepare-ai-input"
-    ? buildPrepareAiInputCommand(envelope, inputPayload)
+    ? buildPrepareAiInputCommand(envelope, inputPayload, payload)
     : buildCaptureBrowserViewportCommand(envelope, inputPayload, payload);
 
   return JSON.parse(JSON.stringify(command));

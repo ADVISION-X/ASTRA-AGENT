@@ -11,6 +11,8 @@ type PropertyBinding = {
 };
 
 const DISPATCH_FILE = "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts";
+const RESULT_ENVELOPE_FILE = "src/lib/local-runtime/workbench-ability-result-envelope.ts";
+const HANDOFF_FILE = "src/lib/local-runtime/workbench-screenshot-source-handoff.ts";
 const COMMON_BINDINGS: PropertyBinding[] = [
   { name: "missionId", initializer: "envelope.missionId" },
   { name: "runId", initializer: "envelope.runId" },
@@ -30,8 +32,38 @@ const COMMON_BINDINGS: PropertyBinding[] = [
   { name: "timeoutMs", initializer: "resolveTransportTimeoutMs(envelope)" },
 ] as const;
 
+const PREPARE_AI_INPUT_SNIPPETS = [
+  "const source = resolveScreenshotSourceHandoff([",
+  "payloadValueToString(payload.screenshotEvidenceRef)",
+  "payloadValueToString(payload.abilityResultRef)",
+  "envelope.inputRef",
+  "...(source ? { source } : {})",
+] as const;
+
+const RESULT_HANDOFF_SNIPPETS = [
+  "recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });",
+] as const;
+
+const HANDOFF_SNIPPETS = [
+  "const screenshotSourceHandoffs = new Map<string, ScreenshotStoredImageSourceHandoff>();",
+  "result.abilityGroupId !== \"screenshot\" || result.status !== \"success\"",
+  "const sourceStorageRef = readString(artifactRef, \"storageRef\");",
+  "const sourceHash = readString(artifactRef, \"sha256\");",
+  "sourceArtifactRef: artifactRef",
+  "sourceProof: buildSourceProof",
+  "screenshotSourceHandoffs.set(input.outputRef, handoff);",
+  "screenshotSourceHandoffs.set(evidenceId, handoff);",
+  "export function resolveScreenshotSourceHandoff",
+] as const;
+
 function normalize(text: string) {
   return text.replace(/\s+/g, " ").trim();
+}
+
+function sourceContainsAll(project: Project, filePath: string, snippets: readonly string[]) {
+  const source = getSourceFileOrThrow(project, filePath);
+  const text = normalize(source.getFullText());
+  return snippets.every((snippet) => text.includes(normalize(snippet)));
 }
 
 function getReturnedObjectLiteral(project: Project, functionName: string): ObjectLiteralExpression | null {
@@ -131,6 +163,36 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
       line: 1,
       severity: "fatal",
       message: "Screenshot browser viewport dispatch adapter must derive browser_viewport source and pageStateProof from governed transport payload refs.",
+    }));
+  }
+
+  if (!sourceContainsAll(project, DISPATCH_FILE, PREPARE_AI_INPUT_SNIPPETS)) {
+    findings.push(createFinding({
+      lawId,
+      file: DISPATCH_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot prepare-ai-input dispatch adapter must resolve governed stored_image source handoff refs from screenshotEvidenceRef, abilityResultRef, or inputRef before entering the Screenshot owner boundary.",
+    }));
+  }
+
+  if (!sourceContainsAll(project, RESULT_ENVELOPE_FILE, RESULT_HANDOFF_SNIPPETS)) {
+    findings.push(createFinding({
+      lawId,
+      file: RESULT_ENVELOPE_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot ability result envelopes must record successful screenshot source handoffs by outputRef before orchestration consumes the result.",
+    }));
+  }
+
+  if (!sourceContainsAll(project, HANDOFF_FILE, HANDOFF_SNIPPETS)) {
+    findings.push(createFinding({
+      lawId,
+      file: HANDOFF_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot local-runtime source handoff helper must cache governed screenshot artifacts by outputRef or evidenceId and rebuild stored_image proof from artifact hash and runtime proof fields.",
     }));
   }
 

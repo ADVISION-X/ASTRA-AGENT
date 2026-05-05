@@ -44,6 +44,8 @@ export type WorkbenchAbilityExecutionResult = {
   abilityGroupId: string;
   childCapabilityId?: string | null;
   status: "success" | "failed" | "review_required";
+  output?: unknown | null;
+  runtimeProof?: unknown | null;
   failureReason?: string | { code?: string; message?: string; detail?: string | null } | null;
   reviewRequiredReason?: string | null;
 };

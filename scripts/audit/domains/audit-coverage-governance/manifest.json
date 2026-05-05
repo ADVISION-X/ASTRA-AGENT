@@ -1,0 +1,14 @@
+{
+  "inspectorId": "audit-coverage-governance-owner",
+  "capabilityDomain": "audit-coverage-governance",
+  "owner": true,
+  "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": ["law", "blueprint", "fs", "generated-artifact", "negative-proof"],
+  "allowedLawIds": [],
+  "readsLawFiles": [],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+    "docs/法案辅助文件/GrassEye 法案冻结基线.md"
+  ]
+}

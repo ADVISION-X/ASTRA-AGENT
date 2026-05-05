@@ -75,6 +75,8 @@
     ],
     "transitions": [
       { "transitionId": "open-iphone-mirroring:success", "fromStepId": "open-iphone-mirroring", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-iphone-mirroring-window-opened", "finalStatus": null },
+      { "transitionId": "open-iphone-mirroring:failed", "fromStepId": "open-iphone-mirroring", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "open-iphone-mirroring:review", "fromStepId": "open-iphone-mirroring", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
       { "transitionId": "verify-iphone-mirroring-window-opened:success", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "capture-iphone-mirroring-window-overview", "finalStatus": null },
       { "transitionId": "capture-iphone-mirroring-window-overview:success", "fromStepId": "capture-iphone-mirroring-window-overview", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-local-app-window-state", "finalStatus": null },
       { "transitionId": "detect-local-app-window-state:success", "fromStepId": "detect-local-app-window-state", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-modal-overlay-state", "finalStatus": null },
@@ -117,8 +119,8 @@
       { "transitionId": "judge-product-seeding-video:review", "fromStepId": "judge-product-seeding-video", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
       { "transitionId": "judge-product-seeding-video:failed", "fromStepId": "judge-product-seeding-video", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" }
     ],
-    "failureBranches": ["verify-iphone-mirroring-window-opened:failed", "verify-target-app-opened:failed", "verify-video-feed-ready:failed", "verify-video-changed:failed", "judge-product-seeding-video:failed"],
-    "reviewBranches": ["verify-iphone-mirroring-window-opened:review", "verify-target-app-opened:review", "verify-video-feed-ready:review", "verify-video-changed:review", "judge-product-seeding-video:review", "request-human-review:review"],
+    "failureBranches": ["open-iphone-mirroring:failed", "verify-iphone-mirroring-window-opened:failed", "verify-target-app-opened:failed", "verify-video-feed-ready:failed", "verify-video-changed:failed", "judge-product-seeding-video:failed"],
+    "reviewBranches": ["open-iphone-mirroring:review", "verify-iphone-mirroring-window-opened:review", "verify-target-app-opened:review", "verify-video-feed-ready:review", "verify-video-changed:review", "judge-product-seeding-video:review", "request-human-review:review"],
     "finalStates": ["completed", "failed", "review_required"],
     "forbiddenDirectCalls": ["shellCommand", "openApp", "osascript", "clickSelector", "typeText", "pageEvaluate", "browserAction", "rawCoordinates", "domQuery", "cookieRead"],
     "sequencePolicy": { "maxHops": 40, "maxRetriesPerStep": 1, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },

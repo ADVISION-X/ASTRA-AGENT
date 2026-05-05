@@ -127,6 +127,24 @@ const MUTATIONS: Mutation[] = [
     search: "    artifactLifecycleManifestRef: input.artifactLifecycleManifestRef,\n",
     replace: "",
   },
+  {
+    name: "prepare-ai-input source handoff ref regression mutation",
+    file: "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
+    search: "    payloadValueToString(payload.screenshotEvidenceRef),\n",
+    replace: "    null,\n",
+  },
+  {
+    name: "ability result source handoff recording regression mutation",
+    file: "src/lib/local-runtime/workbench-ability-result-envelope.ts",
+    search: "  recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });\n",
+    replace: "  void outputPayload.documentRef;\n",
+  },
+  {
+    name: "source handoff artifact hash regression mutation",
+    file: "src/lib/local-runtime/workbench-screenshot-source-handoff.ts",
+    search: "  const sourceHash = readString(artifactRef, \"sha256\");\n",
+    replace: "  const sourceHash = readString(result.output, \"sourceHash\");\n",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
@@ -209,7 +227,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, local-runtime screenshot chain mapping regression, nullable chain regression, videoVisitId requiredness regression, result nullable parity requiredness regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, and lifecycle manifest removal mutations.");
+    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, local-runtime screenshot chain mapping regression, nullable chain regression, videoVisitId requiredness regression, result nullable parity requiredness regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, lifecycle manifest removal, prepare-ai-input source handoff ref regression, ability-result source handoff recording regression, and source handoff artifact hash regression mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",

@@ -1,0 +1,80 @@
+import { writeJsonFile } from "../../core/filesystem.js";
+import { pathFromRepoRoot } from "../../core/paths.js";
+import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
+
+const generatedPath = (fileName: string): string => pathFromRepoRoot(`scripts/audit/generated/${fileName}`);
+
+export const writeCoverageArtifacts = async (input: {
+  generatedAt: string;
+  requirements: CoverageRequirement[];
+  negativeProofEvidence: NegativeProofCoverageEvidence[];
+  summary: CoverageSummary;
+}): Promise<void> => {
+  const staticMatrix = input.requirements.map((requirement) => ({
+    requirementId: requirement.requirementId,
+    owner: requirement.owner,
+    sourceType: requirement.sourceType,
+    tier: requirement.tier,
+    staticCoverage: requirement.staticCoverage,
+    coverageStatus: requirement.coverageStatus,
+    blockingReason: requirement.blockingReason,
+  }));
+  const enforcementStrength = input.requirements.map((requirement) => ({
+    requirementId: requirement.requirementId,
+    owner: requirement.owner,
+    tier: requirement.tier,
+    enforcementStrength: requirement.enforcementStrength,
+    coverageStatus: requirement.coverageStatus,
+  }));
+  const uncovered = input.requirements.filter((requirement) => requirement.coverageStatus !== "covered");
+
+  await Promise.all([
+    writeJsonFile(generatedPath("law-blueprint-requirement-census.generated.json"), {
+      generatedAt: input.generatedAt,
+      requirements: input.requirements.map((requirement) => ({
+        ...requirement,
+        staticCoverage: [],
+        negativeProofCoverage: [],
+      })),
+    }),
+    writeJsonFile(generatedPath("inspector-coverage-matrix.generated.json"), {
+      generatedAt: input.generatedAt,
+      requirements: staticMatrix,
+    }),
+    writeJsonFile(generatedPath("negative-proof-coverage.generated.json"), {
+      generatedAt: input.generatedAt,
+      negativeProofs: input.negativeProofEvidence,
+      requirements: input.requirements.map((requirement) => ({
+        requirementId: requirement.requirementId,
+        owner: requirement.owner,
+        negativeProofCoverage: requirement.negativeProofCoverage,
+      })),
+    }),
+    writeJsonFile(generatedPath("enforcement-strength.generated.json"), {
+      generatedAt: input.generatedAt,
+      requirements: enforcementStrength,
+    }),
+    writeJsonFile(generatedPath("uncovered-requirements.generated.json"), {
+      generatedAt: input.generatedAt,
+      requirements: uncovered,
+    }),
+    writeJsonFile(generatedPath("audit-coverage-summary.generated.json"), input.summary),
+  ]);
+};
+
+export const assertCoverageGate = (summary: CoverageSummary): void => {
+  if (summary.finalVerdict === "PASS") {
+    return;
+  }
+
+  const detail = [
+    `coverage gate mode: ${summary.coverageMode}`,
+    `FINAL VERDICT: ${summary.finalVerdict}`,
+    `total requirements: ${summary.totalRequirements}`,
+    `weak coverage: ${summary.weakCoverage}`,
+    `missing coverage: ${summary.missingCoverage}`,
+    `manual-only: ${summary.manualOnly}`,
+    `warning-only P0: ${summary.warningOnlyP0}`,
+  ].join("\n");
+  throw new Error(detail);
+};

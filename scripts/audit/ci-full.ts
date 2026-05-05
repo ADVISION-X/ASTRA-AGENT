@@ -15,6 +15,7 @@ const resolveCiStepTimeoutMs = (label: string): number => CI_STEP_TIMEOUT_MS_BY_
 const steps: CiStep[] = [
   { label: "typecheck", args: ["run", "typecheck"] },
   { label: "audit build", args: ["run", "audit:build"] },
+  { label: "audit coverage", args: ["run", "audit:coverage"] },
   { label: "audit", args: ["run", "audit"] },
 ];
 
@@ -47,5 +48,5 @@ for (const [index, step] of steps.entries()) {
   process.stdout.write(`[CI FULL] ${step.label} passed.\n`);
 }
 
-process.stdout.write("[CI FULL PASS] typecheck, audit build, and audit all passed.\n");
+process.stdout.write("[CI FULL PASS] typecheck, audit build, audit coverage, and audit all passed.\n");
 exitNow(0);

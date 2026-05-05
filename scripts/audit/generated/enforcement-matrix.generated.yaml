@@ -1,4 +1,4 @@
-generatedAt: 2026-05-05T18:03:46.988Z
+generatedAt: 2026-05-05T18:51:03.517Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -38,6 +38,24 @@ owners:
       - "docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md"
       - "docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
+  - inspectorId: audit-coverage-governance-owner
+    capabilityDomain: audit-coverage-governance
+    manifestPath: scripts/audit/domains/audit-coverage-governance/manifest.json
+    entry: scripts/audit/domains/audit-coverage-governance/inspector.ts
+    engine: hybrid
+    supportsEvidenceModes:
+      - law
+      - blueprint
+      - fs
+      - generated-artifact
+      - negative-proof
+    lawIds:
+      []
+    readsLawFiles:
+      []
+    readsBlueprintFiles:
+      - "docs/法案辅助文件/GrassEye 执法系统施工图.md"
+      - "docs/法案辅助文件/GrassEye 法案冻结基线.md"
   - inspectorId: audit-system-owner
     capabilityDomain: audit-system
     manifestPath: scripts/audit/domains/audit-system/manifest.json

@@ -1,0 +1,4555 @@
+{
+  "generatedAt": "2026-05-05T18:48:44.335Z",
+  "requirements": [
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-002",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-003",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-004",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-005",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-006",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-007",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-008",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-009",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-010",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-011",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-012",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-002",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-003",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-004",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-005",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-006",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-002",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-003",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-004",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-005",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-006",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-007",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-008",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-009",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-010",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-011",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地AI分工与提示词施工图#REQ-012",
+      "owner": "ai-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-002",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-003",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-004",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-005",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-006",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-007",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AI-CAPABILITY-GRASSEYE-本地模型选型施工图#REQ-008",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-001-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-002-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-003-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-004-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-005-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-005B-V2#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-006-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-007-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-008-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-009-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-010-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-011-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-012-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-013-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-AI-CAPABILITY-014-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1#REQ-001",
+      "owner": "ai-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-001",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-002",
+      "owner": "audit-coverage-governance",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-003",
+      "owner": "audit-coverage-governance",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-004",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-005",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-006",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-007",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-008",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-009",
+      "owner": "audit-coverage-governance",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-001",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-002",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-003",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-004",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-005",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-002",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-003",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-004",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-005",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-006",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-007",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-008",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-009",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-010",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-011",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-代码纯洁度施工图#REQ-012",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-002",
+      "owner": "audit-system",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-003",
+      "owner": "audit-system",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-004",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-005",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-006",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-007",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-008",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-009",
+      "owner": "audit-system",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-AUDIT-SYSTEM-001-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-AUDIT-SYSTEM-002-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-AUDIT-SYSTEM-003-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-001-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-002-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-003-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-004-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-005-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-006-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-007-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-008-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-009-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-010-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-011-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-012-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-013-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-CODE-PURITY-014-V1#REQ-001",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "CAPABILITY-GROUP-GOVERNANCE-GRASSEYE-文件路径与阶段目录施工图#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "CAPABILITY-GROUP-GOVERNANCE-GRASSEYE-能力组与子能力总纲施工图#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "CAPABILITY-GROUP-GOVERNANCE-GRASSEYE-能力组与子能力总纲施工图#REQ-002",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "CAPABILITY-GROUP-GOVERNANCE-GRASSEYE-能力组与子能力总纲施工图#REQ-003",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "CAPABILITY-GROUP-GOVERNANCE-GRASSEYE-能力组与子能力总纲施工图#REQ-004",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-001-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-002-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-003-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-004-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-005-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-006-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-007-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-CAPABILITY-GROUP-008-V1#REQ-001",
+      "owner": "capability-group-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-002",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-003",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-004",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-005",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-006",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-007",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-008",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-009",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-010",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-011",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-MAC-APP-SHELL-SCORECARD#REQ-012",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-002",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-003",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-004",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-005",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-006",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-007",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-008",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-009",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-COMMANDER-CONSOLE-UI-ATOMIC-QUALITY#REQ-010",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-002",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-003",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-004",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-005",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-006",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-007",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-008",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-009",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-010",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-011",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-012",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-002",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-003",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-004",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-005",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-006",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-007",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-008",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-009",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-010",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-011",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-唯一启动入口与终端结构化日志施工图#REQ-012",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-本地应用形态与运行壳施工图#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "COMMANDER-CONSOLE-CAPABILITY-GRASSEYE-本地应用形态与运行壳施工图#REQ-002",
+      "owner": "commander-console-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1#REQ-001",
+      "owner": "commander-console-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-002",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-003",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-004",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-005",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-006",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-007",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-008",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-009",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-010",
+      "owner": "debug-loop-boundary",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-011",
+      "owner": "debug-loop-boundary",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "DEBUG-LOOP-BOUNDARY-GRASSEYE-DEBUG-LOOP-BOUNDARY-调试程序边界施工图#REQ-012",
+      "owner": "debug-loop-boundary",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1#REQ-001",
+      "owner": "debug-loop-boundary",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-002",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-003",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-004",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-005",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-006",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-007",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-008",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-009",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-010",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-011",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-FORENSICS-PERSISTENCE-取证记账能力组施工图-FINAL#REQ-012",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-002",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-003",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-004",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-005",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-006",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-本地取证存储结构施工图#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-本地取证存储结构施工图#REQ-002",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-本地取证存储结构施工图#REQ-003",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-002",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-003",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-004",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-005",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-006",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-007",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-008",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-009",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-010",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-011",
+      "owner": "forensics-persistence-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "FORENSICS-PERSISTENCE-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-012",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-002-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-003-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-004-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-005-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-006-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-007-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-008-V2#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1#REQ-001",
+      "owner": "forensics-persistence-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-002",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-003",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-004",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-005",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-006",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-007",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-008",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-009",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-010",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-011",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GEOMETRY-GUARD-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-012",
+      "owner": "geometry-guard-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3#REQ-001",
+      "owner": "geometry-guard-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-法案冻结基线#REQ-001",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-法案冻结基线#REQ-002",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-法案冻结基线#REQ-003",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-法案冻结基线#REQ-004",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-法案冻结基线#REQ-005",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-001",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-002",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-003",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-004",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-005",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-006",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-007",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-008",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-009",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-010",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-011",
+      "owner": "index",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "INDEX-GRASSEYE-能力组标准包与执法结构统一施工图#REQ-012",
+      "owner": "index",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-001",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-002",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-003",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-004",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-005",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-006",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-007",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-008",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-009",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-010",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-011",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-012",
+      "owner": "kernel",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-法案冻结基线#REQ-001",
+      "owner": "kernel",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-法案冻结基线#REQ-002",
+      "owner": "kernel",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-法案冻结基线#REQ-003",
+      "owner": "kernel",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-法案冻结基线#REQ-004",
+      "owner": "kernel",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "KERNEL-GRASSEYE-法案冻结基线#REQ-005",
+      "owner": "kernel",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-001-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-002-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-003-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-004-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-005-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-006-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-007-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-008-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-009-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-010-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-011-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-012-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-013-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-014-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-015-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-016-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MAP-PLUGIN-017-V2#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-COMMANDER-CONSOLE-总司令控制台能力组施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-AUTHORING-INPUT-PACKAGE-施工图-FINAL#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-MAP-PROMPT-CONTRACT-GOVERNANCE-施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-地图插件包治理施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-004",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-005",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-006",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-007",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-008",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-009",
+      "owner": "map-plugin-package",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-MAP-PLUGIN-PACKAGE-WHY#REQ-001",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-MAP-PLUGIN-PACKAGE-WHY#REQ-002",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-MAP-PLUGIN-PACKAGE-WHY#REQ-003",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-001",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-002",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-003",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-004",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-005",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-006",
+      "owner": "mouse-click-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-007",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-008",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-009",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-010",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-011",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-CLICK-CAPABILITY-GRASSEYE-MOUSE-CLICK-能力组施工图#REQ-012",
+      "owner": "mouse-click-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-002",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-003",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-004",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-005",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-006",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-007",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-008",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-009",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-010",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-011",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-GEOMETRY-GUARD-几何安全守卫能力组施工图#REQ-012",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-002",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-003",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-004",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-005",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-006",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-007",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-008",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-009",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-010",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-011",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-MOUSE-SCROLL-能力组施工图#REQ-012",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-002",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-003",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-004",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-005",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-006",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-007",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-008",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-009",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-010",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-011",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-012",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-001",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-002",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-003",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-004",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-005",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-006",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-007",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-008",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-009",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-010",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-011",
+      "owner": "mouse-scroll-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "MOUSE-SCROLL-CAPABILITY-GRASSEYE-结构化日志与运行证明施工图#REQ-012",
+      "owner": "mouse-scroll-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-004-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-005-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-006-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-007-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-008-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-009-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-NERVE-BUS-CAPABILITY-010-V2#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-001",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-002",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-003",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-004",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-005",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-006",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-007",
+      "owner": "nerve-bus-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-008",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-009",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-010",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-011",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "NERVE-BUS-CAPABILITY-GRASSEYE-NERVE-BUS-神经网络传输能力组施工图#REQ-012",
+      "owner": "nerve-bus-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-001-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-002-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-003-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-004-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-005-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-006-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-007-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-008-V2#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-OPEN-CAPABILITY-009-V1#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-001",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-002",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-003",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-004",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-005",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-006",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-007",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-008",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-009",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-010",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-011",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-OPEN-能力组施工图#REQ-012",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-平台适配与页面动作施工图#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-平台适配与页面动作施工图#REQ-002",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-002",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-003",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-004",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-005",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-006",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-007",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-008",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-本地真实CHROME会话与登录态持久化施工图#REQ-009",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-视觉坐标组合链说明#REQ-001",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-视觉坐标组合链说明#REQ-002",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-视觉坐标组合链说明#REQ-003",
+      "owner": "open-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "OPEN-CAPABILITY-GRASSEYE-视觉坐标组合链说明#REQ-004",
+      "owner": "open-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-001",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-002",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-003",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-004",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-005",
+      "owner": "orchestration-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-006",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-007",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-008",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-009",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-010",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-011",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "ORCHESTRATION-CAPABILITY-GRASSEYE-ORCHESTRATION-总指挥能力组施工图#REQ-012",
+      "owner": "orchestration-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-001",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-002",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-003",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-004",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-005",
+      "owner": "page-state-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-006",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-007",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-008",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-009",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-010",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-011",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "PAGE-STATE-CAPABILITY-GRASSEYE-PAGE-STATE-页面状态感知能力组施工图#REQ-012",
+      "owner": "page-state-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-001",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-002",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-003",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-004",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-005",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-006",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-007",
+      "owner": "post-action-verification-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-008",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-009",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-010",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-011",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "POST-ACTION-VERIFICATION-CAPABILITY-GRASSEYE-POST-ACTION-VERIFICATION-动作后验证能力组施工图#REQ-012",
+      "owner": "post-action-verification-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-003-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-002",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-003",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-004",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-005",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-006",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-007",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-008",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-009",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-010",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-011",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-SCREENSHOT-能力组施工图#REQ-012",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-001",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-002",
+      "owner": "screenshot-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-003",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-004",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-005",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "SCREENSHOT-CAPABILITY-GRASSEYE-多帧视频取证施工图#REQ-006",
+      "owner": "screenshot-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SECURITY-PRIVACY-001-V1#REQ-001",
+      "owner": "security-privacy",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_0_MANUAL_ONLY_OR_MISSING",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SECURITY-PRIVACY-002-V1#REQ-001",
+      "owner": "security-privacy",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_0_MANUAL_ONLY_OR_MISSING",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-SECURITY-PRIVACY-003-V1#REQ-001",
+      "owner": "security-privacy",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_0_MANUAL_ONLY_OR_MISSING",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-001",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-002",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-003",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-004",
+      "owner": "text-input-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-005",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-006",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-007",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-008",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-009",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-010",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-011",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "TEXT-INPUT-CAPABILITY-GRASSEYE-TEXT-INPUT-输入能力组施工图#REQ-012",
+      "owner": "text-input-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-TYPE-SAFETY-001-V1#REQ-001",
+      "owner": "type-safety",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_1_TEXT_INCLUDES_PATH_EXISTS",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-001",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-002",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-003",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-004",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-005",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-006",
+      "owner": "visual-target-capability",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-007",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-008",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-009",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-010",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-011",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    },
+    {
+      "requirementId": "VISUAL-TARGET-CAPABILITY-GRASSEYE-VISUAL-TARGET-视觉目标定位能力组施工图#REQ-012",
+      "owner": "visual-target-capability",
+      "tier": "P1",
+      "enforcementStrength": "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF",
+      "coverageStatus": "weak"
+    }
+  ]
+}
