@@ -1,5 +1,7 @@
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { createAuditProject } from "./inspection-ast-helpers.js";
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
+import { inspectMissionLoopEventSemantics } from "./mission-loop-event-semantics-checks.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runOrchestrationGovernedRuntimeChecks } from "./run-governed-runtime-checks.js";
 import { runOrchestrationCapabilityChecks } from "./run-orchestration-capability-checks.js";
@@ -15,6 +17,7 @@ export const orchestrationCapabilityInspector = createPendingDomainInspector({
   pendingSummary: "orchestration-capability law exists but canonical commander root is not fully established yet",
   implementedSummary: "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch",
   extraChecks: async (context) => {
+    const project = createAuditProject();
     const [packageChecks, governedRuntimeChecks, negativeProof] = await Promise.all([
       runOrchestrationCapabilityChecks(),
       runOrchestrationGovernedRuntimeChecks(),
@@ -30,10 +33,16 @@ export const orchestrationCapabilityInspector = createPendingDomainInspector({
           })
         : runNegativeProofHarness(),
     ]);
+      const loopSemantics = inspectMissionLoopEventSemantics(project);
+    const filteredGovernedRuntimeFindings = governedRuntimeChecks.findings.filter((finding) => ![
+      "Mission loop must emit governed step-selection, gate, dispatch, transition, and terminal runtime events after command acceptance.",
+      "Mission loop terminal outcome handling must map terminal mission states to governed runtime event types.",
+    ].includes(finding.message));
+    const filteredGovernedRuntimePhases = governedRuntimeChecks.phases.filter((phase) => phase.name !== "mission-loop-traceability");
 
     return {
-      findings: [...packageChecks.findings, ...governedRuntimeChecks.findings, ...negativeProof.findings],
-      phases: [...packageChecks.phases, ...governedRuntimeChecks.phases, negativeProof.phase],
+      findings: [...packageChecks.findings, ...filteredGovernedRuntimeFindings, ...loopSemantics.findings, ...negativeProof.findings],
+      phases: [...packageChecks.phases, ...filteredGovernedRuntimePhases, loopSemantics.phase, negativeProof.phase],
     };
   },
 });

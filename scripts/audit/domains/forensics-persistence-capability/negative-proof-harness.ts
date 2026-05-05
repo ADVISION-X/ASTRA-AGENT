@@ -74,6 +74,18 @@ const MUTATIONS: Mutation[] = [
     replace: "  runtimeProof: buildMissingProof({\n",
   },
   {
+    name: "forensics write requested event mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    search: '    buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started", [',
+    replace: '    buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_PENDING", "started", [',
+  },
+  {
+    name: "forensics structured log bus wiring mutation",
+    file: "src/lib/local-runtime/workbench-persistence-runtime.ts",
+    search: "      structuredLogBus,\n",
+    replace: "",
+  },
+  {
     name: "generic storage port mutation",
     file: "src/capabilities/forensics-persistence/ports/forensics-storage-port.ts",
     search: "  writeRecord(input: ForensicsWriteRecordInput): Promise<StoredForensicsRecord>;\n",
@@ -191,7 +203,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Forensics negative-proof harness rejects runtime-dir relapse, legacy contract leakage, chain-field removal, prompt/action ref weakening, proof removal, generic-port drift, and artifact-promotion lifecycle regression.");
+    return createPassResult("Forensics negative-proof harness rejects runtime-dir relapse, structured-log write-boundary loss, structured-log bus unwiring, legacy contract leakage, chain-field removal, prompt/action ref weakening, proof removal, generic-port drift, and artifact-promotion lifecycle regression.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Forensics negative-proof harness failed.",

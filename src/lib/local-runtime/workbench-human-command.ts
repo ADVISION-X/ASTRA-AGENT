@@ -1,5 +1,9 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
-import { recordMissionActivationSnapshotFrozen, recordOrchestrationStartReceived } from "./workbench-human-command-debug-events.js";
+import {
+  recordCommandAccepted,
+  recordMissionActivationSnapshotFrozen,
+  recordOrchestrationStartReceived,
+} from "./workbench-human-command-debug-events.js";
 import {
   buildMirroredEnvelopeBase,
   buildPayloadDocument,
@@ -121,6 +125,18 @@ const handleStartMission = async (
   const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef);
   const taskTemplateId = payloadValueToString(payload.taskTemplateId);
   await recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId });
+  await recordMissionActivationSnapshotFrozen(runtime, {
+    envelope,
+    selectedMapId: parsedSelectedMapId,
+    taskTemplateId,
+    activationSnapshotRef,
+  });
+  await recordCommandAccepted(runtime, {
+    envelope,
+    selectedMapId: parsedSelectedMapId,
+    taskTemplateId,
+    activationSnapshotRef,
+  });
   const missionState = await runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     runId: envelope.runId,
@@ -133,7 +149,6 @@ const handleStartMission = async (
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
-  await recordMissionActivationSnapshotFrozen(runtime, { envelope, missionState, selectedMapId: parsedSelectedMapId, taskTemplateId, activationSnapshotRef });
   const status = resolveMissionCommandStatus(missionState.status);
   const failureReason = missionState.failureReason ?? missionState.reviewRequiredReason ?? null;
   return buildHumanCommandResultEnvelope({

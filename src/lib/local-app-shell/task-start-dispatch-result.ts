@@ -52,30 +52,6 @@ const buildDispatchResultContext = (result: StartCommandResult): DispatchResultC
   };
 };
 
-const recordAcceptedDispatch = async (input: {
-  activeWorkbench: GrassEyeWorkbenchHandle;
-  approval: StartApproval;
-  result: StartCommandResult;
-  context: DispatchResultContext;
-}) => {
-  await input.activeWorkbench.recordCommanderDebugEvent({
-    eventType: "COMMAND_ACCEPTED",
-    status: "success",
-    traceId: input.approval.traceId,
-    spanId: "command-accepted",
-    attemptId: input.approval.attemptId,
-    missionId: input.context.targetMissionId,
-    mapId: input.approval.binding.selectedMapId,
-    taskTemplateId: input.approval.binding.taskTemplateId,
-    reason: input.context.resultMessage,
-    actionableMessage: "Mission dispatch succeeded. Monitor the mission page and runtime proof timeline.",
-    ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
-    runId: input.result.runtimeProof?.runId ?? input.approval.traceId,
-    refs: input.context.refs,
-    proofRefs: input.context.proofRefs,
-  });
-};
-
 const recordRejectedDispatch = async (input: {
   activeWorkbench: GrassEyeWorkbenchHandle;
   approval: StartApproval;
@@ -102,6 +78,11 @@ const recordRejectedDispatch = async (input: {
   });
 };
 
+const wasAcceptedBeforeResult = (result: StartCommandResult): boolean => {
+  const proof = result.runtimeProof;
+  return Boolean(proof?.commandEnvelopeRef && proof?.resultEnvelopeRef);
+};
+
 export async function writeTaskStartDispatchResult(
   response: ServerResponse,
   activeWorkbench: GrassEyeWorkbenchHandle,
@@ -110,11 +91,12 @@ export async function writeTaskStartDispatchResult(
 ) {
   const context = buildDispatchResultContext(result);
   if (result.status === "success") {
-    await recordAcceptedDispatch({ activeWorkbench, approval, result, context });
     writeTaskJsonResponse(response, 200, result);
     return;
   }
 
-  await recordRejectedDispatch({ activeWorkbench, approval, result, context });
+  if (!wasAcceptedBeforeResult(result)) {
+    await recordRejectedDispatch({ activeWorkbench, approval, result, context });
+  }
   writeTaskJsonResponse(response, 409, { ...result, traceId: approval.traceId, attemptId: approval.attemptId });
 }

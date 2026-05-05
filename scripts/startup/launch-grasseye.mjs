@@ -203,6 +203,10 @@ function logStartupReady() {
   logEvent("RUNTIME", "startup_entrypoint", "waiting_for_human_command", "ready", `waiting for human command at ${baseUrl}`);
 }
 
+function isControlledServiceExit(exit, shuttingDown) {
+  return shuttingDown || exit.signal === "SIGTERM" || exit.code === 143;
+}
+
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
@@ -268,7 +272,7 @@ async function main() {
   try {
     serviceHandle = await performLaunch(flags, rootDir);
     const exit = await serviceHandle.waitForExit();
-    if (!shuttingDown) {
+    if (!isControlledServiceExit(exit, shuttingDown)) {
       logFail("SERVICE", "app_server", "SERVICE_UNEXPECTED_EXIT", "failed", "local service exited unexpectedly", {
         failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
       });
@@ -276,6 +280,10 @@ async function main() {
         failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
       });
       process.exitCode = exit.code ?? 1;
+    } else if (!shuttingDown) {
+      logPass("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "passed", "classified local service exit as controlled shutdown", {
+        refs: [exit.signal ? `signal=${exit.signal}` : `code=${exit.code ?? "unknown"}`],
+      });
     }
     return;
   } catch (error) {

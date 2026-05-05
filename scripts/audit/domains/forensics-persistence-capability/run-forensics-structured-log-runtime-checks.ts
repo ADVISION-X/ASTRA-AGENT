@@ -9,6 +9,7 @@ import { getSourceFileOrThrow, hasPropertyAccessPath } from "../_shared/ast-help
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
 
 const {
+  ABILITY_GROUP_PATH,
   AI_DEBUG_RECORDER_PATH,
   AI_RUNTIME_ADAPTER_PATH,
   COMMAND_HANDLER_PATH,
@@ -22,7 +23,9 @@ const {
   TERMINAL_STRUCTURED_LOG_PATH,
   STRUCTURED_LOG_PAYLOAD_PATH,
   STATUS_PATH,
+  WORKBENCH_PATH,
 } = forensicsPersistenceInspectionConstants;
+const WRITE_BOUNDARY_EVENTS_PATH = "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts";
 
 const getStartupSource = (project: import("ts-morph").Project) => {
   const startupPath = pathFromRepoRoot(STARTUP_ENTRYPOINT_PATH);
@@ -88,6 +91,26 @@ const collectTerminalRelayFinding = (project: import("ts-morph").Project): Findi
     : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for blocking command events." })];
 };
 
+const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Project): Finding[] => {
+  const boundarySource = getSourceFileOrThrow(project, WRITE_BOUNDARY_EVENTS_PATH);
+  const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
+  const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
+  const boundaryText = boundarySource.getFullText();
+  const abilityGroupText = abilityGroupSource.getFullText();
+  const workbenchText = workbenchSource.getFullText();
+  const hasBoundaryEvents = hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITE_REQUESTED")
+    && hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITTEN");
+  const hasBoundaryEmitCalls = boundaryText.includes('buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started"')
+    && boundaryText.includes('buildBoundaryEvent(\n      request,\n      "FORENSICS_RECORD_WRITTEN",\n      "success"');
+  const hasAbilityGroupBoundaryWiring = abilityGroupText.includes("emitForensicsRecordWriteRequested")
+    && abilityGroupText.includes("emitForensicsRecordWritten");
+  const hasWorkbenchBoundaryWiring = workbenchText.includes("structuredLogBus,");
+
+  return hasBoundaryEvents && hasBoundaryEmitCalls && hasAbilityGroupBoundaryWiring && hasWorkbenchBoundaryWiring && boundaryText.includes("recordType=")
+    ? []
+    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: WRITE_BOUNDARY_EVENTS_PATH, line: 1, severity: "fatal", message: "Forensics structured log writes must emit explicit FORENSICS_RECORD_WRITE_REQUESTED/WRITTEN events through the public ability-group wrapper and structured log bus." })];
+};
+
 const hasStartupHealthSignals = (startupSource: import("ts-morph").SourceFile): boolean => {
   return hasStringLiteral(startupSource, "APP_SHELL_HEALTH_CHECK_STARTED")
     && hasStringLiteral(startupSource, "APP_SHELL_HEALTH_PASSED")
@@ -127,6 +150,7 @@ export function runForensicsStructuredLogRuntimeChecks(project: import("ts-morph
     ...collectAiRuntimeWiringFindings(project),
     ...collectCommandFlowFinding(project),
     ...collectTerminalRelayFinding(project),
+    ...collectForensicsWriteBoundaryFinding(project),
     ...collectHealthFinding(project),
     ...collectExitFinding(project),
   ];

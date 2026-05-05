@@ -8,9 +8,12 @@ import { runCommanderBoundaryChecks } from "./run-commander-boundary-checks.js";
 import { runCommanderChildChecks } from "./run-commander-child-checks.js";
 import { runCommanderRuntimeChecks } from "./run-commander-runtime-checks.js";
 import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-checks.js";
+import { runStartupExitClassificationChecks } from "./startup-exit-classification-checks.js";
+import { runStartupExitNegativeProof } from "./startup-exit-negative-proof.js";
 import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
+const SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF";
 
 const createRequiredPhase = (findings: Finding[]): InspectorPhase =>
   createPhase(
@@ -69,6 +72,16 @@ const createStartupGatePhase = (startupGateViolation: boolean): InspectorPhase =
       : "Startup local-AI readiness gate remains enforced through Commander owner audit.",
   );
 
+const createStartupExitPhase = (startupExitViolation: boolean): InspectorPhase =>
+  createPhase(
+    "commander-startup-exit-classification",
+    startupExitViolation ? "CODE VIOLATION" : "PASS",
+    !startupExitViolation,
+    startupExitViolation
+      ? "Startup exit classification drifted and can still mislabel controlled shutdown as failure."
+      : "Startup exit classification remains governed and rejects controlled-shutdown regressions.",
+  );
+
 function createCommanderPhases(input: {
   findings: Finding[];
   exportStarPresent: boolean;
@@ -78,6 +91,7 @@ function createCommanderPhases(input: {
   boundaryViolation: boolean;
   antiEscapeViolation: boolean;
   startupGateViolation: boolean;
+  startupExitViolation: boolean;
 }): InspectorPhase[] {
   return [
     createRequiredPhase(input.findings),
@@ -85,6 +99,7 @@ function createCommanderPhases(input: {
     createBoundaryPhase(input.boundaryViolation),
     createAntiEscapePhase(input.antiEscapeViolation),
     createStartupGatePhase(input.startupGateViolation),
+    createStartupExitPhase(input.startupExitViolation),
   ];
 }
 
@@ -102,8 +117,30 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
     const childFindings = runCommanderChildChecks(project);
     const runtime = runCommanderRuntimeChecks(project);
     const boundary = await runCommanderBoundaryChecks(project);
-    const startupGateFindings = await runStartupReadinessGateChecks();
-    const findings: Finding[] = [...structure.findings, ...childFindings, ...runtime.findings, ...boundary.findings, ...startupGateFindings];
+    const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
+      runStartupReadinessGateChecks(),
+      runStartupExitClassificationChecks(),
+      process.env[SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV] === "1"
+        ? Promise.resolve({
+            findings: [],
+            phase: {
+              name: "startup-exit-negative-proof",
+              classification: "PASS" as const,
+              passed: true,
+              summary: "Startup exit negative proof was skipped for nested inspector execution.",
+            },
+          })
+        : runStartupExitNegativeProof(),
+    ]);
+    const findings: Finding[] = [
+      ...structure.findings,
+      ...childFindings,
+      ...runtime.findings,
+      ...boundary.findings,
+      ...startupGateFindings,
+      ...startupExitChecks.findings,
+      ...startupExitNegativeProof.findings,
+    ];
 
     return {
       findings,
@@ -116,6 +153,7 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
         boundaryViolation: boundary.boundaryViolation,
         antiEscapeViolation: boundary.antiEscapeViolation,
         startupGateViolation: startupGateFindings.length > 0,
+        startupExitViolation: startupExitChecks.findings.length > 0 || startupExitNegativeProof.findings.length > 0,
       }),
     };
   },

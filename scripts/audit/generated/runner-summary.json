@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T07:23:54.767Z",
+  "generatedAt": "2026-05-05T11:36:44.535Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -2639,6 +2639,27 @@
           "message": "Function writeStaticClauseCoverageProof exceeds code-purity function limits."
         },
         {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/commander-console-capability/inspector.ts",
+          "line": 114,
+          "severity": "error",
+          "message": "Function commanderConsoleCapabilityInspector exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "line": 294,
+          "severity": "error",
+          "message": "Function runCommanderRuntimeChecks exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/commander-console-capability/startup-exit-negative-proof.ts",
+          "line": 39,
+          "severity": "error",
+          "message": "Function runStartupExitNegativeProof exceeds code-purity function limits."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
           "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
           "line": 1,
@@ -2662,26 +2683,12 @@
           "detail": "357"
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
-        },
-        {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
           "file": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
           "line": 1,
           "severity": "error",
           "message": "File exceeds the audit phase hard limit of 350 lines.",
           "detail": "530"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -2763,38 +2770,16 @@
           "message": "Function buildMapAuthoringRefs exceeds code-purity function limits."
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-          "line": 1,
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+          "line": 39,
           "severity": "error",
-          "message": "File exceeds the orchestration coordinator hard limit of 300 lines.",
-          "detail": "451"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+          "message": "Function buildBoundaryEvent exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-          "line": 128,
-          "severity": "error",
-          "message": "Function recordPreconditionCheck exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-          "line": 207,
-          "severity": "error",
-          "message": "Function recordStepResult exceeds code-purity function limits."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-          "line": 359,
+          "line": 159,
           "severity": "error",
           "message": "Function runMissionLoopIteration exceeds code-purity function limits."
         },
@@ -2804,6 +2789,28 @@
           "line": 1,
           "severity": "error",
           "message": "Import or export structure exceeds code-purity limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the orchestration coordinator hard limit of 300 lines.",
+          "detail": "306"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
+          "line": 93,
+          "severity": "error",
+          "message": "Function recordPreconditionCheck exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
+          "line": 210,
+          "severity": "error",
+          "message": "Function recordStepResult exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -2819,13 +2826,6 @@
           "severity": "error",
           "message": "File exceeds the orchestration coordinator hard limit of 300 lines.",
           "detail": "316"
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -3034,7 +3034,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1872 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1877 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -3044,9 +3044,9 @@
         },
         {
           "name": "touched-file-rule",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Touched active files still exceed their hard limits."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Touched active files stay within hard limits."
         },
         {
           "name": "function-shape-limits",

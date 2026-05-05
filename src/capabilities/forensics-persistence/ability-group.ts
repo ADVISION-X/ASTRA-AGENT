@@ -12,14 +12,34 @@ import {
   type ForensicsStructuredActionLogInput,
   type ForensicsStructuredRuntimeEventInput,
 } from "./contract.js";
+import {
+  emitForensicsRecordWriteRequested,
+  emitForensicsRecordWritten,
+  type ForensicsRuntimeEventEmitter,
+} from "./shared/forensics-write-boundary-events.js";
 import { createForensicsExecutionContext, type CreateForensicsExecutionContextInput } from "./runtime/create-forensics-execution-context.js";
 import { buildUnknownForensicsChildResult } from "./shared/forensics-unknown-child-result.js";
 
-type CreateForensicsPersistenceAbilityGroupInput = CreateForensicsExecutionContextInput;
+type CreateForensicsPersistenceAbilityGroupInput = CreateForensicsExecutionContextInput & {
+  structuredLogBus?: ForensicsRuntimeEventEmitter;
+};
 
-const createForensicsChildWriters = (execute: ForensicsPersistenceAbilityGroup["execute"]) => ({
-  writeStructuredRuntimeEvent: (request: ForensicsStructuredRuntimeEventInput) => execute(request),
-  writeStructuredActionLog: (request: ForensicsStructuredActionLogInput) => execute(request),
+const createStructuredWriteWrapper = (
+  execute: ForensicsPersistenceAbilityGroup["execute"],
+  structuredLogBus: ForensicsRuntimeEventEmitter | undefined,
+) => async (request: ForensicsStructuredRuntimeEventInput | ForensicsStructuredActionLogInput) => {
+  emitForensicsRecordWriteRequested(structuredLogBus, request);
+  const result = await execute(request);
+  emitForensicsRecordWritten(structuredLogBus, request, result);
+  return result;
+};
+
+const createForensicsChildWriters = (
+  execute: ForensicsPersistenceAbilityGroup["execute"],
+  structuredLogBus: ForensicsRuntimeEventEmitter | undefined,
+) => ({
+  writeStructuredRuntimeEvent: createStructuredWriteWrapper(execute, structuredLogBus) as (request: ForensicsStructuredRuntimeEventInput) => ReturnType<ForensicsPersistenceAbilityGroup["execute"]>,
+  writeStructuredActionLog: createStructuredWriteWrapper(execute, structuredLogBus) as (request: ForensicsStructuredActionLogInput) => ReturnType<ForensicsPersistenceAbilityGroup["execute"]>,
   writeImageEvidence: (request: ForensicsImageEvidenceInput) => execute(request),
   writeOcrEvidence: (request: ForensicsOcrEvidenceInput) => execute(request),
   writeAiResultRecord: (request: ForensicsAiResultRecordInput) => execute(request),
@@ -47,6 +67,6 @@ export function createForensicsPersistenceAbilityGroup(input: CreateForensicsPer
       return [...registry.keys()];
     },
     execute,
-    ...createForensicsChildWriters(execute),
+    ...createForensicsChildWriters(execute, input.structuredLogBus),
   };
 }

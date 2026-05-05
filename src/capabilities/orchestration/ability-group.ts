@@ -1,5 +1,10 @@
 import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
+import type {
+  ForensicsPersistenceAbilityResult,
+  ForensicsStructuredActionLogInput,
+  ForensicsStructuredRuntimeEventInput,
+} from "../forensics-persistence/contract.js";
 import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
@@ -8,8 +13,8 @@ import { getDefaultMapPluginRegistry, listActivePackages } from "./runtime/orche
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
 
 type OrchestrationForensicsSurface = {
-  writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
-  writeStructuredActionLog(input: unknown): Promise<unknown>;
+  writeStructuredRuntimeEvent(input: ForensicsStructuredRuntimeEventInput): Promise<ForensicsPersistenceAbilityResult>;
+  writeStructuredActionLog(input: ForensicsStructuredActionLogInput): Promise<ForensicsPersistenceAbilityResult>;
 };
 
 export type CreateOrchestrationAbilityGroupInput = {

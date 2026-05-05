@@ -12,6 +12,7 @@ export const createPersistenceRuntime = (
     forensicsPersistenceAbilityGroup: createForensicsPersistenceAbilityGroup({
       recordStorage: storage.recordStorage,
       artifactStorage: storage.artifactStorage,
+      structuredLogBus,
     }),
   };
 };

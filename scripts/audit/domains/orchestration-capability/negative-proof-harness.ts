@@ -41,6 +41,18 @@ const MUTATIONS: Mutation[] = [
     replace: "ORCHESTRATION_START_MISSING",
   },
   {
+    name: "activation snapshot early boundary removal mutation",
+    file: "src/lib/local-runtime/workbench-human-command.ts",
+    search: "  await recordMissionActivationSnapshotFrozen(runtime, {\n    envelope,\n    selectedMapId: parsedSelectedMapId,\n    taskTemplateId,\n    activationSnapshotRef,\n  });\n",
+    replace: "",
+  },
+  {
+    name: "command accepted early boundary removal mutation",
+    file: "src/lib/local-runtime/workbench-human-command.ts",
+    search: "  await recordCommandAccepted(runtime, {\n    envelope,\n    selectedMapId: parsedSelectedMapId,\n    taskTemplateId,\n    activationSnapshotRef,\n  });\n",
+    replace: "",
+  },
+  {
     name: "mission command schema preflight dry-run removal mutation",
     file: "src/lib/local-runtime/workbench-mission-command-preflight.ts",
     search: "}) => MissionCommandSchema.safeParse({",
@@ -72,9 +84,21 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "step transition runtime event removal mutation",
-    file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+    file: "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
     search: 'eventType: "STEP_TRANSITION_EVALUATED",',
     replace: 'eventType: "STEP_TRANSITION_SKIPPED",',
+  },
+  {
+    name: "round budget per-step mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
+    search: "  const nextRoundIndex = nextStatus === \"running\"\n    && nextStepId === input.map.initialStepId\n    && details.currentStepId !== input.map.initialStepId\n    ? input.state.currentRoundIndex + 1\n    : input.state.currentRoundIndex;\n",
+    replace: "  const nextRoundIndex = input.state.currentRoundIndex + 1;\n",
+  },
+  {
+    name: "post-action verification started event removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
+    search: '    eventType: "POST_ACTION_VERIFICATION_STARTED",',
+    replace: '    eventType: "POST_ACTION_VERIFICATION_SKIPPED",',
   },
   {
     name: "success proof ref closure removal mutation",
@@ -170,7 +194,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
+    return createPassResult("Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Orchestration negative-proof harness failed.",

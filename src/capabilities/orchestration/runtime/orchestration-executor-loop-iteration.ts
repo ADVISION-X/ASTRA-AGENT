@@ -9,9 +9,15 @@ import type { OrchestrationRuntimeContext } from "./orchestration-runtime-contex
 import { checkCanDispatchStep } from "./mission-state-policy-gate.js";
 import { buildTransitionSuccessProof } from "./orchestration-transition-success-proof.js";
 import {
-  recordMissionRuntimeEvent,
-  recordPostActionVerificationActionLog,
-} from "./orchestration-step-trace-recorder.js";
+  recordDispatchStarted,
+  recordPreconditionCheck,
+  recordStepDispatchFailure,
+  recordStepResult,
+  recordStepSelected,
+  recordTerminalOutcome,
+  recordTransitionEvaluation,
+} from "./orchestration-loop-iteration-events.js";
+import { recordPostActionVerificationActionLog } from "./orchestration-step-trace-recorder.js";
 import {
   buildDispatchGateFailureProof,
   buildLoopGuardFailureProof,
@@ -62,12 +68,6 @@ type MatchedTransitionRecord = {
   };
 };
 
-type StepDispatchFailureEvent = {
-  eventType: "CAPABILITY_CALL_FAILED" | "POST_ACTION_VERIFICATION_FAILED";
-  ownerResponsible: string;
-  reason: string;
-};
-
 function normalizeMatchedTransition(transition: Extract<ReturnType<typeof evaluateStepTransition>, { decision: "matched" }>['transition']): MatchedTransitionRecord {
   return {
     transitionId: transition.transitionId,
@@ -87,211 +87,6 @@ function createCurrentProofContext(input: RunMissionLoopIterationInput): Orchest
 
 function findOperationalStep(map: OperationalMap, stepId: string): OperationalStep | null {
   return map.steps.find((candidate) => candidate.stepId === stepId) ?? null;
-}
-
-function getTerminalEventType(status: MissionState["status"]): "MISSION_FAILED" | "MISSION_FINALIZED" | "MISSION_REVIEW_REQUIRED" | "MISSION_STOPPED" | null {
-  if (status === "failed") {
-    return "MISSION_FAILED";
-  }
-  if (status === "review_required") {
-    return "MISSION_REVIEW_REQUIRED";
-  }
-  if (status === "stopped") {
-    return "MISSION_STOPPED";
-  }
-  return status === "completed" ? "MISSION_FINALIZED" : null;
-}
-
-function collectLastResultRefs(lastResult: OrchestrationStepResultRecord): string[] {
-  return [
-    ...(lastResult.resultRef ? [lastResult.resultRef] : []),
-    ...(lastResult.outputRef ? [lastResult.outputRef] : []),
-  ];
-}
-
-async function recordStepSelected(input: RunMissionLoopIterationInput, step: OperationalStep, currentStepId: string): Promise<void> {
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: "MAP_STEP_SELECTED",
-    status: "success",
-    reason: `Orchestration selected governed step "${currentStepId}" from the frozen operational map.`,
-    actionableMessage: "Evaluate governed dispatch gates before sending the step through Nerve Bus.",
-    ownerResponsible: "Orchestration",
-    capabilityCallId: input.stepDispatchCallId,
-    refs: [currentStepId, step.stepKind, step.targetAbilityGroupId ?? "no-target"],
-  });
-}
-
-async function recordPreconditionCheck(input: RunMissionLoopIterationInput, step: OperationalStep, status: "success" | "failed", reason: string, failureReason?: string): Promise<void> {
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: "STEP_PRECONDITION_CHECKED",
-    status,
-    reason,
-    failureReason: failureReason ?? null,
-    actionableMessage: status === "success" ? "Dispatch the governed step through Nerve Bus." : "Repair the blocking step gate before retrying this mission step.",
-    ownerResponsible: "Orchestration",
-    capabilityCallId: input.stepDispatchCallId,
-  });
-}
-
-async function recordDispatchStarted(input: RunMissionLoopIterationInput, step: OperationalStep): Promise<void> {
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: "STEP_DISPATCH_STARTED",
-    status: "started",
-    reason: `Dispatching step "${step.stepId}" to ability group "${step.targetAbilityGroupId ?? "orchestration"}".`,
-    actionableMessage: "Wait for the governed step result before evaluating transitions.",
-    ownerResponsible: "Orchestration / Nerve Bus",
-    capabilityCallId: input.stepDispatchCallId,
-  });
-}
-
-function buildStepDispatchFailureEvent(step: OperationalStep, failureReason: string): StepDispatchFailureEvent {
-  if (step.targetAbilityGroupId === "post-action-verification") {
-    return {
-      eventType: "POST_ACTION_VERIFICATION_FAILED",
-      ownerResponsible: "Orchestration / Post-action Verification",
-      reason: `Post-action verification step "${step.stepId}" failed before a governed result was returned.`,
-    };
-  }
-
-  return {
-    eventType: "CAPABILITY_CALL_FAILED",
-    ownerResponsible: `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
-    reason: `Governed ability call for step "${step.stepId}" failed before transition evaluation.`,
-  };
-}
-
-async function recordStepDispatchFailure(input: RunMissionLoopIterationInput, step: OperationalStep, failureReason: string, proofId: string): Promise<void> {
-  const failureEvent = buildStepDispatchFailureEvent(step, failureReason);
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: failureEvent.eventType,
-    status: "failed",
-    reason: failureEvent.reason,
-    failureReason,
-    actionableMessage: "Inspect the step dispatch failure and runtime proof before retrying this mission.",
-    ownerResponsible: failureEvent.ownerResponsible,
-    capabilityCallId: input.stepDispatchCallId,
-    proofRefs: [proofId],
-  });
-}
-
-function buildCapabilityEventType(step: OperationalStep, status: OrchestrationStepResultRecord["status"]) {
-  if (step.targetAbilityGroupId === "post-action-verification") {
-    if (status === "review_required") {
-      return "POST_ACTION_VERIFICATION_REVIEW_REQUIRED" as const;
-    }
-    return status === "success" ? "POST_ACTION_VERIFICATION_PASSED" : "POST_ACTION_VERIFICATION_FAILED";
-  }
-
-  if (status === "review_required") {
-    return "CAPABILITY_CALL_REVIEW_REQUIRED" as const;
-  }
-  return status === "success" ? "CAPABILITY_CALL_COMPLETED" : "CAPABILITY_CALL_FAILED";
-}
-
-async function recordStepResult(
-  input: RunMissionLoopIterationInput,
-  step: OperationalStep,
-  lastResult: OrchestrationStepResultRecord,
-  durationMs: number,
-  actionLog: PostActionVerificationActionLogRecord,
-): Promise<void> {
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: buildCapabilityEventType(step, lastResult.status),
-    status: lastResult.status,
-    reason: `Governed step "${step.stepId}" returned status "${lastResult.status}".`,
-    failureReason: lastResult.failureReason ?? null,
-    reviewRequiredReason: lastResult.reviewRequiredReason ?? null,
-    actionableMessage: lastResult.status === "success" ? "Evaluate the declared transition for this step result." : "Inspect the blocking step result and runtime proof before retrying.",
-    ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
-      ? "Orchestration / Post-action Verification"
-      : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
-    durationMs,
-    capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
-    outputRefs: collectLastResultRefs(lastResult),
-    actionLogRefs: actionLog ? [actionLog.actionLogId] : [],
-    actionRef: actionLog?.actionRef ?? null,
-    postActionVerificationRef: actionLog?.postActionVerificationRef ?? null,
-  });
-}
-
-async function recordTransitionEvaluation(
-  input: RunMissionLoopIterationInput,
-  step: OperationalStep,
-  details: {
-    status: "success" | "failed";
-    decision: string;
-    reason: string;
-    failureReason?: string | null;
-    proofId: string;
-    capabilityCallId: string | null;
-  },
-): Promise<void> {
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: "STEP_TRANSITION_EVALUATED",
-    status: details.status,
-    reason: details.reason,
-    failureReason: details.failureReason ?? null,
-    actionableMessage: details.status === "success" ? "Continue the governed mission loop using the matched transition." : "Repair the transition failure before retrying this mission.",
-    ownerResponsible: "Orchestration",
-    decision: details.decision,
-    capabilityCallId: details.capabilityCallId,
-    proofRefs: [details.proofId],
-  });
-}
-
-async function recordTerminalOutcome(
-  input: RunMissionLoopIterationInput,
-  step: OperationalStep,
-  outcome: MissionLoopIterationOutcome,
-): Promise<void> {
-  const eventType = getTerminalEventType(outcome.state.status);
-  if (!eventType || !outcome.lastProof) {
-    return;
-  }
-
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: outcome.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType,
-    status: outcome.state.status === "review_required" ? "review_required" : outcome.state.status === "failed" ? "failed" : "success",
-    reason: `Mission reached terminal status "${outcome.state.status}" after step "${step.stepId}".`,
-    failureReason: outcome.state.failureReason ?? null,
-    reviewRequiredReason: outcome.state.reviewRequiredReason ?? null,
-    actionableMessage: outcome.state.status === "failed"
-      ? "Inspect the mission runtime proof and blocking step outcome before retrying."
-      : outcome.state.status === "review_required"
-        ? "Open Commander review flow and resolve the governed review requirement."
-        : "Read the mission proof timeline and persisted records for the completed mission.",
-    ownerResponsible: "Orchestration",
-    capabilityCallId: outcome.lastResult?.envelopeId ?? input.stepDispatchCallId,
-    proofRefs: [outcome.lastProof.proofId],
-  });
 }
 
 async function persistOutcome(input: RunMissionLoopIterationInput, details: { state: MissionState; lastResult: OrchestrationStepResultRecord | null; lastProof: RuntimeProofRecord | null; result: MissionExecutionResult | null; }): Promise<MissionLoopIterationOutcome> {
@@ -339,7 +134,12 @@ async function buildTransitionFailureOutcome(input: RunMissionLoopIterationInput
 function buildTransitionSuccessState(input: RunMissionLoopIterationInput, details: { currentStepId: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; nextHopCount: number; }): MissionState {
   const nextStatus = details.transition.finalStatus;
   const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
-  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: input.state.currentRoundIndex + 1, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
+  const nextRoundIndex = nextStatus === "running"
+    && nextStepId === input.map.initialStepId
+    && details.currentStepId !== input.map.initialStepId
+    ? input.state.currentRoundIndex + 1
+    : input.state.currentRoundIndex;
+  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
 }
 
 async function buildTransitionSuccessOutcome(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): Promise<MissionLoopIterationOutcome> {

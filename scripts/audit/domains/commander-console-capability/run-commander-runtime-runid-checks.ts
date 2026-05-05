@@ -12,6 +12,7 @@ const {
   TRANSPORT_SEMANTIC_GATE_PATH,
   WORKBENCH_COMMANDER_DEBUG_PATH,
 } = commanderConsoleInspectionConstants;
+const WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH = "src/lib/local-runtime/workbench-human-command-debug-events.ts";
 
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
 
@@ -77,17 +78,22 @@ const hasTaskStartDispatchRefs = (sourceFile: import("ts-morph").SourceFile): bo
     ...sourceFile.getFunctions().map((declaration) => declaration.getName()).filter((name): name is string => Boolean(name)),
     ...sourceFile.getVariableDeclarations().map((declaration) => declaration.getName()),
   ]);
-  const dispatchResultCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isPropertyAccessExpression(expression) && expression.getName() === "recordCommanderDebugEvent";
-  });
-  const callsCarryRefs = dispatchResultCalls.some((callExpression) =>
+  const rejectedDispatchBody = getVariableFunctionBody(sourceFile, "recordRejectedDispatch");
+  const callsCarryRefs = rejectedDispatchBody?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) =>
     ["refs", "proofRefs", "runId"].every((propertyName) =>
       callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName)
       || callExpression.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment).some((property) => property.getName() === propertyName),
     ),
-  );
+  ) ?? false;
   return functionNames.has("collectDispatchResultRefs") && functionNames.has("collectDispatchProofRefs") && callsCarryRefs;
+};
+
+const hasEarlyAcceptedBoundaryRefs = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const body = getVariableFunctionBody(sourceFile, "recordCommandAccepted");
+  const bodyText = body?.getText() ?? "";
+  return bodyText.includes("COMMAND_ACCEPTED")
+    && bodyText.includes("resultEnvelopeRef=")
+    && bodyText.includes("activationSnapshotRef=");
 };
 
 export const collectTransportRunIdFindings = (input: {
@@ -127,13 +133,17 @@ export const collectRuntimeProofRunIdFindings = (sourceFile: import("ts-morph").
 export const collectDebugRefFindings = (input: {
   workbenchDebugSource: import("ts-morph").SourceFile;
   taskStartSupportSource: import("ts-morph").SourceFile;
+  acceptedBoundarySource: import("ts-morph").SourceFile;
 }): Finding[] => {
   const findings: Finding[] = [];
   if (!hasDebugRefsPassthrough(input.workbenchDebugSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_COMMANDER_DEBUG_PATH, "Commander debug event builder must preserve refs/proofRefs/inputRefs/outputRefs/artifactRefs from dispatch results."));
   }
   if (!hasTaskStartDispatchRefs(input.taskStartSupportSource)) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task start dispatch result must publish commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef through COMMAND_ACCEPTED/COMMAND_REJECTED refs and proofRefs."));
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task start dispatch result must keep commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef refs on the late COMMAND_REJECTED path."));
+  }
+  if (!hasEarlyAcceptedBoundaryRefs(input.acceptedBoundarySource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH, "Early COMMAND_ACCEPTED boundary event must publish resultEnvelopeRef and activationSnapshotRef before the awaited mission execution completes."));
   }
   return findings;
 };

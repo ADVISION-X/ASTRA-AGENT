@@ -8,10 +8,15 @@ import type { OrchestrationMapStorePort } from "./ports/orchestration-map-store-
 import type { OrchestrationNerveBusPort } from "./ports/orchestration-nerve-bus-port.js";
 import type { OrchestrationStatePort } from "./ports/orchestration-state-port.js";
 import type { OrchestrationAbilityGroupId, OrchestrationChildCapabilityId } from "./contract.js";
+import type {
+  ForensicsPersistenceAbilityResult,
+  ForensicsStructuredActionLogInput,
+  ForensicsStructuredRuntimeEventInput,
+} from "../forensics-persistence/contract.js";
 
 export type OrchestrationForensicsPort = {
-  writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
-  writeStructuredActionLog(input: unknown): Promise<unknown>;
+  writeStructuredRuntimeEvent(input: ForensicsStructuredRuntimeEventInput): Promise<ForensicsPersistenceAbilityResult>;
+  writeStructuredActionLog(input: ForensicsStructuredActionLogInput): Promise<ForensicsPersistenceAbilityResult>;
 };
 
 export type OrchestrationRuntimeContext = {

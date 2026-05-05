@@ -313,6 +313,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
   const readProofGateSource = getSourceFileOrThrow(project, READ_PROOF_GATE_PATH);
   const workbenchDebugSource = getSourceFileOrThrow(project, WORKBENCH_COMMANDER_DEBUG_PATH);
   const taskStartSupportSource = getSourceFileOrThrow(project, TASK_START_DISPATCH_RESULT_PATH);
+  const acceptedBoundarySource = getSourceFileOrThrow(project, "src/lib/local-runtime/workbench-human-command-debug-events.ts");
 
   const gateResult = collectGateFindings({ commandGateSource, commandPayloadSource, readGateSource, transportSchemaSource });
   const childExecutorResult = collectChildExecutorFindings(childExecutorsSource);
@@ -324,7 +325,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
 	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource }),
 	      ...collectTransportRunIdFindings({ transportSchemaSource, transportSemanticGateSource, commandOutcomesSource }),
       ...collectRuntimeProofRunIdFindings(runtimeProofSchemaSource),
-      ...collectDebugRefFindings({ workbenchDebugSource, taskStartSupportSource }),
+      ...collectDebugRefFindings({ workbenchDebugSource, taskStartSupportSource, acceptedBoundarySource }),
       ...collectReadRuntimeFindings(readChildExecutorSource),
       ...collectExecutorSurfaceFindings({ executorSource, resultBuilderSource }),
       ...collectProofAndBoundaryFindings({ proofBuilderSource, dispatchFailureSource, boundaryPolicySource }),

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T07:27:04.839Z",
+  "generatedAt": "2026-05-05T11:52:12.849Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -4311,6 +4311,13 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "mission-loop-event-semantics-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "runtime-proof"
+        },
         {
           "checkPhase": "start-mission-boundary-checks",
           "checkFunction": "createFatalFinding",
