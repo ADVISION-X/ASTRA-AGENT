@@ -61,8 +61,9 @@ function resolveScreenshotSourceHandoffFields(result: WorkbenchAbilityExecutionR
 }
 
 function resolveScreenshotSourceIdentity(input: { output: JsonObject; artifactRef: JsonObject }) {
-  const sourceStorageRef = readString(input.artifactRef, "storageRef");
-  const sourceHash = readString(input.artifactRef, "sha256");
+  const artifactRef = input.artifactRef;
+  const sourceStorageRef = readString(artifactRef, "storageRef");
+  const sourceHash = readString(artifactRef, "sha256");
   const coordinateSpace = readString(input.output, "coordinateSpace");
   return sourceStorageRef && sourceHash && coordinateSpace
     ? { sourceStorageRef, sourceHash, coordinateSpace }
@@ -81,11 +82,12 @@ function buildScreenshotSourceHandoff(result: WorkbenchAbilityExecutionResult): 
   }
 
   const { sourceStorageRef, sourceHash, coordinateSpace } = identity;
+  const artifactRef = fields.artifactRef;
   return {
     kind: "stored_image",
     sourceStorageRef,
-    sourceArtifactRef: fields.artifactRef,
-    sourceProof: buildSourceProof({ output: fields.output, runtimeProof: fields.runtimeProof, artifactRef: fields.artifactRef, sourceStorageRef, sourceHash }),
+    sourceArtifactRef: artifactRef,
+    sourceProof: buildSourceProof({ output: fields.output, runtimeProof: fields.runtimeProof, artifactRef, sourceStorageRef, sourceHash }),
     coordinateSpace,
   };
 }

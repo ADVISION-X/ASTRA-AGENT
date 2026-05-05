@@ -1,10 +1,9 @@
 {
-  "generatedAt": "2026-05-05T19:41:54.090Z",
+  "generatedAt": "2026-05-05T20:32:55.463Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/audit-coverage-governance/coverage-matrix-builder.ts",
-    "scripts/audit/domains/audit-coverage-governance/enforcement-strength-classifier.ts",
-    "scripts/audit/domains/debug-loop-boundary/inspector.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
+    "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
     "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-coverage-summary.generated.json",
@@ -19,8 +18,16 @@
     "scripts/audit/generated/negative-proof-coverage.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/uncovered-requirements.generated.json",
+    "scripts/startup/launch-grasseye.mjs",
+    "src/capabilities/forensics-persistence/ability-group.ts",
+    "src/capabilities/forensics-persistence/runtime/create-forensics-execution-context.ts",
+    "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    "src/lib/local-app-shell/task-start-flow.ts",
+    "src/lib/local-app-shell/task-start-support.ts",
     "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
-    "src/map-plugins/authoring/map-authoring-template.ts"
+    "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
+    "src/lib/local-runtime/workbench-screenshot-source-handoff.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -260,7 +267,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2305,
+      "lines": 2242,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -379,21 +386,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
-      "lines": 154,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json",
       "lines": 1586,
       "fileType": "generated artifact",
@@ -483,21 +475,6 @@
       "importCount": 9,
       "crossOwnerImports": 3,
       "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
-      "lines": 154,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -681,24 +658,6 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-      "lines": 245,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "hasBoundaryEmitterAbilityGroupWiring",
-        "collectForensicsWriteBoundaryFinding"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/map-plugin-package/authoring-input-package.ts",
       "lines": 412,
       "fileType": "audit phase",
@@ -717,33 +676,15 @@
     },
     {
       "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-      "lines": 165,
+      "lines": 189,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "inspectIphoneMirroringMapBoundary"
+        "collectIphoneMirroringRecordFindings"
       ],
       "classMembers": 0,
       "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-      "lines": 250,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "runInspector",
-        "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts:94"
-      ],
-      "classMembers": 0,
-      "importCount": 11,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -927,23 +868,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
-      "lines": 139,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildBoundaryEvent"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/open/runtime/local-program-completion.ts",
       "lines": 41,
       "fileType": "runtime/implementation",
@@ -1096,23 +1020,6 @@
       "importCount": 4,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
-      "lines": 113,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildMapAuthoringAiRequest"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -1350,7 +1257,7 @@
     },
     {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2305,
+      "lines": 2242,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1422,21 +1329,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
-      "lines": 154,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/ability-group.ts",
@@ -1790,24 +1682,6 @@
       "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
-      "lines": 250,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "proof-builder",
-      "functionsOverLimit": [
-        "runInspector",
-        "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts:94"
-      ],
-      "classMembers": 0,
-      "importCount": 11,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/capabilities/open/schema-proof-refinements.ts",
       "lines": 246,
       "fileType": "ordinary implementation",
@@ -1823,24 +1697,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-      "lines": 245,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "hasBoundaryEmitterAbilityGroupWiring",
-        "collectForensicsWriteBoundaryFinding"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
@@ -1964,6 +1820,23 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
+      "lines": 189,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "collectIphoneMirroringRecordFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/open/schema-runtime.ts",
       "lines": 178,
       "fileType": "ordinary implementation",
@@ -2010,23 +1883,6 @@
       "importCount": 3,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-      "lines": 165,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "inspectIphoneMirroringMapBoundary"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
@@ -2100,23 +1956,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
-      "lines": 139,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildBoundaryEvent"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/open-capability/run-open-boundary-checks.ts",
@@ -2203,23 +2042,6 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
-      "lines": 113,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "buildMapAuthoringAiRequest"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/audit-system/write-static-clause-coverage-proof.ts",

@@ -90,6 +90,40 @@ const summarizeInspectorFailure = (result: InspectorRunResult): string => {
     .join(" | ");
 };
 
+const buildInspectorEnv = () => ({
+  ...process.env,
+  [SKIP_NEGATIVE_PROOF_ENV]: "1",
+  NODE_DISABLE_COMPILE_CACHE: "1",
+  TSX_DISABLE_CACHE: "1",
+});
+
+function attachInspectorOutputCollectors(
+  child: ChildProcessByStdio<null, Readable, Readable>,
+  output: { stdout: string; stderr: string },
+) {
+  child.stdout.on("data", (chunk: Buffer | string) => {
+    output.stdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk: Buffer | string) => {
+    output.stderr += chunk.toString();
+  });
+}
+
+function resolveInspectorRunResult(code: number, output: { stdout: string; stderr: string }): InspectorRunResult {
+  const violationCount = output.stdout
+    .split("\n")
+    .filter((line) => line.startsWith("- "))
+    .length + (code !== 0 && output.stdout.length === 0 ? 1 : 0);
+
+  return {
+    passed: code === 0,
+    violationCount,
+    stdout: output.stdout,
+    stderr: output.stderr,
+    exitCode: code,
+  };
+}
+
 async function runInspector(): Promise<InspectorRunResult> {
   return await new Promise((resolve, reject) => {
     const child = spawn(
@@ -97,47 +131,25 @@ async function runInspector(): Promise<InspectorRunResult> {
       ["--import", "tsx", INSPECTOR_RUNNER],
       {
         cwd: pathFromRepoRoot("."),
-        env: {
-          ...process.env,
-          [SKIP_NEGATIVE_PROOF_ENV]: "1",
-          NODE_DISABLE_COMPILE_CACHE: "1",
-          TSX_DISABLE_CACHE: "1",
-        },
+        env: buildInspectorEnv(),
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
     activeInspectorChild = child;
 
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk: Buffer | string) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk: Buffer | string) => {
-      stderr += chunk.toString();
-    });
+    const output = { stdout: "", stderr: "" };
+    attachInspectorOutputCollectors(child, output);
     child.on("error", reject);
     child.on("close", (code) => {
       if (activeInspectorChild === child) {
         activeInspectorChild = null;
       }
       if (code === null) {
-        reject(new Error(`Inspector process exited without code. stderr: ${stderr}`));
+        reject(new Error(`Inspector process exited without code. stderr: ${output.stderr}`));
         return;
       }
 
-      const violationCount = stdout
-        .split("\n")
-        .filter((line) => line.startsWith("- "))
-        .length + (code !== 0 && stdout.length === 0 ? 1 : 0);
-
-      resolve({
-        passed: code === 0,
-        violationCount,
-        stdout,
-        stderr,
-        exitCode: code,
-      });
+      resolve(resolveInspectorRunResult(code, output));
     });
   });
 }

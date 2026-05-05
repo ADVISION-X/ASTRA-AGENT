@@ -41,9 +41,9 @@ function buildBoundaryEvent(
   eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN",
   status: "started" | "success",
   refs: string[],
-  proofRefs: string[] = [],
 ): StructuredRuntimeEvent {
   const payload = resolveStructuredWritePayload(request);
+  const writeRequested = eventType === "FORENSICS_RECORD_WRITE_REQUESTED";
 
   return StructuredRuntimeEventSchema.parse({
     eventId: `${request.capabilityCallId ?? request.childCapabilityId}:${eventType.toLowerCase()}:${Date.now()}`,
@@ -70,30 +70,40 @@ function buildBoundaryEvent(
     actionRef: payload.actionRef,
     postActionVerificationRef: payload.postActionVerificationRef,
     step: payload.step,
-    previousStep: null,
-    nextStep: null,
     status,
-    reason: eventType === "FORENSICS_RECORD_WRITE_REQUESTED"
+    reason: writeRequested
       ? `Forensics accepted ${request.recordType} write request from ${request.sourceAbilityGroupId}.`
       : `Forensics persisted ${request.recordType} for ${request.sourceAbilityGroupId}.`,
-    failureReason: null,
-    reviewRequiredReason: null,
-    actionableMessage: eventType === "FORENSICS_RECORD_WRITE_REQUESTED"
+    actionableMessage: writeRequested
       ? "Wait for Forensics persistence completion before treating the record as durable."
       : "Use the persisted record refs and runtime proof for downstream verification.",
     ownerResponsible: "Forensics Persistence",
-    decision: null,
     createdAt: new Date().toISOString(),
-    durationMs: null,
     refs,
+    proofRefs: [],
+    ...buildEmptyBoundaryEventFields(),
+  });
+}
+
+function withBoundaryProofRefs(event: StructuredRuntimeEvent, proofRefs: string[]): StructuredRuntimeEvent {
+  return StructuredRuntimeEventSchema.parse({ ...event, proofRefs });
+}
+
+function buildEmptyBoundaryEventFields() {
+  return {
+    previousStep: null,
+    nextStep: null,
+    failureReason: null,
+    reviewRequiredReason: null,
+    decision: null,
+    durationMs: null,
     inputRefs: [],
     outputRefs: [],
     evidenceRefs: [],
-    proofRefs,
     artifactRefs: [],
     actionLogRefs: [],
     dataQualityFlags: [],
-  });
+  };
 }
 
 export async function emitForensicsRecordWriteRequested(
@@ -118,21 +128,23 @@ export async function emitForensicsRecordWritten(
   request: StructuredWriteRequest,
   result: ForensicsPersistenceAbilityResult,
 ): Promise<void> {
-  if (!emitter || result.status !== "success") {
+  if (!emitter || result.status === "failed") {
     return;
   }
 
   await emitter.emitRuntimeEvent(
-    buildBoundaryEvent(
-      request,
-      "FORENSICS_RECORD_WRITTEN",
-      "success",
-      [
-        `recordType=${request.recordType}`,
-        `forensicsResultStatus=${result.status}`,
-        `recordRef=${result.recordRef.recordId}`,
-        `storageRef=${result.storageRef ?? "MISSING"}`,
-      ],
+    withBoundaryProofRefs(
+      buildBoundaryEvent(
+        request,
+        "FORENSICS_RECORD_WRITTEN",
+        "success",
+        [
+          `recordType=${request.recordType}`,
+          `forensicsResultStatus=${result.status}`,
+          `recordRef=${result.recordRef.recordId}`,
+          `storageRef=${result.storageRef ?? "MISSING"}`,
+        ],
+      ),
       result.runtimeProof?.proofId ? [result.runtimeProof.proofId] : [],
     ),
   );

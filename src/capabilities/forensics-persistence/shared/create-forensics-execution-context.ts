@@ -1,8 +1,8 @@
 import type { ForensicsArtifactStoragePort } from "../ports/forensics-artifact-storage-port.js";
 import type { ForensicsClockPort } from "../ports/forensics-clock-port.js";
 import type { ForensicsStoragePort } from "../ports/forensics-storage-port.js";
-import { createSystemForensicsClockPort } from "../shared/forensics-clock.js";
-import type { ForensicsExecutionContext } from "../shared/forensics-executor.js";
+import { createSystemForensicsClockPort } from "./forensics-clock.js";
+import type { ForensicsExecutionContext } from "./forensics-executor.js";
 
 export type CreateForensicsExecutionContextInput = {
   recordStorage: ForensicsStoragePort;

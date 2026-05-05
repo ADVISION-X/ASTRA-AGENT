@@ -5,7 +5,7 @@ import { assessDependencyState, installDependencies } from "./lib/dependency-che
 import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
-import { openCommanderConsole } from "./lib/open-commander-console.mjs";
+import { openReadyPage } from "./lib/commander-console-open-step.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
@@ -190,6 +190,22 @@ async function ensureStartupMapPackageReadiness() {
   return readiness;
 }
 
+function logMissionReadinessStarted() {
+  logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", "checking startup mission readiness after map and local AI gates");
+}
+
+function logMissionReadinessPassed(readiness) {
+  logPass("MISSION", "mission_readiness", "MISSION_READINESS_PASSED", "passed", "startup mission readiness gates passed", {
+    refs: getLocalAiRefs(readiness),
+  });
+}
+
+function logMissionReadinessDegraded(reason) {
+  logFail("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "failed", reason, {
+    failureReason: reason,
+  });
+}
+
 function markMissionRuntimeAvailable(readiness) {
   logPass("MISSION", "mission_runtime", "mission_runtime_available", "passed", "mission runtime is available after startup gate passed", {
     refs: getLocalAiRefs(readiness),
@@ -210,44 +226,23 @@ function isControlledServiceExit(exit, shuttingDown) {
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
-  await ensureStartupMapPackageReadiness();
-  const localAiReadiness = await ensureLocalAiReadiness();
+  logMissionReadinessStarted();
+  let localAiReadiness;
+  try {
+    await ensureStartupMapPackageReadiness();
+    localAiReadiness = await ensureLocalAiReadiness();
+    logMissionReadinessPassed(localAiReadiness);
+  } catch (error) {
+    logMissionReadinessDegraded(toFailureReason(error));
+    throw error;
+  }
   await preparePort();
   const serviceHandle = await startService(root, localAiReadiness);
   await verifyAppHealth(serviceHandle);
-  await openReadyPage(flags);
+  await openReadyPage({ flags, baseUrl, terminalLogger, logEvent, logPass, logFail, toFailureReason });
   markMissionRuntimeAvailable(localAiReadiness);
   logStartupReady();
   return serviceHandle;
-}
-
-async function openReadyPage(flags) {
-  if (flags.skipOpen) {
-    logEvent("COMMANDER", "commander_console", "open_console", "skipped", `automatic open skipped; commander console url=${baseUrl}`);
-    return;
-  }
-
-  const log = (message) => {
-    terminalLogger.event({
-      phase: "COMMANDER",
-      component: "commander_console",
-      eventType: "open_console_detail",
-      status: "event",
-      message,
-    });
-  };
-
-  try {
-    const openResult = await openCommanderConsole(baseUrl);
-    log(`Opened ${baseUrl} in ${openResult.browserName} (${openResult.browserPath})`);
-    logPass("COMMANDER", "commander_console", "open_console", "passed", `opened Commander Console via ${openResult.browserName}`, {
-      refs: [`browserPath=${openResult.browserPath}`],
-    });
-  } catch (error) {
-    logFail("COMMANDER", "commander_console", "open_console", "failed", `automatic open failed; open ${baseUrl} manually`, {
-      failureReason: toFailureReason(error),
-    });
-  }
 }
 
 async function main() {

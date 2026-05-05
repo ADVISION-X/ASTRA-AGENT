@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-map-prompt-contract-v1",
+  "version": "2026-04-map-prompt-contract-v1-tampered",
   "generatedFrom": "src/map-plugins/authoring/capability-catalog/build-capability-catalog.ts",
   "entries": [
     {

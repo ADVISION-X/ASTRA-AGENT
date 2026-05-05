@@ -143,6 +143,21 @@ export async function recordCommanderEnvelopeBuilt(activeWorkbench: GrassEyeWork
   });
 }
 
+export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
+  await activeWorkbench.recordCommanderDebugEvent({
+    eventType: "COMMAND_ACCEPTED",
+    status: "success",
+    traceId: approval.traceId,
+    spanId: "command-accepted",
+    attemptId: approval.attemptId,
+    mapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    reason: `selectedMapId=${approval.binding.selectedMapId}; activationSnapshotRef=${approval.binding.activationSnapshotRef}`,
+    actionableMessage: "Dispatch the accepted human command through the governed command transport.",
+    ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
+  });
+}
+
 export async function recordTaskStartLocalAiReadiness(
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,

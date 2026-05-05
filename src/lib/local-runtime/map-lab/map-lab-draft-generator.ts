@@ -1,20 +1,18 @@
 import { MapAuthoringRequestSchema } from "../../../map-plugins/authoring/map-authoring-request.schema.js";
-import { MapAuthoringInputPackageSchema } from "../../../map-plugins/authoring/map-authoring-input-package.schema.js";
-import { normalizeMapAuthoringDraft } from "../../../map-plugins/authoring/map-authoring-draft-normalizer.js";
 import type { WorkbenchRuntime } from "../workbench-contract.js";
+import { normalizeMapLabDraft, type NormalizedMapLabDraft } from "./map-lab-draft-normalization.js";
 import { buildMapAuthoringAiRequest } from "./map-lab-draft-request.js";
 import { buildProviderStateSnapshot } from "./map-lab-provider-support.js";
 import type { MapLabGenerateDraftResult } from "./map-lab-types.js";
 
 type MapLabAiResult = Awaited<ReturnType<WorkbenchRuntime["aiAbilityGroup"]["execute"]>>;
-type NormalizedDraft = ReturnType<typeof normalizeMapAuthoringDraft>;
 type MapLabDraftRegistry = {
   importPackage: (
-    mapPackage: NormalizedDraft["mapPackage"],
+    mapPackage: NormalizedMapLabDraft["mapPackage"],
     source: string,
   ) => {
     imported: boolean;
-    mapPackage: NormalizedDraft["mapPackage"] | null;
+    mapPackage: NormalizedMapLabDraft["mapPackage"] | null;
     validationIssues: Array<{ message: string }>;
   };
 };
@@ -79,7 +77,7 @@ const isDryRunCaptured = (aiResult: MapLabAiResult): boolean =>
   && stringifyFailureReason(aiResult.failureReason) === "DRY_RUN_CAPTURED";
 
 function createImportedDraftResult(
-  normalized: NormalizedDraft,
+  normalized: NormalizedMapLabDraft,
   imported: ReturnType<MapLabDraftRegistry["importPackage"]>,
 ): MapLabGenerateDraftResult {
   if (!imported.imported || !imported.mapPackage) {
@@ -134,10 +132,9 @@ export async function generateMapLabDraft(input: {
     return createAiFailureResult(aiResult);
   }
 
-  const inputPackage = MapAuthoringInputPackageSchema.parse(aiRequest.input);
-  const normalized = normalizeMapAuthoringDraft({
+  const normalized = normalizeMapLabDraft({
     request,
-    inputPackage,
+    aiInput: aiRequest.input,
     aiOutput: aiResult.output,
     promptContractId: aiRequest.promptContractId,
     promptVersion: aiResult.promptVersion ?? aiRequest.promptContractId,

@@ -83,6 +83,30 @@ const wasAcceptedBeforeResult = (result: StartCommandResult): boolean => {
   return Boolean(proof?.commandEnvelopeRef && proof?.resultEnvelopeRef);
 };
 
+const recordAcceptedDispatch = async (input: {
+  activeWorkbench: GrassEyeWorkbenchHandle;
+  approval: StartApproval;
+  result: StartCommandResult;
+  context: DispatchResultContext;
+}) => {
+  await input.activeWorkbench.recordCommanderDebugEvent({
+    eventType: "COMMAND_ACCEPTED",
+    status: "success",
+    traceId: input.approval.traceId,
+    spanId: "command-accepted",
+    attemptId: input.approval.attemptId,
+    missionId: input.context.targetMissionId,
+    mapId: input.approval.binding.selectedMapId,
+    taskTemplateId: input.approval.binding.taskTemplateId,
+    reason: input.context.resultMessage,
+    actionableMessage: "Follow the returned mission refs and persisted runtime proof for downstream audit.",
+    ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
+    runId: input.result.runtimeProof?.runId ?? input.approval.traceId,
+    refs: input.context.refs,
+    proofRefs: input.context.proofRefs,
+  });
+};
+
 export async function writeTaskStartDispatchResult(
   response: ServerResponse,
   activeWorkbench: GrassEyeWorkbenchHandle,
@@ -91,6 +115,7 @@ export async function writeTaskStartDispatchResult(
 ) {
   const context = buildDispatchResultContext(result);
   if (result.status === "success") {
+    await recordAcceptedDispatch({ activeWorkbench, approval, result, context });
     writeTaskJsonResponse(response, 200, result);
     return;
   }

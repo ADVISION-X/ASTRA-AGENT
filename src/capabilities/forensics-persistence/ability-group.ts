@@ -17,7 +17,7 @@ import {
   emitForensicsRecordWritten,
   type ForensicsRuntimeEventEmitter,
 } from "./shared/forensics-write-boundary-events.js";
-import { createForensicsExecutionContext, type CreateForensicsExecutionContextInput } from "./runtime/create-forensics-execution-context.js";
+import { createForensicsExecutionContext, type CreateForensicsExecutionContextInput } from "./shared/create-forensics-execution-context.js";
 import { buildUnknownForensicsChildResult } from "./shared/forensics-unknown-child-result.js";
 
 type CreateForensicsPersistenceAbilityGroupInput = CreateForensicsExecutionContextInput & {

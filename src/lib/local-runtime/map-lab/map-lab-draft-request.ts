@@ -64,6 +64,17 @@ function createMapAuthoringChainIds(missionId: string) {
   };
 }
 
+function buildMapAuthoringProviderPolicy(providerState: MapLabProviderState) {
+  return {
+    requireLocalOnly: false,
+    allowPaidProvider: providerState.allowPaidProvider,
+    providerAllowlist: ["paid-analysis-ai"],
+    operatorApprovalRef: providerState.operatorApprovalRef,
+    providerConfigRef: providerState.configRef,
+    secretRef: providerState.secretRef,
+  };
+}
+
 export function buildMapAuthoringAiRequest(
   request: MapLabAuthoringRequest,
   providerState: MapLabProviderState,
@@ -94,14 +105,7 @@ export function buildMapAuthoringAiRequest(
     activationSnapshotRef: chainIds.activationSnapshotRef,
     promptCatalogVersion: "map-prompt-contract-catalog.v1",
     qualityPolicy: MAP_AUTHORING_QUALITY_POLICY,
-    providerPolicy: {
-      requireLocalOnly: false,
-      allowPaidProvider: resolvedProviderState.allowPaidProvider,
-      providerAllowlist: ["paid-analysis-ai"],
-      operatorApprovalRef: resolvedProviderState.operatorApprovalRef,
-      providerConfigRef: resolvedProviderState.configRef,
-      secretRef: resolvedProviderState.secretRef,
-    },
+    providerPolicy: buildMapAuthoringProviderPolicy(resolvedProviderState),
     costPolicy: { maxEstimatedCost: resolvedProviderState.maxEstimatedCost ?? MAP_AUTHORING_COST_POLICY.maxEstimatedCost },
     dataPolicy: { ...MAP_AUTHORING_DATA_POLICY, allowExternalTransmission: resolvedProviderState.allowExternalTransmission },
     safetyPolicy: MAP_AUTHORING_SAFETY_POLICY,

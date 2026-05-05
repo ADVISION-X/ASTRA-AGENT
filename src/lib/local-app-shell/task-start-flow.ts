@@ -15,6 +15,7 @@ import {
   recordTaskStartLocalAiReadiness,
   recordTaskStartPreflightStart,
   recordCommanderEnvelopeBuilt,
+  recordTaskStartCommandAccepted,
   sendBlockedTaskStartPreflight,
   sendTaskStartBindingFailure,
 } from "./task-start-support.js";
@@ -113,6 +114,7 @@ const executeApprovedTaskStart = async (
   preflightReason: string,
 ) => {
   await recordMissionPreflightPassed(activeWorkbench, approval, preflightReason);
+  await recordTaskStartCommandAccepted(activeWorkbench, approval);
   await recordCommanderEnvelopeBuilt(activeWorkbench, approval);
   const result = await activeWorkbench.commanderConsole.execute({
     childCapabilityId: "issue-human-command",

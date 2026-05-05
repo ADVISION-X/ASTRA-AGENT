@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T19:43:35.704Z",
+  "generatedAt": "2026-05-05T20:35:39.704Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -15,18 +15,19 @@
       "capabilityDomain": "map-plugin-package",
       "findings": [
         {
-          "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
-          "file": "src/lib/local-app-shell/task-template-registry.ts",
+          "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
+          "file": "src/map-plugins/builtins/index.ts",
           "line": 1,
           "severity": "fatal",
-          "message": "Commander task template registry must not directly write map registry state."
+          "message": "Builtin loader references files outside the governed builtin package file list.",
+          "detail": "tiktok-comment-evidence.map-package.json"
         },
         {
           "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
           "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
           "line": 1,
           "severity": "fatal",
-          "message": "Rollback verification failed for system prompt template hash mismatch mutation: exitCode=1 | stdout=[CODE VIOLATION] map-plugin-package: Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.\n- FATAL src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json:1 Builtin map package must parse under the governed schema: root: Unrecognized key(s) in object: 'osascript'\n- FATAL src/map-plugins/registry/map-plugin-registry.ts:1 MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=macos-local-program-open-smoke.meta.map-package.json ownerResponsible=map-plugin-package actionableMessage=\"Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.\""
+          "message": "Map package inspector baseline must pass before negative-proof mutations can run: exitCode=1 | stderr=node:fs:435\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\nError: ENOENT: no such file or directory, open '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/tiktok-comment-evidence.map-package.json'\n    at readFileSync (node:fs:435:20)\n    at readBuiltin (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:56:19)\n    at loadBuiltinMapPackages (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:67:5)\n    at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:112:32)\n    at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:149:5)\n    at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:174:20)\n    at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)\n    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)\n    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)\n    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20) {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/tiktok-comment-evidence.map-package.json'\n}\n\nNode.js v24.4.1"
         }
       ],
       "phases": [
@@ -38,9 +39,9 @@
         },
         {
           "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete."
         },
         {
           "name": "authoring-input-package",
@@ -56,9 +57,9 @@
         },
         {
           "name": "boundary-attack",
-          "classification": "ENFORCEMENT MISS",
-          "passed": false,
-          "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
         },
         {
           "name": "anti-escape",
@@ -94,10 +95,10 @@
           "name": "negative-proof-harness",
           "classification": "FAKE ENFORCEMENT",
           "passed": false,
-          "summary": "Map package negative-proof harness failed to prove mutation rejection and rollback recovery."
+          "summary": "Map package negative-proof harness cannot start because the baseline inspector is not passing."
         }
       ],
-      "summary": "Orchestration or Commander still preserves a legacy static path that bypasses governed map packages.",
+      "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
       "violationCount": 2
