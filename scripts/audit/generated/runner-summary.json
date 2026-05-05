@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T01:12:31.133Z",
+  "generatedAt": "2026-05-05T02:05:36.178Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 3,
@@ -155,6 +155,28 @@
           "message": "Function inspectInputPackageSchema exceeds code-purity function limits."
         },
         {
+          "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+          "file": "scripts/startup/launch-grasseye.mjs",
+          "line": 1,
+          "severity": "error",
+          "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
+          "detail": "301"
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+          "file": "scripts/startup/launch-grasseye.mjs",
+          "line": 1,
+          "severity": "error",
+          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/startup/launch-grasseye.mjs",
+          "line": 249,
+          "severity": "error",
+          "message": "Function main exceeds code-purity function limits."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/app/map-lab-api-handlers.ts",
           "line": 19,
@@ -246,6 +268,14 @@
           "line": 75,
           "severity": "error",
           "message": "Function buildMapAuthoringInputPackage exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-007-V1",
+          "file": "src/map-plugins/builtins/index.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "File mixes multiple roles behind neutral or broad structure.",
+          "detail": "class-and-free-functions"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
@@ -340,7 +370,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1849 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1854 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -350,9 +380,9 @@
         },
         {
           "name": "touched-file-rule",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Touched active files stay within hard limits."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Touched active files still exceed their hard limits."
         },
         {
           "name": "function-shape-limits",
@@ -380,9 +410,9 @@
         },
         {
           "name": "single-role-files",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Files stay role-local without schema/runtime bucket mixing."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "One or more files still mix broad roles behind neutral structure."
         },
         {
           "name": "dead-code-cleanup",
@@ -442,7 +472,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "CODE VIOLATION",
-      "violationCount": 17
+      "violationCount": 21
     }
   ]
 }

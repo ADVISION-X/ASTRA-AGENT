@@ -1,0 +1,13 @@
+diff --git a/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json b/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
+index 6e45d25..7e40edd 100644
+--- a/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
++++ b/src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json
+@@ -1,7 +1,7 @@
+ {
+   "manifest": {
+     "packageId": "builtin.tiktok-seeding-video-discovery",
+-    "packageKind": "operational-map-package",
++    "packageKind": "child-capability-package",
+     "packageVersion": "1.0.0",
+     "mapId": "tiktok.seeding-video.discovery.meta.v1",
+     "taskTemplateId": "tiktok-seeding-video-discovery",

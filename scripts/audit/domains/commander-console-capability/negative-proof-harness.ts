@@ -81,6 +81,24 @@ const MUTATIONS: Mutation[] = [
     replace: "  await preparePort();\n  const serviceHandle = await startService(root, localAiReadiness);\n  const localAiReadiness = await ensureLocalAiReadiness();",
   },
   {
+    name: "startup map-package gate removal mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "  await ensureStartupMapPackageReadiness();\n",
+    replace: "",
+  },
+  {
+    name: "startup map-package helper bypass mutation",
+    file: "scripts/startup/lib/map-package-readiness.mjs",
+    search: "const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"map-package-readiness-probe.ts\");",
+    replace: "const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"map-package-readiness-inline.ts\");",
+  },
+  {
+    name: "startup failure bundle removal mutation",
+    file: "scripts/startup/launch-grasseye.mjs",
+    search: "    const failureReport = await createStartupFailureReport({\n      rootDir,\n      runId: startupRunId,\n      baseUrl,\n      failureReason,\n    });\n",
+    replace: "    const failureReport = { bundleDir: \"missing-startup-failure-bundle\", ownerResponsible: \"startup-entrypoint\", actionableMessage: \"missing\" };\n",
+  },
+  {
     name: "startup update preflight removal mutation",
     file: "scripts/startup/launch-grasseye.mjs",
     search: "  await runUpdatePreflight(root, flags);\n",

@@ -1,0 +1,7 @@
+
+> grasseye-local-workbench@0.1.0 audit:commander-console
+> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
+
+[PASS] commander-console-capability: Startup local-AI readiness gate remains enforced through Commander owner audit.
+
+exitCode=0

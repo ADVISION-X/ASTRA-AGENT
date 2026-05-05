@@ -1,0 +1,6 @@
+
+> grasseye-local-workbench@0.1.0 audit:commander-console
+> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
+
+[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
+- ERROR scripts/startup/launch-grasseye.mjs:1 Startup hard-failure catch path must write a current startup failure bundle.

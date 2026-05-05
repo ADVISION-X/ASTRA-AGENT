@@ -1,8 +1,9 @@
 import type { Project } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
-import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
+import { hasCallExpression, hasCallExpressionPath, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import {
@@ -18,6 +19,7 @@ const { INSPECTOR_PATH, LAW_FILE: MAP_PLUGIN_LAW_FILE } = MAP_PLUGIN_PATHS;
 const RUNNER_PATH = "scripts/audit/domains/map-plugin-package/run-inspector.ts";
 const AUDIT_PLAN_PATH = "scripts/audit/generated/audit-plan.generated.json";
 const ENFORCEMENT_MATRIX_PATH = "scripts/audit/generated/enforcement-matrix.generated.json";
+const BUILTIN_INDEX_PATH = "src/map-plugins/builtins/index.ts";
 
 const createEnforcementFinding = (file: string, line: number, message: string): Finding =>
   createFinding({ lawId: MAP_PLUGIN_LAWS.ENFORCEMENT, file, line, severity: "fatal", message });
@@ -54,6 +56,60 @@ const inspectRunnerSource = (project: Project): Finding[] => {
   return runnerSource.getFullText().includes('loadInspector("scripts/audit/domains/map-plugin-package/inspector.ts")')
     ? []
     : [createEnforcementFinding(RUNNER_PATH, 1, "Map package runner must load the governed inspector entry directly.")];
+};
+
+const hasClassReadonlyProperty = (classNode: import("ts-morph").ClassDeclaration | undefined, propertyName: string): boolean =>
+  Boolean(classNode?.getProperty(propertyName)?.isReadonly());
+
+const collectBuiltinErrorClassFindings = (source: import("ts-morph").SourceFile): Finding[] => {
+  const findings: Finding[] = [];
+  const errorClass = source.getClass("BuiltinMapPackageLoadError");
+  if (!errorClass) {
+    findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, "Builtin map package loader must expose a structured BuiltinMapPackageLoadError for startup diagnostics."));
+  }
+  for (const propertyName of ["ownerResponsible", "actionableMessage", "packageFile", "expectedPackageKind", "receivedPackageKind"]) {
+    if (!hasClassReadonlyProperty(errorClass, propertyName)) {
+      findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, `BuiltinMapPackageLoadError must preserve readonly ${propertyName}.`));
+    }
+  }
+  return findings;
+};
+
+const collectBuiltinParserFindings = (source: import("ts-morph").SourceFile): Finding[] => {
+  const parseBuiltinInitializer = source.getVariableDeclaration("parseBuiltinPackage")?.getInitializer();
+  const parseBuiltin = parseBuiltinInitializer && Node.isArrowFunction(parseBuiltinInitializer) ? parseBuiltinInitializer : undefined;
+  const findings: Finding[] = [];
+  if (!parseBuiltin || !hasCallExpressionPath(parseBuiltin, ["MapPackageSchema", "parse"])) {
+    findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, "Builtin parser must keep MapPackageSchema.parse inside the structured diagnostic wrapper."));
+  }
+  if (!parseBuiltin?.getDescendantsOfKind(SyntaxKind.NewExpression).some((expression) => {
+    return expression.getExpression().getText() === "BuiltinMapPackageLoadError";
+  })) {
+    findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, "Builtin parser must throw BuiltinMapPackageLoadError when Zod rejects a builtin package."));
+  }
+  return findings;
+};
+
+const collectReadBuiltinFindings = (source: import("ts-morph").SourceFile): Finding[] => {
+  const readBuiltin = source.getFunction("readBuiltin");
+  const findings: Finding[] = [];
+  if (!readBuiltin || !hasCallExpression(readBuiltin, "parseBuiltinPackage")) {
+    findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, "readBuiltin must call parseBuiltinPackage so package file context is preserved."));
+  }
+  if (readBuiltin?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "MapPackageSchema.parse")) {
+    findings.push(createEnforcementFinding(BUILTIN_INDEX_PATH, 1, "readBuiltin must not call MapPackageSchema.parse directly because direct parse loses package file diagnostics."));
+  }
+
+  return findings;
+};
+
+const inspectBuiltinLoaderDiagnostics = (project: Project): Finding[] => {
+  const source = getSource(project, BUILTIN_INDEX_PATH);
+  return [
+    ...collectBuiltinErrorClassFindings(source),
+    ...collectBuiltinParserFindings(source),
+    ...collectReadBuiltinFindings(source),
+  ];
 };
 
 const inspectManifestShape = (context: InspectorContext): Finding[] => {
@@ -126,6 +182,7 @@ export async function runAntiEscape(
     ...(await inspectAuditFilePresence()),
     ...inspectInspectorSource(project),
     ...inspectRunnerSource(project),
+    ...inspectBuiltinLoaderDiagnostics(project),
     ...inspectManifestShape(context),
     ...inspectLawRegistryStrength(context),
     ...inspectGeneratedOwnerCoverage(context),

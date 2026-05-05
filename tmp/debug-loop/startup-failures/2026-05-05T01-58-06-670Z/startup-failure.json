@@ -1,0 +1,8 @@
+{
+  "runId": "2026-05-05T01:58:06.670Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "ownerResponsible": "startup-entrypoint",
+  "failureReason": "Expected ',' or '}' after property value in JSON at position 40456 (line 168 column 28) actionableMessage=Fix the builtin map package and rerun npm run audit:map-plugin-package.",
+  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
+  "writtenAt": "2026-05-05T01:58:07.212Z"
+}

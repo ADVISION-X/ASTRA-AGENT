@@ -49,16 +49,106 @@ Startup Entrypoint 不是：
 
 1. 检查 Node / npm / package 依赖状态。
 2. 执行 update_preflight_check。
-3. 检查本地 AI runtime presence。
-4. 检查 required local AI model roster。
-5. 启动或连接 governed local AI runtime。
-6. 执行 local AI health probe 与 ai_capability_readiness_gate。
-7. 检查并清理 canonical localhost 端口。
-8. 启动本地应用服务进程。
-9. 等待健康接口 PASS。
-10. 打开 Commander Console 本地 URL。
-11. 标记 mission runtime available。
-12. 启动终端结构化日志转播并进入等待人工命令状态。
+3. 执行 map_package_readiness_check，验证内置 map package 可解析、可导入、可通过 development bootstrap 激活门禁。
+4. 检查本地 AI runtime presence。
+5. 检查 required local AI model roster。
+6. 启动或连接 governed local AI runtime。
+7. 执行 local AI health probe 与 ai_capability_readiness_gate。
+8. 检查并清理 canonical localhost 端口。
+9. 启动本地应用服务进程。
+10. 等待健康接口 PASS。
+11. 打开 Commander Console 本地 URL。
+12. 标记 mission runtime available。
+13. 启动终端结构化日志转播并进入等待人工命令状态。
+
+## Map Package Startup Readiness Gate
+
+### 目标
+
+启动链必须在 app server 子进程启动前证明内置 map package 能通过同一套 schema 与 registry bootstrap 门禁。坏包不得等到 app shell health 阶段才以 Zod stack 形式暴露。
+
+### 正确链路
+
+```txt
+grasseye:start
+→ dependency_check
+→ update_preflight_check
+→ map_package_readiness_check
+→ local_ai_runtime_presence_check
+→ ai_capability_readiness_gate
+→ app_server start
+→ app_shell health
+```
+
+### 禁止链路
+
+```txt
+update_preflight_check passed
+→ app_server start
+→ readBuiltin throws raw ZodError
+→ app shell health fails without packageFile / ownerResponsible / actionableMessage
+```
+
+### readiness 输出必备字段
+
+```txt
+ownerResponsible=map-plugin-package
+failureReason
+actionableMessage
+refs:
+  packageFile
+  expectedPackageKind
+  receivedPackageKind
+  packageId when available
+durationMs
+```
+
+### inspector 覆盖
+
+Commander startup gate inspector 必须证明：
+
+```txt
+launch-grasseye.mjs imports ensureMapPackageReadiness
+performLaunch calls ensureStartupMapPackageReadiness after update_preflight_check and before local_ai_runtime / app_server start
+map-package-readiness.mjs delegates to map-package-readiness-probe.ts
+map-package-readiness-probe.ts loads builtin packages and exercises registry bootstrap through governed source modules
+failure logs preserve ownerResponsible and actionableMessage
+```
+
+### negative proof 覆盖
+
+必须 fail → rollback → pass：
+
+```txt
+remove ensureStartupMapPackageReadiness from performLaunch
+point map-package-readiness.mjs at an inline/bypassing probe
+remove ownerResponsible/actionableMessage from startup map package readiness path
+```
+
+### READY 标准
+
+Startup READY 只有在 map package readiness gate、local AI gate、app shell health 都通过后才能输出 mission_runtime_available。
+
+### hard failure bundle
+
+任何 bootstrap hard failure 必须写入当前 runId 关联的最小 failure bundle：
+
+```txt
+tmp/debug-loop/startup-failures/<runId>/startup-failure.json
+```
+
+必备字段：
+
+```txt
+runId
+baseUrl
+ownerResponsible
+failureReason
+actionableMessage
+writtenAt
+```
+
+该 bundle 只记录 startup failure 证据，不得执行 mission action，不得成为第二套 runtime。
 
 ## Local AI Startup Readiness Gate
 
@@ -193,6 +283,10 @@ TerminalStructuredLogEvent 字段：
 - status
 - message
 - failureReason
+- ownerResponsible
+- actionableMessage
+- traceId
+- runId
 - refs
 - durationMs
 

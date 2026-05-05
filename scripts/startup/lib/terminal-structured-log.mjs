@@ -34,6 +34,12 @@ function renderEvent(event) {
     meta.push(`failureReason=${formatMetaValue(event.failureReason)}`);
   }
 
+  for (const key of ["ownerResponsible", "actionableMessage", "traceId", "runId", "packageFile", "selectedMapId", "requestedPlatformId", "activationSnapshotRef"]) {
+    if (event[key]) {
+      meta.push(`${key}=${formatMetaValue(event[key])}`);
+    }
+  }
+
   if (Array.isArray(event.refs) && event.refs.length > 0) {
     meta.push(`refs=${formatMetaValue(event.refs.join(","))}`);
   }

@@ -879,6 +879,7 @@ Must verify:
 16. Forensics proof fields complete.
 17. ALL active laws in registry/matrix/audit-plan/runner.
 18. negative proof executed.
+19. builtin loader wraps schema failures with packageFile, ownerResponsible, expectedPackageKind, receivedPackageKind, and actionableMessage before startup consumes them.
 ```
 
 ---
@@ -890,6 +891,7 @@ Must fail → rollback → pass:
 ```txt
 manual-first enforcement reintroduced
 map package modeled as child ability
+builtin loader direct parse diagnostic bypass
 registry dispatches Nerve Bus
 builtin package active without lifecycle proof
 builtin auto-active in production
@@ -957,6 +959,7 @@ ordinary/developer task surfaces are separated
 user-facing explanation is plain-language and hides runtime internals
 Commander cannot bypass validators/registry ports
 Forensics-compatible proof records exist
+builtin parse failures are diagnosable before app shell health, with ownerResponsible=map-plugin-package and packageFile/actionableMessage refs
 owner-local inspector PASS
 negative proof PASS
 ALL active law enforcement PASS

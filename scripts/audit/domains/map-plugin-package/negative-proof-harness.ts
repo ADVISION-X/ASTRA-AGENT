@@ -59,6 +59,12 @@ const MUTATIONS: Mutation[] = [
     replace: '    "packageKind": "child-capability-package",\n',
   },
   {
+    name: "builtin loader direct parse diagnostic bypass mutation",
+    file: "src/map-plugins/builtins/index.ts",
+    search: "  return parseBuiltinPackage(fileName, JSON.parse(content));\n",
+    replace: "  return MapPackageSchema.parse(JSON.parse(content));\n",
+  },
+  {
     name: "map package raw prompt mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
     search: '  "signature": null\n',

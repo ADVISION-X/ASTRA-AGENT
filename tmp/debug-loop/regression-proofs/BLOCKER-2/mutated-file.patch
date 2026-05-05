@@ -1,0 +1,104 @@
+diff --git a/scripts/startup/launch-grasseye.mjs b/scripts/startup/launch-grasseye.mjs
+index bab7cfc..3bfa9b7 100644
+--- a/scripts/startup/launch-grasseye.mjs
++++ b/scripts/startup/launch-grasseye.mjs
+@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
+ import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
+ import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
+ import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
++import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
+ import { openCommanderConsole } from "./lib/open-commander-console.mjs";
+ import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
++import { writeStartupFailureBundle } from "./lib/startup-failure-bundle.mjs";
+ import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
+ 
+ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+@@ -14,21 +16,22 @@ const port = Number(process.env.GRASSEYE_PORT ?? 4173);
+ const baseUrl = `http://${host}:${port}`;
+ const healthUrl = `${baseUrl}/api/runtime/health`;
+ const terminalLogger = createTerminalStructuredLogger();
++const startupRunId = new Date().toISOString();
+ 
+ function toFailureReason(error) {
+   return error instanceof Error ? error.message : String(error);
+ }
+ 
+ function logEvent(...[phase, component, eventType, status, message, extra = {}]) {
+-  terminalLogger.event({ phase, component, eventType, status, message, ...extra });
++  terminalLogger.event({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
+ }
+ 
+ function logPass(...[phase, component, eventType, status, message, extra = {}]) {
+-  terminalLogger.pass({ phase, component, eventType, status, message, ...extra });
++  terminalLogger.pass({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
+ }
+ 
+ function logFail(...[phase, component, eventType, status, message, extra = {}]) {
+-  terminalLogger.fail({ phase, component, eventType, status, message, ...extra });
++  terminalLogger.fail({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
+ }
+ 
+ function parseFlags(argv) {
+@@ -179,6 +182,30 @@ async function ensureLocalAiReadiness() {
+   return readiness;
+ }
+ 
++async function ensureStartupMapPackageReadiness() {
++  const startedAt = Date.now();
++  logEvent("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "started", "checking governed builtin map package readiness");
++  const readiness = await ensureMapPackageReadiness({
++    logger: (message) => logEvent("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_detail", "event", message),
++  });
++  const refs = Array.isArray(readiness.refs) ? readiness.refs : [];
++  const extra = {
++    refs,
++    durationMs: Date.now() - startedAt,
++    ownerResponsible: readiness.ownerResponsible,
++    actionableMessage: readiness.actionableMessage ?? undefined,
++    failureReason: readiness.failureReason ?? undefined,
++  };
++
++  if (readiness.status !== "ready") {
++    logFail("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "failed", "map package readiness failed before app shell start", extra);
++    throw new Error(`${readiness.failureReason ?? "MAP_PACKAGE_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix map package readiness."}`);
++  }
++
++  logPass("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "passed", "map package readiness passed before app shell start", extra);
++  return readiness;
++}
++
+ function markMissionRuntimeAvailable(readiness) {
+   logPass("MISSION", "mission_runtime", "mission_runtime_available", "passed", "mission runtime is available after startup gate passed", {
+     refs: getLocalAiRefs(readiness),
+@@ -267,12 +294,28 @@ async function main() {
+     }
+     return;
+   } catch (error) {
++    const failureReason = toFailureReason(error);
++    const bundleDir = await writeStartupFailureBundle({
++      rootDir,
++      runId: startupRunId,
++      baseUrl,
++      failureReason,
++      ownerResponsible: failureReason.includes("MAP_PACKAGE") ? "map-plugin-package" : "startup-entrypoint",
++      actionableMessage: failureReason.includes("MAP_PACKAGE")
++        ? "Fix map package readiness and rerun npm run audit:map-plugin-package."
++        : "Inspect startup structured logs and rerun npm run grasseye:start.",
++    });
+     logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
+-      failureReason: toFailureReason(error),
++      failureReason,
++      refs: [`startupFailureBundle=${bundleDir}`],
++      ownerResponsible: failureReason.includes("MAP_PACKAGE") ? "map-plugin-package" : "startup-entrypoint",
++      actionableMessage: failureReason.includes("MAP_PACKAGE")
++        ? "Fix map package readiness and rerun npm run audit:map-plugin-package."
++        : "Inspect startup structured logs and rerun npm run grasseye:start.",
+     });
+     await shutdown("SIGTERM");
+     process.exitCode = 1;
+   }
+ }
+ 
+-await main();
+\ No newline at end of file
++await main();
