@@ -6,6 +6,10 @@ function buildTargetProfileRef(childCapabilityId: OpenTargetProfile["childCapabi
   return `open-target-profile:${childCapabilityId}`;
 }
 
+function resolveExpectedTargetProfileRef(profile: OpenTargetProfile): string {
+  return profile.targetKind === "local-program" ? profile.targetProfileRef : buildTargetProfileRef(profile.childCapabilityId);
+}
+
 const requiresNerveBusCallerContext = (input: {
   request: ParsedOpenRequest;
   profile: OpenTargetProfile;
@@ -125,8 +129,9 @@ const resolveOpenTargetPolicyBlockReason = (input: {
     return "request childCapabilityId / platformId / targetKind does not match the registered open target profile";
   }
 
-  if (!input.request.targetUrl && input.request.targetProfileRef !== buildTargetProfileRef(input.profile.childCapabilityId)) {
-    return `open requires targetUrl or explicit targetProfileRef ${buildTargetProfileRef(input.profile.childCapabilityId)}; silent profile defaulting is forbidden`;
+  const expectedTargetProfileRef = resolveExpectedTargetProfileRef(input.profile);
+  if (!input.request.targetUrl && input.request.targetProfileRef !== expectedTargetProfileRef) {
+    return `open requires targetUrl or explicit targetProfileRef ${expectedTargetProfileRef}; silent profile defaulting is forbidden`;
   }
 
   return null;
@@ -137,7 +142,7 @@ export function evaluateOpenTargetPolicy(input: {
   profile: OpenTargetProfile;
   profileOverride: OpenProfileOverride | null;
 }): OpenTargetPolicyOutcome {
-  const targetProfileRef = buildTargetProfileRef(input.profile.childCapabilityId);
+  const targetProfileRef = resolveExpectedTargetProfileRef(input.profile);
 
   const blockReason = resolveOpenTargetPolicyBlockReason(input);
   if (blockReason) {
@@ -145,7 +150,23 @@ export function evaluateOpenTargetPolicy(input: {
   }
 
   if (input.request.targetUrl) {
+    if (input.profile.targetKind === "local-program") {
+      return buildRejectedTargetPolicyOutcome("local program open must not accept targetUrl or URL fallback");
+    }
     return buildAllowedProvidedTargetPolicyOutcome(input.request, input.profile, input.profileOverride, targetProfileRef);
+  }
+
+  if (input.profile.targetKind === "local-program") {
+    return buildTargetPolicyOutcome({
+      ok: true,
+      failureCode: null,
+      reason: null,
+      resolvedTargetUrl: null,
+      resolvedTargetTitle: input.request.targetTitle ?? input.profile.defaultTitle,
+      targetProfileRef,
+      targetUrlSource: "registered_profile",
+      decisionStatus: "allow",
+    });
   }
 
   return buildRegisteredProfileTargetPolicyOutcome(input.profile, input.profileOverride, targetProfileRef, input.request);

@@ -35,6 +35,16 @@ type OpenResultBuilderInput = {
   dataQualityFlags: OpenDataQualityFlag[];
   sessionSnapshotAvailable: boolean;
   sessionSnapshotFailureReason: string | null;
+  localProgramOpenAttemptRef?: string | null;
+  appLaunchAttemptRef?: string | null;
+  appName?: string | null;
+  bundleId?: string | null;
+  appPath?: string | null;
+  allowedLaunchMethod?: "macos-open-application" | null;
+  windowHandoffRef?: string | null;
+  localAppStateHandoffRef?: string | null;
+  localProgramSnapshotAvailable?: boolean;
+  localProgramSnapshotFailureReason?: string | null;
 };
 
 type OpenResultEnvelopeInput = OpenResultBuilderInput & {
@@ -63,6 +73,25 @@ function buildStatusMessage(input: {
 const buildOpenResultOutput = (input: OpenResultBuilderInput, sourceRef: string, openAttemptRef: string, pageStateHandoffRef: string | null) => {
   if (input.postOpenStateDecision.status !== "success") {
     return null;
+  }
+
+  if (input.profile.targetKind === "local-program") {
+    return OpenOutputSchema.parse({
+      targetProfileRef: input.targetPolicyDecision.targetProfileRef,
+      appName: input.appName,
+      bundleId: input.bundleId ?? null,
+      appPath: input.appPath ?? null,
+      allowedLaunchMethod: input.allowedLaunchMethod,
+      sourceRef,
+      openAttemptRef,
+      localProgramOpenAttemptRef: input.localProgramOpenAttemptRef,
+      appLaunchAttemptRef: input.appLaunchAttemptRef,
+      windowHandoffRef: input.windowHandoffRef,
+      localAppStateHandoffRef: input.localAppStateHandoffRef,
+      pageStateHandoffRef,
+      pageStateHandoffRequired: true,
+      localAppStateHandoffRequired: true,
+    });
   }
 
   return OpenOutputSchema.parse({
@@ -146,6 +175,16 @@ const buildOpenResultRuntimeProof = (input: OpenResultEnvelopeInput) => buildOpe
     sessionSnapshotAvailable: input.sessionSnapshotAvailable,
     sessionSnapshotFailureReason: input.sessionSnapshotFailureReason,
     dataQualityFlags: input.dataQualityFlags,
+    localProgramOpenAttemptRef: input.localProgramOpenAttemptRef,
+    appLaunchAttemptRef: input.appLaunchAttemptRef,
+    appName: input.appName,
+    bundleId: input.bundleId,
+    appPath: input.appPath,
+    allowedLaunchMethod: input.allowedLaunchMethod,
+    windowHandoffRef: input.windowHandoffRef,
+    localAppStateHandoffRef: input.localAppStateHandoffRef,
+    localProgramSnapshotAvailable: input.localProgramSnapshotAvailable,
+    localProgramSnapshotFailureReason: input.localProgramSnapshotFailureReason,
   });
 
 const buildOpenResultEnvelope = (input: OpenResultEnvelopeInput): OpenResult => {

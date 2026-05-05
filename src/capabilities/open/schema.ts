@@ -30,12 +30,16 @@ export {
 	OpenOutputPolicySchema,
 	OpenProofPolicySchema,
 	OpenRequestSchema,
+	OpenWebTargetProfileSchema,
+	LocalProgramOpenTargetProfileSchema,
 	OpenTargetProfileSchema,
 	OpenTimeoutPolicySchema,
 } from "./schema-core.js";
 export {
 	BrowserSessionSnapshotSchema,
 	NavigationResultSchema,
+	BrowserOpenOutputSchema,
+	LocalProgramOpenOutputSchema,
 	OpenNavigationDecisionSchema,
 	OpenOutputSchema,
 	OpenSessionDecisionSchema,

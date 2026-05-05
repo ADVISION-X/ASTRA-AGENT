@@ -1,72 +1,55 @@
-diff --git a/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts b/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
-index 90cd4f0..5346d79 100644
---- a/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
-+++ b/src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts
-@@ -4,7 +4,7 @@ import { commanderFlag, type CommanderDataQualityFlag } from "../shared/commande
- export type CommanderTransportSemanticResult = {
-   status: "accepted" | "failed" | "review_required";
--  runId: string | null;
-+  runId: string;
-   envelopeRef: string | null;
-   resultEnvelopeRef: string | null;
-   failureReason: string | null;
-@@ -13,7 +13,9 @@ export type CommanderTransportSemanticResult = {
-   dataQualityFlags: CommanderDataQualityFlag[];
+diff --git a/src/lib/local-runtime/workbench-human-command.ts b/src/lib/local-runtime/workbench-human-command.ts
+index 7c95f35..0ca1b96 100644
+--- a/src/lib/local-runtime/workbench-human-command.ts
++++ b/src/lib/local-runtime/workbench-human-command.ts
+@@ -31,6 +31,12 @@ const throwIfAborted = (signal: AbortSignal) => {
+   }
  };
--function buildSemanticFailure(reason: string): CommanderTransportSemanticResult {
-+const resolveCommandRunId = (command: CommanderHumanCommand) => `${command.commandId}:run`;
+
++const logBackgroundMissionFailure = (error: unknown) => {
++  // The mission loop owns terminal failure/review logging. This guard only prevents
++  // an unhandled promise rejection after the command-acceptance receipt is returned.
++  console.error("[grasseye:mission-background]", error instanceof Error ? error.message : "Unknown mission execution failure");
++};
 +
-+function buildSemanticFailure(command: CommanderHumanCommand, reason: string): CommanderTransportSemanticResult {
-   return {
-     status: "failed",
-     runId: null,
-@@ -27,13 +29,14 @@ function buildSemanticFailure(reason: string): CommanderTransportSemanticResult
- }
- function buildSemanticReviewRequired(input: {
-+  runId: string;
-   envelopeRef: string | null;
-   message: string;
-   reason: string;
- }): CommanderTransportSemanticResult {
-   return {
-     status: "review_required",
--    runId: null,
-+    runId: input.runId,
-     envelopeRef: input.envelopeRef,
-     resultEnvelopeRef: null,
-     failureReason: null,
-@@ -43,11 +46,11 @@ function buildSemanticReviewRequired(input: {
-   };
- }
--const parseTransportResult = (transport: HumanCommandTransportResult) => {
-+const parseTransportResult = (command: CommanderHumanCommand, transport: HumanCommandTransportResult) => {
-   const parsed = CommandTransportResultSchema.safeParse(transport);
-   return parsed.success
-     ? { ok: true as const, result: parsed.data }
--    : { ok: false as const, failure: buildSemanticFailure(parsed.error.issues[0]?.message ?? "Commander transport result failed schema validation.") };
-+    : { ok: false as const, failure: buildSemanticFailure(command, parsed.error.issues[0]?.message ?? "Commander transport result failed schema validation.") };
+ const buildHumanCommandResultEnvelope = (input: {
+   envelope: HumanCommandEnvelope;
+   status: HumanCommandStatus;
+@@ -106,12 +112,6 @@ const buildStartMissionInitialPayload = (
+   commandInputRef: payloadValueToString(payload.commandInputRef),
+ });
+
+-const resolveMissionCommandStatus = (status: string): HumanCommandStatus => status === "review_required"
+-  ? "review_required"
+-  : status === "failed"
+-    ? "failed"
+-    : "success";
+-
+ const handleStartMission = async (
+   runtime: WorkbenchRuntime,
+   envelope: HumanCommandEnvelope,
+@@ -138,7 +138,7 @@ const handleStartMission = async (
+     taskTemplateId,
+     activationSnapshotRef,
+   });
+-  const missionState = await runtime.orchestrationAbilityGroup.startMission({
++  const missionStartPromise = await runtime.orchestrationAbilityGroup.startMission({
+     missionId: envelope.missionId,
+     runId: envelope.runId,
+     humanGoal: payloadValueToString(payload.humanGoal) ?? DEFAULT_START_MISSION_GOAL,
+@@ -150,13 +150,11 @@ const handleStartMission = async (
+     maxMinutes: payloadValueToInteger(payload.maxMinutes),
+     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
+   });
+-  const status = resolveMissionCommandStatus(missionState.status);
+-  const failureReason = missionState.failureReason ?? missionState.reviewRequiredReason ?? null;
++  void missionStartPromise.catch(logBackgroundMissionFailure);
+   return buildHumanCommandResultEnvelope({
+     envelope,
+-    status,
+-    summary: `Mission ${missionState.missionId ?? envelope.missionId} is now ${missionState.status}.`,
+-    ...(failureReason ? { failureReason } : {}),
++    status: "success",
++    summary: `Mission ${envelope.missionId} was accepted for governed execution.`,
+   });
  };
- const getTransportSemanticFailureReason = (input: {
-@@ -77,6 +80,7 @@ const getAcceptedTransportReview = (result: HumanCommandTransportResult) => {
-     return null;
-   }
-   return buildSemanticReviewRequired({
-+    runId: result.runId,
-     envelopeRef: result.envelopeRef,
-     message: result.message,
-     reason: "accepted transport result requires resultEnvelopeRef for governed success handling.",
-@@ -98,14 +102,14 @@ export function applyCommanderTransportSemanticGate(input: {
-   command: CommanderHumanCommand;
-   transport: HumanCommandTransportResult;
- }): CommanderTransportSemanticResult {
--  const parsed = parseTransportResult(input.transport);
-+  const parsed = parseTransportResult(input.command, input.transport);
-   if (!parsed.ok) {
-     return parsed.failure;
-   }
-   const failureReason = getTransportSemanticFailureReason({ command: input.command, result: parsed.result });
-   if (failureReason) {
--    return buildSemanticFailure(failureReason);
-+    return buildSemanticFailure(input.command, failureReason);
-   }
-   const acceptedReview = getAcceptedTransportReview(parsed.result);

@@ -60,7 +60,7 @@ export const OpenTargetPolicyDecisionSchema = z.object({
   resolvedTargetTitle: nullableString,
   targetUrlSource: OpenTargetUrlSourceSchema,
 }).strict().superRefine((value, context) => {
-  if (value.status === "allow" && (!value.targetProfileRef || !value.resolvedTargetUrl || !value.resolvedTargetTitle)) {
+  if (value.status === "allow" && (!value.targetProfileRef || !value.resolvedTargetTitle)) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "allow target policy decision requires target profile and resolved target fields",
@@ -136,7 +136,7 @@ export const PostOpenStateDecisionSchema = z.object({
   }
 });
 
-export const OpenOutputSchema = z.object({
+export const BrowserOpenOutputSchema = z.object({
   targetProfileRef: z.string().min(1),
   targetUrl: z.string().url(),
   openedUrl: z.string().url(),
@@ -153,3 +153,25 @@ export const OpenOutputSchema = z.object({
   pageStateHandoffRef: z.string().min(1),
   pageStateHandoffRequired: z.literal(true),
 }).strict();
+
+export const LocalProgramOpenOutputSchema = z.object({
+  targetProfileRef: z.string().min(1),
+  appName: z.string().min(1),
+  bundleId: nullableString,
+  appPath: nullableString,
+  allowedLaunchMethod: z.literal("macos-open-application"),
+  sourceRef: z.string().min(1),
+  openAttemptRef: z.string().min(1),
+  localProgramOpenAttemptRef: z.string().min(1),
+  appLaunchAttemptRef: z.string().min(1),
+  windowHandoffRef: z.string().min(1),
+  localAppStateHandoffRef: z.string().min(1),
+  pageStateHandoffRef: z.string().min(1),
+  pageStateHandoffRequired: z.literal(true),
+  localAppStateHandoffRequired: z.literal(true),
+}).strict();
+
+export const OpenOutputSchema = z.union([
+  BrowserOpenOutputSchema,
+  LocalProgramOpenOutputSchema,
+]);

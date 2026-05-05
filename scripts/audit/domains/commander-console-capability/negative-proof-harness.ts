@@ -81,6 +81,12 @@ const MUTATIONS: Mutation[] = [
     replace: "const timeoutResult = await (({ run }) => run())({",
   },
   {
+    name: "start mission awaits terminal execution mutation",
+    file: "src/lib/local-runtime/workbench-human-command.ts",
+    search: "const missionStartPromise = runtime.orchestrationAbilityGroup.startMission({",
+    replace: "const missionStartPromise = await runtime.orchestrationAbilityGroup.startMission({",
+  },
+  {
     name: "idempotency hard-path mutation",
     file: "src/capabilities/commander-console/runtime/commander-idempotency-gate.ts",
     search: "if (input.policy === \"hard-stop-non-dedupe\") {",

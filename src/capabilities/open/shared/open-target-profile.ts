@@ -4,12 +4,14 @@ export const OPEN_CHILD_CAPABILITY_IDS = [
   "open-tiktok",
   "open-facebook",
   "open-local-workbench",
+  "open-local-program",
 ] as const;
 
 export const OPEN_PLATFORM_IDS = [
   "tiktok-web",
   "facebook-web",
   "local-workbench",
+  "macos-local",
 ] as const;
 
 export const TIKTOK_PLATFORM_ID = "tiktok-web" as const;
@@ -18,6 +20,7 @@ export const DEFAULT_TIKTOK_URL = "https://www.tiktok.com/foryou";
 export const OPEN_TARGET_KINDS = [
   "platform-feed",
   "local-workbench",
+  "local-program",
 ] as const;
 
 export const OPEN_ALLOWED_CALLERS = [
@@ -28,6 +31,7 @@ export const OPEN_ALLOWED_CALLERS = [
 export const OPEN_POST_OPEN_CLASSIFICATIONS = [
   "platform_feed",
   "local_workbench",
+  "local_program",
   "wrong_domain",
   "login_wall",
   "security_wall",

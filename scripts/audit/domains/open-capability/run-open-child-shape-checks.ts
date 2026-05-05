@@ -14,6 +14,7 @@ const CHILD_FACTORY_NAMES = [
   ["createOpenTikTokCapability", `${OPEN_ROOT}/children/open-tiktok/implementation.ts`],
   ["createOpenFacebookCapability", `${OPEN_ROOT}/children/open-facebook/implementation.ts`],
   ["createOpenLocalWorkbenchCapability", `${OPEN_ROOT}/children/open-local-workbench/implementation.ts`],
+  ["createOpenLocalProgramCapability", `${OPEN_ROOT}/children/open-local-program/implementation.ts`],
 ] as const;
 
 const collectChildImplementationFindings = (project: import("ts-morph").Project, childId: string): Finding[] => {
@@ -27,7 +28,9 @@ const collectChildImplementationFindings = (project: import("ts-morph").Project,
 const collectChildContractFindings = (project: import("ts-morph").Project, childId: string): Finding[] => {
   const contractPath = `${OPEN_ROOT}/children/${childId}/contract.ts`;
   const childContractSource = getOpenSourceOrThrow(project, contractPath);
-  const expectedContractFragments = ["BOUNDARY_POLICY", "PROOF_POLICY", "OUTPUT_POLICY", "FAILURE_POLICY", "PURPOSE", "ALLOWED_HOSTNAMES", "ALLOWED_SCHEMES"];
+  const expectedContractFragments = childId === "open-local-program"
+    ? ["BOUNDARY_POLICY", "PROOF_POLICY", "OUTPUT_POLICY", "FAILURE_POLICY", "PURPOSE", "APP_NAME", "ALLOWED_LAUNCH_METHOD"]
+    : ["BOUNDARY_POLICY", "PROOF_POLICY", "OUTPUT_POLICY", "FAILURE_POLICY", "PURPOSE", "ALLOWED_HOSTNAMES", "ALLOWED_SCHEMES"];
   return expectedContractFragments.flatMap((fragment) => {
     return childContractSource.getVariableDeclarations().some((declaration) => declaration.getName().includes(fragment))
       ? []

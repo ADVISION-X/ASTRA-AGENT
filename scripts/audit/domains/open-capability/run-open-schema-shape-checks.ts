@@ -10,6 +10,7 @@ const {
   FORBIDDEN_PROOF_FIELDS,
   FORBIDDEN_RESULT_FIELDS,
   LAW_INPUT_CHAIN,
+  LAW_LOCAL_PROGRAM,
   LAW_PAGE_STATE_HANDOFF,
   LAW_PACKAGE_SHAPE,
   LAW_RESULT_PROOF,
@@ -31,6 +32,8 @@ const REQUIRED_VALIDATION_MARKERS = [
   ["failed and review_required proof must expose diagnosticPayloadRef", LAW_RESULT_PROOF, "Open runtime proof must require diagnosticPayloadRef on failed/review outcomes."],
   ["failed and review_required result must expose diagnosticPayloadRef", LAW_RESULT_PROOF, "Open result must require diagnosticPayloadRef on failed/review outcomes."],
   ["success result must not expose diagnosticPayloadRef", LAW_RESULT_PROOF, "Open result must block diagnosticPayloadRef on success."],
+  ["local program success proof requires windowHandoffRef", LAW_LOCAL_PROGRAM, "Local program proof must require windowHandoffRef on success."],
+  ["local program success proof requires localAppStateHandoffRef", LAW_LOCAL_PROGRAM, "Local program proof must require localAppStateHandoffRef on success."],
 ] as const;
 
 type OpenSchemaContext = {

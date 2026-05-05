@@ -118,7 +118,9 @@ export const collectTransportRunIdFindings = (input: {
   if (!hasRunIdPropertyFromInput(input.transportSemanticGateSource, "buildSemanticReviewRequired")) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic review path must preserve the accepted transport runId."));
   }
-  if (!input.transportSemanticGateSource.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.result.runId")) {
+  if (!input.transportSemanticGateSource.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) =>
+    expression.getText() === "input.result.runId" || expression.getText() === "result.runId",
+  )) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic gate must validate transport result runId."));
   }
   return findings;

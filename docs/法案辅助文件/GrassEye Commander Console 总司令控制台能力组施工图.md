@@ -774,7 +774,77 @@ negative proof PASS
 
 ---
 
-## 19. 漂移信号
+## 19. 运行日志闭环补充：start-mission 接受边界不得等待整场任务
+
+本节只补齐 `issue-human-command` 的执行细节，不新增 lawId。
+
+### 正确链路
+
+```txt
+Commander Console receives start-mission
+→ validates requestedPlatformId / selectedMapId / taskTemplateId / activationSnapshotRef
+→ builds command envelope and Nerve Bus envelope
+→ Orchestration receives command
+→ activation snapshot frozen
+→ COMMAND_ACCEPTED emitted as command-acceptance truth
+→ issue-human-command returns governed accepted receipt
+→ mission loop continues asynchronously and emits mission-level runtime events
+```
+
+`issue-human-command` 的 5000ms timeout 只保护命令接受、transport semantic gate、idempotency 和 receipt 构建边界。它不得等待整场 mission loop 到 terminal status。
+
+### 禁止链路
+
+```txt
+COMMAND_ACCEPTED
+→ await orchestrationAbilityGroup.startMission until mission terminal state
+→ issue-human-command timeout
+→ COMMAND_REJECTED for the same command
+```
+
+同一个 start command 一旦已经记录 `COMMAND_ACCEPTED`，后续任务 review/fail/completed 只能作为 mission-level truth 记录，不得再生成 command-level `COMMAND_REJECTED`。
+
+### Inspector 应覆盖
+
+- AST 检查 `handleStartMission` 不得 `await runtime.orchestrationAbilityGroup.startMission(...)`。
+- AST 检查 `handleStartMission` 必须在记录 `COMMAND_ACCEPTED` 后以 background promise 启动 mission loop。
+- AST 检查 background promise 必须带 rejection guard，避免 unhandled rejection。
+- 保留 timeout gate、idempotency gate、transport semantic gate、runtime proof refs 原有检查。
+
+### Negative Proof 应覆盖
+
+- 将 background `startMission` 改回 `await runtime.orchestrationAbilityGroup.startMission(...)` 必须 FAIL。
+- 删除 timeout gate 仍必须 FAIL。
+- 删除 command/result/proof refs 仍必须 FAIL。
+
+### 结构化日志必备字段
+
+`COMMAND_ACCEPTED` 必须包含：
+
+```txt
+traceId
+runId
+missionId
+selectedMapId
+requestedPlatformId
+activationSnapshotRef
+ownerResponsible
+actionableMessage
+resultEnvelopeRef / runtimeProofRef where available
+```
+
+任务后续进入 `MISSION_REVIEW_REQUIRED` / `MISSION_FAILED` / `MISSION_FINALIZED` 时，必须使用 mission event，不得反写 command rejected。
+
+### READY 标准
+
+- 真实重启后，start-mission 可在 5000ms Commander child timeout 内返回 accepted receipt。
+- 最新日志不得出现同一 `commandId/runId` 先 `COMMAND_ACCEPTED` 后 `COMMAND_REJECTED`。
+- 如果任务之后因安全页、captcha、policy 或真实平台状态进入 review，必须是 mission-level `review_required`。
+- 修复后必须真实重启、真实触发任务、重新执行第一阶段日志分析。
+
+---
+
+## 20. 漂移信号
 
 ```txt
 Commander 直连 Orchestration
@@ -793,7 +863,7 @@ transport result 只 schema parse
 
 ---
 
-## 20. 最终原则
+## 21. 最终原则
 
 ```txt
 Commander 只接收人类命令。

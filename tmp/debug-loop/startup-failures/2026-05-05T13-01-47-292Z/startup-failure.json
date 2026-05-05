@@ -1,0 +1,8 @@
+{
+  "runId": "2026-05-05T13:01:47.292Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "ownerResponsible": "startup-entrypoint",
+  "failureReason": "LOCAL_AI_READINESS_TIMEOUT: LOCAL_AI_READINESS_TIMEOUT; vision=unhealthy:qwen2.5vl:3b; ocr=ready:apple-vision-or-paddleocr; commentUnderstanding=unhealthy:qwen2.5:3b; productSignal=unhealthy:qwen2.5:3b",
+  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
+  "writtenAt": "2026-05-05T13:02:36.202Z"
+}

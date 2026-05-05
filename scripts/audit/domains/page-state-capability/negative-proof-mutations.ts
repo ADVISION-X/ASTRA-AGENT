@@ -190,6 +190,15 @@ export const PAGE_STATE_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   },
   {
     kind: "replace",
+    name: "detect-safety-page-drops-normal-negative-observations",
+    file: "src/capabilities/page-state/children/detect-safety-page/implementation.ts",
+    oldText: "  return buildSafetyPageNormalOutput(request, collectNormalSafetyEvidence(request));",
+    newText: "  return buildSafetyPageNormalOutput(request, blockers.matchedObservationIds);",
+    expectedNeedle: "detect-safety-page must bind governed negative captcha/safety-wall observations",
+    phase: "required",
+  },
+  {
+    kind: "replace",
     name: "local-runtime-page-state-executor-drops-input-payload",
     file: "src/lib/local-runtime/workbench-ability-command-executor.ts",
     oldText: "      return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope, inputPayload));",

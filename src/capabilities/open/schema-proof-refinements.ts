@@ -29,6 +29,7 @@ type OpenRuntimeProofValidationValue = {
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   browserSessionRef: string | null;
+  targetKind: string | null;
   diagnosticPayloadRef: string | null;
   receivedShapeHash: string | null;
   dataQualityFlags: DataQualityFlag[];
@@ -38,6 +39,8 @@ type OpenRuntimeProofValidationValue = {
   outputRef: string | null;
   pageStateHandoffRequired: boolean;
   pageStateHandoffRef: string | null;
+  windowHandoffRef: string | null;
+  localAppStateHandoffRef: string | null;
 };
 
 type OpenResultValidationValue = {
@@ -96,7 +99,7 @@ const validateExecutionChainFields = (
 
 const validateParsedRuntimeProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
   validateExecutionChainFields(value, context, "parsed runtime proof");
-  if (!value.browserSessionRef) {
+  if (value.targetKind !== "local-program" && !value.browserSessionRef) {
     addIssue(context, ["browserSessionRef"], "parsed runtime proof requires browserSessionRef");
   }
   if (value.receivedShapeHash !== null) {
@@ -137,6 +140,12 @@ const validateSuccessRuntimeProof = (value: OpenRuntimeProofValidationValue, con
   }
   if (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null) {
     addIssue(context, ["pageStateHandoffRef"], "success proof requires page-state handoff");
+  }
+  if (value.targetKind === "local-program" && value.windowHandoffRef === null) {
+    addIssue(context, ["windowHandoffRef"], "local program success proof requires windowHandoffRef");
+  }
+  if (value.targetKind === "local-program" && value.localAppStateHandoffRef === null) {
+    addIssue(context, ["localAppStateHandoffRef"], "local program success proof requires localAppStateHandoffRef");
   }
   if (value.diagnosticPayloadRef !== null) {
     addIssue(context, ["diagnosticPayloadRef"], "success proof must not expose diagnosticPayloadRef");

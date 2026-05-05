@@ -1,6 +1,7 @@
 
-> grasseye-local-workbench@0.1.0 audit:commander-console
-> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
+> grasseye-local-workbench@0.1.0 audit:page-state
+> node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts
 
-[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
-- ERROR src/lib/local-runtime/workbench-status.ts:1 MissionStartPreflight must dry-run MissionCommandSchema before COMMANDER dispatch so command schema failures cannot appear only after Nerve Bus dispatch.
+[FAKE ENFORCEMENT] page-state-capability: page-state owner inspector found capability-boundary, enforcement, or governance violations
+- FATAL src/capabilities/page-state/children/detect-safety-page/implementation.ts:1 detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success.
+- FATAL scripts/audit/domains/page-state-capability/inspector.ts:1 Page State inspector baseline must pass before negative-proof mutation checks.

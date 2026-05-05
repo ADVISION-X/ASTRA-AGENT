@@ -6,6 +6,7 @@ import type { OpenRuntimeContext } from "./open-runtime-types.js";
 export function createOpenRuntimeContext(input: CreateOpenAbilityGroupInput): OpenRuntimeContext {
   return {
     browser: input.browser,
+    ...(input.localProgram ? { localProgram: input.localProgram } : {}),
     clock: input.clock ?? createSystemOpenClock(),
     idempotency: input.idempotency ?? createInMemoryOpenIdempotencyPort(),
     ...(input.profilePort ? { profilePort: input.profilePort } : {}),

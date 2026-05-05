@@ -11,6 +11,7 @@ const {
   FORBIDDEN_IMPORT_MARKERS,
   INDEX_PATH,
   LAW_BOUNDARY,
+  LAW_LOCAL_PROGRAM,
   LAW_PACKAGE_SHAPE,
   LAW_PRIVATE_LEAK,
   LAW_RUNTIME_GOVERNANCE,
@@ -52,6 +53,8 @@ const collectBoundaryFindings = (project: import("ts-morph").Project): Finding[]
   });
   const workbenchSource = getOpenSourceOrThrow(project, WORKBENCH_PATH);
   const indexSource = getOpenSourceOrThrow(project, INDEX_PATH);
+  const localProgramChildPath = `${OPEN_ROOT}/children/open-local-program/implementation.ts`;
+  const localProgramChildSource = getOpenSourceOrThrow(project, localProgramChildPath);
 
   if (forbiddenImportFile) {
     findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: toRepoRelativePath(forbiddenImportFile.getFilePath()), line: 1, severity: "fatal", message: "Open root must not import AI, Screenshot, Mouse, Scroll, Geometry, or Forensics implementations." }));
@@ -67,6 +70,22 @@ const collectBoundaryFindings = (project: import("ts-morph").Project): Finding[]
   }
   if (indexSource.getExportDeclarations().some((declaration) => declaration.getNamedExports().some((specifier) => specifier.getName() === "listOpenChildren"))) {
     findings.push(createFinding({ lawId: LAW_BOUNDARY, file: INDEX_PATH, line: 1, severity: "fatal", message: "Open public index must not leak child-registry listing helpers." }));
+  }
+  if (localProgramChildSource.getImportDeclarations().some((declaration) => declaration.getModuleSpecifierValue().includes("open-browser-port"))) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: localProgramChildPath, line: 1, severity: "fatal", message: "open-local-program must not import OpenBrowserPort as the local program execution channel." }));
+  }
+  if (["child_process", "node:child_process"].some((specifier) => hasImportModuleSpecifier(localProgramChildSource, specifier)) || localProgramChildSource.getText().includes("osascript")) {
+    findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: localProgramChildPath, line: 1, severity: "fatal", message: "open-local-program child must not shell out or run AppleScript directly." }));
+  }
+  for (const sourceFile of project.getSourceFiles()) {
+    const repoPath = toRepoRelativePath(sourceFile.getFilePath());
+    const text = sourceFile.getText();
+    if (repoPath.startsWith("src/map-plugins/") && text.includes('"open-local-workbench"') && text.includes('"local-program"')) {
+      findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: repoPath, line: 1, severity: "fatal", message: "Map packages must not use open-local-workbench for targetKind=local-program." }));
+    }
+    if (repoPath.startsWith("scripts/debug-loop/") && (text.includes("open -a") || text.includes("openApp") || text.includes("shellCommand") || text.includes("osascript"))) {
+      findings.push(createFinding({ lawId: LAW_LOCAL_PROGRAM, file: repoPath, line: 1, severity: "fatal", message: "debug-loop must not directly launch local programs during mission runtime." }));
+    }
   }
 
   return findings;

@@ -60,9 +60,9 @@ const OpenFailurePolicySchema = z.object({
   fakeAllowDecisionForbidden: z.literal(true),
 }).strict();
 
-const OpenTargetProfileSchema = z.object({
+const OpenWebTargetProfileSchema = z.object({
   childCapabilityId: OpenChildCapabilityIdSchema,
-  targetKind: OpenTargetKindSchema,
+  targetKind: z.enum(["platform-feed", "local-workbench"]),
   platformId: OpenPlatformIdSchema,
   allowedHostnames: z.array(z.string().min(1)).nonempty(),
   defaultUrl: z.string().url(),
@@ -91,6 +91,48 @@ const OpenTargetProfileSchema = z.object({
   outputPolicy: OpenOutputPolicySchema,
   failurePolicy: OpenFailurePolicySchema,
 }).strict();
+
+const LocalProgramOpenTargetProfileSchema = z.object({
+  childCapabilityId: z.literal("open-local-program"),
+  targetKind: z.literal("local-program"),
+  platformId: z.literal("macos-local"),
+  targetProfileRef: z.string().min(1),
+  appName: z.string().min(1),
+  bundleId: nullableString,
+  appPath: nullableString,
+  allowedLaunchMethod: z.literal("macos-open-application"),
+  defaultTitle: z.string().min(1),
+  purpose: z.string().min(1),
+  allowedCaller: z.array(OpenAllowedCallerSchema).nonempty(),
+  requiresNerveBus: z.boolean(),
+  requiresRealChromeSession: z.literal(false),
+  allowsLocalhost: z.literal(false),
+  maxOpenDurationMs: z.number().int().positive(),
+  pageStateHandoffRequired: z.literal(true),
+  localAppStateHandoffRequired: z.literal(true),
+  requiresUserVisibleWindow: z.literal(true),
+  requiresPostOpenWindowHandoff: z.literal(true),
+  allowReplay: z.boolean().default(false),
+  timeoutPolicy: OpenTimeoutPolicySchema,
+  idempotencyPolicy: OpenIdempotencyPolicySchema,
+  boundaryPolicy: OpenBoundaryPolicySchema,
+  proofPolicy: OpenProofPolicySchema,
+  outputPolicy: OpenOutputPolicySchema,
+  failurePolicy: OpenFailurePolicySchema,
+}).strict().superRefine((value, context) => {
+  if (!value.bundleId && !value.appPath) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "local program target profile requires bundleId or governed appPath",
+      path: ["bundleId"],
+    });
+  }
+});
+
+const OpenTargetProfileSchema = z.discriminatedUnion("targetKind", [
+  OpenWebTargetProfileSchema,
+  LocalProgramOpenTargetProfileSchema,
+]);
 
 const OpenRequestSchema = z.object({
   abilityGroupId: z.literal(OPEN_ABILITY_GROUP_ID).default(OPEN_ABILITY_GROUP_ID),
@@ -130,7 +172,8 @@ export {
   OpenProofPolicySchema,
   OpenOutputPolicySchema,
   OpenFailurePolicySchema,
+  OpenWebTargetProfileSchema,
+  LocalProgramOpenTargetProfileSchema,
   OpenTargetProfileSchema,
   OpenRequestSchema,
 };
-

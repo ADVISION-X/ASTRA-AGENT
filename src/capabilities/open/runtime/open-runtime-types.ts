@@ -7,6 +7,7 @@ import type { OpenProfilePort } from "../ports/open-profile-port.js";
 
 export type OpenRuntimeContext = {
   browser: CreateOpenAbilityGroupInput["browser"];
+  localProgram?: CreateOpenAbilityGroupInput["localProgram"];
   clock: OpenClockPort;
   idempotency: OpenIdempotencyPort;
   profilePort?: OpenProfilePort;

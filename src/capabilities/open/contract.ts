@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { OpenBrowserPort } from "./ports/open-browser-port.js";
 import type { OpenClockPort } from "./ports/open-clock-port.js";
 import type { OpenIdempotencyPort } from "./ports/open-idempotency-port.js";
+import type { OpenLocalProgramPort } from "./ports/open-local-program-port.js";
 import type { OpenProfilePort } from "./ports/open-profile-port.js";
 import {
   BrowserSessionSnapshotSchema,
@@ -65,6 +66,7 @@ type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
 
 export type CreateOpenAbilityGroupInput = {
   browser: OpenBrowserPort;
+  localProgram?: OpenLocalProgramPort;
   clock?: OpenClockPort;
   idempotency?: OpenIdempotencyPort;
   profilePort?: OpenProfilePort;

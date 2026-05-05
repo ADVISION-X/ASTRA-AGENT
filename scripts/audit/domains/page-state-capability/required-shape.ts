@@ -304,6 +304,36 @@ function collectChildOutputParseFindings(project: Project): Finding[] {
   });
 }
 
+function collectDetectSafetyPageNormalEvidenceFindings(project: Project): Finding[] {
+  const file = `${ROOT}/children/detect-safety-page/implementation.ts`;
+  const implementationSource = getSource(project, file);
+  const normalEvidenceFunction = implementationSource.getFunction("collectNormalSafetyEvidence");
+  const absentMarkerFunction = implementationSource.getFunction("isAbsentPageMarker");
+  const resolverFunction = implementationSource.getFunction("resolveDetectSafetyPageOutput");
+  if (!normalEvidenceFunction || !absentMarkerFunction || !resolverFunction) {
+    return [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file, line: 1, severity: "fatal", message: "detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success." })];
+  }
+
+  const normalEvidenceCollectsAbsentMarkers = normalEvidenceFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isPropertyAccessExpression(expression)
+      && expression.getName() === "filter"
+      && callExpression.getArguments().some((argument) => Node.isIdentifier(argument) && argument.getText() === "isAbsentPageMarker");
+  });
+  const normalEvidenceCollectsPlatformCapture = normalEvidenceFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "findPlatformCaptures";
+  });
+  const normalBranchUsesEvidenceCollector = resolverFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "collectNormalSafetyEvidence";
+  });
+
+  return normalEvidenceCollectsAbsentMarkers && normalEvidenceCollectsPlatformCapture && normalBranchUsesEvidenceCollector
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file, line: 1, severity: "fatal", message: "detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success." })];
+}
+
 function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[] {
   const builder = getSource(project, LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT);
   const findings: Finding[] = [];
@@ -375,6 +405,7 @@ const inspectBuilderShape = (project: Project): Finding[] => {
     ...collectProofBuilderAssignmentFindings(project),
     ...collectResultBuilderPathFindings(project),
     ...collectChildOutputParseFindings(project),
+    ...collectDetectSafetyPageNormalEvidenceFindings(project),
     ...collectLocalRuntimeDispatchBuilderFindings(project),
     ...collectLocalRuntimeExecutorFindings(project),
     ...collectNonSuccessParityFindings(project),

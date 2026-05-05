@@ -623,7 +623,85 @@ negative proof PASS
 
 ---
 
-## 18. 漂移信号
+## 18. 运行日志闭环补充：安全页正常状态必须绑定负向观察证据
+
+本节只补齐 `detect-safety-page` 的执行细节，不新增 lawId。
+
+### 正确链路
+
+```txt
+Open / runtime signal emits source-bound observations
+→ Page State receives captcha-marker and safety-wall-marker
+→ captcha present=false and safety_wall present=false are retained as governed negative observations
+→ detect-safety-page uses those observationIds as page_normal support
+→ page_normal success keeps observationRefs and sourceEvidenceRefs
+→ output boundary allows success only when critical dataQualityFlags are empty
+```
+
+`page_normal` 不是“没有证据”。它必须由已检查过的负向观察证明，例如：
+
+```txt
+captcha-marker present=false
+safety-wall-marker present=false
+post-open-capture exists
+sourceProofRef binds to sourceEvidenceRefs/openHandoff/snapshot proof
+freshness gate passed
+```
+
+### 禁止链路
+
+```txt
+captcha present=false / safety_wall present=false
+→ child ignores those observations
+→ matchedObservationIds=[]
+→ dataQualityFlags=["insufficient_signal"]
+→ normal page cannot proceed
+```
+
+也禁止为了继续执行而放宽 validator、放宽 output boundary、删除 `OBSERVATION_REQUIRED_CHILDREN`、或允许 success 携带 `insufficient_signal`。
+
+### Inspector 应覆盖
+
+- AST 检查 `detect-safety-page` 的正常页分支必须调用独立的 normal evidence collector。
+- AST 检查 normal evidence collector 必须使用 absent `page_marker` observations。
+- AST 检查 normal evidence collector 必须保留 platform capture 或等效 runtime source-bound evidence。
+- AST 检查 `buildSafetyPageNormalOutput` 不能在已具备负向观察时写入 `insufficient_signal`。
+
+### Negative Proof 应覆盖
+
+- 将 normal 分支改回只使用 positive blocker observations 必须 FAIL。
+- 删除 local runtime governed observations 必须 FAIL。
+- 删除 success observationRefs / evidenceRefs 校验仍必须 FAIL。
+
+### 结构化日志必备字段
+
+`detect-safety-page` 的 review/fail 日志应尽量暴露：
+
+```txt
+traceId
+runId
+missionId
+stepId
+childCapabilityId
+selectedMapId
+activationSnapshotRef
+diagnosticPayloadRef / runtimeProofRef
+observationRefs
+sourceEvidenceRefs
+ownerResponsible
+actionableMessage
+```
+
+### READY 标准
+
+- 正常页面具备 `captcha=false`、`safety_wall=false`、source-bound capture 时，`detect-safety-page` 可返回 `page_normal` success。
+- 安全墙、captcha、login form 正向命中时仍必须 block/review。
+- 成功结果不得携带 `insufficient_signal`、不得缺 observationRefs、不得缺 sourceEvidenceRefs。
+- 修复后必须真实重启、真实触发任务、重新执行第一阶段日志分析。
+
+---
+
+## 19. 漂移信号
 
 ```txt
 Open helper declares login/feed/safety truth
@@ -637,7 +715,7 @@ verify script becomes release gate
 
 ---
 
-## 19. 最终原则
+## 20. 最终原则
 
 ```txt
 Page State 是“现在是什么”。

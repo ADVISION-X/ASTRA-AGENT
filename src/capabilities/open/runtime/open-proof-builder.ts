@@ -61,6 +61,16 @@ type OpenProofBuilderInput = {
   sessionSnapshotAvailable: boolean;
   sessionSnapshotFailureReason: string | null;
   dataQualityFlags: OpenDataQualityFlag[];
+  localProgramOpenAttemptRef?: string | null;
+  appLaunchAttemptRef?: string | null;
+  appName?: string | null;
+  bundleId?: string | null;
+  appPath?: string | null;
+  allowedLaunchMethod?: "macos-open-application" | null;
+  windowHandoffRef?: string | null;
+  localAppStateHandoffRef?: string | null;
+  localProgramSnapshotAvailable?: boolean;
+  localProgramSnapshotFailureReason?: string | null;
 };
 
 const buildOpenProofCoreFields = (input: OpenProofBuilderInput) => ({
@@ -92,6 +102,16 @@ const buildOpenProofCoreFields = (input: OpenProofBuilderInput) => ({
   loginStateBefore: input.beforeSession.loginState,
   loginStateAfter: input.afterSession.loginState,
   pageTitleAfter: input.afterSession.currentTitle,
+  localProgramOpenAttemptRef: input.localProgramOpenAttemptRef ?? null,
+  appLaunchAttemptRef: input.appLaunchAttemptRef ?? null,
+  appName: input.appName ?? null,
+  bundleId: input.bundleId ?? null,
+  appPath: input.appPath ?? null,
+  allowedLaunchMethod: input.allowedLaunchMethod ?? null,
+  windowHandoffRef: input.windowHandoffRef ?? null,
+  localAppStateHandoffRef: input.localAppStateHandoffRef ?? null,
+  localProgramSnapshotAvailable: input.localProgramSnapshotAvailable ?? false,
+  localProgramSnapshotFailureReason: input.localProgramSnapshotFailureReason ?? null,
 });
 
 const buildOpenProofDecisionFields = (input: OpenProofBuilderInput) => ({

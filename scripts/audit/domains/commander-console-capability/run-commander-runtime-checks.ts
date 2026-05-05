@@ -19,6 +19,7 @@ type RuntimeCheckResult = {
 };
 
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
+const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-human-command.ts";
 
 const hasNamedImport = (sourceFile: import("ts-morph").SourceFile, moduleSuffix: string, importName: string) => {
   return sourceFile.getImportDeclarations().some((declaration) => {
@@ -181,12 +182,32 @@ const isIdempotencyGateValid = (sourceFile: import("ts-morph").SourceFile) => {
 };
 
 const isTransportSemanticGateValid = (sourceFile: import("ts-morph").SourceFile) => {
-  const text = sourceFile.getFullText();
-  return text.includes("if (input.result.commandId !== input.command.commandId) {")
-    && text.includes('if (input.result.status === "accepted" && !input.result.envelopeRef) {')
-    && text.includes('if (input.result.status === "failed" && !input.result.failureReason) {')
-    && text.includes('if (input.result.status === "review_required" && !input.result.reviewRequiredReason) {')
-	    && text.includes('if (result.status !== "accepted" || result.resultEnvelopeRef) {');
+  const functionNames = new Set([
+    ...sourceFile.getFunctions().map((declaration) => declaration.getName()).filter((name): name is string => Boolean(name)),
+    ...sourceFile.getVariableDeclarations().map((declaration) => declaration.getName()),
+  ]);
+  const requiredFunctions = [
+    "getCommandIdFailureReason",
+    "getRunIdFailureReason",
+    "getAcceptedTransportFailureReason",
+    "getFailedTransportFailureReason",
+    "getReviewRequiredFailureReason",
+    "getTransportSemanticFailureReason",
+    "getAcceptedTransportReview",
+  ] as const;
+  const allRequiredFunctionsExist = requiredFunctions.every((functionName) => functionNames.has(functionName));
+  const validatesRequiredFields = [
+    "input.result.commandId",
+    "input.command.commandId",
+    "result.runId",
+    "result.envelopeRef",
+    "result.failureReason",
+    "result.reviewRequiredReason",
+    "result.resultEnvelopeRef",
+  ].every((propertyText) =>
+    sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((propertyAccess) => propertyAccess.getText() === propertyText),
+  );
+  return allRequiredFunctionsExist && validatesRequiredFields;
 };
 
 const isReadProofGateValid = (sourceFile: import("ts-morph").SourceFile) => {
@@ -256,6 +277,7 @@ const hasCommandRuntimeWiring = (sourceFile: import("ts-morph").SourceFile) => {
 const collectCommandRuntimeFindings = (input: {
   executorSource: import("ts-morph").SourceFile;
   outcomesSource: import("ts-morph").SourceFile;
+  humanCommandSource: import("ts-morph").SourceFile;
 }): Finding[] => {
   const findings: Finding[] = [];
   if (!hasCommandRuntimeWiring(input.executorSource)) {
@@ -264,8 +286,38 @@ const collectCommandRuntimeFindings = (input: {
   if (!isCommandOutcomesValid(input.outcomesSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2", COMMAND_OUTCOMES_PATH, "Command outcome builders must preserve hard-stop and timeout guarded receipt states."));
   }
+  findings.push(...collectStartMissionAcceptanceBoundaryFindings(input.humanCommandSource));
   return findings;
 };
+
+function collectStartMissionAcceptanceBoundaryFindings(sourceFile: import("ts-morph").SourceFile): Finding[] {
+  const handleStartMission = sourceFile.getFunction("handleStartMission")
+    ?? sourceFile.getVariableDeclaration("handleStartMission")?.getInitializerIfKind(SyntaxKind.ArrowFunction)
+    ?? sourceFile.getVariableDeclaration("handleStartMission")?.getInitializerIfKind(SyntaxKind.FunctionExpression);
+  if (!handleStartMission) {
+    return [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", WORKBENCH_HUMAN_COMMAND_PATH, "Workbench human-command runtime must expose handleStartMission for governed command acceptance.")];
+  }
+
+  const awaitsMissionLoop = handleStartMission.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) => {
+    const expression = awaitExpression.getExpression();
+    return expression.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((propertyAccess) =>
+      propertyAccess.getText() === "runtime.orchestrationAbilityGroup.startMission",
+    ) || expression.getText() === "missionStartPromise";
+  });
+  const startsMissionInBackground = handleStartMission.getDescendantsOfKind(SyntaxKind.VoidExpression).some((voidExpression) =>
+    voidExpression.getExpression().getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((propertyAccess) =>
+      propertyAccess.getText() === "missionStartPromise.catch",
+    ),
+  );
+  const callExpressions = handleStartMission.getDescendantsOfKind(SyntaxKind.CallExpression);
+  const acceptedCall = callExpressions.find((callExpression) => callExpression.getExpression().getText() === "recordCommandAccepted");
+  const missionStartCall = callExpressions.find((callExpression) => callExpression.getExpression().getText() === "runtime.orchestrationAbilityGroup.startMission");
+  const recordsAcceptanceBeforeMissionStart = Boolean(acceptedCall && missionStartCall && acceptedCall.getStart() < missionStartCall.getStart());
+
+  return !awaitsMissionLoop && startsMissionInBackground && recordsAcceptanceBeforeMissionStart
+    ? []
+    : [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", WORKBENCH_HUMAN_COMMAND_PATH, "start-mission command acceptance must return a governed receipt without awaiting terminal mission execution.")];
+}
 
 const hasReadRuntimeWiring = (sourceFile: import("ts-morph").SourceFile) => {
   return hasNamedImport(sourceFile, "commander-timeout-gate.js", "runCommanderTimeoutGate")
@@ -314,6 +366,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
   const workbenchDebugSource = getSourceFileOrThrow(project, WORKBENCH_COMMANDER_DEBUG_PATH);
   const taskStartSupportSource = getSourceFileOrThrow(project, TASK_START_DISPATCH_RESULT_PATH);
   const acceptedBoundarySource = getSourceFileOrThrow(project, "src/lib/local-runtime/workbench-human-command-debug-events.ts");
+  const humanCommandSource = getSourceFileOrThrow(project, WORKBENCH_HUMAN_COMMAND_PATH);
 
   const gateResult = collectGateFindings({ commandGateSource, commandPayloadSource, readGateSource, transportSchemaSource });
   const childExecutorResult = collectChildExecutorFindings(childExecutorsSource);
@@ -322,7 +375,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
     findings: [
       ...collectAbilityGroupFindings(abilityGroupSource),
       ...gateResult.findings,
-	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource }),
+	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource, humanCommandSource }),
 	      ...collectTransportRunIdFindings({ transportSchemaSource, transportSemanticGateSource, commandOutcomesSource }),
       ...collectRuntimeProofRunIdFindings(runtimeProofSchemaSource),
       ...collectDebugRefFindings({ workbenchDebugSource, taskStartSupportSource, acceptedBoundarySource }),

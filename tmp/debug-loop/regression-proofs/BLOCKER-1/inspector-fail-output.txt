@@ -3,4 +3,4 @@
 > node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
 
 [CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
-- FATAL src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts:1 Commander transport semantic failure and review builders must preserve a non-null runId instead of returning runId:null.
+- FATAL src/lib/local-runtime/workbench-human-command.ts:1 start-mission command acceptance must return a governed receipt without awaiting terminal mission execution.

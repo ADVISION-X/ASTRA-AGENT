@@ -66,6 +66,7 @@ Required children:
 open-tiktok
 open-facebook
 open-local-workbench
+open-local-program
 ```
 
 Required enforcement:
@@ -110,7 +111,7 @@ Open Ability Group is the only owner of governed open behavior.
 Required:
 - All governed target opening must flow through `src/capabilities/open`.
 - Open root must expose one canonical public contract.
-- `open-tiktok`, `open-facebook`, and `open-local-workbench` must exist as child capabilities.
+- `open-tiktok`, `open-facebook`, `open-local-workbench`, and `open-local-program` must exist as child capabilities.
 - Startup may open local workbench only through Open public surface.
 - Platform adapters may consume Open results only through public contract.
 - Agent runtime, local shell, startup, platform adapters, and deleted historical owners must not own platform-open truth.
@@ -599,16 +600,20 @@ Active child capabilities:
 open-tiktok
 open-facebook
 open-local-workbench
+open-local-program
 ```
 
 Required:
 - Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
 - Each child binds one governed target profile.
 - Each child uses unified `executeOpenChildFlow` or equivalent single Open runtime path.
-- Child implementation must not open directly except through runtime OpenBrowserPort.
+- Web/workbench child implementation must not open directly except through runtime OpenBrowserPort.
+- Local program child implementation must not open directly except through governed OpenLocalProgramPort.
 - Child must not call another child.
 - Child must not build final proof/result except through shared Open result/proof builder.
 - Local workbench may allow localhost only through its own governed target profile.
+- Local workbench must not represent macOS local program launch.
+- Local program must not use localhost/workbench URL fallback.
 
 Forbidden:
 - child importing sibling child implementation.
@@ -617,6 +622,8 @@ Forbidden:
 - child building `OpenRuntimeProof` directly.
 - child direct BrowserController import.
 - child direct page-state/PAV claim.
+- child direct local app launch outside OpenLocalProgramPort.
+- child using `open-local-workbench` for `targetKind=local-program`.
 
 Required inspector:
 - Child folder/registry/schema parity.
@@ -630,6 +637,93 @@ Required negative proof:
 - Child returns boolean → FAIL.
 - Child imports BrowserController → FAIL.
 - Child sets pageState verified field → FAIL.
+- open-local-program imports OpenBrowserPort as local program execution channel → FAIL.
+- open-local-program uses raw shell app launch → FAIL.
+
+---
+
+## Law GRASSEYE-OPEN-CAPABILITY-009-V1
+
+status: active  
+tier: P0  
+capabilityDomain: open-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.
+
+### 主题
+
+本地程序打开主权
+
+### 法条
+
+Open Ability Group must support governed macOS local program launch as a first-class Open child capability.
+
+Required:
+- `open-local-program` must exist as an Open child capability.
+- `open-local-program` must open only governed local application targets.
+- `open-local-workbench` remains only for localhost workbench URLs.
+- `open-local-workbench` must not be used to represent macOS local program launch.
+- `open-facebook` and `open-tiktok` remain web-platform open children, not native app launch children.
+- Local program target profile must include:
+  - `platformId = macos-local`
+  - `targetKind = local-program`
+  - `appName`
+  - `bundleId` or governed `appPath`
+  - `targetProfileRef`
+  - `allowedLaunchMethod`
+  - `requiresUserVisibleWindow = true`
+  - `requiresPostOpenWindowHandoff = true`
+  - `allowedCaller`
+  - `timeoutPolicy`
+  - `idempotencyPolicy`
+  - `proofPolicy`
+- Open may call only a governed `OpenLocalProgramPort` for local program launch.
+- Open success must produce:
+  - `localProgramOpenAttemptRef`
+  - `appLaunchAttemptRef`
+  - `appName`
+  - `bundleId` or governed `appPath`
+  - `windowHandoffRef`
+  - `localAppStateHandoffRef`
+  - `runtimeProof`
+- Open must not decide internal app state.
+- Open must not click/type/scroll/screenshot inside the app.
+- App internal state belongs to Page State / Screenshot / Visual Target / PAV after handoff.
+
+Forbidden:
+- using `open-local-workbench` to open macOS apps.
+- treating localhost workbench as local program.
+- launching arbitrary app without governed profile.
+- shelling out arbitrary command from map.
+- accepting raw user-provided shell command as app launch.
+- `open -a ${userInput}` with unvalidated app name.
+- direct AppleScript / osascript in map package.
+- local program Open deciding app internal page/state.
+- local program Open clicking or typing inside the app.
+- local program Open reading app private data.
+- local program Open bypassing Page State / Screenshot / Visual Target handoff.
+- debug-loop launching local program directly for mission runtime.
+
+Required inspector:
+- `open-local-program` child folder/registry/schema/contract exists.
+- target profile distinguishes `local-workbench` from `local-program`.
+- `open-local-workbench` cannot be used with `targetKind=local-program`.
+- `open-local-program` uses governed `OpenLocalProgramPort`, not arbitrary shell command.
+- appName/bundleId/appPath must come from governed target profile.
+- success requires `windowHandoffRef` and `localAppStateHandoffRef`.
+- no direct click/type/screenshot/AI logic in `open-local-program`.
+- map/scenario/debug-loop cannot bypass Open for local program launch.
+
+Required negative proof:
+- map uses `open-local-workbench` for `targetKind=local-program` → FAIL.
+- `open-local-program` launches raw user command → FAIL.
+- `open-local-program` uses unvalidated `open -a ${input}` → FAIL.
+- `open-local-program` succeeds without `windowHandoffRef` → FAIL.
+- `open-local-program` succeeds without `localAppStateHandoffRef` → FAIL.
+- `open-local-program` clicks/types inside app → FAIL.
+- debug-loop opens local program directly during mission-runtime → FAIL.
 
 ---
 

@@ -1,28 +1,21 @@
-# Non-current-owner CI blockers
+Non-current-owner CI blockers observed during phase 2 verification
 
-Current blocker scope: Page State local-runtime dispatch invalid_input drift.
+Static commands executed:
+- npm run audit:build: PASS, see audit-build-output.txt.
+- npm run audit: FAIL-FAST at audit-system fake enforcement, see audit-output.txt.
+- npm run typecheck: FAIL, see typecheck-output.txt.
+- npm run lint: FAIL because lint delegates to typecheck, see lint-output.txt.
+- npm run ci:full: FAIL-FAST at typecheck, see ci-full-output.txt.
+- git diff --check: PASS, see git-diff-check-output.txt.
 
-Fresh acceptance results:
-- PASS: npm run audit:page-state
-- PASS: git diff --check
-- FAIL: npm run typecheck
-- FAIL: npm run lint
-- FAIL: npm run ci:full
+Failures outside the current P0 runtime blocker owners:
+- scripts/audit/census/assert-census-complete.ts has existing unknown/undefined strict TypeScript errors.
+- scripts/audit/core/static-clause-coverage-artifact.ts has an unresolved AuditSummaryEntry type and null handling errors.
+- scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts has an existing possibly-undefined error in unrelated dirty Forensics work.
+- scripts/audit/domains/post-action-verification-capability/run-governed-runtime-checks.ts has existing .ts import extension errors and null handling.
+- src/lib/local-runtime/workbench-status.ts has an existing exactOptionalPropertyTypes mismatch on optional mission readiness fields.
+- npm run audit fails at audit-system fake enforcement before reaching the full plan.
 
-The failing files below are outside the current Page State blocker root-cause slice and were not modified as part of this closeout:
-
-1. scripts/audit/core/static-clause-coverage-artifact.ts
-- `Cannot find name 'AuditSummaryEntry'`
-- `Argument of type 'string | null' is not assignable to parameter of type 'string'`
-
-2. scripts/audit/domains/post-action-verification-capability/run-governed-runtime-checks.ts
-- multiple `.ts` import-extension errors under current tsconfig
-- `runId: null` is not assignable to required `string`
-
-3. src/lib/local-runtime/workbench-human-command.ts
-- `WorkbenchMissionState` is missing required `activationSnapshotRef` for `MissionStartState`
-
-4. src/lib/local-runtime/workbench-status.ts
-- exactOptionalPropertyTypes mismatch for `taskTemplateId` and adjacent optional preflight fields
-
-These failures block repository-wide READY, but they do not falsify the current Page State blocker repair, whose local owner audit, negative proof, mutation proof bundle, real restart verification, and fresh live log re-analysis all passed.
+Current owner checks completed:
+- npm run audit:commander-console: PASS after production mutation rollback.
+- npm run audit:page-state: PASS after production mutation rollback.

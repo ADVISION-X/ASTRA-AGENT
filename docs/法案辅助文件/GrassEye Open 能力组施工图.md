@@ -48,6 +48,8 @@ Open Ability Group 是 GrassEye 的“开门能力”。
 记录 open proof
 生成 page-state handoff
 返回 structured Open result
+打开 governed macOS local program
+生成 window/localAppState handoff
 ```
 
 它不负责：
@@ -59,6 +61,7 @@ Open Ability Group 是 GrassEye 的“开门能力”。
 AI 判断
 视觉目标识别
 鼠标/键盘动作
+本地程序内部操作
 证据最终落盘
 地图分支
 任务推进
@@ -118,6 +121,7 @@ src/capabilities/open/
 ├── index.ts
 ├── ports/
 │   ├── open-browser-port.ts
+│   ├── open-local-program-port.ts
 │   ├── open-clock-port.ts
 │   ├── open-idempotency-port.ts
 │   └── open-profile-port.ts
@@ -145,7 +149,8 @@ src/capabilities/open/
 └── children/
     ├── open-tiktok/
     ├── open-facebook/
-    └── open-local-workbench/
+    ├── open-local-workbench/
+    └── open-local-program/
 ```
 
 ---
@@ -225,7 +230,7 @@ OpenRequest:
   reason: required
   targetUrl: optional
   targetTitle: optional
-  targetProfileRef: optional
+  targetProfileRef: required for local-program, optional for URL targets
   sourceRef: required
   inputRef: required
   idempotencyKey: required
@@ -259,7 +264,9 @@ runtimeProof
 
 ## 6. Target Profile
 
-`OpenTargetProfile` 必须定义：
+`OpenTargetProfile` 必须区分 URL target 与 local program target，不得用假 URL 填充本地程序 profile。
+
+URL / workbench target profile 必须定义：
 
 ```yaml
 OpenTargetProfile:
@@ -287,6 +294,36 @@ OpenTargetProfile:
   failurePolicy: required
 ```
 
+Local program target profile 必须支持：
+
+```yaml
+LocalProgramOpenTargetProfile:
+  childCapabilityId: open-local-program
+  platformId: macos-local
+  targetKind: local-program
+  targetProfileRef: required
+  appName: required
+  bundleId: optional
+  appPath: optional
+  allowedLaunchMethod: macos-open-application
+  requiresUserVisibleWindow: true
+  requiresPostOpenWindowHandoff: true
+  pageStateHandoffRequired: true
+  localAppStateHandoffRequired: true
+  allowedCaller: non-empty
+  requiresNerveBus: true
+  requiresRealChromeSession: false
+  allowsLocalhost: false
+  maxOpenDurationMs: required
+  allowReplay: boolean
+  timeoutPolicy: required
+  idempotencyPolicy: required
+  boundaryPolicy: required
+  proofPolicy: required
+  outputPolicy: required
+  failurePolicy: required
+```
+
 Target profile 是 governed profile，不是 silent fallback。
 
 禁止：
@@ -297,6 +334,7 @@ platformId ?? tiktok
 targetProfileRef fabricated
 fake allow decision
 fake target profile
+fake localhost URL for local-program
 ```
 
 ---
@@ -310,6 +348,12 @@ input schema gate
 → child registry gate
 → target profile gate
 → caller policy gate
+→ target-kind dispatch gate
+```
+
+Web / workbench branch:
+
+```txt
 → URL safety gate
 → real Chrome session gate
 → idempotency gate
@@ -319,6 +363,21 @@ input schema gate
 → post-open preliminary gate
 → page-state handoff builder
 → output boundary gate
+→ proof builder
+→ result builder
+```
+
+Local program branch:
+
+```txt
+local program profile gate
+→ app launch safety gate
+→ idempotency gate
+→ timeout/cancellation gate
+→ OpenLocalProgramPort.openLocalProgram
+→ local program window snapshot gate
+→ localAppState handoff builder
+→ page-state/local-app-state handoff builder
 → proof builder
 → result builder
 ```
@@ -334,6 +393,10 @@ executor skipping idempotency
 executor skipping timeout
 browser open without AbortSignal
 success without page-state handoff
+local-program branch uses OpenBrowserPort
+local-program branch uses URL fallback
+local-program branch opens localhost workbench
+local-program branch executes map step internally
 ```
 
 ---
@@ -598,7 +661,12 @@ failed proof with outputRef
 |---|---|---|---|
 | open-tiktok | TikTok web feed/page | tiktok-web | no localhost |
 | open-facebook | Facebook web feed/page | facebook-web | no localhost |
-| open-local-workbench | local workbench | local-workbench | localhost allowed only by profile |
+| open-local-workbench | local workbench URL | local-workbench | localhost allowed only by profile; not a macOS app |
+| open-local-program | governed macOS local program | macos-local | app profile required; no arbitrary shell command |
+
+| profile | app | platform | special rule |
+|---|---|---|---|
+| macos-app:iphone-mirroring | iPhone Mirroring | macos-local | opens app/window only; Facebook App inside iPhone is handled by visual chain |
 
 Every child must:
 
@@ -609,6 +677,8 @@ call unified open runtime
 avoid sibling import
 avoid direct BrowserController
 avoid final Page State/PAV truth
+avoid direct shell/app launch outside OpenLocalProgramPort
+avoid click/type/screenshot inside local program
 ```
 
 ---
@@ -703,6 +773,10 @@ verify script as release truth
 17. No second open owner in platform/startup/runtime.
 18. ALL active laws in registry/matrix/audit-plan/runner.
 19. negative proof executed.
+20. open-local-program child/port/profile/proof exists.
+21. open-local-workbench cannot represent local-program.
+22. local-program success requires windowHandoffRef/localAppStateHandoffRef.
+23. map/scenario/debug-loop cannot bypass Open for local program launch.
 ```
 
 ---
@@ -735,6 +809,19 @@ external platform adapter adds openFeed
 startup owns platform open helper
 turn P0 into warning-only
 remove negative proof invocation
+remove open-local-program from required children
+remove open-local-program from registry
+remove macos-local from OPEN_PLATFORM_IDS
+remove local-program from OPEN_TARGET_KINDS
+map uses open-local-workbench with targetKind=local-program
+open-local-program launches raw user command
+open-local-program uses unvalidated open -a input
+open-local-program succeeds without windowHandoffRef
+open-local-program succeeds without localAppStateHandoffRef
+open-local-program imports mouse-click
+open-local-program imports screenshot
+open-local-program uses localhost fake URL
+debug-loop opens local program directly in mission-runtime
 ```
 
 ---
@@ -771,6 +858,9 @@ Open success lacks pageStateHandoffRef
 Open reads document.cookie
 Open child imports BrowserController
 Open targetUrl fallback uses DEFAULT_TIKTOK_URL
+open-local-workbench claims targetKind local-program
+open-local-program uses localhost fake URL
+debug-loop directly launches Mac app during mission-runtime
 verify script becomes release gate
 ```
 
@@ -785,5 +875,14 @@ PAV 是“打开动作是否达成预期”。
 Screenshot/Visual Target 是“我看见了”。
 Orchestration 是“下一步怎么走”。
 这些不能混。
+
+Open local-program 只负责打开 Mac 程序和生成窗口 handoff。
+程序内部页面状态由 Page State 判断。
+程序内部画面由 Screenshot 采集。
+程序内部按钮由 Visual Target 定位。
+坐标安全由 Geometry Guard 验证。
+点击/输入/滚动由对应能力组执行。
+动作结果由 PAV 验证。
+证据由 Forensics 记录。
 ```
 ````

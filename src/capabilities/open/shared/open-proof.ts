@@ -17,6 +17,7 @@ export const OPEN_TARGET_POLICY_DECISION_STATUSES = [
 export const OPEN_URL_SAFETY_DECISION_STATUSES = [
   "allow",
   "block",
+  "not_applicable",
 ] as const;
 
 export const OPEN_SESSION_DECISION_STATUSES = [

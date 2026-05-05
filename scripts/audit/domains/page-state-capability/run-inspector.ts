@@ -9,6 +9,7 @@ const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
 const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<Awaited<ReturnType<typeof loadInspector>>>>): RunnerSummary => ({
   generatedAt: new Date().toISOString(),
   phase,
+  passed: result.passed && !hasBlockingFindings(result.findings),
   totals: {
     inspectors: 1,
     passed: result.passed ? 1 : 0,

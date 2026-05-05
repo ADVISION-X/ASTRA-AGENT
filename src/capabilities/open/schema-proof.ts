@@ -88,6 +88,16 @@ const openRuntimeProofSourceShape = {
   loginStateBefore: BrowserLoginStateSchema,
   loginStateAfter: BrowserLoginStateSchema,
   pageTitleAfter: nullableString,
+  localProgramOpenAttemptRef: nullableString,
+  appLaunchAttemptRef: nullableString,
+  appName: nullableString,
+  bundleId: nullableString,
+  appPath: nullableString,
+  allowedLaunchMethod: z.literal("macos-open-application").nullable().default(null),
+  windowHandoffRef: nullableString,
+  localAppStateHandoffRef: nullableString,
+  localProgramSnapshotAvailable: z.boolean().default(false),
+  localProgramSnapshotFailureReason: nullableString,
 };
 
 const openRuntimeProofDecisionShape = {

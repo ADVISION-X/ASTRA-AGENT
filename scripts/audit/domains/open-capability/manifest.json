@@ -13,7 +13,8 @@
     "GRASSEYE-OPEN-CAPABILITY-005-V2",
     "GRASSEYE-OPEN-CAPABILITY-006-V2",
     "GRASSEYE-OPEN-CAPABILITY-007-V2",
-    "GRASSEYE-OPEN-CAPABILITY-008-V2"
+    "GRASSEYE-OPEN-CAPABILITY-008-V2",
+    "GRASSEYE-OPEN-CAPABILITY-009-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md"
