@@ -22,8 +22,8 @@ export const REQUIRED_SOURCE_FILES = [
   "src/map-plugins/authoring/map-authoring-response.schema.ts",
   "src/map-plugins/authoring/map-authoring-template.ts",
   "src/map-plugins/authoring/map-authoring-prompt-builder.ts",
-  "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
-  "src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json",
+  "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+  "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
 ] as const;
 
 export function createMapPromptContractAuditProject(): Project {

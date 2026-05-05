@@ -10,9 +10,7 @@ function readBuiltin(fileName: string): MapPackage {
 
 export function loadBuiltinMapPackages(): MapPackage[] {
   return [
-    readBuiltin("facebook-safe-comment-draft-review.map-package.json"),
-    readBuiltin("tiktok-product-discovery.map-package.json"),
-    readBuiltin("tiktok-comment-evidence.map-package.json"),
-    readBuiltin("ai-draft-map-placeholder.map-package.json")
+    readBuiltin("facebook-seeding-video-discovery.meta.map-package.json"),
+    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json")
   ];
 }

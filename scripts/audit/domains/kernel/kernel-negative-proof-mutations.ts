@@ -234,7 +234,7 @@ const KERNEL_NEGATIVE_PROOF_MUTATION_CATALOG: KernelNegativeProofMutationCatalog
   },
   {
     name: "map package raw prompt mutation",
-    file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
     search: '{ "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
     replace: '{ "stepId": "ask-product-presence", "promptContractId": "vision.productPresence.v1", "rawPrompt": "illegal", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "ask-product-presence:failed" }',
     expectedNeedle: "Map packages must reference promptContractId only; raw prompt fields are forbidden in map packages.",

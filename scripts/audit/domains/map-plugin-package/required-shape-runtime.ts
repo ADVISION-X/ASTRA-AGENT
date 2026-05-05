@@ -25,8 +25,8 @@ const collectRegistryFeedFindings = (registry: ReturnType<typeof createMapPlugin
   if (activePackages.length < 2) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/map-plugin-registry.ts`, line: 1, severity: "fatal", message: "Approved builtin map packages must bootstrap into the active registry." }));
   }
-  if (ordinaryTemplates.some((item) => item.taskTemplateId === "ai-generated-map-placeholder")) {
-    findings.push(createRegistryBootstrapError("AI draft placeholder must never appear in the approved active task-template feed."));
+  if (ordinaryTemplates.some((item) => item.availability !== "ready")) {
+    findings.push(createRegistryBootstrapError("Draft, quarantined, disabled, or rejected maps must never appear in the ordinary runnable feed."));
   }
   if (ordinaryTemplates.some((item) => "mapId" in (item as object) || "requestedPlatformId" in (item as object))) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.FEED_BOUNDARY, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Ordinary task-template feed must not expose internal map binding fields." }));
@@ -39,11 +39,13 @@ const collectRegistryFeedFindings = (registry: ReturnType<typeof createMapPlugin
 };
 
 const resolveActiveRecord = (registry: ReturnType<typeof createMapPluginRegistry>): ActiveRegistryRecord | Finding[] => {
-  if (!registry.active.getTaskTemplateDeveloperBinding("tiktok-product-discovery")) {
-    return [createRegistryBootstrapError("Active registry must resolve a developer binding for an approved task template.")];
+  for (const taskTemplateId of ["facebook-seeding-video-discovery", "tiktok-seeding-video-discovery"]) {
+    if (!registry.active.getTaskTemplateDeveloperBinding(taskTemplateId)) {
+      return [createRegistryBootstrapError(`Active registry must resolve a developer binding for approved task template ${taskTemplateId}.`)];
+    }
   }
 
-  const activeRecord = registry.active.getActiveOperationalMapRecordByTaskTemplateId("tiktok-product-discovery");
+  const activeRecord = registry.active.getActiveOperationalMapRecordByTaskTemplateId("tiktok-seeding-video-discovery");
   if (!activeRecord) {
     return [createRegistryBootstrapError("Active registry must expose a frozen active record for approved task templates.")];
   }

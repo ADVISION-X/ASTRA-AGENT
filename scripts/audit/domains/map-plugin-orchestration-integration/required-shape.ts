@@ -112,8 +112,8 @@ const inspectBootstrappedRegistry = (): Finding[] => {
   if (ordinaryTemplates.some((template) => "mapId" in (template as object) || "requestedPlatformId" in (template as object))) {
     findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: ACTIVE_MAP_REGISTRY, line: 1, severity: "fatal", message: "Ordinary task-template feed must not expose mapId or requestedPlatformId as public fields." }));
   }
-  if (ordinaryTemplates.some((template) => template.taskTemplateId === "ai-generated-map-placeholder")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: ACTIVE_MAP_REGISTRY, line: 1, severity: "fatal", message: "AI draft placeholder must not appear in the ordinary runnable task-template feed." }));
+  if (ordinaryTemplates.some((template) => template.availability !== "ready")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MAP-PLUGIN-005-V1", file: ACTIVE_MAP_REGISTRY, line: 1, severity: "fatal", message: "Draft, quarantined, disabled, or rejected maps must not appear in the ordinary runnable task-template feed." }));
   }
 
   return findings;

@@ -38,6 +38,7 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     sampledFrameCount: "number",
     validFrameCount: "number",
     isProductVideo: "true | false | null",
+    decision: "product_yes | product_no | product_uncertain | null",
     confidence: "0..1",
     visibleProductTypes: "string[]",
     evidenceObservations: "string[]",

@@ -8,7 +8,7 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 const LAW_ID = "GRASSEYE-AUDIT-SYSTEM-002-V1";
 
 async function readBuiltinMapPackage(): Promise<Record<string, unknown>> {
-  const filePath = pathFromRepoRoot("src/map-plugins/builtins/tiktok-product-discovery.map-package.json");
+  const filePath = pathFromRepoRoot("src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json");
   const content = await readFile(filePath, "utf8");
   return JSON.parse(content) as Record<string, unknown>;
 }
@@ -34,7 +34,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
   if (promptBindings[0] === undefined) {
     findings.push(createFinding({
       lawId: LAW_ID,
-      file: "src/map-plugins/builtins/tiktok-product-discovery.map-package.json",
+      file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
       line: 1,
       severity: "fatal",
       message: "Negative proof harness requires at least one prompt binding in the built-in discovery map.",

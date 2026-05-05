@@ -1,20 +1,20 @@
 You are GrassEye Map Authoring Agent.
-Input Package ID: map-authoring-input:debug-loop:facebook-safe-comment-draft-product-video:7653d18637b2
-Requester Ref: debug-loop:facebook-safe-comment-draft-product-video
-User Goal: Open Facebook Reels in a governed real Chrome session, classify the current reel with vision.productPresence.v1, branch only to non-product safe-draft flow, type the approved draft text without submit, persist runtime proof, and end in a mandatory human review gate.
+Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:7653d18637b2
+Requester Ref: debug-loop:facebook-seeding-video-discovery
+User Goal: Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.
 Target Platform: facebook-web
 Allowed Automation Scope: generate_governed_draft_map_only
-Operator Notes: scenarioId: facebook-safe-comment-draft-product-video
+Operator Notes: scenarioId: facebook-seeding-video-discovery
 
 platformId: facebook-web
 
-generatedMapPath: src/map-plugins/builtins/facebook-safe-comment-draft-review.map-package.json
+generatedMapPath: src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json
 
 rawRequirement:
-Do not auto-post comments. On Facebook Reels, when the current video is judged non-product, open the comments UI, type a safe draft comment, and stop at a human review gate. Product videos or ambiguous detections must not create an auto-post path.
+Use a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, summarize visible comment intent, scroll to the next video, and persist governed evidence refs.
 
 safeExecutableRequirement:
-Open Facebook Reels in a governed real Chrome session, classify the current reel with vision.productPresence.v1, branch only to non-product safe-draft flow, type the approved draft text without submit, persist runtime proof, and end in a mandatory human review gate.
+Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.
 Use simplified Chinese for human-readable fields in the output package.
 Authoring Prompt Contract: map.authoring.v1
 Authoring Prompt Version: map.authoring.v1
@@ -24,7 +24,7 @@ Map Package Schema Version: 1
 Output Format Version: ai.map_authoring.v1
 Security Policy Ref: policy://map-authoring/security/v1
 User Requirement:
-- Goal: Open Facebook Reels in a governed real Chrome session, classify the current reel with vision.productPresence.v1, branch only to non-product safe-draft flow, type the approved draft text without submit, persist runtime proof, and end in a mandatory human review gate.
+- Goal: Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.
 - Must Ask Before: send message, submit form, purchase or payment, delete content, commit text input, activate ai-generated map
 - Failure Handling: review_required
 - Evidence Preference: retain_refs_only

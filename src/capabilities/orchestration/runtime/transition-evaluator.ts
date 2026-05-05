@@ -24,6 +24,13 @@ function resolveConditionValue(result: MissionStepResultRecord, leftRef: string)
     return { supported: true, actual: result.status };
   }
 
+  if (leftRef.startsWith("schemaFieldRef:")) {
+    const fieldName = leftRef.slice("schemaFieldRef:".length);
+    return Object.prototype.hasOwnProperty.call(result.branchFieldValues, fieldName)
+      ? { supported: true, actual: result.branchFieldValues[fieldName] ?? null }
+      : { supported: false, actual: null };
+  }
+
   if (Object.prototype.hasOwnProperty.call(result.branchFieldValues, leftRef)) {
     return { supported: true, actual: result.branchFieldValues[leftRef] ?? null };
   }

@@ -76,6 +76,7 @@ const resolveVisionDecision = (summary: string, tags: string[]) => {
   return {
     confidence: isUncertain ? 0.45 : 0.91,
     isProductVideo: isUncertain ? null : isProduct,
+    decision: isUncertain ? "product_uncertain" : (isProduct ? "product_yes" : "product_no"),
     reason: isProduct ? "summary contains product usage and utility hints" : "summary lacks product utility hints",
     suggestedNextAction,
     visibleProductTypes: resolveVisibleProductTypes(isProduct, tags),
@@ -94,6 +95,7 @@ const executeVisionTask = (request: Extract<LocalAiTaskRequest, { taskType: "vis
   if (request.input.validFrameCount === 0) {
     return buildVisionTaskResult(resultBase, request, 0, {
       isProductVideo: null,
+      decision: "product_uncertain",
       confidence: 0,
       visibleProductTypes: [],
       evidenceObservations: [summary.slice(0, 120)].filter((item) => item.length > 0),
@@ -124,6 +126,7 @@ const executeVisionTask = (request: Extract<LocalAiTaskRequest, { taskType: "vis
 
   return buildVisionTaskResult(resultBase, request, confidence, {
     isProductVideo: decision.isProductVideo,
+    decision: singleFramePositiveFallback ? "product_uncertain" : decision.decision,
     confidence,
     visibleProductTypes: decision.visibleProductTypes,
     evidenceObservations: decision.evidenceObservations,

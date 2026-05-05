@@ -15,6 +15,7 @@ type VisionFrameLevelObservation = {
 
 type VisionResultInput = {
   isProductVideo: boolean | null;
+  decision: "product_yes" | "product_no" | "product_uncertain" | null;
   confidence: number;
   visibleProductTypes: string[];
   evidenceObservations: string[];
@@ -42,6 +43,7 @@ const createVisionResultPayload = (request: VisionProductPresenceRequest, input:
   fallbackReason: request.input.fallbackReason,
   missingFrames: request.input.missingFrames,
   isProductVideo: input.isProductVideo,
+  decision: input.decision,
   confidence: input.confidence,
   visibleProductTypes: input.visibleProductTypes,
   evidenceObservations: input.evidenceObservations,

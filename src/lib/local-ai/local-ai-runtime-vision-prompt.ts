@@ -34,6 +34,7 @@ const buildVisionOutputExample = (request: VisionProductPresenceRequest) => ({
   fallbackReason: request.input.fallbackReason,
   missingFrames: request.input.missingFrames,
   isProductVideo: null,
+  decision: null,
   confidence: 0.5,
   visibleProductTypes: [],
   evidenceObservations: ["describe only what is visibly present in the sampled frames"],

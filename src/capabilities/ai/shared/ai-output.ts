@@ -25,6 +25,7 @@ function buildVisualFallback(reason: string): AiVisualOutput {
     fallbackReason: reason,
     missingFrames: [],
     isProductVideo: null,
+    decision: null,
     confidence: 0,
     visibleProductTypes: [],
     evidenceObservations: [],

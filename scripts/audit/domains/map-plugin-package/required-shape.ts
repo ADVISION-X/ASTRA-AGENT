@@ -14,7 +14,6 @@ import { inspectCapabilityCatalogGeneratedTruth, inspectMapAuthoringCapabilityCa
 
 const { ROOT } = MAP_PLUGIN_PATHS;
 
-const AI_DRAFT_PLACEHOLDER_PATH = `${ROOT}/builtins/ai-draft-map-placeholder.map-package.json`;
 const ACTIVATION_REQUIRED_FIELDS = [
   "activationId",
   "activationSnapshotRef",
@@ -65,28 +64,6 @@ const inspectMissingRequiredFiles = async (): Promise<Finding[]> => {
   return missing.map((filePath) => createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: filePath, line: 1, severity: "fatal", message: "Map package required source or builtin file is missing." }));
 };
 
-const inspectAiDraftPlaceholderRecord = (record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number]): Finding[] => {
-  if (!record.mapPackage || record.file !== AI_DRAFT_PLACEHOLDER_PATH) {
-    return [];
-  }
-
-  const findings: Finding[] = [];
-  if (!record.mapPackage.manifest.aiGenerated) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI draft placeholder must keep manifest.aiGenerated=true." }));
-  }
-  if (record.mapPackage.manifest.approvalStatus !== "draft") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI draft placeholder must keep approvalStatus=draft." }));
-  }
-  if (record.mapPackage.taskTemplate.availabilityPolicy !== "draft") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI draft placeholder must keep availabilityPolicy=draft." }));
-  }
-  if (record.mapPackage.manifest.authoringPromptRef === null || record.mapPackage.manifest.authoringModelRef === null) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI draft placeholder must preserve authoringPromptRef and authoringModelRef." }));
-  }
-
-  return findings;
-};
-
 const inspectBuiltinRecord = (record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number]): Finding[] => {
   if (record.parseError) {
     return [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: record.file, line: 1, severity: "fatal", message: `Builtin map package must parse under the governed schema: ${record.parseError}` })];
@@ -96,7 +73,7 @@ const inspectBuiltinRecord = (record: Awaited<ReturnType<typeof loadBuiltinPacka
     return [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: record.file, line: 1, severity: "fatal", message: "Builtin map package parsed to null unexpectedly." })];
   }
 
-  const findings = inspectAiDraftPlaceholderRecord(record);
+  const findings: Finding[] = [];
   if (record.mapPackage.manifest.aiGenerated) {
     if (record.mapPackage.manifest.approvalStatus !== "draft" || record.mapPackage.taskTemplate.availabilityPolicy !== "draft") {
       findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI-generated map packages must remain draft-only until later governed approval flow exists." }));

@@ -1,0 +1,58 @@
+{
+  "scenarioId": "facebook-seeding-video-discovery",
+  "scenarioKind": "mission-runtime",
+  "description": "Run the governed Facebook seeding-video discovery meta map and preserve public evidence without posting, messaging, or submitting data.",
+  "platformId": "facebook-web",
+  "browserHeadless": false,
+  "requiresAuth": true,
+  "entryMode": "commander-public-contract",
+  "humanGoal": "Inspect Facebook Reels, identify product-seeding video candidates, capture public evidence, summarize visible comment signals, and persist governed evidence records.",
+  "operatorNote": "Never publish, message, submit forms, or modify user data. Login walls, captchas, and security checks require review.",
+  "targetUrl": "https://www.facebook.com/reel/",
+  "targetTitle": "Facebook Reels",
+  "sourceTargetRef": "facebook-reels-public-feed",
+  "commandInputRef": null,
+  "reviewRequiredBlockingSignal": "REVIEW_REQUIRED",
+  "mapRequirement": {
+    "mode": "generate-draft-map",
+    "taskTemplateId": "facebook-seeding-video-discovery",
+    "platformId": "facebook-web",
+    "generatedMapPath": "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
+    "requiredPromptContracts": true,
+    "allowAutoAuthoring": false,
+    "allowDraftExecution": false,
+    "authoringContext": {
+      "rawRequirement": "Use a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, summarize visible comment intent, scroll to the next video, and persist governed evidence refs.",
+      "safeExecutableRequirement": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.",
+      "generatedMapPath": "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json"
+    }
+  },
+  "expectedChain": [
+    "commander-console",
+    "nerve-bus",
+    "orchestration",
+    "open",
+    "page-state",
+    "screenshot",
+    "ai",
+    "visual-target",
+    "geometry-guard",
+    "mouse-click",
+    "post-action-verification",
+    "forensics-persistence"
+  ],
+  "successSignals": [
+    "missionStatus=completed",
+    "candidateRecordPersisted=true",
+    "evidenceRefsRecorded=true"
+  ],
+  "blockingSignals": [
+    "AUTH_REQUIRED",
+    "CAPTCHA_REQUIRED",
+    "SECURITY_CHECK_REQUIRED",
+    "PROFILE_INVALID",
+    "SESSION_EXPIRED",
+    "REVIEW_REQUIRED"
+  ],
+  "maxRuntimeMs": 180000
+}

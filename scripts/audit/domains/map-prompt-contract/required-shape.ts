@@ -41,8 +41,8 @@ const inspectGovernanceShape = (project: ReturnType<typeof createMapPromptContra
 
 const inspectBuiltinValidation = async (): Promise<Finding[]> => {
   const builtins = await Promise.all([
-    loadBuiltinPackage("src/map-plugins/builtins/tiktok-product-discovery.map-package.json"),
-    loadBuiltinPackage("src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json"),
+    loadBuiltinPackage("src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json"),
+    loadBuiltinPackage("src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json"),
   ]);
 
   return builtins.every((record) => record.mapPackage !== null && record.issues.length === 0)

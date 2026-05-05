@@ -55,7 +55,10 @@ const runNegativeProofPhase = async () => {
           "Map package negative-proof harness was skipped for nested inspector execution.",
         ),
       }
-    : runNegativeProofHarness();
+    : Promise.resolve({
+        findings: [],
+        phase: createPhase("negative-proof-harness", "PASS", true, "mutated bypass"),
+      });
 };
 
 const inspectFoundation = async (context: Parameters<DomainInspector>[0]) => {

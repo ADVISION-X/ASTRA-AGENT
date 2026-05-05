@@ -148,6 +148,20 @@ const normalizeFrameObservations = (
   return { adjusted, observations };
 };
 
+const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | null) => {
+  const rawDecision = typeof value.decision === "string" ? value.decision : null;
+  if (rawDecision === "product_yes" || rawDecision === "product_no" || rawDecision === "product_uncertain") {
+    return rawDecision;
+  }
+  if (isProductVideo === true) {
+    return "product_yes";
+  }
+  if (isProductVideo === false) {
+    return "product_no";
+  }
+  return "product_uncertain";
+};
+
 const normalizeVisionRuntimeOutput = (
   value: unknown,
   request: VisionProductPresenceRequest,
@@ -161,6 +175,7 @@ const normalizeVisionRuntimeOutput = (
   const evidenceObservations = toStringArray(value.evidenceObservations);
   const normalizedRootIsProductVideo = normalizeNullableBoolean(value.isProductVideo);
   const isProductVideo = normalizedRootIsProductVideo === undefined ? null : normalizedRootIsProductVideo;
+  const decision = normalizeProductDecision(value, isProductVideo);
   const fallbackObservation = createFallbackFrameObservation({
     expectedFrameLabels,
     evidenceObservations,
@@ -175,10 +190,11 @@ const normalizeVisionRuntimeOutput = (
   );
 
   return {
-    adjusted: normalizedRootIsProductVideo !== value.isProductVideo || normalizedFrameObservations.adjusted,
+    adjusted: normalizedRootIsProductVideo !== value.isProductVideo || decision !== value.decision || normalizedFrameObservations.adjusted,
     normalized: {
       ...value,
       isProductVideo,
+      decision,
       frameLevelObservations: normalizedFrameObservations.observations,
     },
   };

@@ -26,8 +26,8 @@ const inspectPromptInlineGuards = (project: ReturnType<typeof createMapPromptCon
 
 const inspectBuiltinPackages = async (): Promise<Finding[]> => {
   const builtins = await Promise.all([
-    loadBuiltinPackage("src/map-plugins/builtins/tiktok-product-discovery.map-package.json"),
-    loadBuiltinPackage("src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json"),
+    loadBuiltinPackage("src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json"),
+    loadBuiltinPackage("src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json"),
   ]);
 
   return builtins.some((builtin) => FORBIDDEN_FRAGMENTS.some((fragment) => builtin.text.includes(fragment)))

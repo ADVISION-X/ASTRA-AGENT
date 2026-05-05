@@ -24,6 +24,12 @@ const VisionProductPresenceSuggestedNextActionSchema = z.enum([
   "review_required",
 ]);
 
+const VisionProductPresenceDecisionSchema = z.enum([
+  "product_yes",
+  "product_no",
+  "product_uncertain",
+]).nullable().default(null);
+
 const VisionProductPresenceRequestInputSchema = z.object({
   inputMode: ProductPresenceInputModeSchema,
   multiFrameEvidenceSetId: z.string().min(1).nullable().default(null),
@@ -65,6 +71,7 @@ const VisionProductPresencePayloadSchema = z.object({
   fallbackReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   isProductVideo: z.boolean().nullable(),
+  decision: VisionProductPresenceDecisionSchema,
   confidence: z.number().min(0).max(1),
   visibleProductTypes: z.array(z.string().min(1)),
   evidenceObservations: z.array(z.string().min(1)),
@@ -84,5 +91,5 @@ type VisionProductPresenceFrameObservation = z.infer<typeof VisionProductPresenc
 type VisionProductPresenceResult = z.infer<typeof VisionProductPresencePayloadSchema>;
 type VisionProductPresencePayload = VisionProductPresenceResult;
 
-export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
+export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceDecisionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
 export type { VisionProductPresenceSuggestedNextAction, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };
