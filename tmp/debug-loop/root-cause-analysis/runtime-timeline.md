@@ -1,66 +1,130 @@
 # Runtime Timeline
 
-Source: latest real terminal log pasted from `npm run grasseye:start`, runId `2026-05-05T05:41:00.956Z`, plus live `/api/runtime/logs` snapshot from `http://127.0.0.1:4173/api/runtime/logs`. This is a real runtime log source, not a simulated test log.
+Status: latest primary blocker is no longer startup failure or `runId=null`. The current blocker is post-acceptance proof collapse: the command is accepted, but no step/action/finalization chain becomes visible afterward.
 
-## Startup / Shell
+## Sources
 
-| Event | Status | Evidence | Judgment |
+- Latest real terminal log pasted from `npm run grasseye:start`, startup runId `2026-05-05T06:06:28.324Z`.
+- Live read-only runtime endpoints:
+	- `http://127.0.0.1:4173/api/runtime/logs`
+	- `http://127.0.0.1:4173/api/runtime/actions`
+	- `http://127.0.0.1:4173/api/runtime/snapshot`
+	- `http://127.0.0.1:4173/api/runtime/mission-readiness`
+- Historical context only:
+	- `tmp/debug-loop/startup-failures/2026-05-05T05-32-13-380Z/startup-failure.json`
+	- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md`
+
+## 1. Startup And Readiness
+
+| Surface | Status | Evidence | Judgment |
 |---|---|---|---|
-| dependency_check | PASS | `[GRASSEYE][STARTUP][PASS] bootstrap dependency_check passed dependency readiness passed runId=2026-05-05T05:41:00.956Z` | Executed and passed. |
-| update_preflight_check | PASS | `[GRASSEYE][STARTUP][PASS] bootstrap update_preflight_check passed update preflight passed runId=2026-05-05T05:41:00.956Z` | Executed and passed. |
-| map_package_readiness_check | PASS | `[GRASSEYE][MAP_PACKAGE][PASS] map_package_readiness map_package_readiness_check passed map package readiness passed before app shell start ... refs=packageId=builtin.facebook-seeding-video-discovery,packageId=builtin.tiktok-seeding-video-discovery` | Builtin packages passed readiness before shell start. |
-| local_ai_runtime_presence_check | PASS | `[GRASSEYE][AI][PASS] local_ai_runtime local_ai_runtime_presence_check passed local AI runtime presence passed ... refs=vision=ready:qwen2.5vl:3b,ocr=ready:apple-vision-or-paddleocr,commentUnderstanding=ready:qwen2.5:3b,productSignal=ready:qwen2.5:3b` | Executed and passed. |
-| local_ai_model_roster_check | PASS | `[GRASSEYE][AI][PASS] local_ai_runtime local_ai_model_roster_check passed local AI model roster check passed ...` | Executed and passed. |
-| local_ai_start_or_connect | PASS | `[GRASSEYE][AI][PASS] local_ai_runtime local_ai_start_or_connect passed local AI start/connect passed ...` | Executed and passed. |
-| local_ai_health_probe | PASS | `[GRASSEYE][AI][PASS] local_ai_runtime local_ai_health_probe passed local AI health probe passed ...` | Executed and passed. |
-| ai_capability_readiness_gate | PASS | `[GRASSEYE][AI][PASS] local_ai_runtime ai_capability_readiness_gate passed AI capability readiness gate passed ...` | Executed and passed. |
-| port_clear | PASS | `[GRASSEYE][STARTUP][PASS] bootstrap port_clear passed port 127.0.0.1:4173 is ready ...` | Executed and passed. |
-| app_server start | PASS | `[GRASSEYE][SERVICE][PASS] app_server app_server ready local app shell process started for http://127.0.0.1:4173` | Executed and passed. |
-| APP_SHELL_HEALTH_CHECK_STARTED | STARTED | `[GRASSEYE][APP][EVENT] app_shell APP_SHELL_HEALTH_CHECK_STARTED started waiting for health at http://127.0.0.1:4173/api/runtime/health` | Executed. |
-| APP_SHELL_HEALTH_PASSED | PASS | `[GRASSEYE][APP][PASS] app_shell APP_SHELL_HEALTH_PASSED passed Commander Console reachable at http://127.0.0.1:4173 ... refs="components=4,contentType=text/html; charset=utf-8"` | Shell reachable. |
-| open_console | PASS | `[GRASSEYE][COMMANDER][PASS] commander_console open_console passed opened Commander Console via Google Chrome ...` | Executed and passed. |
-| mission_runtime_available | PASS | `[GRASSEYE][MISSION][PASS] mission_runtime mission_runtime_available passed mission runtime is available after startup gate passed ...` | Mission runtime reports available. |
-| terminal_structured_log_relay | PASS | `[GRASSEYE][RUNTIME][PASS] startup_entrypoint terminal_structured_log_relay ready terminal structured log relay active ... refs=/api/runtime/logs,/api/runtime/actions,/api/runtime/mission-readiness` | Relay active. |
+| dependency_check | PASS | Latest pasted log starts with dependency/runtime readiness PASS under runId `2026-05-05T06:06:28.324Z`. | Startup is not blocked here. |
+| map_package_readiness | PASS | Latest pasted log reports builtin Facebook/TikTok map package readiness PASS. | Active builtin maps are loaded and approved. |
+| local_ai_runtime | PASS | Latest pasted log reports local AI presence, roster, start/connect, and health probe PASS. | Local AI is not the current blocker. |
+| app shell / console | PASS | Latest pasted log reports app server ready, app shell health passed, Commander Console opened, mission runtime available. | Shell and console are healthy. |
+| mission-readiness endpoint | READY | Live `/api/runtime/mission-readiness` returned `status=ready` with mission, browserController, localAi, and dataStore all `ok=true`. | Current environment is ready to accept mission preflight. |
 
-## Mission Command
+Judgment: current blocker is not startup, bootstrap, shell reachability, or readiness.
 
-| Event | Status | Evidence | Judgment |
-|---|---|---|---|
-| HUMAN_COMMAND_RECEIVED | LOG_EVENT_MISSING | Latest terminal log begins at `HUMAN_COMMAND_VALIDATED`; no `HUMAN_COMMAND_RECEIVED` line is present in the pasted latest run. | Either not emitted to terminal relay or naming is inconsistent. |
-| HUMAN_COMMAND_VALIDATED | PASS | `[GRASSEYE][RUNTIME][PASS] runtime HUMAN_COMMAND_VALIDATED success requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1 ... traceId=trace_754fb9d8-03f7-4e98-8487-e27f10a52490 ... refs=trace_754...,attempt_087...,task_start` | Command binding validated. |
-| MISSION_READINESS_CHECK_STARTED | EVENT | `[GRASSEYE][RUNTIME][EVENT] runtime MISSION_READINESS_CHECK_STARTED started MissionReadiness is scoped to the selected task binding, not the app shell. ...` | Executed. |
-| MISSION_PREFLIGHT_STARTED | EVENT | `[GRASSEYE][RUNTIME][EVENT] runtime MISSION_PREFLIGHT_STARTED started Mission preflight is checking readiness before command dispatch. ...` | Executed. |
-| MISSION_PREFLIGHT_PASSED | PASS | `[GRASSEYE][RUNTIME][PASS] runtime MISSION_PREFLIGHT_PASSED success Mission preflight passed. Commander Console can dispatch the governed human command. ...` | Preflight passed. |
-| COMMANDER_COMMAND_ENVELOPE_BUILT | PASS | `[GRASSEYE][RUNTIME][PASS] runtime COMMANDER_COMMAND_ENVELOPE_BUILT success taskTemplateId resolved to requestedPlatformId=facebook-web; selectedMapId=facebook.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:890e5f4e-fb8e-40de-847b-498aee7f8fcb:1.0.0:1.0.0 ...` | Envelope was built with activation snapshot in the reason text, but the structured field `activationSnapshotRef` is absent from the terminal line. |
-| NERVE_BUS_ENVELOPE_CREATED | PASS | `[GRASSEYE][RUNTIME][PASS] runtime NERVE_BUS_ENVELOPE_CREATED success Nerve Bus governed envelope created for start-mission. ... traceId=commander_command_9d6d1c09-eb8b-4a22-9908-beebcd32c018 ...` | Transport envelope created. |
-| NERVE_BUS_DISPATCH_STARTED | EVENT | `[GRASSEYE][RUNTIME][EVENT] runtime NERVE_BUS_DISPATCH_STARTED started Dispatching start-mission via CommandTransportPort. ...` | Dispatch started. |
-| COMMAND_ACCEPTED | LOG_EVENT_MISSING | No `COMMAND_ACCEPTED` in latest terminal log. | System did not reach accepted terminal outcome; command later rejected. |
-| ORCHESTRATION_START_RECEIVED | EVENT | `[GRASSEYE][RUNTIME][EVENT] runtime ORCHESTRATION_START_RECEIVED started Orchestration received governed start-mission command from Nerve Bus. ...` | Orchestration received the start command. |
-| MISSION_ACTIVATION_SNAPSHOT_FROZEN | FAIL | `[GRASSEYE][RUNTIME][FAIL] runtime MISSION_ACTIVATION_SNAPSHOT_FROZEN failed activationSnapshotRef=activation-snapshot:890e5f4e-fb8e-40de-847b-498aee7f8fcb:1.0.0:1.0.0; selectedMapId=facebook.seeding-video.discovery.meta.v1 failureReason=invalid_input ...` | The log name says frozen snapshot, but status is failed because mission state failed immediately after start. |
-| COMMAND_REJECTED | FAIL | `[GRASSEYE][RUNTIME][FAIL] runtime COMMAND_REJECTED failed COMMAND_REJECTED failureReason=invalid_input ... actionableMessage="Inspect the latest debug bundle and fix the blocking dependency before retrying." ...` | P0: preflight passed and Nerve Bus dispatched, but command rejected. |
+## 2. Latest Accepted Facebook Trace
 
-## Mission Loop Events
+Trace identity:
 
-| Event | Status | Judgment |
-|---|---|---|
-| MAP_STEP_SELECTED | LOG_EVENT_MISSING | No terminal/runtime event in latest run. The system either failed before a separately logged step-selected event, or the loop has no structured event emission for this phase. Production code in `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` dispatches steps but does not call `recordCommanderDebugEvent`. |
-| STEP_PRECONDITION_CHECKED | LOG_EVENT_MISSING | No structured event found. |
-| CAPABILITY_CALL_STARTED | LOG_EVENT_MISSING | No structured event found. |
-| CAPABILITY_CALL_COMPLETED / FAILED / REVIEW_REQUIRED | LOG_EVENT_MISSING | No structured event found; only final command rejection surfaced. |
-| POST_ACTION_VERIFICATION_STARTED / PASSED / FAILED / REVIEW_REQUIRED | LOG_EVENT_MISSING | No structured event found; first action did not reach verifiable PAV in latest terminal log. |
-| FORENSICS_RECORD_WRITE_REQUESTED | LOG_EVENT_MISSING | No structured event found. |
-| FORENSICS_RECORD_WRITTEN | LOG_EVENT_MISSING | No structured event found. |
-| STEP_TRANSITION_EVALUATED | LOG_EVENT_MISSING | No structured event found. |
-| MISSION_FINALIZED / STOPPED / FAILED / REVIEW_REQUIRED | LOG_EVENT_MISSING | No terminal event; command rejection is the final visible state. |
+- `traceId=trace_e555f140-1580-4aef-9b01-43ecacb0f32f`
+- `runId=commander_command_311b3de7-ad54-4b5e-af96-2c419e9797d1:run`
+- `selectedMapId=facebook.seeding-video.discovery.meta.v1`
+- `activationSnapshotRef=activation-snapshot:3561c46d-c41d-4b02-a900-75004c958334:1.0.0:1.0.0`
 
-## Adjacent Historical Runtime API Evidence
+Observed event chain:
 
-Live `/api/runtime/logs` contained older command attempts showing the same command lifecycle class:
+1. `HUMAN_COMMAND_VALIDATED`
+2. `MISSION_READINESS_CHECK_STARTED`
+3. `MISSION_PREFLIGHT_STARTED`
+4. `MISSION_PREFLIGHT_PASSED`
+5. `COMMANDER_COMMAND_ENVELOPE_BUILT`
+6. `NERVE_BUS_ENVELOPE_CREATED`
+7. `NERVE_BUS_DISPATCH_STARTED`
+8. `ORCHESTRATION_START_RECEIVED`
+9. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` with status `success`
+10. `COMMAND_ACCEPTED` with status `success`
 
-```txt
-eventType=MISSION_PREFLIGHT_PASSED status=success runId=null missionId=null mapId=tiktok.seeding-video.discovery.meta.v1 taskTemplateId=tiktok-seeding-video-discovery
-eventType=COMMANDER_COMMAND_ENVELOPE_BUILT status=success reason="taskTemplateId resolved to requestedPlatformId=tiktok-web; selectedMapId=tiktok.seeding-video.discovery.meta.v1; activationSnapshotRef=activation-snapshot:c4c34629-8e33-4b29-89ab-fa9942ec9a6e:1.0.0:1.0.0"
-eventType=COMMAND_REJECTED status=failed failureReason="open requires targetUrl or explicit targetProfileRef open-target-profile:open-tiktok; silent profile defaulting is forbidden"
-```
+Judgment: the latest Facebook start path is accepted all the way through the Commander / Nerve Bus / Orchestration task-start boundary.
 
-This is not substituted for the latest run; it is used as adjacent proof that the mission loop can fail immediately at the first open step when target URL/profile propagation is incomplete.
+## 3. Latest Accepted TikTok Trace
+
+Trace identity:
+
+- `traceId=trace_feb01658-a755-4837-a635-ade1c146fb32`
+- `runId=commander_command_52abe135-b468-4c61-9e39-0b98b0e2ad0d:run`
+- `selectedMapId=tiktok.seeding-video.discovery.meta.v1`
+- `activationSnapshotRef=activation-snapshot:97f67205-11bc-4bbd-9507-dda1090c1cc6:1.0.0:1.0.0`
+
+Observed event chain:
+
+1. `HUMAN_COMMAND_VALIDATED`
+2. `MISSION_READINESS_CHECK_STARTED`
+3. `MISSION_PREFLIGHT_STARTED`
+4. `MISSION_PREFLIGHT_PASSED`
+5. `COMMANDER_COMMAND_ENVELOPE_BUILT`
+6. `NERVE_BUS_ENVELOPE_CREATED`
+7. `NERVE_BUS_DISPATCH_STARTED`
+8. `ORCHESTRATION_START_RECEIVED`
+9. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` with status `success`
+10. `COMMAND_ACCEPTED` with status `success`
+
+Judgment: the latest TikTok start path also reaches accepted mission dispatch, not rejection.
+
+## 4. Missing Post-Acceptance Events
+
+No later structured runtime events were found after either accepted trace for:
+
+- `MAP_STEP_SELECTED`
+- `STEP_PRECONDITION_CHECKED`
+- `STEP_DISPATCH_STARTED`
+- `CAPABILITY_CALL_STARTED`
+- `CAPABILITY_CALL_COMPLETED`
+- `CAPABILITY_CALL_FAILED`
+- `CAPABILITY_CALL_REVIEW_REQUIRED`
+- `POST_ACTION_VERIFICATION_STARTED`
+- `POST_ACTION_VERIFICATION_PASSED`
+- `POST_ACTION_VERIFICATION_FAILED`
+- `POST_ACTION_VERIFICATION_REVIEW_REQUIRED`
+- `FORENSICS_RECORD_WRITE_REQUESTED`
+- `FORENSICS_RECORD_WRITTEN`
+- `STEP_TRANSITION_EVALUATED`
+- `MISSION_FINALIZED`
+- `MISSION_STOPPED`
+- `MISSION_FAILED`
+- `MISSION_REVIEW_REQUIRED`
+
+Judgment: the runtime visibly reaches task-start acceptance, then loses the governed mission loop proof chain.
+
+## 5. Live Read Models After Acceptance
+
+- Live `/api/runtime/actions` returned `[]`.
+- Live `/api/runtime/snapshot` returned:
+	- `mission.status=idle`
+	- `runtime.runtimeStatus=idle`
+	- `runtime.currentStep=null`
+	- `evidencePacketCount=0`
+	- `browseLedgerCount=0`
+	- `candidateCount=0`
+	- `reviewQueue=[]`
+- Live `/api/runtime/snapshot.runtimeProof` contains only task-start structured runtime events such as:
+	- `Orchestration received governed start-mission command from Nerve Bus.`
+	- `activationSnapshotRef=...; selectedMapId=...`
+	- `command accepted`
+- Live `/api/runtime/snapshot.failedRecords` still contains older historical failures including:
+	- `invalid_input`
+	- `Expected string, received null` at `runId`
+	- `Unrecognized key(s) in object: 'targetProfileRef'`
+	- `open requires targetUrl or explicit targetProfileRef ...`
+
+Judgment: after accepted task-start traces, the Commander read models still do not show any action logs, evidence packets, browse ledger entries, or non-task-start proof events.
+
+## 6. Historical But Non-Primary Context
+
+- `tmp/debug-loop/startup-failures/2026-05-05T05-32-13-380Z/startup-failure.json` records a stale `fetch failed` startup case. It does not match the current healthy startup run.
+- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md` already records that the original `runId=null` rejection did not recur in an accepted post-fix scenario.
+
+Final judgment: the leading current blocker is `COMMAND_ACCEPTED` followed by no step/action/finalization proof chain, not the older startup or `runId=null` failures.

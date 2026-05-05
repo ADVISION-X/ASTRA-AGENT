@@ -76,6 +76,7 @@ type WorkbenchAiAbilityGroup = {
 
 type WorkbenchForensicsAbilityGroup = {
   writeStructuredRuntimeEvent(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  writeStructuredActionLog(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
 };
 
 type WorkbenchMissionStatus = "idle" | "pending" | "running" | "paused" | "review_required" | "failed" | "completed" | "stopped";

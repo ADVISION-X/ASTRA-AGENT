@@ -1,15 +1,37 @@
 # Root Cause Matrix
 
-| 序号 | 问题点 | 阻塞阶段 | 法案要求 | 施工图要求 | 生产根因文件 | 执法缺口文件 | 为什么没拦住 | 修复优先级 |
-|---|---|---|---|---|---|---|---|---|
-| 1 | Preflight passed 后 command rejected: `invalid_input` | `MISSION_PREFLIGHT_PASSED` -> `NERVE_BUS_DISPATCH_STARTED` -> `COMMAND_REJECTED` | Orchestration READY: frozen activation, Nerve Bus only dispatch, full chain proof | Local App Shell must dry-run final `MissionCommandSchema`; failure before Nerve Bus dispatch | `src/lib/local-app-shell/task-start-flow.ts`; `src/lib/local-runtime/workbench-human-command.ts` | `scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts`; `scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts`; negative proofs in both domains | C/D/E/F/H: presence checks and narrow mutations do not replay the final command plus first-step payload path | P0 |
-| 2 | `MISSION_ACTIVATION_SNAPSHOT_FROZEN failed` contradicts present activationSnapshotRef and "continue" action | Orchestration start / snapshot freeze log | Structured logs must make rejection traceable with owner/actionable refs | Human command/preflight chain must expose rejection cause | `src/lib/local-runtime/workbench-human-command-debug-events.ts` | `scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts`; `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | C/D/E/H: event literal is checked, event semantics are not | P1 |
-| 3 | Missing loop phase logs: map step, capability call, PAV, Forensics, transition, finalization | After `ORCHESTRATION_START_RECEIVED` | Step payload/proof, PAV-after-action, Forensics routing enforced | Orchestration final readiness requires complete proof chain | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`; `src/lib/local-runtime/structured-log-terminal.ts` | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | C/D/E/H: static proof/gate checks do not require emitted runtime events or live log sequence | P1 |
-| 4 | Open target binding can be missing after preflight | First open step / open target policy | Open input must carry `targetUrl or targetProfileRef`; no silent default | Target profile is governed; result/proof carries targetProfileRef, targetUrl, targetUrlSource | `src/lib/local-runtime/workbench-open-dispatch-input.ts`; `src/capabilities/open/runtime/target-policy-gate.ts`; propagation originates from `src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts` | `scripts/audit/domains/open-capability/run-open-runtime-checks.ts`; `scripts/audit/domains/open-capability/negative-proof-harness.ts`; Commander/Orchestration startup gate inspectors | C/D/E/F/I: Open local gate is covered, cross-domain propagation from task binding to first open input is not | P0 |
+| 序号 | 当前问题 | 直接证据 | 生产根因 | 执法缺口 | 为什么没拦住 | 修复优先级 |
+|---|---|---|---|---|---|---|
+| 1 | 接受命令后没有 step 级证明链 | Latest Facebook/TikTok traces both end at `COMMAND_ACCEPTED`; no `MAP_STEP_SELECTED`, `CAPABILITY_CALL_*`, `STEP_TRANSITION_EVALUATED`, or mission outcome event appears afterward. | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` and `src/capabilities/orchestration/runtime/step-dispatcher.ts` execute the loop but emit no step-phase structured runtime event; `src/lib/local-runtime/structured-log-terminal.ts` only mirrors event names if producers exist. | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | Inspectors validate schema/gate presence, not post-acceptance event emission or live phase sequence. | P0 |
+| 2 | 动作时间线为空 | Live `/api/runtime/actions` returned `[]` after accepted traces. | `src/lib/local-runtime/workbench-runtime.ts` exposes actions from `evidenceStore.listStructuredActionLogs`; repository search shows no producer call sites for `writeStructuredActionLog(` outside the Forensics contract definition. | `scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts`; `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts` | Existing checks validate ownership/shape if calls exist, but do not require that at least one production action-log writer exists. | P0 |
+| 3 | Commander proof timeline只剩 task_start 事件 | Live `/api/runtime/snapshot.runtimeProof` shows task-start entries only; mission/runtime are already `idle` after acceptance. | `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` failure branches persist `lastRuntimeProofRef/runtimeProofRefs`, but success path does not; `src/lib/local-runtime/workbench-commander-runtime-proof-read-model.ts` projects only `structuredRuntimeEvents`. | `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`; `scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts` | No inspector asserts success-path proof persistence or Commander read-model parity after accepted mission start. | P1 |
+| 4 | 当前 accepted trace 使用的不是空地图 | Latest accepted traces use `facebook.seeding-video.discovery.meta.v1` and `tiktok.seeding-video.discovery.meta.v1`; both builtin maps declare `initialStepId` as real open steps. | Builtin map packages under `src/map-plugins/builtins/*.meta.map-package.json` start with `open-facebook-reels` and `open-tiktok-feed`, not `finalize-mission`. | No direct enforcement gap here; this row removes a false hypothesis. | The silence after acceptance cannot be dismissed as a finalize-only map or empty map selection artifact. | Supporting evidence |
 
 ## Production Root Cause Notes
 
-1. `src/lib/local-app-shell/task-start-flow.ts` builds and dispatches the Commander command only after `getMissionStartPreflight`, but the latest runtime proves that passed preflight is not sufficient to prevent downstream `invalid_input`.
-2. `src/lib/local-runtime/workbench-human-command.ts` records `MISSION_ACTIVATION_SNAPSHOT_FROZEN` after `orchestrationAbilityGroup.startMission(...)`; if `startMission` returns a failed mission state, the snapshot event becomes a failed event even if a snapshot ref exists.
-3. `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts` dispatches and transitions steps but does not emit the expected structured runtime phase events.
-4. `src/lib/local-runtime/workbench-open-dispatch-input.ts` depends on ability dispatch payload content for `targetProfileRef`; if that propagation path is empty, `src/capabilities/open/runtime/target-policy-gate.ts` correctly blocks silent defaulting.
+1. `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`
+	- dispatches steps and evaluates transitions;
+	- emits no step-level structured runtime event;
+	- persists proof refs only on failure branches.
+
+2. `src/capabilities/orchestration/runtime/orchestration-transition-success-proof.ts`
+	- builds success proof objects;
+	- does not itself make them Commander-visible.
+
+3. `src/lib/local-runtime/workbench-commander-runtime-proof-read-model.ts`
+	- runtime proof timeline is a view over `structuredRuntimeEvents`, not over Orchestration proof objects.
+
+4. `src/lib/local-runtime/workbench-runtime.ts`
+	- `/api/runtime/actions` is a pure read of persisted `structuredActionLogs`.
+
+5. `src/capabilities/forensics-persistence/contract.ts`
+	- `writeStructuredActionLog` exists as a capability contract;
+	- no production writer currently calls it.
+
+## Root Cause Classification
+
+- Confirmed observability gap: yes.
+- Confirmed structured action-log producer gap: yes.
+- Confirmed success-path proof/read-model gap: yes.
+- Confirmed startup blocker: no.
+- Confirmed `runId=null` as current leading blocker: no.

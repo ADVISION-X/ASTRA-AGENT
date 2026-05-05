@@ -2,57 +2,66 @@
 
 Status: `LOG_BLOCKER_ANALYSIS_READY`
 
-Scope: Runtime Log Blocker Mining & Root Cause Analysis only. No production code, law files, blueprints, inspectors, or negative proofs were modified. Generated analysis artifacts only under `tmp/debug-loop/root-cause-analysis/`.
+Scope: Runtime Log Blocker Mining & Root Cause Analysis only. No production code, law files, blueprints, inspectors, negative proofs, or build scripts were modified. Analysis artifacts were refreshed only under `tmp/debug-loop/root-cause-analysis/`.
 
 ## Inputs Used
 
-- Latest real terminal log pasted from `npm run grasseye:start`, runId `2026-05-05T05:41:00.956Z`.
-- Live runtime API: `http://127.0.0.1:4173/api/runtime/logs`.
-- Live mission readiness API: `http://127.0.0.1:4173/api/runtime/mission-readiness`.
-- Latest startup failure bundle list under `tmp/debug-loop/startup-failures/`.
-- Existing post-fix runtime verification artifacts under `tmp/debug-loop/post-fix-runtime-verification/`.
-- Current git diff/status.
+- Latest real terminal log pasted from `npm run grasseye:start`, startup runId `2026-05-05T06:06:28.324Z`.
+- Live runtime endpoints:
+	- `http://127.0.0.1:4173/api/runtime/logs`
+	- `http://127.0.0.1:4173/api/runtime/actions`
+	- `http://127.0.0.1:4173/api/runtime/snapshot`
+	- `http://127.0.0.1:4173/api/runtime/mission-readiness`
+- Historical context artifacts:
+	- `tmp/debug-loop/startup-failures/2026-05-05T05-32-13-380Z/startup-failure.json`
+	- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md`
 - Law files under `.github/instructions/cursor-rules/**`.
 - Blueprints under `docs/法案辅助文件/**`.
 - Audit scripts under `scripts/audit/**`.
 - Production code under `src/**`.
 
-## Summary
+## Current Summary
 
-Startup is not currently blocked. Dependency readiness, map package readiness, local AI readiness, port clear, app server start, app shell health, console open, and mission runtime availability all passed.
+Startup is healthy. Mission readiness is healthy. The latest Facebook and TikTok start-mission traces both pass validation, readiness, preflight, envelope build, Nerve Bus dispatch, Orchestration receipt, activation snapshot freeze, and then end in `COMMAND_ACCEPTED success`.
 
-The active P0 blocker is command dispatch: MissionReadiness and preflight passed, Commander built a command envelope, Nerve Bus dispatched `start-mission`, Orchestration received it, then the command was rejected with `failureReason=invalid_input`. This violates the Orchestration blueprint requirement that final command shape / binding failures be caught before Nerve Bus envelope creation.
+The current P0 blocker is not `runId=null` and not startup. The leading blocker is post-acceptance proof collapse:
 
-The key observability problem is that the runtime log does not expose the actual failing map step/capability. `MISSION_ACTIVATION_SNAPSHOT_FROZEN` is marked failed even though it contains an activation snapshot ref, because the event status follows the returned mission state rather than snapshot-freeze proof semantics.
+1. No step-phase structured runtime events appear after accepted task-start traces.
+2. `/api/runtime/actions` is empty.
+3. Commander snapshot stays at `mission=idle`, `runtime=idle`, zero evidence/action counts, and a runtimeProof timeline composed only of task-start events.
 
-An adjacent live runtime API attempt shows a concrete first-step class of failure: Open can reject after preflight with `open requires targetUrl or explicit targetProfileRef ...; silent profile defaulting is forbidden`. Open is doing the right thing locally; upstream propagation/preflight did not prove the target binding reached the first open input.
+Confirmed production roots:
 
-## Blockers
+1. Orchestration loop execution exists, but `runMissionLoopIteration` and `step-dispatcher` do not emit the step-level structured runtime events that the terminal relay is prepared to mirror.
+2. Success-path runtime proof is built but not persisted into mission-state proof refs the same way failure paths are.
+3. Commander runtime proof timeline is a projection of `structuredRuntimeEvents` only, so silent success-path execution remains invisible.
+4. The `structured_action_log` capability and storage surface exist, but no production code calls `writeStructuredActionLog`, so `/api/runtime/actions` stays empty by design.
 
-1. P0: Preflight passed, Nerve Bus dispatched, then `COMMAND_REJECTED failureReason=invalid_input`.
-2. P1: `MISSION_ACTIVATION_SNAPSHOT_FROZEN failed` is semantically contradictory when snapshot ref exists.
-3. P1: Required loop phase structured logs are missing after Orchestration start.
-4. P0: Adjacent runtime proof shows Open target binding can be missing after preflight.
+## Historical Context
+
+- The stale startup failure bundle records `fetch failed` during an older startup run. It does not match the current healthy startup.
+- `tmp/debug-loop/post-fix-runtime-verification/remaining-blockers.md` already records that the original `runId=null` blocker stopped recurring in an accepted scenario.
+- Live failed records still include historical `runId=null`, `targetProfileRef`, and Open target binding failures, but those are recurrence background, not the leading blocker for the latest accepted traces.
 
 ## Root Cause Files
 
-- `src/lib/local-app-shell/task-start-flow.ts`
-- `src/lib/local-runtime/workbench-human-command.ts`
-- `src/lib/local-runtime/workbench-human-command-debug-events.ts`
 - `src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts`
-- `src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts`
-- `src/lib/local-runtime/workbench-open-dispatch-input.ts`
-- `src/capabilities/open/runtime/target-policy-gate.ts`
+- `src/capabilities/orchestration/runtime/step-dispatcher.ts`
+- `src/capabilities/orchestration/runtime/orchestration-transition-success-proof.ts`
+- `src/lib/local-runtime/structured-log-terminal.ts`
+- `src/lib/local-runtime/workbench-runtime.ts`
+- `src/lib/local-runtime/workbench-commander-runtime-proof-read-model.ts`
+- `src/capabilities/forensics-persistence/contract.ts`
 
 ## Enforcement Gap Files
 
-- `scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts`
 - `scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts`
+- `scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts`
 - `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts`
-- `scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts`
+- `scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts`
 - `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts`
-- `scripts/audit/domains/open-capability/run-open-runtime-checks.ts`
-- `scripts/audit/domains/open-capability/negative-proof-harness.ts`
+- `scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts`
+- `scripts/audit/domains/structured-logging/run-structured-logging-checks.ts`
 
 ## Generated Files
 
@@ -65,10 +74,10 @@ An adjacent live runtime API attempt shows a concrete first-step class of failur
 
 ## READY Criteria Check
 
-- 所有日志阻塞点已列出: yes.
-- 每个阻塞点都有日志证据: yes; missing phase events are explicitly marked `LOG_EVENT_MISSING`.
+- 所有当前日志阻塞点已列出: yes.
+- 每个阻塞点都有 live 日志或 live read-model 证据: yes.
 - 每个阻塞点都有法案/施工图对照: yes.
 - 每个阻塞点都有生产代码根因文件: yes.
 - 每个阻塞点都有 inspector / negative proof 缺口分析: yes.
-- 每个阻塞点都有“为什么没拦住”的归类: yes.
+- 当前主阻塞已从历史 `runId=null` 更新为最新 `accepted-but-no-proof-chain` 状态: yes.
 - 没有进行代码修复: yes.

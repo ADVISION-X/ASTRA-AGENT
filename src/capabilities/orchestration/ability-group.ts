@@ -7,8 +7,14 @@ import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-defa
 import { getDefaultMapPluginRegistry, listActivePackages } from "./runtime/orchestration-map-id-list.js";
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
 
+type OrchestrationForensicsSurface = {
+  writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
+  writeStructuredActionLog(input: unknown): Promise<unknown>;
+};
+
 export type CreateOrchestrationAbilityGroupInput = {
   nerveBus: NerveBusAbilityGroup;
+  forensics: OrchestrationForensicsSurface;
 };
 
 type OrchestrationRuntime = ReturnType<typeof createOrchestrationRuntimeContext>;
@@ -92,7 +98,11 @@ function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, execut
 }
 
 export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
-  const context = createOrchestrationRuntimeContext({ mapStore: createDefaultOrchestrationMapStore(), nerveBus: input.nerveBus });
+  const context = createOrchestrationRuntimeContext({
+    mapStore: createDefaultOrchestrationMapStore(),
+    nerveBus: input.nerveBus,
+    forensics: input.forensics,
+  });
   const children = createOrchestrationChildren();
   const executeEnvelope: ExecuteEnvelope = (inputValue) => executeOrchestrationChild(inputValue, context, children);
   return assembleOrchestrationAbilityGroup(context, executeEnvelope);

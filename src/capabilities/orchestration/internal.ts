@@ -9,12 +9,18 @@ import type { OrchestrationNerveBusPort } from "./ports/orchestration-nerve-bus-
 import type { OrchestrationStatePort } from "./ports/orchestration-state-port.js";
 import type { OrchestrationAbilityGroupId, OrchestrationChildCapabilityId } from "./contract.js";
 
+export type OrchestrationForensicsPort = {
+  writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
+  writeStructuredActionLog(input: unknown): Promise<unknown>;
+};
+
 export type OrchestrationRuntimeContext = {
   readonly clock: OrchestrationClockPort;
   readonly idempotency: OrchestrationIdempotencyPort;
   readonly mapStore: OrchestrationMapStorePort;
   readonly nerveBus: OrchestrationNerveBusPort;
   readonly statePort: OrchestrationStatePort;
+  readonly forensics: OrchestrationForensicsPort;
 };
 
 export interface OrchestrationChildCapability<InputValue, OutputValue> {

@@ -1,60 +1,57 @@
 # Law / Blueprint Mapping
 
-## BLOCKER-1
+## BLOCKER-1: Accepted Command With No Post-Acceptance Step Chain
 
-- Problem: `MISSION_PREFLIGHT_PASSED` and `NERVE_BUS_DISPATCH_STARTED`, then `COMMAND_REJECTED failureReason=invalid_input`.
+- Problem: latest Facebook and TikTok traces both reach `COMMAND_ACCEPTED`, then no governed step / capability / PAV / finalization event becomes visible.
 - Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1`; start boundary supplement `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
-- Law requirement: final readiness requires `activationSnapshotRef frozen and non-null in valid execution`, `dispatch only through Nerve Bus envelope`, and `step payload/proof carries full chain fields`.
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3`
+- Law requirement: step execution must remain map-driven, bounded, auditable, PAV-after-action enforced, Forensics routing enforced.
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
+- Law requirement: runtime proof must preserve dispatch, transition, loop, and finalization chain.
 - Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
-- Blueprint section: `start-mission preflight 补充`, lines 683-691.
-- Blueprint requirement: Local App Shell must dry-run the final `MissionCommandSchema` before Nerve Bus dispatch; dry-run must include requestedPlatform, selectedMapId/preferredMapId, taskTemplateId, activationId, targetProfileRef, and non-null generated runId. Failure must return `MISSION_PREFLIGHT_FAILED / COMMAND_REJECTED` before envelope creation.
-- Violation: rejection happened after passed preflight and Nerve Bus dispatch.
-- Gap status: law exists, blueprint exists, enforcement is incomplete for end-to-end post-preflight rejection prevention.
-
-## BLOCKER-2
-
-- Problem: `MISSION_ACTIVATION_SNAPSHOT_FROZEN failed` includes `activationSnapshotRef=...` and actionableMessage says continue the loop.
-- Law file: `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md`
-- lawId: structured logging human command / mission preflight event law
-- Law requirement: command rejection logs must include failureReason, ownerResponsible, actionableMessage, inspect/debug refs.
+- Blueprint requirement: Orchestration story chain explicitly includes `step dispatch through Nerve Bus`, `transition evaluation`, and `Forensics persistence request`; Runtime Proof section requires transition and finalization proof fields.
 - Blueprint file: `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md`
-- Blueprint section: `Human Command / Mission Preflight Events`, lines 131-135.
-- Blueprint requirement: governed event chain must make rejection traceable.
-- Violation: event semantics are contradictory; snapshot-freeze proof and later mission-loop failure are conflated.
-- Gap status: law exists, blueprint exists, inspector only checks event literal presence.
+- Blueprint requirement: terminal relay is only display; structured runtime proof must still exist as governed persisted/read-model truth.
+- Current violation: task-start acceptance is visible, but the mission loop is not.
+- Gap status: active laws and blueprint exist; production emitters and enforcement coverage do not.
 
-## BLOCKER-3
+## BLOCKER-2: Action Timeline And Evidence Read Models Stay Empty
 
-- Problem: `MAP_STEP_SELECTED`, `CAPABILITY_CALL_*`, `POST_ACTION_VERIFICATION_*`, `FORENSICS_RECORD_*`, `STEP_TRANSITION_EVALUATED`, and mission finalization events are missing.
+- Problem: `/api/runtime/actions` is empty and Commander snapshot still shows zero evidence/action outputs after accepted mission starts.
 - Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
-- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1`
-- Law requirement: step payload/proof must carry full chain fields; PAV-after-action and Forensics routing must be enforced.
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3`
+- Law requirement: evidence output must route to Forensics Persistence through governed request.
+- Blueprint file: `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md`
+- Blueprint requirement:
+	- `structured_action_log` is an active governed payload type.
+	- structured runtime/action payloads are generated upstream and persisted through Forensics.
+	- browse ledger and evidence packet flows must be able to link back to structured records.
+- Blueprint file: `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md`
+- Blueprint requirement: Commander must display proof-backed runtime timeline, evidence packets, browse ledger, and other governed read models.
+- Current violation: action/evidence read models remain empty because no upstream structured action-log producer is active.
+- Gap status: blueprint expectation exists; producer presence is not enforced.
+
+## BLOCKER-3: Success-Path Runtime Proof Does Not Reach Commander Timeline
+
+- Problem: the accepted task-start chain tells the operator to monitor the runtime proof timeline, but Commander runtime proof view only contains task-start events and returns mission/runtime `idle` afterward.
+- Law file: `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md`
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3`
+- Law requirement: mission state, step dispatch proof, loop proof, and result proof must all carry frozen `activationSnapshotRef` and remain traceable to the selected activation snapshot.
+- lawId: `GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3`
+- Law requirement: result/proof/state/input parity must preserve the real upstream chain.
 - Blueprint file: `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md`
-- Blueprint section: final readiness lines 873-890.
-- Blueprint requirement: dispatch only through Nerve Bus envelope, PAV-after-action, Forensics routing, transition evaluation through declared schema fields.
-- Violation: runtime logs do not prove or localize those phases.
-- Gap status: blueprint/law require behavior, but structured logging event emission is not enforced.
+- Blueprint requirement: Runtime Proof section requires transition and finalization proof closure; READY gate requires `result/proof/state/input chain parity`.
+- Blueprint file: `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md`
+- Blueprint requirement: Commander runtime proof timeline must be proof-backed governed read model output, not proofless UI summary.
+- Current violation: success-path proof is not surfaced in Commander read models after acceptance.
+- Gap status: law and blueprint exist; success-path persistence/read-model parity is not enforced.
 
-## BLOCKER-4
+## No New Law Required
 
-- Problem: older live runtime logs show `open requires targetUrl or explicit targetProfileRef ...; silent profile defaulting is forbidden` after preflight.
-- Law file: `.github/instructions/cursor-rules/modules/module-open-capability.instructions.md`
-- lawId: `GRASSEYE-OPEN-CAPABILITY-003-V2`
-- Law requirement: Open input must have `targetUrl or targetProfileRef`; target URL may be resolved only by governed target profile/explicit policy.
-- Forbidden: silent default platform, silent default URL, fabricated target profile.
-- Blueprint file: `docs/法案辅助文件/GrassEye Open 能力组施工图.md`
-- Blueprint section: target profile governance lines 290-299; output proof fields lines 535-545.
-- Blueprint requirement: target profile is a governed profile, not silent fallback; results/proofs carry targetProfileRef, targetUrl, targetUrlSource.
-- Violation: upstream dispatch can reach open without explicit target binding.
-- Gap status: Open law/inspector guard the open module, but cross-domain propagation is missing.
+Current gaps are implementation and enforcement gaps, not a missing-law gap. The active Orchestration and Commander requirements already describe the expected outcome.
 
-## Law Gap Candidates
+## Blueprint Detail Gaps Exposed By Current Evidence
 
-No direct law change is required for this phase. The gaps are enforcement and blueprint-detail gaps, not clear law absence.
-
-## Blueprint Detail Gaps
-
-- The Orchestration blueprint should explicitly distinguish `MISSION_ACTIVATION_SNAPSHOT_FROZEN` proof semantics from mission-loop execution outcome.
-- The structured logging blueprint should require every listed mission-loop phase to be emitted by the production loop, not only named in relay allowlists.
-- The cross-domain Commander/Orchestration/Open path needs an explicit proof: task binding `targetProfileRef` must reach first open step input or preflight must block before transport.
+- The Orchestration blueprint currently assumes runtime proof closure, but the production success path can remain invisible if only task-start structured events are written.
+- The structured logging blueprint says terminal relay is not truth; current runtime still relies on task-start structured events as the only Commander-visible proof timeline.
+- The Commander blueprint expects proof-backed read models, but current accepted traces show a dashboard-compatible read model with no post-acceptance proof chain.

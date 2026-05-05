@@ -30,6 +30,7 @@ function createNerveBusTransportSurface(nerveBus: OrchestrationRuntimeNerveBus):
 export function createOrchestrationRuntimeContext(input: {
   mapStore: OrchestrationMapStorePort;
   nerveBus: OrchestrationRuntimeNerveBus;
+  forensics: OrchestrationRuntimeContext["forensics"];
 }): OrchestrationRuntimeContext {
   const activeRegistry = getDefaultMapPluginRegistry().active;
   activeRegistry.listActivePackages();
@@ -38,6 +39,7 @@ export function createOrchestrationRuntimeContext(input: {
   return {
     clock: createSystemOrchestrationClock(),
     idempotency: createInMemoryOrchestrationIdempotencyPort(),
+    forensics: input.forensics,
     mapStore: input.mapStore,
     nerveBus,
     statePort: createInMemoryOrchestrationStatePort(),
