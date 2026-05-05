@@ -1,0 +1,4 @@
+scenarioId: BLOCKER-POSTFIX-1/result-nullable-parity-requiredness
+mutatedFile: src/capabilities/screenshot/screenshot-schema-refinements.ts
+rollback: restored original production content and reran npm run audit:screenshot
+result: PASS

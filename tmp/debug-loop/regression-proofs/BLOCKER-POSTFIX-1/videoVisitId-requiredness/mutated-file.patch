@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/screenshot/shared/screenshot-governance.ts b/src/capabilities/screenshot/shared/screenshot-governance.ts
+--- a/src/capabilities/screenshot/shared/screenshot-governance.ts
++++ b/src/capabilities/screenshot/shared/screenshot-governance.ts
+@@
+ const SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES = [
+   "missionId",
+   "runId",
+   "sessionId",
++  "videoVisitId",
+   "stepId",
+   "mapPackageId",
+   "mapPackageVersion",

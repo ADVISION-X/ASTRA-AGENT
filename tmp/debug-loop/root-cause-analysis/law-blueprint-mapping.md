@@ -1,30 +1,27 @@
 # Law / Blueprint Mapping
 
-## BLOCKER-1: Screenshot dispatch builder drops required chain fields
+## Current Blockers
 
-| Layer | Reference | Requirement | Current violation |
+| Blocker | Owner boundary | Law file / lawId | Blueprint file / section | Mapping |
+|---|---|---|---|---|
+| BLOCKER-RUNTIME-1 | local runtime screenshot dispatch feeding Screenshot input | `module-screenshot-capability.instructions.md` / `GRASSEYE-SCREENSHOT-CAPABILITY-003-V2`; `GRASSEYE-SCREENSHOT-CAPABILITY-005-V2` | `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md` / `5. Input Model`; source-proof section for stored-image / prepare-ai-input | Screenshot input must carry full chain fields, `source`, source proof, capture policy, and timeout, and runtime must fail closed on source violations. The blueprint also marks `source` as required and requires transformed paths like `prepare-ai-input` to carry stored-image lineage. Current runtime violates this before Screenshot execution can produce a valid `prepare-ai-input` request because the adapter omits `source` entirely. |
+| BLOCKER-RUNTIME-2 | local runtime Open composition | `module-open-capability.instructions.md` / `GRASSEYE-OPEN-CAPABILITY-004-V2`; `GRASSEYE-OPEN-CAPABILITY-009-V1` | `docs/法案辅助文件/GrassEye Open 能力组施工图.md` / Open local-program branch; local-program port and handoff sections | Open must run a fixed target / profile / session / navigation / idempotency / timeout / page-state-handoff pipeline, and local program launch must be first-class through `OpenLocalProgramPort`. Current runtime composes the Open ability group without a `localProgram` port, so the governed local-program path fails immediately with `OpenLocalProgramPort is not configured`. |
+| BLOCKER-RUNTIME-3 | builtin map package transition closure consumed by Orchestration | `module-map-plugin-package.instructions.md` / `GRASSEYE-MAP-PLUGIN-002-V2`; `module-orchestration-capability.instructions.md` / `GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3` | `docs/法案辅助文件/GrassEye 地图插件包治理施工图.md` / `2.2 地图验证到激活`; `3. 标准目录结构` validation list | Map packages must pass transition closure validation before activation, and Orchestration may only consume validated declarative maps. The mirroring builtin maps declare `failureBranch` / `reviewBranch` on `open-iphone-mirroring` but ship without matching transitions, so the runtime map consumed by Orchestration violates the declared closure contract. |
+
+## Supporting Governance Gaps
+
+| Gap | Owner boundary | Law file / lawId | Mapping |
 |---|---|---|---|
-| Law | `.github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md` | `GRASSEYE-SCREENSHOT-CAPABILITY-003-V2`: every `ScreenshotAbilityInput` must carry full chain fields, `inputRef`, `idempotencyKey`, timeout policy | Latest real log shows Screenshot input reaching the gate without `stepId/mapPackageId/mapPackageVersion/selectedMapId/selectedMapVersion/activationSnapshotRef/capabilityCallId/nerveBusEnvelopeId/inputRef` |
-| Supporting law | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3`: every ability input generated from Orchestration must include full dispatch chain | Orchestration envelope has the fields, but local-runtime screenshot adapter fails to preserve them |
-| Blueprint | `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md` | `5. Input Boundary` / `6. Source Proof`: Screenshot input requires the same chain fields and cannot success when they are missing | Production runtime enters Screenshot with those fields undefined |
-| Supporting blueprint | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `9. Dispatch Through Nerve Bus`: dispatch payload must contain full chain fields | Dispatch payload exists, but adapter projection into Screenshot input is incomplete |
-| Law/blueprint conclusion | No law gap | Governance already states the right behavior | Failure is implementation + enforcement-scope drift, not missing governance |
+| PREFLIGHT-GAP-1 | Commander mission preflight | `module-commander-console-capability.instructions.md` / `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2` | Commander command dispatch must be explicit, platform-safe, and semantically validated before dispatch. Current mission preflight checks map binding, command contract, schema, browser, local AI, and data store, but it does not validate mirroring-specific local-program runtime readiness, so it incorrectly returns passed before the Open step fails. |
+| ENFORCEMENT-GAP-1 | screenshot / map / commander inspectors | `module-screenshot-capability.instructions.md` / `GRASSEYE-SCREENSHOT-CAPABILITY-008-V2`; `module-map-plugin-package.instructions.md` / enforcement law; `module-commander-console-capability.instructions.md` / `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2` | Each owner domain claims machine-blocking enforcement through owner-local inspector plus negative proof, but the current checks leave concrete blind spots: missing `prepare-ai-input` source mapping, missing local-program runtime dependency validation, and missing step-level transition closure validation. |
 
-## BLOCKER-2: CAPABILITY_CALL_STARTED event is missing from runtime lifecycle
+## Fresh Elimination Of Wrong Owners
 
-| Layer | Reference | Requirement | Current violation |
-|---|---|---|---|
-| Law | `.github/instructions/cursor-rules/modules/module-structured-logging.instructions.md` | `GRASSEYE-STRUCTURED-LOGGING-003-V1`: structured DEBUG events must make runtime behavior root-causeable without hidden in-memory inference | Current lifecycle exposes dispatch-start and terminal result, but not explicit capability-call start |
-| Supporting law | `.github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md` | `GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3`: dispatch semantics and chain proof must remain explicit through governed work | Operators must infer ability-call start from `STEP_DISPATCH_STARTED` |
-| Blueprint | `docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md` | `9. Dispatch Through Nerve Bus`: dispatch payload/proof must expose governed step execution chain | Runtime lifecycle has no dedicated capability-start event stage |
-| Supporting blueprint | `docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md` | structured event chain must not silently skip required operator-visible stages | latest log silently jumps from dispatch-start to terminal result |
-| Law/blueprint conclusion | No hard law change needed; blueprint detail should be sharpened | Governance wants traceable lifecycle already | Current gap is an implementation and enforcement omission |
-
-## Not Promoted In This Phase
-
-These observations are retained for backlog triage but not promoted to confirmed blockers because the latest pasted terminal log alone does not localize a production root cause strongly enough:
-
-| Observation | Evidence | Why not promoted |
-|---|---|---|
-| `HUMAN_COMMAND_RECEIVED` missing in pasted terminal text | latest log jumps from startup ready to Forensics write requests and `HUMAN_COMMAND_VALIDATED` | code path and blueprint still declare the event; this phase did not rerun the mission to determine whether the loss is runtime, relay, or capture-side |
-| `FORENSICS_RECORD_WRITTEN` missing in pasted terminal text | latest log repeatedly shows `FORENSICS_RECORD_WRITE_REQUESTED` only | code and audit both declare the completion event, so latest pasted terminal excerpt alone is insufficient to pin a live production defect |
+- Startup is not the current owner.
+  - Latest startup run passed through app shell, local AI, map readiness, and mission runtime availability.
+- Nerve Bus acceptance is not the current owner.
+  - `COMMAND_ACCEPTED` exists on all four mission families.
+- Page State is not the current owner.
+  - web missions pass `detect-login-state`, `detect-safety-page`, and `detect-feed-ready` before failing.
+- Historical screenshot `videoVisitId` parity is not the current owner.
+  - It appears only in earlier mixed evidence, not in the latest 17:10 terminal run.

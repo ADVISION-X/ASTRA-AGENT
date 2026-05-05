@@ -2,7 +2,7 @@
   "kind": "mission-readiness",
   "status": "ready",
   "actionableMessage": "Mission dependencies are ready for command preflight.",
-  "generatedAt": "2026-05-05T14:29:26.710Z",
+  "generatedAt": "2026-05-05T17:05:13.036Z",
   "components": [
     {
       "name": "mission",
@@ -16,7 +16,7 @@
     {
       "name": "browserController",
       "ok": true,
-      "detail": "current Chrome session active on https://www.tiktok.com/foryou",
+      "detail": "current Chrome session active on https://www.facebook.com/reel/",
       "ownerResponsible": "Commander Console / Local Browser Session",
       "actionableMessage": "Restore the governed local browser session before retrying mission start.",
       "severity": "info",

@@ -1,0 +1,9 @@
+> grasseye-local-workbench@0.1.0 audit:screenshot
+> node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] screenshot-capability: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+- FATAL src/capabilities/screenshot/shared/screenshot-governance.ts:1 Screenshot governance must keep videoVisitId out of runtimeProof required chain fields.
+- FATAL src/capabilities/screenshot/shared/screenshot-governance.ts:1 Screenshot result required chain fields must match runtimeProof required chain fields.
+- FATAL scripts/audit/domains/screenshot-capability/inspector.ts:1 Screenshot inspector baseline must pass before negative-proof mutation checks.
+
+Command exited with code 1

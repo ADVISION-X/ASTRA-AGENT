@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T16:18:47.026Z",
+  "generatedAt": "2026-05-05T16:59:08.452Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -5986,6 +5986,55 @@
           "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
           "targetSymbol": "collectTransformTruthFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [

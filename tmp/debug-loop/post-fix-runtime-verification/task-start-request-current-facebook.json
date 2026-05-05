@@ -1,4 +1,5 @@
 {
+  "commandSource": "post-fix-runtime-verification",
   "taskTemplateId": "facebook-seeding-video-discovery",
   "selectedMapId": "facebook.seeding-video.discovery.meta.v1",
   "requestedPlatformId": "facebook-web",

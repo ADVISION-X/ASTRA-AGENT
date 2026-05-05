@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { SCREENSHOT_PROOF_CHAIN_FIELD_NAMES, SCREENSHOT_RESULT_CHAIN_FIELD_NAMES } from "./shared/screenshot-governance.js";
+import {
+  SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES,
+  SCREENSHOT_RESULT_CHAIN_FIELD_NAMES,
+  SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES,
+} from "./shared/screenshot-governance.js";
 
 type ScreenshotFailureLike = {
   code: string;
@@ -51,17 +55,38 @@ const isScreenshotInputSchemaInvalid = (value: Pick<ScreenshotRuntimeProofValida
   return value.failureReason?.code === "input_schema_invalid";
 };
 
+const addMissingChainIssue = (
+  fieldName: string,
+  subject: "runtimeProof" | "result",
+  context: z.RefinementCtx,
+): void => {
+  context.addIssue({ code: z.ZodIssueCode.custom, message: `${fieldName} is required in ${subject}`, path: [fieldName] });
+};
+
+const validateRequiredChainFields = (
+  record: Record<string, unknown>,
+  fieldNames: readonly string[],
+  subject: "runtimeProof" | "result",
+  context: z.RefinementCtx,
+): void => {
+  for (const fieldName of fieldNames) {
+    if (record[fieldName] == null) {
+      addMissingChainIssue(fieldName, subject, context);
+    }
+  }
+};
+
 const validateScreenshotRuntimeProofChain = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
   if (isScreenshotInputSchemaInvalid(value)) {
     return;
   }
 
-  const proofRecord = value as Record<string, unknown>;
-  for (const fieldName of SCREENSHOT_PROOF_CHAIN_FIELD_NAMES) {
-    if (proofRecord[fieldName] == null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `${fieldName} is required in runtimeProof`, path: [fieldName] });
-    }
-  }
+  validateRequiredChainFields(
+    value as Record<string, unknown>,
+    SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES,
+    "runtimeProof",
+    context,
+  );
 };
 
 const validateScreenshotRuntimeProofTiming = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
@@ -154,10 +179,12 @@ const validateResultChainFields = (value: ScreenshotAbilityResultValidationTarge
   const invalidInputFailure = value.failureReason?.code === "input_schema_invalid";
   const resultRecord = value as Record<string, unknown>;
   const proofRecord = value.runtimeProof as Record<string, unknown>;
+
+  if (!invalidInputFailure) {
+    validateRequiredChainFields(resultRecord, SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES, "result", context);
+  }
+
   for (const fieldName of SCREENSHOT_RESULT_CHAIN_FIELD_NAMES) {
-    if (!invalidInputFailure && resultRecord[fieldName] == null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `${fieldName} is required in result`, path: [fieldName] });
-    }
     if (resultRecord[fieldName] !== proofRecord[fieldName]) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${fieldName} must equal result.${fieldName}`, path: ["runtimeProof", fieldName] });
     }

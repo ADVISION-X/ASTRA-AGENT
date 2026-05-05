@@ -39,6 +39,7 @@ export const PATHS = {
   PHASE_HELPERS: "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
   IDEMPOTENCY: "src/capabilities/screenshot/runtime/screenshot-idempotency.ts",
   GOVERNANCE: "src/capabilities/screenshot/shared/screenshot-governance.ts",
+  SCHEMA_REFINEMENTS: "src/capabilities/screenshot/screenshot-schema-refinements.ts",
   CHAIN: "src/capabilities/screenshot/runtime/screenshot-chain.ts",
   WORKBENCH_DISPATCH_INPUT: "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
 } as const;

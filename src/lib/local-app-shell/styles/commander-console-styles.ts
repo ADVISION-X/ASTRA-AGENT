@@ -161,8 +161,10 @@ body { min-height: 100vh; overflow: hidden; font-size: var(--cc-text-md); line-h
 .cc-sidebar-nav-label { font-size: 13px; line-height: 1.35; font-weight: 700; }
 .cc-sidebar-note { color: var(--cc-muted); font-size: var(--cc-text-sm); line-height: var(--cc-line-sm); margin: 0; }
 .cc-main-workspace { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(255, 251, 245, 0.76); }
-.cc-main-workspace-header { padding: var(--cc-space-5) var(--cc-space-5) 0; }
-.cc-main-workspace-body { min-height: 0; overflow: auto; padding: var(--cc-space-3) var(--cc-space-5) var(--cc-space-5); }
+.cc-main-workspace-header { padding: var(--cc-space-3) var(--cc-space-5) 0; }
+.cc-main-workspace-body { min-height: 0; overflow: auto; padding: var(--cc-space-2) var(--cc-space-5) var(--cc-space-5); }
+.cc-main-workspace:has(.cc-app-page-host[data-active-page="home"]) { grid-template-rows: minmax(0, 1fr); }
+.cc-main-workspace:has(.cc-app-page-host[data-active-page="home"]) .cc-main-workspace-header { display: none; }
 .cc-app-router, .cc-app-page-host { min-height: 100%; height: 100%; min-width: 0; }
 .cc-app-page-host { max-width: var(--cc-page-max-width); }
 .cc-app-page-host[data-active-page="home"] { max-width: none; height: 100%; }
@@ -183,6 +185,36 @@ body { min-height: 100vh; overflow: hidden; font-size: var(--cc-text-md); line-h
 .cc-page-header { padding: var(--cc-space-2) 0 var(--cc-space-4); display: flex; justify-content: space-between; gap: var(--cc-space-4); align-items: end; }
 .cc-page-header h2 { margin: 0; font-size: var(--cc-text-2xl); line-height: 1.2; }
 .cc-page-header p { margin: 6px 0 0; color: var(--cc-muted); font-size: var(--cc-text-sm); line-height: var(--cc-line-sm); }
+.cc-page[data-home-page] .cc-page-header {
+  min-height: 32px;
+  padding: 0 0 var(--cc-space-2);
+  align-items: center;
+}
+.cc-page[data-home-page] .cc-page-header > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--cc-space-3);
+}
+.cc-home-workspace-label {
+  flex: 0 0 auto;
+  color: var(--cc-muted);
+  font: 700 var(--cc-text-xs)/var(--cc-line-xs) var(--cc-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cc-page[data-home-page] .cc-page-header h2 {
+  flex: 0 0 auto;
+  font-size: var(--cc-text-xl);
+  line-height: 1.15;
+}
+.cc-page[data-home-page] .cc-page-header p {
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .cc-page-stack { display: grid; gap: var(--cc-card-gap); align-content: start; }
 .cc-home-grid { min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: var(--cc-card-gap); }
 .cc-home-form { min-height: 0; height: 100%; overflow: hidden; }

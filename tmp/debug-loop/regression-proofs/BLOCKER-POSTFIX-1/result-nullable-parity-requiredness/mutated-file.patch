@@ -1,0 +1,8 @@
+diff --git a/src/capabilities/screenshot/screenshot-schema-refinements.ts b/src/capabilities/screenshot/screenshot-schema-refinements.ts
+--- a/src/capabilities/screenshot/screenshot-schema-refinements.ts
++++ b/src/capabilities/screenshot/screenshot-schema-refinements.ts
+@@
+   if (!invalidInputFailure) {
+-    validateRequiredChainFields(resultRecord, SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES, "result", context);
++    validateRequiredChainFields(resultRecord, SCREENSHOT_RESULT_CHAIN_FIELD_NAMES, "result", context);
+   }

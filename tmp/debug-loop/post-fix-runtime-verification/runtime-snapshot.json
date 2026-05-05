@@ -58,7 +58,7 @@
       "ownerResponsible": null,
       "actionableMessage": "App Shell ready. Commander Console can stay open while mission dependencies are checked separately.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T14:25:15.950Z"
+      "checkedAt": "2026-05-05T17:03:58.712Z"
     },
     {
       "id": "startup-readiness",
@@ -69,7 +69,7 @@
       "actionableMessage": "Startup gate passed before Commander Console opened mission runtime.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T14:25:14.278Z"
+      "checkedAt": "2026-05-05T17:03:57.535Z"
     },
     {
       "id": "mission",
@@ -79,7 +79,7 @@
       "ownerResponsible": "Orchestration / Map Plugin Registry",
       "actionableMessage": "Mission start binding will be resolved from the selected approved task template at command time.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T14:25:15.963Z"
+      "checkedAt": "2026-05-05T17:03:58.725Z"
     },
     {
       "id": "browserController",
@@ -89,7 +89,7 @@
       "ownerResponsible": "Commander Console / Local Browser Session",
       "actionableMessage": "Restore the governed local browser session before retrying mission start.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T14:25:15.963Z"
+      "checkedAt": "2026-05-05T17:03:58.725Z"
     },
     {
       "id": "localAi",
@@ -100,7 +100,7 @@
       "actionableMessage": "Start Ollama or repair the local AI runtime before starting this mission.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T14:25:15.963Z"
+      "checkedAt": "2026-05-05T17:03:58.725Z"
     },
     {
       "id": "dataStore",
@@ -110,7 +110,7 @@
       "ownerResponsible": "Forensics Persistence",
       "actionableMessage": "Repair the local Forensics store before starting this mission.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T14:25:15.963Z"
+      "checkedAt": "2026-05-05T17:03:58.725Z"
     }
   ],
   "capabilityRoster": [
@@ -204,6 +204,90 @@
   "evidencePackets": [],
   "browseLedger": [],
   "failedRecords": [
+    {
+      "id": "8ba81be4-f0fa-4f37-9f55-fffc4cb42b7b",
+      "primary": "MISSION_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "6d64887a-9c2e-4050-b8fc-7f29ee0d55b1",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "09488117-b046-4a7b-a045-f606609bee9a",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "c284c742-583b-4876-b886-c0e498d07149",
+      "primary": "STEP_TRANSITION_EVALUATED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "008c9922-abd1-4485-87a3-fe224600066f",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "OpenLocalProgramPort is not configured"
+    },
+    {
+      "id": "eab715cb-c497-44a9-abe7-e018c8a86f6a",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "ac59c355-853e-4830-a914-1bb369278e5c",
+      "primary": "STEP_TRANSITION_EVALUATED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "6467c6d5-4572-45b4-b3ce-49edbc62f2a6",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "OpenLocalProgramPort is not configured"
+    },
+    {
+      "id": "50e26faf-95a4-4c65-b86e-4f72ecaa32ba",
+      "primary": "MISSION_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "fe8c14be-2e6c-444a-bfa1-9d0d9244f82a",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "6200b766-1ac1-435e-a3b2-cc3efaba9460",
+      "primary": "MISSION_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "cc5da553-80b7-4f58-bc39-45037b04c320",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "4cc7d40c-b983-42e0-a36d-4af3e0943926",
+      "primary": "MISSION_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "15f8eca5-324b-432b-8c21-975d1ff3ee57",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "screenshot_video_area",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+    },
     {
       "id": "f2d3e0cd-932b-461d-bfa2-bb2f2cab14e9",
       "primary": "MISSION_FAILED",
@@ -419,442 +503,358 @@
       "primary": "MISSION_REVIEW_REQUIRED",
       "secondary": "review_required",
       "detail": "orchestration requires human review"
-    },
-    {
-      "id": "a02241dd-4ddd-4676-972f-27b388a8b46d",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "7ffee38d-f907-43c5-977b-4e00c9c024f3",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "event_2a2748fb-8080-4b1d-b12c-d76b4b03d011",
-      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
-      "secondary": "task_start",
-      "detail": "activation snapshot missing before mission execution"
-    },
-    {
-      "id": "82e07159-0caa-49a7-89b1-3f4fd47dab30",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "0d99ac93-c53b-4608-83c8-044b97cc321f",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "37a308ad-80a6-4fd1-b7bd-ac0f87f15f4c",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "event_af1e4eeb-8313-458a-bc26-eab72ba18a8b",
-      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
-      "secondary": "task_start",
-      "detail": "activation snapshot missing before mission execution"
-    },
-    {
-      "id": "cc3925db-5b29-4e01-82e7-ed974b68f55e",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "0b8c06a8-12c3-402c-a9b6-3b1f6acdb28d",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "ee368fdf-f0c0-450c-9700-a9ef9c030a2a",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "5084d8fe-79ca-4f50-90ac-fdedb8d9b3d5",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "f3232f23-fad2-471a-8636-f07cc3b8a661",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "069683d2-e1c4-4252-805a-bea34170a77a",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
-    },
-    {
-      "id": "fd47d718-4fbd-4c14-8cd5-caf2efc3e425",
-      "primary": "STEP_PRECONDITION_CHECKED",
-      "secondary": "detect_login_or_safety",
-      "detail": "loop guard prevented dispatch"
     }
   ],
   "runtimeProof": [
     {
-      "id": "f2d3e0cd-932b-461d-bfa2-bb2f2cab14e9",
-      "createdAt": "2026-05-05T13:11:49.517Z",
+      "id": "8ba81be4-f0fa-4f37-9f55-fffc4cb42b7b",
+      "createdAt": "2026-05-05T16:37:41.261Z",
       "step": "screenshot_video_area",
       "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
     },
     {
-      "id": "9c9f0fa2-341c-4445-ab23-6b88f8be78c1:forensics_record_write_requested:1777986709517",
-      "createdAt": "2026-05-05T13:11:49.517Z",
+      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999061261",
+      "createdAt": "2026-05-05T16:37:41.261Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "36411a95-1f1c-4633-a99d-6d209c6d9da2",
-      "createdAt": "2026-05-05T13:11:49.361Z",
+      "id": "5e188f6c-1e8b-44c7-b173-9e8c0f57c8db",
+      "createdAt": "2026-05-05T16:37:41.045Z",
       "step": "screenshot_video_area",
       "status": "success",
       "message": "Transition \"capture-video-viewport:failed\" matched for step \"capture-video-viewport\"."
     },
     {
-      "id": "9c9f0fa2-341c-4445-ab23-6b88f8be78c1:forensics_record_write_requested:1777986709361",
-      "createdAt": "2026-05-05T13:11:49.361Z",
+      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999061045",
+      "createdAt": "2026-05-05T16:37:41.045Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "2320f3a9-c356-4e05-a36d-b41d921dd4bc",
-      "createdAt": "2026-05-05T13:11:49.205Z",
+      "id": "6d64887a-9c2e-4050-b8fc-7f29ee0d55b1",
+      "createdAt": "2026-05-05T16:37:40.822Z",
       "step": "screenshot_video_area",
       "status": "failed",
-      "message": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
     },
     {
-      "id": "9c9f0fa2-341c-4445-ab23-6b88f8be78c1:forensics_record_write_requested:1777986709205",
-      "createdAt": "2026-05-05T13:11:49.205Z",
+      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999060823",
+      "createdAt": "2026-05-05T16:37:40.823Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "dc3b219d-2651-433d-9029-1c886b54ab9f",
-      "createdAt": "2026-05-05T13:11:49.014Z",
+      "id": "6e9261e6-9449-4234-8ca9-4cafc2ea8bbd",
+      "createdAt": "2026-05-05T16:37:39.966Z",
+      "step": "screenshot_video_area",
+      "status": "started",
+      "message": "Governed ability step \"capture-video-viewport\" entered \"screenshot\" execution."
+    },
+    {
+      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059966",
+      "createdAt": "2026-05-05T16:37:39.966Z",
+      "step": "screenshot_video_area",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "0337d091-b4ad-4613-a4ed-4e319a90eb98",
+      "createdAt": "2026-05-05T16:37:39.746Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Dispatching step \"capture-video-viewport\" to ability group \"screenshot\"."
     },
     {
-      "id": "d1ad8e00-dcab-4ac1-86c0-e7a2022f68f0:forensics_record_write_requested:1777986709014",
-      "createdAt": "2026-05-05T13:11:49.014Z",
+      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059746",
+      "createdAt": "2026-05-05T16:37:39.746Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "a57c1646-eb4f-40d1-9258-d80986118f77",
-      "createdAt": "2026-05-05T13:11:48.857Z",
+      "id": "a92abe0a-d508-4c8d-ad83-2fdaebe2bc82",
+      "createdAt": "2026-05-05T16:37:39.525Z",
       "step": "screenshot_video_area",
       "status": "success",
       "message": "Step \"capture-video-viewport\" passed dispatch and loop guard checks."
     },
     {
-      "id": "d1ad8e00-dcab-4ac1-86c0-e7a2022f68f0:forensics_record_write_requested:1777986708857",
-      "createdAt": "2026-05-05T13:11:48.857Z",
+      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059525",
+      "createdAt": "2026-05-05T16:37:39.525Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "6e57126e-b25b-4c2c-afaa-147624c17778",
-      "createdAt": "2026-05-05T13:11:48.702Z",
+      "id": "080bcc87-997e-4d22-a9ba-7b6d3b7f7715",
+      "createdAt": "2026-05-05T16:37:39.293Z",
       "step": "screenshot_video_area",
       "status": "success",
       "message": "Orchestration selected governed step \"capture-video-viewport\" from the frozen operational map."
     },
     {
-      "id": "d1ad8e00-dcab-4ac1-86c0-e7a2022f68f0:forensics_record_write_requested:1777986708702",
-      "createdAt": "2026-05-05T13:11:48.702Z",
+      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059293",
+      "createdAt": "2026-05-05T16:37:39.293Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "fb0a4c01-bb84-4e8b-b40c-dd6bc6817c1f",
-      "createdAt": "2026-05-05T13:11:48.546Z",
+      "id": "522a4e6e-d398-4903-9660-d0ae8aa4e404",
+      "createdAt": "2026-05-05T16:37:39.075Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Transition \"detect-feed-ready:success\" matched for step \"detect-feed-ready\"."
     },
     {
-      "id": "69a837d8-ded0-4d49-8b1b-1e7bf116b039:forensics_record_write_requested:1777986708546",
-      "createdAt": "2026-05-05T13:11:48.546Z",
+      "id": "d725031d-565f-4fcc-94f6-8c07dfde5763:forensics_record_write_requested:1777999059075",
+      "createdAt": "2026-05-05T16:37:39.075Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "cbdff09e-d0da-42b5-a7c2-1be3fa878737",
-      "createdAt": "2026-05-05T13:11:48.389Z",
+      "id": "7da1c48d-3086-48d0-bb54-7b6ed062efd9",
+      "createdAt": "2026-05-05T16:37:38.852Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Governed step \"detect-feed-ready\" returned status \"success\"."
     },
     {
-      "id": "69a837d8-ded0-4d49-8b1b-1e7bf116b039:forensics_record_write_requested:1777986708389",
-      "createdAt": "2026-05-05T13:11:48.389Z",
+      "id": "d725031d-565f-4fcc-94f6-8c07dfde5763:forensics_record_write_requested:1777999058852",
+      "createdAt": "2026-05-05T16:37:38.852Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "0f730f6d-b412-4c3f-9c8f-e6165b6b11f7",
-      "createdAt": "2026-05-05T13:11:48.224Z",
+      "id": "f430813d-a069-4407-99d6-702e9b8b7614",
+      "createdAt": "2026-05-05T16:37:38.631Z",
+      "step": "wait_feed_ready",
+      "status": "started",
+      "message": "Governed ability step \"detect-feed-ready\" entered \"page-state\" execution."
+    },
+    {
+      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058631",
+      "createdAt": "2026-05-05T16:37:38.631Z",
+      "step": "wait_feed_ready",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "b6aa3547-b9fb-4222-a9b0-8721868f5d6a",
+      "createdAt": "2026-05-05T16:37:38.416Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Dispatching step \"detect-feed-ready\" to ability group \"page-state\"."
     },
     {
-      "id": "2f54537e-cc3e-482c-aad9-e0840d778969:forensics_record_write_requested:1777986708224",
-      "createdAt": "2026-05-05T13:11:48.224Z",
+      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058416",
+      "createdAt": "2026-05-05T16:37:38.416Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "411ee5f2-96c4-498e-a8fc-14c50e07b516",
-      "createdAt": "2026-05-05T13:11:48.066Z",
+      "id": "86e83fff-be8b-40f7-a21f-a38ab120b706",
+      "createdAt": "2026-05-05T16:37:38.204Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Step \"detect-feed-ready\" passed dispatch and loop guard checks."
     },
     {
-      "id": "2f54537e-cc3e-482c-aad9-e0840d778969:forensics_record_write_requested:1777986708066",
-      "createdAt": "2026-05-05T13:11:48.066Z",
+      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058204",
+      "createdAt": "2026-05-05T16:37:38.204Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "c849d562-12ce-43cc-a970-2548430b0698",
-      "createdAt": "2026-05-05T13:11:47.907Z",
+      "id": "e96d6fd1-5e65-4bb2-aa2b-19fe7156f9ab",
+      "createdAt": "2026-05-05T16:37:37.957Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Orchestration selected governed step \"detect-feed-ready\" from the frozen operational map."
     },
     {
-      "id": "2f54537e-cc3e-482c-aad9-e0840d778969:forensics_record_write_requested:1777986707907",
-      "createdAt": "2026-05-05T13:11:47.907Z",
+      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999057957",
+      "createdAt": "2026-05-05T16:37:37.957Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "a31d5a52-56fd-40db-9402-7d1df2c885b3",
-      "createdAt": "2026-05-05T13:11:47.751Z",
+      "id": "66916525-df98-4229-ac7a-d8b2a4a1294b",
+      "createdAt": "2026-05-05T16:37:37.740Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Transition \"detect-safety-page:success\" matched for step \"detect-safety-page\"."
     },
     {
-      "id": "f7a7c8d0-c94b-43cd-95c4-c37f47d01f13:forensics_record_write_requested:1777986707751",
-      "createdAt": "2026-05-05T13:11:47.751Z",
+      "id": "4b63543b-b331-451a-a601-69fb8cbe16d8:forensics_record_write_requested:1777999057740",
+      "createdAt": "2026-05-05T16:37:37.740Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "515b31f4-8684-41f5-90dd-c9f513e5d9ff",
-      "createdAt": "2026-05-05T13:11:47.596Z",
+      "id": "637e1ed9-be6f-4da8-bad4-dd47dfbea5a6",
+      "createdAt": "2026-05-05T16:37:37.528Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Governed step \"detect-safety-page\" returned status \"success\"."
     },
     {
-      "id": "f7a7c8d0-c94b-43cd-95c4-c37f47d01f13:forensics_record_write_requested:1777986707597",
-      "createdAt": "2026-05-05T13:11:47.597Z",
+      "id": "4b63543b-b331-451a-a601-69fb8cbe16d8:forensics_record_write_requested:1777999057528",
+      "createdAt": "2026-05-05T16:37:37.528Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "609266a6-dcb0-4636-8403-d83e97d02fdc",
-      "createdAt": "2026-05-05T13:11:47.436Z",
+      "id": "3312a889-8120-48ba-a711-89f0e4c3b75d",
+      "createdAt": "2026-05-05T16:37:37.317Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Governed ability step \"detect-safety-page\" entered \"page-state\" execution."
+    },
+    {
+      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999057318",
+      "createdAt": "2026-05-05T16:37:37.318Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "274dbfd7-ed5a-4f27-8a9e-e5b4d275bbfa",
+      "createdAt": "2026-05-05T16:37:37.107Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Dispatching step \"detect-safety-page\" to ability group \"page-state\"."
     },
     {
-      "id": "b7d4ab86-da8f-4c38-b7af-b6245ece8123:forensics_record_write_requested:1777986707436",
-      "createdAt": "2026-05-05T13:11:47.436Z",
+      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999057107",
+      "createdAt": "2026-05-05T16:37:37.107Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "c94d7fd8-af92-44f9-9006-2c41bbf946ab",
-      "createdAt": "2026-05-05T13:11:47.267Z",
+      "id": "dd186f42-53fa-4291-a8b9-06329810416a",
+      "createdAt": "2026-05-05T16:37:36.896Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Step \"detect-safety-page\" passed dispatch and loop guard checks."
     },
     {
-      "id": "b7d4ab86-da8f-4c38-b7af-b6245ece8123:forensics_record_write_requested:1777986707267",
-      "createdAt": "2026-05-05T13:11:47.267Z",
+      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999056896",
+      "createdAt": "2026-05-05T16:37:36.896Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "34bfda5d-c5d0-463c-9b6c-21e1f372623c",
-      "createdAt": "2026-05-05T13:11:47.089Z",
+      "id": "7246399b-c989-429e-9217-4bfdcd111a31",
+      "createdAt": "2026-05-05T16:37:36.680Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Orchestration selected governed step \"detect-safety-page\" from the frozen operational map."
     },
     {
-      "id": "b7d4ab86-da8f-4c38-b7af-b6245ece8123:forensics_record_write_requested:1777986707089",
-      "createdAt": "2026-05-05T13:11:47.089Z",
+      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999056680",
+      "createdAt": "2026-05-05T16:37:36.680Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "3458b33b-8024-4af0-80ce-7ade0a2ca95f",
-      "createdAt": "2026-05-05T13:11:46.871Z",
+      "id": "f51d9149-7c79-4d36-9b47-b439c9041e9c",
+      "createdAt": "2026-05-05T16:37:36.444Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Transition \"detect-login-state:success\" matched for step \"detect-login-state\"."
     },
     {
-      "id": "2a5fac70-0758-4b28-a0ac-9e0800023479:forensics_record_write_requested:1777986706871",
-      "createdAt": "2026-05-05T13:11:46.871Z",
+      "id": "82d0afea-5547-4c5b-b7c8-2908dd5436bc:forensics_record_write_requested:1777999056445",
+      "createdAt": "2026-05-05T16:37:36.445Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "7866a189-2844-4f01-b678-d8879f88259e",
-      "createdAt": "2026-05-05T13:11:46.685Z",
+      "id": "44329e91-5890-49b9-a3d4-979bf3d0cc36",
+      "createdAt": "2026-05-05T16:37:36.233Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Governed step \"detect-login-state\" returned status \"success\"."
     },
     {
-      "id": "2a5fac70-0758-4b28-a0ac-9e0800023479:forensics_record_write_requested:1777986706685",
-      "createdAt": "2026-05-05T13:11:46.685Z",
+      "id": "82d0afea-5547-4c5b-b7c8-2908dd5436bc:forensics_record_write_requested:1777999056233",
+      "createdAt": "2026-05-05T16:37:36.233Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "e6d20ae8-b95b-4a23-8cc1-4d2ab9fa2b73",
-      "createdAt": "2026-05-05T13:11:46.528Z",
+      "id": "762a9e5f-8ee6-4d73-a931-a3b32a7e932d",
+      "createdAt": "2026-05-05T16:37:35.982Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Governed ability step \"detect-login-state\" entered \"page-state\" execution."
+    },
+    {
+      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055982",
+      "createdAt": "2026-05-05T16:37:35.982Z",
+      "step": "detect_login_or_safety",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "fdce8d68-5624-4f02-9af8-7082fc2ba619",
+      "createdAt": "2026-05-05T16:37:35.754Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Dispatching step \"detect-login-state\" to ability group \"page-state\"."
     },
     {
-      "id": "2717a03c-44ae-4b1a-8d3e-011403b407ed:forensics_record_write_requested:1777986706528",
-      "createdAt": "2026-05-05T13:11:46.528Z",
+      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055754",
+      "createdAt": "2026-05-05T16:37:35.754Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "63f8804a-7375-433a-80b3-accecf0a9649",
-      "createdAt": "2026-05-05T13:11:46.375Z",
+      "id": "d955e150-5a4c-4301-9c5d-1c69f545ce97",
+      "createdAt": "2026-05-05T16:37:35.521Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Step \"detect-login-state\" passed dispatch and loop guard checks."
     },
     {
-      "id": "2717a03c-44ae-4b1a-8d3e-011403b407ed:forensics_record_write_requested:1777986706375",
-      "createdAt": "2026-05-05T13:11:46.375Z",
+      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055521",
+      "createdAt": "2026-05-05T16:37:35.521Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "5ae3dc6f-376e-4a38-b6d6-8319fbb42116",
-      "createdAt": "2026-05-05T13:11:46.222Z",
+      "id": "f6ee515d-34ed-4998-b128-e78cb207249f",
+      "createdAt": "2026-05-05T16:37:35.299Z",
       "step": "detect_login_or_safety",
       "status": "success",
       "message": "Orchestration selected governed step \"detect-login-state\" from the frozen operational map."
     },
     {
-      "id": "2717a03c-44ae-4b1a-8d3e-011403b407ed:forensics_record_write_requested:1777986706222",
-      "createdAt": "2026-05-05T13:11:46.222Z",
+      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055299",
+      "createdAt": "2026-05-05T16:37:35.299Z",
       "step": "detect_login_or_safety",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "ddf0457c-7941-4192-aafb-42d43730e0f6",
-      "createdAt": "2026-05-05T13:11:46.068Z",
-      "step": "open_target_page",
-      "status": "success",
-      "message": "Transition \"verify-tiktok-feed-open:success\" matched for step \"verify-tiktok-feed-open\"."
-    },
-    {
-      "id": "9dd44c93-f90b-413d-b145-42bd025d148b:forensics_record_write_requested:1777986706068",
-      "createdAt": "2026-05-05T13:11:46.068Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "ee090b1e-8eae-44b9-8fbc-ed57e68f2cee",
-      "createdAt": "2026-05-05T13:11:45.917Z",
-      "step": "open_target_page",
-      "status": "success",
-      "message": "Governed step \"verify-tiktok-feed-open\" returned status \"success\"."
-    },
-    {
-      "id": "9dd44c93-f90b-413d-b145-42bd025d148b:forensics_record_write_requested:1777986705917",
-      "createdAt": "2026-05-05T13:11:45.917Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "9dd44c93-f90b-413d-b145-42bd025d148b:forensics_record_write_requested:1777986705766",
-      "createdAt": "2026-05-05T13:11:45.766Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Forensics accepted structured_action_log write request from orchestration."
-    },
-    {
-      "id": "eeedf5ae-adb4-4b29-915f-0d41717846c3",
-      "createdAt": "2026-05-05T13:11:45.610Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Dispatching post-action verification step \"verify-tiktok-feed-open\" through governed transport."
-    },
-    {
-      "id": "898bb5fb-d5fa-448b-b5f8-dd65de38984e:forensics_record_write_requested:1777986705610",
-      "createdAt": "2026-05-05T13:11:45.610Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "d7ae22fa-107c-4181-85f6-758f440b7fa4",
-      "createdAt": "2026-05-05T13:11:45.461Z",
-      "step": "open_target_page",
-      "status": "started",
-      "message": "Dispatching step \"verify-tiktok-feed-open\" to ability group \"post-action-verification\"."
     }
   ],
   "auditSummary": {
@@ -881,13 +881,13 @@
       "visual-target-capability",
       "forensics-persistence-capability"
     ],
-    "lastGeneratedAt": "2026-05-05T14:24:09.177Z",
-    "lastRunGeneratedAt": "2026-05-05T14:24:09.177Z",
+    "lastGeneratedAt": "2026-05-05T16:58:48.252Z",
+    "lastRunGeneratedAt": "2026-05-05T16:58:48.252Z",
     "totals": {
-      "inspectors": 1,
-      "passed": 1,
-      "failed": 0,
-      "blocking": 0
+      "inspectors": 3,
+      "passed": 2,
+      "failed": 1,
+      "blocking": 1
     }
   }
 }

@@ -5,7 +5,6 @@ import type { CommanderConsoleViewModel } from "../types.js";
 import { renderActionableErrorBanner } from "../modules/ActionableErrorBanner.js";
 import { renderResultSummaryCard } from "../modules/ResultSummaryCard.js";
 import { renderTaskTemplateLauncherModule } from "../modules/TaskTemplateLauncher.js";
-import { renderPageHeader } from "../layout/PageHeader.js";
 import { getActiveTaskTemplate } from "../view-helpers.js";
 
 function isLaunchLocked(viewModel: CommanderConsoleViewModel): boolean {
@@ -37,7 +36,13 @@ export function renderHomeStartPage(viewModel: CommanderConsoleViewModel, appVie
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return joinHtml([
     `<section class="cc-page" data-app-page="home" data-home-page>`,
-    renderPageHeader(t("开始", "Start"), t("桌面启动页只保留启动任务、运行边界和当前状态。", "The desktop start page keeps only task launch, run bounds, and current status.")),
+    `<header class="cc-page-header cc-home-compact-header">
+      <div>
+        <span class="cc-home-workspace-label">${t("主工作区", "Main Workspace")}</span>
+        <h2>${t("开始", "Start")}</h2>
+        <p>${t("桌面启动页只保留启动任务、运行边界和当前状态。", "The desktop start page keeps only task launch, run bounds, and current status.")}</p>
+      </div>
+    </header>`,
     renderActionableErrorBanner(viewModel.locale, appViewModel.actionableErrors),
     `<div class="cc-home-grid">`,
     renderHomeLaunchCard(viewModel),

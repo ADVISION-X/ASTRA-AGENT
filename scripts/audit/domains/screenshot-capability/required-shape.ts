@@ -8,6 +8,7 @@ import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers
 
 import { CHILDREN, LAW_IDS, PATHS } from "./config.js";
 import { getRegistryChildIds, getSource, missingCanonicalFiles } from "./project-access.js";
+import { inspectScreenshotRuntimeProofParity } from "./runtime-proof-parity-check.js";
 import { isThinAbilityGroup } from "./source-rules.js";
 
 const EXECUTOR_ROUTE_SOURCES = [
@@ -316,6 +317,7 @@ function collectV2ChainTruthFindings(project: Project): Finding[] {
     ...collectIdempotencyFindings(project),
     ...collectTransformTruthFindings(project),
     ...collectLifecycleTruthFindings(project),
+    ...inspectScreenshotRuntimeProofParity(project),
     ...inspectScreenshotDispatchAdapter(project, LAW_IDS.SHAPE),
   ];
 }

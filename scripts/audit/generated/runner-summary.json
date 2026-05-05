@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T16:19:51.999Z",
+  "generatedAt": "2026-05-05T16:58:48.252Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -2827,6 +2827,27 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "line": 61,
+          "severity": "error",
+          "message": "Function getIdentifierArrayValues exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "line": 96,
+          "severity": "error",
+          "message": "Function inspectScreenshotRuntimeProofParity exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "line": 39,
+          "severity": "error",
+          "message": "Function getConstStringArrayValues exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "scripts/audit/static-clause-coverage-gate-report.ts",
           "line": 50,
           "severity": "error",
@@ -3012,13 +3033,6 @@
           "detail": "409"
         },
         {
-          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "src/lib/local-app-shell/commander-console-shell-client.ts",
-          "line": 1,
-          "severity": "error",
-          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
-        },
-        {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts",
           "line": 20,
@@ -3038,7 +3052,7 @@
           "line": 1,
           "severity": "error",
           "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
-          "detail": "400"
+          "detail": "446"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-002-V1",
@@ -3210,7 +3224,7 @@
           "name": "scope-activation",
           "classification": "PASS",
           "passed": true,
-          "summary": "code-purity scans 1890 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
+          "summary": "code-purity scans 1891 active files under docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
         },
         {
           "name": "file-size-limits",
@@ -3312,7 +3326,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "FAKE ENFORCEMENT",
-      "violationCount": 417
+      "violationCount": 419
     }
   ]
 }

@@ -1,4 +1,5 @@
 {
+  "commandSource": "post-fix-runtime-verification",
   "taskTemplateId": "tiktok-seeding-video-discovery",
   "selectedMapId": "tiktok.seeding-video.discovery.meta.v1",
   "requestedPlatformId": "tiktok-web",

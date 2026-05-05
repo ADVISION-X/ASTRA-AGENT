@@ -690,6 +690,37 @@ success proof without artifactRef
 failed proof with outputRef
 ```
 
+### 15.1 当前 blocker 链字段口径
+
+正确链路：
+
+```txt
+SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES 只允许包含 missionId/runId/sessionId/stepId/mapPackageId/mapPackageVersion/selectedMapId/selectedMapVersion/activationSnapshotRef/capabilityCallId/nerveBusEnvelopeId
+SCREENSHOT_PROOF_OPTIONAL_CHAIN_FIELD_NAMES 必须包含且只包含 roundId/videoVisitId
+SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES 必须与 runtimeProof required chain 完全一致
+SCREENSHOT_RESULT_OPTIONAL_CHAIN_FIELD_NAMES 必须包含 roundId/videoVisitId/diagnosticPayloadRef
+first capture-video-viewport path 在 allowMissingVideoVisitId=true 时允许 runtimeProof/result 持久化 videoVisitId=null
+nullable chain fields 只能做 proof/result parity 校验，不能被升级为 blanket required
+```
+
+禁止链路：
+
+```txt
+videoVisitId 出现在任何 required chain field list
+validateScreenshotRuntimeProofChain 对 SCREENSHOT_PROOF_CHAIN_FIELD_NAMES 做 blanket required
+validateResultChainFields 对 SCREENSHOT_RESULT_CHAIN_FIELD_NAMES 做 blanket required
+success result 被强制要求 non-null diagnosticPayloadRef
+schema/policy 允许 null，但 runtimeProof/result refine 拒绝 null
+```
+
+### 15.2 当前 blocker 结构化日志必填字段
+
+```txt
+CAPABILITY_CALL_STARTED / CAPABILITY_CALL_FAILED / MISSION_FAILED 必须同时带 stepId childCapabilityId status missionId runId sessionId roundId videoVisitId capabilityCallId activationSnapshotRef nerveBusEnvelopeId selectedMapId
+若由 nullable parity 阻断，failureReason 必须给出精确字段名与主体，例如 runtimeProof.videoVisitId 或 result.videoVisitId
+真实重启后的 fresh runtime log 必须能证明旧错误串已消失，而不是只证明换了一条错误串
+```
+
 ---
 
 ## 16. Child Capabilities
@@ -822,6 +853,13 @@ cross-boundary local-runtime dispatch adapter uses a dedicated screenshot builde
 builder preserves mission/run/session/round/step/map/activation/capability/envelope/input/idempotency/timeout truth from AbilityCommandEnvelope
 capture-browser-viewport builder derives browser_viewport source and pageStateProof from governed payload refs
 该条检查必须以 AST / symbol 方式完成，不能把 grep/includes 当最终结论
+AST 校验 SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES 不得包含 videoVisitId
+AST 校验 SCREENSHOT_PROOF_OPTIONAL_CHAIN_FIELD_NAMES 必须保留 roundId/videoVisitId
+AST 校验 SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES 与 proof required chain 一致
+AST 校验 SCREENSHOT_RESULT_OPTIONAL_CHAIN_FIELD_NAMES 必须保留 roundId/videoVisitId/diagnosticPayloadRef
+AST 校验 ScreenshotRuntimeProofIdentitySchema.videoVisitId 与 ScreenshotCapturePolicySchema.allowMissingVideoVisitId 同时存在
+AST 校验 validateScreenshotRuntimeProofChain 只消费 SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES
+AST 校验 validateResultChainFields 必须拆分 requiredness 与 parity，不能把 nullable field 升级为 required
 ```
 
 ---
@@ -861,6 +899,8 @@ turn P0 into warning-only
 local-runtime screenshot dispatch adapter maps capabilityCallId to missionId
 local-runtime screenshot dispatch adapter drops timeoutMs derivation
 capture-browser-viewport builder removes pageStateProof handoff while payload.pageStateRef still exists
+move videoVisitId into SCREENSHOT_PROOF_REQUIRED_CHAIN_FIELD_NAMES
+force validateResultChainFields to require SCREENSHOT_RESULT_CHAIN_FIELD_NAMES instead of SCREENSHOT_RESULT_REQUIRED_CHAIN_FIELD_NAMES
 ```
 
 ---
@@ -888,6 +928,11 @@ negative proof PASS
 ```txt
 local-runtime screenshot dispatch adapter emits full governed chain into ScreenshotAbilityInput
 browser viewport capture receives source + pageStateProof handoff before owner-side gates
+runtimeProof/result 不再把 nullable videoVisitId 升级为 required failure
+fresh runtime log 不再出现 `videoVisitId is required in runtimeProof`
+fresh runtime log 不再出现 `videoVisitId is required in result`
+必须完成真实 restart + 真实任务触发 + fresh phase-1 根因分析重写
+当前 blocker 的生产突变证据必须落到 tmp/debug-loop/regression-proofs/BLOCKER-POSTFIX-1/
 真实重启后的 fresh runtime log 不再出现 screenshot invalid-input missing activationSnapshotRef/capabilityCallId/nerveBusEnvelopeId/inputRef 类 P0 阻断
 只有真实 restart + fresh log re-analysis 证实旧 blocker 消失后，才能把这一条标 READY
 ```
