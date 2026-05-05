@@ -8,6 +8,15 @@ import { writeCoverageArtifacts } from "./coverage-gate.js";
 const INSPECTOR_ID = "audit-coverage-governance-owner";
 const CAPABILITY_DOMAIN = "audit-coverage-governance";
 
+const createCoverageFinding = (blockers: string[]) => createFinding({
+  lawId: "GRASSEYE-AUDIT-COVERAGE-GOVERNANCE-001-V1",
+  file: "scripts/audit/generated/uncovered-requirements.generated.json",
+  line: 1,
+  severity: "fatal",
+  message: "Audit coverage governance is blocked by uncovered, weak, or manual-only P0/P1 requirements.",
+  detail: blockers.slice(0, 10).join("\n"),
+});
+
 export const inspectAuditCoverageGovernance: DomainInspector = async (context) => {
   const generatedAt = new Date().toISOString();
   const manifests = await loadDomainManifests();
@@ -23,16 +32,7 @@ export const inspectAuditCoverageGovernance: DomainInspector = async (context) =
 
   const findings = summary.finalVerdict === "PASS"
     ? []
-    : [
-      createFinding({
-        lawId: "GRASSEYE-AUDIT-COVERAGE-GOVERNANCE-001-V1",
-        file: "scripts/audit/generated/uncovered-requirements.generated.json",
-        line: 1,
-        severity: "fatal",
-        message: "Audit coverage governance is blocked by uncovered, weak, or manual-only P0/P1 requirements.",
-        detail: summary.blockers.slice(0, 10).join("\n"),
-      }),
-    ];
+    : [createCoverageFinding(summary.blockers)];
 
   return finalizeInspectorResult({
     inspector: "Audit Coverage Governance",

@@ -4,21 +4,46 @@ import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidenc
 
 const generatedPath = (fileName: string): string => pathFromRepoRoot(`scripts/audit/generated/${fileName}`);
 
+const toCensusRecord = (requirement: CoverageRequirement) => ({
+  ...requirement,
+  staticCoverage: [],
+  negativeProofCoverage: [],
+});
+
+const toStaticMatrixRecord = (requirement: CoverageRequirement) => ({
+  requirementId: requirement.requirementId,
+  owner: requirement.owner,
+  sourceType: requirement.sourceType,
+  tier: requirement.tier,
+  staticCoverage: requirement.staticCoverage,
+  coverageStatus: requirement.coverageStatus,
+  blockingReason: requirement.blockingReason,
+});
+
+const toNegativeMatrixRecord = (requirement: CoverageRequirement) => ({
+  requirementId: requirement.requirementId,
+  owner: requirement.owner,
+  negativeProofIds: requirement.negativeProofCoverage.map((proof) => proof.negativeProofId),
+});
+
+const toUncoveredRecord = (requirement: CoverageRequirement) => ({
+  requirementId: requirement.requirementId,
+  owner: requirement.owner,
+  sourceType: requirement.sourceType,
+  sourceFile: requirement.sourceFile,
+  sourceLawId: requirement.sourceLawId,
+  tier: requirement.tier,
+  enforcementStrength: requirement.enforcementStrength,
+  coverageStatus: requirement.coverageStatus,
+  blockingReason: requirement.blockingReason,
+});
+
 export const writeCoverageArtifacts = async (input: {
   generatedAt: string;
   requirements: CoverageRequirement[];
   negativeProofEvidence: NegativeProofCoverageEvidence[];
   summary: CoverageSummary;
 }): Promise<void> => {
-  const staticMatrix = input.requirements.map((requirement) => ({
-    requirementId: requirement.requirementId,
-    owner: requirement.owner,
-    sourceType: requirement.sourceType,
-    tier: requirement.tier,
-    staticCoverage: requirement.staticCoverage,
-    coverageStatus: requirement.coverageStatus,
-    blockingReason: requirement.blockingReason,
-  }));
   const enforcementStrength = input.requirements.map((requirement) => ({
     requirementId: requirement.requirementId,
     owner: requirement.owner,
@@ -31,24 +56,16 @@ export const writeCoverageArtifacts = async (input: {
   await Promise.all([
     writeJsonFile(generatedPath("law-blueprint-requirement-census.generated.json"), {
       generatedAt: input.generatedAt,
-      requirements: input.requirements.map((requirement) => ({
-        ...requirement,
-        staticCoverage: [],
-        negativeProofCoverage: [],
-      })),
+      requirements: input.requirements.map(toCensusRecord),
     }),
     writeJsonFile(generatedPath("inspector-coverage-matrix.generated.json"), {
       generatedAt: input.generatedAt,
-      requirements: staticMatrix,
+      requirements: input.requirements.map(toStaticMatrixRecord),
     }),
     writeJsonFile(generatedPath("negative-proof-coverage.generated.json"), {
       generatedAt: input.generatedAt,
       negativeProofs: input.negativeProofEvidence,
-      requirements: input.requirements.map((requirement) => ({
-        requirementId: requirement.requirementId,
-        owner: requirement.owner,
-        negativeProofCoverage: requirement.negativeProofCoverage,
-      })),
+      requirements: input.requirements.map(toNegativeMatrixRecord),
     }),
     writeJsonFile(generatedPath("enforcement-strength.generated.json"), {
       generatedAt: input.generatedAt,
@@ -56,7 +73,7 @@ export const writeCoverageArtifacts = async (input: {
     }),
     writeJsonFile(generatedPath("uncovered-requirements.generated.json"), {
       generatedAt: input.generatedAt,
-      requirements: uncovered,
+      requirements: uncovered.map(toUncoveredRecord),
     }),
     writeJsonFile(generatedPath("audit-coverage-summary.generated.json"), input.summary),
   ]);

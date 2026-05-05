@@ -1,4 +1,4 @@
-import type { Project } from "ts-morph";
+import { Node, SyntaxKind, type Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -100,9 +100,41 @@ const inspectBuiltinRecords = async (): Promise<Finding[]> => {
 
 const inspectBuiltinIndexSource = (project: Project): Finding[] => {
   const builtinsIndexSource = getSource(project, `${ROOT}/builtins/index.ts`);
-  return hasCallExpressionPath(builtinsIndexSource, ["MapPackageSchema", "parse"])
+  const parseFindings = hasCallExpressionPath(builtinsIndexSource, ["MapPackageSchema", "parse"])
     ? []
     : [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader must parse builtin packages through MapPackageSchema.parse." })];
+  return [
+    ...parseFindings,
+    ...inspectBuiltinLoaderFileRefs(builtinsIndexSource),
+  ];
+};
+
+const collectBuiltinLoaderFileNames = (source: import("ts-morph").SourceFile): string[] => {
+  const loader = source.getFunction("loadBuiltinMapPackages");
+  if (!loader) {
+    return [];
+  }
+
+  return loader.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((callExpression) => callExpression.getExpression().getText() === "readBuiltin")
+    .map((callExpression) => callExpression.getArguments()[0])
+    .filter((argument): argument is import("ts-morph").StringLiteral => Node.isStringLiteral(argument))
+    .map((argument) => argument.getLiteralText());
+};
+
+const inspectBuiltinLoaderFileRefs = (source: import("ts-morph").SourceFile): Finding[] => {
+  const expected = new Set(BUILTIN_PACKAGE_FILES.map((file) => file.split("/").at(-1)!));
+  const declared = new Set(collectBuiltinLoaderFileNames(source));
+  const missing = [...expected].filter((file) => !declared.has(file));
+  const extra = [...declared].filter((file) => !expected.has(file));
+  return [
+    ...(missing.length > 0
+      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader omitted governed builtin package files.", detail: missing.join(", ") })]
+      : []),
+    ...(extra.length > 0
+      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader references files outside the governed builtin package file list.", detail: extra.join(", ") })]
+      : []),
+  ];
 };
 
 const inspectImporterSource = (project: Project): Finding[] => {

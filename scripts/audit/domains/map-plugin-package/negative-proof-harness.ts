@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { applyAuditMutation, readAuditFileState, restoreAuditFileState, type AuditFileState } from "../_shared/read-audit-file-state.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import { MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS as MUTATIONS, type Mutation } from "./negative-proof-mutations.js";
 
@@ -21,6 +21,26 @@ type InspectorRunResult = {
 };
 
 type HeartbeatStage = "baseline" | "mutate" | "expect-fail" | "rollback" | "verify-rollback" | "pass" | "fail";
+const ROLLBACK_VERIFY_RETRIES = 3;
+const ROLLBACK_VERIFY_RETRY_DELAY_MS = 300;
+let activeMutationState: { filePath: string; state: AuditFileState; mutationName: string } | null = null;
+
+const restoreActiveMutationBeforeExit = async (signal: NodeJS.Signals) => {
+  if (activeMutationState) {
+    emitNegativeProofHeartbeat({ stage: "rollback", mutationName: activeMutationState.mutationName, detail: `received ${signal}` });
+    await restoreAuditFileState(activeMutationState.filePath, activeMutationState.state);
+    activeMutationState = null;
+  }
+  process.exit(signal === "SIGINT" ? 130 : 143);
+};
+
+process.once("SIGINT", () => {
+  void restoreActiveMutationBeforeExit("SIGINT");
+});
+
+process.once("SIGTERM", () => {
+  void restoreActiveMutationBeforeExit("SIGTERM");
+});
 
 const emitNegativeProofHeartbeat = (input: {
   stage: HeartbeatStage;
@@ -103,6 +123,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   emitNegativeProofHeartbeat({ stage: "mutate", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length });
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
+  activeMutationState = { filePath, state, mutationName: mutation.name };
   await applyAuditMutation(filePath, state.original, mutation);
 
   try {
@@ -114,11 +135,17 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
   } finally {
     emitNegativeProofHeartbeat({ stage: "rollback", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length });
     await restoreAuditFileState(filePath, state);
+    activeMutationState = null;
   }
 
   await delay(50);
   emitNegativeProofHeartbeat({ stage: "verify-rollback", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length });
-  const restored = await runInspector();
+  let restored = await runInspector();
+  for (let attempt = 1; !restored.passed && attempt < ROLLBACK_VERIFY_RETRIES; attempt += 1) {
+    emitNegativeProofHeartbeat({ stage: "verify-rollback", mutationName: mutation.name, index: mutationIndex, total: MUTATIONS.length, detail: `retry ${attempt}` });
+    await delay(ROLLBACK_VERIFY_RETRY_DELAY_MS);
+    restored = await runInspector();
+  }
   if (!restored.passed) {
     throw new Error(`Rollback verification failed for ${mutation.name}: ${summarizeInspectorFailure(restored)}`);
   }

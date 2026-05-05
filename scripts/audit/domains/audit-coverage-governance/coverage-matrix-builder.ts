@@ -1,6 +1,6 @@
 import { loadDomainManifests } from "../../core/manifests.js";
 import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
-import { PILOT_OWNER_DOMAINS } from "./coverage-types.js";
+import { PILOT_OWNER_DOMAINS } from "./pilot-owners.js";
 import { classifyInspectorStrength, getStrengthRank, maxStrength } from "./enforcement-strength-classifier.js";
 import { buildNegativeProofEvidence } from "./negative-proof-coverage-builder.js";
 
@@ -48,23 +48,31 @@ const createRequirementBlockers = (requirement: CoverageRequirement): string[] =
   return blockers;
 };
 
+const resolveCoverageStatus = (input: {
+  hasStatic: boolean;
+  hasNegative: boolean;
+  isP0P1: boolean;
+  rank: number;
+}): CoverageRequirement["coverageStatus"] => {
+  if (!input.hasStatic && !input.hasNegative) {
+    return "missing";
+  }
+  if (input.isP0P1 && input.rank < 4) {
+    return "weak";
+  }
+  if (input.hasStatic && input.hasNegative) {
+    return "covered";
+  }
+  return "partial";
+};
+
 const updateCoverageStatus = (requirement: CoverageRequirement): CoverageRequirement => {
   const hasStatic = requirement.staticCoverage.length > 0;
   const hasNegative = requirement.negativeProofCoverage.length > 0;
   const rank = getStrengthRank(requirement.enforcementStrength);
   const isP0P1 = P0P1.has(requirement.tier);
   const blockingReason = createRequirementBlockers(requirement);
-  let coverageStatus: CoverageRequirement["coverageStatus"];
-
-  if (!hasStatic && !hasNegative) {
-    coverageStatus = "missing";
-  } else if (isP0P1 && rank < 4) {
-    coverageStatus = "weak";
-  } else if (hasStatic && hasNegative) {
-    coverageStatus = "covered";
-  } else {
-    coverageStatus = "partial";
-  }
+  const coverageStatus = resolveCoverageStatus({ hasStatic, hasNegative, isP0P1, rank });
 
   return { ...requirement, coverageStatus, blockingReason };
 };

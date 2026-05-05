@@ -1,13 +1,3 @@
-export const PILOT_OWNER_DOMAINS = [
-  "open-capability",
-  "map-plugin-package",
-  "debug-loop-boundary",
-  "screenshot-capability",
-  "post-action-verification-capability",
-  "forensics-persistence-capability",
-  "orchestration-capability",
-] as const;
-
 export type SourceType = "law" | "blueprint";
 export type RequirementTier = "P0" | "P1" | "P2" | "P3" | "UNKNOWN";
 export type CoverageStatus = "covered" | "partial" | "missing" | "weak";
@@ -54,11 +44,6 @@ export type NegativeProofCoverageEvidence = {
   expected: "FAIL";
   actual: "FAIL" | "MISSING" | "UNKNOWN";
   rollback: "PASS" | "MISSING" | "UNKNOWN";
-};
-
-export type CoverageMatrix = {
-  generatedAt: string;
-  requirements: CoverageRequirement[];
 };
 
 export type CoverageSummary = {

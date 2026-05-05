@@ -16,24 +16,24 @@ export const getStrengthRank = (strength: EnforcementStrength): number => streng
 export const maxStrength = (strengths: EnforcementStrength[]): EnforcementStrength =>
   strengths.sort((left, right) => getStrengthRank(right) - getStrengthRank(left))[0] ?? "LEVEL_0_MANUAL_ONLY_OR_MISSING";
 
-export const classifyInspectorStrength = async (entry: string, hasNegativeProof: boolean): Promise<EnforcementStrength> => {
-  const absoluteEntry = pathFromRepoRoot(entry);
-  if (!(await fileExists(absoluteEntry))) {
-    return "LEVEL_0_MANUAL_ONLY_OR_MISSING";
-  }
+const hasAnyPattern = (source: string, patterns: RegExp[]): boolean =>
+  patterns.some((pattern) => pattern.test(source));
 
-  const source = await readTextFile(absoluteEntry);
-  const hasAst = /ts-morph|SourceFile|SyntaxKind|getDescendants|getImportDeclarations|createAuditProject/.test(source);
-  const hasImportGraph = /import graph|ImportDeclaration|getImportDeclarations|forbidden import|boundary import/i.test(source);
-  const hasSchemaTraversal = /zod|schema|JSON|parse|safeParse|readJsonFile|traversal/i.test(source);
-  const hasGeneratedArtifact = /generated|artifact|exact|includes|path exists|fileExists/i.test(source);
-
+const classifyStructuralStrength = (source: string, hasNegativeProof: boolean): EnforcementStrength | null => {
+  const hasAst = hasAnyPattern(source, [/ts-morph/, /SourceFile/, /SyntaxKind/, /getDescendants/, /createAuditProject/]);
+  const hasImportGraph = hasAnyPattern(source, [/import graph/i, /getImportDeclarations/, /forbidden import/i, /boundary import/i]);
   if (hasNegativeProof && hasAst && hasImportGraph) {
     return "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF";
   }
   if (hasNegativeProof && (hasAst || hasImportGraph)) {
     return "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF";
   }
+  return null;
+};
+
+const classifyNonStructuralStrength = (source: string, hasNegativeProof: boolean): EnforcementStrength => {
+  const hasSchemaTraversal = /zod|schema|JSON|parse|safeParse|readJsonFile|traversal/i.test(source);
+  const hasGeneratedArtifact = /generated|artifact|exact|includes|path exists|fileExists/i.test(source);
   if (hasNegativeProof && hasSchemaTraversal) {
     return "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF";
   }
@@ -43,6 +43,19 @@ export const classifyInspectorStrength = async (entry: string, hasNegativeProof:
   if (hasGeneratedArtifact || /includes|fileExists|pathFromRepoRoot/.test(source)) {
     return "LEVEL_1_TEXT_INCLUDES_PATH_EXISTS";
   }
-
   return "LEVEL_0_MANUAL_ONLY_OR_MISSING";
+};
+
+export const classifyInspectorStrength = async (entry: string, hasNegativeProof: boolean): Promise<EnforcementStrength> => {
+  const absoluteEntry = pathFromRepoRoot(entry);
+  if (!(await fileExists(absoluteEntry))) {
+    return "LEVEL_0_MANUAL_ONLY_OR_MISSING";
+  }
+
+  const source = await readTextFile(absoluteEntry);
+  const structuralStrength = classifyStructuralStrength(source, hasNegativeProof);
+  if (structuralStrength) {
+    return structuralStrength;
+  }
+  return classifyNonStructuralStrength(source, hasNegativeProof);
 };

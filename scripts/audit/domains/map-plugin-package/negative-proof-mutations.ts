@@ -21,8 +21,8 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "old tiktok product discovery remains loaded mutation",
     file: "src/map-plugins/builtins/index.ts",
-    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json")\n',
-    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("tiktok-product-discovery.map-package.json")\n',
+    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n',
+    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("tiktok-product-discovery.map-package.json"),\n',
   },
   {
     name: "old facebook safe comment map remains loaded mutation",
@@ -33,14 +33,14 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "old tiktok comment evidence map remains loaded mutation",
     file: "src/map-plugins/builtins/index.ts",
-    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json")\n',
-    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("tiktok-comment-evidence.map-package.json")\n',
+    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n',
+    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("tiktok-comment-evidence.map-package.json"),\n',
   },
   {
     name: "old ai draft placeholder remains loaded mutation",
     file: "src/map-plugins/builtins/index.ts",
-    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json")\n',
-    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("ai-draft-map-placeholder.map-package.json")\n',
+    search: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n',
+    replace: '    readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),\n    readBuiltin("ai-draft-map-placeholder.map-package.json"),\n',
   },
   {
     name: "map package modeled as child ability mutation",
