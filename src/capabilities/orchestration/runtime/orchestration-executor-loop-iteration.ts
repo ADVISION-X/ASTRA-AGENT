@@ -101,6 +101,13 @@ function getTerminalEventType(status: MissionState["status"]): "MISSION_FAILED" 
   return status === "completed" ? "MISSION_FINALIZED" : null;
 }
 
+function collectLastResultRefs(lastResult: OrchestrationStepResultRecord): string[] {
+  return [
+    ...(lastResult.resultRef ? [lastResult.resultRef] : []),
+    ...(lastResult.outputRef ? [lastResult.outputRef] : []),
+  ];
+}
+
 async function recordStepSelected(input: RunMissionLoopIterationInput, step: OperationalStep, currentStepId: string): Promise<void> {
   await recordMissionRuntimeEvent({
     context: input.context,
@@ -109,7 +116,7 @@ async function recordStepSelected(input: RunMissionLoopIterationInput, step: Ope
     step,
     eventType: "MAP_STEP_SELECTED",
     status: "success",
-    reason: `Orchestration selected governed step \"${currentStepId}\" from the frozen operational map.",
+    reason: `Orchestration selected governed step "${currentStepId}" from the frozen operational map.`,
     actionableMessage: "Evaluate governed dispatch gates before sending the step through Nerve Bus.",
     ownerResponsible: "Orchestration",
     capabilityCallId: input.stepDispatchCallId,
@@ -141,7 +148,7 @@ async function recordDispatchStarted(input: RunMissionLoopIterationInput, step: 
     step,
     eventType: "STEP_DISPATCH_STARTED",
     status: "started",
-    reason: `Dispatching step \"${step.stepId}\" to ability group \"${step.targetAbilityGroupId ?? "orchestration"}\".",
+    reason: `Dispatching step "${step.stepId}" to ability group "${step.targetAbilityGroupId ?? "orchestration"}".`,
     actionableMessage: "Wait for the governed step result before evaluating transitions.",
     ownerResponsible: "Orchestration / Nerve Bus",
     capabilityCallId: input.stepDispatchCallId,
@@ -210,7 +217,7 @@ async function recordStepResult(
     step,
     eventType: buildCapabilityEventType(step, lastResult.status),
     status: lastResult.status,
-    reason: `Governed step \"${step.stepId}\" returned status \"${lastResult.status}\".",
+    reason: `Governed step "${step.stepId}" returned status "${lastResult.status}".`,
     failureReason: lastResult.failureReason ?? null,
     reviewRequiredReason: lastResult.reviewRequiredReason ?? null,
     actionableMessage: lastResult.status === "success" ? "Evaluate the declared transition for this step result." : "Inspect the blocking step result and runtime proof before retrying.",
@@ -219,7 +226,7 @@ async function recordStepResult(
       : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
     durationMs,
     capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
-    outputRefs: collectResultOutputRefs(lastResult),
+    outputRefs: collectLastResultRefs(lastResult),
     actionLogRefs: actionLogId ? [actionLogId] : [],
   });
 }
@@ -270,7 +277,7 @@ async function recordTerminalOutcome(
     step,
     eventType,
     status: outcome.state.status === "review_required" ? "review_required" : outcome.state.status === "failed" ? "failed" : "success",
-    reason: `Mission reached terminal status \"${outcome.state.status}\" after step \"${step.stepId}\".",
+    reason: `Mission reached terminal status "${outcome.state.status}" after step "${step.stepId}".`,
     failureReason: outcome.state.failureReason ?? null,
     reviewRequiredReason: outcome.state.reviewRequiredReason ?? null,
     actionableMessage: outcome.state.status === "failed"
@@ -335,10 +342,15 @@ function buildTransitionSuccessState(input: RunMissionLoopIterationInput, detail
 async function buildTransitionSuccessOutcome(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): Promise<MissionLoopIterationOutcome> {
   const state = buildTransitionSuccessState(input, details);
   const proof = buildTransitionSuccessProof(input, state, details);
-  const result = state.status === "running"
+  const runtimeProofId = getRuntimeProofId(proof);
+  const persistedState = toMissionControlState(state, details.endedAt, {
+    lastRuntimeProofRef: runtimeProofId,
+    runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId],
+  });
+  const result = persistedState.status === "running"
     ? null
-    : buildMissionExecutionResult({ missionState: state, currentStepResult: details.lastResult, runtimeProof: proof });
-  return persistOutcome(input, { state, lastResult: details.lastResult, lastProof: proof, result });
+    : buildMissionExecutionResult({ missionState: persistedState, currentStepResult: details.lastResult, runtimeProof: proof });
+  return persistOutcome(input, { state: persistedState, lastResult: details.lastResult, lastProof: proof, result });
 }
 
 export async function runMissionLoopIteration(input: RunMissionLoopIterationInput): Promise<MissionLoopIterationOutcome> {
@@ -409,7 +421,7 @@ export async function runMissionLoopIteration(input: RunMissionLoopIterationInpu
       await recordTransitionEvaluation(input, step, {
         status: "failed",
         decision: transitionResult.decision,
-        reason: `Transition evaluation failed for step \"${currentStepId}\".",
+        reason: `Transition evaluation failed for step "${currentStepId}".`,
         failureReason: transitionResult.failureReason,
         proofId: outcome.lastProof.proofId,
         capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
@@ -423,7 +435,7 @@ export async function runMissionLoopIteration(input: RunMissionLoopIterationInpu
     await recordTransitionEvaluation(input, step, {
       status: "success",
       decision: transitionResult.transition.transitionId,
-      reason: `Transition \"${transitionResult.transition.transitionId}\" matched for step \"${currentStepId}\".",
+      reason: `Transition "${transitionResult.transition.transitionId}" matched for step "${currentStepId}".`,
       proofId: outcome.lastProof.proofId,
       capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
     });
