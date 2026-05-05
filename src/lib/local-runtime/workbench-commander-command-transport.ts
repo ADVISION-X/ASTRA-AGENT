@@ -64,6 +64,7 @@ export const createCommandTransport = (
       : transport.resultEnvelope.status;
     return {
       commandId: command.commandId,
+      runId: transport.commandEnvelope.runId,
       envelopeRef: transport.commandEnvelope.envelopeId,
       resultEnvelopeRef: transport.resultEnvelope.envelopeId,
       status,

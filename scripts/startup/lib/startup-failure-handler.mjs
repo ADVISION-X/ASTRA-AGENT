@@ -28,3 +28,22 @@ export async function createStartupFailureReport({
   });
   return { bundleDir, ownerResponsible, actionableMessage };
 }
+
+export async function handleStartupBootstrapFailure({
+  rootDir,
+  runId,
+  baseUrl,
+  failureReason,
+  logFail,
+  shutdown,
+}) {
+  const failureReport = await createStartupFailureReport({ rootDir, runId, baseUrl, failureReason });
+  logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
+    failureReason,
+    refs: [`startupFailureBundle=${failureReport.bundleDir}`],
+    ownerResponsible: failureReport.ownerResponsible,
+    actionableMessage: failureReport.actionableMessage,
+  });
+  await shutdown("SIGTERM");
+  process.exitCode = 1;
+}

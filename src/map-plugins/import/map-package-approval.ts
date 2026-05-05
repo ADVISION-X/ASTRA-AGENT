@@ -1,6 +1,7 @@
 import { PROMPT_CONTRACT_CATALOG_VERSION } from "../../capabilities/ai/prompt-contracts/index.js";
 import { CAPABILITY_CATALOG_VERSION } from "../authoring/capability-catalog/index.js";
 import type { MapPluginRegistry } from "../registry/map-plugin-registry.js";
+import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
 
 type ApprovalFailureReason = "map_not_found" | "map_validation_failed";
@@ -8,10 +9,11 @@ type ApprovalFailureReason = "map_not_found" | "map_validation_failed";
 type ApprovalFailure = {
   approved: false;
   reason: ApprovalFailureReason;
+  validationIssues: MapPackageValidationIssue[];
 };
 
-function createApprovalFailure(reason: ApprovalFailureReason): ApprovalFailure {
-  return { approved: false, reason };
+function createApprovalFailure(reason: ApprovalFailureReason, validationIssues: MapPackageValidationIssue[] = []): ApprovalFailure {
+  return { approved: false, reason, validationIssues };
 }
 
 function buildApprovalRef(packageId: string, packageVersion: string, approvedBy: string): string {
@@ -59,7 +61,7 @@ export function approveMapPackage(input: {
     return createApprovalFailure("map_not_found");
   }
   if (quarantined.validationIssues.length > 0) {
-    return createApprovalFailure("map_validation_failed");
+    return createApprovalFailure("map_validation_failed", quarantined.validationIssues);
   }
 
   const approvedMapPackage = buildApprovedMapPackage(existing, input.approvedBy);

@@ -1,0 +1,14 @@
+{
+  "previousEnforcedCount": 0,
+  "currentEnforcedCount": 0,
+  "aiLaws": 15,
+  "aiCoverage": {
+    "PARTIALLY_ENFORCED": 15
+  },
+  "abilityGroupCount": 14,
+  "regressionDetected": false,
+  "removedInspectorDetected": false,
+  "removedNegativeProofDetected": false,
+  "warningOnlyDetected": false,
+  "fakePassDetected": false
+}

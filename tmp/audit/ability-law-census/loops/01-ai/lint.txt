@@ -1,0 +1,16 @@
+$ npm run lint
+exitCode=0
+durationMs=6351
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 lint
+> npm run typecheck
+
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+
+--- stderr ---

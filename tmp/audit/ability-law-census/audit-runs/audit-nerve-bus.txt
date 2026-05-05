@@ -1,0 +1,13 @@
+$ npm run audit:nerve-bus
+exitCode=0
+durationMs=72693
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:nerve-bus
+> tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts
+
+[PASS] nerve-bus-capability: Nerve Bus negative-proof harness rejects export-star escape, commander/review bypass, AI contract drift, default injection, and proof chain dropping mutations.
+
+
+--- stderr ---

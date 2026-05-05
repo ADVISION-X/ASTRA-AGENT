@@ -1,0 +1,13 @@
+$ npm run audit:post-action-verification
+exitCode=0
+durationMs=18803
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:post-action-verification
+> node --import tsx scripts/audit/domains/post-action-verification-capability/run-inspector.ts
+
+[PASS] post-action-verification-capability: post-action-verification owner inspector passed law-baseline, required, forbidden, boundary, truth-ownership, anti-escape, and negative-proof phases
+
+
+--- stderr ---

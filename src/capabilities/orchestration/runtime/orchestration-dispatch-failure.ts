@@ -34,6 +34,7 @@ const buildDispatchFailureRuntimeProof = (input: {
   mapRecord?: ActiveOperationalMapRecord | null;
 }) => buildOrchestrationRuntimeProof({
   missionId: input.missionState.missionId ?? "unknown-mission",
+  runId: input.missionState.activeTaskRunId ?? input.idempotencyKey,
   mapId: input.missionState.mapId ?? "recovery",
   taskTemplateId: input.mapRecord?.taskTemplateId ?? null,
   activationId: input.mapRecord?.activationId ?? null,

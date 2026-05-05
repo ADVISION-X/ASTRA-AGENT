@@ -15,6 +15,18 @@ const INSPECTOR_ENTRY = "scripts/audit/domains/commander-console-capability/insp
 
 const MUTATIONS: Mutation[] = [
   {
+    name: "transport result runId schema removal mutation",
+    file: "src/capabilities/commander-console/shared/commander-transport-schema.ts",
+    search: "  runId: NonEmptyStringSchema,\n",
+    replace: "",
+  },
+  {
+    name: "transport outcome runId null mutation",
+    file: "src/capabilities/commander-console/runtime/commander-command-outcomes.ts",
+    search: "    runId: input.transport.runId ?? resolveCommandRunId(input.gated.command.commandId),",
+    replace: "    runId: null,",
+  },
+  {
     name: "weak start-mission gate mutation",
     file: "src/capabilities/commander-console/shared/commander-transport-schema.ts",
     search: "if (!value.requestedPlatformId || !value.selectedMapId) {",
@@ -95,8 +107,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "startup failure bundle removal mutation",
     file: "scripts/startup/launch-grasseye.mjs",
-    search: "    const failureReport = await createStartupFailureReport({\n      rootDir,\n      runId: startupRunId,\n      baseUrl,\n      failureReason,\n    });\n",
-    replace: "    const failureReport = { bundleDir: \"missing-startup-failure-bundle\", ownerResponsible: \"startup-entrypoint\", actionableMessage: \"missing\" };\n",
+    search: "    await handleStartupBootstrapFailure({ rootDir, runId: startupRunId, baseUrl, failureReason: toFailureReason(error), logFail, shutdown });\n",
+    replace: "    logFail(\"STARTUP\", \"startup_entrypoint\", \"bootstrap_failed\", \"failed\", \"startup bootstrap failed\", { failureReason: toFailureReason(error) });\n",
   },
   {
     name: "startup update preflight removal mutation",

@@ -120,7 +120,7 @@ type WorkbenchOrchestrationAbilityGroup = {
 };
 
 export type MissionStartPreflightComponent = {
-  name: "requestedPlatform" | "selectedMap" | "browserController" | "localAi" | "dataStore";
+  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "browserController" | "localAi" | "dataStore";
   ok: boolean;
   detail: string;
   ownerResponsible: string;
@@ -156,6 +156,9 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   getMissionStartPreflight(input: {
     requestedPlatformId: RequestedPlatformId;
     selectedMapId: string;
+    taskTemplateId?: string | null;
+    activationSnapshotRef?: string | null;
+    targetProfileRef?: string | null;
   }): Promise<{
     status: "passed" | "blocked";
     actionableMessage: string;

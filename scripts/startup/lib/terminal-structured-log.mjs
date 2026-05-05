@@ -104,6 +104,13 @@ function createRuntimePayloadRelay(emit) {
       status: payload.status ?? payload.result ?? "emitted",
       message: payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
       failureReason: payload.failureReason ?? payload.reviewRequiredReason ?? null,
+      ownerResponsible: payload.ownerResponsible ?? null,
+      actionableMessage: payload.actionableMessage ?? null,
+      traceId: payload.traceId ?? null,
+      runId: payload.runId ?? payload.sessionId ?? null,
+      selectedMapId: payload.mapId ?? payload.selectedMapId ?? null,
+      requestedPlatformId: payload.requestedPlatformId ?? null,
+      activationSnapshotRef: payload.activationSnapshotRef ?? null,
       refs,
       durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
     });

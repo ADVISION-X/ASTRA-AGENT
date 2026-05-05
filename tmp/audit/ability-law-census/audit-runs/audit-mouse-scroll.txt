@@ -1,0 +1,13 @@
+$ npm run audit:mouse-scroll
+exitCode=0
+durationMs=188301
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:mouse-scroll
+> node --import tsx scripts/audit/domains/mouse-scroll-capability/run-inspector.ts
+
+[PASS] mouse-scroll-capability: Mouse Scroll negative-proof harness rejects baseline drift, BrowserController public-contract leaks, platform direct scroll ownership, final action-log leakage, platform business-verb child drift, scale-mapping drift, scroll-until-found loops, BrowserAction result leakage, post-action verification decision leakage, gate bypass, proof drop, timeout abort escape, computed scroll, and composition drift mutations.
+
+
+--- stderr ---

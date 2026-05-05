@@ -17,6 +17,18 @@ const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF";
 
 const MUTATIONS: Mutation[] = [
   {
+    name: "runtime proof runId schema removal mutation",
+    file: "src/capabilities/orchestration/schema.ts",
+    search: "const RuntimeProofSchema = z.object({\n  proofId: z.string().min(1),\n  runId: z.string().min(1),\n",
+    replace: "const RuntimeProofSchema = z.object({\n  proofId: z.string().min(1),\n",
+  },
+  {
+    name: "runtime proof builder runId removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts",
+    search: "input.runId, missionId: input.missionId",
+    replace: "missionId: input.missionId",
+  },
+  {
     name: "governed execute type escape mutation",
     file: "src/capabilities/orchestration/contract.ts",
     search: "execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult>;",

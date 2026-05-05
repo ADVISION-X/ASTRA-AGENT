@@ -17,6 +17,7 @@ function buildInitialPayloadRefs(command: MissionCommand, mapRecord: ActiveOpera
     operatorNote: command.initialPayload.operatorNote,
     targetUrl: command.initialPayload.targetUrl,
     targetTitle: command.initialPayload.targetTitle,
+    targetProfileRef: command.initialPayload.targetProfileRef,
     sourceEvidenceRef: command.initialPayload.sourceEvidenceRef,
     sourceTargetRef: command.initialPayload.sourceTargetRef,
     promptInputRef: command.initialPayload.promptInputRef,
@@ -41,7 +42,7 @@ function buildInitialMissionRuntimeState(
     status: "running" as const,
     currentStepId: mapRecord.operationalMap.initialStepId,
     previousStepId: null,
-    activeTaskRunId: `${command.missionId}:${mapRecord.mapId}`,
+    activeTaskRunId: command.runId,
     currentRoundIndex: 0,
     sequenceNo: 0,
     stateRevision: 0,
@@ -67,6 +68,7 @@ function buildInitialMissionRuntimeState(
 
 export function createFailedMissionState(input: {
   missionId: string | null;
+  runId?: string | null;
   mapId: string | null;
   requestedPlatform: MissionState["requestedPlatform"];
   humanGoal: string | null;
@@ -92,7 +94,7 @@ export function createFailedMissionState(input: {
     status: "failed",
     currentStepId: null,
     previousStepId: null,
-    activeTaskRunId: null,
+    activeTaskRunId: input.runId ?? (input.missionId ? `${input.missionId}:failure-run` : "orchestration:unknown-mission:failure-run"),
     currentRoundIndex: 0,
     sequenceNo: 0,
     hopCount: 0,

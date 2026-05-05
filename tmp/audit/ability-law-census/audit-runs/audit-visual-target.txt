@@ -1,0 +1,24 @@
+$ npm run audit:visual-target
+exitCode=1
+durationMs=5254
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:visual-target
+> node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runRequiredShapeAttack().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runForbiddenShapeAttack().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runBoundaryAttack().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runAntiEscapeAttack().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runGeneratedChainCheck().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runManifestCheck().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runPipelineTruthAttack().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runRunnerFailPowerCheck().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must import runNegativeProofHarness().
+- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must invoke and report the negative-proof harness.
+- FATAL scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector baseline must pass before negative-proof mutation checks.
+
+
+--- stderr ---

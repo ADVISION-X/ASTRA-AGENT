@@ -10,7 +10,9 @@ export const structuredLoggingInspectionConstants = {
   STRUCTURED_RUNTIME_CHILD_PATH: "src/capabilities/forensics-persistence/children/write-structured-runtime-event/implementation.ts",
   STRUCTURED_ACTION_CHILD_PATH: "src/capabilities/forensics-persistence/children/write-structured-action-log/implementation.ts",
   RUNTIME_SNAPSHOT_CHILD_PATH: "src/capabilities/forensics-persistence/children/update-runtime-snapshot/implementation.ts",
-  EXECUTOR_PATH: "src/capabilities/orchestration/bounded-local-runtime-execution/executor.ts",
+	  EXECUTOR_PATH: "src/capabilities/orchestration/bounded-local-runtime-execution/executor.ts",
+	  STRUCTURED_LOG_PAYLOAD_PATH: "src/lib/local-runtime/structured-log-payload.ts",
+	  TERMINAL_STRUCTURED_LOG_PATH: "scripts/startup/lib/terminal-structured-log.mjs",
   COMMENT_DIRECTIVES: ["@ts-ignore", "@ts-expect-error", "eslint-disable"] as const,
 } as const;
 
@@ -24,4 +26,6 @@ export const GOVERNED_SOURCE_PATHS = [
   structuredLoggingInspectionConstants.STRUCTURED_ACTION_CHILD_PATH,
   structuredLoggingInspectionConstants.RUNTIME_SNAPSHOT_CHILD_PATH,
   structuredLoggingInspectionConstants.EXECUTOR_PATH,
+  structuredLoggingInspectionConstants.STRUCTURED_LOG_PAYLOAD_PATH,
+  structuredLoggingInspectionConstants.TERMINAL_STRUCTURED_LOG_PATH,
 ] as const;

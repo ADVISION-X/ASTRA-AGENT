@@ -5,6 +5,7 @@ import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-stor
 
 export type OrchestrationLoopProofContext = {
   missionId: string;
+  runId: string;
   mapId: string;
   selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
   commandKind: "start-mission" | "resume-mission";
@@ -31,6 +32,7 @@ type LoopDecisionState = {
 function buildProofBase(input: OrchestrationLoopProofContext, currentStepId: string) {
   return {
     missionId: input.missionId,
+    runId: input.runId,
     mapId: input.mapId,
     ...toMapProofMetadata(input.mapRecord),
     selectedMapSource: input.selectedMapSource,

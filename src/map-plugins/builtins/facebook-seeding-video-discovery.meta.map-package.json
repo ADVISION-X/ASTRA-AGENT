@@ -31,7 +31,7 @@
     "availabilityPolicy": "active",
     "requestedPlatformId": "facebook-web",
     "platformProfileRef": "facebook-web:persistent-local-profile",
-    "targetProfileRef": "facebook-web:persistent-local-profile",
+    "targetProfileRef": "open-target-profile:open-facebook",
     "defaultHumanGoal": "Browse Facebook Reels, identify product-seeding candidates, capture public evidence, and preserve candidate summaries for review."
   },
   "operationalMap": {

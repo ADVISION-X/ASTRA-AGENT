@@ -22,6 +22,7 @@ function buildMissionLoopFallbackProof(input: OrchestrationLoopInput, state: Mis
   const now = input.context.clock.now().isoTimestamp;
   return buildOrchestrationRuntimeProof({
     missionId: state.missionId ?? "unknown-mission",
+    runId: state.activeTaskRunId ?? `${state.missionId ?? "unknown-mission"}:fallback-run`,
     mapId: state.mapId ?? input.map.mapId,
     ...toMapProofMetadata(input.mapRecord),
     selectedMapSource: input.selectedMapSource,
@@ -51,6 +52,7 @@ function buildMissionLoopFallbackProof(input: OrchestrationLoopInput, state: Mis
 function createLoopProofContext(input: OrchestrationLoopInput) {
   return {
     missionId: input.state.missionId ?? "unknown-mission",
+    runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:fallback-run`,
     mapId: input.state.mapId ?? input.map.mapId,
     selectedMapSource: input.selectedMapSource,
     commandKind: input.commandKind,

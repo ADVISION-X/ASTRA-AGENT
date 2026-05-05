@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
@@ -167,6 +168,12 @@ const MUTATIONS: Mutation[] = [
     replace: '"childCapabilityId": "missing-capability-child"',
   },
   {
+    name: "open target profile drift mutation",
+    file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
+    search: '    "targetProfileRef": "open-target-profile:open-facebook",\n',
+    replace: '    "targetProfileRef": "facebook-web:persistent-local-profile",\n',
+  },
+  {
     name: "hardcoded capability list in prompt template mutation",
     file: "src/map-plugins/authoring/map-authoring-template.ts",
     search: '    "Static Governance Rules:",\n',
@@ -240,6 +247,7 @@ async function runInspector(): Promise<InspectorRunResult> {
         env: {
           ...process.env,
           [SKIP_NEGATIVE_PROOF_ENV]: "1",
+          NODE_DISABLE_COMPILE_CACHE: "1",
           TSX_DISABLE_CACHE: "1",
         },
         stdio: ["ignore", "pipe", "pipe"],
@@ -291,6 +299,7 @@ async function mutateAndVerify(mutation: Mutation): Promise<void> {
     await restoreAuditFileState(filePath, state);
   }
 
+  await delay(50);
   const restored = await runInspector();
   if (!restored.passed) {
     throw new Error(`Rollback verification failed for ${mutation.name}: ${summarizeInspectorFailure(restored)}`);

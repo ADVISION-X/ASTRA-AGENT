@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T02:05:36.178Z",
+  "generatedAt": "2026-05-05T03:11:08.544Z",
   "phase": "phase-04-full-enforcement",
   "totals": {
     "inspectors": 3,
@@ -156,25 +156,18 @@
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-          "file": "scripts/startup/launch-grasseye.mjs",
+          "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
           "line": 1,
           "severity": "error",
-          "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
-          "detail": "301"
+          "message": "File exceeds the audit phase hard limit of 350 lines.",
+          "detail": "357"
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-002-V1",
-          "file": "scripts/startup/launch-grasseye.mjs",
+          "file": "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
           "line": 1,
           "severity": "error",
           "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
-        },
-        {
-          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-          "file": "scripts/startup/launch-grasseye.mjs",
-          "line": 249,
-          "severity": "error",
-          "message": "Function main exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -192,6 +185,13 @@
           "detail": "353"
         },
         {
+          "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+          "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
+          "line": 1,
+          "severity": "error",
+          "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+        },
+        {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
           "line": 205,
@@ -204,6 +204,13 @@
           "line": 99,
           "severity": "error",
           "message": "Function buildMapAuthoringRefs exceeds code-purity function limits."
+        },
+        {
+          "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+          "file": "src/capabilities/commander-console/runtime/commander-transport-semantic-gate.ts",
+          "line": 53,
+          "severity": "error",
+          "message": "Function getTransportSemanticFailureReason exceeds code-purity function limits."
         },
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -237,7 +244,7 @@
         {
           "lawId": "GRASSEYE-CODE-PURITY-003-V1",
           "file": "src/lib/local-app-shell/task-start-flow.ts",
-          "line": 72,
+          "line": 73,
           "severity": "error",
           "message": "Function runTaskStartFlow exceeds code-purity function limits."
         },
@@ -472,7 +479,7 @@
       "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
       "passed": false,
       "classification": "CODE VIOLATION",
-      "violationCount": 21
+      "violationCount": 22
     }
   ]
 }

@@ -59,8 +59,8 @@ function collectStartupImportFindings(launchSource: import("ts-morph").SourceFil
   if (!hasNamedImport(launchSource, "./lib/map-package-readiness.mjs", "ensureMapPackageReadiness")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import ensureMapPackageReadiness through the governed map package startup helper." }));
   }
-  if (!hasNamedImport(launchSource, "./lib/startup-failure-handler.mjs", "createStartupFailureReport")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import createStartupFailureReport so hard failures are correlated with a current debug-loop bundle." }));
+  if (!hasNamedImport(launchSource, "./lib/startup-failure-handler.mjs", "handleStartupBootstrapFailure")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import handleStartupBootstrapFailure so hard failures are correlated with a current debug-loop bundle." }));
   }
 
   return findings;
@@ -160,7 +160,7 @@ function collectFailClosedFindings(launchSource: import("ts-morph").SourceFile):
   if (!updatePreflight || !updatePreflight.getFullText().includes("UPDATE_PREFLIGHT_FAILED")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must emit UPDATE_PREFLIGHT_FAILED when controlled update preflight fails." }));
   }
-  if (!main || !getIdentifierCallWithin(main, "createStartupFailureReport")) {
+  if (!main || !getIdentifierCallWithin(main, "handleStartupBootstrapFailure")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup hard-failure catch path must write a current startup failure bundle." }));
   }
   return [

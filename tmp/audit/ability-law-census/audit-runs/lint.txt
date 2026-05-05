@@ -1,0 +1,20 @@
+$ npm run lint
+exitCode=2
+durationMs=6503
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 lint
+> npm run typecheck
+
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+src/map-plugins/import/map-package-activation.ts(177,36): error TS2345: Argument of type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' is not assignable to parameter of type 'MapActivationRecord'.
+  Property 'activationSnapshotRef' is missing in type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' but required in type 'MapActivationRecord'.
+src/map-plugins/import/map-package-activation.ts(178,64): error TS2345: Argument of type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' is not assignable to parameter of type 'MapActivationRecord'.
+  Property 'activationSnapshotRef' is missing in type '{ importProofRef: string; quarantineProofRef: string; activationProofRef: string; authoringProofRef: string | null; activationId: string; activationSnapshotHash: string; mapPackageId: string; ... 13 more ...; mapPackageHash: string; }' but required in type 'MapActivationRecord'.
+
+
+--- stderr ---

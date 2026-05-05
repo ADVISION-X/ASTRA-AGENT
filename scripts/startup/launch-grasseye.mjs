@@ -7,7 +7,7 @@ import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs"
 import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
-import { createStartupFailureReport } from "./lib/startup-failure-handler.mjs";
+import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
@@ -279,21 +279,7 @@ async function main() {
     }
     return;
   } catch (error) {
-    const failureReason = toFailureReason(error);
-    const failureReport = await createStartupFailureReport({
-      rootDir,
-      runId: startupRunId,
-      baseUrl,
-      failureReason,
-    });
-    logFail("STARTUP", "startup_entrypoint", "bootstrap_failed", "failed", "startup bootstrap failed", {
-      failureReason,
-      refs: [`startupFailureBundle=${failureReport.bundleDir}`],
-      ownerResponsible: failureReport.ownerResponsible,
-      actionableMessage: failureReport.actionableMessage,
-    });
-    await shutdown("SIGTERM");
-    process.exitCode = 1;
+    await handleStartupBootstrapFailure({ rootDir, runId: startupRunId, baseUrl, failureReason: toFailureReason(error), logFail, shutdown });
   }
 }
 

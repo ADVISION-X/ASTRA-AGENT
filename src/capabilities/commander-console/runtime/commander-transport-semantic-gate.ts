@@ -4,6 +4,7 @@ import { commanderFlag, type CommanderDataQualityFlag } from "../shared/commande
 
 export type CommanderTransportSemanticResult = {
   status: "accepted" | "failed" | "review_required";
+  runId: string | null;
   envelopeRef: string | null;
   resultEnvelopeRef: string | null;
   failureReason: string | null;
@@ -15,6 +16,7 @@ export type CommanderTransportSemanticResult = {
 function buildSemanticFailure(reason: string): CommanderTransportSemanticResult {
   return {
     status: "failed",
+    runId: null,
     envelopeRef: null,
     resultEnvelopeRef: null,
     failureReason: reason,
@@ -31,6 +33,7 @@ function buildSemanticReviewRequired(input: {
 }): CommanderTransportSemanticResult {
   return {
     status: "review_required",
+    runId: null,
     envelopeRef: input.envelopeRef,
     resultEnvelopeRef: null,
     failureReason: null,
@@ -53,6 +56,9 @@ const getTransportSemanticFailureReason = (input: {
 }) => {
   if (input.result.commandId !== input.command.commandId) {
     return "transport result commandId does not match the dispatched commandId.";
+  }
+  if (!input.result.runId) {
+    return "transport result requires runId.";
   }
   if (input.result.status === "accepted" && !input.result.envelopeRef) {
     return "accepted transport result requires envelopeRef.";
@@ -79,6 +85,7 @@ const getAcceptedTransportReview = (result: HumanCommandTransportResult) => {
 
 const buildSemanticSuccess = (result: HumanCommandTransportResult): CommanderTransportSemanticResult => ({
   status: result.status,
+  runId: result.runId,
   envelopeRef: result.envelopeRef,
   resultEnvelopeRef: result.resultEnvelopeRef,
   failureReason: result.failureReason,

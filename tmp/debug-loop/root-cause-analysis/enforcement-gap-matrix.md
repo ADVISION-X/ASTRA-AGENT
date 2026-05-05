@@ -1,50 +1,13 @@
-# Enforcement Gap Matrix
+# GrassEye Phase 1 Enforcement Gap Matrix
 
-| Blocker | Inspector file | Negative proof file | Manifest / owner mapping | Current coverage | Gap classification | Why |
-| --- | --- | --- | --- | --- | --- | --- |
-| BLOCKER-1 | `scripts/audit/domains/map-plugin-package/inspector.ts` | `scripts/audit/domains/map-plugin-package/negative-proof-harness.ts` | `scripts/audit/domains/map-plugin-package/manifest.json`; generated audit plan/matrix | Current worktree calls `runNegativeProofHarness`; previous HEAD returned fake PASS `mutated bypass` | G, C, H | The exact child capability mutation exists, but previously did not execute; startup also does not run the inspector before service import; logs omit package file |
-| BLOCKER-2 | same | should add startup preflight mutation | startup owner likely commander-console/bootstrap plus map-plugin-package | Map package inspector validates package shape but launch script has no map readiness gate | C, I | Production launch constructs map registry directly after AI readiness; no audit-enforced startup preflight |
-| BLOCKER-3 | no direct coverage found | no direct coverage found | map-plugin-package / startup logging | Schema rejection is covered, but diagnosability is not | H, D | Stderr relay is line-based; loader does not wrap fileName/packageId/ownerResponsible |
-| BLOCKER-4 | debug-loop-boundary inspector, startup not covered | debug-loop-boundary negative proof, startup not covered | debug-loop owner only | Debug-loop bundle exists but is stale/unrelated | H, J | Startup failures are not persisted as debug-loop/forensics bundles with correlation ids |
+| Blocker | Inspector file | Negative proof file | Current coverage | Gap category | Why it did not block | Required recurrence-prevention direction |
+|---|---|---|---|---|---|---|
+| BLOCKER-1 | `scripts/audit/domains/nerve-bus-capability/required-shape.ts` | `scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts` | Checks Nerve Bus source shape for runId in core envelope/proof builders. | C, D, E, F | The Nerve Bus files still mention runId, so shape checks pass while Commander outcome and Orchestration proof lose/null it. | Add AST/symbol flow from request envelope -> result/proof -> Commander outcome; production mutation setting outcome runId null must fail. |
+| BLOCKER-1 | `scripts/audit/domains/commander-console-capability/required-shape.ts` | `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts` | Covers Commander command/semantic concepts and startup readiness. | C, E, F | Does not inspect `createTransportOutcome` runId derivation or nullable proof schema. | Add symbol check that dispatched transport outcomes use non-null runId from governed envelope/result proof. |
+| BLOCKER-1 | `scripts/audit/domains/orchestration-capability/required-shape.ts` | `scripts/audit/domains/orchestration-capability/negative-proof-harness.ts` | Covers orchestration structural requirements but not proof runId field. | C, E, F | `RuntimeProofSchema` can omit runId without audit failure. | Add schema AST check for runtime proof runId and builder input propagation. |
+| BLOCKER-2 | `scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts` | `scripts/audit/domains/commander-console-capability/negative-proof-harness.ts` | Startup readiness and map package readiness. | C, E, F | It does not cover selected task command/result proof readiness before dispatch. | Extend readiness inspector to require a selected-task contract preflight component and mutation proof. |
+| BLOCKER-3 | `scripts/audit/domains/structured-logging/required-shape.ts` | `scripts/audit/domains/structured-logging/negative-proof-harness.ts` | Static structured logging shape/event presence. | C, D, H | Rendered terminal failure line can lack owner/actionable while source contains event names. | Validate payload builder/terminal relay output for blocking events, with production rejection mutation. |
+| BLOCKER-4 | `scripts/audit/domains/orchestration-capability/required-shape.ts`; `scripts/audit/domains/forensics-capability/required-shape.ts`; `scripts/audit/domains/structured-logging/required-shape.ts` | corresponding negative-proof harnesses | Static lifecycle/proof concepts. | C, E, F, H | No production event-chain assertion from start command to accepted lifecycle or fail-before-dispatch. | Add event-chain inspector/harness for accepted and rejected mission start boundaries. |
 
-## Evidence: Inspector Bypass Diff
+Package scripts observed in `package.json`: `audit`, `audit:build`, owner-specific audit scripts, `typecheck`, `lint`, `ci:full`. `audit:meta` and `audit:runner` are not present in the current package scripts.
 
-Current worktree:
-
-```txt
-scripts/audit/domains/map-plugin-package/inspector.ts:47-58
-const runNegativeProofPhase = async () => {
-  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? { ... skipped for nested inspector execution ... }
-    : runNegativeProofHarness();
-};
-```
-
-Previous HEAD:
-
-```txt
-HEAD:scripts/audit/domains/map-plugin-package/inspector.ts:47-61
-const runNegativeProofPhase = async () => {
-  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? { ... skipped for nested inspector execution ... }
-    : Promise.resolve({
-        findings: [],
-        phase: createPhase("negative-proof-harness", "PASS", true, "mutated bypass"),
-      });
-};
-```
-
-Negative proof has the right mutation:
-
-```txt
-scripts/audit/domains/map-plugin-package/negative-proof-harness.ts:56-60
-{
-  name: "map package modeled as child ability mutation",
-  file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-  search: '    "packageKind": "operational-map-package",\n',
-  replace: '    "packageKind": "child-capability-package",\n',
-}
-```
-
-Conclusion:
-The law and blueprint were present. The enforcement closure was historically fake for the exact regression class, and startup has no separate package readiness gate. This is not a law gap.

@@ -124,6 +124,8 @@ const resolveTransportOutcomeState = (transport: CommanderTransportSemanticResul
   };
 };
 
+const resolveCommandRunId = (commandId: string) => `${commandId}:run`;
+
 export const createBlockedCommandOutcome = (input: {
   contract: CommanderCommandChildContract;
   commandInput: CommanderHumanCommandInput;
@@ -137,7 +139,7 @@ export const createBlockedCommandOutcome = (input: {
   outputRef: `commander_receipt:${input.gated.commandId}`,
   commandId: input.gated.commandId,
   readRequestId: null,
-  runId: null,
+  runId: resolveCommandRunId(input.gated.commandId),
   missionId: input.gated.targetMissionId,
   traceId: null,
   commandEnvelopeRef: null,
@@ -175,7 +177,7 @@ export const createTransportOutcome = (input: {
     outputRef: `commander_receipt:${input.gated.command.commandId}`,
     commandId: input.gated.command.commandId,
     readRequestId: null,
-    runId: null,
+    runId: input.transport.runId ?? resolveCommandRunId(input.gated.command.commandId),
     missionId: input.gated.command.targetMissionId,
     traceId: null,
     commandEnvelopeRef: input.transport.envelopeRef,
@@ -229,7 +231,7 @@ export const createCommandTimeoutOutcome = (input: {
     outputRef: `commander_receipt:${input.gated.command.commandId}`,
     commandId: input.gated.command.commandId,
     readRequestId: null,
-    runId: null,
+    runId: resolveCommandRunId(input.gated.command.commandId),
     missionId: input.gated.command.targetMissionId,
     traceId: null,
     commandEnvelopeRef: null,

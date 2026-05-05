@@ -63,6 +63,12 @@ export type MapPluginRegistry = {
   listDeveloperCatalog(): DeveloperMapPackageItem[];
 };
 
+const formatValidationIssues = (issues: Array<{ path?: string; code: string; message: string }>): string =>
+  issues
+    .slice(0, 3)
+    .map((issue) => `${issue.path ?? "root"}: ${issue.code}: ${issue.message}`)
+    .join("; ");
+
 export const createMapPluginRegistry = (): MapPluginRegistry => {
   const registry: MapPluginRegistry = {
     versions: new MapPackageVersionStore(),
@@ -119,7 +125,10 @@ const seedBuiltinDevelopmentActivation = (registry: MapPluginRegistry): void => 
       approvedBy: BUILTIN_DEVELOPMENT_ACTOR,
     });
     if (!approved.approved) {
-      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development approval.`);
+      const detail = approved.validationIssues.length > 0
+        ? ` validationIssues=${formatValidationIssues(approved.validationIssues)}`
+        : "";
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development approval.${detail}`);
     }
 
     const activated = registry.activatePackage(

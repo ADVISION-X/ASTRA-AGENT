@@ -1,0 +1,62 @@
+{
+  "abilityGroupId": "commander-console",
+  "childCapabilityId": "issue-human-command",
+  "status": "review_required",
+  "output": {
+    "commandId": "commander_command_05598401-70b2-4c44-a53f-5645317a3ed5",
+    "commandType": "start-mission",
+    "priority": "normal",
+    "envelopeRef": null,
+    "resultEnvelopeRef": null,
+    "transportStatus": "review_required",
+    "failureReason": null,
+    "reviewRequiredReason": "issue-human-command timed out after 5000ms.",
+    "targetMissionId": null,
+    "targetRecordId": null,
+    "message": "issue-human-command timed out after 5000ms."
+  },
+  "failureReason": null,
+  "reviewRequiredReason": "issue-human-command timed out after 5000ms.",
+  "runtimeProof": {
+    "proofId": "commander_proof_40289fc3-13f3-455a-887f-0d8efcffcd9b",
+    "runId": null,
+    "missionId": null,
+    "traceId": null,
+    "abilityGroupId": "commander-console",
+    "childCapabilityId": "issue-human-command",
+    "childKind": "command",
+    "commandId": "commander_command_05598401-70b2-4c44-a53f-5645317a3ed5",
+    "readRequestId": null,
+    "operatorRef": "commander-console:http",
+    "inputRef": "commander_command_input_a3ea65a6-397a-430b-b7f7-a8121e0a947e",
+    "outputRef": "commander_receipt:commander_command_05598401-70b2-4c44-a53f-5645317a3ed5",
+    "commandEnvelopeRef": null,
+    "resultEnvelopeRef": null,
+    "readModelSource": null,
+    "targetRecordRef": null,
+    "evidenceRefs": [],
+    "startedAt": "2026-05-05T02:40:52.365Z",
+    "endedAt": "2026-05-05T02:40:57.369Z",
+    "durationMs": 5004.255667000001,
+    "status": "review_required",
+    "failureReason": null,
+    "reviewRequiredReason": "issue-human-command timed out after 5000ms.",
+    "boundaryDecision": "command-transport-only",
+    "commandDecision": "accepted-by-command-gate",
+    "readDecision": null,
+    "transportDecision": "review_required",
+    "hardStopDecision": "not-hard-stop",
+    "timeoutDecision": "timed-out-review-required",
+    "idempotencyDecision": "first-execution",
+    "policyDecision": "review_required",
+    "dataQualityFlags": [
+      {
+        "code": "timeout_guarded",
+        "severity": "warn",
+        "message": "issue-human-command timed out after 5000ms."
+      }
+    ]
+  },
+  "traceId": "trace_29783554-ab9d-40fd-be6f-372f6f2be09b",
+  "attemptId": "attempt_d4563841-0339-4d07-a669-70eecf2d1880"
+}

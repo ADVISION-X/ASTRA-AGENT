@@ -1,0 +1,18 @@
+$ npm run audit:ai
+exitCode=1
+durationMs=6248
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:ai
+> tsx scripts/audit/domains/ai-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] ai-capability: AI negative-proof harness cannot start because the baseline inspector is not passing.
+- FATAL src/capabilities/ai/schema-core.schema.ts:1 Record<string, unknown> assertions are only allowed inside the dispatch failure envelope raw parser.
+- FATAL src/capabilities/ai/prompt-contracts/registry.ts:1 Record<string, unknown> assertions are only allowed inside the dispatch failure envelope raw parser.
+- FATAL src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts:1 AI package must source time exclusively from ai-clock-port.
+- FATAL src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts:1 Record<string, unknown> assertions are only allowed inside the dispatch failure envelope raw parser.
+- FATAL scripts/audit/domains/ai-capability/inspector.ts:1 AI inspector baseline must pass before negative-proof mutation checks.
+
+
+--- stderr ---

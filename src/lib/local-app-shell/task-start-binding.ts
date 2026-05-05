@@ -31,6 +31,7 @@ type MissionStartBindingSuccess = {
   activationSnapshotRef: string;
   requestedPlatformId: RequestedPlatformId;
   selectedMapId: string;
+  targetProfileRef: string;
 };
 
 export type MissionStartBinding = MissionStartBindingFailure | MissionStartBindingSuccess;
@@ -40,6 +41,9 @@ const createBindingFailure = (failureReason: string, actionableMessage: string, 
 };
 
 const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecord, requestedPlatformId: RequestedPlatformId, selectedMapId: string): MissionStartBindingSuccess => {
+  if (!binding.targetProfileRef) {
+    throw new Error(`Active launch record ${selectedMapId} is missing targetProfileRef after binding validation.`);
+  }
   return {
     ok: true,
     taskTemplateId: binding.taskTemplateId,
@@ -47,8 +51,16 @@ const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecor
     activationSnapshotRef: binding.activationSnapshotRef,
     requestedPlatformId,
     selectedMapId,
+    targetProfileRef: binding.targetProfileRef,
   };
 };
+
+const resolveMissingTargetProfile = (selectedMapId: string): MissionStartBindingFailure =>
+  createBindingFailure(
+    `selectedMapId=${selectedMapId} is missing targetProfileRef before mission start.`,
+    "任务无法启动，因为激活地图缺少显式 targetProfileRef；禁止在启动后静默默认。",
+    "重新激活带有 open-target-profile 绑定的地图包，然后再次启动任务。",
+  );
 
 const resolveTemplateBindingConflict = (input: MissionStartBindingInput, binding: TaskTemplateLaunchRecord): MissionStartBindingFailure | null => {
   if (input.selectedMapId && input.selectedMapId !== binding.mapId) {
@@ -79,7 +91,12 @@ const resolveTaskTemplateBinding = (activeRegistry: ActiveRegistry, input: Missi
   }
 
   const conflict = resolveTemplateBindingConflict(input, binding);
-  return conflict ?? createBindingSuccess(binding, binding.requestedPlatformId, binding.mapId);
+  if (conflict) {
+    return conflict;
+  }
+  return binding.targetProfileRef
+    ? createBindingSuccess(binding, binding.requestedPlatformId, binding.mapId)
+    : resolveMissingTargetProfile(binding.mapId);
 };
 
 const resolveExplicitBinding = (activeRegistry: ActiveRegistry, input: MissionStartBindingInput): MissionStartBinding => {
@@ -107,7 +124,9 @@ const resolveExplicitBinding = (activeRegistry: ActiveRegistry, input: MissionSt
     );
   }
 
-  return createBindingSuccess(record, input.requestedPlatformId, input.selectedMapId);
+  return record.targetProfileRef
+    ? createBindingSuccess(record, input.requestedPlatformId, input.selectedMapId)
+    : resolveMissingTargetProfile(input.selectedMapId);
 };
 
 export function normalizeRequestedPlatformId(value?: string): RequestedPlatformId | null {

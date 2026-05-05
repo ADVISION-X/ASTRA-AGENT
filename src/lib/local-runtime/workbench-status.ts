@@ -120,7 +120,13 @@ export const getMissionReadinessReport = async (
 
 export const getMissionStartPreflight = async (
   runtime: WorkbenchRuntime,
-  input: { requestedPlatformId: RequestedPlatformId; selectedMapId: string },
+  input: {
+    requestedPlatformId: RequestedPlatformId;
+    selectedMapId: string;
+    taskTemplateId?: string | null;
+    activationSnapshotRef?: string | null;
+    targetProfileRef?: string | null;
+  },
 ): Promise<{
   status: "passed" | "blocked";
   actionableMessage: string;
@@ -137,9 +143,11 @@ export const getMissionStartPreflight = async (
   const browserHealth = runtime.browserController.getHealth();
   const availableMapIds = new Set(runtime.orchestrationAbilityGroup.listMapIds());
   const selectedMapOk = availableMapIds.has(input.selectedMapId);
+  const commandContractOk = Boolean(input.taskTemplateId && input.activationSnapshotRef && input.targetProfileRef);
   const components: MissionStartPreflightComponent[] = [
     { name: "requestedPlatform", ok: true, detail: `requestedPlatformId=${input.requestedPlatformId}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Provide an explicit requestedPlatformId before dispatching the mission command." },
     { name: "selectedMap", ok: selectedMapOk, detail: selectedMapOk ? `selectedMapId=${input.selectedMapId}` : `selectedMapId=${input.selectedMapId} is not an active approved map`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Choose an active approved task template or map binding before retrying mission start." },
+    { name: "commandTransportContract", ok: commandContractOk, detail: commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : "selected task binding is missing taskTemplateId, activationSnapshotRef, or targetProfileRef before command dispatch", ownerResponsible: "Commander Console / Nerve Bus / Orchestration", actionableMessage: "Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch." },
     { name: "browserController", ok: browserHealth.ok, detail: browserHealth.detail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start." },
     { name: "localAi", ok: localAiHealth.ok, detail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`, ownerResponsible: "AI Capability / Local AI Runtime", actionableMessage: "Start Ollama or repair the local AI runtime before starting this mission." },
     { name: "dataStore", ok: dataStoreHealth.ok, detail: dataStoreHealth.detail, ownerResponsible: "Forensics Persistence", actionableMessage: "Repair the local Forensics store before starting this mission." },

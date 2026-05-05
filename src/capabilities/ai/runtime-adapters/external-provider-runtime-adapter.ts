@@ -226,7 +226,7 @@ async function callExternalProvider(
       operatorApprovalRef: request.providerPolicy.operatorApprovalRef,
       approvalReason: "dry-run map authoring self-check",
       enabled: true,
-      updatedAt: new Date(0).toISOString(),
+      updatedAt: clock.finishRun(clock.startRun()).endedAt,
     } as const;
     const messages = buildExternalProviderMessages(request);
     if (messages === null) {

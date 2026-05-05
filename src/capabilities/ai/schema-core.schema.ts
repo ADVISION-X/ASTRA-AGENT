@@ -68,9 +68,8 @@ function validateAiCoreChainFields(value: unknown, context: z.RefinementCtx) {
     }
     return;
   }
-  const source = value as Record<string, unknown>;
   const parsed = AiCoreChainFieldSchema.safeParse(
-    Object.fromEntries(Object.keys(AiChainFieldSchemas).map((field) => [field, source[field]])),
+    Object.fromEntries(Object.keys(AiChainFieldSchemas).map((field) => [field, Reflect.get(value, field)])),
   );
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {

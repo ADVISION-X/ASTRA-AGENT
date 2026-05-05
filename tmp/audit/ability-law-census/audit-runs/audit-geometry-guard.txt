@@ -1,0 +1,15 @@
+$ npm run audit:geometry-guard
+exitCode=1
+durationMs=4133
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 audit:geometry-guard
+> node --import tsx scripts/audit/domains/geometry-guard-capability/run-inspector.ts
+
+[FAKE ENFORCEMENT] geometry-guard-capability: geometry-guard-capability owner inspector found chain, boundary, or enforcement violations
+- FATAL src/capabilities/geometry-guard/runtime/geometry-result-builder.ts:1 Geometry Guard result builder must preserve chain parity, output boundary, and runtime proof truth.
+- FATAL scripts/audit/domains/geometry-guard-capability/inspector.ts:1 Geometry Guard inspector baseline must pass before negative-proof mutation checks.
+
+
+--- stderr ---

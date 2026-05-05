@@ -29,6 +29,7 @@ const FROZEN_STATE_FIELDS = [
   "resumeCheckpointRef",
 ] as const;
 const FROZEN_PROOF_FIELDS = [
+  "runId",
   "selectedMapVersion",
   "activationSnapshotRef",
   "promptContractVersion",
@@ -174,6 +175,36 @@ function inspectUnifiedChildEnvelope(project: ReturnType<typeof createAuditProje
   };
 }
 
+function inspectRuntimeProofRunIdChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
+  const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
+  const proofBuilderSource = getSourceFileOrThrow(project, PROOF_BUILDER_PATH);
+  const runtimeProofFields = getZodObjectPropertyNames(schemaSource, "RuntimeProofSchema");
+  const buildProofInput = proofBuilderSource.getTypeAlias("BuildProofInput");
+  const buildProofInputFields = new Set(buildProofInput?.getTypeNode()?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((signature) => signature.getName()) ?? []);
+  const identityFunction = proofBuilderSource.getFunction("buildOrchestrationProofIdentityFields");
+  const emitsRunId = Boolean(identityFunction?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    return property.getName() === "runId" && property.getInitializer()?.getText() === "input.runId";
+  }));
+  const findings: Finding[] = [];
+
+  if (!runtimeProofFields.has("runId")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, message: "Orchestration RuntimeProofSchema must require runId so Commander/Nerve Bus/Orchestration proof chains cannot lose run identity." }));
+  }
+  if (!buildProofInputFields.has("runId") || !emitsRunId) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: PROOF_BUILDER_PATH, line: 1, message: "Orchestration runtime proof builder must accept and emit input.runId at symbol level." }));
+  }
+
+  return {
+    findings,
+    phase: createRuntimePhase(
+      "runtime-proof-runid-chain",
+      findings,
+      "Orchestration runtime proof schema and builder preserve runId.",
+      "Orchestration runtime proof schema or builder can still drop runId.",
+    ),
+  };
+}
+
 function inspectTypedFailureBoundary(project: ReturnType<typeof createAuditProject>): PhaseResult {
   const findings: Finding[] = [];
 
@@ -273,10 +304,11 @@ async function inspectForensicsRetentionBoundary(): Promise<PhaseResult> {
 
 export async function runOrchestrationGovernedRuntimeChecks() {
   const project = createAuditProject();
-  const [publicSurface, frozenActivation, unifiedChildEnvelope, typedFailureBoundary, postActionVerification, forensicsRetentionBoundary, negativeProof] = await Promise.all([
+  const [publicSurface, frozenActivation, unifiedChildEnvelope, runtimeProofRunIdChain, typedFailureBoundary, postActionVerification, forensicsRetentionBoundary, negativeProof] = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
+    Promise.resolve(inspectRuntimeProofRunIdChain(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
     inspectForensicsRetentionBoundary(),
@@ -288,6 +320,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       ...publicSurface.findings,
       ...frozenActivation.findings,
       ...unifiedChildEnvelope.findings,
+      ...runtimeProofRunIdChain.findings,
       ...typedFailureBoundary.findings,
       ...postActionVerification.findings,
       ...forensicsRetentionBoundary.findings,
@@ -297,6 +330,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
       publicSurface.phase,
       frozenActivation.phase,
       unifiedChildEnvelope.phase,
+      runtimeProofRunIdChain.phase,
       typedFailureBoundary.phase,
       postActionVerification.phase,
       forensicsRetentionBoundary.phase,

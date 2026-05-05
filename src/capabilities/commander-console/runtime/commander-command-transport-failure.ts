@@ -40,6 +40,8 @@ const buildTransportFailureFlags = (input: {
   ),
 ];
 
+const resolveCommandRunId = (commandId: string) => `${commandId}:run`;
+
 export const createTransportFailureOutcome = (input: {
   contract: CommanderCommandChildContract;
   commandInput: CommanderHumanCommandInput;
@@ -56,7 +58,7 @@ export const createTransportFailureOutcome = (input: {
     outputRef: `commander_receipt:${input.gated.command.commandId}`,
     commandId: input.gated.command.commandId,
     readRequestId: null,
-    runId: null,
+    runId: resolveCommandRunId(input.gated.command.commandId),
     missionId: input.gated.command.targetMissionId,
     traceId: null,
     commandEnvelopeRef: null,

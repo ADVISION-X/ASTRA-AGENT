@@ -1,0 +1,22 @@
+
+> grasseye-local-workbench@0.1.0 audit:map-plugin-package
+> tsx scripts/audit/domains/map-plugin-package/run-inspector.ts
+
+/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:131
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development approval.${detail}`);
+            ^
+
+
+Error: Builtin map package builtin.facebook-seeding-video-discovery failed development approval. validationIssues=taskTemplate.targetProfileRef: invalid_platform_profile: Task template targetProfileRef must be open-target-profile:open-facebook for open-facebook.
+    at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:131:13)
+    at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:149:5)
+    at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:174:20)
+    at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)
+    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)
+    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)
+    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20)
+    at async runSupplementalPhases (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:42:29)
+    at async inspector (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:116:30)
+    at async main (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/run-inspector.ts:10:18)
+
+Node.js v24.4.1

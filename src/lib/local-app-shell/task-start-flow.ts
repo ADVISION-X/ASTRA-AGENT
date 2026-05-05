@@ -61,6 +61,7 @@ const buildStartMissionInput = (approval: StartApproval) => {
       taskTemplateId: approval.binding.taskTemplateId,
       activationId: approval.binding.activationId,
       activationSnapshotRef: approval.binding.activationSnapshotRef,
+      targetProfileRef: approval.binding.targetProfileRef,
       ...(approval.humanGoal ? { humanGoal: approval.humanGoal } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),
       ...(approval.maxMinutes ? { maxMinutes: approval.maxMinutes } : {}),
@@ -88,6 +89,9 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
   const preflight = await activeWorkbench.getMissionStartPreflight({
     requestedPlatformId: approval.binding.requestedPlatformId,
     selectedMapId: approval.binding.selectedMapId,
+    taskTemplateId: approval.binding.taskTemplateId,
+    activationSnapshotRef: approval.binding.activationSnapshotRef,
+    targetProfileRef: approval.binding.targetProfileRef,
   });
   await recordTaskStartLocalAiReadiness(activeWorkbench, approval, preflight.components.find((component) => component.name === "localAi"));
   if (preflight.status === "blocked") {

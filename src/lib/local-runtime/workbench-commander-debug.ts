@@ -27,8 +27,9 @@ const buildCommanderDebugIdentity = (input: {
   traceId: string;
   spanId: string;
   attemptId: string;
-  missionId?: string | null;
-  mapId?: string | null;
+	  missionId?: string | null;
+	  runId?: string | null;
+	  mapId?: string | null;
   taskTemplateId?: string | null;
 }) => ({
   eventId: createId("event"),
@@ -41,8 +42,9 @@ const buildCommanderDebugIdentity = (input: {
   childCapabilityId: "issue-human-command",
   skillId: null,
   skillCategory: null,
-  sessionId: input.traceId,
-  missionId: input.missionId ?? null,
+	  sessionId: input.traceId,
+	  runId: input.runId ?? input.traceId,
+	  missionId: input.missionId ?? null,
   roundId: input.attemptId,
   videoVisitId: null,
   mapId: input.mapId ?? null,
@@ -104,8 +106,9 @@ const buildCommanderDebugStructuredRuntimeEvent = (
     traceId: string;
     spanId: string;
     attemptId: string;
-    missionId?: string | null;
-    mapId?: string | null;
+	    missionId?: string | null;
+	    runId?: string | null;
+	    mapId?: string | null;
     taskTemplateId?: string | null;
     reason?: string | null;
     failureReason?: string | null;
@@ -127,8 +130,9 @@ export const recordCommanderDebugEvent = async (
     traceId: string;
     spanId: string;
     attemptId: string;
-    missionId?: string | null;
-    mapId?: string | null;
+	    missionId?: string | null;
+	    runId?: string | null;
+	    mapId?: string | null;
     taskTemplateId?: string | null;
     reason?: string | null;
     failureReason?: string | null;

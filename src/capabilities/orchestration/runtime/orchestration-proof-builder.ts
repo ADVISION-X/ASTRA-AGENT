@@ -15,6 +15,7 @@ import type { OperationalMapId } from "../contract.js";
 
 export type BuildProofInput = {
   missionId: string;
+  runId: string;
   mapId: OperationalMapId;
   taskTemplateId?: string | null;
   activationId?: string | null;
@@ -73,8 +74,9 @@ export type BuildProofInput = {
 };
 
 function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
-  | "proofId"
-  | "missionId"
+	  | "proofId"
+	  | "runId"
+	  | "missionId"
   | "mapId"
   | "taskTemplateId"
   | "activationId"
@@ -95,7 +97,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "caller"
   | "idempotencyKey"
   | "sequenceNo"> {
-  return { proofId: `${input.missionId}:${input.sequenceNo}:${input.stepId}`, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
 }
 
 function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
@@ -134,8 +136,9 @@ function buildOrchestrationProofArtifactFields(input: BuildProofInput): Pick<z.o
 }
 
 function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
-  | "proofId"
-  | "missionId"
+	  | "proofId"
+	  | "runId"
+	  | "missionId"
   | "mapId"
   | "taskTemplateId"
   | "activationId"

@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-05-05T02:38:18.950Z",
+  "previousCoverageHash": null,
+  "currentCoverageHash": "adb8832981bb9d44cf3f7c45cc95c1d84a88f510a8e7bff04cea8af58f829506",
+  "totalActiveLaws": 127,
+  "enforcedCount": 0,
+  "partialCount": 127,
+  "notEnforcedCount": 0,
+  "blockedCount": 0,
+  "regressionDetected": false,
+  "removedInspectorDetected": false,
+  "removedNegativeProofDetected": false,
+  "weakenedEnforcementDetected": false,
+  "warningOnlyDetected": false,
+  "generatedFakePassDetected": false
+}

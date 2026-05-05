@@ -1,4 +1,4 @@
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -203,7 +203,70 @@ const isTransportSemanticGateValid = (sourceFile: import("ts-morph").SourceFile)
     && text.includes('if (input.result.status === "accepted" && !input.result.envelopeRef) {')
     && text.includes('if (input.result.status === "failed" && !input.result.failureReason) {')
     && text.includes('if (input.result.status === "review_required" && !input.result.reviewRequiredReason) {')
-    && text.includes('if (result.status !== "accepted" || result.resultEnvelopeRef) {');
+	    && text.includes('if (result.status !== "accepted" || result.resultEnvelopeRef) {');
+};
+
+const getObjectLiteralPropertyNamesFromVariable = (sourceFile: import("ts-morph").SourceFile, variableName: string): Set<string> => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
+  const objectCall = initializer && Node.isCallExpression(initializer) && initializer.getExpression().getText().endsWith(".object")
+    ? initializer
+    : initializer?.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText().endsWith(".object"));
+  const objectLiteral = objectCall?.getArguments()[0] ?? null;
+  if (!objectLiteral || !Node.isObjectLiteralExpression(objectLiteral)) {
+    return new Set();
+  }
+  return new Set(objectLiteral.getProperties().flatMap((property) => Node.isPropertyAssignment(property) ? [property.getName()] : []));
+};
+
+const getVariableFunctionBody = (sourceFile: import("ts-morph").SourceFile, variableName: string) => {
+  const initializer = sourceFile.getVariableDeclaration(variableName)?.getInitializer();
+  return initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))
+    ? initializer.getBody()
+    : null;
+};
+
+const hasRunIdPropertyFromTransport = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
+  const body = getVariableFunctionBody(sourceFile, functionName);
+  if (!body) {
+    return false;
+  }
+  return body.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => {
+    if (property.getName() !== "runId") {
+      return false;
+    }
+    const initializer = property.getInitializer();
+    return Boolean(initializer && initializer.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.transport.runId"));
+  });
+};
+
+const hasRunIdNullInsideFunction = (sourceFile: import("ts-morph").SourceFile, functionName: string): boolean => {
+  const body = getVariableFunctionBody(sourceFile, functionName);
+  if (!body) {
+    return false;
+  }
+  return body.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === "runId" && property.getInitializer()?.getKind() === SyntaxKind.NullKeyword);
+};
+
+const collectTransportRunIdFindings = (input: {
+  transportSchemaSource: import("ts-morph").SourceFile;
+  transportSemanticGateSource: import("ts-morph").SourceFile;
+  commandOutcomesSource: import("ts-morph").SourceFile;
+}): Finding[] => {
+  const findings: Finding[] = [];
+  const transportResultFields = getObjectLiteralPropertyNamesFromVariable(input.transportSchemaSource, "CommandTransportResultSchema");
+  if (!transportResultFields.has("runId")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SCHEMA_PATH, "Commander transport result schema must require runId before command outcomes can build runtime proof."));
+  }
+  if (!hasRunIdPropertyFromTransport(input.commandOutcomesSource, "createTransportOutcome")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "createTransportOutcome must preserve runId from the governed transport result instead of nulling or fabricating it."));
+  }
+  if (hasRunIdNullInsideFunction(input.commandOutcomesSource, "createTransportOutcome")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", COMMAND_OUTCOMES_PATH, "Dispatched command outcome must not assign runId:null."));
+  }
+  if (!input.transportSemanticGateSource.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "input.result.runId")) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2", TRANSPORT_SEMANTIC_GATE_PATH, "Commander transport semantic gate must validate transport result runId."));
+  }
+  return findings;
 };
 
 const isReadProofGateValid = (sourceFile: import("ts-morph").SourceFile) => {
@@ -335,7 +398,8 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
     findings: [
       ...collectAbilityGroupFindings(abilityGroupSource),
       ...gateResult.findings,
-      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource }),
+	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource }),
+	      ...collectTransportRunIdFindings({ transportSchemaSource, transportSemanticGateSource, commandOutcomesSource }),
       ...collectReadRuntimeFindings(readChildExecutorSource),
       ...collectExecutorSurfaceFindings({ executorSource, resultBuilderSource }),
       ...collectProofAndBoundaryFindings({ proofBuilderSource, dispatchFailureSource, boundaryPolicySource }),

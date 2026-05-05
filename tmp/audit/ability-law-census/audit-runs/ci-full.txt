@@ -1,0 +1,47 @@
+$ npm run ci:full
+exitCode=1
+durationMs=9874
+
+--- stdout ---
+
+> grasseye-local-workbench@0.1.0 ci:full
+> node --import tsx scripts/audit/ci-full.ts
+
+[CI FULL] 1/3 starting typecheck...
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+[CI FULL] typecheck passed.
+[CI FULL] 2/3 starting audit build...
+
+> grasseye-local-workbench@0.1.0 audit:build
+> node --import tsx scripts/audit/build-audit-artifacts-cli.ts
+
+Generated 183 active laws, 22 owners, 20 planned inspections, 0 conflicts.
+[AUDIT-BUILD PASS] generated artifacts with zero conflicts.
+[CI FULL] audit build passed.
+[CI FULL] 3/3 starting audit...
+
+> grasseye-local-workbench@0.1.0 audit
+> node --import tsx scripts/audit/runner.ts
+
+[AUDIT] rebuilding generated artifacts...
+[AUDIT] generated artifacts rebuilt; loading audit plan...
+[AUDIT] running 20 planned inspections with fail-fast enabled...
+[AUDIT] starting map-plugin-package...
+
+
+--- stderr ---
+[AUDIT ERROR] Error: Builtin map package builtin.facebook-seeding-video-discovery failed development approval. validationIssues=operationalMap.steps.detect-login-state: missing_dependency: Target child capability page-state/detect-login-state is not routable by governed maps.; operationalMap.steps.detect-safety-page: missing_dependency: Target child capability page-state/detect-safety-page is not routable by governed maps.; operationalMap.steps.detect-feed-ready: missing_dependency: Target child capability page-state/detect-feed-ready is not routable by governed maps.
+    at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:131:13)
+    at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:149:5)
+    at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:174:20)
+    at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)
+    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)
+    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)
+    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20)
+    at async runSupplementalPhases (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:42:29)
+    at async inspector (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-package/inspector.ts:116:30)
+    at async runWithTimeout (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/runner.ts:47:10)
+[CI FULL FAIL-FAST] stopped at audit with exit code 1.

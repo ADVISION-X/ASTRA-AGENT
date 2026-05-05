@@ -57,7 +57,7 @@ export const buildOpenAbilityInput = (
     reason: inputPayload.summary,
     targetUrl: payloadValueToString(payload.targetUrl),
     targetTitle: payloadValueToString(payload.targetTitle),
-    targetProfileRef: null,
+    targetProfileRef: payloadValueToString(payload.targetProfileRef),
     sourceRef: payloadValueToString(payload.sourceEvidenceRef) ?? envelope.sourceRef,
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,

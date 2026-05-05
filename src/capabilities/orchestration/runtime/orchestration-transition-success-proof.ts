@@ -59,6 +59,7 @@ function toBuildProofValue(value: RuntimeProofRecord): BuildProofInput {
 function buildTransitionSuccessIdentityFields(input: TransitionSuccessProofInput, details: TransitionSuccessProofDetails) {
   return {
     missionId: input.state.missionId ?? "unknown-mission",
+    runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:transition-run`,
     mapId: input.map.mapId,
     selectedMapSource: input.selectedMapSource,
     stepId: details.currentStepId,

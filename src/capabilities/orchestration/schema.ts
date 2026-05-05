@@ -100,6 +100,7 @@ const PayloadRefBundleSchema = z.object({
   operatorNote: z.string().min(1).nullable().optional().default(null),
   targetUrl: z.string().min(1).nullable().optional().default(null),
   targetTitle: z.string().min(1).nullable().optional().default(null),
+  targetProfileRef: z.string().min(1).nullable().optional().default(null),
   sourceEvidenceRef: z.string().min(1).nullable().optional().default(null),
   sourceTargetRef: z.string().min(1).nullable().optional().default(null),
   screenshotEvidenceRef: z.string().min(1).nullable().optional().default(null),
@@ -123,6 +124,7 @@ const MissionInitialPayloadSchema = z.object({
   operatorNote: z.string().min(1).nullable().optional().default(null),
   targetUrl: z.string().min(1).nullable().optional().default(null),
   targetTitle: z.string().min(1).nullable().optional().default(null),
+  targetProfileRef: z.string().min(1).nullable().optional().default(null),
   sourceEvidenceRef: z.string().min(1).nullable().optional().default(null),
   sourceTargetRef: z.string().min(1).nullable().optional().default(null),
   promptInputRef: z.string().min(1).nullable().optional().default(null),
@@ -131,6 +133,7 @@ const MissionInitialPayloadSchema = z.object({
 
 const MissionCommandSchema = z.object({
   missionId: z.string().min(1),
+  runId: z.string().min(1),
   humanGoal: z.string().min(1),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource,
   preferredMapId: OperationalMapIdSchema.nullable().optional().default(null),
@@ -182,6 +185,7 @@ const MissionStepResultSchema = z.object({
 
 const RuntimeProofSchema = z.object({
   proofId: z.string().min(1),
+  runId: z.string().min(1),
   missionId: z.string().min(1),
   mapId: OperationalMapIdSchema,
   taskTemplateId: z.string().min(1).nullable().optional().default(null),

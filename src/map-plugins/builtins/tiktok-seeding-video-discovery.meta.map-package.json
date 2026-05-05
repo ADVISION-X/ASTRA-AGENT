@@ -31,7 +31,7 @@
     "availabilityPolicy": "active",
     "requestedPlatformId": "tiktok-web",
     "platformProfileRef": "tiktok-web:persistent-local-profile",
-    "targetProfileRef": "tiktok-web:persistent-local-profile",
+    "targetProfileRef": "open-target-profile:open-tiktok",
     "defaultHumanGoal": "Browse TikTok feed, identify product-seeding candidates, capture public evidence, and preserve candidate summaries for review."
   },
   "operationalMap": {

@@ -138,17 +138,19 @@ const loadStructuredLoggingSources = () => {
     persistenceResult: getSourceFileOrThrow(project, config.FORENSICS_RESULT_PATH),
     structuredRuntimeChild: getSourceFileOrThrow(project, config.STRUCTURED_RUNTIME_CHILD_PATH),
     structuredActionChild: getSourceFileOrThrow(project, config.STRUCTURED_ACTION_CHILD_PATH),
-    runtimeSnapshotChild: getSourceFileOrThrow(project, config.RUNTIME_SNAPSHOT_CHILD_PATH),
-    executorSource: getSourceFileOrThrow(project, config.EXECUTOR_PATH),
-    governedSourceFiles: GOVERNED_SOURCE_PATHS.map((path) => getSourceFileOrThrow(project, path)),
-  };
-};
+	    runtimeSnapshotChild: getSourceFileOrThrow(project, config.RUNTIME_SNAPSHOT_CHILD_PATH),
+	    executorSource: getSourceFileOrThrow(project, config.EXECUTOR_PATH),
+	    structuredLogPayloadSource: getSourceFileOrThrow(project, config.STRUCTURED_LOG_PAYLOAD_PATH),
+	    terminalStructuredLogSource: getSourceFileOrThrow(project, config.TERMINAL_STRUCTURED_LOG_PATH),
+	    governedSourceFiles: GOVERNED_SOURCE_PATHS.map((path) => getSourceFileOrThrow(project, path)),
+	  };
+	};
 
 const inspectRequiredShape = (sources: StructuredLoggingSources): PhaseCheck => {
-  const runtimeEventFields = getZodObjectPropertyNames(sources.typesFile, "StructuredRuntimeEventSchema");
+	  const runtimeEventFields = getZodObjectPropertyNames(sources.typesFile, "StructuredRuntimeEventSchema");
   const actionLogFields = getZodObjectPropertyNames(sources.typesFile, "StructuredActionLogSchema");
   const typesPassed = [
-    runtimeEventFields.has("abilityGroupId"), runtimeEventFields.has("childCapabilityId"), runtimeEventFields.has("sessionId"), runtimeEventFields.has("roundId"), runtimeEventFields.has("videoVisitId"), runtimeEventFields.has("status"), runtimeEventFields.has("reason"), runtimeEventFields.has("inputRefs"), runtimeEventFields.has("outputRefs"), runtimeEventFields.has("evidenceRefs"), runtimeEventFields.has("actionLogRefs"), runtimeEventFields.has("createdAt"),
+	    runtimeEventFields.has("abilityGroupId"), runtimeEventFields.has("childCapabilityId"), runtimeEventFields.has("sessionId"), runtimeEventFields.has("runId"), runtimeEventFields.has("roundId"), runtimeEventFields.has("videoVisitId"), runtimeEventFields.has("status"), runtimeEventFields.has("reason"), runtimeEventFields.has("inputRefs"), runtimeEventFields.has("outputRefs"), runtimeEventFields.has("evidenceRefs"), runtimeEventFields.has("actionLogRefs"), runtimeEventFields.has("createdAt"),
     actionLogFields.has("abilityGroupId"), actionLogFields.has("childCapabilityId"), actionLogFields.has("sessionId"), actionLogFields.has("roundId"), actionLogFields.has("videoVisitId"), actionLogFields.has("actionPurpose"), actionLogFields.has("triggerSource"), actionLogFields.has("failureReason"), actionLogFields.has("reviewRequiredReason"), actionLogFields.has("inputRefs"), actionLogFields.has("outputRefs"), actionLogFields.has("evidenceRefs"), actionLogFields.has("createdAt"),
   ].every(Boolean);
   const runtimePayloadShapePassed = allStructuredPayloadsCarryOwnerShape(sources.runtimeProofSupport, "StructuredRuntimeEventSchema");
@@ -158,6 +160,21 @@ const inspectRequiredShape = (sources: StructuredLoggingSources): PhaseCheck => 
 
   return {
     findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.TYPES_PATH, line: 1, severity: "error", message: "Structured logging schema or payload builders are missing governed owner identity, required fields, or type-safe payload construction." })],
+    passed,
+  };
+};
+
+const hasRelayField = (sourceFile: SourceFile, fieldName: string): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === fieldName);
+};
+
+const inspectTerminalCommandRejectionPayload = (sources: StructuredLoggingSources): PhaseCheck => {
+  const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasRelayField(sources.structuredLogPayloadSource, fieldName));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasRelayField(sources.terminalStructuredLogSource, fieldName));
+  const passed = payloadFields && terminalFields;
+
+  return {
+    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for blocking command events." })],
     passed,
   };
 };
@@ -234,13 +251,15 @@ const buildStructuredLoggingPhases = (input: {
   requiredShape: PhaseCheck;
   persistenceBoundary: PhaseCheck;
   traceability: PhaseCheck;
-  antiEscape: PhaseCheck;
-}): InspectorPhase[] => {
+	  antiEscape: PhaseCheck;
+	  terminalRelay: PhaseCheck;
+	}): InspectorPhase[] => {
   return [
     createBooleanPhase("structured-logging-required-shape", input.requiredShape.passed, "Structured logging schemas and payload builders carry governed owner ids, refs, reasons, and timestamps.", "Structured logging schemas or payload builders are missing governed owner ids or required record fields."),
     createBooleanPhase("structured-logging-boundary-attack", input.persistenceBoundary.passed, "Structured runtime and action log writes flow through Forensics Persistence from active ability-group ownership.", "Structured runtime or action log writes still rely on a retired owner or bypass the governed Forensics ability boundary."),
-    createBooleanPhase("structured-logging-runtime-proof-traceability", input.traceability.passed, "Runtime proof stays traceable through proof ids, record refs, artifact refs, debug log refs, and child write results.", "Runtime proof traceability is incomplete across the Forensics proof type, result builders, or structured logging child implementations."),
-    createBooleanPhase("structured-logging-anti-escape", input.antiEscape.passed, "Structured logging enforcement files are free of console truth, require/import escape hatches, comment directives, and any-based loopholes.", "Structured logging enforcement files still contain console truth, require/import escape hatches, comment directives, or any-based loopholes."),
+	    createBooleanPhase("structured-logging-runtime-proof-traceability", input.traceability.passed, "Runtime proof stays traceable through proof ids, record refs, artifact refs, debug log refs, and child write results.", "Runtime proof traceability is incomplete across the Forensics proof type, result builders, or structured logging child implementations."),
+	    createBooleanPhase("structured-logging-terminal-command-rejection", input.terminalRelay.passed, "Terminal structured relay preserves owner/actionable/run refs for command rejection events.", "Terminal structured relay can still drop owner/actionable/run refs for command rejection events."),
+	    createBooleanPhase("structured-logging-anti-escape", input.antiEscape.passed, "Structured logging enforcement files are free of console truth, require/import escape hatches, comment directives, and any-based loopholes.", "Structured logging enforcement files still contain console truth, require/import escape hatches, comment directives, or any-based loopholes."),
   ];
 };
 
@@ -248,11 +267,12 @@ export const runStructuredLoggingChecks = async (): Promise<{ findings: Finding[
   const sources = loadStructuredLoggingSources();
   const requiredShape = inspectRequiredShape(sources);
   const persistenceBoundary = inspectPersistenceBoundary(sources);
-  const traceability = inspectTraceability(sources);
-  const antiEscape = inspectAntiEscape(sources);
+	  const traceability = inspectTraceability(sources);
+	  const terminalRelay = inspectTerminalCommandRejectionPayload(sources);
+	  const antiEscape = inspectAntiEscape(sources);
 
   return {
-    findings: [...requiredShape.findings, ...persistenceBoundary.findings, ...traceability.findings, ...antiEscape.findings],
-    phases: buildStructuredLoggingPhases({ requiredShape, persistenceBoundary, traceability, antiEscape }),
-  };
+	    findings: [...requiredShape.findings, ...persistenceBoundary.findings, ...traceability.findings, ...terminalRelay.findings, ...antiEscape.findings],
+	    phases: buildStructuredLoggingPhases({ requiredShape, persistenceBoundary, traceability, terminalRelay, antiEscape }),
+	  };
 };

@@ -93,6 +93,7 @@ const handleStartMission = async (
   const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
   const missionState = await runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
+    runId: envelope.runId,
     humanGoal: payloadValueToString(payload.humanGoal) ?? "Discover evidence-backed product opportunities from the active social feed.",
     requestedPlatform: requestedPlatformId,
     preferredMapId: parsedSelectedMapId,
@@ -108,6 +109,7 @@ const handleStartMission = async (
       operatorNote: payloadValueToString(payload.operatorNote),
       targetUrl: payloadValueToString(payload.targetUrl),
       targetTitle: payloadValueToString(payload.targetTitle),
+      targetProfileRef: payloadValueToString(payload.targetProfileRef),
       sourceEvidenceRef: payloadValueToString(payload.sourceEvidenceRef),
       sourceTargetRef: payloadValueToString(payload.sourceTargetRef),
       promptInputRef: payloadValueToString(payload.promptInputRef),

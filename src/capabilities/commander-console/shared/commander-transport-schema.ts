@@ -33,6 +33,7 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   operatorNote: CommanderNoteSchema.optional(),
   targetUrl: NonEmptyStringSchema.optional(),
   targetTitle: NonEmptyStringSchema.optional(),
+  targetProfileRef: NonEmptyStringSchema.optional(),
   sourceEvidenceRef: NonEmptyStringSchema.optional(),
   sourceTargetRef: NonEmptyStringSchema.optional(),
   promptInputRef: NonEmptyStringSchema.optional(),
@@ -218,6 +219,7 @@ const MissionControlInputSchema = z.object({
 
 const CommandTransportResultSchema = z.object({
   commandId: NonEmptyStringSchema,
+  runId: NonEmptyStringSchema,
   envelopeRef: NonEmptyStringSchema.nullable(),
   resultEnvelopeRef: NonEmptyStringSchema.nullable(),
   status: z.enum(["accepted", "failed", "review_required"]),

@@ -85,6 +85,7 @@ function resolveCommandKind(state: MissionState, childCapabilityId: string): "st
 function buildRuntimeProofIdentity(input: BuildResultInput) {
   return {
     missionId: input.state.missionId ?? "unknown-mission",
+    runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:${input.childCapabilityId}:failure-run`,
     mapId: input.state.mapId ?? "recovery",
     taskTemplateId: input.state.taskTemplateId ?? null,
     activationId: input.state.activationId ?? null,
@@ -159,6 +160,7 @@ export function buildStateBackedExecuteResult(input: BuildResultInput): Orchestr
 export function buildFailureExecuteResult(input: BuildFailureInput): OrchestrationExecuteResult {
   const state = createFailedMissionState({
     missionId: input.missionId,
+    runId: `${input.childCapabilityId}:${input.missionId ?? "unknown-mission"}:failure-run`,
     mapId: input.mapId,
     requestedPlatform: input.requestedPlatform,
     humanGoal: input.humanGoal,
