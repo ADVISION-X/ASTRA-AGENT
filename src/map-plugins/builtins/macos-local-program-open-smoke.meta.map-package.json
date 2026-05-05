@@ -1,0 +1,114 @@
+{
+  "manifest": {
+    "packageId": "builtin.macos-local-program-open-smoke",
+    "packageKind": "operational-map-package",
+    "packageVersion": "1.0.0",
+    "mapId": "macos.local-program.open-smoke.v1",
+    "taskTemplateId": "macos-local-program-open-smoke",
+    "displayName": "macOS Local Program Open Smoke",
+    "author": "GrassEye Builtins",
+    "createdAt": "2026-05-05T00:00:00.000Z",
+    "minimumGrassEyeVersion": "0.1.0",
+    "mapSchemaVersion": "1",
+    "approvalStatus": "approved",
+    "aiGenerated": false,
+    "capabilityCatalogVersion": "2026-04-map-prompt-contract-v1",
+    "promptCatalogVersion": "map-prompt-contract-catalog.v1",
+    "validationReportRef": "audit://map-plugin-package/builtin.macos-local-program-open-smoke/validation/v1",
+    "humanApprovalRef": "approval://builtin.macos-local-program-open-smoke/v1"
+  },
+  "taskTemplate": {
+    "taskTemplateId": "macos-local-program-open-smoke",
+    "displayName": "macOS Local Program Open Smoke",
+    "description": "Open governed iPhone Mirroring as a macOS local program and hand off the visible window for later visual-chain handling.",
+    "recommended": false,
+    "taskCategory": "local-program-open-smoke",
+    "version": "1.0.0",
+    "defaultRunLimit": { "maxRounds": 1, "maxMinutes": 5 },
+    "maxAllowedRunLimit": { "maxRounds": 1, "maxMinutes": 10 },
+    "safetyLevel": "handoff-only",
+    "userVisibleCapabilities": ["Open governed macOS app", "Hand off visible local app window", "Request human review"],
+    "availabilityPolicy": "draft",
+    "requestedPlatformId": "macos-local",
+    "platformProfileRef": "macos-local:governed-profile",
+    "targetProfileRef": "macos-app:iphone-mirroring",
+    "defaultHumanGoal": "Open iPhone Mirroring and stop after the local app window handoff proof is available."
+  },
+  "operationalMap": {
+    "mapId": "macos.local-program.open-smoke.v1",
+    "displayName": "macOS Local Program Open Smoke",
+    "humanGoal": "Open iPhone Mirroring as a governed macOS local program without clicking, typing, scrolling, screenshotting, or opening an app inside it.",
+    "allowedAbilityGroups": ["open"],
+    "initialStepId": "open-iphone-mirroring",
+    "steps": [
+      {
+        "stepId": "open-iphone-mirroring",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "open-local-program",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "open",
+        "inputRefs": ["requestedPlatformId", "targetProfileRef", "targetTitle"],
+        "outputRefPolicy": { "storeAs": ["abilityResultRef", "localAppStateHandoffRef"] },
+        "promptContractId": null,
+        "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" },
+        "failureBranch": "open-iphone-mirroring:failed",
+        "reviewBranch": "open-iphone-mirroring:review",
+        "timeoutPolicy": { "maxDurationMs": 10000 },
+        "proofPolicy": { "requiresRuntimeProof": true }
+      },
+      {
+        "stepId": "request-human-review",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "request-human-review",
+        "stepKind": "review",
+        "targetAbilityGroupId": null,
+        "inputRefs": ["abilityResultRef", "localAppStateHandoffRef"],
+        "outputRefPolicy": { "storeAs": ["reviewReasonRef"] },
+        "promptContractId": null,
+        "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" },
+        "failureBranch": "request-human-review:failed",
+        "reviewBranch": "request-human-review:review",
+        "timeoutPolicy": { "maxDurationMs": 10000 },
+        "proofPolicy": { "requiresRuntimeProof": true }
+      }
+    ],
+    "transitions": [
+      { "transitionId": "open-iphone-mirroring:success", "fromStepId": "open-iphone-mirroring", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "request-human-review", "finalStatus": null },
+      { "transitionId": "open-iphone-mirroring:failed", "fromStepId": "open-iphone-mirroring", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "open-iphone-mirroring:review", "fromStepId": "open-iphone-mirroring", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+      { "transitionId": "request-human-review:failed", "fromStepId": "request-human-review", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+      { "transitionId": "request-human-review:review", "fromStepId": "request-human-review", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": null, "finalStatus": "review_required" }
+    ],
+    "failureBranches": ["open-iphone-mirroring:failed", "request-human-review:failed"],
+    "reviewBranches": ["open-iphone-mirroring:review", "request-human-review:review"],
+    "finalStates": ["failed", "review_required"],
+    "forbiddenDirectCalls": ["shellCommand", "openApp", "osascript", "clickSelector", "typeText"],
+    "sequencePolicy": { "maxHops": 3, "maxRetriesPerStep": 0, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },
+    "mapVersion": "1.0.0",
+    "proofPolicy": { "runtimeProof": "required", "recordPackageSelection": true }
+  },
+  "dependencies": {
+    "requiredCapabilities": ["open"],
+    "requiredChildCapabilities": ["open-local-program", "request-human-review"],
+    "requiredPromptContracts": [],
+    "requiredPlatformProfiles": ["macos-local:governed-profile"],
+    "requiredForensicsRecords": ["structured_runtime_event"]
+  },
+  "compatibility": {
+    "requiresGrassEye": "0.1.0",
+    "requiresMapSchema": "1",
+    "requiresCapabilityRegistry": ["open"],
+    "requiresPromptRegistry": [],
+    "requiresPlatformProfileRegistry": ["macos-local:governed-profile"]
+  },
+  "policy": {
+    "safetyPolicy": "Open governed app/window only; no clicks, typing, scrolling, screenshots, shell commands, or internal app navigation.",
+    "runLimitPolicy": { "defaultMaxRounds": 1, "maxAllowedMaxRounds": 1, "maxAllowedMaxMinutes": 10 },
+    "reviewPolicy": "Always hand off to human review after local app window proof.",
+    "exportPolicy": "runtime proof refs only",
+    "debugPolicy": "developer-inspect only; no direct local app launch outside Open"
+  },
+  "promptBindings": { "bindings": [] },
+  "changelog": "Initial local-program open smoke map for governed iPhone Mirroring window handoff only.",
+  "signature": null
+}

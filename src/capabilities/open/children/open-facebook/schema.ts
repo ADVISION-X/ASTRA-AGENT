@@ -7,7 +7,7 @@ import {
   OpenProofPolicySchema,
   OpenRequestSchema,
   OpenResultBaseSchema,
-  OpenTargetProfileSchema,
+  OpenWebTargetProfileSchema,
 } from "../../schema.js";
 
 export const OpenFacebookRequestSchema = OpenRequestSchema.extend({
@@ -25,7 +25,7 @@ export const OpenFacebookProofPolicySchema = OpenProofPolicySchema;
 export const OpenFacebookOutputPolicySchema = OpenOutputPolicySchema;
 export const OpenFacebookFailurePolicySchema = OpenFailurePolicySchema;
 
-export const OpenFacebookTargetProfileSchema = OpenTargetProfileSchema.extend({
+export const OpenFacebookTargetProfileSchema = OpenWebTargetProfileSchema.extend({
   childCapabilityId: z.literal("open-facebook"),
   platformId: z.literal("facebook-web"),
   targetKind: z.literal("platform-feed"),

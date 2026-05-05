@@ -7,7 +7,7 @@ import {
   OpenProofPolicySchema,
   OpenRequestSchema,
   OpenResultBaseSchema,
-  OpenTargetProfileSchema,
+  OpenWebTargetProfileSchema,
 } from "../../schema.js";
 
 export const OpenLocalWorkbenchRequestSchema = OpenRequestSchema.extend({
@@ -25,7 +25,7 @@ export const OpenLocalWorkbenchProofPolicySchema = OpenProofPolicySchema;
 export const OpenLocalWorkbenchOutputPolicySchema = OpenOutputPolicySchema;
 export const OpenLocalWorkbenchFailurePolicySchema = OpenFailurePolicySchema;
 
-export const OpenLocalWorkbenchTargetProfileSchema = OpenTargetProfileSchema.extend({
+export const OpenLocalWorkbenchTargetProfileSchema = OpenWebTargetProfileSchema.extend({
   childCapabilityId: z.literal("open-local-workbench"),
   platformId: z.literal("local-workbench"),
   targetKind: z.literal("local-workbench"),

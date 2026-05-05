@@ -13,3 +13,4 @@ export {
 export { OpenRequestSchema, OpenResultSchema } from "./schema.js";
 export { createOpenRegistry } from "./registry.js";
 export type { OpenBrowserPort } from "./ports/open-browser-port.js";
+export type { OpenLocalProgramPort } from "./ports/open-local-program-port.js";

@@ -15,6 +15,22 @@ import {
   OPEN_LOCAL_WORKBENCH_PROOF_POLICY,
 } from "./children/open-local-workbench/contract.js";
 import { createOpenLocalWorkbenchCapability } from "./children/open-local-workbench/implementation.js";
+import { OpenLocalProgramRequestSchema, OpenLocalProgramResultSchema } from "./children/open-local-program/schema.js";
+import {
+  OPEN_LOCAL_PROGRAM_APP_NAME,
+  OPEN_LOCAL_PROGRAM_APP_PATH,
+  OPEN_LOCAL_PROGRAM_ALLOWED_LAUNCH_METHOD,
+  OPEN_LOCAL_PROGRAM_BOUNDARY_POLICY,
+  OPEN_LOCAL_PROGRAM_BUNDLE_ID,
+  OPEN_LOCAL_PROGRAM_FAILURE_POLICY,
+  OPEN_LOCAL_PROGRAM_LOCAL_APP_STATE_HANDOFF_REQUIRED,
+  OPEN_LOCAL_PROGRAM_OUTPUT_POLICY,
+  OPEN_LOCAL_PROGRAM_PAGE_STATE_HANDOFF_REQUIRED,
+  OPEN_LOCAL_PROGRAM_PROOF_POLICY,
+  OPEN_LOCAL_PROGRAM_PURPOSE,
+  OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,
+} from "./children/open-local-program/contract.js";
+import { createOpenLocalProgramCapability } from "./children/open-local-program/implementation.js";
 import { OpenTikTokRequestSchema, OpenTikTokResultSchema } from "./children/open-tiktok/schema.js";
 import {
   OPEN_TIKTOK_BOUNDARY_POLICY,
@@ -26,6 +42,7 @@ import { createOpenTikTokCapability } from "./children/open-tiktok/implementatio
 import type { OpenRegistryEntry } from "./runtime/open-runtime-types.js";
 import {
   DEFAULT_LOCAL_WORKBENCH_TIMEOUT_MS,
+  DEFAULT_LOCAL_PROGRAM_TIMEOUT_MS,
   DEFAULT_LOCALHOST_HOSTNAMES,
   DEFAULT_OPEN_TIMEOUT_MS,
 } from "./shared/open-policy.js";
@@ -162,6 +179,46 @@ const OPEN_CHILDREN = [
     outputPolicy: OPEN_LOCAL_WORKBENCH_OUTPUT_POLICY,
     failurePolicy: OPEN_LOCAL_WORKBENCH_FAILURE_POLICY,
     implementation: createOpenLocalWorkbenchCapability(),
+  },
+  {
+    childCapabilityId: "open-local-program",
+    targetKind: "local-program",
+    platformId: "macos-local",
+    inputSchema: OpenLocalProgramRequestSchema,
+    outputSchema: OpenLocalProgramResultSchema,
+    purpose: OPEN_LOCAL_PROGRAM_PURPOSE,
+    allowedCaller: ["orchestration", "nerve-bus"],
+    requiresNerveBus: true,
+    targetProfileRef: OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,
+    appName: OPEN_LOCAL_PROGRAM_APP_NAME,
+    bundleId: OPEN_LOCAL_PROGRAM_BUNDLE_ID,
+    appPath: OPEN_LOCAL_PROGRAM_APP_PATH,
+    allowedLaunchMethod: OPEN_LOCAL_PROGRAM_ALLOWED_LAUNCH_METHOD,
+    defaultTitle: "macOS Local Program",
+    requiresRealChromeSession: false,
+    allowsLocalhost: false,
+    maxOpenDurationMs: DEFAULT_LOCAL_PROGRAM_TIMEOUT_MS,
+    pageStateHandoffRequired: OPEN_LOCAL_PROGRAM_PAGE_STATE_HANDOFF_REQUIRED,
+    localAppStateHandoffRequired: OPEN_LOCAL_PROGRAM_LOCAL_APP_STATE_HANDOFF_REQUIRED,
+    requiresUserVisibleWindow: true,
+    requiresPostOpenWindowHandoff: true,
+    allowReplay: false,
+    timeoutPolicy: {
+      maxOpenDurationMs: DEFAULT_LOCAL_PROGRAM_TIMEOUT_MS,
+      timeoutFailureCode: "navigation_timeout",
+    },
+    idempotencyPolicy: {
+      allowReplay: false,
+      scope: "session_target_round_video_visit",
+      duplicateStatus: "review_required",
+      ttlMs: DEFAULT_IDEMPOTENCY_TTL_MS,
+      maxReservations: DEFAULT_MAX_RESERVATIONS,
+    },
+    boundaryPolicy: OPEN_LOCAL_PROGRAM_BOUNDARY_POLICY,
+    proofPolicy: OPEN_LOCAL_PROGRAM_PROOF_POLICY,
+    outputPolicy: OPEN_LOCAL_PROGRAM_OUTPUT_POLICY,
+    failurePolicy: OPEN_LOCAL_PROGRAM_FAILURE_POLICY,
+    implementation: createOpenLocalProgramCapability(),
   },
 ] as const satisfies readonly OpenRegistryEntry[];
 

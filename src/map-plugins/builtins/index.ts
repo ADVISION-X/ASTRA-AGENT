@@ -60,6 +60,7 @@ function readBuiltin(fileName: string): MapPackage {
 export function loadBuiltinMapPackages(): MapPackage[] {
   return [
     readBuiltin("facebook-seeding-video-discovery.meta.map-package.json"),
+    readBuiltin("macos-local-program-open-smoke.meta.map-package.json"),
     readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json")
   ];
 }

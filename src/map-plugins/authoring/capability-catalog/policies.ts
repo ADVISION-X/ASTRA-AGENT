@@ -119,6 +119,12 @@ export const buildEntry = (
   childCapabilityId: string,
   description: string,
   supportedTargets?: string[],
+  metadata?: {
+    platformId?: string;
+    targetKind?: string;
+    requiresPostOpenWindowHandoff?: boolean;
+    forbiddenResponsibilities?: string[];
+  },
 ): CapabilityCatalogEntry => {
   const policy = ABILITY_GROUP_POLICIES[abilityGroupId];
   if (!policy) {
@@ -131,12 +137,15 @@ export const buildEntry = (
     description,
     inputSchemaRef: `${abilityGroupId}.${childCapabilityId}.input`,
     outputSchemaRef: `${abilityGroupId}.${childCapabilityId}.output`,
+    platformId: metadata?.platformId ?? null,
+    targetKind: metadata?.targetKind ?? null,
     supportedTargets: supportedTargets ?? policy.supportedTargets,
     routableByMap: policy.routableByMap,
+    requiresPostOpenWindowHandoff: metadata?.requiresPostOpenWindowHandoff ?? false,
     requiresGeometryProof: policy.requiresGeometryProof,
     requiresPostActionVerification: policy.requiresPostActionVerification,
     requiresReviewGate: policy.requiresReviewGate,
     sensitiveOperation: policy.sensitiveOperation,
-    forbiddenResponsibilities: policy.forbiddenResponsibilities,
+    forbiddenResponsibilities: metadata?.forbiddenResponsibilities ?? policy.forbiddenResponsibilities,
   };
 };

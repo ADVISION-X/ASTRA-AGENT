@@ -12,7 +12,29 @@ const buildAiEntries = (): CapabilityCatalogEntry[] => {
 
 const buildOpenEntries = (): CapabilityCatalogEntry[] => {
   return listMapPluginOpenCatalogEntries().map(({ childCapabilityId, child }) => {
-    return buildEntry("open", childCapabilityId, child?.purpose ?? `Open governed target ${humanize(childCapabilityId)}.`, child ? [child.platformId] : undefined);
+    const isLocalProgram = child?.targetKind === "local-program";
+    const metadata = child ? {
+      platformId: child.platformId,
+      targetKind: child.targetKind,
+      requiresPostOpenWindowHandoff: isLocalProgram,
+      ...(isLocalProgram ? {
+        forbiddenResponsibilities: [
+          "click inside app",
+          "type inside app",
+          "screenshot app internally",
+          "decide internal app state",
+          "execute arbitrary shell command",
+          "bypass visual chain",
+        ],
+      } : {}),
+    } : undefined;
+    return buildEntry(
+      "open",
+      childCapabilityId,
+      child?.purpose ?? `Open governed target ${humanize(childCapabilityId)}.`,
+      child ? [child.platformId] : undefined,
+      metadata,
+    );
   });
 };
 

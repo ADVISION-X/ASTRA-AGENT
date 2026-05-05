@@ -7,7 +7,7 @@ import {
   OpenProofPolicySchema,
   OpenRequestSchema,
   OpenResultBaseSchema,
-  OpenTargetProfileSchema,
+  OpenWebTargetProfileSchema,
 } from "../../schema.js";
 
 export const OpenTikTokRequestSchema = OpenRequestSchema.extend({
@@ -25,7 +25,7 @@ export const OpenTikTokProofPolicySchema = OpenProofPolicySchema;
 export const OpenTikTokOutputPolicySchema = OpenOutputPolicySchema;
 export const OpenTikTokFailurePolicySchema = OpenFailurePolicySchema;
 
-export const OpenTikTokTargetProfileSchema = OpenTargetProfileSchema.extend({
+export const OpenTikTokTargetProfileSchema = OpenWebTargetProfileSchema.extend({
   childCapabilityId: z.literal("open-tiktok"),
   platformId: z.literal("tiktok-web"),
   targetKind: z.literal("platform-feed"),

@@ -7,6 +7,7 @@ import type { OpenLocalProgramPort } from "./ports/open-local-program-port.js";
 import type { OpenProfilePort } from "./ports/open-profile-port.js";
 import {
   BrowserSessionSnapshotSchema,
+  LocalProgramOpenOutputSchema,
   NavigationResultSchema,
   OpenAllowedCallerSchema,
   OpenBoundaryPolicySchema,
@@ -63,6 +64,7 @@ type OpenRequest = z.input<typeof OpenRequestSchema>;
 type ParsedOpenRequest = z.output<typeof OpenRequestSchema>;
 type OpenResult = z.output<typeof OpenResultSchema>;
 type OpenRuntimeProof = z.output<typeof OpenRuntimeProofSchema>;
+type LocalProgramOpenOutput = z.output<typeof LocalProgramOpenOutputSchema>;
 
 export type CreateOpenAbilityGroupInput = {
   browser: OpenBrowserPort;
@@ -94,6 +96,7 @@ export type {
   OpenRequest,
   OpenResult,
   OpenRuntimeProof,
+  LocalProgramOpenOutput,
   OpenSessionDecision,
   OpenStatus,
   OpenTargetKind,

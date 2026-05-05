@@ -119,15 +119,7 @@ const LocalProgramOpenTargetProfileSchema = z.object({
   proofPolicy: OpenProofPolicySchema,
   outputPolicy: OpenOutputPolicySchema,
   failurePolicy: OpenFailurePolicySchema,
-}).strict().superRefine((value, context) => {
-  if (!value.bundleId && !value.appPath) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "local program target profile requires bundleId or governed appPath",
-      path: ["bundleId"],
-    });
-  }
-});
+}).strict();
 
 const OpenTargetProfileSchema = z.discriminatedUnion("targetKind", [
   OpenWebTargetProfileSchema,
