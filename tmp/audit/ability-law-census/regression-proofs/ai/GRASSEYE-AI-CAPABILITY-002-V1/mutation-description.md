@@ -1,10 +1,10 @@
 # GRASSEYE-AI-CAPABILITY-002-V1 Production Mutation
 
-scenarioId: debug-event-wiring-mutation
-mutationName: debug event wiring mutation
-mutatedFile: src/capabilities/ai/runtime-factory.ts
+scenarioId: ai-error-diagnostic-ref-mutation
+mutationName: ai error diagnostic ref mutation
+mutatedFile: src/capabilities/ai/ability-group.ts
 coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
-beforeHash: sha256:e6d95550f2a0242b571720cab708c00d377e3c03a179234df8fe6d8191189384
-afterMutationHash: sha256:959b26a07afa629837df8b8f24ebdd950d5a873d6a74b41a6c201132f75a50a8
+beforeHash: sha256:b5fcf6cbf6d379c3a13ed682f6f62c1906c76c610f73258e210cdf24d84eed4b
+afterMutationHash: sha256:d89aa8009438d12ee6b428570464a6fda8c2b2d77f0b31b574e07b92f12e4cc0
 
-The mutation removes emitDebugEvent from the configured runtime factory, proving AI_ERROR_DEBUG cannot silently disconnect from structured runtime logging.
+The mutation removes diagnosticPayloadRef from unexpected AI child throw handling, proving outer runtime_execution_failed failures remain diagnosable.

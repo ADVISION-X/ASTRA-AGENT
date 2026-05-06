@@ -1,13 +1,11 @@
-diff --git a/src/capabilities/ai/runtime-factory.ts b/src/capabilities/ai/runtime-factory.ts
---- a/src/capabilities/ai/runtime-factory.ts
-+++ b/src/capabilities/ai/runtime-factory.ts
-@@ -17,8 +17,7 @@
- ) => {
-   return createAiAbilityGroup({
-     runtime: createProviderAwareAiRuntimePort({
--      emitDebugEvent: input.emitDebugEvent,
--      dataDir: input.dataDir ?? null,
-+        dataDir: input.dataDir ?? null,
-     }),
-     clock: createSystemAiClock(),
-     modelRoster: createAiModelRosterPort(),
+diff --git a/src/capabilities/ai/ability-group.ts b/src/capabilities/ai/ability-group.ts
+--- a/src/capabilities/ai/ability-group.ts
++++ b/src/capabilities/ai/ability-group.ts
+@@ -108,7 +108,6 @@
+       implementationStatus: "runtime_execution_failed",
+       errorKind: originalErrorName,
+       runtimeCallId,
+-      diagnosticPayloadRef,
+       rawOutputHash: originalErrorName,
+     });
+   };
