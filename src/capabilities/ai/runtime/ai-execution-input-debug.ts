@@ -1,6 +1,7 @@
 import type { AiExecutionContext, AiTaskType } from "../contract.js";
 import type { AiRuntimeStructuredDebugEvent } from "../runtime-adapters/local-ai-runtime-debug-contract.js";
 import { AI_TASK_TYPES, buildStableAiRef } from "../shared/ai-types.js";
+import { buildRejectedInputDebug } from "./ai-execution-input-debug-rejected.js";
 
 type InputDebugFields = {
   sessionId: string;
@@ -24,6 +25,18 @@ const readString = (value: unknown): string | null =>
 
 const readField = (value: object, field: string): unknown => Reflect.get(value, field);
 
+const readNestedField = (value: unknown, field: string, maxDepth = 3): unknown => {
+  const record = readObject(value);
+  if (!record || maxDepth < 0) return undefined;
+  const direct = readField(record, field);
+  if (direct !== undefined) return direct;
+  for (const nested of Object.values(record)) {
+    const candidate = readNestedField(nested, field, maxDepth - 1);
+    if (candidate !== undefined) return candidate;
+  }
+  return undefined;
+};
+
 const readTaskType = (value: unknown): AiTaskType | null => {
   const taskType = readString(value);
   return taskType && (AI_TASK_TYPES as readonly string[]).includes(taskType) ? taskType as AiTaskType : null;
@@ -40,23 +53,23 @@ const readInputRefIds = (value: unknown): string[] => {
 const readInputDebugFields = (value: unknown): InputDebugFields | null => {
   const record = readObject(value);
   if (!record) return null;
-  const sessionId = readString(readField(record, "sessionId"));
-  const stepId = readString(readField(record, "stepId"));
-  const capabilityCallId = readString(readField(record, "capabilityCallId"));
-  const taskType = readTaskType(readField(record, "taskType"));
+  const sessionId = readString(readNestedField(record, "sessionId"));
+  const stepId = readString(readNestedField(record, "stepId"));
+  const capabilityCallId = readString(readNestedField(record, "capabilityCallId"));
+  const taskType = readTaskType(readNestedField(record, "taskType"));
   if (!sessionId || !stepId || !capabilityCallId || !taskType) return null;
   return {
     sessionId,
-    missionId: readString(readField(record, "missionId")),
-    roundId: readString(readField(record, "roundId")),
-    videoVisitId: readString(readField(record, "videoVisitId")),
+    missionId: readString(readNestedField(record, "missionId")),
+    roundId: readString(readNestedField(record, "roundId")),
+    videoVisitId: readString(readNestedField(record, "videoVisitId")),
     stepId,
     capabilityCallId,
     taskType,
-    promptContractId: readString(readField(record, "promptContractId")),
-    expectedOutputSchema: readString(readField(record, "expectedOutputSchema")),
-    promptCatalogVersion: readString(readField(record, "promptCatalogVersion")),
-    refs: readInputRefIds(readField(record, "inputRefs")),
+    promptContractId: readString(readNestedField(record, "promptContractId")),
+    expectedOutputSchema: readString(readNestedField(record, "expectedOutputSchema")),
+    promptCatalogVersion: readString(readNestedField(record, "promptCatalogVersion")),
+    refs: readInputRefIds(readNestedField(record, "inputRefs")),
   };
 };
 
@@ -158,7 +171,10 @@ const buildInputDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPac
 export const emitAiExecutionInputDebug = async (context: AiExecutionContext, inputValue: unknown) => {
   if (!context.emitDebugEvent) return;
   const fields = readInputDebugFields(inputValue);
-  if (!fields) return;
+  if (!fields) {
+    await context.emitDebugEvent(buildRejectedInputDebug(inputValue));
+    return;
+  }
   const identity = buildInputDebugIdentity(fields);
   await context.emitDebugEvent({
     ...buildInputDebugBase(fields, identity),

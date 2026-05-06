@@ -2,6 +2,7 @@ import type { EvidenceStoreService } from "./evidence-store-service.js";
 import { OcrTextResultSchema } from "../../../types/evidence.js";
 import { ForensicsEvidenceRecordPayloadSchema, type ForensicsRecordEnvelope, type StoredForensicsRecord } from "./forensics-storage-types.js";
 
+import { buildEvidenceStoreStorageRef } from "./forensics-durability-mode.js";
 import { buildRecordRef, toStoredRecord } from "./forensics-record-storage-shared.js";
 
 const buildImageEvidenceInput = (imageEvidenceInput: {
@@ -61,6 +62,13 @@ export async function persistEvidenceRecord(evidenceStore: EvidenceStoreService,
     });
   }
 
-  await evidenceStore.saveOcrResult(OcrTextResultSchema.parse(payload.ocrTextResult));
-  return toStoredRecord({ envelope, storageRef: null });
+  const ocrResult = await evidenceStore.saveOcrResult(OcrTextResultSchema.parse(payload.ocrTextResult));
+  return toStoredRecord({
+    envelope,
+    storageRef: buildEvidenceStoreStorageRef({
+      evidenceStore,
+      collection: "ocrResults",
+      itemId: ocrResult.id,
+    }),
+  });
 }

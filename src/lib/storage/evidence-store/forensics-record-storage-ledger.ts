@@ -12,6 +12,7 @@ import {
   type StoredForensicsRecord,
 } from "./forensics-storage-types.js";
 
+import { buildEvidenceStoreStorageRef } from "./forensics-durability-mode.js";
 import { toStoredRecord } from "./forensics-record-storage-shared.js";
 
 const rebuildAdvancedExportSetIfNeeded = async (evidenceStore: EvidenceStoreService, rebuildSessionId: string | null | undefined): Promise<void> => {
@@ -22,29 +23,52 @@ const rebuildAdvancedExportSetIfNeeded = async (evidenceStore: EvidenceStoreServ
 
 export async function persistBrowseLedgerRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsBrowseLedgerPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry));
+  const browseLedgerEntry = await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry));
   await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   await rebuildAdvancedExportSetIfNeeded(evidenceStore, payload.rebuildSessionId);
-  return toStoredRecord({ envelope, storageRef: null });
+  return toStoredRecord({
+    envelope,
+    storageRef: buildEvidenceStoreStorageRef({
+      evidenceStore,
+      collection: "browseLedger",
+      itemId: `${browseLedgerEntry.sessionId}:${browseLedgerEntry.roundId}:${browseLedgerEntry.videoVisitId}`,
+    }),
+  });
 }
 
 export async function persistEvidencePacketRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsEvidencePacketPayloadSchema.parse(envelope.payload);
-  await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket));
+  const evidencePacket = await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket));
   await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   await rebuildAdvancedExportSetIfNeeded(evidenceStore, payload.rebuildSessionId);
-  return toStoredRecord({ envelope, storageRef: null });
+  return toStoredRecord({
+    envelope,
+    storageRef: buildEvidenceStoreStorageRef({
+      evidenceStore,
+      collection: "evidencePackets",
+      itemId: evidencePacket.packetId,
+    }),
+  });
 }
 
 export async function persistFailedRecord(evidenceStore: EvidenceStoreService, envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord> {
   const payload = ForensicsFailedRecordPayloadSchema.parse(envelope.payload);
-  if (payload.evidencePacket) {
-    await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket));
-  }
-  if (payload.browseLedgerEntry) {
-    await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry));
-  }
-  await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
+  const evidencePacket = payload.evidencePacket
+    ? await evidenceStore.saveEvidencePacket(ProductDiscoveryEvidencePacketSchema.parse(payload.evidencePacket))
+    : null;
+  const browseLedgerEntry = payload.browseLedgerEntry
+    ? await evidenceStore.saveBrowseLedgerEntry(BrowseLedgerEntrySchema.parse(payload.browseLedgerEntry))
+    : null;
+  const roundStructuralLog = await evidenceStore.saveRoundStructuralLog(RoundStructuralLogSchema.parse(payload.roundStructuralLog));
   await rebuildAdvancedExportSetIfNeeded(evidenceStore, payload.rebuildSessionId);
-  return toStoredRecord({ envelope, storageRef: null });
+  return toStoredRecord({
+    envelope,
+    storageRef: buildEvidenceStoreStorageRef({
+      evidenceStore,
+      collection: evidencePacket ? "evidencePackets" : browseLedgerEntry ? "browseLedger" : "roundStructuralLogs",
+      itemId: evidencePacket?.packetId
+        ?? (browseLedgerEntry ? `${browseLedgerEntry.sessionId}:${browseLedgerEntry.roundId}:${browseLedgerEntry.videoVisitId}` : null)
+        ?? roundStructuralLog.logId,
+    }),
+  });
 }

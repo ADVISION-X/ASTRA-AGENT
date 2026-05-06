@@ -17,8 +17,7 @@ export const createConfiguredAiAbilityGroup = (
 ) => {
   return createAiAbilityGroup({
     runtime: createProviderAwareAiRuntimePort({
-      emitDebugEvent: input.emitDebugEvent,
-      dataDir: input.dataDir ?? null,
+        dataDir: input.dataDir ?? null,
     }),
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),

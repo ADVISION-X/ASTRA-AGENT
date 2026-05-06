@@ -83,6 +83,34 @@ const collectHashBuilderFindings = (project: import("ts-morph").Project): Findin
   return findings;
 };
 
+const hasDurableModeGate = (project: import("ts-morph").Project): boolean => {
+  const durabilityModeSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/forensics-durability-mode.ts");
+  const storageFactorySource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/create-forensics-persistence-storage.ts");
+  return sourceHasCallPath(storageFactorySource, ["assertForensicsDurabilityReady"])
+    && sourceHasCallPath(durabilityModeSource, ["resolveForensicsDurabilityMode"])
+    && durabilityModeSource.getFullText().includes("GRASSEYE_PHASE_READY")
+    && durabilityModeSource.getFullText().includes("memory_only")
+    && durabilityModeSource.getFullText().includes("state.json");
+};
+
+const hasStructuredStorageRefs = (project: import("ts-morph").Project): boolean => {
+  const runtimeStorageSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/forensics-record-storage-runtime.ts");
+  const actionStorageSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/forensics-record-storage-action.ts");
+  return sourceHasCallPath(runtimeStorageSource, ["buildEvidenceStoreStorageRef"])
+    && sourceHasCallPath(actionStorageSource, ["buildEvidenceStoreStorageRef"]);
+};
+
+const collectDurabilityFindings = (project: import("ts-morph").Project): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasDurableModeGate(project)) {
+    findings.push(createFinding({ lawId: LAW_STORAGE, file: "src/lib/storage/evidence-store/forensics-durability-mode.ts", line: 1, severity: "fatal", message: "Forensics phase-ready mode must reject memory_only persistence and expose durable state.json storageRef generation." }));
+  }
+  if (!hasStructuredStorageRefs(project)) {
+    findings.push(createFinding({ lawId: LAW_STORAGE, file: "src/lib/storage/evidence-store/forensics-record-storage-runtime.ts", line: 1, severity: "fatal", message: "Structured runtime/action records must return storageRef-backed persisted records instead of remaining memory_only." }));
+  }
+  return findings;
+};
+
 const collectStorageFindings = (project: import("ts-morph").Project): Finding[] => {
   const findings: Finding[] = [];
   const writeGateSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-write-gate.ts`);
@@ -103,7 +131,7 @@ const collectStorageFindings = (project: import("ts-morph").Project): Finding[] 
     findings.push(createFinding({ lawId: LAW_STORAGE, file: WORKBENCH_PATH, line: 1, severity: "error", message: "Workbench must compose Forensics through the dedicated record and artifact storage ports." }));
   }
 
-  return findings;
+  return [...findings, ...collectDurabilityFindings(project)];
 };
 
 const collectRetiredRootFindings = async (project: import("ts-morph").Project): Promise<Finding[]> => {
