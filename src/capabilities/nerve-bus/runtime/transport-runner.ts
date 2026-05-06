@@ -46,6 +46,13 @@ type TransportResultSchema<TResult extends SupportedResultEnvelope> = {
     | { success: false; error: { message: string } };
 };
 
+const resolveHandlerSignal = (input: {
+  signal: AbortSignal;
+  parentSignal?: AbortSignal | undefined;
+}): AbortSignal => input.parentSignal
+  ? AbortSignal.any([input.signal, input.parentSignal])
+  : input.signal;
+
 async function raceWithTimeout<T>(input: {
   promise: Promise<T>;
   timeoutMs: number;
@@ -221,14 +228,19 @@ export async function runTransportHandler<TResult extends SupportedResultEnvelop
   inputPayload: NerveBusPayloadDocument;
   context: NerveBusRuntimeContext;
   timeoutMs: number;
+  parentSignal?: AbortSignal | undefined;
   invoke(signal: AbortSignal): Promise<NerveBusHandledResult<TResult> | null>;
   resultSchema: TransportResultSchema<TResult>;
 }): Promise<NerveBusRunnerOutcome<TResult>> {
   const handlerCallId = createId("nerve_bus_handler_call");
   const started = input.context.clock.now();
   const controller = new AbortController();
+  const handlerSignal = resolveHandlerSignal({
+    signal: controller.signal,
+    parentSignal: input.parentSignal,
+  });
   const raceResult = await raceWithTimeout({
-    promise: input.invoke(controller.signal),
+    promise: input.invoke(handlerSignal),
     timeoutMs: input.timeoutMs,
     onTimeout() {
       controller.abort(`Transport timed out after ${input.timeoutMs}ms.`);

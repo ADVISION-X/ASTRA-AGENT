@@ -33,5 +33,6 @@ export type NerveBusChildDefinition<TEnvelope extends SupportedTransportEnvelope
     inputPayload: NerveBusPayloadDocument;
     registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
     context: NerveBusRuntimeContext;
+    signal?: AbortSignal | undefined;
   }): Promise<NerveBusRunnerOutcome<TResult>>;
 };

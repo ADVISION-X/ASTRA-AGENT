@@ -2,7 +2,7 @@ scenarioId: second-prompt-truth-mutation
 mutationName: second prompt truth mutation
 mutatedFile: src/lib/local-ai/prompt-registry.ts
 rollbackRestoredHash: sha256:7f4afd3ea687b6f14cbddf7b3ce293e07c0b20c05ea4211252c4f976e7f48334
-startedAt: 2026-05-06T19:01:04.571Z
-endedAt: 2026-05-06T19:01:12.319Z
+startedAt: 2026-05-06T20:21:49.834Z
+endedAt: 2026-05-06T20:21:58.347Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

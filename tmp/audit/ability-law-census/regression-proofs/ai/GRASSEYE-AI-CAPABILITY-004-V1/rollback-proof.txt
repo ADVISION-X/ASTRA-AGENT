@@ -2,7 +2,7 @@ scenarioId: public-index-helper-mutation
 mutationName: public index helper mutation
 mutatedFile: src/capabilities/ai/index.ts
 rollbackRestoredHash: sha256:9c8a8dad139c4cf3d2841cfb7fb55c7e1c555d4709961acb2d02e5c7b4450bf8
-startedAt: 2026-05-06T18:59:32.068Z
-endedAt: 2026-05-06T18:59:39.826Z
+startedAt: 2026-05-06T20:20:14.110Z
+endedAt: 2026-05-06T20:20:21.895Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

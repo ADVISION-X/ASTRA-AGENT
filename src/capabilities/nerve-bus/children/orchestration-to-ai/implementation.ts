@@ -14,6 +14,7 @@ export const ORCHESTRATION_TO_AI_CHILD: NerveBusChildDefinition<OrchestrationToA
       inputPayload: input.inputPayload,
       context: input.context,
       timeoutMs: input.registryEntry.maxDurationMs,
+      parentSignal: input.signal,
       resultSchema: OrchestrationToAiResultSchema,
       invoke: (signal) => input.context.handlerPort.requestAi({
         envelope: input.envelope,

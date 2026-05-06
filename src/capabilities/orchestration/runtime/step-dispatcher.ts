@@ -117,7 +117,10 @@ async function dispatchAiStep(input: {
   const timeoutMs = resolveStepTimeoutMs(input.step);
 
   const timeoutResult = await dispatchWithTimeout(
-    async (_signal) => input.context.nerveBus.sendRequestToAi(buildAiDispatchRequest({ ...input, ...prepared.value })),
+    async (signal) => input.context.nerveBus.sendRequestToAi({
+      ...buildAiDispatchRequest({ ...input, ...prepared.value }),
+      signal,
+    }),
     timeoutMs,
   );
   return timeoutResult.timedOut

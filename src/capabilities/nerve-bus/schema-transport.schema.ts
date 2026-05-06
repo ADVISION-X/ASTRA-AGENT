@@ -66,6 +66,7 @@ const AbilityResultDispatchInputSchema = z.object({
 const AiRequestDispatchInputSchema = z.object({
   envelope: AiRequestEnvelopeSchema,
   inputPayload: NerveBusPayloadDocumentSchema,
+  signal: z.custom<AbortSignal>((value) => value instanceof AbortSignal).optional(),
 }).strict();
 
 const AiResponseDispatchInputSchema = z.object({

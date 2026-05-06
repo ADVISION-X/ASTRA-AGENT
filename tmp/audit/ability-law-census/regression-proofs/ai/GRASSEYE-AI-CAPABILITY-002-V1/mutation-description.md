@@ -1,10 +1,10 @@
 # GRASSEYE-AI-CAPABILITY-002-V1 Production Mutation
 
-scenarioId: ai-error-diagnostic-ref-mutation
-mutationName: ai error diagnostic ref mutation
-mutatedFile: src/capabilities/ai/ability-group.ts
-coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
-beforeHash: sha256:d5ddc103a0966e425fcc28413c21bfb32439e57cd8b4ca85d21ca4f04eded512
-afterMutationHash: sha256:8796e66d902d12b688ea1eabd6ed5eccd68a385ece6b588c1a94ddf2697095c4
+scenarioId: success-raw-output-hash-mutation
+mutationName: success raw output hash mutation
+mutatedFile: src/capabilities/ai/schema-runtime-success-invariants.ts
+coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1, GRASSEYE-AI-CAPABILITY-013-V1
+beforeHash: sha256:7ea6443e91a649b59a3a18bc06b77d6d563befdcaab753a4c7e6692a7ab6d262
+afterMutationHash: sha256:d7e260c3fe0d475f2ae10908cdffbe57c058e5a5ed17f6d5b8967244cbe06040
 
-The mutation removes diagnosticPayloadRef from unexpected AI child throw handling, proving outer runtime_execution_failed failures remain diagnosable.
+The mutation weakens raw response hash enforcement, proving ASK AI success requires rawResponseHash evidence.

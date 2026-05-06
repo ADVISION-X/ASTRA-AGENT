@@ -52,6 +52,7 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
     const transport = await nerveBus.requestAi({
       envelope: buildAiDispatchEnvelope(input, envelopeId, createdAt, expiresAt),
       inputPayload: buildAiDispatchDocument(input),
+      signal: input.signal,
     });
     return {
       status: transport.responseEnvelope.status,

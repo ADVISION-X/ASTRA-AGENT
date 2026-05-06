@@ -201,6 +201,7 @@ const runQueuedExecution = async <TEnvelope extends SupportedEnvelope, TResult e
   inputPayload: ChildInputPayload<TEnvelope, TResult>;
   registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
   context: NerveBusRuntimeContext;
+  signal?: AbortSignal | undefined;
 }, started: ExecutionClockSnapshot) => {
   const lease = await input.context.queue.tryAcquire();
   if (!lease) {
@@ -214,6 +215,7 @@ const runQueuedExecution = async <TEnvelope extends SupportedEnvelope, TResult e
       inputPayload: input.inputPayload,
       registryEntry: input.registryEntry,
       context: input.context,
+      signal: input.signal,
     });
     return finalizeExecutionOutcome(input, started, outcome);
   } catch (error) {
@@ -231,6 +233,7 @@ export async function executeNerveBusChild<TEnvelope extends SupportedEnvelope, 
   inputPayload: ChildInputPayload<TEnvelope, TResult>;
   registryEntry: NerveBusChannelRegistryEntry<TEnvelope, TResult>;
   context: NerveBusRuntimeContext;
+  signal?: AbortSignal | undefined;
 }) {
   const started = input.context.clock.now();
   const preDispatchFailure = resolvePreDispatchFailure(input, started);

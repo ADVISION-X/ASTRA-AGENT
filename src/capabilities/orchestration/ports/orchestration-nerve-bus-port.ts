@@ -87,6 +87,7 @@ export interface OrchestrationNerveBusPort {
     sequenceNo: number;
     idempotencyKey: string;
     timeoutMs: number;
+    signal?: AbortSignal | undefined;
   }): Promise<OrchestrationDispatchResult>;
   sendReviewRequestToCommander(input: {
     missionId: string;

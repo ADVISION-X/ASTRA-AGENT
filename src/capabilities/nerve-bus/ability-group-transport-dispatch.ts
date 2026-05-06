@@ -84,6 +84,7 @@ function executeOrchestrationToAi(
     inputPayload: channelInput.inputPayload,
     registryEntry: getNerveBusChannelRegistryEntry("orchestration-to-ai"),
     context,
+    signal: channelInput.signal,
   });
 }
 

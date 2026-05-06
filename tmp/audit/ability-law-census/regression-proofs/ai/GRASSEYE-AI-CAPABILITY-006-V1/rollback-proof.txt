@@ -2,7 +2,7 @@ scenarioId: as-any-mutation
 mutationName: as-any mutation
 mutatedFile: src/capabilities/ai/runtime/ai-executor.ts
 rollbackRestoredHash: sha256:64beeb5a02ca548647af46aadd0ea2ccdaa029ab43409fff53ac36d5ec53ab26
-startedAt: 2026-05-06T18:59:55.167Z
-endedAt: 2026-05-06T19:00:02.913Z
+startedAt: 2026-05-06T20:20:37.430Z
+endedAt: 2026-05-06T20:20:45.175Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

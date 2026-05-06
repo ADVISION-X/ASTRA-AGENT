@@ -89,6 +89,12 @@ const MUTATIONS: Mutation[] = [
     replace: "timeoutMs: 30_000,",
   },
   {
+    name: "ai dispatch abort signal drop mutation",
+    file: "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+    search: "    async (signal) => input.context.nerveBus.sendRequestToAi({\n      ...buildAiDispatchRequest({ ...input, ...prepared.value }),\n      signal,\n    }),\n",
+    replace: "    async (_signal) => input.context.nerveBus.sendRequestToAi(buildAiDispatchRequest({ ...input, ...prepared.value })),\n",
+  },
+  {
     name: "step transition runtime event removal mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
     search: 'eventType: "STEP_TRANSITION_EVALUATED",',

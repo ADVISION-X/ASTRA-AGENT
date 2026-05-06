@@ -15,6 +15,7 @@ const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
 const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
 const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
+const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
 const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
 const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
@@ -269,6 +270,7 @@ function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject
   const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
   const dispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
   const requestBuilderSource = getSourceFileOrThrow(project, STEP_DISPATCH_REQUEST_BUILDERS_PATH);
+  const nerveBusAdapterSource = getSourceFileOrThrow(project, NERVE_BUS_ADAPTER_PATH);
   const findings: Finding[] = [];
 
   if (!hasCallExpressionPath(sharedSource, ["Number", "isFinite"]) || !sharedSource.getFullText().includes("step.timeoutPolicy.maxDurationMs")) {
@@ -279,6 +281,12 @@ function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject
   }
   if (!requestBuilderSource.getFullText().includes("timeoutMs: resolveStepTimeoutMs(input.step)")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "AI Nerve Bus dispatch request must carry the governed step timeoutPolicy value." }));
+  }
+  if (!dispatcherSource.getFullText().includes("async (signal)") || !dispatcherSource.getFullText().includes("signal,")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatchWithTimeout must pass its AbortSignal into sendRequestToAi, not discard it with _signal." }));
+  }
+  if (!nerveBusAdapterSource.getFullText().includes("signal: input.signal")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: NERVE_BUS_ADAPTER_PATH, line: 1, message: "Orchestration Nerve Bus AI adapter must pass the AI dispatch AbortSignal into nerveBus.requestAi." }));
   }
 
   return {
