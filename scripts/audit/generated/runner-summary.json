@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T15:57:43.180Z",
+  "generatedAt": "2026-05-06T16:16:03.039Z",
   "phase": "phase-04-full-enforcement",
   "passed": true,
   "totals": {
@@ -61,7 +61,7 @@
           "name": "negative-proof-harness",
           "classification": "PASS",
           "passed": true,
-          "summary": "Page State negative-proof harness rejects manual-first-enforcement-reintroduced: manual-first-enforcement-reintroduced fail-ok, turn-p0-into-warning-only: turn-p0-into-warning-only fail-ok, truth-ownership:skip-build: open-feed-ready-classifier-outside-page-state, platform-login-wall-truth-helper-outside-page-state, accept-action-completion-as-page-state-proof fail-ok, required:skip-build: remove-capabilityCallId-from-input, remove-activationSnapshotRef-from-input, remove-nerveBusEnvelopeId-from-input, remove-snapshot-sourceProofRef, observation-without-sourceProofRef, proof-runId-from-fingerprint, proof-missing-activationSnapshotRef, local-runtime-page-state-hardcodes-child-capability, local-runtime-page-state-drops-governed-observations, detect-safety-page-drops-normal-negative-observations, local-runtime-page-state-executor-drops-input-payload, non-success-page-state-proof-drops-diagnostic-payload-ref, non-success-page-state-result-drops-runtime-proof-fingerprint, non-success-page-state-result-drops-runtime-proof-observation-refs, child-returns-boolean fail-ok, anti-escape:skip-build: success-without-evidenceRefs, failed-result-retains-output, child-hardcodes-tiktok-feed-path, remove-negative-proof-invocation, remove-negative-proof-phase-grouping fail-ok, forbidden:skip-build: result-adds-verificationDecision, child-imports-screenshot-implementation, add-verify-page-state-capabilities fail-ok, boundary:skip-build: external-import-of-child-implementation fail-ok."
+          "summary": "Page State negative-proof harness was skipped for nested inspector execution."
         }
       ],
       "summary": "page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases",
