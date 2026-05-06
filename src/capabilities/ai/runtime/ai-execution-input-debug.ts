@@ -90,7 +90,7 @@ const buildInputDebugIdentity = (fields: InputDebugFields) => {
 const buildInputDebugBase = (
   fields: InputDebugFields,
   identity: ReturnType<typeof buildInputDebugIdentity>,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
   eventType: "AI_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
@@ -98,6 +98,7 @@ const buildInputDebugBase = (
   missionId: fields.missionId,
   roundId: fields.roundId,
   videoVisitId: fields.videoVisitId,
+  stepId: fields.stepId,
   traceId: fields.capabilityCallId,
   spanId: identity.runtimeCallId,
   attemptId: `${identity.runtimeCallId}:attempt:0`,

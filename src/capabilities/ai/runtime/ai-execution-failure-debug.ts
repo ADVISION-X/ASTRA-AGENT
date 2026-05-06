@@ -46,7 +46,7 @@ const buildExecutionFailureDebugRefs = (input: ExecutionFailureDebugInput): Exec
 const buildExecutionFailureDebugBase = (
   input: ExecutionFailureDebugInput,
   refs: ExecutionFailureDebugRefs,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
   eventType: "AI_ERROR_DEBUG",
   level: "ERROR",
   status: "failed",
@@ -54,6 +54,7 @@ const buildExecutionFailureDebugBase = (
   missionId: input.rawInput.missionId,
   roundId: input.rawInput.roundId,
   videoVisitId: input.rawInput.videoVisitId,
+  stepId: input.rawInput.stepId,
   traceId: input.rawInput.capabilityCallId,
   spanId: refs.runtimeCallId,
   attemptId: `${refs.runtimeCallId}:attempt:0`,

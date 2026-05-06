@@ -93,6 +93,7 @@ const buildDebugTraceFields = (args: {
     missionId: args.request.missionId,
     roundId: args.request.roundId,
     videoVisitId: args.request.videoVisitId,
+    stepId: args.request.stepId,
     traceId: args.traceId,
     spanId: args.runtimeCallId ?? `${args.request.sessionId}:${args.request.taskType}`,
     attemptId: `${args.runtimeCallId ?? args.request.sessionId}:attempt:0`,

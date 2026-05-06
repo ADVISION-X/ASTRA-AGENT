@@ -6,9 +6,9 @@ import { buildAbilityDispatchResult, buildAiDispatchRequest, buildReviewDispatch
 import { buildFinalizeStepResult, buildReviewStepResult } from "./step-dispatch-review.js";
 import {
   buildAbilityOutputSchemaRef,
-  DEFAULT_STEP_TIMEOUT_MS,
   resolveAiDispatchRequirements,
   resolveDispatchChain,
+  resolveStepTimeoutMs,
   type AbilityDispatchInput,
   type AbilityDispatchTarget,
   type AbilityStep,
@@ -34,6 +34,7 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
   if (!chain.ok) {
     throw new Error(chain.failureReason);
   }
+  const timeoutMs = resolveStepTimeoutMs(input.step);
 
   return dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendCommandToAbility({
@@ -56,9 +57,9 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,
-      timeoutMs: DEFAULT_STEP_TIMEOUT_MS,
+      timeoutMs,
     }),
-    DEFAULT_STEP_TIMEOUT_MS,
+    timeoutMs,
   );
 }
 
@@ -70,7 +71,7 @@ async function dispatchAbilityStep(input: AbilityDispatchInput): Promise<StepDis
 
   const timeoutResult = await sendAbilityDispatch(input, input.step.targetAbilityGroupId as AbilityDispatchTarget);
   if (timeoutResult.timedOut) {
-    return { dispatched: false, failureReason: `Ability dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` };
+    return { dispatched: false, failureReason: `Ability dispatch timed out after ${resolveStepTimeoutMs(input.step)}ms for step "${input.step.stepId}".` };
   }
 
   return buildAbilityDispatchResult(input, timeoutResult.result);
@@ -113,13 +114,14 @@ async function dispatchAiStep(input: {
   if (!prepared.ok) {
     return { dispatched: false, failureReason: prepared.failureReason };
   }
+  const timeoutMs = resolveStepTimeoutMs(input.step);
 
   const timeoutResult = await dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendRequestToAi(buildAiDispatchRequest({ ...input, ...prepared.value })),
-    DEFAULT_STEP_TIMEOUT_MS,
+    timeoutMs,
   );
   return timeoutResult.timedOut
-    ? { dispatched: false, failureReason: `AI dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` }
+    ? { dispatched: false, failureReason: `AI dispatch timed out after ${timeoutMs}ms for step "${input.step.stepId}".` }
     : buildAiStepResult({ state: input.state, map: input.map, step: input.step, missionId: input.missionId, dispatchResult: timeoutResult.result });
 }
 
@@ -137,13 +139,14 @@ async function dispatchReviewStep(input: {
   if (!chain.ok) {
     return { dispatched: false, failureReason: chain.failureReason };
   }
+  const timeoutMs = resolveStepTimeoutMs(input.step);
 
   const timeoutResult = await dispatchWithTimeout(
     async (_signal) => input.context.nerveBus.sendReviewRequestToCommander(buildReviewDispatchRequest({ ...input, chain: chain.value })),
-    DEFAULT_STEP_TIMEOUT_MS,
+    timeoutMs,
   );
   return timeoutResult.timedOut
-    ? { dispatched: false, failureReason: `Review dispatch timed out after ${DEFAULT_STEP_TIMEOUT_MS}ms for step "${input.step.stepId}".` }
+    ? { dispatched: false, failureReason: `Review dispatch timed out after ${timeoutMs}ms for step "${input.step.stepId}".` }
     : buildReviewStepResult({ map: input.map, missionId: input.missionId, step: input.step, reason: input.reason, reviewResult: timeoutResult.result });
 }
 

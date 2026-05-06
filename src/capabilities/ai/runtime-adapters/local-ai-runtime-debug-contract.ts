@@ -10,6 +10,7 @@ type AiRuntimeStructuredDebugEvent = {
   missionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
+  stepId?: string | null;
   traceId: string;
   spanId: string;
   attemptId: string;

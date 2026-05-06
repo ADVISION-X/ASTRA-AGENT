@@ -12,6 +12,7 @@ export type WorkbenchAiDebugEvent = {
   roundId?: string | null;
   attemptId: string;
   videoVisitId: string | null;
+  stepId?: string | null;
   traceId: string | null;
   spanId: string | null;
   failureReason: string | null;
@@ -154,7 +155,7 @@ const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, tra
   traceId: input.traceId,
   spanId: input.spanId,
   attemptId: input.attemptId,
-  step,
+  step: input.stepId ?? step,
 });
 
 const buildAiDebugStatusFields = (runtime: WorkbenchAiDebugRuntime, input: WorkbenchAiDebugEvent) => ({

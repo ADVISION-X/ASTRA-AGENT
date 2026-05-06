@@ -83,6 +83,12 @@ const MUTATIONS: Mutation[] = [
     replace: "const postActionVerificationReason = null;",
   },
   {
+    name: "ai step timeout policy bypass mutation",
+    file: "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts",
+    search: "timeoutMs: resolveStepTimeoutMs(input.step),",
+    replace: "timeoutMs: 30_000,",
+  },
+  {
     name: "step transition runtime event removal mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
     search: 'eventType: "STEP_TRANSITION_EVALUATED",',
@@ -200,7 +206,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, capability-call-start event loss, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.");
+    return createPassResult("Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, capability-call-start event loss, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, post-action verification bypass, and AI step timeout policy bypass mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Orchestration negative-proof harness failed.",

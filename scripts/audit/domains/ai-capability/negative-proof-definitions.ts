@@ -76,6 +76,12 @@ export const MUTATIONS: Mutation[] = [
   },
   { name: "ai request debug pre-parse mutation", file: "src/capabilities/ai/ability-group.ts", search: "  await emitAiExecutionInputDebug(context, inputValue);\n", replace: "" },
   {
+    name: "debug emitter required mutation",
+    file: "src/capabilities/ai/ability-group.ts",
+    search: "  if (!context.emitDebugEvent) {\n    return dispatchAiDebugEmitterMissing(context, inputValue);\n  }\n",
+    replace: "",
+  },
+  {
     name: "ai request debug pre-gateway mutation",
     file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
     search: "  await context.debugSession.emitAiRequestDebug();\n",
@@ -123,6 +129,12 @@ export const MUTATIONS: Mutation[] = [
     file: "src/capabilities/ai/schema-runtime-success-invariants.ts",
     search: 'if (input.createdAt !== null && input.rawOutputRef === null) {',
     replace: 'if (input.createdAt === null && input.rawOutputRef === null) {',
+  },
+  {
+    name: "success raw output hash mutation",
+    file: "src/capabilities/ai/schema-runtime-success-invariants.ts",
+    search: 'if (input.status === "success" && input.runtimeProof.rawOutputHash === null) {',
+    replace: 'if (input.status === "failed" && input.runtimeProof.rawOutputHash === null) {',
   },
   {
     name: "child-schema-shell mutation",
@@ -322,6 +334,12 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
       "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation removes emitDebugEvent from the configured runtime factory, proving AI_ERROR_DEBUG cannot silently disconnect from structured runtime logging.",
     },
   },
+  "debug emitter required mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation lets ASK AI continue without a structured debug emitter, proving AI_REQUEST_DEBUG is a hard execution precondition.",
+    },
+  },
   "implementation status collapse mutation": {
     coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
     coverageReasonByLawId: {
@@ -338,6 +356,13 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
     coveredLawIds: ["GRASSEYE-AI-CAPABILITY-013-V1"],
     coverageReasonByLawId: {
       "GRASSEYE-AI-CAPABILITY-013-V1": "The mutation removes capabilityCallId from runtime proof identity, proving AI result proofs must remain complete and chain-linked.",
+    },
+  },
+  "success raw output hash mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1", "GRASSEYE-AI-CAPABILITY-013-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation weakens raw response hash enforcement, proving ASK AI success requires rawResponseHash evidence.",
+      "GRASSEYE-AI-CAPABILITY-013-V1": "The mutation proves AI runtime proof cannot be considered complete without rawOutputHash on success.",
     },
   },
   "input gate mutation": {

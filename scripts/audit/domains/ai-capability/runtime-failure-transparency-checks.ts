@@ -134,6 +134,17 @@ const hasAbilityPreParseRequestDebug = (project: Project): boolean => {
     && hasFunctionObjectProperty(executionInputDebugSource, "buildInputDebugPrompt", "promptDebugRef");
 };
 
+const hasDebugEmitterRequiredBeforeExecution = (project: Project): boolean => {
+  const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const missingEmitterStart = getCallStartInFunction(abilityGroupSource, "executeAiRequest", "dispatchAiDebugEmitterMissing");
+  const inputDebugStart = getCallStartInFunction(abilityGroupSource, "executeAiRequest", "emitAiExecutionInputDebug");
+  return missingEmitterStart !== null
+    && inputDebugStart !== null
+    && missingEmitterStart < inputDebugStart
+    && hasFunctionObjectProperty(abilityGroupSource, "dispatchAiDebugEmitterMissing", "failureReason")
+    && hasStringArrayElements(abilityGroupSource, ["ai_debug_emitter_missing", "DebugEmitterMissing"]);
+};
+
 const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
   const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
   const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
@@ -143,10 +154,30 @@ const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
     && hasTypeAliasProperty(localDebugContractSource, "LocalAiDebugSession", "emitAiRequestDebug");
 };
 
+const hasRawResponseSuccessProof = (project: Project): boolean => {
+  const successInvariantSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime-success-invariants.ts`);
+  const localOutputSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-output.ts`);
+  return hasFunctionObjectProperty(localOutputSource, "buildLocalAiSuccessOutput", "rawOutputRef")
+    && hasFunctionObjectProperty(localOutputSource, "buildLocalAiSuccessOutput", "rawOutputHash")
+    && hasStringArrayElements(successInvariantSource, [
+      "success proof requires rawOutputRef",
+      "success proof requires rawOutputHash",
+      "success result requires runtimeProof.rawOutputHash",
+    ]);
+};
+
 const collectRequestDebugStartFindings = (project: Project): Finding[] => {
-  return hasAbilityPreParseRequestDebug(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
+  return hasAbilityPreParseRequestDebug(project) && hasDebugEmitterRequiredBeforeExecution(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
     ? []
     : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and before provider/model await boundaries." })];
+};
+
+const collectAskAiProofFindings = (project: Project): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasRawResponseSuccessProof(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/schema-runtime-success-invariants.ts`, line: 1, severity: "fatal", message: "ASK AI success must require rawResponseRef/rawResponseHash through runtime proof and result invariants." }));
+  }
+  return findings;
 };
 
 export const collectRuntimeFailureReasonFindings = (project: Project): Finding[] => {
@@ -155,5 +186,6 @@ export const collectRuntimeFailureReasonFindings = (project: Project): Finding[]
     ...collectDispatchFailureEnvelopeFindings(project),
     ...collectOuterCatchDebugFindings(project),
     ...collectRequestDebugStartFindings(project),
+    ...collectAskAiProofFindings(project),
   ];
 };

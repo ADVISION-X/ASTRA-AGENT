@@ -168,6 +168,12 @@ const buildAiDispatchRequirements = (input: {
   },
 });
 
+const resolveStepTimeoutMs = (step: OperationalStep): number => (
+  Number.isFinite(step.timeoutPolicy.maxDurationMs) && step.timeoutPolicy.maxDurationMs > 0
+    ? step.timeoutPolicy.maxDurationMs
+    : DEFAULT_STEP_TIMEOUT_MS
+);
+
 const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep }) => {
   const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
   if (!registration) {
@@ -224,6 +230,7 @@ export {
   buildBranchFieldValues,
   resolveAiDispatchRequirements,
   resolveDispatchChain,
+  resolveStepTimeoutMs,
 };
 
 export type {

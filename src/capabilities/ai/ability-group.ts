@@ -71,6 +71,26 @@ const dispatchAiExecutableFailure = (
     statusMessage: `AI child capability is not executable for ${childCapabilityId}.`,
   });
 
+const dispatchAiDebugEmitterMissing = (
+  context: AiExecutionContext,
+  rawInput: unknown,
+) =>
+  dispatchAiFailure({
+    rawInput,
+    context,
+    childCapabilityId: null,
+    taskType: null,
+    providerKind: null,
+    failureReason: "ai_debug_emitter_missing",
+    statusMessage: "AI debug emitter is required before ASK AI execution.",
+    implementationStatus: "debug_emitter_missing",
+    errorKind: "DebugEmitterMissing",
+    diagnosticPayloadRef: buildStableAiRef("ai-runtime-execution-diagnostic", [
+      "debug-emitter-missing",
+    ]),
+    rawOutputHash: "debug_emitter_missing",
+  });
+
 const dispatchAiExecutionFailure = (
   input: {
     context: AiExecutionContext;
@@ -203,6 +223,9 @@ const executeAiRequest = async (
   registry: ReturnType<typeof createAiCapabilityRegistry>,
   inputValue: unknown,
 ): Promise<AiAbilityOutcome> => {
+  if (!context.emitDebugEvent) {
+    return dispatchAiDebugEmitterMissing(context, inputValue);
+  }
   await emitAiExecutionInputDebug(context, inputValue);
   const parsedData = parseAiExecutionInput(context, inputValue);
   if ("status" in parsedData) {

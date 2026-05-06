@@ -5,7 +5,7 @@ import {
   applyStepOutputRefPolicy,
   buildAbilityOutputSchemaRef,
   buildBranchFieldValues,
-  DEFAULT_STEP_TIMEOUT_MS,
+  resolveStepTimeoutMs,
   type AbilityDispatchInput,
   type AiStep,
   type DispatchChain,
@@ -51,7 +51,7 @@ export function buildAiDispatchRequest(input: {
     payloadRefs: input.state.payloadRefs,
     sequenceNo: input.sequenceNo,
     idempotencyKey: input.idempotencyKey,
-    timeoutMs: DEFAULT_STEP_TIMEOUT_MS,
+    timeoutMs: resolveStepTimeoutMs(input.step),
   };
 }
 

@@ -14,6 +14,10 @@ type WorkbenchAiDebugForensicsRuntime = WorkbenchAiDebugRuntime & {
   };
 };
 
+const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"]): boolean => (
+  eventType === "AI_REQUEST_DEBUG" || eventType === "AI_RESPONSE_DEBUG" || eventType === "AI_ERROR_DEBUG"
+);
+
 export const recordWorkbenchAiDebugEvent = async (
   runtime: WorkbenchAiDebugForensicsRuntime,
   input: WorkbenchAiDebugEvent,
@@ -34,7 +38,7 @@ export const recordWorkbenchAiDebugEvent = async (
     sessionId: input.sessionId,
     roundId: input.roundId ?? input.attemptId,
     videoVisitId: input.videoVisitId,
-    stepId: input.roundId ?? resolveAiDebugStep(input.taskType),
+    stepId: input.stepId ?? input.roundId ?? resolveAiDebugStep(input.taskType),
     mapPackageId: mapChain.mapPackageId,
     mapPackageVersion: mapChain.mapPackageVersion,
     selectedMapId: trace.mapId,
@@ -48,7 +52,11 @@ export const recordWorkbenchAiDebugEvent = async (
     artifactRefs,
     promptContractId: input.promptContractId,
     promptContractVersion: input.promptVersion,
-    persistencePolicy: { mode: "append", allowPartialRefs: true },
+    persistencePolicy: {
+      mode: "append",
+      allowPartialRefs: !isCriticalAiRuntimeProof(input.eventType),
+      allowExternalArtifactRef: isCriticalAiRuntimeProof(input.eventType),
+    },
     dataQualityFlags: input.parserErrors,
     payload: { structuredRuntimeEvent },
   });

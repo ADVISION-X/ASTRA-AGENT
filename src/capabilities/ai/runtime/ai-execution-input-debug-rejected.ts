@@ -117,7 +117,7 @@ const emptyCatalogFields = () => ({
 const buildRejectedBaseFields = (
   issue: InputDebugShapeIssue,
   identity: ReturnType<typeof buildRejectedIdentity>,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
   return {
     eventType: "AI_REQUEST_DEBUG",
     level: "DEBUG",
@@ -126,6 +126,7 @@ const buildRejectedBaseFields = (
     missionId: issue.missionId,
     roundId: issue.roundId,
     videoVisitId: issue.videoVisitId,
+    stepId: issue.stepId,
     traceId: issue.capabilityCallId ?? identity.runtimeCallId,
     spanId: identity.runtimeCallId,
     attemptId: `${identity.runtimeCallId}:attempt:0`,

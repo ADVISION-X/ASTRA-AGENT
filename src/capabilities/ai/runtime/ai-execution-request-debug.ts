@@ -28,7 +28,7 @@ const buildRequestDebugRefs = (input: ExecutionRequestDebugInput) => {
 const buildRequestDebugBase = (
   input: ExecutionRequestDebugInput,
   runtimeCallId: string,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
   eventType: "AI_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
@@ -36,6 +36,7 @@ const buildRequestDebugBase = (
   missionId: input.request.missionId,
   roundId: input.request.roundId,
   videoVisitId: input.request.videoVisitId,
+  stepId: input.request.stepId,
   traceId: input.request.capabilityCallId,
   spanId: runtimeCallId,
   attemptId: `${runtimeCallId}:attempt:0`,

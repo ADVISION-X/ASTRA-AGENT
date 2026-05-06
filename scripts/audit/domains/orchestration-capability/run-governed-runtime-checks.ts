@@ -13,6 +13,8 @@ const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/orchestration-capabil
 const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-resume.ts";
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
+const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
+const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
 const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
 const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
@@ -263,6 +265,33 @@ function inspectPostActionVerificationChain(project: ReturnType<typeof createAud
   };
 }
 
+function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
+  const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
+  const dispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
+  const requestBuilderSource = getSourceFileOrThrow(project, STEP_DISPATCH_REQUEST_BUILDERS_PATH);
+  const findings: Finding[] = [];
+
+  if (!hasCallExpressionPath(sharedSource, ["Number", "isFinite"]) || !sharedSource.getFullText().includes("step.timeoutPolicy.maxDurationMs")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration must resolve dispatch timeout from the governed map step timeoutPolicy." }));
+  }
+  if (!hasCallExpressionPath(dispatcherSource, ["dispatchWithTimeout"]) || !dispatcherSource.getFullText().includes("AI dispatch timed out after ${timeoutMs}ms")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatch must be wrapped by the resolved step timeout and return a governed timeout failure." }));
+  }
+  if (!requestBuilderSource.getFullText().includes("timeoutMs: resolveStepTimeoutMs(input.step)")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "AI Nerve Bus dispatch request must carry the governed step timeoutPolicy value." }));
+  }
+
+  return {
+    findings,
+    phase: createRuntimePhase(
+      "ai-step-timeout-chain",
+      findings,
+      "Orchestration applies governed step timeoutPolicy to AI dispatch and timeout terminal failure.",
+      "Orchestration still lets AI dispatch ignore the governed step timeoutPolicy.",
+    ),
+  };
+}
+
 async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
   const harnessExists = await fileExists(pathFromRepoRoot(NEGATIVE_PROOF_HARNESS_PATH));
   const findings = harnessExists
@@ -289,6 +318,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
     Promise.resolve(inspectRuntimeProofRunIdChain(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
+    Promise.resolve(inspectAiStepTimeoutChain(project)),
     inspectAiPromptContractTaskTypeDispatch(),
     Promise.resolve(inspectMissionLoopTraceability(project)),
     Promise.resolve(inspectStartMissionCommandBoundary(project)),
