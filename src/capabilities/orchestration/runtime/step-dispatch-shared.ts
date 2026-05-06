@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
+import { tryGetPromptContractCatalogEntry } from "../../ai/prompt-contracts/registry.js";
 import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
@@ -111,15 +112,25 @@ const resolveAiDispatchRequirements = (input: {
   state: MissionState;
   map: OperationalMap;
   step: AiStep;
-}): { ok: true; value: { promptContractVersion: string; outputSchemaRef: string; aiInputRefs: string[]; providerPolicyRef: string } } | { ok: false; failureReason: string } => {
+}): { ok: true; value: { taskType: string; promptContractVersion: string; outputSchemaRef: string; aiInputRefs: string[]; providerPolicyRef: string } } | { ok: false; failureReason: string } => {
   const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
   if (!registration) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
+  }
+  if (!input.step.promptContractId) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing promptContractId.` };
+  }
+  const promptContract = tryGetPromptContractCatalogEntry(input.step.promptContractId);
+  if (!promptContract) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" prompt_contract_resolution_failed for ${input.step.promptContractId}.` };
   }
 
   const binding = registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
   if (!binding) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
+  }
+  if (binding.outputSchemaRef !== promptContract.outputSchemaRef) {
+    return { ok: false, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
   }
 
   if (!input.state.promptContractVersion) {
@@ -134,6 +145,7 @@ const resolveAiDispatchRequirements = (input: {
   return {
     ok: true,
     value: {
+      taskType: promptContract.taskType,
       promptContractVersion: input.state.promptContractVersion,
       outputSchemaRef: binding.outputSchemaRef,
       aiInputRefs: aiInputRefs as string[],

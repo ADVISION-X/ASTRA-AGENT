@@ -1,6 +1,7 @@
 import type { AiChildCapabilityId, AiDispatchFailureEnvelope, AiExecutionContext, AiProviderKind, AiTaskType } from "../contract.js";
 import { AiDispatchFailureEnvelopeSchema, AiInputSchema, AiTaskTypeSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
+import type { z } from "zod";
 
 type FailureEnvelopeTrace = {
   missionId: string | null;
@@ -57,6 +58,41 @@ function parseFailureEnvelopeTrace(rawInput: unknown): FailureEnvelopeTrace {
   };
 }
 
+function formatIssuePath(issue: z.ZodIssue): string {
+  return issue.path.length > 0 ? issue.path.join(".") : "taskType";
+}
+
+function buildInputSchemaDiagnostics(rawInput: unknown, failureReason: string) {
+  if (failureReason !== "input_schema_invalid") {
+    return {
+      schemaIssueCount: 0,
+      schemaIssueRef: null,
+      missingRequiredFields: [],
+      invalidFieldPaths: [],
+      actionableMessage: null,
+    };
+  }
+
+  const parsed = AiInputSchema.safeParse(rawInput);
+  const issues = parsed.success ? [] : parsed.error.issues;
+  const invalidFieldPaths = [...new Set(issues.map(formatIssuePath))];
+  const missingRequiredFields = [...new Set(issues
+    .filter((issue) => issue.message.toLowerCase().includes("required") || issue.code === "invalid_type")
+    .map(formatIssuePath))];
+  return {
+    schemaIssueCount: issues.length,
+    schemaIssueRef: buildStableAiRef("ai-input-schema-issues", [
+      readFailureEnvelopeStringField(rawInput, "missionId"),
+      readFailureEnvelopeStringField(rawInput, "sessionId"),
+      readFailureEnvelopeTaskType(rawInput),
+      String(issues.length),
+    ]),
+    missingRequiredFields,
+    invalidFieldPaths,
+    actionableMessage: "Inspect AI input builder and promptInputRef resolution before retrying.",
+  };
+}
+
 export function dispatchAiFailure(input: {
   rawInput: unknown;
   context: AiExecutionContext;
@@ -73,6 +109,7 @@ export function dispatchAiFailure(input: {
   const taskTypeSource = trace.taskType === null && input.taskType !== null ? "parsed_input" : trace.taskTypeSource;
   const childCapabilityId = input.childCapabilityId;
   const rawInputRef = buildStableAiRef("ai-raw-input", [trace.missionId, trace.sessionId, taskType, input.failureReason]);
+  const schemaDiagnostics = buildInputSchemaDiagnostics(input.rawInput, input.failureReason);
 
   return AiDispatchFailureEnvelopeSchema.parse({
     status: "failed",
@@ -82,6 +119,7 @@ export function dispatchAiFailure(input: {
     taskType,
     rawInputRef,
     parseFailureReason: input.statusMessage,
+    ...schemaDiagnostics,
     fallbackProof: {
       proofId: buildStableAiRef("ai-dispatch-proof", [trace.missionId, trace.sessionId, taskType, input.failureReason]),
       runId: buildStableAiRef("ai-dispatch-run", [trace.missionId, trace.sessionId, taskType]),

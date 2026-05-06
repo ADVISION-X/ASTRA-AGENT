@@ -78,6 +78,30 @@ const recordRejectedDispatch = async (input: {
   });
 };
 
+const recordAcceptedObserverTimeout = async (input: {
+  activeWorkbench: GrassEyeWorkbenchHandle;
+  approval: StartApproval;
+  result: StartCommandResult;
+  context: DispatchResultContext;
+}) => {
+  await input.activeWorkbench.recordCommanderDebugEvent({
+    eventType: "COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED",
+    status: "review_required",
+    traceId: input.result.runtimeProof?.runId ?? input.approval.traceId,
+    spanId: "command-receipt-timeout-after-accepted",
+    attemptId: input.approval.attemptId,
+    missionId: input.context.targetMissionId,
+    mapId: input.approval.binding.selectedMapId,
+    taskTemplateId: input.approval.binding.taskTemplateId,
+    failureReason: input.context.failureReason,
+    actionableMessage: "Command was already accepted; continue tracking mission runtime events instead of treating this observer timeout as command rejection.",
+    ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
+    runId: input.result.runtimeProof?.runId ?? input.approval.traceId,
+    refs: input.context.refs,
+    proofRefs: input.context.proofRefs,
+  });
+};
+
 const wasAcceptedBeforeResult = (result: StartCommandResult): boolean => {
   const proof = result.runtimeProof;
   return Boolean(proof?.commandEnvelopeRef && proof?.resultEnvelopeRef);
@@ -123,6 +147,8 @@ export async function writeTaskStartDispatchResult(
 
   if (!wasAcceptedBeforeResult(result)) {
     await recordRejectedDispatch({ activeWorkbench, approval, result, context });
+  } else if (context.failureReason.includes("timed out")) {
+    await recordAcceptedObserverTimeout({ activeWorkbench, approval, result, context });
   }
   writeTaskJsonResponse(response, 409, { ...result, traceId: approval.traceId, attemptId: approval.attemptId });
 }

@@ -325,6 +325,11 @@ const AiDispatchFailureEnvelopeSchema = z.object({
   taskType: AiTaskTypeSchema.nullable(),
   rawInputRef: z.string().min(1),
   parseFailureReason: z.string().min(1),
+  schemaIssueCount: z.number().int().nonnegative().default(0),
+  schemaIssueRef: z.string().min(1).nullable().default(null),
+  missingRequiredFields: z.array(z.string().min(1)).default([]),
+  invalidFieldPaths: z.array(z.string().min(1)).default([]),
+  actionableMessage: z.string().min(1).nullable().default(null),
   fallbackProof: z.object({
     proofId: z.string().min(1),
     runId: z.string().min(1),

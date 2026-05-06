@@ -1,6 +1,7 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
+import { AiTaskTypeSchema } from "../../capabilities/ai/schema.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
@@ -13,6 +14,7 @@ type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").WorkbenchRuntime["aiAbilityGroup"]["execute"]>[0];
 
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope) => AiTaskTypeSchema.parse(envelope.taskType);
 
 const buildWorkbenchAiInputRefs = (
   envelope: WorkbenchAiRequestEnvelope,
@@ -85,11 +87,12 @@ export const buildWorkbenchAiAbilityRequest = (
   inputPayload: WorkbenchAiPayloadDocument,
 ): WorkbenchAiExecuteInput => {
   const mapRecord = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
+  const taskType = resolveAiTaskType(envelope);
 
   return {
     abilityGroupId: "ai" as const,
     missionId: envelope.missionId,
-    taskType: envelope.taskType,
+    taskType,
     inputModality: "image_collection" as const,
     inputRefs: buildWorkbenchAiInputRefs(envelope, inputPayload),
     promptContractId: envelope.promptContractId,
@@ -113,6 +116,6 @@ export const buildWorkbenchAiAbilityRequest = (
     costPolicy: { maxEstimatedCost: 0 },
     dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
     safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
-    input: buildWorkbenchAiInputPayload(envelope, inputPayload),
+    input: buildWorkbenchAiInputPayload({ ...envelope, taskType }, inputPayload),
   };
 };

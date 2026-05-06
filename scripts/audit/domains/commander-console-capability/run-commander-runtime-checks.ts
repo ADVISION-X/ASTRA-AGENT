@@ -6,6 +6,7 @@ import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-help
 
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { commanderConsoleInspectionUtils } from "./inspection-utils.js";
+import { collectChildExecutorFindings, collectReadRuntimeFindings } from "./run-commander-runtime-execution-checks.js";
 import { collectDebugRefFindings, collectRuntimeProofRunIdFindings, collectTransportRunIdFindings } from "./run-commander-runtime-runid-checks.js";
 import { getCommanderRuntimeSources } from "./run-commander-runtime-sources.js";
 import { collectStartMissionAcceptanceBoundaryFindings } from "./run-commander-start-mission-acceptance-checks.js";
@@ -289,30 +290,6 @@ const collectCommandRuntimeFindings = (input: {
   }
   findings.push(...collectStartMissionAcceptanceBoundaryFindings(input.humanCommandSource));
   return findings;
-};
-
-const hasReadRuntimeWiring = (sourceFile: import("ts-morph").SourceFile) => {
-  return hasNamedImport(sourceFile, "commander-timeout-gate.js", "runCommanderTimeoutGate")
-    && hasNamedImport(sourceFile, "commander-idempotency-gate.js", "runCommanderIdempotencyGate")
-    && hasNamedImport(sourceFile, "commander-read-proof-gate.js", "applyCommanderReadProofGate")
-    && hasCallExpression(sourceFile, "runCommanderTimeoutGate")
-    && hasCallExpression(sourceFile, "runCommanderIdempotencyGate")
-    && hasCallExpression(sourceFile, "applyCommanderReadProofGate")
-    && sourceFile.getFullText().includes("timed-out-review-required");
-};
-
-const collectReadRuntimeFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] => {
-  return hasReadRuntimeWiring(sourceFile)
-    ? []
-    : [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2", READ_CHILD_EXECUTOR_PATH, "Read execution must invoke timeout, idempotency, and read-proof gates.")];
-};
-
-const collectChildExecutorFindings = (childExecutorsSource: import("ts-morph").SourceFile): { findings: Finding[]; childExecutorReceiptCount: number } => {
-  const childExecutorReceiptCount = countOccurrences(childExecutorsSource.getFullText(), "output: receipt,");
-  const findings = childExecutorReceiptCount < 3 || !childExecutorsSource.getFullText().includes("hard-stop-dispatch-failed")
-    ? [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2", CHILD_EXECUTORS_PATH, "Commander child executors must emit governed command receipts on failure and preserve hard-stop/not-found policy decisions.")]
-    : [];
-  return { findings, childExecutorReceiptCount };
 };
 
 export function runCommanderRuntimeChecks(project: import("ts-morph").Project): RuntimeCheckResult {

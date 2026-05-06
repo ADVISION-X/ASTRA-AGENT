@@ -112,7 +112,7 @@ function buildAiEnvelopeFields(input: SendAiInput, capabilityCallId: string) {
     requestId: capabilityCallId,
     from: "orchestration" as const,
     to: "ai" as const,
-    taskType: input.promptContractId,
+    taskType: input.taskType,
     promptContractId: input.promptContractId,
     promptContractVersion: input.promptContractVersion,
     outputSchemaRef: input.outputSchemaRef,

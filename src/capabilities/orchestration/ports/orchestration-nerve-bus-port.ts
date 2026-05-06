@@ -77,6 +77,7 @@ export interface OrchestrationNerveBusPort {
     selectedMapVersion: string;
     activationId: string;
     activationSnapshotRef: string;
+    taskType: string;
     promptContractId: string;
     promptContractVersion: string;
     outputSchemaRef: string;

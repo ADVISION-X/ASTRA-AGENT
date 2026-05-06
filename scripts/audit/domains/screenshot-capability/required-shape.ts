@@ -1,4 +1,4 @@
-import type { Project } from "ts-morph";
+import { Node, type Project } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -7,6 +7,7 @@ import { inspectScreenshotDispatchAdapter } from "../_shared/screenshot-dispatch
 import { CHILDREN, LAW_IDS, PATHS } from "./config.js";
 import { getRegistryChildIds, getSource, missingCanonicalFiles } from "./project-access.js";
 import { getZodEnumValues, hasInterfaceMethod, hasCallExpression, hasCallExpressionPath } from "./required-shape-ast-support.js";
+import { collectLifecycleTruthFindings } from "./required-shape-lifecycle-findings.js";
 import { inspectScreenshotRuntimeProofParity } from "./runtime-proof-parity-check.js";
 import { isThinAbilityGroup } from "./source-rules.js";
 
@@ -47,15 +48,6 @@ const V2_SCHEMA_SNIPPETS = [
   "SCREENSHOT_RESULT_CHAIN_FIELD_NAMES",
 ] as const;
 
-const LIFECYCLE_SCHEMA_SNIPPETS = [
-  "ScreenshotStoredArtifactSchema",
-  "artifactBudgetSnapshot",
-  "artifactLifecycleManifestRef",
-  "retentionClass",
-  "promotionStatus",
-  "artifactHash",
-  "byteSize",
-] as const;
 
 const LIFECYCLE_RUNTIME_SNIPPETS = [
   "resolveScreenshotArtifactLifecyclePlan",
@@ -253,7 +245,11 @@ function collectTransformTruthFindings(project: Project): Finding[] {
 }
 
 function collectBrowserViewportScaleGapFindings(project: Project): Finding[] {
-  return sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, [
+  const outputBoundarySource = getSource(project, PATHS.OUTPUT_BOUNDARY_GATE);
+  const callsScaleGapHelper = outputBoundarySource.getDescendants().some((node) =>
+    Node.isCallExpression(node) && node.getExpression().getText() === "isBrowserViewportScaleMappedCapture",
+  );
+  return callsScaleGapHelper && sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, [
     "isBrowserViewportScaleMappedCapture",
     "input.registryEntry.childCapabilityId === \"capture-browser-viewport\"",
     "input.output.coordinateSpace === \"source_image_pixels\"",
@@ -262,49 +258,6 @@ function collectBrowserViewportScaleGapFindings(project: Project): Finding[] {
   ])
     ? []
     : [createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must allow browser viewport captures with explicit browser_viewport_pixels -> source_image_pixels scaleMapping." })];
-}
-
-function collectLifecycleTruthFindings(project: Project): Finding[] {
-  const findings: Finding[] = [];
-
-  if (!sourceContainsAll(PATHS.LIFECYCLE_SCHEMA, project, [
-    "ScreenshotArtifactBudgetPolicySchema",
-    "ScreenshotArtifactBudgetSnapshotSchema",
-    "ScreenshotArtifactLifecycleManifestSchema",
-    "ScreenshotArtifactCleanupGateSchema",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_SCHEMA, line: 1, severity: "fatal", message: "Screenshot lifecycle schema must define budget policy, budget snapshot, cleanup gate, and lifecycle manifest truth." }));
-  }
-
-  if (!sourceContainsAll(PATHS.SCHEMA, project, LIFECYCLE_SCHEMA_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot schema must project lifecycle manifest, retention, promotion, artifact hash, and byte-size truth." }));
-  }
-
-  if (!sourceContainsAll(PATHS.LIFECYCLE_RUNTIME, project, LIFECYCLE_RUNTIME_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_RUNTIME, line: 1, severity: "fatal", message: "Screenshot lifecycle runtime must resolve retention, default non-promotion, TTL, and artifact budget checks." }));
-  }
-
-  if (!sourceContainsAll(PATHS.PAYLOAD_BUDGET_GATE, project, [
-    "artifact_budget_exceeded",
-    "evaluateScreenshotArtifactBudget",
-    "resolveScreenshotRetentionClass",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.PAYLOAD_BUDGET_GATE, line: 1, severity: "fatal", message: "Screenshot payload budget gate must enforce artifact quota/backpressure before execution." }));
-  }
-
-  if (!sourceContainsAll(PATHS.ARTIFACT_STORAGE_GATE, project, [
-    "artifact_budget_exceeded",
-    "resolveScreenshotArtifactLifecyclePlan",
-    "artifactLifecycleManifestRef",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.ARTIFACT_STORAGE_GATE, line: 1, severity: "fatal", message: "Screenshot artifact storage gate must write lifecycle metadata and fail closed on budget overflow." }));
-  }
-
-  if (!sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, LIFECYCLE_GATE_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must verify lifecycle manifest parity and ban self-promotion." }));
-  }
-
-  return findings;
 }
 
 function sourceContainsAll(path: string, project: Project, snippets: readonly string[]): boolean {

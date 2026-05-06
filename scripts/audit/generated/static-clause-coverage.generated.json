@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T13:38:44.623Z",
+  "generatedAt": "2026-05-06T13:51:14.836Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -150,6 +150,13 @@
           "checkFunction": "findRequiredExecutorCalls",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "findRequiredExecutorCalls",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeContractViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeContractViolations",
           "checkKind": "forbidden-shape"
         },
         {
@@ -971,6 +978,13 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
           "targetSymbol": "createFatalFinding",
           "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-runtime-execution-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-execution-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [
@@ -1195,6 +1209,13 @@
           "checkPhase": "run-commander-runtime-checks",
           "checkFunction": "createFatalFinding",
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-runtime-execution-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-execution-checks.ts",
           "targetSymbol": "createFatalFinding",
           "checkKind": "forbidden-shape"
         }
@@ -6705,44 +6726,44 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",
-          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
           "targetSymbol": "collectLifecycleTruthFindings",
           "checkKind": "required-shape"
         }

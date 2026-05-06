@@ -1,7 +1,7 @@
 diff --git a/scripts/startup/launch-grasseye.mjs b/scripts/startup/launch-grasseye.mjs
 --- a/scripts/startup/launch-grasseye.mjs
 +++ b/scripts/startup/launch-grasseye.mjs
-@@ -220,7 +220,7 @@
+@@ -177,7 +177,7 @@
  }
  
  function isControlledServiceExit(exit, shuttingDown) {

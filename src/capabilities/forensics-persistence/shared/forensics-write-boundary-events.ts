@@ -12,6 +12,37 @@ export type ForensicsRuntimeEventEmitter = {
 
 type StructuredWriteRequest = ForensicsStructuredRuntimeEventInput | ForensicsStructuredActionLogInput;
 
+function readPayloadString(value: unknown, fieldName: string): string {
+  return value && typeof value === "object" && !Array.isArray(value) && typeof Reflect.get(value, fieldName) === "string"
+    ? Reflect.get(value, fieldName) as string
+    : "unknown";
+}
+
+function resolveSourceEventId(request: StructuredWriteRequest): string {
+  return request.childCapabilityId === "write-structured-runtime-event"
+    ? readPayloadString(request.payload.structuredRuntimeEvent, "eventId")
+    : readPayloadString(request.payload.structuredActionLog, "actionLogId");
+}
+
+function resolveSourceEventType(request: StructuredWriteRequest): string {
+  return request.childCapabilityId === "write-structured-runtime-event"
+    ? readPayloadString(request.payload.structuredRuntimeEvent, "eventType")
+    : "structured_action_log";
+}
+
+function resolveRequestIdempotencyKey(request: StructuredWriteRequest): string {
+  return [
+    request.childCapabilityId,
+    request.recordType,
+    request.sessionId,
+    request.roundId,
+    request.videoVisitId ?? "no-video",
+    request.sourceAbilityGroupId,
+    request.sourceChildCapabilityId,
+    resolveSourceEventId(request),
+  ].join(":");
+}
+
 function resolveStructuredWritePayload(request: StructuredWriteRequest) {
   if (request.childCapabilityId === "write-structured-runtime-event") {
     return {
@@ -59,6 +90,7 @@ function buildBoundaryEvent(
     missionId: request.missionId,
     roundId: request.roundId,
     videoVisitId: request.videoVisitId,
+    import { buildForensicsIdempotencyKey } from "./forensics-idempotency.js";
     mapId: request.selectedMapId,
     stepId: request.stepId,
     taskTemplateId: payload.taskTemplateId,
@@ -70,17 +102,18 @@ function buildBoundaryEvent(
     actionRef: payload.actionRef,
     postActionVerificationRef: payload.postActionVerificationRef,
     step: payload.step,
-    status,
-    reason: writeRequested
+        ? readPayloadString(request.payload.structuredRuntimeEvent, "eventId")
+        : readPayloadString(request.payload.structuredActionLog, "actionLogId");
       ? `Forensics accepted ${request.recordType} write request from ${request.sourceAbilityGroupId}.`
       : `Forensics persisted ${request.recordType} for ${request.sourceAbilityGroupId}.`,
     actionableMessage: writeRequested
       ? "Wait for Forensics persistence completion before treating the record as durable."
-      : "Use the persisted record refs and runtime proof for downstream verification.",
+        ? readPayloadString(request.payload.structuredRuntimeEvent, "eventType")
     ownerResponsible: "Forensics Persistence",
     createdAt: new Date().toISOString(),
     refs,
     proofRefs: [],
+      return buildForensicsIdempotencyKey({ request, persistencePolicy: request.persistencePolicy });
     ...buildEmptyBoundaryEventFields(),
   });
 }
@@ -101,8 +134,8 @@ function buildEmptyBoundaryEventFields() {
     outputRefs: [],
     evidenceRefs: [],
     artifactRefs: [],
-    actionLogRefs: [],
-    dataQualityFlags: [],
+        `pendingRecordId=${request.recordType}:${resolveRequestIdempotencyKey(request)}`,
+        `idempotencyKey=${resolveRequestIdempotencyKey(request)}`,
   };
 }
 
@@ -117,8 +150,14 @@ export async function emitForensicsRecordWriteRequested(
   await emitter.emitRuntimeEvent(
     buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started", [
       `recordType=${request.recordType}`,
-      `sourceAbilityGroupId=${request.sourceAbilityGroupId}`,
+      `sourceEventId=${resolveSourceEventId(request)}`,
+      `sourceEventType=${resolveSourceEventType(request)}`,
+      `sourceOwner=${request.sourceAbilityGroupId}`,
+            `idempotencyKey=${resolveRequestIdempotencyKey(request)}`,
       `sourceChildCapabilityId=${request.sourceChildCapabilityId}`,
+      `pendingRecordId=${request.recordType}:${resolveRequestIdempotencyKey(request)}`,
+      `idempotencyKey=${resolveRequestIdempotencyKey(request)}`,
+      "dedupeDecision=pending",
     ]),
   );
 }
@@ -140,8 +179,13 @@ export async function emitForensicsRecordWritten(
         "success",
         [
           `recordType=${request.recordType}`,
+          `sourceEventId=${resolveSourceEventId(request)}`,
+          `sourceEventType=${resolveSourceEventType(request)}`,
           `forensicsResultStatus=${result.status}`,
+          `recordId=${result.recordRef.recordId}`,
           `recordRef=${result.recordRef.recordId}`,
+          `idempotencyKey=${result.policyDecision.idempotencyKey}`,
+          `dedupeDecision=written`,
           `storageRef=${result.storageRef ?? "MISSING"}`,
         ],
       ),

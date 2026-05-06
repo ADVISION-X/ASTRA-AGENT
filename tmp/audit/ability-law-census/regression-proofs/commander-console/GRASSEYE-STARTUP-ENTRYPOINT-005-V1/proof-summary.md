@@ -1,6 +1,6 @@
 # GRASSEYE-STARTUP-ENTRYPOINT-005-V1 Proof Summary
 
-scenarioId: startup-exit-controlled-shutdown-classification
+scenarioId: startup-controlled-exit-classification-removal-mutation
 mutationName: startup controlled exit classification removal mutation
 mutatedFile: scripts/startup/launch-grasseye.mjs
 coveredLawIds: GRASSEYE-STARTUP-ENTRYPOINT-005-V1

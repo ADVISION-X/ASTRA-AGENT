@@ -22,6 +22,7 @@ export function buildAiDispatchRequest(input: {
   missionId: string;
   chain: DispatchChain;
   aiDispatchRequirements: {
+    taskType: string;
     promptContractVersion: string;
     outputSchemaRef: string;
     aiInputRefs: string[];
@@ -41,6 +42,7 @@ export function buildAiDispatchRequest(input: {
     selectedMapVersion: input.chain.selectedMapVersion,
     activationId: input.chain.activationId,
     activationSnapshotRef: input.chain.activationSnapshotRef,
+    taskType: input.aiDispatchRequirements.taskType,
     promptContractId: input.step.promptContractId,
     promptContractVersion: input.aiDispatchRequirements.promptContractVersion,
     outputSchemaRef: input.aiDispatchRequirements.outputSchemaRef,

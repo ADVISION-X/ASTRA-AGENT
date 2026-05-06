@@ -1,4 +1,4 @@
-import type { ScreenshotRuntimeProof, ScreenshotScaleMapping } from "../contract.js";
+import type { ScreenshotScaleMapping } from "../contract.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
 
 type TransformScaleMappingInput = {
@@ -36,7 +36,7 @@ function resolveTransformedTargetDimensions(input: TransformScaleMappingInput) {
   };
 }
 
-function resolveDerivedTransformScaleMapping(input: TransformScaleMappingInput, targetCoordinateSpace: ScreenshotRuntimeProof["coordinateSpace"]): ScreenshotScaleMapping {
+function resolveDerivedTransformScaleMapping(input: TransformScaleMappingInput, targetCoordinateSpace: ScreenshotScaleMapping["targetCoordinateSpace"]): ScreenshotScaleMapping {
   return buildDerivedScaleMapping({
     sourceScreenshotEvidenceId: input.sourceProof.sourceScreenshotEvidenceId,
     sourceStorageRef: input.sourceProof.sourceStorageRef,
@@ -68,7 +68,7 @@ export function resolveTransformScaleMapping(input: TransformScaleMappingInput):
 export function resolveTransformCoordinateSpace(input: {
   operation: TransformScaleMappingInput["operation"];
   sourceCoordinateSpace: ScreenshotScaleMapping["sourceCoordinateSpace"];
-}): ScreenshotRuntimeProof["coordinateSpace"] {
+}): ScreenshotScaleMapping["targetCoordinateSpace"] {
   switch (input.operation) {
     case "capture-region":
       return "region_crop_pixels";

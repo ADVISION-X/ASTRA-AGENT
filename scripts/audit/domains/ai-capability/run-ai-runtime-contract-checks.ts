@@ -50,6 +50,19 @@ const hasDispatchFailureContract = (sourceFile: SourceFile): boolean => {
   return sourceFile.getExportedDeclarations().has("dispatchAiFailure") && hasNamedImport;
 };
 
+const hasInputSchemaDiagnostics = (sourceFile: SourceFile): boolean => {
+  const text = sourceFile.getFullText();
+  return text.includes("buildInputSchemaDiagnostics")
+    && text.includes("schemaIssueRef")
+    && text.includes("missingRequiredFields")
+    && text.includes("invalidFieldPaths")
+    && text.includes("actionableMessage")
+    && !text.includes("base64")
+    && !text.includes("rawPrompt")
+    && !text.includes("cookie")
+    && !text.includes("token");
+};
+
 const findRuntimeContractViolations = (project: Project): Finding[] => {
   const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
   const executorSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-executor.ts`);
@@ -64,6 +77,9 @@ const findRuntimeContractViolations = (project: Project): Finding[] => {
   }
   if (!hasDispatchFailureContract(dispatchFailureSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-dispatch-failure.ts`, line: 1, severity: "fatal", message: "AI dispatch failure must build a governed dispatch failure envelope." }));
+  }
+  if (!hasInputSchemaDiagnostics(dispatchFailureSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-dispatch-failure.ts`, line: 1, severity: "fatal", message: "AI input_schema_invalid failures must emit safe schema diagnostics with schemaIssueRef, missingRequiredFields, and invalidFieldPaths, without raw prompts, images, cookies, or tokens." }));
   }
 
   return findings;

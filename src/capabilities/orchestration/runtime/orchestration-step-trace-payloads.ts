@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { MissionState } from "../contract.js";
 import type { OrchestrationForensicsPort } from "../internal.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ForensicsStructuredActionLogInput } from "../../forensics-persistence/contract.js";
 import {
   StructuredActionLogSchema,
   StructuredRuntimeEventSchema,
@@ -209,7 +210,7 @@ export const buildStructuredActionLogWriteInput = (input: {
   actionLogInput: ActionLogInput;
   mapChain: TraceMapChain;
   structuredActionLog: StructuredActionLog;
-}) => ({
+}): ForensicsStructuredActionLogInput => ({
   abilityGroupId: "forensics-persistence",
   childCapabilityId: "write-structured-action-log",
   recordType: "structured_action_log",
