@@ -152,6 +152,12 @@ const MUTATIONS: Mutation[] = [
     replace: "  const sourceHash = readString(result.output, \"sourceHash\");\n",
   },
   { name: "browser capture measured-dimension regression mutation", file: "src/lib/browser/current-chrome-browser-controller.ts", search: "      width: screenshot.dimensions.width,\n      height: screenshot.dimensions.height,\n", replace: "      width: geometry.viewportWidth,\n      height: geometry.viewportHeight,\n" },
+  {
+    name: "browser viewport scale-gap boundary regression mutation",
+    file: "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+    search: "    || isBrowserViewportScaleMappedCapture(input)",
+    replace: "",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {

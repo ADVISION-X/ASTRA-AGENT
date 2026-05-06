@@ -252,6 +252,18 @@ function collectTransformTruthFindings(project: Project): Finding[] {
     : findings.concat(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.SUCCESS_HELPERS, line: 1, severity: "fatal", message: "Screenshot success helpers must preserve region-crop coordinate truth and transformed scaleMapping lineage." }));
 }
 
+function collectBrowserViewportScaleGapFindings(project: Project): Finding[] {
+  return sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, [
+    "isBrowserViewportScaleMappedCapture",
+    "input.registryEntry.childCapabilityId === \"capture-browser-viewport\"",
+    "input.output.coordinateSpace === \"source_image_pixels\"",
+    "mapping.sourceCoordinateSpace === \"browser_viewport_pixels\"",
+    "mapping.targetCoordinateSpace === \"source_image_pixels\"",
+  ])
+    ? []
+    : [createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must allow browser viewport captures with explicit browser_viewport_pixels -> source_image_pixels scaleMapping." })];
+}
+
 function collectLifecycleTruthFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
 
@@ -316,6 +328,7 @@ function collectV2ChainTruthFindings(project: Project): Finding[] {
     ...collectPhaseHelperFindings(project),
     ...collectIdempotencyFindings(project),
     ...collectTransformTruthFindings(project),
+    ...collectBrowserViewportScaleGapFindings(project),
     ...collectLifecycleTruthFindings(project),
     ...inspectScreenshotRuntimeProofParity(project),
     ...inspectScreenshotDispatchAdapter(project, LAW_IDS.SHAPE),

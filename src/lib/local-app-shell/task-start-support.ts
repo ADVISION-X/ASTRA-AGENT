@@ -145,7 +145,7 @@ export async function recordCommanderEnvelopeBuilt(activeWorkbench: GrassEyeWork
 
 export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
   await activeWorkbench.recordCommanderDebugEvent({
-    eventType: "COMMAND_ACCEPTED",
+    eventType: "COMMAND_DISPATCH_READY",
     status: "success",
     traceId: approval.traceId,
     spanId: "command-accepted",
@@ -153,7 +153,7 @@ export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWo
     mapId: approval.binding.selectedMapId,
     taskTemplateId: approval.binding.taskTemplateId,
     reason: `selectedMapId=${approval.binding.selectedMapId}; activationSnapshotRef=${approval.binding.activationSnapshotRef}`,
-    actionableMessage: "Dispatch the accepted human command through the governed command transport.",
+    actionableMessage: "Dispatch the validated human command through the governed command transport.",
     ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
   });
 }

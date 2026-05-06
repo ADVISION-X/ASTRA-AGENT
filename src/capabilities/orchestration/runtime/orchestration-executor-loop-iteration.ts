@@ -1,16 +1,14 @@
-import type { MissionState } from "../contract.js";
-import { buildMissionExecutionResult } from "./orchestration-result-builder.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import {
   recordPostActionVerificationActionLog,
   recordDispatchStarted,
+  recordPreconditionCheck,
   recordStepDispatchFailure,
   recordStepResult,
   recordTerminalOutcome,
   recordTransitionEvaluation,
 } from "./orchestration-loop-iteration-events-gateway.js";
 import {
-  buildTransitionSuccessProof,
   dispatchOperationalStep,
   evaluateStepTransition,
 } from "./orchestration-loop-iteration-dispatch-support.js";
@@ -20,12 +18,12 @@ import {
   buildLoopGuardFailureOutcome,
   buildStepDispatchFailureOutcome,
   buildTransitionFailureOutcome,
+  buildTransitionSuccessOutcome,
   type MissionLoopIterationOutcome,
   type OrchestrationStepResultRecord,
   prepareMissionLoopIteration,
   type PreparedMissionLoopIteration,
   type RunMissionLoopIterationInput,
-  type RuntimeProofRecord,
 } from "./orchestration-executor-loop-iteration-support.js";
 import {
   buildTransitionFailureDetails,
@@ -35,50 +33,21 @@ import {
 } from "./orchestration-loop-iteration-transition-support.js";
 import { toMissionControlState } from "./orchestration-state-support.js";
 
-function getRuntimeProofId(value: RuntimeProofRecord): string {
-  return value.proofId;
-}
-
 function toUnexpectedPostStepFailureReason(currentStepId: string, error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return `Unexpected orchestration post-step error after step "${currentStepId}": ${message}`;
 }
 
-function buildTransitionSuccessState(input: RunMissionLoopIterationInput, details: { currentStepId: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; nextHopCount: number; }): MissionState {
-  const nextStatus = details.transition.finalStatus;
-  const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
-  const nextRoundIndex = nextStatus === "running"
-    && nextStepId === input.map.initialStepId
-    && details.currentStepId !== input.map.initialStepId
-    ? input.state.currentRoundIndex + 1
-    : input.state.currentRoundIndex;
-  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
-}
-
-async function buildTransitionSuccessOutcome(input: RunMissionLoopIterationInput, details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; }): Promise<MissionLoopIterationOutcome> {
-  const state = buildTransitionSuccessState(input, details);
-  const proof = buildTransitionSuccessProof(input, state, details);
-  const runtimeProofId = getRuntimeProofId(proof);
-  const persistedState = toMissionControlState(state, details.endedAt, {
-    lastRuntimeProofRef: runtimeProofId,
-    runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId],
-  });
-  const result = persistedState.status === "running"
-    ? null
-    : buildMissionExecutionResult({ missionState: persistedState, currentStepResult: details.lastResult, runtimeProof: proof });
-  return persistOutcome(input, { state: persistedState, lastResult: details.lastResult, lastProof: proof, result });
-}
-
 async function handleMissingStep(
   input: RunMissionLoopIterationInput,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; nowIsoTimestamp: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; nowIsoTimestamp: string; },
 ): Promise<MissionLoopIterationOutcome> {
   return buildStepDispatchFailureOutcome(input, {
     currentStepId: details.currentStepId,
     stepDispatchCallId: input.stepDispatchCallId,
     stateRevisionBefore: details.stateRevisionBefore,
     stateHashBefore: details.stateHashBefore,
-    proofContext: details.proofContext,
+    proofContext: details.currentProofContext,
     startedAt: details.nowIsoTimestamp,
     endedAt: details.nowIsoTimestamp,
     failureReason: `Map "${input.map.mapId}" is missing step "${details.currentStepId}".`,
@@ -88,14 +57,21 @@ async function handleMissingStep(
 async function handleDispatchGateFailure(
   input: RunMissionLoopIterationInput,
   step: OperationalStep,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; dispatchGateReason: string; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; dispatchGateReason: string; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> {
   await recordPreconditionCheck(input, step, {
     status: "failed",
     reason: `Dispatch gate rejected step "${details.currentStepId}".`,
     failureReason: details.dispatchGateReason,
   });
-  const outcome = await buildDispatchGateFailureOutcome(input, details);
+  const outcome = await buildDispatchGateFailureOutcome(input, {
+    currentStepId: details.currentStepId,
+    stateRevisionBefore: details.stateRevisionBefore,
+    stateHashBefore: details.stateHashBefore,
+    proofContext: details.currentProofContext,
+    dispatchGateReason: details.dispatchGateReason,
+    endedAt: details.endedAt,
+  });
   await recordTerminalOutcome(input, step, outcome);
   return outcome;
 }
@@ -103,7 +79,7 @@ async function handleDispatchGateFailure(
 async function handleLoopGuardStop(
   input: RunMissionLoopIterationInput,
   step: OperationalStep,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_review_required" | "stop_completed"; nextHopCount: number; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_review_required" | "stop_completed"; nextHopCount: number; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> {
   await recordPreconditionCheck(input, step, {
     status: "failed",
@@ -111,7 +87,13 @@ async function handleLoopGuardStop(
     failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : "loop guard prevented dispatch",
   });
   const outcome = await buildLoopGuardFailureOutcome(input, {
-    ...details,
+    currentStepId: details.currentStepId,
+    stateRevisionBefore: details.stateRevisionBefore,
+    stateHashBefore: details.stateHashBefore,
+    proofContext: details.currentProofContext,
+    loopGuardDecision: details.loopGuardDecision,
+    nextHopCount: details.nextHopCount,
+    endedAt: details.endedAt,
     failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : null,
     reviewRequiredReason: details.loopGuardDecision === "stop_review_required" ? "loop guard requested human review" : null,
   });

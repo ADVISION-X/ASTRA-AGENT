@@ -89,11 +89,12 @@ const recordAcceptedDispatch = async (input: {
   result: StartCommandResult;
   context: DispatchResultContext;
 }) => {
+  const runId = input.result.runtimeProof?.runId ?? input.approval.traceId;
   await input.activeWorkbench.recordCommanderDebugEvent({
-    eventType: "COMMAND_ACCEPTED",
+    eventType: "COMMAND_RESPONSE_SENT",
     status: "success",
-    traceId: input.approval.traceId,
-    spanId: "command-accepted",
+    traceId: runId,
+    spanId: "command-response-sent",
     attemptId: input.approval.attemptId,
     missionId: input.context.targetMissionId,
     mapId: input.approval.binding.selectedMapId,
@@ -101,7 +102,7 @@ const recordAcceptedDispatch = async (input: {
     reason: input.context.resultMessage,
     actionableMessage: "Follow the returned mission refs and persisted runtime proof for downstream audit.",
     ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
-    runId: input.result.runtimeProof?.runId ?? input.approval.traceId,
+    runId,
     refs: input.context.refs,
     proofRefs: input.context.proofRefs,
   });

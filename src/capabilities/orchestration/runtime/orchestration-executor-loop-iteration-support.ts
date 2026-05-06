@@ -3,6 +3,7 @@ import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-stor
 import { buildMissionExecutionResult } from "./orchestration-result-builder.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import {
+  buildTransitionSuccessProof,
   checkCanDispatchStep,
   evaluateLoopGuard,
 } from "./orchestration-loop-iteration-dispatch-support.js";
@@ -19,6 +20,7 @@ import {
   buildTransitionFailureProof,
   type OrchestrationLoopProofContext,
 } from "./orchestration-loop-proof-builders.js";
+import type { MatchedTransitionRecord } from "./orchestration-loop-iteration-transition-support.js";
 import { toMissionControlState } from "./orchestration-state-support.js";
 
 type StepDispatchResult = Awaited<ReturnType<typeof dispatchOperationalStep>>;
@@ -170,6 +172,37 @@ const buildTransitionFailureOutcome = async (
   return persistOutcome(input, { state: persistedState, lastResult: input.lastResult, lastProof: proof, result });
 };
 
+const buildTransitionSuccessState = (
+  input: RunMissionLoopIterationInput,
+  details: { currentStepId: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; nextHopCount: number; },
+): MissionState => {
+  const nextStatus = details.transition.finalStatus;
+  const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
+  const nextRoundIndex = nextStatus === "running"
+    && nextStepId === input.map.initialStepId
+    && details.currentStepId !== input.map.initialStepId
+    ? input.state.currentRoundIndex + 1
+    : input.state.currentRoundIndex;
+  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
+};
+
+const buildTransitionSuccessOutcome = async (
+  input: RunMissionLoopIterationInput,
+  details: { currentStepId: string; stepDispatchCallId: string; stepIdempotencyKey: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; transitionEvaluationDecision: "matched"; stateRevisionBefore: number; stateHashBefore: string | null; nextHopCount: number; startedMonotonicMs: number; endedMonotonicMs: number; },
+): Promise<MissionLoopIterationOutcome> => {
+  const state = buildTransitionSuccessState(input, details);
+  const proof = buildTransitionSuccessProof(input, state, details);
+  const runtimeProofId = getRuntimeProofId(proof);
+  const persistedState = toMissionControlState(state, details.endedAt, {
+    lastRuntimeProofRef: runtimeProofId,
+    runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId],
+  });
+  const result = persistedState.status === "running"
+    ? null
+    : buildMissionExecutionResult({ missionState: persistedState, currentStepResult: details.lastResult, runtimeProof: proof });
+  return persistOutcome(input, { state: persistedState, lastResult: details.lastResult, lastProof: proof, result });
+};
+
 const buildMissingStepPreparation = (
   context: PreparedMissionLoopIterationContext,
   nowIsoTimestamp: string,
@@ -254,6 +287,7 @@ export {
   buildLoopGuardFailureOutcome,
   buildStepDispatchFailureOutcome,
   buildTransitionFailureOutcome,
+  buildTransitionSuccessOutcome,
   createCurrentProofContext,
   findOperationalStep,
   prepareMissionLoopIteration,

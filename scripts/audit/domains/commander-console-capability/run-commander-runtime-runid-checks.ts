@@ -13,6 +13,7 @@ const {
   WORKBENCH_COMMANDER_DEBUG_PATH,
 } = commanderConsoleInspectionConstants;
 const WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH = "src/lib/local-runtime/workbench-human-command-debug-events.ts";
+const TASK_START_SUPPORT_PATH = "src/lib/local-app-shell/task-start-support.ts";
 
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
 
@@ -96,6 +97,35 @@ const hasEarlyAcceptedBoundaryRefs = (sourceFile: import("ts-morph").SourceFile)
     && bodyText.includes("activationSnapshotRef=");
 };
 
+const hasLateCommandResponseEvent = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const body = getVariableFunctionBody(sourceFile, "recordAcceptedDispatch");
+  const bodyText = body?.getText() ?? "";
+  return bodyText.includes("COMMAND_RESPONSE_SENT")
+    && !bodyText.includes('eventType: "COMMAND_ACCEPTED"')
+    && bodyText.includes("const runId = input.result.runtimeProof?.runId ?? input.approval.traceId")
+    && bodyText.includes("traceId: runId");
+};
+
+const hasPreDispatchReadyEvent = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const body = getFunctionLikeBody(sourceFile, "recordTaskStartCommandAccepted");
+  const bodyText = body?.getText() ?? "";
+  return bodyText.includes("COMMAND_DISPATCH_READY") && !bodyText.includes('eventType: "COMMAND_ACCEPTED"');
+};
+
+const hasNerveBusResultProofEvents = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const text = sourceFile.getFullText();
+  return [
+    "NERVE_BUS_RESULT_ENVELOPE_RECEIVED",
+    "NERVE_BUS_RESULT_SEMANTIC_GATE_PASSED",
+    "NERVE_BUS_TRANSFER_PROOF_BUILT",
+    "recordResultEnvelopeReceived",
+    "recordResultSemanticGatePassed",
+    "recordTransferProofBuilt",
+    "traceId: transport.commandEnvelope.traceId",
+    "runId: transport.commandEnvelope.runId",
+  ].every((token) => text.includes(token));
+};
+
 export const collectTransportRunIdFindings = (input: {
   transportSchemaSource: import("ts-morph").SourceFile;
   transportSemanticGateSource: import("ts-morph").SourceFile;
@@ -146,6 +176,15 @@ export const collectDebugRefFindings = (input: {
   }
   if (!hasEarlyAcceptedBoundaryRefs(input.acceptedBoundarySource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH, "Early COMMAND_ACCEPTED boundary event must publish resultEnvelopeRef and activationSnapshotRef before the awaited mission execution completes."));
+  }
+  if (!hasPreDispatchReadyEvent(input.taskStartSupportSource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_SUPPORT_PATH, "Task-start pre-dispatch logging must use COMMAND_DISPATCH_READY, not a duplicate COMMAND_ACCEPTED event."));
+  }
+  if (!hasLateCommandResponseEvent(input.taskStartSupportSource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task-start dispatch response logging must use COMMAND_RESPONSE_SENT with a unified runtimeProof runId trace instead of emitting duplicate COMMAND_ACCEPTED with mixed trace/run."));
+  }
+  if (!hasNerveBusResultProofEvents(input.taskStartSupportSource)) {
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", "src/lib/local-runtime/workbench-commander-command-transport.ts", "Commander command transport must emit terminal-visible Nerve Bus result envelope, semantic gate, and transfer proof events with governed trace/run."));
   }
   return findings;
 };

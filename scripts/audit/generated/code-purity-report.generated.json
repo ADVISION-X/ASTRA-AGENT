@@ -1,11 +1,7 @@
 {
-  "generatedAt": "2026-05-06T13:23:22.112Z",
+  "generatedAt": "2026-05-06T13:35:22.750Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/_shared/negative-proof-runtime.ts",
-    "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
-    "scripts/audit/domains/text-input-capability/generate-proof-bundles.ts",
-    "scripts/audit/domains/visual-target-capability/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
@@ -14,12 +10,14 @@
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "scripts/startup/launch-grasseye.mjs",
-    "src/capabilities/orchestration/ability-group.ts",
+    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
     "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-    "src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts",
-    "src/lib/local-app-shell/commander-console-shell-client.ts",
-    "src/lib/local-app-shell/styles/commander-console-styles.ts"
+    "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts",
+    "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+    "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    "src/lib/local-app-shell/task-start-support.ts",
+    "src/lib/local-runtime/structured-log-terminal.ts",
+    "src/lib/local-runtime/workbench-commander-command-transport.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -184,7 +182,25 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [],
+  "functionOverLimitInventory": [
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+      "lines": 204,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "isBrowserViewportScaleMappedCapture"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [],
   "remediationQueue": [
@@ -337,6 +353,23 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+      "lines": 204,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "isBrowserViewportScaleMappedCapture"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [

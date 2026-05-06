@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { MissionState } from "../contract.js";
+import type { OrchestrationForensicsPort } from "../internal.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
 import {
   StructuredActionLogSchema,
@@ -11,16 +12,13 @@ import {
   resolveRuntimeActionPurpose,
   resolveRuntimeStepForOperationalStep,
 } from "./orchestration-step-trace-mapper.js";
+import type { OperationalStep } from "./step-dispatch-shared.js";
 
 export type RuntimeEventInput = {
-  context: { forensics: { writeStructuredRuntimeEvent: (...args: never[]) => Promise<unknown> } };
+  context: { forensics: OrchestrationForensicsPort };
   state: MissionState;
   mapRecord: ActiveOperationalMapRecord | null;
-  step: {
-    stepId: string;
-    childCapabilityId: string;
-    inputRefs: string[];
-  };
+  step: OperationalStep;
   eventType: string;
   status: "started" | "success" | "failed" | "review_required";
   reason?: string | null;
@@ -53,13 +51,10 @@ export type StepResultRecord = {
 };
 
 export type ActionLogInput = {
-  context: { forensics: { writeStructuredActionLog: (...args: never[]) => Promise<{ status: string }> } };
+  context: { forensics: OrchestrationForensicsPort };
   state: MissionState;
   mapRecord: ActiveOperationalMapRecord | null;
-  step: {
-    stepId: string;
-    childCapabilityId: string;
-  };
+  step: OperationalStep;
   stepResult: StepResultRecord;
   createdAt: string;
   durationMs?: number | null;
