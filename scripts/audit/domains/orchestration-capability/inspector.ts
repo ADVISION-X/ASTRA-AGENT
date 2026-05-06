@@ -19,8 +19,8 @@ export const orchestrationCapabilityInspector = createPendingDomainInspector({
   extraChecks: async (context) => {
     const project = createAuditProject();
     const [packageChecks, governedRuntimeChecks, negativeProof] = await Promise.all([
-      runOrchestrationCapabilityChecks(),
-      runOrchestrationGovernedRuntimeChecks(),
+      runOrchestrationCapabilityChecks(project),
+      runOrchestrationGovernedRuntimeChecks(project),
       process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
         ? Promise.resolve({
             findings: [],

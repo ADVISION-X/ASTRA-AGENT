@@ -88,6 +88,12 @@ export const MUTATIONS: Mutation[] = [
     replace: "",
   },
   {
+    name: "workbench ai signal bridge mutation",
+    file: "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+    search: "  const aiResult = await runtime.aiAbilityGroup.execute(buildWorkbenchAiAbilityRequest(envelope, inputPayload), { signal });",
+    replace: "  const aiResult = await runtime.aiAbilityGroup.execute(buildWorkbenchAiAbilityRequest(envelope, inputPayload));",
+  },
+  {
     name: "ai request debug pre-gateway mutation",
     file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
     search: "  await context.debugSession.emitAiRequestDebug();\n",
@@ -274,6 +280,12 @@ export const MUTATIONS: Mutation[] = [
     search: 'from "./runtime/local-ai-model-config.js";',
     replace: 'from "../../lib/local-ai/model-config.js";',
   },
+  {
+    name: "ai debug trace step unsanctioned stepId mutation",
+    file: "src/lib/local-runtime/workbench-ai-debug-support.ts",
+    search: "  // Always use the RoundLifecycleStep-safe computed step; input.stepId may be\n  // an orchestration map step ID (e.g. \"judge-seeding-video\") which is NOT a\n  // valid RoundLifecycleStepSchema enum value and would throw at parse time.\n  step,\n",
+    replace: "  step: input.stepId ?? step,\n",
+  },
 ];
 
 export const MUTATION_LAW_COVERAGE: Record<string, {
@@ -375,6 +387,12 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
     coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
     coverageReasonByLawId: {
       "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation bypasses the AI input schema gate in the runtime chain, proving provider/runtime channels cannot bypass AI-owned routing gates.",
+    },
+  },
+  "ai debug trace step unsanctioned stepId mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-007A-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-007A-V1": "The mutation reverts the AI debug trace step field to use input.stepId, which is an orchestration map step ID not in the RoundLifecycleStepSchema enum, causing StructuredRuntimeEventSchema.parse to throw at runtime and silently suppressing AI_REQUEST_DEBUG from the terminal observer. The proof chain inspector must catch this regression.",
     },
   },
 };

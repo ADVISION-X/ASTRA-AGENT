@@ -3,10 +3,13 @@ import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from ".
 import { hasBlockingFindings } from "../../core/result.js";
 
 const main = async (): Promise<void> => {
+  process.stdout.write("[audit:orchestration] Building audit artifacts...\n");
   await buildAuditArtifacts();
+  process.stdout.write("[audit:orchestration] Artifacts ready. Loading inspector...\n");
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector("scripts/audit/domains/orchestration-capability/inspector.ts");
+  process.stdout.write("[audit:orchestration] Running orchestration capability inspector...\n");
   const result = await inspector(context);
 
   process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);

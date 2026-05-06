@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T20:37:31.703Z",
+  "generatedAt": "2026-05-06T20:56:10.101Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -3947,6 +3947,41 @@
           "sourceFile": "scripts/audit/domains/nerve-bus-capability/forbidden-shape.ts",
           "targetSymbol": "collectStructuralFindings",
           "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectAiSignalChainFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectAiSignalChainFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectAiSignalChainFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectAiSignalChainFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectAiSignalChainFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
         }
       ],
       "blockers": [

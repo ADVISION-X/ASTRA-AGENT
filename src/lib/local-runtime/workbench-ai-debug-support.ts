@@ -155,7 +155,10 @@ const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, tra
   traceId: input.traceId,
   spanId: input.spanId,
   attemptId: input.attemptId,
-  step: input.stepId ?? step,
+  // Always use the RoundLifecycleStep-safe computed step; input.stepId may be
+  // an orchestration map step ID (e.g. "judge-seeding-video") which is NOT a
+  // valid RoundLifecycleStepSchema enum value and would throw at parse time.
+  step,
 });
 
 const buildAiDebugStatusFields = (runtime: WorkbenchAiDebugRuntime, input: WorkbenchAiDebugEvent) => ({

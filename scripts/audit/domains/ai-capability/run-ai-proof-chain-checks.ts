@@ -76,6 +76,28 @@ function hasIdempotencyChainFields(sourceFile: SourceFile): boolean {
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeCallIdentity", "promptCatalogVersion", "request.promptCatalogVersion");
 }
 
+const WORKBENCH_AI_DEBUG_SUPPORT_FILE = "src/lib/local-runtime/workbench-ai-debug-support.ts";
+
+function hasAiDebugTraceStepSafeAssignment(sourceFile: SourceFile): boolean {
+  // buildAiDebugTraceFields is a const arrow function.
+  const callable = getNamedCallable(sourceFile, "buildAiDebugTraceFields");
+  if (!callable) return false;
+
+  // Locate the `step` PropertyAssignment inside the returned object literal.
+  const stepAssignments = callable.getDescendantsOfKind(SyntaxKind.PropertyAssignment).filter(
+    (prop) => prop.getName() === "step",
+  );
+  if (stepAssignments.length === 0) return false;
+
+  // The initializer text must NOT include "input.stepId" — using the orchestration
+  // step ID (e.g. "judge-seeding-video") as the `step` value would fail
+  // RoundLifecycleStepSchema Zod validation at runtime and silently suppress
+  // AI_REQUEST_DEBUG before the terminal observer can receive it.
+  return stepAssignments.every(
+    (prop) => !(prop.getInitializer()?.getText() ?? "").includes("input.stepId"),
+  );
+}
+
 export function findProofChainViolations(project: Project): Finding[] {
   const chainFieldSource = getSourceOrThrow(project, `${AI_ROOT}/schema-chain-fields.ts`);
   const inputSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-core.schema.ts`);
@@ -83,6 +105,7 @@ export function findProofChainViolations(project: Project): Finding[] {
   const workbenchRequestSource = getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_FILE);
   const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
   const idempotencySource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`);
+  const aiDebugSupportSource = getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_FILE);
   const findings: Finding[] = [];
 
   if (!hasChainFieldSchemaContract(chainFieldSource)) {
@@ -99,6 +122,9 @@ export function findProofChainViolations(project: Project): Finding[] {
   }
   if (!hasIdempotencyChainFields(idempotencySource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime/ai-idempotency.ts`, line: 1, severity: "fatal", message: "AI runtime call identity must hash step and activation chain fields, not just task and payload input." }));
+  }
+  if (!hasAiDebugTraceStepSafeAssignment(aiDebugSupportSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_SUPPORT_FILE, line: 1, severity: "fatal", message: "AI debug trace builder must use the computed RoundLifecycleStep-safe step value for the structured-event step field; using input.stepId directly causes StructuredRuntimeEventSchema Zod parse failures for orchestration step IDs and silently suppresses AI_REQUEST_DEBUG." }));
   }
 
   return findings;

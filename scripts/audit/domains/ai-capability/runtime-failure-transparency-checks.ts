@@ -161,6 +161,18 @@ const hasWorkbenchTerminalAiDebugRelay = (project: Project): boolean => {
     && hasFunctionCall(recorderSource, "recordWorkbenchAiDebugEvent", "writeStructuredRuntimeEvent");
 };
 
+const hasWorkbenchAiSignalBridge = (project: Project): boolean => {
+  const requestSource = getSourceOrThrow(project, "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts");
+  const handlerFunction = requestSource.getFunction("handleWorkbenchNerveBusAiRequest")
+    ?? requestSource.getVariableDeclaration("handleWorkbenchNerveBusAiRequest")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  return Boolean(handlerFunction?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    if (callExpression.getExpression().getText() !== "runtime.aiAbilityGroup.execute") return false;
+    const signalOptions = callExpression.getArguments()[1];
+    return Node.isObjectLiteralExpression(signalOptions)
+      && signalOptions.getProperties().some((property) => Node.isShorthandPropertyAssignment(property) && property.getName() === "signal");
+  }));
+};
+
 const hasRawResponseSuccessProof = (project: Project): boolean => {
   const successInvariantSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime-success-invariants.ts`);
   const localOutputSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-output.ts`);
@@ -174,9 +186,9 @@ const hasRawResponseSuccessProof = (project: Project): boolean => {
 };
 
 const collectRequestDebugStartFindings = (project: Project): Finding[] => {
-  return hasAbilityPreParseRequestDebug(project) && hasDebugEmitterRequiredBeforeExecution(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project) && hasWorkbenchTerminalAiDebugRelay(project)
+  return hasAbilityPreParseRequestDebug(project) && hasDebugEmitterRequiredBeforeExecution(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project) && hasWorkbenchTerminalAiDebugRelay(project) && hasWorkbenchAiSignalBridge(project)
     ? []
-    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and relay AI debug events into structured terminal/runtime logging." })];
+    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates, preserve the Workbench AI AbortSignal, and relay AI debug events into structured terminal/runtime logging." })];
 };
 
 const collectAskAiProofFindings = (project: Project): Finding[] => {

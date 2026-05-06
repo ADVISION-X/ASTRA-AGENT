@@ -23,6 +23,9 @@ const SCHEMA_SOURCE_PATHS = [
   `${PATHS.ROOT}/schema-envelope.schema.ts`,
   `${PATHS.ROOT}/schema-transport.schema.ts`,
 ] as const;
+const SHARED_CHANNEL_PATH = `${PATHS.ROOT}/shared/nerve-bus-channel.ts`;
+const TRANSPORT_DISPATCH_PATH = `${PATHS.ROOT}/ability-group-transport-dispatch.ts`;
+const ORCHESTRATION_TO_AI_CHILD_PATH = `${PATHS.ROOT}/children/orchestration-to-ai/implementation.ts`;
 
 const REQUIRED_SCHEMA_FIELDS = [
   "runId",
@@ -105,6 +108,43 @@ const getFirstCallPosition = (sourceTextOwner: NonNullable<ReturnType<typeof get
   const match = sourceTextOwner.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === callName);
   return match?.getStart() ?? -1;
 };
+
+const hasCallObjectProperty = (
+  sourceTextOwner: ReturnType<typeof getSourceFile>,
+  callName: string,
+  propertyName: string,
+): boolean => Boolean(sourceTextOwner?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+  if (callExpression.getExpression().getText() !== callName) return false;
+  return callExpression.getArguments().some((argument) =>
+    Node.isObjectLiteralExpression(argument)
+    && argument.getProperties().some((property) => Node.isPropertyAssignment(property) && property.getName() === propertyName),
+  );
+}));
+
+const functionParameterTypeHasProperty = (
+  sourceTextOwner: ReturnType<typeof getSourceFile>,
+  functionName: string,
+  propertyName: string,
+): boolean => Boolean(sourceTextOwner?.getFunction(functionName)
+  ?.getParameters()[0]
+  ?.getTypeNode()
+  ?.getDescendantsOfKind(SyntaxKind.PropertySignature)
+  .some((property) => property.getName() === propertyName));
+
+const sourceHasPropertySignature = (
+  sourceTextOwner: ReturnType<typeof getSourceFile>,
+  propertyName: string,
+): boolean => Boolean(sourceTextOwner?.getDescendantsOfKind(SyntaxKind.PropertySignature)
+  .some((property) => property.getName() === propertyName));
+
+const hasCallArgumentText = (
+  sourceTextOwner: ReturnType<typeof getSourceFile>,
+  callName: string,
+  argumentText: string,
+): boolean => Boolean(sourceTextOwner?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+  return callExpression.getExpression().getText() === callName
+    && callExpression.getArguments().some((argument) => argument.getText() === argumentText);
+}));
 
 async function collectMissingFileFindings(findings: Finding[]): Promise<void> {
   for (const filePath of await missingRequiredFiles()) {
@@ -231,6 +271,33 @@ function collectSchemaFindings(project: ReturnType<typeof makeProject>): Finding
   return findings;
 }
 
+function collectAiSignalChainFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const findings: Finding[] = [];
+  const transportSchemaSource = getSourceFile(project, `${PATHS.ROOT}/schema-transport.schema.ts`);
+  const sharedChannelSource = getSourceFile(project, SHARED_CHANNEL_PATH);
+  const dispatchSource = getSourceFile(project, TRANSPORT_DISPATCH_PATH);
+  const orchestrationToAiSource = getSourceFile(project, ORCHESTRATION_TO_AI_CHILD_PATH);
+  const runnerSource = getSourceFile(project, PATHS.RUNNER);
+
+  if (!sourceHasProperties(transportSchemaSource, ["signal"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: `${PATHS.ROOT}/schema-transport.schema.ts`, line: 1, severity: "fatal", message: "Nerve Bus AiRequestDispatchInputSchema must preserve the Orchestration AI AbortSignal." }));
+  }
+  if (!sourceHasPropertySignature(sharedChannelSource, "signal")) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: SHARED_CHANNEL_PATH, line: 1, severity: "fatal", message: "Nerve Bus child execution input must carry AbortSignal through the child boundary." }));
+  }
+  if (!hasCallObjectProperty(dispatchSource, "executeNerveBusChild", "signal")) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: TRANSPORT_DISPATCH_PATH, line: 1, severity: "fatal", message: "Nerve Bus orchestration-to-ai dispatch must pass channelInput.signal into executeNerveBusChild." }));
+  }
+  if (!hasCallObjectProperty(orchestrationToAiSource, "runTransportHandler", "parentSignal")) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: ORCHESTRATION_TO_AI_CHILD_PATH, line: 1, severity: "fatal", message: "Nerve Bus orchestration-to-ai child must pass input.signal as parentSignal to the transport runner." }));
+  }
+  if (!functionParameterTypeHasProperty(runnerSource, "runTransportHandler", "parentSignal") || !hasCallArgumentText(runnerSource, "input.invoke", "handlerSignal")) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Nerve Bus transport runner must combine parentSignal with its timeout signal before invoking the AI handler." }));
+  }
+
+  return findings;
+}
+
 function collectChannelAndRegistryFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const schemaFoundationSource = getSourceFile(project, `${PATHS.ROOT}/schema-foundation.schema.ts`);
@@ -294,6 +361,7 @@ export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; p
   findings.push(...collectHandlerPortFindings(project));
   findings.push(...collectBoundaryTransportFindings(project));
   findings.push(...collectSchemaFindings(project));
+  findings.push(...collectAiSignalChainFindings(project));
   findings.push(...collectChannelAndRegistryFindings(project));
   findings.push(...collectExecutorFindings(project));
   findings.push(...collectBuilderFindings(project));

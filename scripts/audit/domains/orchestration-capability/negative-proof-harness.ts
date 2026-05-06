@@ -1,4 +1,3 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -137,7 +136,7 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
   process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
 
   try {
-    await buildAuditArtifacts();
+    // artifacts already built by the outer run-inspector.ts entry — skip rebuild
     const artifacts = await loadGeneratedArtifacts();
     const context = await createInspectorContext(artifacts);
     const inspector = await loadInspector(INSPECTOR_ENTRY);
@@ -195,13 +194,15 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 }
 
 async function runMutations(): Promise<void> {
-  for (const mutation of MUTATIONS) {
+  for (const [index, mutation] of MUTATIONS.entries()) {
+    process.stdout.write(`[orchestration:negative-proof] [${index + 1}/${MUTATIONS.length}] ${mutation.name}\n`);
     await mutateAndVerify(mutation);
   }
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
+    process.stdout.write(`[orchestration:negative-proof] Verifying baseline (${MUTATIONS.length} mutations queued)...\n`);
     const baseline = await runInspector();
     if (!baseline.passed) {
       return createFatalResult(

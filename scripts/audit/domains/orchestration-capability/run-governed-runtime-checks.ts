@@ -317,8 +317,7 @@ async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
   };
 }
 
-export async function runOrchestrationGovernedRuntimeChecks() {
-  const project = createAuditProject();
+export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<typeof createAuditProject>) {
   const phaseResults = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
     inspectFrozenActivation(project),

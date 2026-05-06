@@ -2,7 +2,7 @@ scenarioId: prompt-registry-throw-mutation
 mutationName: prompt registry throw mutation
 mutatedFile: src/capabilities/ai/runtime/ai-prompt-registry.ts
 rollbackRestoredHash: sha256:b3fc376de144851b406a92fe99d497dea3934e4469840b72b6f501976715015a
-startedAt: 2026-05-06T20:21:23.914Z
-endedAt: 2026-05-06T20:21:32.299Z
+startedAt: 2026-05-06T20:54:59.486Z
+endedAt: 2026-05-06T20:55:07.189Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

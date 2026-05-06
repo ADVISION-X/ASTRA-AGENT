@@ -21,8 +21,7 @@ const loadPresenceEntries = async (paths: readonly string[]): Promise<PresenceEn
   return Promise.all(paths.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })));
 };
 
-const loadOrchestrationSources = () => {
-  const project = createAuditProject();
+const loadOrchestrationSources = (project: ReturnType<typeof createAuditProject>) => {
   const contractSource = getSourceFileOrThrow(project, config.CONTRACT_PATH);
   const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, config.ABILITY_GROUP_PATH);
@@ -278,8 +277,8 @@ const buildOrchestrationPhases = (input: {
   ];
 };
 
-export const runOrchestrationCapabilityChecks = async () => {
-  const sources = loadOrchestrationSources();
+export const runOrchestrationCapabilityChecks = async (project: ReturnType<typeof createAuditProject>) => {
+  const sources = loadOrchestrationSources(project);
   const phaseChecks = await Promise.all([
     inspectStandardPackageShape(sources),
     inspectSchemaRegistryTruth(sources),

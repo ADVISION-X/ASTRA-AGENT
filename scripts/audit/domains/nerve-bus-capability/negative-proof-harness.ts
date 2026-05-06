@@ -53,6 +53,24 @@ const MUTATIONS: Mutation[] = [
     search: "  activationSnapshotRef: envelope.activationSnapshotRef,",
     replace: "  activationSnapshotRefLegacy: envelope.activationSnapshotRef,",
   },
+  {
+    name: "ai request signal schema drop mutation",
+    file: "src/capabilities/nerve-bus/schema-transport.schema.ts",
+    search: "  signal: z.custom<AbortSignal>((value) => value instanceof AbortSignal).optional(),\n",
+    replace: "",
+  },
+  {
+    name: "orchestration to ai parent signal drop mutation",
+    file: "src/capabilities/nerve-bus/children/orchestration-to-ai/implementation.ts",
+    search: "      parentSignal: input.signal,\n",
+    replace: "",
+  },
+  {
+    name: "ai handler signal drop mutation",
+    file: "src/capabilities/nerve-bus/runtime/transport-runner.ts",
+    search: "    promise: input.invoke(handlerSignal),",
+    replace: "    promise: input.invoke(controller.signal),",
+  },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
@@ -135,7 +153,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Nerve Bus negative-proof harness rejects export-star escape, commander/review bypass, AI contract drift, default injection, and proof chain dropping mutations.");
+    return createPassResult("Nerve Bus negative-proof harness rejects export-star escape, commander/review bypass, AI contract drift, default injection, proof chain dropping, and AI AbortSignal drop mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Nerve Bus negative-proof harness failed.",
