@@ -1,13 +1,15 @@
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { hasBlockingFindings } from "../../core/result.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
+import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat } from "../../core/runtime.js";
 
 const main = async (): Promise<void> => {
-  await buildAuditArtifacts();
+  process.stdout.write("[AUDIT] building artifacts...\n");
+  await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector("scripts/audit/domains/capability-runtime-wiring/inspector.ts");
-  const result = await inspector(context);
+  process.stdout.write("[AUDIT] starting capability-runtime-wiring...\n");
+  const result = await runWithStandaloneHeartbeat("capability-runtime-wiring", inspector(context));
 
   process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
   for (const finding of result.findings) {

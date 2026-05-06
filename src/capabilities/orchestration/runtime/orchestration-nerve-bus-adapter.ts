@@ -11,6 +11,7 @@ import {
   buildCommanderReviewDocument,
   buildCommanderReviewEnvelope,
 } from "./orchestration-nerve-bus-envelope-builders.js";
+import { resolveAbilityResultProofSummary } from "./ability-result-proof-summary-registry.js";
 
 export type OrchestrationNerveBusTransportSurface = Pick<NerveBusAbilityGroup, "dispatchAbilityCommand" | "dispatchCommanderMessage" | "requestAi">;
 
@@ -19,6 +20,39 @@ type SendAiInput = Parameters<OrchestrationNerveBusPort["sendRequestToAi"]>[0];
 type SendReviewInput = Parameters<OrchestrationNerveBusPort["sendReviewRequestToCommander"]>[0];
 
 type EnvelopeClock = { now: () => { isoTimestamp: string; monotonicMs: number } };
+
+const PROOF_SUMMARY_REF_KEYS = [
+  "screenshotEvidenceId",
+  "artifactRef",
+  "artifactStorageRef",
+  "outputHash",
+  "artifactHash",
+  "byteSize",
+  "width",
+  "height",
+  "coordinateSpace",
+  "runtimeProofRef",
+  "promptInputRef",
+  "aiInputArtifactRef",
+  "sourceScreenshotEvidenceId",
+  "sourceStorageRef",
+  "preparedImageHash",
+  "preparedImageWidth",
+  "preparedImageHeight",
+] as const;
+
+function buildProofBranchFieldValues(outputRef: string | null): Record<string, string | number | boolean | null> {
+  const summary = resolveAbilityResultProofSummary(outputRef);
+  if (!summary) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    PROOF_SUMMARY_REF_KEYS
+      .map((key) => [key, summary[key] ?? null] as const)
+      .filter(([, value]) => value !== null),
+  );
+}
 
 function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransportSurface, clock: EnvelopeClock) {
   return async (input: SendAbilityInput) => {
@@ -29,16 +63,17 @@ function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransport
       envelope: buildAbilityDispatchEnvelope(input, envelopeId, createdAt, expiresAt),
       inputPayload: buildAbilityDispatchDocument(input),
     });
+    const outputRef = transport.resultEnvelope.outputRef ?? null;
     return {
       status: transport.resultEnvelope.status,
       envelopeId: transport.commandEnvelope.envelopeId,
       resultRef: transport.resultEnvelope.resultId ?? `${envelopeId}:result`,
       decision: null,
-      branchFieldValues: {},
+      branchFieldValues: buildProofBranchFieldValues(outputRef),
       failureReason: transport.resultEnvelope.failureReason ?? transport.resultEnvelope.reviewRequiredReason ?? null,
       payloadRefs: {
         ...input.payloadRefs,
-        abilityResultRef: transport.resultEnvelope.outputRef ?? null,
+        abilityResultRef: outputRef,
       },
     };
   };

@@ -61,6 +61,23 @@ function collectLastResultRefs(lastResult: StepResultRecord): string[] {
     "schemaIssueCount",
     "qualityDecision",
     "outputBoundaryDecision",
+    "screenshotEvidenceId",
+    "artifactRef",
+    "artifactStorageRef",
+    "outputHash",
+    "artifactHash",
+    "byteSize",
+    "width",
+    "height",
+    "coordinateSpace",
+    "runtimeProofRef",
+    "promptInputRef",
+    "aiInputArtifactRef",
+    "sourceScreenshotEvidenceId",
+    "sourceStorageRef",
+    "preparedImageHash",
+    "preparedImageWidth",
+    "preparedImageHeight",
   ]
     .map((key) => {
       const value = lastResult.branchFieldValues[key];

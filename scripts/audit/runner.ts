@@ -5,6 +5,8 @@ import type { RunnerSummary } from "./core/schema-runner.js";
 import type { InspectorResult } from "./core/schema.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 60_000;
+const HEARTBEAT_INTERVAL_MS = 5_000;
+const PARALLEL_CONCURRENCY = 4;
 const STEP_TIMEOUT_MS_BY_DOMAIN: Record<string, number> = {
 	"map-plugin-package": 600_000,
 	"audit-system": 900_000,
@@ -75,7 +77,12 @@ const applyDefaultNegativeProofPolicy = (): void => {
 
 const runWithTimeout = async <T>(label: string, task: Promise<T>): Promise<T> => {
 	const timeoutMs = resolveStepTimeoutMs(label);
+	const startMs = Date.now();
 	let timeoutHandle: NodeJS.Timeout | undefined;
+	const heartbeatHandle = setInterval(() => {
+		const elapsed = Math.floor((Date.now() - startMs) / 1000);
+		process.stdout.write(`[AUDIT] ⏳ ${label} still running... (${elapsed}s elapsed)\n`);
+	}, HEARTBEAT_INTERVAL_MS);
 	const timeout = new Promise<never>((_, reject) => {
 		timeoutHandle = setTimeout(() => {
 			reject(new Error(`${label} exceeded ${timeoutMs}ms`));
@@ -85,6 +92,7 @@ const runWithTimeout = async <T>(label: string, task: Promise<T>): Promise<T> =>
 	try {
 		return await Promise.race([task, timeout]);
 	} finally {
+		clearInterval(heartbeatHandle);
 		if (timeoutHandle) {
 			clearTimeout(timeoutHandle);
 		}
@@ -116,21 +124,38 @@ const main = async (): Promise<void> => {
 	await writeRunnerSummary(buildSummary({ phase: artifacts.auditPlan.phase, results: [], artifactBlockingCount }));
 	const context = await createInspectorContext(artifacts);
 	const results: InspectorResult[] = [];
-	process.stdout.write(`[AUDIT] running ${artifacts.auditPlan.owners.length} planned inspections with fail-fast enabled...\n`);
+	const totalOwners = artifacts.auditPlan.owners.length;
+	const concurrency = Math.min(PARALLEL_CONCURRENCY, totalOwners);
+	process.stdout.write(`[AUDIT] running ${totalOwners} planned inspections (concurrency=${concurrency}, fail-fast enabled)...\n`);
 
-	for (const planOwner of artifacts.auditPlan.owners) {
-		process.stdout.write(`[AUDIT] starting ${planOwner.capabilityDomain}...\n`);
-		const inspector = await loadInspector(planOwner.entry);
-		const result = await runWithTimeout(planOwner.capabilityDomain, inspector(context));
-		results.push(result);
-		process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
+	let ownerIndex = 0;
+	let dominated = false;
 
-		if (hasBlockingFindings(result.findings)) {
-			const summary = buildSummary({ phase: artifacts.auditPlan.phase, results, artifactBlockingCount });
-			await writeRunnerSummary(summary);
-			process.stderr.write(`[AUDIT FAIL-FAST] stopped at ${result.capabilityDomain}; ${summary.totals.blocking} blocking issue(s) recorded.\n`);
-			exitNow(1);
+	const runWorker = async (): Promise<void> => {
+		while (!dominated) {
+			const i = ownerIndex++;
+			if (i >= totalOwners) break;
+			const planOwner = artifacts.auditPlan.owners[i];
+			if (!planOwner) break;
+			process.stdout.write(`[AUDIT] starting ${planOwner.capabilityDomain}...\n`);
+			const inspector = await loadInspector(planOwner.entry);
+			const result = await runWithTimeout(planOwner.capabilityDomain, inspector(context));
+			results.push(result);
+			process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
+			if (hasBlockingFindings(result.findings)) {
+				dominated = true;
+			}
 		}
+	};
+
+	await Promise.all(Array.from({ length: concurrency }, () => runWorker()));
+
+	if (dominated) {
+		const summary = buildSummary({ phase: artifacts.auditPlan.phase, results, artifactBlockingCount });
+		await writeRunnerSummary(summary);
+		const blockedResult = results.find((r) => hasBlockingFindings(r.findings));
+		process.stderr.write(`[AUDIT FAIL-FAST] stopped after ${results.length} inspection(s); ${summary.totals.blocking} blocking issue(s) found (first blocking: ${blockedResult?.capabilityDomain ?? "unknown"}).\n`);
+		exitNow(1);
 	}
 
 	const summary = buildSummary({ phase: artifacts.auditPlan.phase, results, artifactBlockingCount });

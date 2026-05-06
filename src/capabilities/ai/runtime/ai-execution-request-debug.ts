@@ -6,6 +6,7 @@ import type {
 import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
 import type { AiRuntimeStructuredDebugEvent } from "../runtime-adapters/local-ai-runtime-debug-contract.js";
 import { buildAiRuntimeCallIdentity } from "./ai-idempotency.js";
+import { resolveAiInputProofSummary } from "../shared/ai-input-proof-registry.js";
 
 type ExecutionRequestDebugInput = {
   context: AiExecutionContext;
@@ -84,19 +85,30 @@ const buildRequestDebugPrompt = (
 
 const buildRequestDebugOutput = (
   input: ExecutionRequestDebugInput,
-): Pick<AiRuntimeStructuredDebugEvent, "rawResponsePreview" | "rawResponseText" | "rawResponseHash" | "rawResponseRef" | "parsedJson" | "parsedDecision" | "parserErrors" | "sourceScreenshotEvidenceId" | "aiInputArtifactRef" | "imageInputs" | "tokenEstimate"> => ({
-  rawResponsePreview: null,
-  rawResponseText: null,
-  rawResponseHash: null,
-  rawResponseRef: null,
-  parsedJson: null,
-  parsedDecision: null,
-  parserErrors: [],
-  sourceScreenshotEvidenceId: input.request.inputRefs[0]?.id ?? null,
-  aiInputArtifactRef: input.request.inputRefs[0]?.id ?? null,
-  imageInputs: [],
-  tokenEstimate: null,
-});
+): Pick<AiRuntimeStructuredDebugEvent, "rawResponsePreview" | "rawResponseText" | "rawResponseHash" | "rawResponseRef" | "parsedJson" | "parsedDecision" | "parserErrors" | "sourceScreenshotEvidenceId" | "aiInputArtifactRef" | "imageInputs" | "tokenEstimate"> => {
+  const proof = resolveAiInputProofSummary(input.request.inputRefs[0]?.id);
+  return {
+    rawResponsePreview: null,
+    rawResponseText: null,
+    rawResponseHash: null,
+    rawResponseRef: null,
+    parsedJson: null,
+    parsedDecision: null,
+    parserErrors: [],
+    sourceScreenshotEvidenceId: proof?.sourceScreenshotEvidenceId ?? input.request.inputRefs[0]?.id ?? null,
+    aiInputArtifactRef: proof?.aiInputArtifactRef ?? input.request.inputRefs[0]?.id ?? null,
+    imageInputs: proof ? [{
+      refId: proof.promptInputRef,
+      artifactRef: proof.aiInputArtifactRef,
+      filePath: proof.sourceStorageRef,
+      hash: proof.preparedImageHash,
+      bytes: null,
+      width: proof.preparedImageWidth,
+      height: proof.preparedImageHeight,
+    }] : [],
+    tokenEstimate: null,
+  };
+};
 
 const buildRequestDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion" | "mapPackageSchemaVersion"> => ({
   inputPackageId: null,

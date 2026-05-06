@@ -90,9 +90,43 @@ const inspectBuiltinRecord = (record: Awaited<ReturnType<typeof loadBuiltinPacka
   return findings;
 };
 
+const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number]): Finding[] => {
+  const requestedPlatformId = record.mapPackage?.taskTemplate.requestedPlatformId ?? null;
+  if (!record.mapPackage || requestedPlatformId === null || !["facebook-web", "tiktok-web"].includes(requestedPlatformId) || !record.mapPackage.manifest.packageId.includes("seeding-video-discovery")) {
+    return [];
+  }
+
+  const steps = record.mapPackage.operationalMap.steps;
+  const capture = steps.find((step) => step.stepId === "capture-video-viewport");
+  const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
+  const judge = steps.find((step) => step.stepId === "judge-seeding-video");
+  const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
+  const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
+    && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
+    && prepare.outputRefPolicy.storeAs.includes("promptInputRef")
+    && judge?.stepKind === "ai"
+    && judge.inputRefs.includes("promptInputRef")
+    && judge.promptContractId === "vision.productPresence.v1"
+    && promptBinding?.requiredInputRefs.includes("promptInputRef") === true
+    && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1";
+
+  return hasChain
+    ? []
+    : [createFinding({
+      lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT,
+      file: record.file,
+      line: 1,
+      severity: "fatal",
+      message: "Seeding video map packages must wire capture-video-viewport screenshotEvidenceRef into prepare-ai-input promptInputRef and judge-seeding-video AI prompt bindings.",
+    })];
+};
+
 const inspectBuiltinRecords = async (): Promise<Finding[]> => {
   const builtinRecords = await loadBuiltinPackageRecords();
-  const findings = builtinRecords.flatMap((record) => inspectBuiltinRecord(record));
+  const findings = builtinRecords.flatMap((record) => [
+    ...inspectBuiltinRecord(record),
+    ...inspectSeedingVideoAiInputChain(record),
+  ]);
 
   if (builtinRecords.length !== BUILTIN_PACKAGE_FILES.length) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader and builtin package file set drifted." }));

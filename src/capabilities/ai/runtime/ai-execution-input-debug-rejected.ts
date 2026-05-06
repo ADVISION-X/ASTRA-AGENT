@@ -119,7 +119,7 @@ const buildRejectedBaseFields = (
   identity: ReturnType<typeof buildRejectedIdentity>,
 ): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
   return {
-    eventType: "AI_REQUEST_DEBUG",
+    eventType: "AI_INPUT_DEBUG_REJECTED",
     level: "DEBUG",
     status: "review_required",
     sessionId: identity.sessionId,
@@ -138,6 +138,7 @@ const buildRejectedBaseFields = (
 const buildRejectedRuntimeFields = (
   issue: InputDebugShapeIssue,
   identity: ReturnType<typeof buildRejectedIdentity>,
+  failureReason = "ai_input_debug_fields_missing",
 ) => ({
     provider: null,
     model: null,
@@ -148,8 +149,10 @@ const buildRejectedRuntimeFields = (
     runtimeCallId: identity.runtimeCallId,
     diagnosticPayloadRef: issue.diagnosticPayloadRef,
     schemaIssueCount: issue.missingRequiredFields.length,
-    failureReason: "ai_input_debug_fields_missing",
-    actionableMessage: `AI request debug is missing required chain fields: ${issue.missingRequiredFields.join(", ")}.`,
+    failureReason,
+    actionableMessage: failureReason === "ai_input_debug_fields_missing"
+      ? `AI request debug is missing required chain fields: ${issue.missingRequiredFields.join(", ")}.`
+      : "AI input proof is missing a governed promptInputRef or prepared image artifact.",
     ownerResponsible: "AI Capability",
 });
 
@@ -185,12 +188,12 @@ const buildRejectedOutputFields = (issue: InputDebugShapeIssue) => ({
     durationMs: null,
 });
 
-export const buildRejectedInputDebug = (inputValue: unknown): AiRuntimeStructuredDebugEvent => {
+export const buildRejectedInputDebug = (inputValue: unknown, failureReason?: string): AiRuntimeStructuredDebugEvent => {
   const issue = buildInputDebugShapeIssue(inputValue);
   const identity = buildRejectedIdentity(issue);
   return {
     ...buildRejectedBaseFields(issue, identity),
-    ...buildRejectedRuntimeFields(issue, identity),
+    ...buildRejectedRuntimeFields(issue, identity, failureReason),
     ...buildRejectedPromptFields(issue),
     ...buildRejectedOutputFields(issue),
     ...emptyCatalogFields(),

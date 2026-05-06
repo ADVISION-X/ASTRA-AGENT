@@ -1,4 +1,4 @@
-mutationName: success raw output hash mutation
+mutationName: input gate mutation
 classification: PASS
 passed: true
 violationCount: 0

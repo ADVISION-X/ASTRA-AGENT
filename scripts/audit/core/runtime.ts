@@ -58,3 +58,22 @@ export const loadInspector = async (entry: string): Promise<DomainInspector> => 
 export const writeRunnerSummary = async (summary: RunnerSummary): Promise<void> => {
   await writeJsonFile(generatedArtifactPaths.runnerSummary, summary);
 };
+
+const STANDALONE_HEARTBEAT_INTERVAL_MS = 5_000;
+
+/**
+ * Wraps a promise with a 5s heartbeat log, for use in standalone run-inspector.ts scripts.
+ * Does NOT apply a timeout — the caller is responsible for that if needed.
+ */
+export const runWithStandaloneHeartbeat = async <T>(label: string, task: Promise<T>): Promise<T> => {
+  const startMs = Date.now();
+  const heartbeatHandle = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    process.stdout.write(`[AUDIT] ⏳ ${label} still running... (${elapsed}s elapsed)\n`);
+  }, STANDALONE_HEARTBEAT_INTERVAL_MS);
+  try {
+    return await task;
+  } finally {
+    clearInterval(heartbeatHandle);
+  }
+};

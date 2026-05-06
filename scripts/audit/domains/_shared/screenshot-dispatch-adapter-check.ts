@@ -13,6 +13,7 @@ type PropertyBinding = {
 const DISPATCH_FILE = "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts";
 const RESULT_ENVELOPE_FILE = "src/lib/local-runtime/workbench-ability-result-envelope.ts";
 const HANDOFF_FILE = "src/lib/local-runtime/workbench-screenshot-source-handoff.ts";
+const AI_INPUT_PROOF_REGISTRY_FILE = "src/capabilities/ai/shared/ai-input-proof-registry.ts";
 const COMMON_BINDINGS: PropertyBinding[] = [
   { name: "missionId", initializer: "envelope.missionId" },
   { name: "runId", initializer: "envelope.runId" },
@@ -54,6 +55,30 @@ const HANDOFF_SNIPPETS = [
   "screenshotSourceHandoffs.set(input.outputRef, handoff);",
   "screenshotSourceHandoffs.set(evidenceId, handoff);",
   "export function resolveScreenshotSourceHandoff",
+] as const;
+
+const SCREENSHOT_PROOF_SUMMARY_FIELDS = [
+  "screenshotEvidenceId",
+  "artifactRef",
+  "artifactStorageRef",
+  "outputHash",
+  "artifactHash",
+  "byteSize",
+  "width",
+  "height",
+  "coordinateSpace",
+  "runtimeProofRef",
+] as const;
+
+const PREPARE_AI_PROOF_SUMMARY_FIELDS = [
+  "promptInputRef",
+  "aiInputArtifactRef",
+  "sourceScreenshotEvidenceId",
+  "sourceStorageRef",
+  "preparedImageHash",
+  "preparedImageWidth",
+  "preparedImageHeight",
+  "coordinateSpace",
 ] as const;
 
 function normalize(text: string) {
@@ -110,6 +135,28 @@ function getObjectPropertyLiteral(objectLiteral: ObjectLiteralExpression, proper
 
   const initializer = property.getInitializer();
   return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : null;
+}
+
+function getFunctionPropertyNames(project: Project, filePath: string, functionName: string): Set<string> {
+  const source = getSourceFileOrThrow(project, filePath);
+  const functionLike = getFunctionLike(source, functionName);
+  if (!functionLike) {
+    return new Set();
+  }
+  return new Set([
+    ...functionLike.getDescendantsOfKind(SyntaxKind.PropertyAssignment).map((property) => property.getName()),
+    ...functionLike.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment).map((property) => property.getName()),
+  ]);
+}
+
+function functionHasFields(project: Project, filePath: string, functionName: string, fields: readonly string[]): boolean {
+  const propertyNames = getFunctionPropertyNames(project, filePath, functionName);
+  return fields.every((field) => propertyNames.has(field));
+}
+
+function hasCallExpressionNamed(project: Project, filePath: string, callName: string): boolean {
+  const source = getSourceFileOrThrow(project, filePath);
+  return source.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === callName);
 }
 
 const getMissingCommonFieldsFinding = (commonFields: ObjectLiteralExpression | null, lawId: string): Finding[] => {
@@ -206,6 +253,27 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
   return findings;
 };
 
+const getTerminalProofSummaryFindings = (project: Project, lawId: string): Finding[] => {
+  const registrySource = getSourceFileOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
+  const hasTerminalProofSummary =
+    functionHasFields(project, RESULT_ENVELOPE_FILE, "buildScreenshotProofSummary", SCREENSHOT_PROOF_SUMMARY_FIELDS)
+    && functionHasFields(project, RESULT_ENVELOPE_FILE, "buildPrepareAiInputProofSummary", PREPARE_AI_PROOF_SUMMARY_FIELDS)
+    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "recordAbilityResultProofSummary")
+    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "recordAiInputProofSummary")
+    && Boolean(registrySource.getTypeAlias("AiInputProofSummary"))
+    && Boolean(registrySource.getFunction("recordAiInputProofSummary"));
+
+  return hasTerminalProofSummary
+    ? []
+    : [createFinding({
+      lawId,
+      file: RESULT_ENVELOPE_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot success and prepare-ai-input success must project terminal-auditable artifact, hash, dimension, promptInputRef, and aiInputArtifactRef proof fields without raw image payloads.",
+    })];
+};
+
 export function inspectScreenshotDispatchAdapter(project: Project, lawId: string): Finding[] {
   const commonFields = getReturnedObjectLiteral(project, "buildScreenshotCommonFields");
   const captureBrowserViewport = getReturnedObjectLiteral(project, "buildCaptureBrowserViewportCommand");
@@ -216,6 +284,7 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
       ...getCommonBindingFindings(commonFields, lawId),
       ...getViewportDispatchFindings(captureBrowserViewport, lawId),
       ...getSourceHandoffFindings(project, lawId),
+      ...getTerminalProofSummaryFindings(project, lawId),
     ]
     : missingCommonFields;
 }

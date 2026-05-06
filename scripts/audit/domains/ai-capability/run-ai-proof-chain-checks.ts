@@ -77,25 +77,68 @@ function hasIdempotencyChainFields(sourceFile: SourceFile): boolean {
 }
 
 const WORKBENCH_AI_DEBUG_SUPPORT_FILE = "src/lib/local-runtime/workbench-ai-debug-support.ts";
+const AI_INPUT_GATE_FILE = `${AI_ROOT}/runtime/ai-input-gate.ts`;
+const AI_EXECUTOR_FILE = `${AI_ROOT}/runtime/ai-executor.ts`;
+const AI_REQUEST_DEBUG_FILE = `${AI_ROOT}/runtime/ai-execution-request-debug.ts`;
+const AI_INPUT_DEBUG_FILE = `${AI_ROOT}/runtime/ai-execution-input-debug.ts`;
+const AI_INPUT_DEBUG_REJECTED_FILE = `${AI_ROOT}/runtime/ai-execution-input-debug-rejected.ts`;
+const AI_INPUT_PROOF_REGISTRY_FILE = `${AI_ROOT}/shared/ai-input-proof-registry.ts`;
 
 function hasAiDebugTraceStepSafeAssignment(sourceFile: SourceFile): boolean {
   // buildAiDebugTraceFields is a const arrow function.
   const callable = getNamedCallable(sourceFile, "buildAiDebugTraceFields");
   if (!callable) return false;
 
-  // Locate the `step` PropertyAssignment inside the returned object literal.
-  const stepAssignments = callable.getDescendantsOfKind(SyntaxKind.PropertyAssignment).filter(
-    (prop) => prop.getName() === "step",
+  // Shorthand property `step,` (= step: step) is always safe — no input.stepId.
+  // Regular PropertyAssignment `step: <expr>` is only safe when the initializer
+  // does NOT reference input.stepId (which is an orchestration map step ID that
+  // fails RoundLifecycleStepSchema Zod validation at runtime).
+  const unsafeStepProp = callable.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find(
+    (prop) => prop.getName() === "step" && (prop.getInitializer()?.getText() ?? "").includes("input.stepId"),
   );
-  if (stepAssignments.length === 0) return false;
+  return unsafeStepProp === undefined;
+}
 
-  // The initializer text must NOT include "input.stepId" — using the orchestration
-  // step ID (e.g. "judge-seeding-video") as the `step` value would fail
-  // RoundLifecycleStepSchema Zod validation at runtime and silently suppress
-  // AI_REQUEST_DEBUG before the terminal observer can receive it.
-  return stepAssignments.every(
-    (prop) => !(prop.getInitializer()?.getText() ?? "").includes("input.stepId"),
-  );
+function hasCallExpressionNamed(sourceFile: SourceFile, name: string): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === name);
+}
+
+function hasStringLiteral(sourceFile: SourceFile, literal: string): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((node) => node.getLiteralText() === literal);
+}
+
+function hasPropertyUsingText(sourceFile: SourceFile, callableName: string, propertyName: string, requiredText: string): boolean {
+  return getNamedCallable(sourceFile, callableName)?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+    property.getName() === propertyName && (property.getInitializer()?.getText() ?? "").includes(requiredText),
+  ) ?? false;
+}
+
+function hasAiInputProofDebugChain(input: {
+  requestDebugSource: SourceFile;
+  inputDebugSource: SourceFile;
+  rejectedDebugSource: SourceFile;
+  inputGateSource: SourceFile;
+  executorSource: SourceFile;
+  registrySource: SourceFile;
+}): boolean {
+  return hasImportModuleSpecifier(input.requestDebugSource, "ai-input-proof-registry")
+    && hasImportModuleSpecifier(input.inputDebugSource, "ai-input-proof-registry")
+    && hasCallExpressionNamed(input.requestDebugSource, "resolveAiInputProofSummary")
+    && hasCallExpressionNamed(input.inputDebugSource, "resolveAiInputProofSummary")
+    && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "sourceScreenshotEvidenceId", "proof?.sourceScreenshotEvidenceId")
+    && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "aiInputArtifactRef", "proof?.aiInputArtifactRef")
+    && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "sourceScreenshotEvidenceId", "proof?.sourceScreenshotEvidenceId")
+    && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "aiInputArtifactRef", "proof?.aiInputArtifactRef")
+    && hasImportModuleSpecifier(input.inputGateSource, "ai-input-proof-registry")
+    && hasCallExpressionNamed(input.inputGateSource, "resolveAiInputProofSummary")
+    && hasStringLiteral(input.inputGateSource, "ai_input_ref_missing")
+    && hasStringLiteral(input.inputGateSource, "ai_input_artifact_missing")
+    && hasImportModuleSpecifier(input.executorSource, "ai-execution-input-debug-rejected")
+    && hasCallExpressionNamed(input.executorSource, "buildRejectedInputDebug")
+    && hasStringLiteral(input.rejectedDebugSource, "AI_INPUT_DEBUG_REJECTED")
+    && Boolean(input.registrySource.getTypeAlias("AiInputProofSummary"))
+    && Boolean(input.registrySource.getFunction("recordAiInputProofSummary"))
+    && Boolean(input.registrySource.getFunction("resolveAiInputProofSummary"));
 }
 
 export function findProofChainViolations(project: Project): Finding[] {
@@ -106,6 +149,12 @@ export function findProofChainViolations(project: Project): Finding[] {
   const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
   const idempotencySource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`);
   const aiDebugSupportSource = getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_FILE);
+  const requestDebugSource = getSourceOrThrow(project, AI_REQUEST_DEBUG_FILE);
+  const inputDebugSource = getSourceOrThrow(project, AI_INPUT_DEBUG_FILE);
+  const rejectedDebugSource = getSourceOrThrow(project, AI_INPUT_DEBUG_REJECTED_FILE);
+  const inputGateSource = getSourceOrThrow(project, AI_INPUT_GATE_FILE);
+  const executorSource = getSourceOrThrow(project, AI_EXECUTOR_FILE);
+  const registrySource = getSourceOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
   const findings: Finding[] = [];
 
   if (!hasChainFieldSchemaContract(chainFieldSource)) {
@@ -125,6 +174,9 @@ export function findProofChainViolations(project: Project): Finding[] {
   }
   if (!hasAiDebugTraceStepSafeAssignment(aiDebugSupportSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_SUPPORT_FILE, line: 1, severity: "fatal", message: "AI debug trace builder must use the computed RoundLifecycleStep-safe step value for the structured-event step field; using input.stepId directly causes StructuredRuntimeEventSchema Zod parse failures for orchestration step IDs and silently suppresses AI_REQUEST_DEBUG." }));
+  }
+  if (!hasAiInputProofDebugChain({ requestDebugSource, inputDebugSource, rejectedDebugSource, inputGateSource, executorSource, registrySource })) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: AI_REQUEST_DEBUG_FILE, line: 1, severity: "fatal", message: "AI request debug must resolve promptInputRef through the governed AI input proof registry, emit sourceScreenshotEvidenceId and aiInputArtifactRef, and reject missing prompt/artifact proof with AI_INPUT_DEBUG_REJECTED before runtime success." }));
   }
 
   return findings;

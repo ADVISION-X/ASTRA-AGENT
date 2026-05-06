@@ -18,7 +18,7 @@ type WorkbenchAiDebugForensicsRuntime = WorkbenchAiDebugRuntime & {
 };
 
 const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"]): boolean => (
-  eventType === "AI_REQUEST_DEBUG" || eventType === "AI_RESPONSE_DEBUG" || eventType === "AI_ERROR_DEBUG"
+  eventType === "AI_REQUEST_DEBUG" || eventType === "AI_INPUT_DEBUG_REJECTED" || eventType === "AI_RESPONSE_DEBUG" || eventType === "AI_ERROR_DEBUG"
 );
 
 export const recordWorkbenchAiDebugEvent = async (

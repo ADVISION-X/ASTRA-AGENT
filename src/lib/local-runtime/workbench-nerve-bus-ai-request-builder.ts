@@ -1,6 +1,8 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
+import { recordAiInputProofSummary, resolveAiInputProofSummary } from "../../capabilities/ai/shared/ai-input-proof-registry.js";
+import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
@@ -43,8 +45,9 @@ const buildWorkbenchAiInputRefs = (
   inputPayload: WorkbenchAiPayloadDocument,
 ) => envelope.aiInputRefs.map((ref) => ({
   id: ref,
-  kind: "evidence-packet" as const,
+  kind: "video-screenshot" as const,
   summary: inputPayload.summary,
+  ...(resolveAiInputProofSummary(ref)?.sourceStorageRef ? { filePath: resolveAiInputProofSummary(ref)?.sourceStorageRef } : {}),
 }));
 
 const requireChainField = (value: string | null | undefined): string => {
@@ -65,7 +68,8 @@ const buildProductPresenceInputPayload = (
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
   const preparedInputRef = payloadValueToString(payload.promptInputRef) ?? envelope.aiInputRefs[0] ?? null;
-  const screenshotEvidenceId = payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
+  const proof = resolveAiInputProofSummary(preparedInputRef) ?? null;
+  const screenshotEvidenceId = proof?.sourceScreenshotEvidenceId ?? payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
   const aiInputRefs = envelope.aiInputRefs.length > 0 ? envelope.aiInputRefs : (preparedInputRef ? [preparedInputRef] : []);
   const inputMode = aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";
   const samplingStrategy = aiInputRefs.length > 1 ? "adaptive_short_video" : "single_frame_fallback";
@@ -98,6 +102,35 @@ const buildWorkbenchAiInputPayload = (
     : buildDefaultAiInputPayload(inputPayload);
 };
 
+function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): void {
+  const payload = payloadDocumentToObject(inputPayload);
+  const promptInputRef = payloadValueToString(payload.promptInputRef);
+  if (!promptInputRef || resolveAiInputProofSummary(promptInputRef)) {
+    return;
+  }
+
+  const summary = resolveAbilityResultProofSummary(promptInputRef);
+  const aiInputArtifactRef = payloadValueToString(summary?.aiInputArtifactRef);
+  const sourceScreenshotEvidenceId = payloadValueToString(summary?.sourceScreenshotEvidenceId);
+  const sourceStorageRef = payloadValueToString(summary?.sourceStorageRef);
+  const preparedImageHash = payloadValueToString(summary?.preparedImageHash);
+  const preparedImageWidth = typeof summary?.preparedImageWidth === "number" ? summary.preparedImageWidth : null;
+  const preparedImageHeight = typeof summary?.preparedImageHeight === "number" ? summary.preparedImageHeight : null;
+  const coordinateSpace = summary?.coordinateSpace === "ai_input_pixels" ? summary.coordinateSpace : null;
+  if (aiInputArtifactRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace) {
+    recordAiInputProofSummary({
+      promptInputRef,
+      aiInputArtifactRef,
+      sourceScreenshotEvidenceId,
+      sourceStorageRef,
+      preparedImageHash,
+      preparedImageWidth,
+      preparedImageHeight,
+      coordinateSpace,
+    });
+  }
+}
+
 export const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {
     throw new Error(typeof signal.reason === "string" ? signal.reason : "Transport aborted before AI completion.");
@@ -110,6 +143,7 @@ export const buildWorkbenchAiAbilityRequest = (
 ): WorkbenchAiExecuteInput => {
   const mapRecord = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
   const taskType = resolveAiTaskType(envelope);
+  ensureWorkbenchAiInputProof(inputPayload);
 
   return {
     abilityGroupId: "ai" as const,

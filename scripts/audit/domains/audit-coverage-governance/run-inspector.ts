@@ -1,5 +1,5 @@
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { createInspectorContext, loadGeneratedArtifacts } from "../../core/runtime.js";
+import { createInspectorContext, loadGeneratedArtifacts, runWithStandaloneHeartbeat } from "../../core/runtime.js";
 import { hasBlockingFindings } from "../../core/result.js";
 import { inspectAuditCoverageGovernance } from "./inspector.js";
 
@@ -8,10 +8,12 @@ const exitNow = (code: number): never => {
 };
 
 const main = async (): Promise<void> => {
-  await buildAuditArtifacts();
+  process.stdout.write("[AUDIT] building artifacts...\n");
+  await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
-  const result = await inspectAuditCoverageGovernance(context);
+  process.stdout.write("[AUDIT] starting audit-coverage-governance...\n");
+  const result = await runWithStandaloneHeartbeat("audit-coverage-governance", inspectAuditCoverageGovernance(context));
 
   process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
   for (const phase of result.phases) {

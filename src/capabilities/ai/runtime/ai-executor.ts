@@ -5,6 +5,7 @@ import {
   runAiExecutorInputGate,
 } from "./ai-pre-runtime.js";
 import { emitAiExecutionRequestDebug } from "./ai-execution-request-debug.js";
+import { buildRejectedInputDebug } from "./ai-execution-input-debug-rejected.js";
 import { buildAiInputGateFailureResult, buildAiPromptGateFailureResult } from "./ai-pre-runtime-terminal-results.js";
 import { runAiRuntimeCall } from "./ai-runtime-call-runner.js";
 import { resolveAiRuntimeResult } from "./ai-runtime-result.js";
@@ -12,6 +13,7 @@ import { resolveAiRuntimeResult } from "./ai-runtime-result.js";
 export async function executeAiChild(input: { request: ParsedAiAbilityInput; childContract: AiChildContract; context: AiExecutionContext }): Promise<AiAbilityResult> {
   const inputGate = runAiExecutorInputGate(input.request, input.childContract.childCapabilityId);
   if (inputGate.ok === false) {
+    await input.context.emitDebugEvent?.(buildRejectedInputDebug(input.request, inputGate.reason));
     return buildAiInputGateFailureResult({
       request: input.request,
       childContract: input.childContract,

@@ -6,6 +6,10 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import type { DomainInspector, Finding, InspectionClassification, InspectorContext, InspectorPhase } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "./owner-foundation-inspection.js";
 
+const logDomain = (domain: string, message: string): void => {
+  process.stdout.write(`  [${domain}] ${message}\n`);
+};
+
 type ExtraCheckResult = {
   findings?: Finding[];
   phases?: InspectorPhase[];
@@ -64,21 +68,35 @@ const resolveImplementationPhase = (
 
 export const createPendingDomainInspector = (options: PendingInspectorOptions): DomainInspector => {
   const inspector: DomainInspector = async (context) => {
+    logDomain(options.capabilityDomain, "checking owner-foundation...");
     const base = await runDomainOwnerInspection(context, {
       capabilityDomain: options.capabilityDomain,
       inspectorId: options.inspectorId,
       inspectorEntry: options.inspectorEntry,
     });
+    logDomain(options.capabilityDomain, `owner-foundation → ${base.phases[0]?.classification ?? "PASS"}`);
 
     const findings = [...base.findings];
     const phases = [...base.phases];
+    logDomain(options.capabilityDomain, "checking owned paths...");
     const ownedPathExists = await findOwnedPathExists(options.ownedPaths);
     phases.push(resolveImplementationPhase(options, ownedPathExists));
+    logDomain(options.capabilityDomain, `owned paths → ${ownedPathExists ? "implemented" : "pending"}`);
 
     if (options.extraChecks) {
+      logDomain(options.capabilityDomain, "running extra checks...");
       const extra = await options.extraChecks(context);
-      findings.push(...(extra.findings ?? []));
-      phases.push(...(extra.phases ?? []));
+      const extraPhases = extra.phases ?? [];
+      const extraFindings = extra.findings ?? [];
+      findings.push(...extraFindings);
+      phases.push(...extraPhases);
+      const failedPhase = extraPhases.find((p) => p.classification !== "PASS");
+      logDomain(
+        options.capabilityDomain,
+        failedPhase
+          ? `extra checks → ${failedPhase.classification} (${extraFindings.length} finding(s), ${extraPhases.length} phase(s))`
+          : `extra checks → PASS (${extraPhases.length} phase(s))`,
+      );
     }
 
     const classification = resolveClassification(findings, phases);
