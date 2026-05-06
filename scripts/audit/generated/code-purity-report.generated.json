@@ -1,16 +1,18 @@
 {
-  "generatedAt": "2026-05-06T17:03:54.126Z",
+  "generatedAt": "2026-05-06T17:15:52.276Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
+    "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
-    "scripts/audit/generated/touched-files.generated.json"
+    "scripts/audit/generated/touched-files.generated.json",
+    "src/capabilities/ai/children/future-api-ai/implementation.ts",
+    "src/capabilities/ai/runtime/ai-execution-failure-debug.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -20,40 +22,7 @@
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
     "scripts/audit/generated/**/*.json"
   ],
-  "godFileInventory": [
-    {
-      "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-      "lines": 361,
-      "fileType": "audit phase",
-      "overLimitBy": 11,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/ability-group.ts",
-      "lines": 344,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 44,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "emitAiExecutionFailureDebug"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
+  "godFileInventory": [],
   "disasterFileInventory": [
     {
       "file": "scripts/audit/generated/enforcement-strength.generated.json",
@@ -207,42 +176,8 @@
     }
   ],
   "ownerMixingInventory": [],
-  "oversizedTouchedFileInventory": [
-    {
-      "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-      "lines": 361,
-      "fileType": "audit phase",
-      "overLimitBy": 11,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    }
-  ],
-  "functionOverLimitInventory": [
-    {
-      "file": "src/capabilities/ai/ability-group.ts",
-      "lines": 344,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 44,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "emitAiExecutionFailureDebug"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
+  "oversizedTouchedFileInventory": [],
+  "functionOverLimitInventory": [],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [],
   "remediationQueue": [
@@ -395,38 +330,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-      "lines": 361,
-      "fileType": "audit phase",
-      "overLimitBy": 11,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/ability-group.ts",
-      "lines": 344,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 44,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "emitAiExecutionFailureDebug"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "BLOCKING",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [

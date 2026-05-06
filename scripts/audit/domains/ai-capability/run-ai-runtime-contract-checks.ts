@@ -185,7 +185,12 @@ const collectRuntimeFailureReasonFindings = (project: Project): Finding[] => {
   if (!hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "implementationStatus") || !hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "diagnosticPayloadRef") || !hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "errorKind")) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef." }));
   }
-  if (!hasFunctionCall(abilityGroupSource, "executeResolvedAiEntry", "emitAiExecutionFailureDebug") || !hasFunctionCall(executionFailureDebugSource, "emitAiExecutionFailureDebug", "emitDebugEvent") || !hasFunctionObjectProperty(executionFailureDebugSource, "emitAiExecutionFailureDebug", "diagnosticPayloadRef")) {
+  if (
+    !hasFunctionCall(abilityGroupSource, "executeResolvedAiEntry", "emitAiExecutionFailureDebug")
+    || !hasFunctionCall(executionFailureDebugSource, "emitAiExecutionFailureDebug", "emitDebugEvent")
+    || !hasFunctionObjectProperty(executionFailureDebugSource, "buildExecutionFailureDebugRefs", "diagnosticPayloadRef")
+    || !hasFunctionObjectProperty(executionFailureDebugSource, "buildExecutionFailureDebugRuntime", "diagnosticPayloadRef")
+  ) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-execution-failure-debug.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must emit AI_ERROR_DEBUG with diagnosticPayloadRef before returning the governed dispatch failure." }));
   }
 
