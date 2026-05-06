@@ -2,7 +2,7 @@ scenarioId: export-star-mutation
 mutationName: export star mutation
 mutatedFile: src/capabilities/open/index.ts
 rollbackRestoredHash: sha256:e242ced02ba1e58f8a49412edf542be5772d0ebc4f4e846e5fd1900da008f020
-startedAt: 2026-05-06T09:42:11.843Z
-endedAt: 2026-05-06T09:42:19.777Z
+startedAt: 2026-05-06T15:38:03.770Z
+endedAt: 2026-05-06T15:38:08.177Z
 
 Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

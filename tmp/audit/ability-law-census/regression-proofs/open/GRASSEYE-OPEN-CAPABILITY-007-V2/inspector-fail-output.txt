@@ -1,4 +1,6 @@
+classification: CODE VIOLATION
 passed: false
 violationCount: 1
+summary: Open boundary leaks private children or runtime internals.
 
 FATAL GRASSEYE-OPEN-CAPABILITY-007-V2 src/capabilities/open/index.ts:1 Open public index must not use export-star barrels.

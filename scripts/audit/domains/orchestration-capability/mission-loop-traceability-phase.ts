@@ -11,6 +11,7 @@ import { orchestrationInspectionConstants as config } from "./inspection-constan
 
 const INTERNAL_TYPES_PATH = "src/capabilities/orchestration/internal.ts";
 const LOOP_ITERATION_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts";
+const LOOP_ITERATION_SUPPORT_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts";
 const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts";
 const WORKBENCH_ORCHESTRATION_PATH = "src/lib/local-runtime/workbench-orchestration.ts";
 
@@ -106,22 +107,23 @@ const collectStepTraceRecorderFindings = (stepTraceRecorderSource: ReturnType<ty
   return findings;
 };
 
-const collectSuccessProofFindings = (loopIterationSource: ReturnType<typeof getSourceFileOrThrow>): Finding[] =>
-  hasSuccessProofClosure(loopIterationSource)
+const collectSuccessProofFindings = (loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>): Finding[] =>
+  hasSuccessProofClosure(loopIterationSupportSource)
     ? []
-    : [createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3", file: LOOP_ITERATION_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })];
+    : [createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3", file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })];
 
 export const inspectMissionLoopTraceability = (project: ReturnType<typeof createAuditProject>): PhaseResult => {
   const internalSource = getSourceFileOrThrow(project, INTERNAL_TYPES_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, config.ABILITY_GROUP_PATH);
   const loopIterationSource = getSourceFileOrThrow(project, LOOP_ITERATION_PATH);
+  const loopIterationSupportSource = getSourceFileOrThrow(project, LOOP_ITERATION_SUPPORT_PATH);
   const stepTraceRecorderSource = getSourceFileOrThrow(project, STEP_TRACE_RECORDER_PATH);
   const workbenchOrchestrationSource = getSourceFileOrThrow(project, WORKBENCH_ORCHESTRATION_PATH);
   const findings = [
     ...collectForensicsBoundaryFindings({ internalSource, abilityGroupSource, workbenchOrchestrationSource }),
     ...collectRuntimeEventFindings(loopIterationSource),
     ...collectStepTraceRecorderFindings(stepTraceRecorderSource),
-    ...collectSuccessProofFindings(loopIterationSource),
+    ...collectSuccessProofFindings(loopIterationSupportSource),
   ];
 
   return { findings, phase: createRuntimePhase(findings) };

@@ -2,7 +2,7 @@ scenarioId: success-handoff-mutation
 mutationName: success handoff mutation
 mutatedFile: src/capabilities/open/runtime/open-result-builder.ts
 rollbackRestoredHash: sha256:e6e7e2c4e8c81421cf9e66425e7acd90e8f530eefd6ccbec1e955bcb6b6a8703
-startedAt: 2026-05-06T09:41:40.265Z
-endedAt: 2026-05-06T09:41:48.285Z
+startedAt: 2026-05-06T15:37:46.231Z
+endedAt: 2026-05-06T15:37:50.622Z
 
 Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

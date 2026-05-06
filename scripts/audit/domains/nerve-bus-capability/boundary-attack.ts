@@ -3,6 +3,16 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { LAW_IDS, PATHS } from "./config.js";
 import { getExternalImportsWithPrefix, getSourceFile, makeProject } from "./project-access.js";
 
+function hasImportFromAnyPath(
+  sourceFile: NonNullable<ReturnType<typeof getSourceFile>>,
+  allowedFragments: readonly string[],
+): boolean {
+  return sourceFile.getImportDeclarations().some((declaration) => {
+    const specifier = declaration.getModuleSpecifierValue() ?? "";
+    return allowedFragments.some((fragment) => specifier.includes(fragment));
+  });
+}
+
 function collectInternalLeakFindings(): Finding[] {
   const findings: Finding[] = [];
   const project = makeProject();
@@ -17,12 +27,12 @@ function collectInternalLeakFindings(): Finding[] {
 function collectConsumerFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const workbenchSource = getSourceFile(project, PATHS.WORKBENCH);
-  if (!workbenchSource || !workbenchSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("capabilities/nerve-bus/index"))) {
+  if (!workbenchSource || !hasImportFromAnyPath(workbenchSource, ["capabilities/nerve-bus/index"])) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.WORKBENCH, line: 1, severity: "fatal", message: "Workbench must consume Nerve Bus through the public index." }));
   }
   const orchestrationSource = getSourceFile(project, PATHS.ORCHESTRATION);
-  return !orchestrationSource || !orchestrationSource.getImportDeclarations().some((declaration) => (declaration.getModuleSpecifierValue() ?? "").includes("../nerve-bus/index"))
-    ? findings.concat(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION, line: 1, severity: "fatal", message: "Orchestration must consume Nerve Bus through the public index." }))
+  return !orchestrationSource || !hasImportFromAnyPath(orchestrationSource, ["../nerve-bus/index", "../nerve-bus/contract"])
+    ? findings.concat(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION, line: 1, severity: "fatal", message: "Orchestration must consume Nerve Bus through the public boundary." }))
     : findings;
 }
 

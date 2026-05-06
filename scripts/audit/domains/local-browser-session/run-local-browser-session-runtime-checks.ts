@@ -7,11 +7,13 @@ import { hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 
 import { localBrowserSessionInspectionConstants as config } from "./inspection-constants.js";
 import { localBrowserSessionInspectionUtils as utils } from "./inspection-utils.js";
+import { pushControllerFindings } from "./controller-runtime-boundary-checks.js";
 import { Node, SyntaxKind } from "ts-morph";
 
 const {
   CONTROLLER_PATH,
   CONTROLLER_PRIMITIVES_PATH,
+  CONTROLLER_SCREENSHOT_PATH,
   HELPER_PATH,
   LAW_ID,
   REQUIRED_MODE_FIELDS,
@@ -201,76 +203,6 @@ const pushWorkbenchAndServerFindings = (findings: Finding[], workbenchSource: im
   pushServerFindings(findings, serverSource);
 };
 
-const pushControllerContractFindings = (
-  findings: Finding[],
-  controllerClass: import("ts-morph").ClassDeclaration,
-  controllerConstructor: import("ts-morph").ConstructorDeclaration,
-  controllerPath: string,
-): void => {
-  const hasHeadlessGuard = controllerConstructor.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => {
-    const expression = statement.getExpression();
-    if (!Node.isBinaryExpression(expression)) {
-      return false;
-    }
-
-    const leftText = expression.getLeft().getText();
-    return leftText === "options.headlessRequested" && expression.getRight().getText() === "true";
-  });
-  if (!hasHeadlessGuard) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: getNodeLine(controllerConstructor), severity: "fatal", message: "CurrentChromeBrowserController must reject headlessRequested === true in its constructor." }));
-  }
-
-  for (const requiredMethod of ["open", "click", "screenshotRegion", "close"]) {
-    if (!controllerClass.getMethod(requiredMethod)) {
-      findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: getNodeLine(controllerClass), severity: "error", message: `CurrentChromeBrowserController must implement ${requiredMethod}().` }));
-    }
-  }
-};
-
-const pushControllerMethodFindings = (findings: Finding[], controllerClass: import("ts-morph").ClassDeclaration, controllerPath: string): void => {
-  const openMethod = controllerClass.getMethod("open");
-  if (!openMethod || !hasCallByIdentifier(openMethod, "runAppleScript") || !hasCallByIdentifier(openMethod, "buildOpenUrlScript")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: getNodeLine(controllerClass), severity: "error", message: "CurrentChromeBrowserController.open() must drive the current Google Chrome session through AppleScript." }));
-  }
-  const clickMethod = controllerClass.getMethod("click");
-  if (!clickMethod || !hasCallByIdentifier(clickMethod, "clickAt")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: getNodeLine(controllerClass), severity: "error", message: "CurrentChromeBrowserController.click() must route clicks through the native clickAt helper." }));
-  }
-  const screenshotMethod = controllerClass.getMethod("screenshotRegion");
-  const usesScreenCapture = screenshotMethod?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    const firstArgument = callExpression.getArguments()[0];
-    return Node.isIdentifier(expression) && expression.getText() === "runSpawn" && Boolean(firstArgument && Node.isStringLiteral(firstArgument) && firstArgument.getLiteralText() === "screencapture");
-  }) ?? false;
-  if (!screenshotMethod || !usesScreenCapture) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: getNodeLine(controllerClass), severity: "error", message: "CurrentChromeBrowserController.screenshotRegion() must capture evidence via screencapture." }));
-  }
-};
-
-const pushControllerNativeActionFindings = (findings: Finding[], primitivesSource: import("ts-morph").SourceFile): void => {
-  const clickAtFunction = getFunctionLike(primitivesSource, "clickAt");
-  if (!clickAtFunction || !hasCallByIdentifier(clickAtFunction, "runJxa") || !hasLiteralTextFragment(primitivesSource, "kCGEventLeftMouseDown")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: CONTROLLER_PRIMITIVES_PATH, line: 1, severity: "error", message: "CurrentChromeBrowserController click path must use macOS CGEvent mouse events instead of browser automation." }));
-  }
-  const activateChromeFunction = getFunctionLike(primitivesSource, "activateChrome");
-  if (!activateChromeFunction || !hasCallByIdentifier(activateChromeFunction, "runAppleScript")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: CONTROLLER_PRIMITIVES_PATH, line: 1, severity: "error", message: "CurrentChromeBrowserController must activate the current Google Chrome session before actions." }));
-  }
-};
-
-const pushControllerFindings = (findings: Finding[], controllerSource: import("ts-morph").SourceFile, primitivesSource: import("ts-morph").SourceFile): void => {
-  const controllerClass = controllerSource.getClass("CurrentChromeBrowserController");
-  const controllerConstructor = controllerClass?.getConstructors()[0] ?? null;
-  const controllerPath = resolveControllerPath(controllerSource);
-  if (!controllerClass || !controllerConstructor) {
-    findings.push(createFinding({ lawId: LAW_ID, file: controllerPath, line: 1, severity: "fatal", message: "CurrentChromeBrowserController must exist as the governed real-platform browser controller." }));
-    return;
-  }
-  pushControllerContractFindings(findings, controllerClass, controllerConstructor, controllerPath);
-  pushControllerMethodFindings(findings, controllerClass, controllerPath);
-  pushControllerNativeActionFindings(findings, primitivesSource);
-};
-
 export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
   const [startupEntryText, startupOpenHelperText] = await Promise.all([
     readTextFile(pathFromRepoRoot(STARTUP_ENTRY_PATH)),
@@ -281,6 +213,7 @@ export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings:
   const helperSource = getSourceFileOrThrow(project, HELPER_PATH);
   const controllerSource = getSourceFileOrThrow(project, CONTROLLER_PATH);
   const primitivesSource = getSourceFileOrThrow(project, CONTROLLER_PRIMITIVES_PATH);
+  const screenshotHelperSource = getSourceFileOrThrow(project, CONTROLLER_SCREENSHOT_PATH);
   const workbenchSource = getSourceFileOrThrow(project, WORKBENCH_PATH);
   const workbenchStatusSource = getSourceFileOrThrow(project, WORKBENCH_STATUS_PATH);
   const serverSource = getSourceFileOrThrow(project, SERVER_PATH);
@@ -291,10 +224,10 @@ export async function runLocalBrowserSessionRuntimeChecks(): Promise<{ findings:
   pushHelperFindings(findings, helperSource);
   pushStartupFindings(findings, startupEntrySource, startupOpenHelperSource);
   pushWorkbenchAndServerFindings(findings, workbenchSource, workbenchStatusSource, serverSource);
-  pushControllerFindings(findings, controllerSource, primitivesSource);
+  pushControllerFindings({ findings, controllerSource, primitivesSource, screenshotHelperSource });
   debug("validated local-browser-session helper, startup, workbench, server, and controller boundaries");
 
-  const governedRuntimeFiles: string[] = [HELPER_PATH, CONTROLLER_PATH, CONTROLLER_PRIMITIVES_PATH, WORKBENCH_PATH, WORKBENCH_STATUS_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH];
+  const governedRuntimeFiles: string[] = [HELPER_PATH, CONTROLLER_PATH, CONTROLLER_PRIMITIVES_PATH, CONTROLLER_SCREENSHOT_PATH, WORKBENCH_PATH, WORKBENCH_STATUS_PATH, SERVER_PATH, STARTUP_ENTRY_PATH, STARTUP_OPEN_HELPER_PATH];
   const runtimeBoundaryPassed = !findings.some((finding) => governedRuntimeFiles.includes(finding.file));
   return {
     findings,

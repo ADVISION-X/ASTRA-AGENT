@@ -155,7 +155,7 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
     kind: "replace",
     name: "remove-negative-proof-invocation",
-    file: "scripts/audit/domains/visual-target-capability/inspector.ts",
+    file: "scripts/audit/domains/visual-target-capability/inspection-phase-suite.ts",
     oldText: "  : await runNegativeProofHarness();",
     newText: "    : { findings: [], phase: { name: \"negative-proof-harness\", classification: \"PASS\" as const, passed: true, summary: \"negative-proof removed by mutation\" } };",
     expectedNeedle: "must invoke and report the negative-proof harness",

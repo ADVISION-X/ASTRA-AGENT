@@ -1,7 +1,10 @@
 import {
   Node,
   SyntaxKind,
+  type ArrowFunction,
   type CallExpression,
+  type FunctionDeclaration,
+  type FunctionExpression,
   type ObjectLiteralExpression,
   type SourceFile,
 } from "ts-morph";
@@ -36,6 +39,21 @@ const hasMissionStateProofClosure = (callExpression: CallExpression): boolean =>
 
   const objectLiteral = getObjectLiteralArgument(callExpression);
   return objectLiteral ? hasRuntimeProofRefs(objectLiteral) : false;
+};
+
+type NamedFunctionLike = ArrowFunction | FunctionDeclaration | FunctionExpression;
+
+export const getNamedFunctionLike = (sourceFile: SourceFile, functionName: string): NamedFunctionLike | undefined => {
+  const functionDeclaration = sourceFile.getFunction(functionName);
+  if (functionDeclaration) {
+    return functionDeclaration;
+  }
+
+  const variableDeclaration = sourceFile.getVariableDeclaration(functionName);
+  const initializer = variableDeclaration?.getInitializer();
+  return initializer && (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))
+    ? initializer
+    : undefined;
 };
 
 export const getTypeAliasPropertyNames = (sourceFile: SourceFile, aliasName: string): Set<string> => {
@@ -87,7 +105,7 @@ export const getRuntimeEventTypes = (sourceFile: SourceFile): Set<string> =>
   );
 
 export const functionContainsStringLiterals = (sourceFile: SourceFile, functionName: string, literalValues: string[]): boolean => {
-  const fn = sourceFile.getFunction(functionName);
+  const fn = getNamedFunctionLike(sourceFile, functionName);
   if (!fn) {
     return false;
   }
@@ -102,7 +120,7 @@ export const functionContainsStringLiterals = (sourceFile: SourceFile, functionN
 };
 
 export const hasSuccessProofClosure = (sourceFile: SourceFile): boolean => {
-  const fn = sourceFile.getFunction("buildTransitionSuccessOutcome");
+  const fn = getNamedFunctionLike(sourceFile, "buildTransitionSuccessOutcome");
   if (!fn) {
     return false;
   }

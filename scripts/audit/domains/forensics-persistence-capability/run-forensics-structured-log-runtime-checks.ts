@@ -14,12 +14,14 @@ const {
   AI_RUNTIME_ADAPTER_PATH,
   COMMAND_HANDLER_PATH,
   COMMAND_FLOW_RESULT_PATH,
+  COMMAND_RUNTIME_EVENTS_PATH,
   COMMANDER_DEBUG_PATH,
   LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
   LAW_STRUCTURED_LOGGING_DISCIPLINE,
   LAW_STRUCTURED_LOGGING_EXIT,
   LAW_STRUCTURED_LOGGING_HEALTH,
   STARTUP_ENTRYPOINT_PATH,
+  STARTUP_LOG_HELPERS_PATH,
   TERMINAL_STRUCTURED_LOG_PATH,
   STRUCTURED_LOG_PAYLOAD_PATH,
   STATUS_PATH,
@@ -60,6 +62,7 @@ const collectCommandFlowFinding = (project: import("ts-morph").Project): Finding
   const commandFlowSources = [
     getSourceFileOrThrow(project, COMMAND_HANDLER_PATH),
     getSourceFileOrThrow(project, COMMAND_FLOW_RESULT_PATH),
+    getSourceFileOrThrow(project, COMMAND_RUNTIME_EVENTS_PATH),
   ];
   const missingCommandFlowEvents = [
     "HUMAN_COMMAND_DRAFTED",
@@ -76,6 +79,11 @@ const collectCommandFlowFinding = (project: import("ts-morph").Project): Finding
     ? [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: COMMAND_HANDLER_PATH, line: 1, severity: "error", message: "Commander command flow is missing required structured debug events.", detail: missingCommandFlowEvents.join(", ") })]
     : [];
 };
+
+const hasStringLiteralAcrossSources = (
+  sources: readonly import("ts-morph").SourceFile[],
+  literal: string,
+): boolean => sources.some((source) => hasStringLiteral(source, literal));
 
 const hasObjectProperty = (sourceFile: import("ts-morph").SourceFile, propertyName: string): boolean => {
   return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
@@ -114,20 +122,41 @@ const hasBoundaryEventCall = (
   });
 };
 
+const functionHasLiteralFragments = (
+  sourceFile: import("ts-morph").SourceFile,
+  functionName: string,
+  requiredLiterals: readonly string[],
+): boolean => {
+  const functionNode = sourceFile.getFunction(functionName);
+  if (!functionNode) {
+    return false;
+  }
+
+  const functionText = functionNode.getText();
+  return requiredLiterals.every((literal) => functionText.includes(literal));
+};
+
 const hasForensicsWriteProofRefs = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  const requiredLiterals = [
+  const requestedRefs = [
     "sourceEventId=",
     "sourceEventType=",
     "sourceOwner=",
     "recordKind=",
     "pendingRecordId=",
+    "idempotencyKey=",
+    "dedupeDecision=pending",
+  ];
+  const writtenRefs = [
+    "sourceEventId=",
+    "sourceEventType=",
     "recordId=",
     "recordRef=",
     "idempotencyKey=",
-    "dedupeDecision=pending",
     "dedupeDecision=written",
   ];
-  return requiredLiterals.every((literal) => hasLiteralTextFragment(sourceFile, literal));
+
+  return functionHasLiteralFragments(sourceFile, "emitForensicsRecordWriteRequested", requestedRefs)
+    && functionHasLiteralFragments(sourceFile, "emitForensicsRecordWritten", writtenRefs);
 };
 
 const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
@@ -219,21 +248,24 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
     : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_DISCIPLINE, file: WRITE_BOUNDARY_EVENTS_PATH, line: 1, severity: "fatal", message: "Forensics structured log writes must emit explicit FORENSICS_RECORD_WRITE_REQUESTED/WRITTEN events through the public ability-group wrapper and structured log bus." })];
 };
 
-const hasStartupHealthSignals = (startupSource: import("ts-morph").SourceFile): boolean => {
-  return hasStringLiteral(startupSource, "APP_SHELL_HEALTH_CHECK_STARTED")
-    && hasStringLiteral(startupSource, "APP_SHELL_HEALTH_PASSED")
-    && hasStringLiteral(startupSource, "MISSION_READINESS_CHECK_STARTED")
-    && hasStringLiteral(startupSource, "MISSION_READINESS_PASSED")
-    && hasStringLiteral(startupSource, "MISSION_READINESS_DEGRADED");
-};
+const hasStartupHealthSignals = (startupSources: readonly import("ts-morph").SourceFile[]): boolean => [
+  "APP_SHELL_HEALTH_CHECK_STARTED",
+  "APP_SHELL_HEALTH_PASSED",
+  "MISSION_READINESS_CHECK_STARTED",
+  "MISSION_READINESS_PASSED",
+  "MISSION_READINESS_DEGRADED",
+].every((eventType) => hasStringLiteralAcrossSources(startupSources, eventType));
 
 const collectHealthFinding = (project: import("ts-morph").Project): Finding[] => {
   const statusSource = getSourceFileOrThrow(project, STATUS_PATH);
   const commandFlowSource = getSourceFileOrThrow(project, COMMAND_HANDLER_PATH);
-  const startupSource = getStartupSource(project);
+  const startupSources = [
+    getStartupSource(project),
+    getScriptSource(project, STARTUP_LOG_HELPERS_PATH),
+  ];
   const healthWired = hasStringLiteral(statusSource, "app-shell-health")
     && hasStringLiteral(statusSource, "mission-readiness")
-    && hasStartupHealthSignals(startupSource)
+    && hasStartupHealthSignals(startupSources)
     && hasStringLiteral(commandFlowSource, "LOCAL_AI_READINESS_DEGRADED");
 
   return healthWired

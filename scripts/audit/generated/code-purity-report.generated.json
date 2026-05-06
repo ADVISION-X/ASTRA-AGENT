@@ -1,21 +1,41 @@
 {
-  "generatedAt": "2026-05-06T14:22:14.872Z",
+  "generatedAt": "2026-05-06T15:55:00.139Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+    "scripts/audit/domains/forensics-persistence-capability/inspection-constants.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
+    "scripts/audit/domains/local-browser-session/inspection-constants.ts",
+    "scripts/audit/domains/local-browser-session/run-local-browser-session-runtime-checks.ts",
+    "scripts/audit/domains/nerve-bus-capability/boundary-attack.ts",
+    "scripts/audit/domains/open-capability/inspection-constants.ts",
+    "scripts/audit/domains/open-capability/inspection-utils.ts",
+    "scripts/audit/domains/open-capability/negative-proof-definitions.ts",
+    "scripts/audit/domains/open-capability/run-open-child-shape-checks.ts",
+    "scripts/audit/domains/open-capability/run-open-registry-shape-checks.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-ast-helpers.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+    "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/page-state-capability/negative-proof-mutations.ts",
+    "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+    "scripts/audit/domains/visual-target-capability/inspection-constants.ts",
+    "scripts/audit/domains/visual-target-capability/inspector.ts",
+    "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/visual-target-capability/run-runner-fail-power-check.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
+    "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/ai/ability-group.ts",
     "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
-    "src/capabilities/ai/runtime-factory.ts",
-    "src/capabilities/ai/runtime/ai-execution-context.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts"
+    "src/capabilities/ai/runtime/ai-dispatch-failure.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -104,7 +124,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8455,
+      "lines": 8462,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -165,94 +185,9 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
-    {
-      "file": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-      "lines": 303,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "findRuntimeDiagnosticTransparencyViolations"
-      ],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
-      "lines": 211,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "collectDebugRefFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
-      "lines": 222,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "buildExternalDebugBase"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
-      "lines": 188,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "dispatchAiFailure"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    }
-  ],
+  "functionOverLimitInventory": [],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [
-    {
-      "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "lines": 102,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 13,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    }
-  ],
+  "importExportOverLimitInventory": [],
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
@@ -301,7 +236,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8455,
+      "lines": 8462,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -388,89 +323,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-      "lines": 303,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "findRuntimeDiagnosticTransparencyViolations"
-      ],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
-      "lines": 222,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "buildExternalDebugBase"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
-      "lines": 211,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "collectDebugRefFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
-      "lines": 188,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "dispatchAiFailure"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "lines": 102,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 13,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -521,7 +373,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8455,
+      "lines": 8462,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

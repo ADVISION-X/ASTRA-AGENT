@@ -200,11 +200,13 @@ export const collectDebugRefFindings = (input: {
   if (!hasLateCommandResponseEvent(input.taskStartDispatchResultSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task-start dispatch response logging must use COMMAND_RESPONSE_SENT with a unified runtimeProof runId trace instead of emitting duplicate COMMAND_ACCEPTED with mixed trace/run."));
   }
-  if (!hasAcceptedObserverTimeoutEvent(input.taskStartDispatchResultSource) || !hasAcceptedBeforeResultGate(input.taskStartDispatchResultSource)) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task-start dispatch result must convert observer timeout after accepted transport proof into COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED, never late COMMAND_REJECTED."));
-  }
   if (!hasNerveBusResultProofEvents(input.commanderCommandTransportSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", "src/lib/local-runtime/workbench-commander-command-transport.ts", "Commander command transport must emit terminal-visible Nerve Bus result envelope, semantic gate, and transfer proof events with governed trace/run."));
   }
   return findings;
 };
+
+export const collectAcceptedObserverTimeoutFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] =>
+  hasAcceptedObserverTimeoutEvent(sourceFile) && hasAcceptedBeforeResultGate(sourceFile)
+    ? []
+    : [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task-start dispatch result must convert observer timeout after accepted transport proof into COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED, never late COMMAND_REJECTED.")];

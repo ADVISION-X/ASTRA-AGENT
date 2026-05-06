@@ -54,9 +54,9 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   },
   {
     name: "builtin loader direct parse diagnostic bypass mutation",
-    file: "src/map-plugins/builtins/index.ts",
+    file: "src/map-plugins/builtin-loader/builtin-map-package-loader.ts",
     search: "  return parseBuiltinPackage(fileName, JSON.parse(content));\n",
-    replace: "  return MapPackageSchema.parse(JSON.parse(content));\n",
+    replace: "  return JSON.parse(content) as MapPackage;\n",
   },
   {
     name: "map package raw prompt mutation",

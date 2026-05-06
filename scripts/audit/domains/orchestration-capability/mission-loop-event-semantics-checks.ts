@@ -2,11 +2,17 @@ import { SyntaxKind } from "ts-morph";
 
 import { createFinding, createPhase, type Finding } from "./inspection-core.js";
 import { getSourceFileOrThrow, hasCallExpressionPath, type createAuditProject } from "./inspection-ast-helpers.js";
-import { getTypeAliasPropertyNames, hasCallObjectProperty, hasSuccessProofClosure } from "./mission-loop-ast-helpers.js";
+import {
+  getNamedFunctionLike,
+  getTypeAliasPropertyNames,
+  hasCallObjectProperty,
+  hasSuccessProofClosure,
+} from "./mission-loop-ast-helpers.js";
 
 const INTERNAL_TYPES_PATH = "src/capabilities/orchestration/internal.ts";
 const ABILITY_GROUP_PATH = "src/capabilities/orchestration/ability-group.ts";
 const LOOP_ITERATION_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts";
+const LOOP_ITERATION_SUPPORT_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts";
 const LOOP_EVENTS_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts";
 const LOOP_EVENTS_SHARED_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts";
 const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts";
@@ -101,6 +107,7 @@ const collectRuntimeEventCoverageFindings = (input: {
 
 const collectLoopStateFindings = (input: {
   loopIterationSource: ReturnType<typeof getSourceFileOrThrow>;
+  loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
   stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>;
   transitionStateText: string;
 }): Finding[] => {
@@ -118,11 +125,11 @@ const collectLoopStateFindings = (input: {
   if (!hasCallExpressionPath(input.stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredActionLog"])) {
     findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured action logs through the governed Forensics writer." }));
   }
-  if (!hasSuccessProofClosure(input.loopIterationSource)) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." }));
+  if (!hasSuccessProofClosure(input.loopIterationSupportSource)) {
+    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." }));
   }
   if (!guardsRoundIncrementByInitialStep || usesPerStepRoundIncrement) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Transition success state must increment currentRoundIndex only when the governed loop explicitly returns to map.initialStepId." }));
+    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only when the governed loop explicitly returns to map.initialStepId." }));
   }
 
   return findings;
@@ -132,11 +139,12 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const internalSource = getSourceFileOrThrow(project, INTERNAL_TYPES_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
   const loopIterationSource = getSourceFileOrThrow(project, LOOP_ITERATION_PATH);
+  const loopIterationSupportSource = getSourceFileOrThrow(project, LOOP_ITERATION_SUPPORT_PATH);
   const loopEventsSource = getSourceFileOrThrow(project, LOOP_EVENTS_PATH);
   const loopEventsSharedSource = getSourceFileOrThrow(project, LOOP_EVENTS_SHARED_PATH);
   const stepTraceRecorderSource = getSourceFileOrThrow(project, STEP_TRACE_RECORDER_PATH);
   const workbenchOrchestrationSource = getSourceFileOrThrow(project, WORKBENCH_ORCHESTRATION_PATH);
-  const buildTransitionSuccessState = loopIterationSource.getFunction("buildTransitionSuccessState");
+  const buildTransitionSuccessState = getNamedFunctionLike(loopIterationSupportSource, "buildTransitionSuccessState");
   const transitionStateText = buildTransitionSuccessState?.getFullText() ?? "";
   const recordDispatchStarted = loopEventsSource.getFunction("recordDispatchStarted");
   const dispatchStartedText = recordDispatchStarted?.getFullText() ?? "";
@@ -144,7 +152,7 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const findings = [
     ...collectForensicsWiringFindings({ internalSource, abilityGroupSource, workbenchOrchestrationSource }),
     ...collectRuntimeEventCoverageFindings({ loopIterationSource, loopEventsSource, runtimeEventTypes, dispatchStartedText }),
-    ...collectLoopStateFindings({ loopIterationSource, stepTraceRecorderSource, transitionStateText }),
+    ...collectLoopStateFindings({ loopIterationSource, loopIterationSupportSource, stepTraceRecorderSource, transitionStateText }),
   ];
 
   return { findings, phase: createSemanticsPhase(findings) };

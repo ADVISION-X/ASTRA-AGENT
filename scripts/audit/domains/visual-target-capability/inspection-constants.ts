@@ -12,6 +12,7 @@ export const visualTargetInspectionConstants = {
   ] as const,
   INSPECTOR_ID: "visual-target-capability-owner",
   INSPECTOR_ENTRY: "scripts/audit/domains/visual-target-capability/inspector.ts",
+  INSPECTION_PHASE_SUITE_PATH: "scripts/audit/domains/visual-target-capability/inspection-phase-suite.ts",
   MANIFEST_PATH: "scripts/audit/domains/visual-target-capability/manifest.json",
   ROOT: "src/capabilities/visual-target",
   CONTRACT_PATH: "src/capabilities/visual-target/contract.ts",

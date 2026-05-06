@@ -137,15 +137,41 @@ const hasStringArrayElements = (sourceFile: SourceFile, values: readonly string[
   return values.every((value) => literals.has(value));
 };
 
-const findRuntimeDiagnosticTransparencyViolations = (project: Project): Finding[] => {
-  const runtimeFactorySource = getSourceOrThrow(project, `${AI_ROOT}/runtime-factory.ts`);
-  const executionContextSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-context.ts`);
-  const providerAwareSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/provider-aware-ai-runtime-adapter.ts`);
+const collectRuntimeDebugShapeFindings = (project: Project): Finding[] => {
   const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
   const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
   const localDebugContractSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`);
+  const findings: Finding[] = [];
+
+  if (!hasCallExpression(localDebugSource, "emitErrorDebug") || !hasStringLiteral(localDebugSource, "AI_ERROR_DEBUG")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "Local AI debug session must emit AI_ERROR_DEBUG through the structured debug port." }));
+  }
+  if (!hasCallExpression(localAdapterSource, "emitAiErrorDebug") || !hasObjectLiteralProperty(localDebugContractSource, "implementationStatus") || !hasObjectLiteralProperty(localDebugContractSource, "runtimeCallId") || !hasObjectLiteralProperty(localDebugContractSource, "diagnosticPayloadRef")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`, line: 1, severity: "fatal", message: "AI runtime debug events must expose implementationStatus, runtimeCallId, and diagnosticPayloadRef without raw prompt/image payloads." }));
+  }
+
+  return findings;
+};
+
+const collectRuntimeFailureReasonFindings = (project: Project): Finding[] => {
   const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
   const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const findings: Finding[] = [];
+
+  if (!hasStringArrayElements(runtimeResultSource, REQUIRED_AI_RUNTIME_FAILURE_STATUSES)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-runtime-result.ts`, line: 1, severity: "fatal", message: "AI runtime result resolver must preserve specific implementationStatus values instead of collapsing them to runtime_execution_failed or schema_validation_failed." }));
+  }
+  if (!hasObjectLiteralProperty(abilityGroupSource, "implementationStatus") || !hasObjectLiteralProperty(abilityGroupSource, "diagnosticPayloadRef") || !hasObjectLiteralProperty(abilityGroupSource, "errorKind")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef." }));
+  }
+
+  return findings;
+};
+
+const collectRuntimeDebugEmitterFindings = (project: Project): Finding[] => {
+  const runtimeFactorySource = getSourceOrThrow(project, `${AI_ROOT}/runtime-factory.ts`);
+  const executionContextSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-context.ts`);
+  const providerAwareSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/provider-aware-ai-runtime-adapter.ts`);
   const findings: Finding[] = [];
 
   if (!hasCallWithObjectProperty(runtimeFactorySource, "createProviderAwareAiRuntimePort", "emitDebugEvent")) {
@@ -157,21 +183,15 @@ const findRuntimeDiagnosticTransparencyViolations = (project: Project): Finding[
   if (!hasCallWithObjectProperty(providerAwareSource, "createLocalAiRuntimePort", "emitDebugEvent")) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/provider-aware-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: "Provider-aware AI adapter must pass emitDebugEvent into the local AI runtime adapter." }));
   }
-  if (!hasCallExpression(localDebugSource, "emitErrorDebug") || !hasStringLiteral(localDebugSource, "AI_ERROR_DEBUG")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "Local AI debug session must emit AI_ERROR_DEBUG through the structured debug port." }));
-  }
-  if (!hasCallExpression(localAdapterSource, "emitAiErrorDebug") || !hasObjectLiteralProperty(localDebugContractSource, "implementationStatus") || !hasObjectLiteralProperty(localDebugContractSource, "runtimeCallId") || !hasObjectLiteralProperty(localDebugContractSource, "diagnosticPayloadRef")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`, line: 1, severity: "fatal", message: "AI runtime debug events must expose implementationStatus, runtimeCallId, and diagnosticPayloadRef without raw prompt/image payloads." }));
-  }
-  if (!hasStringArrayElements(runtimeResultSource, REQUIRED_AI_RUNTIME_FAILURE_STATUSES)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-runtime-result.ts`, line: 1, severity: "fatal", message: "AI runtime result resolver must preserve specific implementationStatus values instead of collapsing them to runtime_execution_failed or schema_validation_failed." }));
-  }
-  if (!hasObjectLiteralProperty(abilityGroupSource, "implementationStatus") || !hasObjectLiteralProperty(abilityGroupSource, "diagnosticPayloadRef") || !hasObjectLiteralProperty(abilityGroupSource, "errorKind")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef." }));
-  }
 
   return findings;
 };
+
+const findRuntimeDiagnosticTransparencyViolations = (project: Project): Finding[] => [
+  ...collectRuntimeDebugEmitterFindings(project),
+  ...collectRuntimeDebugShapeFindings(project),
+  ...collectRuntimeFailureReasonFindings(project),
+];
 
 const hasThinAbilityGroup = (sourceFile: SourceFile): boolean => {
   return hasCallExpression(sourceFile, "parseAiInput")

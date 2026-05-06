@@ -1,0 +1,147 @@
+# GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图
+
+## 1. 施工边界
+
+本施工图只补第五阶段建设细节，不新增 lawId，不修改冻结法案。若本文与 `.github/instructions/cursor-rules/**` 冲突，以冻结法案为准。
+
+第五阶段复用既有治理域：
+
+- AI：map authoring request、structured draft output、runtime debug truth。
+- map-plugin-package：draft package import、quarantine、validation、compatibility、approval lifecycle。
+- Commander Console：operator entry、Map Lab UI/API、command acceptance truth。
+- Orchestration：activation snapshot freeze、step selection、transition truth。
+- Nerve Bus：dispatch/result envelope transport proof。
+- Open / Page State / Screenshot / Visual Target / Geometry Guard / Mouse Click / Mouse Scroll / Text Input / PAV：WEB 与本地程序执行链。
+- Forensics：structured runtime event、write boundary、idempotency proof。
+
+## 2. Map Lab 生成地图链路
+
+生产入口必须保持：
+
+```txt
+generateMapLabDraft
+→ MapAuthoringRequestSchema.parse
+→ buildProviderStateSnapshot
+→ buildMapAuthoringAiRequest
+→ aiAbilityGroup.execute
+→ normalizeMapLabDraft
+→ registry.importPackage
+```
+
+约束：
+
+- `aiResult.status !== "success"` 不得 import。
+- dry run captured 不得 import。
+- validation issues 必须返回 `review_required` 或 `failed`。
+- generated package 不得包含 executable marker、function、handler、script、exec、shell、import、require、browser action implementation。
+- 不得调用 active registry mutation，例如 `activatePackage`、`setActive`、`writeActive`。
+
+## 3. AI runtime debug truth
+
+AI runtime composition root 必须注入 `emitDebugEvent`：
+
+```txt
+createWorkbenchAiAbilityGroup
+→ createConfiguredAiAbilityGroup({ emitDebugEvent })
+→ createAiExecutionContext / createProviderAwareAiRuntimePort
+→ createLocalAiRuntimePort / external runtime
+→ local-ai-runtime-debug
+→ Forensics writeStructuredRuntimeEvent
+→ terminal structured relay
+```
+
+`AI_REQUEST_DEBUG`、`AI_RESPONSE_DEBUG`、`AI_ERROR_DEBUG` 必须进入 structured runtime event sink。AI 不得 import Forensics runtime internals，只能通过 public ability-group boundary 写结构化事件。
+
+AI error terminal proof 至少包含：
+
+- `stepId`
+- `taskType`
+- `promptContractId`
+- `outputSchemaRef`
+- `childCapabilityId`
+- `runtimeCallId`
+- `implementationStatus`
+- `errorKind`
+- `failureReason`
+- `diagnosticPayloadRef` 或 `rawResponseRef/rawResponseHash`
+- `ownerResponsible`
+- `actionableMessage`
+- `durationMs`
+
+不得在 info terminal summary 中泄露 cookie、token、secret、credential、base64 image 或完整 raw prompt。
+
+## 4. Page State dispatch envelope
+
+`buildPageStateDispatchPayload()` 是 local-runtime Page State dispatch canonical builder。它必须从 `input.envelope` 传播：
+
+```txt
+runId
+sessionId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+inputRef
+idempotencyKey
+```
+
+`openHandoff.browserSessionRef` 必须来自 active browser session ref，例如 `input.session.browserProfileRef`。inspector 必须用 AST/symbol 识别字段来源，不能以 stale generated summary 作为最终事实。
+
+## 5. Commander accepted 后事件语义
+
+`COMMAND_REJECTED` 只表示 command 未进入 mission runtime。一旦同一 command/run 已有 command envelope、result envelope、runtime proof 或 `COMMAND_ACCEPTED`，后续 observer timeout 不得再写 `COMMAND_REJECTED`。
+
+accepted 后 timeout 必须写：
+
+```txt
+COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED
+```
+
+并携带 command/result/proof refs，actionableMessage 指向继续追踪 Orchestration runtime events。
+
+## 6. Forensics 去重证明
+
+Forensics structured write boundary 必须发：
+
+```txt
+FORENSICS_RECORD_WRITE_REQUESTED
+FORENSICS_RECORD_WRITTEN
+```
+
+`WRITE_REQUESTED` refs 至少包含：
+
+```txt
+sourceEventId
+sourceEventType
+sourceOwner
+recordKind
+pendingRecordId
+idempotencyKey
+dedupeDecision=pending
+```
+
+`WRITTEN` refs 至少包含：
+
+```txt
+sourceEventId
+sourceEventType
+recordId
+recordRef
+idempotencyKey
+dedupeDecision=written 或 deduped
+```
+
+大 payload 只能给 ref/hash，不得把完整 runtime payload 打进终端摘要。
+
+## 7. 执法要求
+
+第五阶段执法必须证明生产代码吻合法案和施工图：
+
+- AST/symbol/import graph 检查生产路径。
+- negative proof 覆盖生产突变和 inspector wiring 突变。
+- generated artifacts 必须可重建，不得手写 `scripts/audit/generated/**`。
+- runner-summary stale 时必须记录 stale root cause，并以重跑 owner inspector 为准。

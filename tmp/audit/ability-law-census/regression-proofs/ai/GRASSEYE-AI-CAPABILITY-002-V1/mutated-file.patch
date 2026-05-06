@@ -1,9 +1,11 @@
-diff --git a/src/capabilities/ai/runtime/ai-pre-runtime.ts b/src/capabilities/ai/runtime/ai-pre-runtime.ts
---- a/src/capabilities/ai/runtime/ai-pre-runtime.ts
-+++ b/src/capabilities/ai/runtime/ai-pre-runtime.ts
-@@ -259,4 +259,4 @@
- export const runAiExecutorInputGate = (
-   request: ParsedAiAbilityInput,
-   childCapabilityId: AiChildContract["childCapabilityId"],
--) => parseAiExecutorInput(request, childCapabilityId);
-+) => ({ ok: true, request });
+diff --git a/src/capabilities/ai/ability-group.ts b/src/capabilities/ai/ability-group.ts
+--- a/src/capabilities/ai/ability-group.ts
++++ b/src/capabilities/ai/ability-group.ts
+@@ -98,7 +98,6 @@
+       statusMessage,
+       implementationStatus: "runtime_execution_failed",
+       errorKind: originalErrorName,
+-      diagnosticPayloadRef,
+       rawOutputHash: originalErrorName,
+     });
+   };

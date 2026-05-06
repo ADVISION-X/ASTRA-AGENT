@@ -1,4 +1,6 @@
+classification: CODE VIOLATION
 passed: false
 violationCount: 1
+summary: Open still contains forbidden execution or export shapes.
 
 FATAL GRASSEYE-OPEN-CAPABILITY-004-V2 src/capabilities/open/runtime/navigation-runner-support.ts:1 Navigation runner must propagate AbortSignal through runWithTimeout into OpenBrowserPort.open.

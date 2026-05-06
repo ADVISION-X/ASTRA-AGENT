@@ -7,7 +7,7 @@ import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-help
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { commanderConsoleInspectionUtils } from "./inspection-utils.js";
 import { collectChildExecutorFindings, collectReadRuntimeFindings } from "./run-commander-runtime-execution-checks.js";
-import { collectDebugRefFindings, collectRuntimeProofRunIdFindings, collectTransportRunIdFindings } from "./run-commander-runtime-runid-checks.js";
+import { collectAcceptedObserverTimeoutFindings, collectDebugRefFindings, collectRuntimeProofRunIdFindings, collectTransportRunIdFindings } from "./run-commander-runtime-runid-checks.js";
 import { getCommanderRuntimeSources } from "./run-commander-runtime-sources.js";
 import { collectStartMissionAcceptanceBoundaryFindings } from "./run-commander-start-mission-acceptance-checks.js";
 
@@ -320,6 +320,7 @@ export function runCommanderRuntimeChecks(project: import("ts-morph").Project): 
         acceptedBoundarySource: sources.acceptedBoundarySource,
         commanderCommandTransportSource: sources.commanderCommandTransportSource,
       }),
+      ...collectAcceptedObserverTimeoutFindings(sources.taskStartDispatchResultSource),
       ...collectReadRuntimeFindings(sources.readChildExecutorSource),
       ...collectExecutorSurfaceFindings({ executorSource: sources.executorSource, resultBuilderSource: sources.resultBuilderSource }),
       ...collectProofAndBoundaryFindings({ proofBuilderSource: sources.proofBuilderSource, dispatchFailureSource: sources.dispatchFailureSource, boundaryPolicySource: sources.boundaryPolicySource }),

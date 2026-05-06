@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T14:21:58.517Z",
+  "generatedAt": "2026-05-06T16:09:26.385Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -182,51 +182,51 @@
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeDebugShapeFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeDebugShapeFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeDebugShapeFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeDebugShapeFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeFailureReasonFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeFailureReasonFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeFailureReasonFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeFailureReasonFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeDebugEmitterFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeDebugEmitterFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeDebugEmitterFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeDebugEmitterFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "checkFunction": "collectRuntimeDebugEmitterFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "targetSymbol": "collectRuntimeDebugEmitterFindings",
           "checkKind": "forbidden-shape"
         },
         {
@@ -8422,6 +8422,13 @@
           "checkFunction": "runManifestCheck",
           "sourceFile": "scripts/audit/domains/visual-target-capability/run-manifest-check.ts",
           "targetSymbol": "runManifestCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-runner-fail-power-check",
+          "checkFunction": "runRunnerFailPowerCheck",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-runner-fail-power-check.ts",
+          "targetSymbol": "runRunnerFailPowerCheck",
           "checkKind": "runtime-proof"
         },
         {

@@ -117,7 +117,7 @@ export const MUTATIONS: Mutation[] = [
   },
   {
     name: "registry local-program fake localhost mutation",
-    file: "src/capabilities/open/registry.ts",
+    file: "src/capabilities/open/open-local-registry-entries.ts",
     search: '    targetProfileRef: OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,',
     replace: '    allowedHostnames: ["localhost"],\n    defaultUrl: "http://127.0.0.1:3000",\n    allowedSchemes: ["http"],\n    targetProfileRef: OPEN_LOCAL_PROGRAM_TARGET_PROFILE_REF,',
   },

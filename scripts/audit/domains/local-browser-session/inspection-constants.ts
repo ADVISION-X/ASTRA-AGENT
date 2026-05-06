@@ -6,6 +6,7 @@ export const localBrowserSessionInspectionConstants = {
   HELPER_PATH: "src/lib/browser/local-browser-session.ts",
   CONTROLLER_PATH: "src/lib/browser/current-chrome-browser-controller.ts",
   CONTROLLER_PRIMITIVES_PATH: "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+  CONTROLLER_SCREENSHOT_PATH: "src/lib/browser/current-chrome-browser-screenshot.ts",
   WORKBENCH_PATH: "src/lib/local-runtime/workbench-browser-runtime.ts",
   WORKBENCH_STATUS_PATH: "src/lib/local-runtime/workbench-status.ts",
   SERVER_PATH: "src/app/server.ts",

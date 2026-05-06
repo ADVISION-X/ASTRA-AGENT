@@ -30,8 +30,8 @@ const unwrapExpression = (node: Node | undefined): Node | undefined => {
   return node;
 };
 
-const getRegistryEntries = (sourceFile: SourceFile): ObjectLiteralExpression[] => {
-  const declaration = sourceFile.getVariableDeclaration("OPEN_CHILDREN");
+const getRegistryEntries = (sourceFile: SourceFile, declarationName = "OPEN_CHILDREN"): ObjectLiteralExpression[] => {
+  const declaration = sourceFile.getVariableDeclaration(declarationName);
   const arrayLiteral = unwrapExpression(declaration?.getInitializer());
   return Node.isArrayLiteralExpression(arrayLiteral)
     ? arrayLiteral.getElements().filter(Node.isObjectLiteralExpression)

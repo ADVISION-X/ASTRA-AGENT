@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type CallExpression, type ObjectLiteralElementLike, type ObjectLiteralExpression, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -25,6 +25,12 @@ function hasPropertyAssignmentInitializer(sourceFile: SourceFile, propertyName: 
   );
 }
 
+function hasPropertyAssignmentInitializerFromSet(sourceFile: SourceFile, propertyName: string, expectedInitializers: readonly string[]): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+    property.getName() === propertyName && expectedInitializers.includes(property.getInitializer()?.getText() ?? ""),
+  );
+}
+
 function hasCallWithArguments(sourceFile: SourceFile, calleeName: string, argumentTexts: readonly string[]): boolean {
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
@@ -35,6 +41,47 @@ function hasCallWithArguments(sourceFile: SourceFile, calleeName: string, argume
     return calleeMatches
       && callExpression.getArguments().length === argumentTexts.length
       && callExpression.getArguments().every((argument, index) => argument.getText() === argumentTexts[index]);
+  });
+}
+
+function hasMatchingCallee(callExpression: CallExpression, calleeName: string): boolean {
+  const expression = callExpression.getExpression();
+  return Node.isIdentifier(expression)
+    ? expression.getText() === calleeName
+    : Node.isPropertyAccessExpression(expression) && expression.getName() === calleeName;
+}
+
+function getFirstObjectLiteralArgument(callExpression: CallExpression): ObjectLiteralExpression | null {
+  const [firstArgument] = callExpression.getArguments();
+  return firstArgument && Node.isObjectLiteralExpression(firstArgument)
+    ? firstArgument
+    : null;
+}
+
+function propertyMatchesExpectedInitializers(property: ObjectLiteralElementLike, propertyName: string, expectedInitializers: readonly string[]): boolean {
+  if (Node.isShorthandPropertyAssignment(property)) {
+    return property.getName() === propertyName && expectedInitializers.includes(property.getName());
+  }
+
+  return Node.isPropertyAssignment(property)
+    && property.getName() === propertyName
+    && expectedInitializers.includes(property.getInitializer()?.getText() ?? "");
+}
+
+function hasObjectLiteralCallPropertyInitializer(sourceFile: SourceFile, calleeName: string, propertyName: string, expectedInitializers: readonly string[]): boolean {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    if (!hasMatchingCallee(callExpression, calleeName)) {
+      return false;
+    }
+
+    const objectLiteral = getFirstObjectLiteralArgument(callExpression);
+    if (!objectLiteral) {
+      return false;
+    }
+
+    return objectLiteral.getProperties().some((property) =>
+      propertyMatchesExpectedInitializers(property, propertyName, expectedInitializers),
+    );
   });
 }
 
@@ -159,24 +206,24 @@ function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[]
   const builder = getSource(project, LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT);
   const findings: Finding[] = [];
   const requiredAssignments = [
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "abilityGroupId", expectedInitializer: '"page-state"', message: 'Local runtime page-state dispatch must stamp abilityGroupId: "page-state".' },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "runId", expectedInitializer: "envelope.runId", message: "Local runtime page-state dispatch must propagate envelope.runId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "sessionId", expectedInitializer: "envelope.sessionId", message: "Local runtime page-state dispatch must propagate envelope.sessionId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "stepId", expectedInitializer: "envelope.stepId", message: "Local runtime page-state dispatch must propagate envelope.stepId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageId", expectedInitializer: "envelope.mapPackageId", message: "Local runtime page-state dispatch must propagate envelope.mapPackageId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageVersion", expectedInitializer: "envelope.mapPackageVersion", message: "Local runtime page-state dispatch must propagate envelope.mapPackageVersion." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapId", expectedInitializer: "envelope.selectedMapId", message: "Local runtime page-state dispatch must propagate envelope.selectedMapId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapVersion", expectedInitializer: "envelope.selectedMapVersion", message: "Local runtime page-state dispatch must propagate envelope.selectedMapVersion." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "activationSnapshotRef", expectedInitializer: "envelope.activationSnapshotRef", message: "Local runtime page-state dispatch must propagate envelope.activationSnapshotRef." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "capabilityCallId", expectedInitializer: "envelope.capabilityCallId", message: "Local runtime page-state dispatch must propagate envelope.capabilityCallId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "nerveBusEnvelopeId", expectedInitializer: "envelope.nerveBusEnvelopeId", message: "Local runtime page-state dispatch must propagate envelope.nerveBusEnvelopeId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "inputRef", expectedInitializer: "envelope.inputRef", message: "Local runtime page-state dispatch must propagate envelope.inputRef." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "idempotencyKey", expectedInitializer: "envelope.idempotencyKey", message: "Local runtime page-state dispatch must propagate envelope.idempotencyKey." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "browserSessionRef", expectedInitializer: "session.browserProfileRef", message: "Local runtime page-state dispatch must bind openHandoff.browserSessionRef to the active browser session." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "abilityGroupId", expectedInitializers: ['"page-state"'], message: 'Local runtime page-state dispatch must stamp abilityGroupId: "page-state".' },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "runId", expectedInitializers: ["envelope.runId", "input.envelope.runId"], message: "Local runtime page-state dispatch must propagate envelope.runId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "sessionId", expectedInitializers: ["envelope.sessionId", "input.envelope.sessionId"], message: "Local runtime page-state dispatch must propagate envelope.sessionId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "stepId", expectedInitializers: ["envelope.stepId", "input.envelope.stepId"], message: "Local runtime page-state dispatch must propagate envelope.stepId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageId", expectedInitializers: ["envelope.mapPackageId", "input.envelope.mapPackageId"], message: "Local runtime page-state dispatch must propagate envelope.mapPackageId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageVersion", expectedInitializers: ["envelope.mapPackageVersion", "input.envelope.mapPackageVersion"], message: "Local runtime page-state dispatch must propagate envelope.mapPackageVersion." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapId", expectedInitializers: ["envelope.selectedMapId", "input.envelope.selectedMapId"], message: "Local runtime page-state dispatch must propagate envelope.selectedMapId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapVersion", expectedInitializers: ["envelope.selectedMapVersion", "input.envelope.selectedMapVersion"], message: "Local runtime page-state dispatch must propagate envelope.selectedMapVersion." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "activationSnapshotRef", expectedInitializers: ["envelope.activationSnapshotRef", "input.envelope.activationSnapshotRef"], message: "Local runtime page-state dispatch must propagate envelope.activationSnapshotRef." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "capabilityCallId", expectedInitializers: ["envelope.capabilityCallId", "input.envelope.capabilityCallId"], message: "Local runtime page-state dispatch must propagate envelope.capabilityCallId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "nerveBusEnvelopeId", expectedInitializers: ["envelope.nerveBusEnvelopeId", "input.envelope.nerveBusEnvelopeId"], message: "Local runtime page-state dispatch must propagate envelope.nerveBusEnvelopeId." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "inputRef", expectedInitializers: ["envelope.inputRef", "input.envelope.inputRef"], message: "Local runtime page-state dispatch must propagate envelope.inputRef." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "idempotencyKey", expectedInitializers: ["envelope.idempotencyKey", "input.envelope.idempotencyKey"], message: "Local runtime page-state dispatch must propagate envelope.idempotencyKey." },
+    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "browserSessionRef", expectedInitializers: ["session.browserProfileRef", "input.session.browserProfileRef"], message: "Local runtime page-state dispatch must bind openHandoff.browserSessionRef to the active browser session." },
   ] as const;
 
   for (const assignment of requiredAssignments) {
-    if (!hasPropertyAssignmentInitializer(builder, assignment.propertyName, assignment.expectedInitializer)) {
+    if (!hasPropertyAssignmentInitializerFromSet(builder, assignment.propertyName, assignment.expectedInitializers)) {
       findings.push(createFinding({ lawId: assignment.lawId, file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: assignment.message }));
     }
   }
@@ -185,7 +232,9 @@ function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[]
     findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Local runtime page-state dispatch must derive childCapabilityId from envelope.commandName." }));
   }
 
-  if (!hasCallExpression(builder, "buildPageStateObservations")) {
+  const hasGovernedObservationsBuilder = hasCallExpression(builder, "buildPageStateObservations");
+  const hasGovernedObservationsForwarding = hasObjectLiteralCallPropertyInitializer(builder, "buildPageStateDispatchPayload", "observations", ["observations"]);
+  if (!hasGovernedObservationsBuilder || !hasGovernedObservationsForwarding) {
     findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2", file: LOCAL_RUNTIME_PAGE_STATE_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Local runtime page-state dispatch must emit governed observations for observation-required Page State steps." }));
   }
 

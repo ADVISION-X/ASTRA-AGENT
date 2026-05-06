@@ -159,6 +159,54 @@ const buildResponseFields = (input: {
   parserErrors: input.parserErrors ?? [],
 });
 
+const buildExternalRuntimeDiagnosticFields = (input: {
+  request: ParsedAiAbilityInput;
+  parserErrors?: string[];
+}) => ({
+  implementationStatus: null,
+  runtimeCallId: input.request.capabilityCallId,
+  diagnosticPayloadRef: buildExternalRawResponseRef(input.request),
+  schemaIssueCount: input.parserErrors?.length ?? null,
+});
+
+const buildExternalTraceFields = (request: ParsedAiAbilityInput) => ({
+  sessionId: request.sessionId,
+  missionId: request.missionId,
+  roundId: request.roundId,
+  videoVisitId: request.videoVisitId,
+  traceId: request.missionId ?? request.sessionId,
+  spanId: request.capabilityCallId,
+  attemptId: `${request.capabilityCallId}:attempt:0`,
+  owner: "ai-capability",
+  ownerResponsible: "ai-capability",
+  abilityGroupId: request.abilityGroupId,
+  taskType: request.taskType,
+  requestedBy: request.requestedBy,
+  transportedBy: request.transportedBy,
+  refs: request.inputRefs.map((ref) => ref.id),
+});
+
+const buildExternalModelFields = (config: ExternalDebugConfig) => ({
+  provider: config.providerId,
+  model: config.model,
+  modelRole: "map-authoring",
+  runtime: "openai-compatible",
+});
+
+const buildExternalContractFields = (input: {
+  request: ParsedAiAbilityInput;
+  promptContract: ReturnType<typeof findMapAuthoringPromptContract>;
+}) => ({
+  promptContractId: input.request.promptContractId,
+  promptContractVersion: input.promptContract?.promptContractVersion ?? input.request.promptContractId,
+  promptVersion: input.promptContract?.promptContractVersion ?? input.request.promptContractId,
+  promptCatalogVersion: input.request.promptCatalogVersion,
+  promptContractHash: input.promptContract?.promptContractHash ?? input.promptContract?.promptHash ?? null,
+  systemPromptTemplateHash: input.promptContract?.systemPromptTemplateHash ?? null,
+  userPromptTemplateHash: input.promptContract?.userPromptTemplateHash ?? null,
+  outputSchemaRef: input.request.expectedOutputSchema,
+});
+
 export const buildExternalDebugBase = (input: {
   request: ParsedAiAbilityInput;
   config: ExternalDebugConfig;
@@ -170,36 +218,10 @@ export const buildExternalDebugBase = (input: {
   const promptDebugRef = buildPromptDebugRef(input.request);
   const promptContract = findMapAuthoringPromptContract(input.request);
   return {
-    sessionId: input.request.sessionId,
-    missionId: input.request.missionId,
-    roundId: input.request.roundId,
-    videoVisitId: input.request.videoVisitId,
-    traceId: input.request.missionId ?? input.request.sessionId,
-    spanId: input.request.capabilityCallId,
-    attemptId: `${input.request.capabilityCallId}:attempt:0`,
-    owner: "ai-capability",
-    ownerResponsible: "ai-capability",
-    abilityGroupId: input.request.abilityGroupId,
-    taskType: input.request.taskType,
-    requestedBy: input.request.requestedBy,
-    transportedBy: input.request.transportedBy,
-    refs: input.request.inputRefs.map((ref) => ref.id),
-    provider: input.config.providerId,
-    model: input.config.model,
-    modelRole: "map-authoring",
-    runtime: "openai-compatible",
-    implementationStatus: null,
-    runtimeCallId: input.request.capabilityCallId,
-    diagnosticPayloadRef: buildExternalRawResponseRef(input.request),
-    schemaIssueCount: input.parserErrors?.length ?? null,
-    promptContractId: input.request.promptContractId,
-    promptContractVersion: promptContract?.promptContractVersion ?? input.request.promptContractId,
-    promptVersion: promptContract?.promptContractVersion ?? input.request.promptContractId,
-    promptCatalogVersion: input.request.promptCatalogVersion,
-    promptContractHash: promptContract?.promptContractHash ?? promptContract?.promptHash ?? null,
-    systemPromptTemplateHash: promptContract?.systemPromptTemplateHash ?? null,
-    userPromptTemplateHash: promptContract?.userPromptTemplateHash ?? null,
-    outputSchemaRef: input.request.expectedOutputSchema,
+    ...buildExternalTraceFields(input.request),
+    ...buildExternalModelFields(input.config),
+    ...buildExternalRuntimeDiagnosticFields(input),
+    ...buildExternalContractFields({ request: input.request, promptContract }),
     providerConfigRef: input.config.configRef,
     secretRef: input.config.secretRef,
     ...buildPromptFields({ request: input.request, messages: input.messages, promptDebugRef }),

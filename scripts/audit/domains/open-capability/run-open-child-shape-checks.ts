@@ -7,7 +7,15 @@ import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { openInspectionConstants } from "./inspection-constants.js";
 import { openInspectionUtils } from "./inspection-utils.js";
 
-const { CHILDREN, LAW_PACKAGE_SHAPE, LAW_PRIVATE_LEAK, OPEN_ROOT, REGISTRY_PATH } = openInspectionConstants;
+const {
+  CHILDREN,
+  LAW_PACKAGE_SHAPE,
+  LAW_PRIVATE_LEAK,
+  OPEN_ROOT,
+  REGISTRY_PATH,
+  OPEN_PLATFORM_REGISTRY_ENTRIES_PATH,
+  OPEN_LOCAL_REGISTRY_ENTRIES_PATH,
+} = openInspectionConstants;
 const { getFunctionIdentifier, getOpenSourceOrThrow } = openInspectionUtils;
 
 const CHILD_FACTORY_NAMES = [
@@ -16,6 +24,12 @@ const CHILD_FACTORY_NAMES = [
   ["createOpenLocalWorkbenchCapability", `${OPEN_ROOT}/children/open-local-workbench/implementation.ts`],
   ["createOpenLocalProgramCapability", `${OPEN_ROOT}/children/open-local-program/implementation.ts`],
 ] as const;
+
+const REGISTRY_OWNED_WIRING_PATHS: ReadonlySet<string> = new Set([
+  REGISTRY_PATH,
+  OPEN_PLATFORM_REGISTRY_ENTRIES_PATH,
+  OPEN_LOCAL_REGISTRY_ENTRIES_PATH,
+]);
 
 const collectChildImplementationFindings = (project: import("ts-morph").Project, childId: string): Finding[] => {
   const implementationPath = `${OPEN_ROOT}/children/${childId}/implementation.ts`;
@@ -58,7 +72,7 @@ const collectChildFactoryLeakFindings = (project: import("ts-morph").Project): F
     }
 
     const referencePaths = getReferencePaths(identifier);
-    const escapedReference = referencePaths.find((path) => path !== implementationPath && path !== REGISTRY_PATH);
+    const escapedReference = referencePaths.find((path) => path !== implementationPath && !REGISTRY_OWNED_WIRING_PATHS.has(path));
     return escapedReference
       ? [createFinding({ lawId: LAW_PRIVATE_LEAK, file: escapedReference, line: 1, severity: "fatal", message: "Open child implementation factory leaked outside registry-owned wiring.", detail: `${factoryName} -> ${referencePaths.join(", ")}` })]
       : [];

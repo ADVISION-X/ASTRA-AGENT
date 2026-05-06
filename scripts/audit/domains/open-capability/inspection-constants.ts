@@ -25,6 +25,8 @@ export const openInspectionConstants = {
   SCHEMA_CORE_PATH: `${OPEN_ROOT}/schema-core.ts`,
   SCHEMA_PROOF_PATH: `${OPEN_ROOT}/schema-proof.ts`,
   REGISTRY_PATH: `${OPEN_ROOT}/registry.ts`,
+  OPEN_PLATFORM_REGISTRY_ENTRIES_PATH: `${OPEN_ROOT}/open-platform-registry-entries.ts`,
+  OPEN_LOCAL_REGISTRY_ENTRIES_PATH: `${OPEN_ROOT}/open-local-registry-entries.ts`,
   INDEX_PATH: `${OPEN_ROOT}/index.ts`,
   EXECUTOR_PATH: `${OPEN_ROOT}/runtime/open-executor.ts`,
   EXECUTOR_FLOW_PATH: `${OPEN_ROOT}/runtime/open-executor-flow.ts`,
