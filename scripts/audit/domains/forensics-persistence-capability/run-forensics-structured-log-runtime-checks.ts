@@ -7,6 +7,7 @@ import { hasLiteralTextFragment, hasStringLiteral } from "../_shared/ast-literal
 import { flattenPropertyAccess, getSourceFileOrThrow, hasCallExpression, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
+import { collectTerminalRelayFinding } from "./terminal-relay-proof.js";
 
 const {
   ABILITY_GROUP_PATH,
@@ -22,8 +23,6 @@ const {
   LAW_STRUCTURED_LOGGING_HEALTH,
   STARTUP_ENTRYPOINT_PATH,
   STARTUP_LOG_HELPERS_PATH,
-  TERMINAL_STRUCTURED_LOG_PATH,
-  STRUCTURED_LOG_PAYLOAD_PATH,
   STATUS_PATH,
   WORKBENCH_PATH,
 } = forensicsPersistenceInspectionConstants;
@@ -84,10 +83,6 @@ const hasStringLiteralAcrossSources = (
   sources: readonly import("ts-morph").SourceFile[],
   literal: string,
 ): boolean => sources.some((source) => hasStringLiteral(source, literal));
-
-const hasObjectProperty = (sourceFile: import("ts-morph").SourceFile, propertyName: string): boolean => {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
-};
 
 const isLiteralValue = (node: import("ts-morph").Node | undefined, value: string): boolean => {
   return (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node))
@@ -213,16 +208,6 @@ const hasBoundaryEmitterAbilityGroupWiring = (sourceFile: import("ts-morph").Sou
       && Node.isObjectLiteralExpression(configuration)
       && hasStructuredLogBusBoundaryEmitter(configuration);
   });
-};
-
-const collectTerminalRelayFinding = (project: import("ts-morph").Project): Finding[] => {
-  const terminalSource = getScriptSource(project, TERMINAL_STRUCTURED_LOG_PATH);
-  const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
-  const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasObjectProperty(payloadSource, fieldName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
-  return payloadFields && terminalFields
-    ? []
-    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for blocking command events." })];
 };
 
 const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Project): Finding[] => {

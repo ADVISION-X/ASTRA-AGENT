@@ -6,6 +6,9 @@ export function createFutureApiAiCapability(): AiChildCapability {
   return {
     contract,
     implementation: {
+      async execute() {
+        return Promise.reject(new Error("mutated future execute"));
+      },
       async checkReadiness() {
         return FutureApiAiChildReadinessSchema.parse({
           abilityGroupId: "ai",

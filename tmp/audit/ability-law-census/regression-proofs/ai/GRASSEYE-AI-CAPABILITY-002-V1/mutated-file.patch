@@ -1,7 +1,7 @@
 diff --git a/src/capabilities/ai/ability-group.ts b/src/capabilities/ai/ability-group.ts
 --- a/src/capabilities/ai/ability-group.ts
 +++ b/src/capabilities/ai/ability-group.ts
-@@ -106,7 +106,6 @@
+@@ -107,7 +107,6 @@
        implementationStatus: "runtime_execution_failed",
        errorKind: originalErrorName,
        runtimeCallId,

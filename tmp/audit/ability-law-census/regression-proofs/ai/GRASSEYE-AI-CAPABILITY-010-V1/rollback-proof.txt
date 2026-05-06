@@ -2,7 +2,7 @@ scenarioId: forbidden-import-mutation
 mutationName: forbidden import mutation
 mutatedFile: src/capabilities/ai/runtime/ai-pre-runtime.ts
 rollbackRestoredHash: sha256:6a403db9c551ae0295e0760d285b8cb090b449069d90104e9bb0c7e6ba61f5d3
-startedAt: 2026-05-06T16:43:30.299Z
-endedAt: 2026-05-06T16:43:37.831Z
+startedAt: 2026-05-06T17:00:45.730Z
+endedAt: 2026-05-06T17:00:53.412Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

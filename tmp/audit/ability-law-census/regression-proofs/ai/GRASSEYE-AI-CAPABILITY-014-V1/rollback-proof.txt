@@ -2,7 +2,7 @@ scenarioId: forbidden-action-output-mutation
 mutationName: forbidden action output mutation
 mutatedFile: src/capabilities/ai/runtime/ai-output-boundary-gate.ts
 rollbackRestoredHash: sha256:af76bc56b892367a80d0808d6ca2cbce8e50a58e73a9049a7ebbebeb061b6b0b
-startedAt: 2026-05-06T16:42:28.588Z
-endedAt: 2026-05-06T16:42:36.257Z
+startedAt: 2026-05-06T17:08:57.067Z
+endedAt: 2026-05-06T17:09:04.907Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

@@ -1,8 +1,8 @@
 scenarioId: ai-error-diagnostic-ref-mutation
 mutationName: ai error diagnostic ref mutation
 mutatedFile: src/capabilities/ai/ability-group.ts
-rollbackRestoredHash: sha256:62fc52c5906895d4d9774f04d80b89c4b242f70d813511f9da020348cc1aae7c
-startedAt: 2026-05-06T16:41:34.433Z
-endedAt: 2026-05-06T16:41:42.232Z
+rollbackRestoredHash: sha256:bc2d85fb8843d959e0d23d26b200b8d0a3efa01b52ac59f17c254a6e54314a7c
+startedAt: 2026-05-06T17:08:02.927Z
+endedAt: 2026-05-06T17:08:10.659Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.
