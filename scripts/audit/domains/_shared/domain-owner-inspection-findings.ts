@@ -55,14 +55,21 @@ const collectManifestIdentityFindings = (
   return findings;
 };
 
-const collectReferencedFileFindings = async (manifest: ResolvedDomainManifest): Promise<Finding[]> => {
+const getActiveDomainLawIds = (context: InspectorContext, capabilityDomain: string): string[] => context.lawRegistry.laws
+  .filter((law) => law.capabilityDomain === capabilityDomain)
+  .map((law) => law.lawId);
+
+const collectReferencedFileFindings = async (
+  manifest: ResolvedDomainManifest,
+  hasActiveOwnedLaws: boolean,
+): Promise<Finding[]> => {
   const findings: Finding[] = [];
 
   if (!(await fileExists(pathFromRepoRoot(manifest.entry)))) {
     findings.push(createFinding({ lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1", file: manifest.entry, line: 1, severity: "fatal", message: "Manifest entry file does not exist." }));
   }
 
-  if (manifest.readsLawFiles.length === 0) {
+  if (hasActiveOwnedLaws && manifest.readsLawFiles.length === 0) {
     findings.push(createFinding({ lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1", file: manifest.manifestPath, line: 1, severity: "error", message: "Manifest must declare readsLawFiles for its owned laws." }));
   }
 
@@ -101,14 +108,19 @@ const collectAllowedLawFindings = (context: InspectorContext, manifest: Resolved
     }));
 };
 
-const collectGeneratedArtifactFindings = (context: InspectorContext, manifest: ResolvedDomainManifest, capabilityDomain: string): Finding[] => {
+const collectGeneratedArtifactFindings = (
+  context: InspectorContext,
+  manifest: ResolvedDomainManifest,
+  capabilityDomain: string,
+  hasActiveOwnedLaws: boolean,
+): Finding[] => {
   const findings: Finding[] = [];
 
   if (!context.matrixOwnersByDomain.get(capabilityDomain)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1", file: manifest.manifestPath, line: 1, severity: "fatal", message: "Generated enforcement matrix does not contain this owner." }));
   }
 
-  if (!context.planOwnersByDomain.get(capabilityDomain)) {
+  if (hasActiveOwnedLaws && !context.planOwnersByDomain.get(capabilityDomain)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1", file: manifest.manifestPath, line: 1, severity: "fatal", message: "Generated audit plan does not contain this owner." }));
   }
 
@@ -119,12 +131,17 @@ export const collectDomainOwnerInspectionFindings = async (
   context: InspectorContext,
   manifest: ResolvedDomainManifest,
   options: DomainOwnerInspectionOptions,
-): Promise<Finding[]> => [
-  ...collectManifestIdentityFindings(manifest, options),
-  ...await collectReferencedFileFindings(manifest),
-  ...collectAllowedLawFindings(context, manifest),
-  ...collectGeneratedArtifactFindings(context, manifest, options.capabilityDomain),
-];
+): Promise<Finding[]> => {
+  const activeDomainLawIds = getActiveDomainLawIds(context, options.capabilityDomain);
+  const hasActiveOwnedLaws = activeDomainLawIds.length > 0;
+
+  return [
+    ...collectManifestIdentityFindings(manifest, options),
+    ...await collectReferencedFileFindings(manifest, hasActiveOwnedLaws),
+    ...collectAllowedLawFindings(context, manifest),
+    ...collectGeneratedArtifactFindings(context, manifest, options.capabilityDomain, hasActiveOwnedLaws),
+  ];
+};
 
 export const createOwnerFoundationPhase = (findings: Finding[]): InspectorPhase =>
   createPhase(

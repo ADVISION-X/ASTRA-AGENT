@@ -1,0 +1,8 @@
+scenarioId: remove-macos-local-platform-mutation
+mutationName: remove macos-local platform mutation
+mutatedFile: src/capabilities/open/shared/open-target-profile.ts
+rollbackRestoredHash: sha256:b2071ed2e45a634b1476819a87102ba3462f46bbe984bbcdb75b17b9e5d9425b
+startedAt: 2026-05-06T09:42:43.339Z
+endedAt: 2026-05-06T09:42:51.314Z
+
+Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

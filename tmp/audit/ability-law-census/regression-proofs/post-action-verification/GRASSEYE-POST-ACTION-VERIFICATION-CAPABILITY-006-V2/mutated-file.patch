@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/post-action-verification/runtime/verification-proof-builder.ts b/src/capabilities/post-action-verification/runtime/verification-proof-builder.ts
+--- a/src/capabilities/post-action-verification/runtime/verification-proof-builder.ts
++++ b/src/capabilities/post-action-verification/runtime/verification-proof-builder.ts
+@@ -43,7 +43,7 @@
+   return {
+     proofId: `post-action-verification-proof:${input.proofFingerprint}`,
+     missionId: request?.missionId ?? null,
+-    runId: request?.runId ?? input.inputRef,
++    runId: `post-action-verification-run:${input.proofFingerprint}`,
+     sessionId: request?.sessionId ?? null,
+     roundId: request?.roundId ?? null, videoVisitId: request?.videoVisitId ?? null,
+     stepId: request?.stepId ?? null,

@@ -28,7 +28,7 @@ type StaticCoverage = {
   }>;
 };
 
-const PROGRESS_PATH = "docs/audit-census/static-clause-enforcement-progress.json";
+const PROGRESS_PATH = "docs/audit/static-clause-enforcement-progress.json";
 const STATIC_COVERAGE_PATH = "scripts/audit/generated/static-clause-coverage.generated.json";
 const RUNNER_SUMMARY_PATH = "scripts/audit/generated/runner-summary.json";
 

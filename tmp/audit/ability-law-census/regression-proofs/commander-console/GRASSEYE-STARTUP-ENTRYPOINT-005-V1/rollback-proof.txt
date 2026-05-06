@@ -1,0 +1,8 @@
+scenarioId: startup-exit-controlled-shutdown-classification
+mutationName: startup controlled exit classification removal mutation
+mutatedFile: scripts/startup/launch-grasseye.mjs
+rollbackRestoredHash: sha256:00fad6ea4902a7fbbdab51b77ad272be7c2f999197c38e9517efcaedcdd35405
+startedAt: 2026-05-06T10:03:33.094Z
+endedAt: 2026-05-06T10:03:38.193Z
+
+Rollback was verified by restoring the original production file content and rerunning the Commander Console owner inspector.

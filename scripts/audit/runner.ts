@@ -8,7 +8,8 @@ const DEFAULT_STEP_TIMEOUT_MS = 60_000;
 const STEP_TIMEOUT_MS_BY_DOMAIN: Record<string, number> = {
 	"map-plugin-package": 600_000,
 	"audit-system": 900_000,
-	"ai-capability": 300_000,
+	"ai-capability": 420_000,
+	"orchestration-capability": 300_000,
 	"page-state-capability": 300_000,
 };
 

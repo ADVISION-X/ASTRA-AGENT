@@ -1,3 +1,5 @@
+import { LAW_IDS } from "./config.js";
+
 export type NegativeProofMutation = {
   name: string;
   file: string;
@@ -118,6 +120,12 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     newText: "    missionId: request?.sessionId ?? null,",
   },
   {
+    name: "result-builder-drops-run-id",
+    file: "src/capabilities/post-action-verification/runtime/verification-result-builder.ts",
+    oldText: "    runId: input.request?.runId ?? input.runtimeProof.runId,",
+    newText: "    runId: input.runtimeProof.runId,",
+  },
+  {
     name: "child-imports-screenshot-implementation",
     file: "src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts",
     oldText: "import { VerifyPageOpenedOutputSchema } from \"./schema.js\";",
@@ -143,18 +151,44 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   },
 ];
 
-const LAW_IDS = {
-  CHILDREN: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
-  PACKAGE: "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
-} as const;
-
 export const MUTATION_LAW_COVERAGE: Record<string, {
   coveredLawIds: string[];
   coverageReasonByLawId: Record<string, string>;
 }> = {
-  "child-imports-screenshot-implementation": {
-    coveredLawIds: [LAW_IDS.CHILDREN],
+  "contract-exposes-child-interface": {
+    coveredLawIds: [LAW_IDS.PUBLIC],
     coverageReasonByLawId: {
+      [LAW_IDS.PUBLIC]: "The mutation exposes a child execute interface on the public contract, proving Post Action Verification must keep a thin public boundary and must not leak child/runtime entrypoints.",
+    },
+  },
+  "input-schema-missing-capability-call-id": {
+    coveredLawIds: [LAW_IDS.SCHEMA],
+    coverageReasonByLawId: {
+      [LAW_IDS.SCHEMA]: "The mutation removes a machine-required chain field from the public input schema, proving Post Action Verification must keep the governed mission/run/activation chain machine-required.",
+    },
+  },
+  "external-imports-runtime-path": {
+    coveredLawIds: [LAW_IDS.SHAPE],
+    coverageReasonByLawId: {
+      [LAW_IDS.SHAPE]: "The mutation makes external local-runtime code import a private post-action runtime path, proving Post Action Verification must keep runtime internals private and shape-closed to outside owners.",
+    },
+  },
+  "result-builder-drops-run-id": {
+    coveredLawIds: [LAW_IDS.RESULT],
+    coverageReasonByLawId: {
+      [LAW_IDS.RESULT]: "The mutation removes the governed request runId from the final result builder, proving Post Action Verification results must preserve mission/run chain parity from the governed request.",
+    },
+  },
+  "proof-builder-fabricates-run-id": {
+    coveredLawIds: [LAW_IDS.PROOF],
+    coverageReasonByLawId: {
+      [LAW_IDS.PROOF]: "The mutation fabricates the runtime proof runId, proving Post Action Verification proof output must preserve real mission/run chain fields instead of inventing identity values.",
+    },
+  },
+  "child-imports-screenshot-implementation": {
+    coveredLawIds: [LAW_IDS.BOUNDARY, LAW_IDS.CHILDREN],
+    coverageReasonByLawId: {
+      [LAW_IDS.BOUNDARY]: "The mutation makes a Post Action Verification child import a foreign screenshot implementation, proving the owner boundary must reject foreign execution owners and internals.",
       [LAW_IDS.CHILDREN]: "The mutation makes a PAV child import a foreign screenshot implementation, proving child capabilities must remain narrow verification behaviors on the unified runtime path.",
     },
   },

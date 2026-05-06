@@ -1,21 +1,12 @@
 # Task Trigger Summary
 
-Real task triggering succeeded for both maps.
-
-## Facebook
-
-- Request: `tmp/debug-loop/post-fix-runtime-verification/task-start-request-current-facebook.json`
-- Response: `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-facebook.json`
-- Result: success, `transportStatus=accepted`, `message="command accepted"`
-- Runtime outcome: mission advanced to screenshot step `capture-video-viewport` and then failed with `videoVisitId is required in runtimeProof`
-
-## TikTok
-
-- Request: `tmp/debug-loop/post-fix-runtime-verification/task-start-request-current-tiktok.json`
-- Response: `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-tiktok.json`
-- Result: success, `transportStatus=accepted`, `message="command accepted"`
-- Runtime outcome: mission advanced to screenshot step `capture-video-viewport` and then failed with `videoVisitId is required in runtimeProof`
-
-## Conclusion
-
-Commander transport and task-start acceptance are no longer the blocker. The current blocker is downstream screenshot runtimeProof validation on both real mission paths.
+- taskTemplateId: `tiktok-seeding-video-discovery`
+- requestedPlatformId: `tiktok-web`
+- selectedMapId: `tiktok.seeding-video.discovery.meta.v1`
+- commandId: `commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba`
+- runId: `commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba:run`
+- traceId: `trace_6f733133-c5ec-4864-949e-399750f3fe10` for Commander task start; mission trace uses command run refs.
+- activationSnapshotRef: `activation-snapshot:3a8494dc-19f3-4d27-8d88-cf3f36564551:1.0.0:1.0.0`
+- final observed event: `CAPABILITY_CALL_FAILED`
+- status: `failed`
+- failureReason: `prepare-ai-input proof requires scaleMapping`

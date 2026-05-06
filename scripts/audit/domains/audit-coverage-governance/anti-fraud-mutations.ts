@@ -59,8 +59,8 @@ export const AUDIT_COVERAGE_ANTI_FRAUD_MUTATIONS: AntiFraudMutation[] = [
   {
     name: "generated-summary-tamper",
     file: "scripts/audit/generated/audit-coverage-summary.generated.json",
-    search: "\"totalRequirements\": 650,",
-    replace: "\"totalRequirements\": 649,",
+    search: "\"finalVerdict\": \"PASS\",",
+    replace: "\"finalVerdict\": \"BLOCKED\",",
     command: ["npm", "run", "audit:coverage"],
     detection: "generated-tamper-rejected",
   },

@@ -1,0 +1,8 @@
+scenarioId: child-imports-screenshot-implementation
+mutationName: child-imports-screenshot-implementation
+mutatedFile: src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts
+rollbackRestoredHash: sha256:360ae3cfb8857e435d99c7508b376567f176dcefd72c1615687e654fb696f1ef
+startedAt: 2026-05-06T06:20:02.253Z
+endedAt: 2026-05-06T06:20:09.826Z
+
+Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

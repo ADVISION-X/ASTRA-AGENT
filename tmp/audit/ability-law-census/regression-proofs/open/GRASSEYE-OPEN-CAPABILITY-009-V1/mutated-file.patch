@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/open/shared/open-target-profile.ts b/src/capabilities/open/shared/open-target-profile.ts
+--- a/src/capabilities/open/shared/open-target-profile.ts
++++ b/src/capabilities/open/shared/open-target-profile.ts
+@@ -11,7 +11,7 @@
+   "tiktok-web",
+   "facebook-web",
+   "local-workbench",
+-  "macos-local",
++  // mutated macos-local removed,
+ ] as const;
+ 
+ export const TIKTOK_PLATFORM_ID = "tiktok-web" as const;

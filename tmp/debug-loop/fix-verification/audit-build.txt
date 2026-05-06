@@ -4,4 +4,3 @@
 
 Generated 184 active laws, 23 owners, 20 planned inspections, 0 conflicts.
 [AUDIT-BUILD PASS] generated artifacts with zero conflicts.
-exitCode=0

@@ -1,1 +1,1 @@
-Rollback restored payloadValueToString(payload.screenshotEvidenceRef).
+rollback restored source handoff; inspector exitCode=0

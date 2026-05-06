@@ -3,6 +3,7 @@ import path from "node:path";
 
 const DEFAULT_IGNORED_DIRS = new Set([".git", ".venv", "dist", "node_modules"]);
 const recursiveFileListCache = new Map<string, Promise<string[]>>();
+let tempFileSequence = 0;
 
 const isMissingPathError = (error: unknown): boolean =>
   error instanceof Error && "code" in error && error.code === "ENOENT";
@@ -37,7 +38,8 @@ export const writeJsonFile = async (filePath: string, value: unknown): Promise<v
 
 export const writeTextFile = async (filePath: string, value: string): Promise<void> => {
   await ensureDirectory(path.dirname(filePath));
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  tempFileSequence += 1;
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${tempFileSequence}.tmp`;
   await writeFile(tempPath, value, "utf8");
   await rename(tempPath, filePath);
 };

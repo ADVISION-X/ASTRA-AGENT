@@ -35,7 +35,7 @@ All active Open laws in this file are:
 
 ```yaml
 status: active
-tier: P0
+tier: P1
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof

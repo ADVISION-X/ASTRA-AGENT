@@ -1,0 +1,12 @@
+[CODE VIOLATION] post-action-verification-capability: post-action-verification owner inspector found capability-boundary or governance violations
+- FATAL src/capabilities/post-action-verification/runtime/verification-proof-builder.ts:1 Proof builder must preserve real mission/run chain fields and must not fabricate runId or missionId.
+- FATAL src/lib/local-runtime/workbench-post-action-dispatch-input.ts:1 [
+  {
+    "code": "custom",
+    "message": "runtimeProof.runId must equal result.runId",
+    "path": [
+      "runtimeProof",
+      "runId"
+    ]
+  }
+]

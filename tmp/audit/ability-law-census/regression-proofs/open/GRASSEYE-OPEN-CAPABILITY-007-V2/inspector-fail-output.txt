@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-OPEN-CAPABILITY-007-V2 src/capabilities/open/index.ts:1 Open public index must not use export-star barrels.

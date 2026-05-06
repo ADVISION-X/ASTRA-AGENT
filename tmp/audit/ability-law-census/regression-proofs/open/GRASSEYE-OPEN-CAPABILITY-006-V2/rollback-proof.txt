@@ -1,0 +1,8 @@
+scenarioId: proof-chain-mutation
+mutationName: proof chain mutation
+mutatedFile: src/capabilities/open/runtime/open-proof-builder.ts
+rollbackRestoredHash: sha256:4df8145b3e5303bd163fecbda0fe486c259583259152ad51928df0d36facde4e
+startedAt: 2026-05-06T09:41:24.647Z
+endedAt: 2026-05-06T09:41:32.387Z
+
+Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

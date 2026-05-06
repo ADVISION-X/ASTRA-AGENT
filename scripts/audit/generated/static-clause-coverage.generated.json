@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T04:48:54.060Z",
+  "generatedAt": "2026-05-06T10:15:24.626Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -827,7 +827,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -862,7 +862,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -888,7 +887,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -916,7 +915,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -942,7 +940,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -970,7 +968,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -996,7 +993,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1059,7 +1056,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1085,7 +1081,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1106,7 +1102,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1132,7 +1127,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1153,7 +1148,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1179,7 +1173,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1200,7 +1194,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1226,7 +1219,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1310,7 +1303,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4003,13 +3995,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4022,8 +4014,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4043,13 +4033,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4062,8 +4052,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4083,13 +4071,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4102,8 +4090,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4123,13 +4109,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4142,8 +4128,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4163,13 +4147,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4182,8 +4166,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4203,13 +4185,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4222,8 +4204,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4243,13 +4223,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4262,8 +4242,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4283,13 +4261,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4302,8 +4280,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4323,13 +4299,13 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -4349,8 +4325,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5587,12 +5561,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5634,7 +5608,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5654,12 +5627,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5673,7 +5646,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5693,12 +5665,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5775,7 +5747,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5795,12 +5766,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5849,7 +5820,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5869,12 +5839,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5888,7 +5858,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5908,12 +5877,12 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
+      "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
@@ -5934,7 +5903,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6785,13 +6753,13 @@
       "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:commander-console",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6978,6 +6946,27 @@
           "checkKind": "runtime-proof"
         },
         {
+          "checkPhase": "startup-exit-negative-proof",
+          "checkFunction": "createBaselineFailure",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/startup-exit-negative-proof.ts",
+          "targetSymbol": "createBaselineFailure",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "startup-exit-negative-proof",
+          "checkFunction": "createMutationFailure",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/startup-exit-negative-proof.ts",
+          "targetSymbol": "createMutationFailure",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "startup-exit-negative-proof",
+          "checkFunction": "createRollbackFailure",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/startup-exit-negative-proof.ts",
+          "targetSymbol": "createRollbackFailure",
+          "checkKind": "anti-escape"
+        },
+        {
           "checkPhase": "startup-platform-target-checks",
           "checkFunction": "createStartupGateFinding",
           "sourceFile": "scripts/audit/domains/commander-console-capability/startup-platform-target-checks.ts",
@@ -6986,8 +6975,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",

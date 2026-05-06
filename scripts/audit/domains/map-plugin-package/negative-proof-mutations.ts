@@ -10,6 +10,10 @@ export type Mutation = {
   replace: string;
 };
 
+export const REQUIRED_MUTATION_NAMES = [
+  "macos local smoke missing open-local-program mutation",
+] as const;
+
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   ...AUTHORING_INPUT_PACKAGE_MUTATIONS,
   {

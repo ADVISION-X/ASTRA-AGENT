@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-OPEN-CAPABILITY-005-V2 src/capabilities/open/runtime/open-result-builder.ts:1 Open success output must preserve pageStateHandoffRef.

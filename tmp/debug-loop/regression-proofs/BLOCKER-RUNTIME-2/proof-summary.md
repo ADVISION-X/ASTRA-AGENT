@@ -1,7 +1,7 @@
 # BLOCKER-RUNTIME-2 Proof Summary
 
-- Mutation: removed governed OpenLocalProgramPort adapter injection.
-- Expected: Open owner inspector FAIL.
-- Observed: FAIL with fatal Workbench Open runtime adapter injection finding.
-- Rollback: restored localProgram adapter injection.
-- Observed after rollback: PASS.
+- Mutated production file: `src/lib/local-runtime/workbench-open-runtime.ts`
+- Inspector command: `GRASSEYE_SKIP_OPEN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/domains/open-capability/run-inspector.ts`
+- Expected FAIL observed: yes
+- Rollback PASS observed: yes
+- Covered blocker: `OpenLocalProgramPort is not configured`.

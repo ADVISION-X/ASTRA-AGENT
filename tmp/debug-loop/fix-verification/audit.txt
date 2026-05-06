@@ -11,237 +11,282 @@
 [map-plugin-negative-proof][expect-fail] 1/46 mutation="remove capabilityCatalog from input package mutation"
 [map-plugin-negative-proof][rollback] 1/46 mutation="remove capabilityCatalog from input package mutation"
 [map-plugin-negative-proof][verify-rollback] 1/46 mutation="remove capabilityCatalog from input package mutation"
-[map-plugin-negative-proof][pass] 1/46 mutation="remove capabilityCatalog from input package mutation" durationMs=9031
+[map-plugin-negative-proof][pass] 1/46 mutation="remove capabilityCatalog from input package mutation" durationMs=9831
 [map-plugin-negative-proof][mutate] 2/46 mutation="remove outputSchemaCatalog from input package mutation"
 [map-plugin-negative-proof][expect-fail] 2/46 mutation="remove outputSchemaCatalog from input package mutation"
 [map-plugin-negative-proof][rollback] 2/46 mutation="remove outputSchemaCatalog from input package mutation"
 [map-plugin-negative-proof][verify-rollback] 2/46 mutation="remove outputSchemaCatalog from input package mutation"
-[map-plugin-negative-proof][pass] 2/46 mutation="remove outputSchemaCatalog from input package mutation" durationMs=9266
+[map-plugin-negative-proof][pass] 2/46 mutation="remove outputSchemaCatalog from input package mutation" durationMs=9836
 [map-plugin-negative-proof][mutate] 3/46 mutation="authoring prompt builder freeform request regression mutation"
 [map-plugin-negative-proof][expect-fail] 3/46 mutation="authoring prompt builder freeform request regression mutation"
 [map-plugin-negative-proof][rollback] 3/46 mutation="authoring prompt builder freeform request regression mutation"
 [map-plugin-negative-proof][verify-rollback] 3/46 mutation="authoring prompt builder freeform request regression mutation"
-[map-plugin-negative-proof][pass] 3/46 mutation="authoring prompt builder freeform request regression mutation" durationMs=9216
+[map-plugin-negative-proof][pass] 3/46 mutation="authoring prompt builder freeform request regression mutation" durationMs=9690
 [map-plugin-negative-proof][mutate] 4/46 mutation="map lab dispatches raw request mutation"
 [map-plugin-negative-proof][expect-fail] 4/46 mutation="map lab dispatches raw request mutation"
 [map-plugin-negative-proof][rollback] 4/46 mutation="map lab dispatches raw request mutation"
 [map-plugin-negative-proof][verify-rollback] 4/46 mutation="map lab dispatches raw request mutation"
-[map-plugin-negative-proof][pass] 4/46 mutation="map lab dispatches raw request mutation" durationMs=9157
+[map-plugin-negative-proof][pass] 4/46 mutation="map lab dispatches raw request mutation" durationMs=9756
 [map-plugin-negative-proof][mutate] 5/46 mutation="remove exampleMaps from input package mutation"
 [map-plugin-negative-proof][expect-fail] 5/46 mutation="remove exampleMaps from input package mutation"
 [map-plugin-negative-proof][rollback] 5/46 mutation="remove exampleMaps from input package mutation"
 [map-plugin-negative-proof][verify-rollback] 5/46 mutation="remove exampleMaps from input package mutation"
-[map-plugin-negative-proof][pass] 5/46 mutation="remove exampleMaps from input package mutation" durationMs=9456
+[map-plugin-negative-proof][pass] 5/46 mutation="remove exampleMaps from input package mutation" durationMs=9787
 [map-plugin-negative-proof][mutate] 6/46 mutation="prompt hash placeholder mutation"
 [map-plugin-negative-proof][expect-fail] 6/46 mutation="prompt hash placeholder mutation"
 [map-plugin-negative-proof][rollback] 6/46 mutation="prompt hash placeholder mutation"
 [map-plugin-negative-proof][verify-rollback] 6/46 mutation="prompt hash placeholder mutation"
-[map-plugin-negative-proof][pass] 6/46 mutation="prompt hash placeholder mutation" durationMs=6641
+[map-plugin-negative-proof][pass] 6/46 mutation="prompt hash placeholder mutation" durationMs=5970
 [map-plugin-negative-proof][mutate] 7/46 mutation="prompt contract hash mismatch mutation"
 [map-plugin-negative-proof][expect-fail] 7/46 mutation="prompt contract hash mismatch mutation"
 [map-plugin-negative-proof][rollback] 7/46 mutation="prompt contract hash mismatch mutation"
 [map-plugin-negative-proof][verify-rollback] 7/46 mutation="prompt contract hash mismatch mutation"
-[map-plugin-negative-proof][pass] 7/46 mutation="prompt contract hash mismatch mutation" durationMs=7307
+[map-plugin-negative-proof][pass] 7/46 mutation="prompt contract hash mismatch mutation" durationMs=6074
 [map-plugin-negative-proof][mutate] 8/46 mutation="system prompt template hash mismatch mutation"
 [map-plugin-negative-proof][expect-fail] 8/46 mutation="system prompt template hash mismatch mutation"
 [map-plugin-negative-proof][rollback] 8/46 mutation="system prompt template hash mismatch mutation"
 [map-plugin-negative-proof][verify-rollback] 8/46 mutation="system prompt template hash mismatch mutation"
-[map-plugin-negative-proof][pass] 8/46 mutation="system prompt template hash mismatch mutation" durationMs=5945
+[map-plugin-negative-proof][pass] 8/46 mutation="system prompt template hash mismatch mutation" durationMs=5966
 [map-plugin-negative-proof][mutate] 9/46 mutation="user prompt template hash mismatch mutation"
 [map-plugin-negative-proof][expect-fail] 9/46 mutation="user prompt template hash mismatch mutation"
 [map-plugin-negative-proof][rollback] 9/46 mutation="user prompt template hash mismatch mutation"
 [map-plugin-negative-proof][verify-rollback] 9/46 mutation="user prompt template hash mismatch mutation"
-[map-plugin-negative-proof][pass] 9/46 mutation="user prompt template hash mismatch mutation" durationMs=5848
+[map-plugin-negative-proof][pass] 9/46 mutation="user prompt template hash mismatch mutation" durationMs=5922
 [map-plugin-negative-proof][mutate] 10/46 mutation="manual-first law regression mutation"
 [map-plugin-negative-proof][expect-fail] 10/46 mutation="manual-first law regression mutation"
 [map-plugin-negative-proof][rollback] 10/46 mutation="manual-first law regression mutation"
 [map-plugin-negative-proof][verify-rollback] 10/46 mutation="manual-first law regression mutation"
-[map-plugin-negative-proof][pass] 10/46 mutation="manual-first law regression mutation" durationMs=9695
+[map-plugin-negative-proof][pass] 10/46 mutation="manual-first law regression mutation" durationMs=9808
 [map-plugin-negative-proof][mutate] 11/46 mutation="old tiktok product discovery remains loaded mutation"
 [map-plugin-negative-proof][expect-fail] 11/46 mutation="old tiktok product discovery remains loaded mutation"
 [map-plugin-negative-proof][rollback] 11/46 mutation="old tiktok product discovery remains loaded mutation"
 [map-plugin-negative-proof][verify-rollback] 11/46 mutation="old tiktok product discovery remains loaded mutation"
-[map-plugin-negative-proof][pass] 11/46 mutation="old tiktok product discovery remains loaded mutation" durationMs=9493
+[map-plugin-negative-proof][pass] 11/46 mutation="old tiktok product discovery remains loaded mutation" durationMs=9542
 [map-plugin-negative-proof][mutate] 12/46 mutation="old facebook safe comment map remains loaded mutation"
 [map-plugin-negative-proof][expect-fail] 12/46 mutation="old facebook safe comment map remains loaded mutation"
 [map-plugin-negative-proof][rollback] 12/46 mutation="old facebook safe comment map remains loaded mutation"
 [map-plugin-negative-proof][verify-rollback] 12/46 mutation="old facebook safe comment map remains loaded mutation"
-[map-plugin-negative-proof][pass] 12/46 mutation="old facebook safe comment map remains loaded mutation" durationMs=9878
+[map-plugin-negative-proof][pass] 12/46 mutation="old facebook safe comment map remains loaded mutation" durationMs=9676
 [map-plugin-negative-proof][mutate] 13/46 mutation="old tiktok comment evidence map remains loaded mutation"
 [map-plugin-negative-proof][expect-fail] 13/46 mutation="old tiktok comment evidence map remains loaded mutation"
 [map-plugin-negative-proof][rollback] 13/46 mutation="old tiktok comment evidence map remains loaded mutation"
 [map-plugin-negative-proof][verify-rollback] 13/46 mutation="old tiktok comment evidence map remains loaded mutation"
-[map-plugin-negative-proof][pass] 13/46 mutation="old tiktok comment evidence map remains loaded mutation" durationMs=10000
+[map-plugin-negative-proof][pass] 13/46 mutation="old tiktok comment evidence map remains loaded mutation" durationMs=9590
 [map-plugin-negative-proof][mutate] 14/46 mutation="old ai draft placeholder remains loaded mutation"
 [map-plugin-negative-proof][expect-fail] 14/46 mutation="old ai draft placeholder remains loaded mutation"
 [map-plugin-negative-proof][rollback] 14/46 mutation="old ai draft placeholder remains loaded mutation"
 [map-plugin-negative-proof][verify-rollback] 14/46 mutation="old ai draft placeholder remains loaded mutation"
-[map-plugin-negative-proof][pass] 14/46 mutation="old ai draft placeholder remains loaded mutation" durationMs=9967
+[map-plugin-negative-proof][pass] 14/46 mutation="old ai draft placeholder remains loaded mutation" durationMs=9646
 [map-plugin-negative-proof][mutate] 15/46 mutation="map package modeled as child ability mutation"
 [map-plugin-negative-proof][expect-fail] 15/46 mutation="map package modeled as child ability mutation"
 [map-plugin-negative-proof][rollback] 15/46 mutation="map package modeled as child ability mutation"
 [map-plugin-negative-proof][verify-rollback] 15/46 mutation="map package modeled as child ability mutation"
-[map-plugin-negative-proof][pass] 15/46 mutation="map package modeled as child ability mutation" durationMs=10067
+[map-plugin-negative-proof][pass] 15/46 mutation="map package modeled as child ability mutation" durationMs=9819
 [map-plugin-negative-proof][mutate] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation"
 [map-plugin-negative-proof][expect-fail] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation"
 [map-plugin-negative-proof][rollback] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation"
 [map-plugin-negative-proof][verify-rollback] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation"
-[map-plugin-negative-proof][pass] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation" durationMs=11284
+[map-plugin-negative-proof][pass] 16/46 mutation="builtin loader direct parse diagnostic bypass mutation" durationMs=9765
 [map-plugin-negative-proof][mutate] 17/46 mutation="map package raw prompt mutation"
 [map-plugin-negative-proof][expect-fail] 17/46 mutation="map package raw prompt mutation"
 [map-plugin-negative-proof][rollback] 17/46 mutation="map package raw prompt mutation"
 [map-plugin-negative-proof][verify-rollback] 17/46 mutation="map package raw prompt mutation"
-[map-plugin-negative-proof][pass] 17/46 mutation="map package raw prompt mutation" durationMs=10778
+[map-plugin-negative-proof][pass] 17/46 mutation="map package raw prompt mutation" durationMs=9641
 [map-plugin-negative-proof][mutate] 18/46 mutation="map package functionBody mutation"
 [map-plugin-negative-proof][expect-fail] 18/46 mutation="map package functionBody mutation"
 [map-plugin-negative-proof][rollback] 18/46 mutation="map package functionBody mutation"
 [map-plugin-negative-proof][verify-rollback] 18/46 mutation="map package functionBody mutation"
-[map-plugin-negative-proof][pass] 18/46 mutation="map package functionBody mutation" durationMs=11044
+[map-plugin-negative-proof][pass] 18/46 mutation="map package functionBody mutation" durationMs=9988
 [map-plugin-negative-proof][mutate] 19/46 mutation="map package eval string mutation"
 [map-plugin-negative-proof][expect-fail] 19/46 mutation="map package eval string mutation"
 [map-plugin-negative-proof][rollback] 19/46 mutation="map package eval string mutation"
 [map-plugin-negative-proof][verify-rollback] 19/46 mutation="map package eval string mutation"
-[map-plugin-negative-proof][pass] 19/46 mutation="map package eval string mutation" durationMs=11059
+[map-plugin-negative-proof][pass] 19/46 mutation="map package eval string mutation" durationMs=9663
 [map-plugin-negative-proof][mutate] 20/46 mutation="bare decision branch mutation"
 [map-plugin-negative-proof][expect-fail] 20/46 mutation="bare decision branch mutation"
 [map-plugin-negative-proof][rollback] 20/46 mutation="bare decision branch mutation"
 [map-plugin-negative-proof][verify-rollback] 20/46 mutation="bare decision branch mutation"
-[map-plugin-negative-proof][pass] 20/46 mutation="bare decision branch mutation" durationMs=10997
+[map-plugin-negative-proof][pass] 20/46 mutation="bare decision branch mutation" durationMs=9537
 [map-plugin-negative-proof][mutate] 21/46 mutation="legacy branch dsl mutation"
 [map-plugin-negative-proof][expect-fail] 21/46 mutation="legacy branch dsl mutation"
 [map-plugin-negative-proof][rollback] 21/46 mutation="legacy branch dsl mutation"
 [map-plugin-negative-proof][verify-rollback] 21/46 mutation="legacy branch dsl mutation"
-[map-plugin-negative-proof][pass] 21/46 mutation="legacy branch dsl mutation" durationMs=10849
+[map-plugin-negative-proof][pass] 21/46 mutation="legacy branch dsl mutation" durationMs=9500
 [map-plugin-negative-proof][mutate] 22/46 mutation="branch undeclared field mutation"
 [map-plugin-negative-proof][expect-fail] 22/46 mutation="branch undeclared field mutation"
 [map-plugin-negative-proof][rollback] 22/46 mutation="branch undeclared field mutation"
 [map-plugin-negative-proof][verify-rollback] 22/46 mutation="branch undeclared field mutation"
-[map-plugin-negative-proof][pass] 22/46 mutation="branch undeclared field mutation" durationMs=10146
+[map-plugin-negative-proof][pass] 22/46 mutation="branch undeclared field mutation" durationMs=9802
 [map-plugin-negative-proof][mutate] 23/46 mutation="branch non schema ref mutation"
 [map-plugin-negative-proof][expect-fail] 23/46 mutation="branch non schema ref mutation"
 [map-plugin-negative-proof][rollback] 23/46 mutation="branch non schema ref mutation"
 [map-plugin-negative-proof][verify-rollback] 23/46 mutation="branch non schema ref mutation"
-[map-plugin-negative-proof][pass] 23/46 mutation="branch non schema ref mutation" durationMs=10088
+[map-plugin-negative-proof][pass] 23/46 mutation="branch non schema ref mutation" durationMs=9854
 [map-plugin-negative-proof][mutate] 24/46 mutation="delete promptContractId mutation"
 [map-plugin-negative-proof][expect-fail] 24/46 mutation="delete promptContractId mutation"
 [map-plugin-negative-proof][rollback] 24/46 mutation="delete promptContractId mutation"
 [map-plugin-negative-proof][verify-rollback] 24/46 mutation="delete promptContractId mutation"
-[map-plugin-negative-proof][pass] 24/46 mutation="delete promptContractId mutation" durationMs=10150
+[map-plugin-negative-proof][pass] 24/46 mutation="delete promptContractId mutation" durationMs=9562
 [map-plugin-negative-proof][mutate] 25/46 mutation="delete prompt binding mutation"
 [map-plugin-negative-proof][expect-fail] 25/46 mutation="delete prompt binding mutation"
 [map-plugin-negative-proof][rollback] 25/46 mutation="delete prompt binding mutation"
 [map-plugin-negative-proof][verify-rollback] 25/46 mutation="delete prompt binding mutation"
-[map-plugin-negative-proof][pass] 25/46 mutation="delete prompt binding mutation" durationMs=10297
+[map-plugin-negative-proof][pass] 25/46 mutation="delete prompt binding mutation" durationMs=9661
 [map-plugin-negative-proof][mutate] 26/46 mutation="unknown promptContractId mutation"
 [map-plugin-negative-proof][expect-fail] 26/46 mutation="unknown promptContractId mutation"
 [map-plugin-negative-proof][rollback] 26/46 mutation="unknown promptContractId mutation"
 [map-plugin-negative-proof][verify-rollback] 26/46 mutation="unknown promptContractId mutation"
-[map-plugin-negative-proof][pass] 26/46 mutation="unknown promptContractId mutation" durationMs=9709
+[map-plugin-negative-proof][pass] 26/46 mutation="unknown promptContractId mutation" durationMs=9725
 [map-plugin-negative-proof][mutate] 27/46 mutation="prompt outputSchemaRef mismatch mutation"
 [map-plugin-negative-proof][expect-fail] 27/46 mutation="prompt outputSchemaRef mismatch mutation"
 [map-plugin-negative-proof][rollback] 27/46 mutation="prompt outputSchemaRef mismatch mutation"
 [map-plugin-negative-proof][verify-rollback] 27/46 mutation="prompt outputSchemaRef mismatch mutation"
-[map-plugin-negative-proof][pass] 27/46 mutation="prompt outputSchemaRef mismatch mutation" durationMs=9812
+[map-plugin-negative-proof][pass] 27/46 mutation="prompt outputSchemaRef mismatch mutation" durationMs=9725
 [map-plugin-negative-proof][mutate] 28/46 mutation="missing post-action verification mutation"
 [map-plugin-negative-proof][expect-fail] 28/46 mutation="missing post-action verification mutation"
 [map-plugin-negative-proof][rollback] 28/46 mutation="missing post-action verification mutation"
 [map-plugin-negative-proof][verify-rollback] 28/46 mutation="missing post-action verification mutation"
-[map-plugin-negative-proof][pass] 28/46 mutation="missing post-action verification mutation" durationMs=10047
+[map-plugin-negative-proof][pass] 28/46 mutation="missing post-action verification mutation" durationMs=9765
 [map-plugin-negative-proof][mutate] 29/46 mutation="missing geometry proof mutation"
 [map-plugin-negative-proof][expect-fail] 29/46 mutation="missing geometry proof mutation"
 [map-plugin-negative-proof][rollback] 29/46 mutation="missing geometry proof mutation"
 [map-plugin-negative-proof][verify-rollback] 29/46 mutation="missing geometry proof mutation"
-[map-plugin-negative-proof][pass] 29/46 mutation="missing geometry proof mutation" durationMs=10256
+[map-plugin-negative-proof][pass] 29/46 mutation="missing geometry proof mutation" durationMs=9865
 [map-plugin-negative-proof][mutate] 30/46 mutation="activation snapshot proof mutation"
 [map-plugin-negative-proof][expect-fail] 30/46 mutation="activation snapshot proof mutation"
 [map-plugin-negative-proof][rollback] 30/46 mutation="activation snapshot proof mutation"
 [map-plugin-negative-proof][verify-rollback] 30/46 mutation="activation snapshot proof mutation"
-[map-plugin-negative-proof][pass] 30/46 mutation="activation snapshot proof mutation" durationMs=10276
+[map-plugin-negative-proof][pass] 30/46 mutation="activation snapshot proof mutation" durationMs=9874
 [map-plugin-negative-proof][mutate] 31/46 mutation="generated capability catalog drift mutation"
 [map-plugin-negative-proof][expect-fail] 31/46 mutation="generated capability catalog drift mutation"
 [map-plugin-negative-proof][rollback] 31/46 mutation="generated capability catalog drift mutation"
 [map-plugin-negative-proof][verify-rollback] 31/46 mutation="generated capability catalog drift mutation"
-[map-plugin-negative-proof][pass] 31/46 mutation="generated capability catalog drift mutation" durationMs=9851
+[map-plugin-negative-proof][pass] 31/46 mutation="generated capability catalog drift mutation" durationMs=9658
 [map-plugin-negative-proof][mutate] 32/46 mutation="routableByMap false mutation"
 [map-plugin-negative-proof][expect-fail] 32/46 mutation="routableByMap false mutation"
 [map-plugin-negative-proof][rollback] 32/46 mutation="routableByMap false mutation"
 [map-plugin-negative-proof][verify-rollback] 32/46 mutation="routableByMap false mutation"
-[map-plugin-negative-proof][pass] 32/46 mutation="routableByMap false mutation" durationMs=9730
+[map-plugin-negative-proof][pass] 32/46 mutation="routableByMap false mutation" durationMs=9796
 [map-plugin-negative-proof][mutate] 33/46 mutation="missing capability child mutation"
 [map-plugin-negative-proof][expect-fail] 33/46 mutation="missing capability child mutation"
 [map-plugin-negative-proof][rollback] 33/46 mutation="missing capability child mutation"
 [map-plugin-negative-proof][verify-rollback] 33/46 mutation="missing capability child mutation"
-[map-plugin-negative-proof][pass] 33/46 mutation="missing capability child mutation" durationMs=10035
+[map-plugin-negative-proof][pass] 33/46 mutation="missing capability child mutation" durationMs=9933
 [map-plugin-negative-proof][mutate] 34/46 mutation="open target profile drift mutation"
 [map-plugin-negative-proof][expect-fail] 34/46 mutation="open target profile drift mutation"
 [map-plugin-negative-proof][rollback] 34/46 mutation="open target profile drift mutation"
 [map-plugin-negative-proof][verify-rollback] 34/46 mutation="open target profile drift mutation"
-[map-plugin-negative-proof][pass] 34/46 mutation="open target profile drift mutation" durationMs=9677
+[map-plugin-negative-proof][pass] 34/46 mutation="open target profile drift mutation" durationMs=9697
 [map-plugin-negative-proof][mutate] 35/46 mutation="hardcoded capability list in prompt template mutation"
 [map-plugin-negative-proof][expect-fail] 35/46 mutation="hardcoded capability list in prompt template mutation"
 [map-plugin-negative-proof][rollback] 35/46 mutation="hardcoded capability list in prompt template mutation"
 [map-plugin-negative-proof][verify-rollback] 35/46 mutation="hardcoded capability list in prompt template mutation"
-[map-plugin-negative-proof][pass] 35/46 mutation="hardcoded capability list in prompt template mutation" durationMs=9641
+[map-plugin-negative-proof][pass] 35/46 mutation="hardcoded capability list in prompt template mutation" durationMs=9670
 [map-plugin-negative-proof][mutate] 36/46 mutation="approved manifest without validationReportRef mutation"
 [map-plugin-negative-proof][expect-fail] 36/46 mutation="approved manifest without validationReportRef mutation"
 [map-plugin-negative-proof][rollback] 36/46 mutation="approved manifest without validationReportRef mutation"
 [map-plugin-negative-proof][verify-rollback] 36/46 mutation="approved manifest without validationReportRef mutation"
-[map-plugin-negative-proof][pass] 36/46 mutation="approved manifest without validationReportRef mutation" durationMs=9735
+[map-plugin-negative-proof][pass] 36/46 mutation="approved manifest without validationReportRef mutation" durationMs=9812
 [map-plugin-negative-proof][mutate] 37/46 mutation="ai generated active map mutation"
 [map-plugin-negative-proof][expect-fail] 37/46 mutation="ai generated active map mutation"
 [map-plugin-negative-proof][rollback] 37/46 mutation="ai generated active map mutation"
 [map-plugin-negative-proof][verify-rollback] 37/46 mutation="ai generated active map mutation"
-[map-plugin-negative-proof][pass] 37/46 mutation="ai generated active map mutation" durationMs=9564
+[map-plugin-negative-proof][pass] 37/46 mutation="ai generated active map mutation" durationMs=9693
 [map-plugin-negative-proof][mutate] 38/46 mutation="ordinary feed exposes mapId mutation"
 [map-plugin-negative-proof][expect-fail] 38/46 mutation="ordinary feed exposes mapId mutation"
 [map-plugin-negative-proof][rollback] 38/46 mutation="ordinary feed exposes mapId mutation"
 [map-plugin-negative-proof][verify-rollback] 38/46 mutation="ordinary feed exposes mapId mutation"
-[map-plugin-negative-proof][pass] 38/46 mutation="ordinary feed exposes mapId mutation" durationMs=9627
+[map-plugin-negative-proof][pass] 38/46 mutation="ordinary feed exposes mapId mutation" durationMs=9663
 [map-plugin-negative-proof][mutate] 39/46 mutation="commander direct registry write mutation"
 [map-plugin-negative-proof][expect-fail] 39/46 mutation="commander direct registry write mutation"
 [map-plugin-negative-proof][rollback] 39/46 mutation="commander direct registry write mutation"
 [map-plugin-negative-proof][verify-rollback] 39/46 mutation="commander direct registry write mutation"
-[map-plugin-negative-proof][pass] 39/46 mutation="commander direct registry write mutation" durationMs=9662
+[map-plugin-negative-proof][pass] 39/46 mutation="commander direct registry write mutation" durationMs=9932
 [map-plugin-negative-proof][mutate] 40/46 mutation="map contains shellCommand mutation"
 [map-plugin-negative-proof][expect-fail] 40/46 mutation="map contains shellCommand mutation"
 [map-plugin-negative-proof][rollback] 40/46 mutation="map contains shellCommand mutation"
 [map-plugin-negative-proof][verify-rollback] 40/46 mutation="map contains shellCommand mutation"
-[map-plugin-negative-proof][pass] 40/46 mutation="map contains shellCommand mutation" durationMs=9518
+[map-plugin-negative-proof][pass] 40/46 mutation="map contains shellCommand mutation" durationMs=9706
 [map-plugin-negative-proof][mutate] 41/46 mutation="map contains openApp mutation"
 [map-plugin-negative-proof][expect-fail] 41/46 mutation="map contains openApp mutation"
 [map-plugin-negative-proof][rollback] 41/46 mutation="map contains openApp mutation"
 [map-plugin-negative-proof][verify-rollback] 41/46 mutation="map contains openApp mutation"
-[map-plugin-negative-proof][pass] 41/46 mutation="map contains openApp mutation" durationMs=9712
+[map-plugin-negative-proof][pass] 41/46 mutation="map contains openApp mutation" durationMs=9755
 [map-plugin-negative-proof][mutate] 42/46 mutation="map contains osascript mutation"
 [map-plugin-negative-proof][expect-fail] 42/46 mutation="map contains osascript mutation"
 [map-plugin-negative-proof][rollback] 42/46 mutation="map contains osascript mutation"
 [map-plugin-negative-proof][verify-rollback] 42/46 mutation="map contains osascript mutation"
-[map-plugin-negative-proof][pass] 42/46 mutation="map contains osascript mutation" durationMs=10115
+[map-plugin-negative-proof][pass] 42/46 mutation="map contains osascript mutation" durationMs=9719
 [map-plugin-negative-proof][mutate] 43/46 mutation="macos local smoke missing open-local-program mutation"
 [map-plugin-negative-proof][expect-fail] 43/46 mutation="macos local smoke missing open-local-program mutation"
 [map-plugin-negative-proof][rollback] 43/46 mutation="macos local smoke missing open-local-program mutation"
 [map-plugin-negative-proof][verify-rollback] 43/46 mutation="macos local smoke missing open-local-program mutation"
-[map-plugin-negative-proof][pass] 43/46 mutation="macos local smoke missing open-local-program mutation" durationMs=9803
+[map-plugin-negative-proof][pass] 43/46 mutation="macos local smoke missing open-local-program mutation" durationMs=9677
 [map-plugin-negative-proof][mutate] 44/46 mutation="iphone mirroring step branch closure mutation"
 [map-plugin-negative-proof][expect-fail] 44/46 mutation="iphone mirroring step branch closure mutation"
 [map-plugin-negative-proof][rollback] 44/46 mutation="iphone mirroring step branch closure mutation"
 [map-plugin-negative-proof][verify-rollback] 44/46 mutation="iphone mirroring step branch closure mutation"
-[map-plugin-negative-proof][pass] 44/46 mutation="iphone mirroring step branch closure mutation" durationMs=9988
+[map-plugin-negative-proof][pass] 44/46 mutation="iphone mirroring step branch closure mutation" durationMs=9703
 [map-plugin-negative-proof][mutate] 45/46 mutation="forensics proof missing activationId mutation"
 [map-plugin-negative-proof][expect-fail] 45/46 mutation="forensics proof missing activationId mutation"
 [map-plugin-negative-proof][rollback] 45/46 mutation="forensics proof missing activationId mutation"
 [map-plugin-negative-proof][verify-rollback] 45/46 mutation="forensics proof missing activationId mutation"
-[map-plugin-negative-proof][pass] 45/46 mutation="forensics proof missing activationId mutation" durationMs=9740
+[map-plugin-negative-proof][pass] 45/46 mutation="forensics proof missing activationId mutation" durationMs=9769
 [map-plugin-negative-proof][mutate] 46/46 mutation="remove negative proof invocation mutation"
 [map-plugin-negative-proof][expect-fail] 46/46 mutation="remove negative proof invocation mutation"
 [map-plugin-negative-proof][rollback] 46/46 mutation="remove negative proof invocation mutation"
 [map-plugin-negative-proof][verify-rollback] 46/46 mutation="remove negative proof invocation mutation"
-[map-plugin-negative-proof][pass] 46/46 mutation="remove negative proof invocation mutation" durationMs=9884
-[map-plugin-negative-proof][pass] durationMs=448497 detail="all mutations rejected and rolled back"
+[map-plugin-negative-proof][pass] 46/46 mutation="remove negative proof invocation mutation" durationMs=9788
+[map-plugin-negative-proof][pass] durationMs=437684 detail="all mutations rejected and rolled back"
 [PASS] map-plugin-package: Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.
 [AUDIT] starting debug-loop-boundary...
 [PASS] debug-loop-boundary: repair packets, fake authoring, package wiring, and negative proof remain governed.
-[AUDIT] starting audit-system...
-[CODE VIOLATION] audit-system: audit main chain has blocking law, manifest, runner, or purity-red-line defects
-[AUDIT FAIL-FAST] stopped at audit-system; 1 blocking issue(s) recorded.
-exitCode=1
+[AUDIT] starting capability-group-governance...
+[PASS] capability-group-governance: Capability-group-governance negative-proof harness rejects package audit entrypoint drift mutation: fail-ok rollback-ok, negative-proof invocation removed mutation: fail-ok rollback-ok.
+[AUDIT] starting type-safety...
+[PASS] type-safety: strict tsconfig and explicit-any scan are clean
+[AUDIT] starting security-privacy...
+[PASS] security-privacy: No obvious sensitive export or public exposure pattern was found in source files.
+[AUDIT] starting ai-capability...
+[NEGATIVE-PROOF] PASS input gate mutation
+[NEGATIVE-PROOF] PASS provider gate mutation
+[NEGATIVE-PROOF] PASS schema gate mutation
+[NEGATIVE-PROOF] PASS quality gate mutation
+[NEGATIVE-PROOF] PASS proof builder mutation
+[NEGATIVE-PROOF] PASS payload budget mutation
+[NEGATIVE-PROOF] PASS runtime health gate mutation
+[NEGATIVE-PROOF] PASS runtime runner mutation
+[NEGATIVE-PROOF] PASS runtime signal mutation
+[NEGATIVE-PROOF] PASS hard timeout mutation
+[NEGATIVE-PROOF] PASS runtime policy literal mutation
+[NEGATIVE-PROOF] PASS output boundary mutation
+[NEGATIVE-PROOF] PASS invalid-success mutation
+[NEGATIVE-PROOF] PASS success raw output mutation
+[NEGATIVE-PROOF] PASS child-schema-shell mutation
+[NEGATIVE-PROOF] PASS forbidden action output mutation
+[NEGATIVE-PROOF] PASS dispatch record assertion mutation
+[NEGATIVE-PROOF] PASS paid gateway mutation
+[NEGATIVE-PROOF] PASS paid execute mutation
+[NEGATIVE-PROOF] PASS future execute mutation
+[NEGATIVE-PROOF] PASS internal gateway mutation
+[NEGATIVE-PROOF] PASS public index helper mutation
+[NEGATIVE-PROOF] PASS export star mutation
+[NEGATIVE-PROOF] PASS forbidden import mutation
+[NEGATIVE-PROOF] PASS as-any mutation
+[NEGATIVE-PROOF] PASS as-unknown-as mutation
+[NEGATIVE-PROOF] PASS dynamic import mutation
+[NEGATIVE-PROOF] PASS require mutation
+[NEGATIVE-PROOF] PASS ability-group adapter import mutation
+[NEGATIVE-PROOF] PASS module state mutation
+[NEGATIVE-PROOF] PASS prompt registry throw mutation
+[NEGATIVE-PROOF] PASS prompt policy string mutation
+[NEGATIVE-PROOF] PASS runtime mapper throw helper mutation
+[NEGATIVE-PROOF] PASS second prompt truth mutation
+[NEGATIVE-PROOF] PASS proof chain mutation
+[NEGATIVE-PROOF] PASS model config boundary mutation
+[PASS] ai-capability: AI negative-proof harness rejects gate bypass, proof drop, output-boundary escape, disabled-child execute, internal gateway import, adapter import laundering, and type-escape mutations.
+[AUDIT] starting orchestration-capability...
+[PASS] orchestration-capability: Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, capability-call-start event loss, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.
+[AUDIT] starting commander-console-capability...
+[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
+[AUDIT FAIL-FAST] stopped at commander-console-capability; 1 blocking issue(s) recorded.

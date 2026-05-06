@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T21:20:56.566Z",
+  "generatedAt": "2026-05-06T10:05:27.111Z",
   "requirements": [
     {
       "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-001",
@@ -1262,6 +1262,66 @@
       ]
     },
     {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "audit-coverage-governance",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-coverage-governance-owner",
+          "domain": "audit-coverage-governance",
+          "manifestPath": "scripts/audit/domains/audit-coverage-governance/manifest.json",
+          "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+          "evidenceMode": "law+blueprint+fs+generated-artifact+negative-proof",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "audit-coverage-governance",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-coverage-governance-owner",
+          "domain": "audit-coverage-governance",
+          "manifestPath": "scripts/audit/domains/audit-coverage-governance/manifest.json",
+          "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+          "evidenceMode": "law+blueprint+fs+generated-artifact+negative-proof",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "audit-coverage-governance",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-coverage-governance-owner",
+          "domain": "audit-coverage-governance",
+          "manifestPath": "scripts/audit/domains/audit-coverage-governance/manifest.json",
+          "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+          "evidenceMode": "law+blueprint+fs+generated-artifact+negative-proof",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
       "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-001",
       "owner": "audit-coverage-governance",
       "sourceType": "blueprint",
@@ -1766,6 +1826,66 @@
       "owner": "audit-system",
       "sourceType": "blueprint",
       "tier": "P1",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-system-owner",
+          "domain": "audit-system",
+          "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
+          "entry": "scripts/audit/domains/audit-system/inspector.ts",
+          "evidenceMode": "law+fs+config+hybrid",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "audit-system",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-system-owner",
+          "domain": "audit-system",
+          "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
+          "entry": "scripts/audit/domains/audit-system/inspector.ts",
+          "evidenceMode": "law+fs+config+hybrid",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "audit-system",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "audit-system-owner",
+          "domain": "audit-system",
+          "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
+          "entry": "scripts/audit/domains/audit-system/inspector.ts",
+          "evidenceMode": "law+fs+config+hybrid",
+          "strength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "audit-system",
+      "sourceType": "blueprint",
+      "tier": "P0",
       "staticCoverage": [
         {
           "inspectorId": "audit-system-owner",
@@ -7546,6 +7666,66 @@
       "owner": "map-plugin-package",
       "sourceType": "blueprint",
       "tier": "P1",
+      "staticCoverage": [
+        {
+          "inspectorId": "map-plugin-package-governance",
+          "domain": "map-plugin-package",
+          "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
+          "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+          "evidenceMode": "law+fs+hybrid",
+          "strength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "map-plugin-package-governance",
+          "domain": "map-plugin-package",
+          "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
+          "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+          "evidenceMode": "law+fs+hybrid",
+          "strength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "sourceType": "blueprint",
+      "tier": "P0",
+      "staticCoverage": [
+        {
+          "inspectorId": "map-plugin-package-governance",
+          "domain": "map-plugin-package",
+          "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
+          "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
+          "evidenceMode": "law+fs+hybrid",
+          "strength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF"
+        }
+      ],
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "sourceType": "blueprint",
+      "tier": "P0",
       "staticCoverage": [
         {
           "inspectorId": "map-plugin-package-governance",

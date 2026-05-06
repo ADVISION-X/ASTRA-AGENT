@@ -1,5 +1,9 @@
 # Fresh Root Cause Matrix
 
-| 序号 | 问题点 | 阻塞阶段 | 法案要求 | 施工图要求 | 生产根因文件 | 执法缺口文件 | 为什么没拦住 | 修复优先级 |
-|---|---|---|---|---|---|---|---|---|
-| BLOCKER-POSTFIX-1 | Screenshot runtimeProof self-rejects null `videoVisitId` on the first `capture-video-viewport` step | screenshot result validation on both real maps | `GRASSEYE-SCREENSHOT-CAPABILITY-004-V2` requires screenshot schema/runtimeProof truth to stay governed and internally consistent; `GRASSEYE-SCREENSHOT-CAPABILITY-003-V2` owns required shape semantics | Screenshot blueprint section `15. Runtime Proof` marks `videoVisitId` optional, and the early `capture-video-viewport` map step does not provide a prior video identity | `src/capabilities/screenshot/screenshot-schema-refinements.ts`; `src/capabilities/screenshot/shared/screenshot-governance.ts`; `src/capabilities/screenshot/schema.ts`; `src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json`; `src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json` | `scripts/audit/domains/screenshot-capability/required-shape.ts`; `scripts/audit/domains/screenshot-capability/negative-proof-harness.ts` | Screenshot audit checks chain markers, builder routing, dispatch adapter mapping, and generic nullability regressions, but it does not assert parity between nullable `videoVisitId` schema truth and runtimeProof refine behavior on the first capture path | P0 current blocker |
+| ID | Status | First failing event | Root cause candidate | Owner | Priority |
+|---|---|---|---|---|---|
+| BLOCKER-FRESH-1 | current | `CAPABILITY_CALL_FAILED prepare-ai-input` | Screenshot `prepare-ai-input` proof/result chain does not preserve `scaleMapping` into the runtime proof that is schema-validated. | Screenshot | P0 |
+
+## Judgment
+
+The old `source Required` failure is gone. The fresh P0 is not a startup, Nerve Bus, Commander, or map closure failure. It is the next Screenshot proof-chain failure in the AI handoff path.

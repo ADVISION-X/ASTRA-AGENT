@@ -226,7 +226,12 @@ const buildEnforcementMatrixOwners = (
 
 const buildAuditPlanOwners = (owners: EnforcementMatrixOwner[], activeLawDomains: string[]) => {
   const ownerByDomain = new Map(owners.map((owner) => [owner.capabilityDomain, owner]));
-  return activeLawDomains.flatMap((capabilityDomain) => {
+  const orderedDomains = activeLawDomains.filter((capabilityDomain) => capabilityDomain !== "audit-system");
+  if (activeLawDomains.includes("audit-system")) {
+    orderedDomains.push("audit-system");
+  }
+
+  return orderedDomains.flatMap((capabilityDomain) => {
     const owner = ownerByDomain.get(capabilityDomain);
     return owner
       ? [{ capabilityDomain, inspectorId: owner.inspectorId, entry: owner.entry, lawIds: owner.lawIds }]

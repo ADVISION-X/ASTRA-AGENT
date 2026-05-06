@@ -29,7 +29,7 @@ diff --git a/scripts/audit/generated/audit-plan.generated.json b/scripts/audit/g
 +++ b/scripts/audit/generated/audit-plan.generated.json
 @@ -1,6 +1,6 @@
  {
-   "generatedAt": "2026-05-06T04:34:44.360Z",
+   "generatedAt": "2026-05-06T06:11:03.704Z",
 -  "phase": "phase-04-full-enforcement",
 +  "phase": "phase-04-hand-edited",
    "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",

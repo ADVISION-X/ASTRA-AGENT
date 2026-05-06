@@ -9,7 +9,7 @@ import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection
 import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
 import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
 import { runGeometryGuardChecks } from "./run-geometry-guard-checks.js";
-import { MUTATIONS, MUTATION_LAW_COVERAGE, OWNER_BINDING_MUTATION_NAMES, type NegativeProofMutation } from "./negative-proof-definitions.js";
+import { MUTATIONS, MUTATION_LAW_COVERAGE, OWNER_BINDING_MUTATION_NAMES, type NegativeProofMutation, type ReplaceMutation } from "./negative-proof-definitions.js";
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/geometry-guard-capability/inspector.ts";
 const LAW_FILE = ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md";

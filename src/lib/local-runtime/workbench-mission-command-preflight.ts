@@ -1,4 +1,4 @@
-import { MissionCommandSchema } from "../../capabilities/orchestration/schema.js";
+import { MissionCommandSchema } from "../../capabilities/orchestration/index.js";
 import type { RequestedPlatformId } from "./workbench-contract.js";
 
 export const checkMissionCommandSchemaPreflight = (input: {

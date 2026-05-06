@@ -15,20 +15,36 @@ const harnessExecutesMutations = (source: string): boolean =>
   && /restoreAuditFileState\s*\(/.test(source)
   && /^\s*await\s+runMutations\s*\(\s*\)\s*;/m.test(source);
 
-const extractMutationNames = (source: string): string[] => {
+const extractDeclaredMutationNames = (source: string): string[] => {
   const names = new Set<string>();
   for (const match of source.matchAll(MUTATION_NAME_PATTERN)) {
     if (match[1]) {
       names.add(match[1]);
     }
   }
+  return [...names].sort();
+};
+
+const extractRequiredMutationNames = (source: string): string[] => {
   const requiredBlock = source.match(/REQUIRED_MUTATION_NAMES[\s\S]+?as const/s)?.[0] ?? "";
+  const names = new Set<string>();
   for (const match of requiredBlock.matchAll(REQUIRED_MUTATION_PATTERN)) {
     if (match[1]) {
       names.add(match[1]);
     }
   }
   return [...names].sort();
+};
+
+const extractIndexedRequiredMutationNames = (source: string, requiredMutationNames: string[]): string[] => {
+  const names = new Set<string>();
+  for (const match of source.matchAll(/name:\s*REQUIRED_MUTATION_NAMES\[(\d+)\]/g)) {
+    const index = Number(match[1]);
+    if (Number.isInteger(index) && requiredMutationNames[index]) {
+      names.add(requiredMutationNames[index]);
+    }
+  }
+  return [...names];
 };
 
 const readLocalMutationImports = async (harnessPath: string, source: string): Promise<string[]> => {
@@ -72,8 +88,26 @@ export const buildNegativeProofEvidence = async (input: {
 
   const source = await readTextFile(absoluteHarnessPath);
   const coverageSource = await readHarnessCoverageSource(input.harnessPath, source);
-  const mutationNames = extractMutationNames(coverageSource);
+  const requiredMutationNames = extractRequiredMutationNames(coverageSource);
+  const mutationNames = [
+    ...new Set([
+      ...extractDeclaredMutationNames(coverageSource),
+      ...extractIndexedRequiredMutationNames(coverageSource, requiredMutationNames),
+    ]),
+  ].sort();
+  const missingRequiredMutationNames = requiredMutationNames.filter((mutationName) => !mutationNames.includes(mutationName));
   const requiredCount = REQUIRED_MUTATION_COUNTS[input.domain];
+  if (missingRequiredMutationNames.length > 0) {
+    return [{
+      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
+      domain: input.domain,
+      harnessPath: input.harnessPath,
+      mutation: `required negative-proof mutations missing: ${missingRequiredMutationNames.join(", ")}`,
+      expected: "FAIL",
+      actual: "UNKNOWN",
+      rollback: "UNKNOWN",
+    }];
+  }
   if (requiredCount !== undefined && (mutationNames.length < requiredCount || !harnessExecutesMutations(source))) {
     return [{
       negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,

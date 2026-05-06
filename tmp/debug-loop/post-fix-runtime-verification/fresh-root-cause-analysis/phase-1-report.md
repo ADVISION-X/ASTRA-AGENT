@@ -1,25 +1,20 @@
 # Fresh Phase 1 Report
 
-Status: `POST_FIX_NOT_READY_NEW_P0_BLOCKER`
+Status: `NEXT_DEBUG_LOOP_REQUIRED`
 
-Latest real restart log: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
+## Preparation
 
-## Fresh outcome
+Fresh analysis used the post-fix real runtime log at `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt` and the same frozen law / construction blueprint basis as Phase 1.
 
-1. Real restart succeeded on port `4173` and reached `waiting_for_human_command`.
-2. Real Facebook and TikTok task triggers both returned success with `transportStatus=accepted`.
-3. The original screenshot dispatch-chain blocker is resolved and not observed in the fresh log.
-4. The original missing `CAPABILITY_CALL_STARTED` blocker is resolved and not observed in the fresh log.
-5. A new shared P0 blocker is now present on both maps:
-	- step: `capture-video-viewport`
-	- owner: `screenshot`
-	- failure: `videoVisitId is required in runtimeProof`
+## Findings
 
-## Current owner conclusion
+- Startup succeeded.
+- Real task trigger succeeded.
+- Original web blocker `prepare-ai-input` missing `source` did not recur.
+- Original mirroring blocker `OpenLocalProgramPort is not configured` was not exercised by the selected web task.
+- Original map transition closure blocker was not exercised by the selected web task, but map package readiness and targeted negative proof passed.
+- New P0 blocker appeared: Screenshot `prepare-ai-input` proof lacks `scaleMapping`.
 
-The new blocker belongs to screenshot runtimeProof/schema enforcement, not to local-runtime dispatch mapping and not to Orchestration lifecycle events.
+## Final
 
-## Ready decision
-
-- `NOT READY`
-- The next debug loop should target screenshot `videoVisitId` runtimeProof contract mismatch and its recurrence prevention gap.
+NEXT_DEBUG_LOOP_REQUIRED

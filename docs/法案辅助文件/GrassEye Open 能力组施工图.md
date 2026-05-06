@@ -886,3 +886,34 @@ Open local-program 只负责打开 Mac 程序和生成窗口 handoff。
 证据由 Forensics 记录。
 ```
 ````
+
+## 21. Runtime Debug Loop 补充：OpenLocalProgramPort wiring
+
+正确链路：
+- Workbench Open runtime 必须向 `createOpenAbilityGroup()` 注入 governed `OpenLocalProgramPort`。
+- iPhone Mirroring/macOS local-program map 必须从 `open-local-program` 开始，并由 Open owner 生成 `windowHandoffRef` 与 `localAppStateHandoffRef`。
+- mission preflight 必须在用户命令 dispatch 前检查 local-program readiness。
+
+禁止链路：
+- `open-local-workbench` 冒充 local-program。
+- map package、debug-loop、Commander 或 Orchestration 直接 shell/open/osascript 启动 app。
+- Open 成功结果缺少 window/local app state handoff refs。
+
+inspector 应覆盖：
+- `workbench-open-runtime.ts` 必须注入 `createGovernedMacOSOpenLocalProgramAdapter()`。
+- `workbench-status.ts` 必须包含 local-program readiness block。
+- local-program execution helper 不得 `shell: true`。
+- capability catalog 必须保留 `macos-local/local-program-window/desktop-screen` supported targets。
+
+negative proof 应覆盖：
+- 删除 OpenLocalProgramPort 注入。
+- 删除 readiness block。
+- 删除 `windowHandoffRef` 或 `localAppStateHandoffRef`。
+- 将 local-program helper 改为 shell execution。
+
+结构化日志必备字段：
+- childCapabilityId、targetProfileRef、bundleId、openAttemptRef、appLaunchAttemptRef、windowHandoffRef、localAppStateHandoffRef、ownerResponsible、actionableMessage。
+
+READY 标准：
+- 真实重启后 mirroring task 不再出现 `OpenLocalProgramPort is not configured`。
+- 修复后必须真实触发任务并重新执行第一阶段日志分析。

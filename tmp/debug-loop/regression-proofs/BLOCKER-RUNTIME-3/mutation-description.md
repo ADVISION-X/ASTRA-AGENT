@@ -1,3 +1,5 @@
-# BLOCKER-RUNTIME-3 mutation
+# BLOCKER-RUNTIME-3 Mutation
 
-Changed iPhone Mirroring open step failureBranch to a transition id that is not declared/backed.
+Production mutation changed `open-iphone-mirroring` step `failureBranch` to an undeclared transition id in `src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json`.
+
+Expected result: Map package inspector must fail because step-declared branch closure no longer resolves to top-level branch registration and a transition id.

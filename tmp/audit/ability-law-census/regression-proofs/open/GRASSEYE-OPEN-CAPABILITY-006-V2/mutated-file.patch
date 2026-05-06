@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/open/runtime/open-proof-builder.ts b/src/capabilities/open/runtime/open-proof-builder.ts
+--- a/src/capabilities/open/runtime/open-proof-builder.ts
++++ b/src/capabilities/open/runtime/open-proof-builder.ts
+@@ -33,7 +33,7 @@
+   selectedMapId: request.selectedMapId,
+   selectedMapVersion: request.selectedMapVersion,
+   activationSnapshotRef: request.activationSnapshotRef,
+-  capabilityCallId: request.capabilityCallId,
++  // mutated capabilityCallId removed,
+   nerveBusEnvelopeId: request.nerveBusEnvelopeId,
+ });
+ 

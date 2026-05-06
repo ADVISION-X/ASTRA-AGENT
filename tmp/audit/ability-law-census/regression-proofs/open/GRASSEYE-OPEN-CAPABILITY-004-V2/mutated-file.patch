@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/open/runtime/navigation-runner-support.ts b/src/capabilities/open/runtime/navigation-runner-support.ts
+--- a/src/capabilities/open/runtime/navigation-runner-support.ts
++++ b/src/capabilities/open/runtime/navigation-runner-support.ts
+@@ -62,7 +62,7 @@
+       url: input.targetUrl,
+       title: input.targetTitle,
+       timeoutMs: input.timeoutMs,
+-      abortSignal: abortController.signal,
++      // mutated abortSignal removed,
+       idempotencyKey: input.idempotencyKey,
+       sourceRef: input.request.sourceRef,
+     }),

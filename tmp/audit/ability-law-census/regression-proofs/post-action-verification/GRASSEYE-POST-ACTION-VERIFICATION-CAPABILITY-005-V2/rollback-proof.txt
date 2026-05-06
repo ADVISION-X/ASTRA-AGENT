@@ -1,0 +1,8 @@
+scenarioId: result-builder-drops-run-id
+mutationName: result-builder-drops-run-id
+mutatedFile: src/capabilities/post-action-verification/runtime/verification-result-builder.ts
+rollbackRestoredHash: sha256:0d02fdf3c4f2a04e5c259b08da040b04e5115894eae8624cc5b592622d2c86de
+startedAt: 2026-05-06T06:19:54.639Z
+endedAt: 2026-05-06T06:20:02.251Z
+
+Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

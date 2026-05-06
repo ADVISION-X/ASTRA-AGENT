@@ -1,5 +1,5 @@
 # Fresh Enforcement Gap Matrix
 
-| Blocker | Inspector | Negative proof | Current coverage | Gap class | Next action |
-|---|---|---|---|---|---|
-| BLOCKER-POSTFIX-1 | `scripts/audit/domains/screenshot-capability/required-shape.ts` | `scripts/audit/domains/screenshot-capability/negative-proof-harness.ts` | Covers dispatch adapter chain mapping, schema marker presence, builder routing, generic chain nullability mutation on `capabilityCallId`, and result/proof parity markers | Screenshot owner has no AST/schema parity rule that compares `ScreenshotRuntimeProofIdentitySchema.videoVisitId`, `ScreenshotCapturePolicySchema.allowMissingVideoVisitId`, blueprint optionality, and `validateScreenshotRuntimeProofChain`. Negative proof also does not simulate the first capture path where `videoVisitId=null` is legitimate. | Add a screenshot-owner enforcement that fails when runtimeProof refine makes `videoVisitId` mandatory on early capture steps, and add a targeted negative-proof mutation for `videoVisitId` requiredness/null rejection |
+| Gap ID | Escaped problem | Why it escaped | Next enforcement action |
+|---|---|---|---|
+| SCREENSHOT-GAP-2 | `prepare-ai-input` proof missing `scaleMapping` | Existing blocker repair/negative proof focused on source handoff. Inspector has schema markers for scale mapping but no production mutation proving `prepare-ai-input` cannot lose scaleMapping in the success proof/result path. | Extend Screenshot required-shape and negative proof to mutate the production success path so losing `resolvePrepareAiInputScaleMapping()` or omitting `scaleMapping` fails before runtime. |

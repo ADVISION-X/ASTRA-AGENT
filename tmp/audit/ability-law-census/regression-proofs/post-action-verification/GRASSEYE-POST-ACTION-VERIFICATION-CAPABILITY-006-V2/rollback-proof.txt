@@ -1,0 +1,8 @@
+scenarioId: proof-builder-fabricates-run-id
+mutationName: proof-builder-fabricates-run-id
+mutatedFile: src/capabilities/post-action-verification/runtime/verification-proof-builder.ts
+rollbackRestoredHash: sha256:edac0f2df7c467ff4dfdcc8e69726c6767e996ff2ecce91452c1e35169580193
+startedAt: 2026-05-06T06:19:39.861Z
+endedAt: 2026-05-06T06:19:47.374Z
+
+Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

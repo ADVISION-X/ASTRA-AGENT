@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-OPEN-CAPABILITY-001-V2 src/lib/local-runtime/workbench-open-runtime.ts:1 External modules must not import Open children, runtime internals, or mutable registry paths.

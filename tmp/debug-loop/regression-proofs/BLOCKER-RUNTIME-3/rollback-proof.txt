@@ -1,1 +1,1 @@
-Rollback restored failureBranch open-iphone-mirroring:failed.
+rollback restored iPhone mirroring failureBranch closure; inspector exitCode=0

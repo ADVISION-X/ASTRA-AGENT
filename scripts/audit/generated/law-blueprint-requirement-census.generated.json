@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T21:20:56.566Z",
+  "generatedAt": "2026-05-06T10:05:27.111Z",
   "requirements": [
     {
       "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-001",
@@ -1325,6 +1325,69 @@
       ]
     },
     {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-010",
+      "sourceType": "blueprint",
+      "owner": "audit-coverage-governance",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-coverage-governance#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:90",
+      "sourceText": "Screenshot owner inspector 必须拦截 prepare-ai-input 缺 source handoff。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-011",
+      "sourceType": "blueprint",
+      "owner": "audit-coverage-governance",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-coverage-governance#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:91",
+      "sourceText": "Open owner inspector 必须拦截 Workbench Open runtime 未注入 governed OpenLocalProgramPort。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-012",
+      "sourceType": "blueprint",
+      "owner": "audit-coverage-governance",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-coverage-governance#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:92",
+      "sourceText": "Commander Console inspector 必须拦截 local-program platform mission preflight 漏检。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:coverage"
+      ]
+    },
+    {
       "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-001",
       "sourceType": "blueprint",
       "owner": "audit-coverage-governance",
@@ -1858,6 +1921,69 @@
       "sourceSection": "map-plugin-package domain:69",
       "sourceText": "required-shape",
       "tier": "P1",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-010",
+      "sourceType": "blueprint",
+      "owner": "audit-system",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-system#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:90",
+      "sourceText": "Screenshot owner inspector 必须拦截 prepare-ai-input 缺 source handoff。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-011",
+      "sourceType": "blueprint",
+      "owner": "audit-system",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-system#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:91",
+      "sourceText": "Open owner inspector 必须拦截 Workbench Open runtime 未注入 governed OpenLocalProgramPort。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:audit-system"
+      ]
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-012",
+      "sourceType": "blueprint",
+      "owner": "audit-system",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "audit-system#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:92",
+      "sourceText": "Commander Console inspector 必须拦截 local-program platform mission preflight 漏检。",
+      "tier": "P0",
       "requiredEvidence": [
         "inspector",
         "negative-proof"
@@ -7927,6 +8053,69 @@
       "sourceSection": "map-plugin-package domain:69",
       "sourceText": "required-shape",
       "tier": "P1",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-010",
+      "sourceType": "blueprint",
+      "owner": "map-plugin-package",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "map-plugin-package#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:90",
+      "sourceText": "Screenshot owner inspector 必须拦截 prepare-ai-input 缺 source handoff。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-011",
+      "sourceType": "blueprint",
+      "owner": "map-plugin-package",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "map-plugin-package#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:91",
+      "sourceText": "Open owner inspector 必须拦截 Workbench Open runtime 未注入 governed OpenLocalProgramPort。",
+      "tier": "P0",
+      "requiredEvidence": [
+        "inspector",
+        "negative-proof"
+      ],
+      "staticCoverage": [],
+      "negativeProofCoverage": [],
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered",
+      "blockingReason": [
+        "ownerAuditCommand=audit:map-plugin-package"
+      ]
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-012",
+      "sourceType": "blueprint",
+      "owner": "map-plugin-package",
+      "sourceFile": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+      "sourceLawId": "map-plugin-package#blueprint",
+      "sourceSection": "实战运行日志透明化修复补充:92",
+      "sourceText": "Commander Console inspector 必须拦截 local-program platform mission preflight 漏检。",
+      "tier": "P0",
       "requiredEvidence": [
         "inspector",
         "negative-proof"

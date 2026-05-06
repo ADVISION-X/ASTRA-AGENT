@@ -1,0 +1,13 @@
+{
+  "classification": "CODE VIOLATION",
+  "summary": "Startup can still misclassify controlled shutdown as unexpected failure.",
+  "findings": [
+    {
+      "lawId": "GRASSEYE-STRUCTURED-LOGGING-009-V1",
+      "file": "scripts/startup/launch-grasseye.mjs",
+      "line": 1,
+      "severity": "fatal",
+      "message": "Startup must classify SIGTERM and exit code 143 as controlled shutdown and log that classification explicitly."
+    }
+  ]
+}

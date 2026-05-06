@@ -2,7 +2,7 @@ scenarioId: input-gate-mutation
 mutationName: input gate mutation
 mutatedFile: src/capabilities/ai/runtime/ai-pre-runtime.ts
 rollbackRestoredHash: sha256:6a403db9c551ae0295e0760d285b8cb090b449069d90104e9bb0c7e6ba61f5d3
-startedAt: 2026-05-05T21:06:09.082Z
-endedAt: 2026-05-05T21:06:16.442Z
+startedAt: 2026-05-06T10:13:13.428Z
+endedAt: 2026-05-06T10:13:21.279Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

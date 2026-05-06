@@ -2,7 +2,7 @@ scenarioId: proof-chain-mutation
 mutationName: proof chain mutation
 mutatedFile: src/capabilities/ai/runtime/ai-proof-builder.ts
 rollbackRestoredHash: sha256:c30b784f3dfc000e8e59e2eaa689c1bf8645d48c8fa5cb0bdb67d42e9915116d
-startedAt: 2026-05-05T21:10:07.270Z
-endedAt: 2026-05-05T21:10:13.994Z
+startedAt: 2026-05-06T10:00:33.370Z
+endedAt: 2026-05-06T10:00:40.894Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

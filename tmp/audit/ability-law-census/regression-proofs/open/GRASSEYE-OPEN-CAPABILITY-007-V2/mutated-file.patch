@@ -1,0 +1,10 @@
+diff --git a/src/capabilities/open/index.ts b/src/capabilities/open/index.ts
+--- a/src/capabilities/open/index.ts
++++ b/src/capabilities/open/index.ts
+@@ -13,5 +13,6 @@
+ export { OpenRequestSchema, OpenResultSchema } from "./schema.js";
+ export { createOpenRegistry } from "./registry.js";
+ export type { OpenBrowserPort } from "./ports/open-browser-port.js";
++export * from "./schema.js";
+ export type { OpenLocalProgramPort } from "./ports/open-local-program-port.js";
+ 

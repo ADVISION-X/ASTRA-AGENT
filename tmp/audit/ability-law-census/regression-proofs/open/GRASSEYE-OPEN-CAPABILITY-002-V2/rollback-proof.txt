@@ -1,0 +1,8 @@
+scenarioId: forbidden-import-mutation
+mutationName: forbidden import mutation
+mutatedFile: src/capabilities/open/runtime/open-executor.ts
+rollbackRestoredHash: sha256:757fd010ff415fbcba13f3afd068c17b13bc969fd27287b97539194d453e90db
+startedAt: 2026-05-06T09:42:19.780Z
+endedAt: 2026-05-06T09:42:27.613Z
+
+Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

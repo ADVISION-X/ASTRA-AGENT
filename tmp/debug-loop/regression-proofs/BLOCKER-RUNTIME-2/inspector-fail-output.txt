@@ -1,11 +1,6 @@
-
-> grasseye-local-workbench@0.1.0 audit:open
-> node --import tsx scripts/audit/domains/open-capability/run-inspector.ts
-
 [audit:local-browser-session] loaded local-browser-session law, blueprint, and type sources
 [audit:local-browser-session] loaded runtime surfaces for local-browser-session checks
 [audit:local-browser-session] validated local-browser-session helper, startup, workbench, server, and controller boundaries
 [audit:local-browser-session] completed exclusionary AST scan across local-browser-session governed roots
 [CODE VIOLATION] open-capability: Open still contains forbidden execution or export shapes.
 - FATAL src/lib/local-runtime/workbench-open-runtime.ts:1 Workbench Open runtime must inject the governed OpenLocalProgramPort adapter.
-exitCode=1

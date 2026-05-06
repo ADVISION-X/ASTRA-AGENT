@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T04:48:51.866Z",
+  "generatedAt": "2026-05-06T10:15:22.815Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -40,30 +40,6 @@
         "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
         "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
         "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1"
-      ]
-    },
-    {
-      "capabilityDomain": "audit-system",
-      "inspectorId": "audit-system-owner",
-      "entry": "scripts/audit/domains/audit-system/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-AUDIT-SYSTEM-001-V1",
-        "GRASSEYE-AUDIT-SYSTEM-002-V1",
-        "GRASSEYE-AUDIT-SYSTEM-003-V1",
-        "GRASSEYE-CODE-PURITY-001-V1",
-        "GRASSEYE-CODE-PURITY-002-V1",
-        "GRASSEYE-CODE-PURITY-003-V1",
-        "GRASSEYE-CODE-PURITY-004-V1",
-        "GRASSEYE-CODE-PURITY-005-V1",
-        "GRASSEYE-CODE-PURITY-006-V1",
-        "GRASSEYE-CODE-PURITY-007-V1",
-        "GRASSEYE-CODE-PURITY-008-V1",
-        "GRASSEYE-CODE-PURITY-009-V1",
-        "GRASSEYE-CODE-PURITY-010-V1",
-        "GRASSEYE-CODE-PURITY-011-V1",
-        "GRASSEYE-CODE-PURITY-012-V1",
-        "GRASSEYE-CODE-PURITY-013-V1",
-        "GRASSEYE-CODE-PURITY-014-V1"
       ]
     },
     {
@@ -325,6 +301,30 @@
         "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
         "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "audit-system",
+      "inspectorId": "audit-system-owner",
+      "entry": "scripts/audit/domains/audit-system/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-AUDIT-SYSTEM-001-V1",
+        "GRASSEYE-AUDIT-SYSTEM-002-V1",
+        "GRASSEYE-AUDIT-SYSTEM-003-V1",
+        "GRASSEYE-CODE-PURITY-001-V1",
+        "GRASSEYE-CODE-PURITY-002-V1",
+        "GRASSEYE-CODE-PURITY-003-V1",
+        "GRASSEYE-CODE-PURITY-004-V1",
+        "GRASSEYE-CODE-PURITY-005-V1",
+        "GRASSEYE-CODE-PURITY-006-V1",
+        "GRASSEYE-CODE-PURITY-007-V1",
+        "GRASSEYE-CODE-PURITY-008-V1",
+        "GRASSEYE-CODE-PURITY-009-V1",
+        "GRASSEYE-CODE-PURITY-010-V1",
+        "GRASSEYE-CODE-PURITY-011-V1",
+        "GRASSEYE-CODE-PURITY-012-V1",
+        "GRASSEYE-CODE-PURITY-013-V1",
+        "GRASSEYE-CODE-PURITY-014-V1"
       ]
     }
   ]

@@ -496,25 +496,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -524,25 +510,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -552,25 +524,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -580,25 +538,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -945,24 +889,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -973,24 +903,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -1001,13 +917,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -1015,24 +924,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -1054,13 +949,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -1413,20 +1301,6 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "file": "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
         "line": 17,
@@ -1536,7 +1410,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "FAKE ENFORCEMENT",
-    "violationCount": 197
+    "violationCount": 179
   }
 }
 
@@ -2052,25 +1926,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -2080,25 +1940,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -2108,25 +1954,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -2136,25 +1968,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -2501,24 +2319,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -2529,24 +2333,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -2557,13 +2347,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -2571,24 +2354,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -2610,13 +2379,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -2969,20 +2731,6 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "file": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
         "line": 1,
@@ -3085,7 +2833,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "FAKE ENFORCEMENT",
-    "violationCount": 198
+    "violationCount": 180
   }
 }
 
@@ -3594,25 +3342,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -3622,25 +3356,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -3650,25 +3370,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -3678,25 +3384,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -4043,24 +3735,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -4071,24 +3749,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -4099,13 +3763,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -4113,24 +3770,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -4152,13 +3795,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -4509,20 +4145,6 @@
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       }
     ],
     "phases": [
@@ -4620,7 +4242,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "LAW-SCRIPT DRIFT",
-    "violationCount": 196
+    "violationCount": 178
   }
 }
 
@@ -5245,25 +4867,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -5273,25 +4881,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -5301,25 +4895,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -5329,25 +4909,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -5694,24 +5260,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -5722,24 +5274,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -5750,13 +5288,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -5764,24 +5295,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -5803,13 +5320,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -6162,20 +5672,6 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "file": "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/static-clause-coverage.generated.json",
         "line": 1,
@@ -6278,7 +5774,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "ENFORCEMENT GAP",
-    "violationCount": 197
+    "violationCount": 179
   }
 }
 
@@ -6787,25 +6283,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -6815,25 +6297,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -6843,25 +6311,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -6871,25 +6325,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -7236,24 +6676,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -7264,24 +6690,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -7292,13 +6704,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -7306,24 +6711,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -7345,13 +6736,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -7702,20 +7086,6 @@
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       }
     ],
     "phases": [
@@ -7813,7 +7183,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "ENFORCEMENT GAP",
-    "violationCount": 196
+    "violationCount": 178
   }
 }
 
@@ -8420,25 +7790,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -8448,25 +7804,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -8476,25 +7818,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -8504,25 +7832,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -8876,24 +8190,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -8904,24 +8204,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -8932,13 +8218,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -8946,24 +8225,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -8985,13 +8250,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -9342,20 +8600,6 @@
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       }
     ],
     "phases": [
@@ -9453,7 +8697,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "ENFORCEMENT GAP",
-    "violationCount": 211
+    "violationCount": 193
   }
 }
 
@@ -10060,25 +9304,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -10088,25 +9318,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -10116,25 +9332,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -10144,25 +9346,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -10516,24 +9704,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -10544,24 +9718,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -10572,13 +9732,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -10586,24 +9739,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -10625,13 +9764,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -10982,20 +10114,6 @@
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       }
     ],
     "phases": [
@@ -11093,7 +10211,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "ENFORCEMENT GAP",
-    "violationCount": 211
+    "violationCount": 193
   }
 }
 
@@ -11602,25 +10720,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -11630,25 +10734,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -11658,25 +10748,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -11686,25 +10762,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -12051,24 +11113,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -12079,24 +11127,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -12107,13 +11141,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -12121,24 +11148,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -12160,13 +11173,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -12519,20 +11525,6 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "file": "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/static-clause-coverage.generated.json",
         "line": 1,
@@ -12635,7 +11627,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "LAW-SCRIPT DRIFT",
-    "violationCount": 197
+    "violationCount": 179
   }
 }
 
@@ -13144,25 +12136,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -13172,25 +12150,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -13200,25 +12164,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -13228,25 +12178,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -13593,24 +12529,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -13621,24 +12543,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -13649,13 +12557,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -13663,24 +12564,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -13702,13 +12589,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -14059,20 +12939,6 @@
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       }
     ],
     "phases": [
@@ -14170,7 +13036,7 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "LAW-SCRIPT DRIFT",
-    "violationCount": 196
+    "violationCount": 178
   }
 }
 
@@ -14672,25 +13538,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
@@ -14700,25 +13552,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
@@ -14728,25 +13566,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
@@ -14756,25 +13580,11 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2/proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
       },
       {
         "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -15121,24 +13931,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-001-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-002-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -15149,24 +13945,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-003-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-004-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -15177,13 +13959,6 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-005-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
@@ -15191,24 +13966,10 @@
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-006-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
         "file": "tmp/audit/ability-law-census/regression-proofs/open/owner-binding/owner-binding-proof-summary.md",
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-007-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -15230,13 +13991,6 @@
         "line": 1,
         "severity": "error",
         "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
-        "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-        "file": "tmp/audit/ability-law-census/regression-proofs/open/GRASSEYE-OPEN-CAPABILITY-008-V2/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
         "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -15589,20 +14343,6 @@
         "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
       },
       {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/GRASSEYE-STARTUP-ENTRYPOINT-005-V1/proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED."
-      },
-      {
-        "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
-        "file": "tmp/audit/ability-law-census/regression-proofs/commander-console/owner-binding/owner-binding-proof-summary.md",
-        "line": 1,
-        "severity": "error",
-        "message": "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED."
-      },
-      {
         "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
         "file": "scripts/audit/domains/audit-system/inspector.ts",
         "line": 8,
@@ -15705,6 +14445,6 @@
     "summary": "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
     "passed": false,
     "classification": "FAKE ENFORCEMENT",
-    "violationCount": 196
+    "violationCount": 178
   }
 }

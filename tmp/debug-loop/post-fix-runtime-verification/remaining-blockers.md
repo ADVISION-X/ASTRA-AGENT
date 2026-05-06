@@ -1,10 +1,13 @@
 # Remaining Blockers
 
-## BLOCKER-POSTFIX-1
+## BLOCKER-FRESH-1
 
-Local AI readiness timed out during real restart.
+- owner: Screenshot
+- blocker: `prepare-ai-input proof requires scaleMapping`
+- evidence: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
+- next fix category: `DELETE_AND_REBUILD` owner-local Screenshot success proof/result path, then add required-shape and negative proof mutation for `scaleMapping`.
 
-- Priority: P0 startup blocker.
-- Runtime log: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
-- Startup failure bundle: `tmp/debug-loop/startup-failures/2026-05-05T13-01-47-292Z/startup-failure.json`
-- Status: blocks real restart and task trigger.
+## Static blockers outside current owner scope
+
+- `npm run audit`: fail-fast stopped at `commander-console-capability`.
+- `npm run ci:full`: failed with internal audit timeout/fail-fast, recorded in `tmp/debug-loop/fix-verification/ci-full.txt`.

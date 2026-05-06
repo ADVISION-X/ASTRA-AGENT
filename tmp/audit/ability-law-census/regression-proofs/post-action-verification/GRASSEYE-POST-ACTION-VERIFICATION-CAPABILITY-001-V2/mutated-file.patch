@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/post-action-verification/contract.ts b/src/capabilities/post-action-verification/contract.ts
+--- a/src/capabilities/post-action-verification/contract.ts
++++ b/src/capabilities/post-action-verification/contract.ts
+@@ -43,6 +43,8 @@
+   evidenceReadPort: PostActionEvidenceReadPort;
+ };
+ 
++interface PostActionVerificationChildCapability { execute(input: PostActionVerificationAbilityInput): Promise<PostActionVerificationAbilityResult>; }
++
+ interface PostActionVerificationAbilityGroup {
+   listChildCapabilityIds(): PostActionVerificationChildCapabilityId[];
+   execute(input: PostActionVerificationAbilityInput): Promise<PostActionVerificationAbilityResult>;

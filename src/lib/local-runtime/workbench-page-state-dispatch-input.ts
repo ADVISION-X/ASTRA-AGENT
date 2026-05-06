@@ -1,5 +1,5 @@
-import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolvePageStatePlatformProfile as resolveObservationPlatformProfile, urlMatchesFeedPath } from "../../capabilities/page-state/shared/page-state-profile.js";
+import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/index.js";
+import { resolvePageStatePlatformProfile as resolveObservationPlatformProfile, urlMatchesFeedPath } from "../../capabilities/page-state/index.js";
 import type { RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";

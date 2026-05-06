@@ -1,0 +1,5 @@
+{
+  "classification": "PASS",
+  "summary": "Startup classifies SIGTERM and exit code 143 as controlled shutdown instead of unexpected failure.",
+  "findings": []
+}

@@ -1,7 +1,7 @@
 # BLOCKER-RUNTIME-1 Proof Summary
 
-- Mutation: removed screenshotEvidenceRef from prepare-ai-input source handoff candidates.
-- Expected: screenshot owner inspector FAIL.
-- Observed: FAIL with fatal prepare-ai-input source handoff finding.
-- Rollback: restored screenshotEvidenceRef candidate.
-- Observed after rollback: PASS.
+- Mutated production file: `src/lib/local-runtime/workbench-screenshot-dispatch-input.ts`
+- Inspector command: `GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF=1 node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts`
+- Expected FAIL observed: yes
+- Rollback PASS observed: yes
+- Covered blocker: `prepare-ai-input` missing governed stored-image `source`.

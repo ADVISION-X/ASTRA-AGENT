@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts b/src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts
+--- a/src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts
++++ b/src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts
+@@ -2,6 +2,7 @@
+ import { verifyNormalizedPostActionUrl } from "../../shared/post-action-url.js";
+ import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext } from "../../runtime/post-action-verification-runtime-context.js";
+ import { VerifyPageOpenedOutputSchema } from "./schema.js";
++import { createScreenshotAbilityGroup } from "../../../screenshot/index.js";
+ 
+ function getObservationsByKind<K extends PostActionObservation["kind"]>(
+   observations: PostActionObservation[],

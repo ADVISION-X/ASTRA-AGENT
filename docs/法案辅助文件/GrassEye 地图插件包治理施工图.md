@@ -1342,3 +1342,28 @@ activation proof and activationSnapshotRef required before runnable
 inspector PASS
 negative proof PASS
 ```
+
+## L. Runtime Debug Loop 补充：step branch closure
+
+正确链路：
+- 每个 step 声明的 `failureBranch` / `reviewBranch` 必须同时存在于 top-level branch registry 与 `operationalMap.transitions.transitionId`。
+- iPhone Mirroring 初始 `open-iphone-mirroring` 必须提供 success、failed、review 三类闭合 transition。
+
+禁止链路：
+- step 只声明 branch 字段但不提供 transition。
+- 只在 top-level branch array 声明但没有对应 transition。
+- Orchestration 在运行时猜测 fallback transition。
+
+inspector 应覆盖：
+- `validateMapTransitionClosure()` 必须检查 step-level `failureBranch` / `reviewBranch` 到 top-level branch set 与 transition id 的闭合。
+
+negative proof 应覆盖：
+- 篡改 `open-iphone-mirroring.failureBranch` 为未声明 transition id。
+- 删除 failure/review transition while leaving step declaration behind。
+
+结构化日志必备字段：
+- mapId、stepId、transitionId、fromStepId、status、matchedTransition、failureBranch、reviewBranch、ownerResponsible、actionableMessage。
+
+READY 标准：
+- 真实重启后 mirroring map 失败路径必须进入 governed failed/review transition，不得出现 no matching transition。
+- 修复后必须真实触发任务并重新执行第一阶段日志分析。

@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-OPEN-CAPABILITY-004-V2 src/capabilities/open/runtime/open-executor.ts:1 Open root must not import AI, Screenshot, Mouse, Scroll, Geometry, or Forensics implementations.

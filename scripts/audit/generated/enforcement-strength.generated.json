@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T21:20:56.566Z",
+  "generatedAt": "2026-05-06T10:05:27.111Z",
   "requirements": [
     {
       "requirementId": "AI-CAPABILITY-GRASSEYE-AI-大脑能力组施工图#REQ-001",
@@ -443,6 +443,27 @@
       "coverageStatus": "covered"
     },
     {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "audit-coverage-governance",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
       "requirementId": "AUDIT-COVERAGE-GOVERNANCE-GRASSEYE-法案冻结基线#REQ-001",
       "owner": "audit-coverage-governance",
       "tier": "P0",
@@ -621,6 +642,27 @@
       "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-009",
       "owner": "audit-system",
       "tier": "P1",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "audit-system",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "AUDIT-SYSTEM-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "audit-system",
+      "tier": "P0",
       "enforcementStrength": "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF",
       "coverageStatus": "covered"
     },
@@ -2644,6 +2686,27 @@
       "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-009",
       "owner": "map-plugin-package",
       "tier": "P1",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-010",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-011",
+      "owner": "map-plugin-package",
+      "tier": "P0",
+      "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
+      "coverageStatus": "covered"
+    },
+    {
+      "requirementId": "MAP-PLUGIN-PACKAGE-GRASSEYE-执法系统施工图#REQ-012",
+      "owner": "map-plugin-package",
+      "tier": "P0",
       "enforcementStrength": "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF",
       "coverageStatus": "covered"
     },

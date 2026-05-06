@@ -1,1 +1,1 @@
-Rollback restored localProgram: createGovernedMacOSOpenLocalProgramAdapter().
+rollback restored OpenLocalProgramPort injection; inspector exitCode=0

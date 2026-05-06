@@ -1,7 +1,7 @@
 # BLOCKER-RUNTIME-3 Proof Summary
 
-- Mutation: changed iPhone Mirroring open step failureBranch to an undeclared/unbacked transition id.
-- Expected: map-plugin-package inspector FAIL.
-- Observed: FAIL during development activation with transition_not_closed findings.
-- Rollback: restored open-iphone-mirroring:failed.
-- Observed after rollback: PASS with negative proof skipped for targeted rollback proof.
+- Mutated production file: `src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json`
+- Inspector command: `GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/domains/map-plugin-package/run-inspector.ts`
+- Expected FAIL observed: yes
+- Rollback PASS observed: yes
+- Covered blocker: missing `open-iphone-mirroring:failed/review` transition closure.
