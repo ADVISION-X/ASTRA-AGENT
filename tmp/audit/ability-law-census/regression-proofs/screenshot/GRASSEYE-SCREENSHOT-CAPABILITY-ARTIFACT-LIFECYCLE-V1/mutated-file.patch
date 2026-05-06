@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts b/src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts
+--- a/src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts
++++ b/src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts
+@@ -132,7 +132,7 @@
+ 
+   return {
+     retentionClass,
+-    promotionStatus: "not_promoted",
++    promotionStatus: "promoted",
+     expiresAt,
+     deleteAfter,
+     cleanupEligible: isCleanupEligible(cleanupGate),

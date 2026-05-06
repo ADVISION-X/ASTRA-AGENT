@@ -1,4 +1,6 @@
 import { loadDomainManifests } from "../../core/manifests.js";
+import { readJsonFile } from "../../core/filesystem.js";
+import { pathFromRepoRoot } from "../../core/paths.js";
 import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
 import { PILOT_OWNER_DOMAINS } from "./pilot-owners.js";
 import { classifyInspectorStrength, getStrengthRank, maxStrength } from "./enforcement-strength-classifier.js";
@@ -7,6 +9,9 @@ import { buildNegativeProofEvidence } from "./negative-proof-coverage-builder.js
 const P0P1 = new Set(["P0", "P1"]);
 
 const getOwnerAuditCommand = (owner: string): string => {
+  if (owner === "audit-coverage-governance") {
+    return "audit:coverage";
+  }
   if (owner === "text-input-capability") {
     return "audit:text-input-capability";
   }
@@ -14,6 +19,11 @@ const getOwnerAuditCommand = (owner: string): string => {
     return `audit:${owner.slice(0, -"-capability".length)}`;
   }
   return `audit:${owner}`;
+};
+
+const readPackageScripts = async (): Promise<Record<string, string>> => {
+  const packageJson = await readJsonFile<{ scripts?: Record<string, string> }>(pathFromRepoRoot("package.json"));
+  return packageJson.scripts ?? {};
 };
 
 const getNegativeHarnessPath = (owner: string): string =>
@@ -47,6 +57,9 @@ const createRequirementBlockers = (requirement: CoverageRequirement): string[] =
   blockers.push(`ownerAuditCommand=${getOwnerAuditCommand(requirement.owner)}`);
   return blockers;
 };
+
+const hasBlockingReason = (requirement: CoverageRequirement): boolean =>
+  requirement.blockingReason.some((reason) => !reason.startsWith("ownerAuditCommand="));
 
 const resolveCoverageStatus = (input: {
   hasStatic: boolean;
@@ -125,29 +138,48 @@ export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): 
 };
 
 export const buildCoverageSummary = (requirements: CoverageRequirement[], generatedAt: string): CoverageSummary => {
+  throw new Error("buildCoverageSummary must be called through buildCoverageSummaryWithIntegrity.");
+};
+
+export const buildCoverageSummaryWithIntegrity = async (input: {
+  requirements: CoverageRequirement[];
+  generatedAt: string;
+  integrity: Pick<CoverageSummary, "sourceLawHash" | "sourceBlueprintHash" | "inspectorHash" | "negativeProofHash" | "packageScriptHash" | "auditPlanHash" | "coverageBuilderVersion" | "antiFraudVerified">;
+}): Promise<CoverageSummary> => {
+  const requirements = input.requirements;
   const p0p1Requirements = requirements.filter((requirement) => P0P1.has(requirement.tier));
+  const scripts = await readPackageScripts();
+  const missingOwnerCommands = new Set(
+    p0p1Requirements
+      .map((requirement) => getOwnerAuditCommand(requirement.owner).replace(/^audit:/, "audit:"))
+      .filter((command) => scripts[command] === undefined),
+  );
   const blockers = p0p1Requirements
-    .filter((requirement) => requirement.coverageStatus !== "covered")
+    .filter((requirement) => requirement.coverageStatus !== "covered" || hasBlockingReason(requirement))
     .slice(0, 50)
     .map((requirement) => `${requirement.requirementId}: ${requirement.blockingReason.join("; ")}`);
 
   const weakCoverage = requirements.filter((requirement) => requirement.coverageStatus === "weak").length;
   const missingCoverage = requirements.filter((requirement) => requirement.coverageStatus === "missing").length;
-  const negativeProofCovered = requirements.filter((requirement) => requirement.negativeProofCoverage.length > 0).length;
+  const negativeProofCovered = requirements.filter((requirement) =>
+    requirement.negativeProofCoverage.some((proof) => proof.actual === "FAIL" && proof.rollback === "PASS"),
+  ).length;
   const staticCovered = requirements.filter((requirement) => requirement.staticCoverage.length > 0).length;
   const manualOnly = requirements.filter((requirement) => requirement.enforcementStrength === "LEVEL_0_MANUAL_ONLY_OR_MISSING").length;
+  const inspectorNotInRunner = missingOwnerCommands.size;
   const warningOnlyP0 = requirements.filter((requirement) =>
     requirement.tier === "P0"
     && /warning-only/i.test(requirement.sourceText)
     && !/must never|must not|forbid|forbidden|禁止|不得|严禁|不能/i.test(requirement.sourceText),
   ).length;
-  const finalVerdict = blockers.length === 0 && weakCoverage === 0 && missingCoverage === 0 && manualOnly === 0 && warningOnlyP0 === 0
+  const finalVerdict = blockers.length === 0 && weakCoverage === 0 && missingCoverage === 0 && manualOnly === 0 && warningOnlyP0 === 0 && inspectorNotInRunner === 0
     ? "PASS"
     : "BLOCKED";
   const coverageMode = finalVerdict === "PASS" ? "blocking" : "inventory-only";
 
   return {
-    generatedAt,
+    generatedAt: input.generatedAt,
+    ...input.integrity,
     coverageMode,
     pilotOwners: [...PILOT_OWNER_DOMAINS],
     totalRequirements: requirements.length,
@@ -161,9 +193,12 @@ export const buildCoverageSummary = (requirements: CoverageRequirement[], genera
     manualOnly,
     warningOnlyP0,
     detachedInspectors: 0,
-    inspectorNotInRunner: 0,
+    inspectorNotInRunner,
     generatedFakePass: 0,
     finalVerdict,
-    blockers,
+    blockers: [
+      ...blockers,
+      ...[...missingOwnerCommands].map((command) => `missing package owner audit script: ${command}`),
+    ],
   };
 };

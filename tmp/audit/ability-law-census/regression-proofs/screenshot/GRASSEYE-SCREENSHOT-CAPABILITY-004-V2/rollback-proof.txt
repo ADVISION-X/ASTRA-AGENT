@@ -1,0 +1,8 @@
+scenarioId: screenshot-non-success-output-escape
+mutationName: non-success output escape mutation
+mutatedFile: src/capabilities/screenshot/schema.ts
+rollbackRestoredHash: sha256:b969300df5f209167bb4dfaa85080ac73d3b0ac9b977a7a05c321832c7f152e4
+startedAt: 2026-05-05T22:40:04.842Z
+endedAt: 2026-05-05T22:40:08.053Z
+
+Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

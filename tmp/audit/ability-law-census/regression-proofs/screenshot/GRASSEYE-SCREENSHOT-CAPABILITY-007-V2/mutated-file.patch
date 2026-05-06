@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/screenshot/children/capture-browser-viewport/implementation.ts b/src/capabilities/screenshot/children/capture-browser-viewport/implementation.ts
+--- a/src/capabilities/screenshot/children/capture-browser-viewport/implementation.ts
++++ b/src/capabilities/screenshot/children/capture-browser-viewport/implementation.ts
+@@ -4,6 +4,7 @@
+ export const captureBrowserViewportChildCapability: CaptureBrowserViewportChildCapability = {
+   childCapabilityId: "capture-browser-viewport",
+   async execute({ request }) {
++    return true;
+     return CaptureBrowserViewportPlanSchema.parse({
+       kind: "capture",
+       operation: "browser-viewport",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-05T20:41:26.552Z",
+  "generatedAt": "2026-05-06T03:26:59.342Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -26,14 +26,14 @@
         "name": "typecheck",
         "command": "npm run typecheck",
         "passed": false,
-        "exitCode": 2,
+        "exitCode": null,
         "evidencePath": "tmp/audit/ability-law-census/audit-runs/typecheck.txt"
       },
       {
         "name": "lint",
         "command": "npm run lint",
         "passed": false,
-        "exitCode": 2,
+        "exitCode": null,
         "evidencePath": "tmp/audit/ability-law-census/audit-runs/lint.txt"
       },
       {
@@ -47,14 +47,14 @@
         "name": "audit",
         "command": "npm run audit",
         "passed": false,
-        "exitCode": 1,
+        "exitCode": null,
         "evidencePath": "tmp/audit/ability-law-census/audit-runs/audit.txt"
       },
       {
         "name": "ci:full",
         "command": "npm run ci:full",
         "passed": false,
-        "exitCode": 2,
+        "exitCode": null,
         "evidencePath": "tmp/audit/ability-law-census/audit-runs/ci-full.txt"
       }
     ],
@@ -76,14 +76,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -116,6 +116,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -134,14 +135,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -202,6 +203,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -220,14 +222,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -260,6 +262,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -278,14 +281,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -367,6 +370,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -385,14 +389,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -404,6 +408,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -422,14 +427,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -441,6 +446,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -459,14 +465,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -541,6 +547,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -559,14 +566,14 @@
       "negativeProofPath": "scripts/audit/domains/ai-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:ai",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
         {
@@ -578,6 +585,7 @@
         }
       ],
       "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -603,11 +611,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -633,11 +642,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -663,11 +673,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -693,11 +704,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -723,11 +735,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -753,11 +766,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -783,11 +797,12 @@
       "negativeProofMapped": true,
       "mutationProofPresent": true,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -883,6 +898,20 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-child-checks.ts",
           "targetSymbol": "collectChildExecutionRouteFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-runtime-runid-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [
@@ -930,6 +959,13 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-child-checks.ts",
           "targetSymbol": "collectChildExecutionSemanticFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [
@@ -1043,18 +1079,32 @@
       "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:commander-console",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-runtime-runid-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -1076,18 +1126,32 @@
       "negativeProofPath": "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:commander-console",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-runtime-runid-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -1125,6 +1189,13 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-child-checks.ts",
           "targetSymbol": "collectChildExecutionSemanticFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [
@@ -1228,6 +1299,13 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-child-checks.ts",
           "targetSymbol": "collectChildPrivacyFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-commander-runtime-checks",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [
@@ -1567,6 +1645,27 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushPresenceFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushPresenceFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushPresenceFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushPresenceFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
           "checkPhase": "run-law-ownership-checks",
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-law-ownership-checks.ts",
@@ -1622,6 +1721,20 @@
       "sourceEvidence": [
         {
           "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
           "checkFunction": "pushForbiddenFindings",
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
           "targetSymbol": "pushForbiddenFindings",
@@ -1657,18 +1770,25 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -1700,6 +1820,13 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
         {
           "checkPhase": "run-geometry-findings",
           "checkFunction": "pushEscapeFindings",
@@ -1740,6 +1867,34 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        },
         {
           "checkPhase": "run-geometry-findings",
           "checkFunction": "pushRequiredShapeFindings",
@@ -1795,6 +1950,13 @@
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
           "targetSymbol": "pushEscapeFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushEscapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushEscapeFindings",
+          "checkKind": "runtime-proof"
         }
       ],
       "blockers": [
@@ -1819,18 +1981,25 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-geometry-findings",
+          "checkFunction": "pushRequiredShapeFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-geometry-findings.ts",
+          "targetSymbol": "pushRequiredShapeFindings",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -1896,6 +2065,48 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
+          "checkPhase": "inspector",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "inspector",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "inspector",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "negative-proof-harness",
+          "checkFunction": "collectLawBaselineFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+          "targetSymbol": "collectLawBaselineFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "negative-proof-harness",
+          "checkFunction": "collectLawBaselineFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+          "targetSymbol": "collectLawBaselineFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "negative-proof-harness",
+          "checkFunction": "collectLawBaselineFindings",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
+          "targetSymbol": "collectLawBaselineFindings",
+          "checkKind": "anti-escape"
+        },
+        {
           "checkPhase": "negative-proof-harness",
           "checkFunction": "createFatalResult",
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
@@ -1946,12 +2157,13 @@
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": true,
-      "ownerAuditPassed": true,
+      "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [],
       "blockers": [
         "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
+        "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
         "audit:capability-group-governance failed or is missing fresh evidence.",
@@ -3672,18 +3884,25 @@
       "negativeProofPath": "scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:nerve-bus",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectStructuralFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/forbidden-shape.ts",
+          "targetSymbol": "collectStructuralFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3806,18 +4025,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3839,18 +4065,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3872,18 +4105,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3905,18 +4145,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3938,18 +4185,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -3971,18 +4225,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4004,18 +4265,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4037,18 +4305,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4070,18 +4345,25 @@
       "negativeProofPath": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:open",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectMissingLawCoverage",
+          "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectMissingLawCoverage",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4235,18 +4517,74 @@
       "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:orchestration",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4301,18 +4639,32 @@
       "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:orchestration",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectForensicsRetentionBoundary",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectForensicsRetentionBoundary",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectForensicsRetentionBoundary",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectForensicsRetentionBoundary",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
@@ -4350,6 +4702,13 @@
           "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
           "targetSymbol": "createFatalFinding",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectMissionLoopTraceability",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectMissionLoopTraceability",
+          "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "start-mission-boundary-checks",
@@ -4465,6 +4824,13 @@
           "checkKind": "boundary-attack"
         },
         {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
           "checkPhase": "required-shape",
           "checkFunction": "inspectContractShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
@@ -4524,6 +4890,13 @@
           "sourceFile": "scripts/audit/domains/page-state-capability/boundary-attack.ts",
           "targetSymbol": "runBoundaryAttack",
           "checkKind": "boundary-attack"
+        },
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
         },
         {
           "checkPhase": "forbidden-shape",
@@ -4587,6 +4960,34 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
           "checkPhase": "required-shape",
           "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
@@ -4639,6 +5040,13 @@
           "sourceFile": "scripts/audit/domains/page-state-capability/anti-escape.ts",
           "targetSymbol": "collectProfileGateFindings",
           "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
         },
         {
           "checkPhase": "required-shape",
@@ -4695,6 +5103,13 @@
           "checkKind": "anti-escape"
         },
         {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
           "checkPhase": "forbidden-shape",
           "checkFunction": "inspectSchemaSource",
           "sourceFile": "scripts/audit/domains/page-state-capability/forbidden-shape.ts",
@@ -4707,6 +5122,13 @@
           "sourceFile": "scripts/audit/domains/page-state-capability/forbidden-shape.ts",
           "targetSymbol": "inspectForbiddenVerificationFields",
           "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
         },
         {
           "checkPhase": "required-shape",
@@ -4833,6 +5255,20 @@
           "checkKind": "anti-escape"
         },
         {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
           "checkPhase": "required-shape",
           "checkFunction": "collectBuilderParseFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
@@ -4913,6 +5349,13 @@
           "sourceFile": "scripts/audit/domains/page-state-capability/anti-escape.ts",
           "targetSymbol": "collectFeedReadyFindings",
           "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "enforcement-coverage",
+          "checkFunction": "collectActiveLawMetadataFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
+          "targetSymbol": "collectActiveLawMetadataFindings",
+          "checkKind": "runtime-proof"
         },
         {
           "checkPhase": "required-shape",
@@ -5633,13 +6076,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5715,8 +6158,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5736,13 +6177,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5783,8 +6224,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5804,13 +6243,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5872,8 +6311,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5893,13 +6330,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6038,8 +6475,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6059,13 +6494,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6085,8 +6520,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6106,13 +6539,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6132,8 +6565,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6153,20 +6584,53 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "child-runtime-check",
+          "checkFunction": "collectSiblingImportFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/child-runtime-check.ts",
+          "targetSymbol": "collectSiblingImportFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "child-runtime-check",
+          "checkFunction": "collectBrowserImportFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/child-runtime-check.ts",
+          "targetSymbol": "collectBrowserImportFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "child-runtime-check",
+          "checkFunction": "collectBooleanReturnFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/child-runtime-check.ts",
+          "targetSymbol": "collectBooleanReturnFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "child-runtime-check",
+          "checkFunction": "collectPrepareAiInputFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/child-runtime-check.ts",
+          "targetSymbol": "collectPrepareAiInputFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "child-runtime-check",
+          "checkFunction": "collectPrepareAiInputFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/child-runtime-check.ts",
+          "targetSymbol": "collectPrepareAiInputFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6186,16 +6650,44 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "law-baseline-check",
+          "checkFunction": "collectLawFileFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/law-baseline-check.ts",
+          "targetSymbol": "collectLawFileFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "law-baseline-check",
+          "checkFunction": "collectLawFileFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/law-baseline-check.ts",
+          "targetSymbol": "collectLawFileFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "law-baseline-check",
+          "checkFunction": "collectLawFileFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/law-baseline-check.ts",
+          "targetSymbol": "collectLawFileFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "law-baseline-check",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/law-baseline-check.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
+        },
         {
           "checkPhase": "negative-proof-harness",
           "checkFunction": "createFatalResult",
@@ -6205,8 +6697,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6226,13 +6716,13 @@
       "negativeProofPath": "scripts/audit/domains/screenshot-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:screenshot",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6280,8 +6770,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6312,6 +6800,188 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectStartupImportFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectStartupImportFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectStartupImportFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectStartupImportFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectStartupImportFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectStartupImportFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectPerformLaunchSequenceFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectPerformLaunchSequenceFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectPerformLaunchSequenceFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectPerformLaunchSequenceFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageGateFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageGateFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageGateFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageGateFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageGateFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageGateFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageGateFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageGateFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectFailClosedFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectFailClosedFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectLocalAiHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectLocalAiHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMapPackageHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMapPackageHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectFailureBundleHelperFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectFailureBundleHelperFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMissionPreflightContractFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMissionPreflightContractFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMissionPreflightContractFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMissionPreflightContractFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectMissionPreflightContractFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectMissionPreflightContractFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-startup-readiness-gate-checks",
+          "checkFunction": "collectTerminalRelayFieldFindings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
+          "targetSymbol": "collectTerminalRelayFieldFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
           "checkPhase": "startup-platform-target-checks",
           "checkFunction": "createStartupGateFinding",
           "sourceFile": "scripts/audit/domains/commander-console-capability/startup-platform-target-checks.ts",
@@ -6341,13 +7011,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6416,8 +7086,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6437,20 +7105,25 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectExecutionFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
+          "targetSymbol": "collectExecutionFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6470,16 +7143,44 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectApprovedGateFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectApprovedGateFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectSourceGateFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectSourceGateFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectTargetGateFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectTargetGateFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectFocusGateFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectFocusGateFindings",
+          "checkKind": "required-shape"
+        },
         {
           "checkPhase": "required-shape-runtime-findings",
           "checkFunction": "collectInputSeedFindings",
@@ -6496,6 +7197,27 @@
         },
         {
           "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectPrimarySchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectPrimarySchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectPrimarySchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectPrimarySchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectActionSchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectActionSchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
           "checkFunction": "collectSchemaAndRegistryFindings",
           "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
           "targetSymbol": "collectSchemaAndRegistryFindings",
@@ -6503,8 +7225,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6524,13 +7244,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6648,8 +7368,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6669,13 +7387,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6685,11 +7403,16 @@
           "sourceFile": "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
           "targetSymbol": "collectSensitiveLeakFindings",
           "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectCommitGateFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectCommitGateFindings",
+          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6709,13 +7432,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6802,11 +7525,30 @@
           "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
           "targetSymbol": "collectResultSupportFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectActionSchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectActionSchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectActionSchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectActionSchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectSchemaInvariantFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectSchemaInvariantFindings",
+          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6826,13 +7568,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6856,11 +7598,30 @@
           "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
           "targetSymbol": "collectProofChainFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectProofChainFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectProofChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectPrimarySchemaObjectFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectPrimarySchemaObjectFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-schema-findings",
+          "checkFunction": "collectSchemaInvariantFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-schema-findings.ts",
+          "targetSymbol": "collectSchemaInvariantFindings",
+          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6880,13 +7641,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6920,8 +7681,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6941,13 +7700,13 @@
       "negativeProofPath": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:text-input-capability",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -7030,8 +7789,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7051,20 +7808,60 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectMissingExports",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectMissingExports",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectForbiddenIndexExports",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectForbiddenIndexExports",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectAbilityGroupSurfaceFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectAbilityGroupSurfaceFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectAbilityGroupSurfaceFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectAbilityGroupSurfaceFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-truth-ownership-attack",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-truth-ownership-attack.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-truth-ownership-attack",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-truth-ownership-attack.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7084,20 +7881,46 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-forbidden-shape-attack",
+          "checkFunction": "collectForbiddenPathFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-forbidden-shape-attack.ts",
+          "targetSymbol": "collectForbiddenPathFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-forbidden-shape-attack",
+          "checkFunction": "collectSourceForbiddenFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-forbidden-shape-attack.ts",
+          "targetSymbol": "collectSourceForbiddenFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-forbidden-shape-attack",
+          "checkFunction": "collectSourceForbiddenFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-forbidden-shape-attack.ts",
+          "targetSymbol": "collectSourceForbiddenFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-forbidden-shape-attack",
+          "checkFunction": "collectSourceForbiddenFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-forbidden-shape-attack.ts",
+          "targetSymbol": "collectSourceForbiddenFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7117,20 +7940,25 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectMissingSchemaFields",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectMissingSchemaFields",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7150,20 +7978,53 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectOutputBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectOutputBoundaryFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectOutputBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectOutputBoundaryFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectOutputBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectOutputBoundaryFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectCoordinateExclusionFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectCoordinateExclusionFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectCoordinateExclusionFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectCoordinateExclusionFindings",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7183,20 +8044,32 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectStageOrderFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectStageOrderFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectOutputBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectOutputBoundaryFindings",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7216,20 +8089,46 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectChainTruthFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectChainTruthFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectChainTruthFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectChainTruthFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectChainTruthFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectChainTruthFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectMissingSchemaFields",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectMissingSchemaFields",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7249,20 +8148,67 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectRegistrySurfaceFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectRegistrySurfaceFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectChildRegistryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectChildRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectChildRegistryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectChildRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectChildRegistryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectChildRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectChildRegistryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectChildRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "collectChildRegistryFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "collectChildRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-required-shape-attack",
+          "checkFunction": "runRequiredShapeAttack",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-required-shape-attack.ts",
+          "targetSymbol": "runRequiredShapeAttack",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -7282,13 +8228,13 @@
       "negativeProofPath": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:visual-target",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -7298,11 +8244,135 @@
           "sourceFile": "scripts/audit/domains/visual-target-capability/negative-proof-harness.ts",
           "targetSymbol": "createFatalResult",
           "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-anti-escape-attack",
+          "checkFunction": "collectSourceEscapeFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-anti-escape-attack.ts",
+          "targetSymbol": "collectSourceEscapeFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "run-forbidden-shape-attack",
+          "checkFunction": "collectCapabilityCheckFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-forbidden-shape-attack.ts",
+          "targetSymbol": "collectCapabilityCheckFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectOwnerResolutionFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectOwnerResolutionFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectOwnerResolutionFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectOwnerResolutionFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectOwnerResolutionFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectOwnerResolutionFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectRegistryLawFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectRegistryLawFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectRegistryLawFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectRegistryLawFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectOwnerLawSetFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectOwnerLawSetFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-generated-chain-check",
+          "checkFunction": "collectOwnerLawSetFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-generated-chain-check.ts",
+          "targetSymbol": "collectOwnerLawSetFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-manifest-check",
+          "checkFunction": "collectManifestLawFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-manifest-check.ts",
+          "targetSymbol": "collectManifestLawFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-manifest-check",
+          "checkFunction": "runManifestCheck",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-manifest-check.ts",
+          "targetSymbol": "runManifestCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-runner-fail-power-check",
+          "checkFunction": "runRunnerFailPowerCheck",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-runner-fail-power-check.ts",
+          "targetSymbol": "runRunnerFailPowerCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-runner-fail-power-check",
+          "checkFunction": "runRunnerFailPowerCheck",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-runner-fail-power-check.ts",
+          "targetSymbol": "runRunnerFailPowerCheck",
+          "checkKind": "runtime-proof"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",

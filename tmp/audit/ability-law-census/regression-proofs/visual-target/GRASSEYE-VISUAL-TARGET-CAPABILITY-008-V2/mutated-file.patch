@@ -1,0 +1,12 @@
+diff --git a/scripts/audit/domains/visual-target-capability/inspector.ts b/scripts/audit/domains/visual-target-capability/inspector.ts
+--- a/scripts/audit/domains/visual-target-capability/inspector.ts
++++ b/scripts/audit/domains/visual-target-capability/inspector.ts
+@@ -27,7 +27,7 @@
+ 
+ const runNegativeProofCheck = async () => process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+   ? createSkippedNegativeProofResult()
+-  : await runNegativeProofHarness();
++    : { findings: [], phase: { name: "negative-proof-harness", classification: "PASS" as const, passed: true, summary: "negative-proof removed by mutation" } };
+ 
+ export async function inspectVisualTargetCapability(context: InspectorContext): Promise<InspectorResult> {
+   const base = await runDomainOwnerInspection(context, {

@@ -1,0 +1,17 @@
+# GRASSEYE-SCREENSHOT-CAPABILITY-004-V2 Proof Summary
+
+scenarioId: screenshot-non-success-output-escape
+mutationName: non-success output escape mutation
+mutatedFile: src/capabilities/screenshot/schema.ts
+coveredLawIds: GRASSEYE-SCREENSHOT-CAPABILITY-004-V2
+failOutput: tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-004-V2/inspector-fail-output.txt
+rollbackPassOutput: tmp/audit/ability-law-census/regression-proofs/screenshot/GRASSEYE-SCREENSHOT-CAPABILITY-004-V2/inspector-pass-output.txt
+
+## Why This Law Is Covered
+
+The mutation weakens non-success output invariants in the schema, proving screenshot result/proof parity must fail closed when output truth drifts.
+
+## Result
+
+- Mutated production file caused Screenshot owner inspector FAIL.
+- Rollback restored the production file and Screenshot owner inspector PASS.

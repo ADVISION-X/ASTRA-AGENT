@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Text Input ownership drifted into public contract leaks or external write-owner bypass paths.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2 src/capabilities/orchestration/ability-group.ts:1 External owners must not import Text Input execution or clipboard adapters directly.

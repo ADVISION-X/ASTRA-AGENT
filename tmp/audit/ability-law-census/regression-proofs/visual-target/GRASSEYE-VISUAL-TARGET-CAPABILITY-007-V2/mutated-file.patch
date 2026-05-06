@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/visual-target/children/detect-comments-button/implementation.ts b/src/capabilities/visual-target/children/detect-comments-button/implementation.ts
+--- a/src/capabilities/visual-target/children/detect-comments-button/implementation.ts
++++ b/src/capabilities/visual-target/children/detect-comments-button/implementation.ts
+@@ -9,7 +9,7 @@
+     childCapabilityId: "detect-comments-button",
+     async execute(input, context) {
+       const request = DetectCommentsButtonInputSchema.parse(input);
+-      return executeVisualTarget({ request, context });
++      return true;
+     },
+   };
+ }

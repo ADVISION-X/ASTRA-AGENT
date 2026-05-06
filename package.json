@@ -19,6 +19,7 @@
     "internal:app-server:dev": "tsx src/app/server.ts",
     "audit:build": "node --import tsx scripts/audit/build-audit-artifacts-cli.ts",
     "audit:coverage": "node --import tsx scripts/audit/domains/audit-coverage-governance/run-inspector.ts",
+    "audit:coverage:anti-fraud": "tsx scripts/audit/domains/audit-coverage-governance/run-anti-fraud.ts",
     "audit": "node --import tsx scripts/audit/runner.ts",
     "audit:index": "node --import tsx scripts/audit/domains/index/run-inspector.ts",
     "audit:kernel": "node --import tsx scripts/audit/domains/kernel/run-inspector.ts",

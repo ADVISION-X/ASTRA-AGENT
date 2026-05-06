@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+
+FATAL GRASSEYE-SCREENSHOT-CAPABILITY-005-V2 src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts:1 Screenshot phase helpers must route runtime timeout through resolveScreenshotTimeoutMs.

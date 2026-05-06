@@ -1,0 +1,8 @@
+scenarioId: visual-target-negative-proof-removed
+mutationName: remove-negative-proof-invocation
+mutatedFile: scripts/audit/domains/visual-target-capability/inspector.ts
+rollbackRestoredHash: sha256:ccffdc4263c2653585343201a2baf4a3be77400b175c966d5198029266d1b1d8
+startedAt: 2026-05-05T22:12:38.452Z
+endedAt: 2026-05-05T22:12:44.699Z
+
+Rollback was verified by restoring the original production file content and rerunning the Visual Target owner inspector.

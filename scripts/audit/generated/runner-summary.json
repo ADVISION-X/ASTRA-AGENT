@@ -1,107 +1,12 @@
 {
-  "generatedAt": "2026-05-05T20:35:39.704Z",
+  "generatedAt": "2026-05-06T03:24:09.316Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
-    "inspectors": 1,
+    "inspectors": 0,
     "passed": 0,
-    "failed": 1,
-    "blocking": 1
+    "failed": 0,
+    "blocking": 0
   },
-  "results": [
-    {
-      "inspector": "GrassEye Map Plugin Package Governance Inspector",
-      "inspectorId": "map-plugin-package-governance",
-      "capabilityDomain": "map-plugin-package",
-      "findings": [
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
-          "file": "src/map-plugins/builtins/index.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Builtin loader references files outside the governed builtin package file list.",
-          "detail": "tiktok-comment-evidence.map-package.json"
-        },
-        {
-          "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
-          "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-          "line": 1,
-          "severity": "fatal",
-          "message": "Map package inspector baseline must pass before negative-proof mutations can run: exitCode=1 | stderr=node:fs:435\n    return binding.readFileUtf8(path, stringToFlags(options.flag));\n                   ^\n\nError: ENOENT: no such file or directory, open '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/tiktok-comment-evidence.map-package.json'\n    at readFileSync (node:fs:435:20)\n    at readBuiltin (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:56:19)\n    at loadBuiltinMapPackages (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.ts:67:5)\n    at seedBuiltinDevelopmentActivation (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:112:32)\n    at createBuiltinSeededRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:149:5)\n    at getDevelopmentMapPluginRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/registry/map-plugin-registry.ts:174:20)\n    at createBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/registry-bootstrap.ts:4:10)\n    at inspectBootstrappedRegistry (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:106:20)\n    at runRequiredShape (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/required-shape.ts:135:8)\n    at async runIntegrationPhaseBundle (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/map-plugin-orchestration-integration/phase-bundle.ts:9:20) {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/tiktok-comment-evidence.map-package.json'\n}\n\nNode.js v24.4.1"
-        }
-      ],
-      "phases": [
-        {
-          "name": "owner-foundation",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Manifest and generated matrix align for the standalone non-phase-gated map package inspector."
-        },
-        {
-          "name": "required-shape",
-          "classification": "CODE VIOLATION",
-          "passed": false,
-          "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete."
-        },
-        {
-          "name": "authoring-input-package",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map Authoring Input Package schema, builder, prompt builder, and AI input boundary are governed and owner-local."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map package builtins remain declarative JSON and the package layer has no executable escape surfaces."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
-        },
-        {
-          "name": "anti-escape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map package enforcement closes through a real inspector, full audit support files, and a direct runner entry."
-        },
-        {
-          "name": "scorecard-gate",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map package scorecard remains explicit, provisional, and aligned with the governed closeout gate."
-        },
-        {
-          "name": "required-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Map-plugin integration required schema, registry, task-template, and proof shape are established."
-        },
-        {
-          "name": "forbidden-shape",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Forbidden reverse-schema imports, platform fallback paths, ordinary mapBinding surfaces, and legacy static maps are gone."
-        },
-        {
-          "name": "boundary-attack",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Schema ownership, active map resolution, and ordinary task-template launch boundaries are enforced through the right seams."
-        },
-        {
-          "name": "negative-proof-harness",
-          "classification": "FAKE ENFORCEMENT",
-          "passed": false,
-          "summary": "Map package negative-proof harness cannot start because the baseline inspector is not passing."
-        }
-      ],
-      "summary": "Map package schema, builtin payload, branch DSL, or lifecycle enforcement shape is incomplete.",
-      "passed": false,
-      "classification": "FAKE ENFORCEMENT",
-      "violationCount": 2
-    }
-  ]
+  "results": []
 }

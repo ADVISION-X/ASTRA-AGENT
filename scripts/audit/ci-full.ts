@@ -16,6 +16,7 @@ const steps: CiStep[] = [
   { label: "typecheck", args: ["run", "typecheck"] },
   { label: "audit build", args: ["run", "audit:build"] },
   { label: "audit coverage", args: ["run", "audit:coverage"] },
+  { label: "audit coverage anti-fraud", args: ["run", "audit:coverage:anti-fraud"] },
   { label: "audit", args: ["run", "audit"] },
 ];
 

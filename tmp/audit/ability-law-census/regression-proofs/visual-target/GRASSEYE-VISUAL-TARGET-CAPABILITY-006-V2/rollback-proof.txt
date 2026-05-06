@@ -1,0 +1,8 @@
+scenarioId: visual-target-fabricated-run-id
+mutationName: proof-runId-from-session-child
+mutatedFile: src/capabilities/visual-target/runtime/visual-target-proof-builder.ts
+rollbackRestoredHash: sha256:44a23210e18511faae2e4423c1f6b9078cb57c876945bbf331aeed005bd32525
+startedAt: 2026-05-05T22:12:26.000Z
+endedAt: 2026-05-05T22:12:32.243Z
+
+Rollback was verified by restoring the original production file content and rerunning the Visual Target owner inspector.

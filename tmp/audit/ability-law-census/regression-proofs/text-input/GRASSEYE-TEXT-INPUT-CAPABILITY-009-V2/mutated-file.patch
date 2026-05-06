@@ -1,0 +1,12 @@
+diff --git a/scripts/audit/domains/text-input-capability/inspector.ts b/scripts/audit/domains/text-input-capability/inspector.ts
+--- a/scripts/audit/domains/text-input-capability/inspector.ts
++++ b/scripts/audit/domains/text-input-capability/inspector.ts
+@@ -37,7 +37,7 @@
+             summary: "Text Input negative-proof harness was skipped for nested inspector execution.",
+           },
+         }
+-      : await runNegativeProofHarness();
++      : { findings: [], phase: { name: "negative-proof-harness", classification: "PASS" as const, passed: true, summary: "mutated skip" } };
+ 
+     return {
+       findings: [

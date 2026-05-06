@@ -1,0 +1,3 @@
+[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
+- FATAL src/capabilities/visual-target/runtime/local-ai-import-probe.ts:1 Visual Target imported forbidden owner surface ../../../lib/local-ai/local-ai-gateway.js.
+

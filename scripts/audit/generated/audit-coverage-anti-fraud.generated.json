@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-05-05T21:20:56.938Z",
+  "totalMutations": 8,
+  "passedMutations": 8,
+  "failedMutations": 0,
+  "mutations": [
+    {
+      "name": "weaken-open-local-program-law-requirement",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "remove-open-inspector-law-coverage",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "delete-map-plugin-local-program-negative-proof-mutation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "introduce-warning-only-p0-blueprint-requirement",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "downgrade-debug-loop-import-graph-to-includes",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "map-negative-proof-harness-does-not-run-mutations",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "generated-summary-tamper",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    },
+    {
+      "name": "delete-open-owner-audit-package-script",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "rollback": "PASS",
+      "rollbackHashVerified": true
+    }
+  ]
+}

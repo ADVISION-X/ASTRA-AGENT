@@ -1,5 +1,13 @@
 {
-  "generatedAt": "2026-05-05T20:35:29.655Z",
+  "generatedAt": "2026-05-05T21:20:56.566Z",
+  "sourceLawHash": "484615782f0a237c3a7d34fa38556210b17272ccb4b01db2e314650b104449c0",
+  "sourceBlueprintHash": "2e640fb8257c4a94d271eb1963fdd118a87c66f6edb10576998261a0c36ee366",
+  "inspectorHash": "a8f155aacfc9ae3bf08ebc0752ba21ab4e5f7711c3b558c3011b9cfed2ae0971",
+  "negativeProofHash": "effef0b904fa640e8c8b6fb9e228a7bd5d11c6566a18eb04de3cb4ce85740329",
+  "packageScriptHash": "59f83ebb5a62a64741d740741f154eb1e2d1c67e4b6c3cd66daf75efd1d85744",
+  "auditPlanHash": "71282b2b3347cf880ca6265a86733942b863b16c23c4e9251d971c095a7615d7",
+  "coverageBuilderVersion": "audit-coverage-governance-anti-fraud-v1",
+  "antiFraudVerified": true,
   "coverageMode": "blocking",
   "pilotOwners": [
     "open-capability",

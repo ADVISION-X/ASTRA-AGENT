@@ -1,0 +1,8 @@
+scenarioId: screenshot-negative-proof-removed
+mutationName: remove-negative-proof-invocation mutation
+mutatedFile: scripts/audit/domains/screenshot-capability/inspector.ts
+rollbackRestoredHash: sha256:05135e2cb4c17ab92d1717489b4f418d13b21cf94a22b7272c28b625d3ec4723
+startedAt: 2026-05-05T22:40:21.065Z
+endedAt: 2026-05-05T22:40:24.269Z
+
+Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

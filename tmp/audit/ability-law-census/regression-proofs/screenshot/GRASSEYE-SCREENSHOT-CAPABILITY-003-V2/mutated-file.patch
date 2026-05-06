@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/screenshot/shared/screenshot-governance.ts b/src/capabilities/screenshot/shared/screenshot-governance.ts
+--- a/src/capabilities/screenshot/shared/screenshot-governance.ts
++++ b/src/capabilities/screenshot/shared/screenshot-governance.ts
+@@ -60,7 +60,7 @@
+   selectedMapId: limitedString(200),
+   selectedMapVersion: limitedString(120),
+   activationSnapshotRef: limitedString(200),
+-  capabilityCallId: limitedString(200),
++  capabilityCallId: nullableLimitedString(200),
+   nerveBusEnvelopeId: limitedString(200),
+   inputRef: limitedString(200),
+   idempotencyKey: limitedString(200),

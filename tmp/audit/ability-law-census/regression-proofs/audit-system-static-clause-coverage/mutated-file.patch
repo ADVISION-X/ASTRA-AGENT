@@ -29,7 +29,7 @@ diff --git a/scripts/audit/generated/audit-plan.generated.json b/scripts/audit/g
 +++ b/scripts/audit/generated/audit-plan.generated.json
 @@ -1,6 +1,6 @@
  {
-   "generatedAt": "2026-05-05T04:59:44.123Z",
+   "generatedAt": "2026-05-05T22:36:45.241Z",
 -  "phase": "phase-04-full-enforcement",
 +  "phase": "phase-04-hand-edited",
    "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
@@ -107,7 +107,7 @@ diff --git a/tmp/audit/ability-law-census/regression-proofs/ai/owner-binding/own
 diff --git a/package.json b/package.json
 --- a/package.json
 +++ b/package.json
-@@ -22,7 +22,6 @@
+@@ -24,7 +24,6 @@
      "audit:index": "node --import tsx scripts/audit/domains/index/run-inspector.ts",
      "audit:kernel": "node --import tsx scripts/audit/domains/kernel/run-inspector.ts",
      "audit:audit-system": "node --import tsx scripts/audit/domains/audit-system/run-inspector.ts",

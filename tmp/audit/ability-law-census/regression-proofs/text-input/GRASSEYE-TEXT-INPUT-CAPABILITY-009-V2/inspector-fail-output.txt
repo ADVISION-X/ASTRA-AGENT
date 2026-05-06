@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Text Input required package or governed execution chain is incomplete.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2 scripts/audit/domains/text-input-capability/inspector.ts:1 Text Input inspector must invoke the negative-proof harness.

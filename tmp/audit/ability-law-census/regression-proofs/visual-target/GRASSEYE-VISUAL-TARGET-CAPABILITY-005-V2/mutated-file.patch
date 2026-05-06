@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts b/src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts
+--- a/src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts
++++ b/src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts
+@@ -13,7 +13,7 @@
+ } from "./visual-target-gate-results.js";
+ 
+ const CRITICAL_FLAGS = new Set<VisualTargetDataQualityFlag>([
+-  "critical_data_quality",
++  "critical_data_quality_removed",
+   "candidate_bbox_out_of_bounds",
+   "candidate_coordinate_non_executable",
+   "output_boundary_violation",

@@ -48,6 +48,14 @@ export type NegativeProofCoverageEvidence = {
 
 export type CoverageSummary = {
   generatedAt: string;
+  sourceLawHash: string;
+  sourceBlueprintHash: string;
+  inspectorHash: string;
+  negativeProofHash: string;
+  packageScriptHash: string;
+  auditPlanHash: string;
+  coverageBuilderVersion: string;
+  antiFraudVerified: boolean;
   coverageMode: "inventory-only" | "blocking";
   pilotOwners: string[];
   totalRequirements: number;

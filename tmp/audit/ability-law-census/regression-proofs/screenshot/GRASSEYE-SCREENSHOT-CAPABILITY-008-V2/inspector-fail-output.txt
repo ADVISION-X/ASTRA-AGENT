@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+
+FATAL GRASSEYE-SCREENSHOT-CAPABILITY-008-V2 scripts/audit/domains/screenshot-capability/inspector.ts:1 Screenshot inspector must invoke the negative-proof harness.

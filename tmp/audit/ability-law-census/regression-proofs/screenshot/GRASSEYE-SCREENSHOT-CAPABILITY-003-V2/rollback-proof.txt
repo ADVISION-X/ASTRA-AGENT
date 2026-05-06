@@ -1,0 +1,8 @@
+scenarioId: screenshot-nullable-capability-call-id
+mutationName: nullable chain field regression mutation
+mutatedFile: src/capabilities/screenshot/shared/screenshot-governance.ts
+rollbackRestoredHash: sha256:623113760c0f3d6d11c2625b7abe580e23f134a519ccceecd58d2e5ca6c65ec6
+startedAt: 2026-05-05T22:40:01.433Z
+endedAt: 2026-05-05T22:40:04.838Z
+
+Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

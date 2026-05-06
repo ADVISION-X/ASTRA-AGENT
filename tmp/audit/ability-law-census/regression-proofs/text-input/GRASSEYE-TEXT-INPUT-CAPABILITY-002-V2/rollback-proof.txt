@@ -1,0 +1,8 @@
+scenarioId: text-input-write-only-browser-import
+mutationName: child forbidden browser import mutation
+mutatedFile: src/capabilities/text-input/children/type-text/implementation.ts
+rollbackRestoredHash: sha256:d4719fc8153fd537f9d7665896d19ca5b53f8bac594d56117a33a9ea6065afd1
+startedAt: 2026-05-05T22:25:20.802Z
+endedAt: 2026-05-05T22:25:23.176Z
+
+Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

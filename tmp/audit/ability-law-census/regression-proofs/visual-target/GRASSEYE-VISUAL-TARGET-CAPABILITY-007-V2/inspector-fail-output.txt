@@ -1,0 +1,4 @@
+[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
+- ERROR src/capabilities/visual-target/children/detect-comments-button/implementation.ts:1 Child detect-comments-button must return executeVisualTarget() from the governed runtime executor.
+- FATAL src/capabilities/visual-target/children/detect-comments-button/implementation.ts:12 Child detect-comments-button must not return boolean shortcuts.
+

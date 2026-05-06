@@ -3,60 +3,18 @@
     "name": "audit:build",
     "command": "npm run audit:build",
     "exitCode": 0,
-    "durationMs": 1759
+    "durationMs": 2384
   },
   {
     "name": "audit:audit-system",
     "command": "npm run audit:audit-system",
     "exitCode": 1,
-    "durationMs": 124415
+    "durationMs": 51978
   },
   {
     "name": "audit:capability-group-governance",
     "command": "npm run audit:capability-group-governance",
     "exitCode": 1,
-    "durationMs": 6941
-  },
-  {
-    "name": "audit:ai",
-    "command": "npm run audit:ai",
-    "exitCode": 0,
-    "durationMs": 224292
-  },
-  {
-    "name": "typecheck",
-    "command": "npm run typecheck",
-    "exitCode": 2,
-    "durationMs": 6117
-  },
-  {
-    "name": "lint",
-    "command": "npm run lint",
-    "exitCode": 2,
-    "durationMs": 6117
-  },
-  {
-    "name": "audit",
-    "command": "npm run audit",
-    "exitCode": 1,
-    "durationMs": 8046
-  },
-  {
-    "name": "ci:full",
-    "command": "npm run ci:full",
-    "exitCode": 2,
-    "durationMs": 6326
-  },
-  {
-    "name": "git-diff-check",
-    "command": "git diff --check",
-    "exitCode": 0,
-    "durationMs": 38
-  },
-  {
-    "name": "audit:build-final",
-    "command": "npm run audit:build",
-    "exitCode": 0,
-    "durationMs": 1771
+    "durationMs": 7816
   }
 ]

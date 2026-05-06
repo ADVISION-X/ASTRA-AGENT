@@ -1,9 +1,13 @@
+import { readFile } from "node:fs/promises";
+
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
+import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
+import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
 
 import { LAW_IDS } from "./config.js";
 
@@ -14,11 +18,26 @@ type Mutation = {
   replace: string;
 };
 
-type InspectorRunResult = { passed: boolean; violationCount: number };
+type InspectorRunResult = { passed: boolean; violationCount: number; output: string };
 type InspectorRunner = () => Promise<InspectorRunResult>;
+type MutationProofRecord = {
+  mutation: Mutation;
+  originalContent: string;
+  mutatedContent: string;
+  failOutput: string;
+  passOutput: string;
+  startedAt: string;
+  endedAt: string;
+};
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/text-input-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
+const OWNER_BINDING_MUTATION_NAMES = [
+  "manual-first-enforcement mutation",
+  "warning-only-p0 mutation",
+  "negative proof invocation removed mutation",
+] as const;
+const PACKAGE_PROOF_MUTATION_NAME = "negative proof invocation removed mutation";
 
 const MUTATIONS: Mutation[] = [
   {
@@ -173,7 +192,19 @@ async function createInspectorRunner(): Promise<InspectorRunner> {
 
     try {
       const result = await inspector(context);
-      return { passed: result.passed, violationCount: result.violationCount };
+      return {
+        passed: result.passed,
+        violationCount: result.violationCount,
+        output: [
+          `classification: ${result.classification}`,
+          `passed: ${result.passed}`,
+          `violationCount: ${result.violationCount}`,
+          `summary: ${result.summary}`,
+          "",
+          ...result.findings.map((finding) => `${finding.severity.toUpperCase()} ${finding.lawId ?? "no-law"} ${finding.file}:${finding.line} ${finding.message}`),
+          "",
+        ].join("\n"),
+      };
     } finally {
       if (previous === undefined) {
         delete process.env[SKIP_NEGATIVE_PROOF_ENV];
@@ -184,13 +215,17 @@ async function createInspectorRunner(): Promise<InspectorRunner> {
   };
 }
 
-async function mutateAndVerify(runInspector: InspectorRunner, mutation: Mutation): Promise<void> {
+async function mutateAndVerify(runInspector: InspectorRunner, mutation: Mutation): Promise<MutationProofRecord> {
   const filePath = pathFromRepoRoot(mutation.file);
   const state = await readAuditFileState(filePath);
+  const startedAt = new Date().toISOString();
   await applyAuditMutation(filePath, state.original, mutation);
+  const mutatedContent = await readFile(filePath, "utf8");
+  let failOutput = "";
 
   try {
     const result = await runInspector();
+    failOutput = result.output;
     if (result.passed || result.violationCount === 0) {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
@@ -202,7 +237,61 @@ async function mutateAndVerify(runInspector: InspectorRunner, mutation: Mutation
   if (!restored.passed) {
     throw new Error(`Rollback verification failed for ${mutation.name}`);
   }
+
+  return {
+    mutation,
+    originalContent: state.original,
+    mutatedContent,
+    failOutput,
+    passOutput: restored.output,
+    startedAt,
+    endedAt: new Date().toISOString(),
+  };
 }
+
+const writePackageProof = async (record: MutationProofRecord) => {
+  if (record.mutation.name !== PACKAGE_PROOF_MUTATION_NAME) {
+    return;
+  }
+
+  await writeProductionMutationProof({
+    owner: "text-input",
+    ownerTitle: "Text Input",
+    mutationName: record.mutation.name,
+    scenarioId: "text-input-negative-proof-invocation-removed",
+    coveredLawIds: [LAW_IDS.PACKAGE],
+    coverageReasonByLawId: {
+      [LAW_IDS.PACKAGE]: "The mutation disconnects the Text Input inspector from its negative-proof harness, proving enforcement must close through the owner-local inspector plus negative-proof chain.",
+    },
+    mutatedFile: record.mutation.file,
+    originalContent: record.originalContent,
+    mutatedContent: record.mutatedContent,
+    failOutput: record.failOutput,
+    passOutput: record.passOutput,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt,
+  });
+};
+
+const writeOwnerBindingBundle = async (records: MutationProofRecord[]) => {
+  const scenarios = OWNER_BINDING_MUTATION_NAMES.flatMap((mutationName) => {
+    const record = records.find((candidate) => candidate.mutation.name === mutationName);
+    return record
+      ? [{
+          scenario: mutationName.replace(/ mutation$/, ""),
+          outputFileName: `${mutationName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}-fail.txt`,
+          output: record.failOutput,
+        }]
+      : [];
+  });
+  const rollbackOutput = records.find((record) => record.mutation.name === PACKAGE_PROOF_MUTATION_NAME)?.passOutput ?? records.at(-1)?.passOutput ?? "rollback restored baseline PASS";
+  await writeOwnerBindingProof({
+    owner: "text-input",
+    title: "Text Input",
+    scenarios,
+    rollbackOutput,
+  });
+};
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
   return {
@@ -226,10 +315,16 @@ function createFatalResult(message: string, summary: string): { findings: Findin
   };
 }
 
-async function runMutations(runInspector: InspectorRunner): Promise<void> {
+async function runMutations(runInspector: InspectorRunner): Promise<MutationProofRecord[]> {
+  const records: MutationProofRecord[] = [];
   for (const mutation of MUTATIONS) {
-    await mutateAndVerify(runInspector, mutation);
+    const record = await mutateAndVerify(runInspector, mutation);
+    records.push(record);
+    await writePackageProof(record);
   }
+
+  await writeOwnerBindingBundle(records);
+  return records;
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

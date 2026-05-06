@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+
+FATAL GRASSEYE-SCREENSHOT-CAPABILITY-001-V2 src/app/platform-action-screenshot-drawer-active-owner.ts:1 Historical screenshot drawer path must remain deleted.

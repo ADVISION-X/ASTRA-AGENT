@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts b/src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts
+--- a/src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts
++++ b/src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts
+@@ -50,7 +50,7 @@
+     ? await runCaptureRunner({
+         plan: input.plan,
+         context: input.context,
+-        timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
++        timeoutMs: input.registryEntry.maxDurationMs,
+         evidenceId: input.scope.evidenceId,
+         createdAt: input.clockStart.startedAt,
+       })

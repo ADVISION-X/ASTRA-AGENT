@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
+
+FATAL GRASSEYE-SCREENSHOT-CAPABILITY-003-V2 src/capabilities/screenshot/shared/screenshot-governance.ts:1 Screenshot governance must preserve all 3 required occurrences of capabilityCallId: limitedString(200),.

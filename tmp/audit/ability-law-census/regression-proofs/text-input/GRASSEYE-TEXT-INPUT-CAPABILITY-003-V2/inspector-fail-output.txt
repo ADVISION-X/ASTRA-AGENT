@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Text Input required package or governed execution chain is incomplete.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2 src/capabilities/text-input/schema.ts:1 TextInputBaseSchema must keep capabilityCallId machine-required.

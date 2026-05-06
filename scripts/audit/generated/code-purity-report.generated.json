@@ -1,10 +1,19 @@
 {
-  "generatedAt": "2026-05-05T20:32:55.463Z",
+  "generatedAt": "2026-05-05T22:38:44.683Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
-    "scripts/audit/domains/map-plugin-package/forbidden-shape.ts",
-    "scripts/audit/domains/map-plugin-package/negative-proof-harness.ts",
+    "scripts/audit/ci-full.ts",
+    "scripts/audit/core/inspector-registry-core-governance-capability.ts",
+    "scripts/audit/core/static-clause-coverage-support.ts",
+    "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
+    "scripts/audit/domains/audit-coverage-governance/coverage-matrix-builder.ts",
+    "scripts/audit/domains/audit-coverage-governance/coverage-types.ts",
+    "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+    "scripts/audit/domains/audit-coverage-governance/negative-proof-coverage-builder.ts",
+    "scripts/audit/domains/screenshot-capability/inspector.ts",
+    "scripts/audit/domains/text-input-capability/forbidden-shape.ts",
+    "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/visual-target-capability/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-coverage-summary.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
@@ -16,18 +25,12 @@
     "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/negative-proof-coverage.generated.json",
+    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/uncovered-requirements.generated.json",
     "scripts/startup/launch-grasseye.mjs",
-    "src/capabilities/forensics-persistence/ability-group.ts",
-    "src/capabilities/forensics-persistence/runtime/create-forensics-execution-context.ts",
-    "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
-    "src/lib/local-app-shell/task-start-dispatch-result.ts",
-    "src/lib/local-app-shell/task-start-flow.ts",
-    "src/lib/local-app-shell/task-start-support.ts",
-    "src/lib/local-runtime/map-lab/map-lab-draft-generator.ts",
-    "src/lib/local-runtime/map-lab/map-lab-draft-request.ts",
-    "src/lib/local-runtime/workbench-screenshot-source-handoff.ts"
+    "scripts/startup/lib/commander-console-open-step.mjs",
+    "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -120,6 +123,21 @@
       "roleMixingSignals": [],
       "severity": "BLOCKING",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/startup/launch-grasseye.mjs",
+      "lines": 319,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 19,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-adapter.ts",
@@ -251,6 +269,21 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/screenshot-capability/generate-proof-bundles.ts",
+      "lines": 298,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
       "lines": 346,
       "fileType": "audit phase",
@@ -266,8 +299,38 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/text-input-capability/generate-proof-bundles.ts",
+      "lines": 286,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+      "lines": 350,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 10,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2242,
+      "lines": 2440,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -297,7 +360,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13163,
+      "lines": 13006,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -312,7 +375,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 13813,
+      "lines": 13656,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -342,7 +405,22 @@
     },
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16848,
+      "lines": 21972,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/generated/runner-summary.json",
+      "lines": 3313,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -357,7 +435,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 7318,
+      "lines": 8388,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -450,11 +528,56 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/screenshot-capability/generate-proof-bundles.ts",
+      "lines": 298,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
       "lines": 346,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 10,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/generate-proof-bundles.ts",
+      "lines": 286,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+      "lines": 350,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
       "functionsOverLimit": [],
       "classMembers": 0,
       "importCount": 10,
@@ -480,7 +603,23 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
-  "oversizedTouchedFileInventory": [],
+  "oversizedTouchedFileInventory": [
+    {
+      "file": "scripts/startup/launch-grasseye.mjs",
+      "lines": 319,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 19,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "functionOverLimitInventory": [
     {
       "file": "scripts/audit/core/static-clause-coverage-artifact.ts",
@@ -503,31 +642,14 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/core/static-clause-coverage-support.ts",
-      "lines": 300,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "resolveStringLiteral",
-        "collectLawEvidence"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
-      "lines": 122,
+      "lines": 142,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "writer",
       "functionsOverLimit": [
-        "writeLawProof"
+        "buildMutationDescription",
+        "writeProofArtifacts"
       ],
       "classMembers": 0,
       "importCount": 3,
@@ -549,6 +671,40 @@
       ],
       "classMembers": 0,
       "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/audit-coverage-governance/coverage-matrix-builder.ts",
+      "lines": 205,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildCoverageSummaryWithIntegrity"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/audit-coverage-governance/negative-proof-coverage-builder.ts",
+      "lines": 121,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "buildNegativeProofEvidence"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -1132,6 +1288,36 @@
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [
     {
+      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lines": 94,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 13,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
+      "lines": 57,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 14,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/open/registry.ts",
       "lines": 232,
       "fileType": "ordinary implementation",
@@ -1182,7 +1368,7 @@
   "remediationQueue": [
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16848,
+      "lines": 21972,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1197,7 +1383,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 13813,
+      "lines": 13656,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1212,7 +1398,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13163,
+      "lines": 13006,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1227,7 +1413,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 7318,
+      "lines": 8388,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1256,8 +1442,23 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/generated/runner-summary.json",
+      "lines": 3313,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/generated/code-purity-report.generated.json",
-      "lines": 2242,
+      "lines": 2440,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -1301,6 +1502,21 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/text-input-capability/negative-proof-harness.ts",
+      "lines": 350,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 10,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/screenshot-capability/required-shape.ts",
       "lines": 346,
       "fileType": "audit phase",
@@ -1309,6 +1525,36 @@
       "functionsOverLimit": [],
       "classMembers": 0,
       "importCount": 10,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/screenshot-capability/generate-proof-bundles.ts",
+      "lines": 298,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/text-input-capability/generate-proof-bundles.ts",
+      "lines": 286,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 8,
       "crossOwnerImports": 3,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
@@ -1508,6 +1754,21 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/startup/launch-grasseye.mjs",
+      "lines": 319,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 19,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
       "file": "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
       "lines": 316,
       "fileType": "orchestration coordinator",
@@ -1605,24 +1866,6 @@
       ],
       "classMembers": 0,
       "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/core/static-clause-coverage-support.ts",
-      "lines": 300,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "resolveStringLiteral",
-        "collectLawEvidence"
-      ],
-      "classMembers": 0,
-      "importCount": 4,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -1765,6 +2008,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/audit-coverage-governance/coverage-matrix-builder.ts",
+      "lines": 205,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildCoverageSummaryWithIntegrity"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/_shared/screenshot-dispatch-adapter-check.ts",
@@ -1939,6 +2199,24 @@
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
+      "lines": 142,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "writer",
+      "functionsOverLimit": [
+        "buildMutationDescription",
+        "writeProofArtifacts"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
       "lines": 140,
       "fileType": "audit phase",
@@ -1993,23 +2271,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/_shared/production-mutation-proof-writer.ts",
-      "lines": 122,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "writer",
-      "functionsOverLimit": [
-        "writeLawProof"
-      ],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
       "lines": 122,
       "fileType": "ordinary implementation",
@@ -2025,6 +2286,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/audit-coverage-governance/negative-proof-coverage-builder.ts",
+      "lines": 121,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "proof-builder",
+      "functionsOverLimit": [
+        "buildNegativeProofEvidence"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts",
@@ -2078,6 +2356,21 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lines": 94,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 13,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/commander-console-capability/startup-exit-negative-proof.ts",
       "lines": 78,
       "fileType": "audit phase",
@@ -2093,6 +2386,21 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/visual-target-capability/inspector.ts",
+      "lines": 57,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 14,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     },
     {
       "file": "src/capabilities/open/runtime/local-program-completion.ts",
@@ -2132,7 +2440,7 @@
   "firstPhysicalSplitPlan": [
     {
       "file": "scripts/audit/generated/negative-proof-coverage.generated.json",
-      "lines": 16848,
+      "lines": 21972,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2147,7 +2455,7 @@
     },
     {
       "file": "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
-      "lines": 13813,
+      "lines": 13656,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2162,7 +2470,7 @@
     },
     {
       "file": "scripts/audit/generated/inspector-coverage-matrix.generated.json",
-      "lines": 13163,
+      "lines": 13006,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -2177,7 +2485,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 7318,
+      "lines": 8388,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

@@ -5,7 +5,9 @@ import { runAntiEscape } from "./anti-escape.js";
 import { PATHS } from "./config.js";
 import { createScreenshotAuditProject } from "./project-access.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
+import { runChildRuntimeCheck } from "./child-runtime-check.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
+import { runLawBaselineCheck } from "./law-baseline-check.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runOwnershipBoundary } from "./ownership-boundary.js";
 import { runRequiredShape } from "./required-shape.js";
@@ -28,14 +30,16 @@ const runNegativeProofCheck = async () => process.env[SKIP_NEGATIVE_PROOF_ENV] =
 const runScreenshotChecks = async (_context: InspectorContext) => {
   const project = createScreenshotAuditProject();
   const ownershipBoundary = runOwnershipBoundary(project);
-  const [required, forbidden, boundary, antiEscape] = await Promise.all([
+  const [lawBaseline, required, forbidden, boundary, childRuntime, antiEscape] = await Promise.all([
+    runLawBaselineCheck(),
     runRequiredShape(project),
     runForbiddenShape(project),
     runBoundaryAttack(project),
+    Promise.resolve(runChildRuntimeCheck(project)),
     runAntiEscape(project),
   ]);
   const negativeProof = await runNegativeProofCheck();
-  return { required, forbidden, boundary, ownershipBoundary, antiEscape, negativeProof };
+  return { lawBaseline, required, forbidden, boundary, childRuntime, ownershipBoundary, antiEscape, negativeProof };
 };
 
 const buildInspectorResult = (
@@ -44,9 +48,11 @@ const buildInspectorResult = (
 ) => {
   const findings = [
     ...base.findings,
+    ...checks.lawBaseline.findings,
     ...checks.required.findings,
     ...checks.forbidden.findings,
     ...checks.boundary.findings,
+    ...checks.childRuntime.findings,
     ...checks.ownershipBoundary.findings,
     ...checks.antiEscape.findings,
     ...checks.negativeProof.findings,
@@ -59,9 +65,11 @@ const buildInspectorResult = (
     findings,
     phases: [
       ...base.phases,
+      checks.lawBaseline.phase,
       checks.required.phase,
       checks.forbidden.phase,
       checks.boundary.phase,
+      checks.childRuntime.phase,
       checks.ownershipBoundary.phase,
       checks.antiEscape.phase,
       checks.negativeProof.phase,

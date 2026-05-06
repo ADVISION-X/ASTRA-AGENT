@@ -1,0 +1,7 @@
+diff --git a/src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts b/src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts
+--- a/src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts
++++ b/src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts
+@@ -1,1 +1,3 @@
++import "../../../capabilities/ai/ability-group.js";
++export const probe = true;
+ 

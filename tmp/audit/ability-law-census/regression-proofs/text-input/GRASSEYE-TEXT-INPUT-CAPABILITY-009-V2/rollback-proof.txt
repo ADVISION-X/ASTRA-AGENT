@@ -1,0 +1,8 @@
+scenarioId: text-input-negative-proof-removed
+mutationName: negative proof invocation removed mutation
+mutatedFile: scripts/audit/domains/text-input-capability/inspector.ts
+rollbackRestoredHash: sha256:d7dba98584370e85d516895754c129134738814225bad917754089a7d2b96228
+startedAt: 2026-05-05T22:25:37.550Z
+endedAt: 2026-05-05T22:25:39.932Z
+
+Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

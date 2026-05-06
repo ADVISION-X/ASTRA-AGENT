@@ -1,0 +1,6 @@
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: Text Input law baseline drifted away from the active enforcement contract.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2 .github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md:1 Text Input active laws must remain machine-blocking.

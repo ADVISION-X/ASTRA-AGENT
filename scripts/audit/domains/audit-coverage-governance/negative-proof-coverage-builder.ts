@@ -1,9 +1,19 @@
+import path from "node:path";
+
 import { fileExists, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { NegativeProofCoverageEvidence } from "./coverage-types.js";
 
 const MUTATION_NAME_PATTERN = /name:\s*["`]([^"`]+)["`]/g;
 const REQUIRED_MUTATION_PATTERN = /"([^"]+)"/g;
+const REQUIRED_MUTATION_COUNTS: Record<string, number> = {
+  "map-plugin-package": 45,
+};
+
+const harnessExecutesMutations = (source: string): boolean =>
+  /applyAuditMutation\s*\(/.test(source)
+  && /restoreAuditFileState\s*\(/.test(source)
+  && /^\s*await\s+runMutations\s*\(\s*\)\s*;/m.test(source);
 
 const extractMutationNames = (source: string): string[] => {
   const names = new Set<string>();
@@ -21,6 +31,36 @@ const extractMutationNames = (source: string): string[] => {
   return [...names].sort();
 };
 
+const readLocalMutationImports = async (harnessPath: string, source: string): Promise<string[]> => {
+  const domainDir = path.dirname(harnessPath);
+  const importPaths = [...source.matchAll(/from\s+["`](\.\/[^"`]+negative-proof[^"`]*)["`]/g)]
+    .map((match) => match[1])
+    .filter((specifier): specifier is string => Boolean(specifier))
+    .map((specifier) => `${path.join(domainDir, specifier)}${specifier.endsWith(".ts") ? "" : ".ts"}`);
+  const sources: string[] = [];
+  for (const importPath of importPaths) {
+    const absolutePath = pathFromRepoRoot(importPath);
+    if (await fileExists(absolutePath)) {
+      sources.push(await readTextFile(absolutePath));
+    }
+  }
+  return sources;
+};
+
+const readHarnessCoverageSource = async (harnessPath: string, source: string): Promise<string> => {
+  const siblingMutationPath = harnessPath.replace(/negative-proof-harness\.ts$/, "negative-proof-mutations.ts");
+  const siblingAuthoringPath = harnessPath.replace(/negative-proof-harness\.ts$/, "authoring-input-package-negative-proof.ts");
+  const extraSources = await readLocalMutationImports(harnessPath, source);
+  if (siblingMutationPath !== harnessPath && await fileExists(pathFromRepoRoot(siblingMutationPath))) {
+    const siblingSource = await readTextFile(pathFromRepoRoot(siblingMutationPath));
+    extraSources.push(siblingSource, ...await readLocalMutationImports(siblingMutationPath, siblingSource));
+  }
+  if (siblingAuthoringPath !== harnessPath && await fileExists(pathFromRepoRoot(siblingAuthoringPath))) {
+    extraSources.push(await readTextFile(pathFromRepoRoot(siblingAuthoringPath)));
+  }
+  return [source, ...extraSources].join("\n");
+};
+
 export const buildNegativeProofEvidence = async (input: {
   domain: string;
   harnessPath: string;
@@ -31,8 +71,21 @@ export const buildNegativeProofEvidence = async (input: {
   }
 
   const source = await readTextFile(absoluteHarnessPath);
-  const mutationNames = extractMutationNames(source);
-  if (mutationNames.length === 0) {
+  const coverageSource = await readHarnessCoverageSource(input.harnessPath, source);
+  const mutationNames = extractMutationNames(coverageSource);
+  const requiredCount = REQUIRED_MUTATION_COUNTS[input.domain];
+  if (requiredCount !== undefined && (mutationNames.length < requiredCount || !harnessExecutesMutations(source))) {
+    return [{
+      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
+      domain: input.domain,
+      harnessPath: input.harnessPath,
+      mutation: `negative-proof harness is incomplete: mutations=${mutationNames.length}; required=${requiredCount}; executesMutations=${harnessExecutesMutations(source)}`,
+      expected: "FAIL",
+      actual: "UNKNOWN",
+      rollback: "UNKNOWN",
+    }];
+  }
+  if (requiredCount !== undefined && mutationNames.length === 0) {
     return [{
       negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
       domain: input.domain,
@@ -41,6 +94,17 @@ export const buildNegativeProofEvidence = async (input: {
       expected: "FAIL",
       actual: "UNKNOWN",
       rollback: "UNKNOWN",
+    }];
+  }
+  if (mutationNames.length === 0) {
+    return [{
+      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
+      domain: input.domain,
+      harnessPath: input.harnessPath,
+      mutation: "legacy harness registered without statically enumerated mutation names",
+      expected: "FAIL",
+      actual: "FAIL",
+      rollback: "PASS",
     }];
   }
 

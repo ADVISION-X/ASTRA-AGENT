@@ -1,0 +1,3 @@
+[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
+- ERROR src/capabilities/visual-target/runtime/visual-target-proof-builder.ts:1 Runtime proof must not fabricate runId from local stable refs.
+

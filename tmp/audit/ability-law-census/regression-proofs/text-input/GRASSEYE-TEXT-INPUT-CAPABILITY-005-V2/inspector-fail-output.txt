@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Text Input still contains forbidden execution shapes or sensitive persistence leaks.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2 src/capabilities/text-input/runtime/text-input-debug-events.ts:1 Text Input debug material must not expose raw sensitive text or clipboard plaintext.

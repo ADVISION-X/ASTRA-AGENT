@@ -38,9 +38,14 @@ function collectExecutionFindings(relativePath: string, sourceFile: Parameters<t
   if (relativePath !== PATHS.RUNNER && sourceHasPrimitiveExecuteCall(sourceFile)) {
     findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file: relativePath, line: 1, severity: "fatal", message: "executionPort.execute must not appear outside primitive-text-input-runner." }));
   }
-  return sourceHasForbiddenImport(sourceFile)
-    ? findings.concat(createFinding({ lawId: LAW_IDS.PUBLIC, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not import forbidden ability or browser internals." }))
-    : findings;
+  if (!sourceHasForbiddenImport(sourceFile)) {
+    return findings;
+  }
+
+  return findings.concat(
+    createFinding({ lawId: LAW_IDS.PUBLIC, file: relativePath, line: 1, severity: "fatal", message: "Text Input must not import forbidden ability or browser internals." }),
+    createFinding({ lawId: LAW_IDS.WRITE_ONLY, file: relativePath, line: 1, severity: "fatal", message: "Text Input write-only boundary must not import foreign owner or browser internals." }),
+  );
 }
 
 function collectBusinessResultFieldFindings(project: ReturnType<typeof makeProject>): Finding[] {

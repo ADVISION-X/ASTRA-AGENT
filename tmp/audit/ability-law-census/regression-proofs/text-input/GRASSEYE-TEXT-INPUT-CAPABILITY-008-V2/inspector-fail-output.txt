@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Text Input required package or governed execution chain is incomplete.
+
+FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2 src/capabilities/text-input/registry.ts:1 Text Input registry must not expose forbidden child send-message.
