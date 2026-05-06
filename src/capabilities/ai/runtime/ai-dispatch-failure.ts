@@ -93,6 +93,40 @@ function buildInputSchemaDiagnostics(rawInput: unknown, failureReason: string) {
   };
 }
 
+function buildDispatchFallbackProof(input: {
+  trace: FailureEnvelopeTrace;
+  taskType: AiTaskType | null;
+  taskTypeSource: FailureEnvelopeTrace["taskTypeSource"];
+  childCapabilityId: AiChildCapabilityId | null;
+  providerKind: AiProviderKind | null;
+  failureReason: string;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+  clockPortKind: "system-monotonic-clock";
+}) {
+  return {
+    proofId: buildStableAiRef("ai-dispatch-proof", [input.trace.missionId, input.trace.sessionId, input.taskType, input.failureReason]),
+    runId: buildStableAiRef("ai-dispatch-run", [input.trace.missionId, input.trace.sessionId, input.taskType]),
+    missionId: input.trace.missionId,
+    missionIdSource: input.trace.missionIdSource,
+    sessionId: input.trace.sessionId,
+    sessionIdSource: input.trace.sessionIdSource,
+    childCapabilityId: input.childCapabilityId,
+    childCapabilityIdSource: input.childCapabilityId === null ? "unavailable" as const : "parsed_route" as const,
+    taskType: input.taskType,
+    taskTypeSource: input.taskTypeSource,
+    providerKind: input.providerKind,
+    providerKindSource: input.providerKind === null ? "unavailable" as const : "registry_contract" as const,
+    startedAt: input.startedAt,
+    endedAt: input.endedAt,
+    durationMs: input.durationMs,
+    status: "failed" as const,
+    failureReason: input.failureReason,
+    clockPortKind: input.clockPortKind,
+  };
+}
+
 export function dispatchAiFailure(input: {
   rawInput: unknown;
   context: AiExecutionContext;
@@ -110,6 +144,18 @@ export function dispatchAiFailure(input: {
   const childCapabilityId = input.childCapabilityId;
   const rawInputRef = buildStableAiRef("ai-raw-input", [trace.missionId, trace.sessionId, taskType, input.failureReason]);
   const schemaDiagnostics = buildInputSchemaDiagnostics(input.rawInput, input.failureReason);
+  const fallbackProof = buildDispatchFallbackProof({
+    trace,
+    taskType,
+    taskTypeSource,
+    childCapabilityId,
+    providerKind: input.providerKind,
+    failureReason: input.failureReason,
+    startedAt: started.startedAt,
+    endedAt: ended.endedAt,
+    durationMs: ended.durationMs,
+    clockPortKind: ended.portKind,
+  });
 
   return AiDispatchFailureEnvelopeSchema.parse({
     status: "failed",
@@ -120,26 +166,7 @@ export function dispatchAiFailure(input: {
     rawInputRef,
     parseFailureReason: input.statusMessage,
     ...schemaDiagnostics,
-    fallbackProof: {
-      proofId: buildStableAiRef("ai-dispatch-proof", [trace.missionId, trace.sessionId, taskType, input.failureReason]),
-      runId: buildStableAiRef("ai-dispatch-run", [trace.missionId, trace.sessionId, taskType]),
-      missionId: trace.missionId,
-      missionIdSource: trace.missionIdSource,
-      sessionId: trace.sessionId,
-      sessionIdSource: trace.sessionIdSource,
-      childCapabilityId,
-      childCapabilityIdSource: childCapabilityId === null ? "unavailable" : "parsed_route",
-      taskType,
-      taskTypeSource,
-      providerKind: input.providerKind,
-      providerKindSource: input.providerKind === null ? "unavailable" : "registry_contract",
-      startedAt: started.startedAt,
-      endedAt: ended.endedAt,
-      durationMs: ended.durationMs,
-      status: "failed",
-      failureReason: input.failureReason,
-      clockPortKind: ended.portKind,
-    },
+    fallbackProof,
     outputAuthority: "non_authoritative",
     failureReason: input.failureReason,
     reviewRequiredReason: null,

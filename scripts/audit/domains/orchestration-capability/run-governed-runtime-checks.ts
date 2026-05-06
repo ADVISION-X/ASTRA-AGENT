@@ -4,6 +4,7 @@ import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createFinding, createPhase, fileExists, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
 import { createAuditProject, getSourceFileOrThrow, hasCallExpressionPath } from "./inspection-ast-helpers.js";
 import { inspectForensicsRetentionBoundary } from "./forensics-retention-boundary-phase.js";
+import { inspectAiPromptContractTaskTypeDispatch } from "./ai-prompt-contract-tasktype-dispatch-checks.js";
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
 import { inspectMissionLoopTraceability } from "./mission-loop-traceability-phase.js";
 import { inspectStartMissionCommandBoundary } from "./start-mission-boundary-checks.js";
@@ -12,9 +13,6 @@ const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/orchestration-capabil
 const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-resume.ts";
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
-const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
-const NERVE_BUS_ENVELOPE_BUILDERS_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts";
-const AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
 const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
 const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
@@ -261,33 +259,6 @@ function inspectPostActionVerificationChain(project: ReturnType<typeof createAud
       findings,
       "Orchestration validates and dispatches post-action verification for state-changing action steps.",
       "Orchestration still allows action steps to complete without mandatory post-action verification chaining.",
-    ),
-  };
-}
-
-async function inspectAiPromptContractTaskTypeDispatch(): Promise<PhaseResult> {
-  const sharedText = await readTextFile(pathFromRepoRoot(STEP_DISPATCH_SHARED_PATH));
-  const envelopeText = await readTextFile(pathFromRepoRoot(NERVE_BUS_ENVELOPE_BUILDERS_PATH));
-  const aiRequestText = await readTextFile(pathFromRepoRoot(AI_REQUEST_BUILDER_PATH));
-  const findings: Finding[] = [];
-
-  if (!sharedText.includes("tryGetPromptContractCatalogEntry") || !sharedText.includes("taskType: promptContract.taskType")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration AI dispatch requirements must resolve taskType from the AI Prompt Contract Registry before Nerve Bus transport." }));
-  }
-  if (envelopeText.includes("taskType: input.promptContractId") || !envelopeText.includes("taskType: input.taskType")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, line: 1, message: "Orchestration-to-AI envelope must transport prompt-contract taskType, not promptContractId, as the AI schema discriminant." }));
-  }
-  if (!aiRequestText.includes("AiTaskTypeSchema.parse(envelope.taskType)") || !aiRequestText.includes("buildProductPresenceInputPayload")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: AI_REQUEST_BUILDER_PATH, line: 1, message: "Workbench AI request builder must validate transported taskType and build the product presence image_collection payload for product_presence_judgment." }));
-  }
-
-  return {
-    findings,
-    phase: createRuntimePhase(
-      "ai-prompt-contract-tasktype-dispatch",
-      findings,
-      "Orchestration resolves AI taskType from Prompt Contract Registry and transports it separately from promptContractId.",
-      "Orchestration can still send promptContractId as the AI taskType discriminant.",
     ),
   };
 }

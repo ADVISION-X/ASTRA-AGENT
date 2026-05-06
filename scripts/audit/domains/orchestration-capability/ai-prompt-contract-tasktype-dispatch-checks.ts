@@ -1,0 +1,47 @@
+import { createFinding, createPhase, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
+
+const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
+const NERVE_BUS_ENVELOPE_BUILDERS_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts";
+const AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+
+function createTaskTypeFinding(input: { file: string; message: string }): Finding {
+  return createFinding({
+    lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+    file: input.file,
+    line: 1,
+    severity: "fatal",
+    message: input.message,
+  });
+}
+
+function createTaskTypePhase(findings: Finding[]) {
+  return createPhase(
+    "ai-prompt-contract-tasktype-dispatch",
+    findings.length === 0 ? "PASS" : "CODE VIOLATION",
+    findings.length === 0,
+    findings.length === 0
+      ? "Orchestration resolves AI taskType from Prompt Contract Registry and transports it separately from promptContractId."
+      : "Orchestration can still send promptContractId as the AI taskType discriminant.",
+  );
+}
+
+export async function inspectAiPromptContractTaskTypeDispatch() {
+  const [sharedText, envelopeText, aiRequestText] = await Promise.all([
+    readTextFile(pathFromRepoRoot(STEP_DISPATCH_SHARED_PATH)),
+    readTextFile(pathFromRepoRoot(NERVE_BUS_ENVELOPE_BUILDERS_PATH)),
+    readTextFile(pathFromRepoRoot(AI_REQUEST_BUILDER_PATH)),
+  ]);
+  const findings: Finding[] = [];
+
+  if (!sharedText.includes("tryGetPromptContractCatalogEntry") || !sharedText.includes("taskType: promptContract.taskType")) {
+    findings.push(createTaskTypeFinding({ file: STEP_DISPATCH_SHARED_PATH, message: "Orchestration AI dispatch requirements must resolve taskType from the AI Prompt Contract Registry before Nerve Bus transport." }));
+  }
+  if (envelopeText.includes("taskType: input.promptContractId") || !envelopeText.includes("taskType: input.taskType")) {
+    findings.push(createTaskTypeFinding({ file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, message: "Orchestration-to-AI envelope must transport prompt-contract taskType, not promptContractId, as the AI schema discriminant." }));
+  }
+  if (!aiRequestText.includes("resolveAiTaskType(envelope)") || !aiRequestText.includes("buildProductPresenceInputPayload")) {
+    findings.push(createTaskTypeFinding({ file: AI_REQUEST_BUILDER_PATH, message: "Workbench AI request builder must resolve transported taskType and build the product presence image_collection payload for product_presence_judgment." }));
+  }
+
+  return { findings, phase: createTaskTypePhase(findings) };
+}

@@ -1,0 +1,6 @@
+diff --git a/src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts b/src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts
+--- a/src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts
++++ b/src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts
+@@
+-    taskType: input.taskType,
++    taskType: input.promptContractId,

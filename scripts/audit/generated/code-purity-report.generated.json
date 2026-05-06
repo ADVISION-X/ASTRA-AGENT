@@ -1,20 +1,22 @@
 {
-  "generatedAt": "2026-05-06T13:48:02.348Z",
+  "generatedAt": "2026-05-06T13:58:47.244Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
-    "scripts/audit/domains/screenshot-capability/required-shape.ts",
+    "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+    "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts",
-    "src/capabilities/screenshot/runtime/screenshot-transform-truth.ts",
-    "src/capabilities/screenshot/schema.ts"
+    "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
+    "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -103,7 +105,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8399,
+      "lines": 8406,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -164,7 +166,42 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [],
+  "functionOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+      "lines": 328,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "runOrchestrationGovernedRuntimeChecks"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
+      "lines": 192,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveAiDispatchRequirements"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    }
+  ],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [],
   "remediationQueue": [
@@ -215,7 +252,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8399,
+      "lines": 8406,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -302,6 +339,40 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+      "lines": 328,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "runOrchestrationGovernedRuntimeChecks"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
+      "lines": 192,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveAiDispatchRequirements"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -352,7 +423,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8399,
+      "lines": 8406,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

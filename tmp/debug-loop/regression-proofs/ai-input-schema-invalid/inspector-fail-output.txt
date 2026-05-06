@@ -1,0 +1,2 @@
+[expected]
+Orchestration-to-AI envelope must transport prompt-contract taskType, not promptContractId, as the AI schema discriminant.

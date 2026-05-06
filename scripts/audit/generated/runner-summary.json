@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T13:36:51.638Z",
+  "generatedAt": "2026-05-06T13:56:51.637Z",
   "phase": "phase-04-full-enforcement",
   "passed": false,
   "totals": {
@@ -141,11 +141,12 @@
       "capabilityDomain": "capability-group-governance",
       "findings": [
         {
-          "lawId": "GRASSEYE-CODE-TOPOLOGY-002-V1",
-          "file": "docs/debug",
-          "line": 1,
-          "severity": "error",
-          "message": "Non-canonical documentation bucket found under docs."
+          "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+          "file": "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
+          "line": 6,
+          "severity": "fatal",
+          "message": "Cross-group or support-layer import bypasses the owning capability public index or contract.",
+          "detail": "src/capabilities/orchestration/runtime/step-dispatch-shared.ts -> src/capabilities/ai/prompt-contracts/registry.ts"
         }
       ],
       "phases": [
@@ -187,9 +188,9 @@
         },
         {
           "name": "boundary-imports",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "Cross-group imports stay on public capability indexes or contracts."
+          "classification": "CODE VIOLATION",
+          "passed": false,
+          "summary": "Cross-group imports still reach private capability paths."
         },
         {
           "name": "forbidden-owner-literals",
@@ -211,9 +212,9 @@
         },
         {
           "name": "canonical-doc-paths",
-          "classification": "ENFORCEMENT GAP",
-          "passed": false,
-          "summary": "Canonical documentation paths are missing or drifted."
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical phase-document directories exist."
         },
         {
           "name": "root-and-runtime-hygiene",
@@ -264,8 +265,8 @@
           "summary": "Capability-group-governance negative-proof harness was skipped for nested inspector execution."
         }
       ],
-      "classification": "ENFORCEMENT GAP",
-      "summary": "Canonical documentation paths are missing or drifted.",
+      "classification": "CODE VIOLATION",
+      "summary": "Cross-group imports still reach private capability paths.",
       "passed": false,
       "violationCount": 1
     }

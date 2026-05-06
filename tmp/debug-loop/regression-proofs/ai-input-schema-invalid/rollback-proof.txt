@@ -1,0 +1,1 @@
+Rollback: restore `taskType: input.taskType` and keep taskType resolved from `tryGetPromptContractCatalogEntry(...).taskType`.

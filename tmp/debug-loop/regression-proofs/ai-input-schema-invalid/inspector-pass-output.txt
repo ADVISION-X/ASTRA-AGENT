@@ -1,0 +1,2 @@
+Focused runtime proof:
+parseAiInput(buildWorkbenchAiAbilityRequest(...)) returned parseSuccess=true for `judge-seeding-video`.

@@ -1,7 +1,6 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
-import { AiTaskTypeSchema } from "../../capabilities/ai/schema.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
@@ -14,7 +13,30 @@ type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").WorkbenchRuntime["aiAbilityGroup"]["execute"]>[0];
 
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
-const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope) => AiTaskTypeSchema.parse(envelope.taskType);
+const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
+  "product_presence_judgment",
+  "visual_observation",
+  "visual_target_candidate_analysis",
+  "ocr_cleanup",
+  "comment_signal_summary",
+  "product_signal_summary",
+  "evidence_packet_analysis",
+  "map_authoring",
+  "schema_validation_only",
+] as const;
+
+type SupportedWorkbenchAiTaskType = (typeof SUPPORTED_WORKBENCH_AI_TASK_TYPES)[number];
+
+const isSupportedWorkbenchAiTaskType = (taskType: string): taskType is SupportedWorkbenchAiTaskType =>
+  SUPPORTED_WORKBENCH_AI_TASK_TYPES.some((candidate) => candidate === taskType);
+
+const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope): (typeof SUPPORTED_WORKBENCH_AI_TASK_TYPES)[number] => {
+  const taskType = envelope.taskType;
+  if (isSupportedWorkbenchAiTaskType(taskType)) {
+    return taskType;
+  }
+  throw new Error(`Workbench AI request has unsupported taskType: ${taskType}`);
+};
 
 const buildWorkbenchAiInputRefs = (
   envelope: WorkbenchAiRequestEnvelope,

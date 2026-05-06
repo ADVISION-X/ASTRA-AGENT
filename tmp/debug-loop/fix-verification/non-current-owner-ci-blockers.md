@@ -1,5 +1,17 @@
 # Non-current Owner CI Blockers
 
-- `npm run audit` exited non-zero after current blocker domains passed and fail-fast stopped at `commander-console-capability`.
-- Last visible issue: `[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.`
-- This is recorded as a non-current-owner blocker for this runtime transparency loop; it is not being marked PASS.
+## `npm run audit:orchestration`
+
+Current baseline failed on pre-existing Orchestration findings:
+
+- `Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state.`
+- `Transition success state must increment currentRoundIndex only when the governed loop explicitly returns to map.initialStepId.`
+- `Orchestration inspector baseline must pass before negative-proof mutation checks.`
+
+## `npm run audit:forensics-persistence`
+
+Current baseline failed on pre-existing structured logging findings:
+
+- `Commander command flow is missing required structured debug events.`
+- `AppShellHealth and MissionReadiness structured logging is not fully wired across startup and mission preflight surfaces.`
+- `Forensics inspector baseline must pass before negative-proof mutation checks.`

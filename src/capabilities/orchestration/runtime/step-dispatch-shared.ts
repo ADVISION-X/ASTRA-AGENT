@@ -61,6 +61,14 @@ type DispatchChain = {
   activationSnapshotRef: string;
 };
 
+type AiDispatchRequirements = {
+  taskType: string;
+  promptContractVersion: string;
+  outputSchemaRef: string;
+  aiInputRefs: string[];
+  providerPolicyRef: string;
+};
+
 const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; value: DispatchChain } | { ok: false; failureReason: string } => {
   if (!state.activeTaskRunId) {
     return { ok: false, failureReason: `Step "${stepId}" cannot dispatch without activeTaskRunId.` };
@@ -108,28 +116,35 @@ const buildBranchFieldValues = (input: {
   };
 };
 
+const resolvePromptContractForAiStep = (step: AiStep) => {
+  if (!step.promptContractId) {
+    return { ok: false as const, failureReason: `AI step "${step.stepId}" is missing promptContractId.` };
+  }
+  const promptContract = tryGetPromptContractCatalogEntry(step.promptContractId);
+  return promptContract
+    ? { ok: true as const, promptContract }
+    : { ok: false as const, failureReason: `AI step "${step.stepId}" prompt_contract_resolution_failed for ${step.promptContractId}.` };
+};
+
 const resolveAiDispatchRequirements = (input: {
   state: MissionState;
   map: OperationalMap;
   step: AiStep;
-}): { ok: true; value: { taskType: string; promptContractVersion: string; outputSchemaRef: string; aiInputRefs: string[]; providerPolicyRef: string } } | { ok: false; failureReason: string } => {
+}): { ok: true; value: AiDispatchRequirements } | { ok: false; failureReason: string } => {
   const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
   if (!registration) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
   }
-  if (!input.step.promptContractId) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing promptContractId.` };
-  }
-  const promptContract = tryGetPromptContractCatalogEntry(input.step.promptContractId);
-  if (!promptContract) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" prompt_contract_resolution_failed for ${input.step.promptContractId}.` };
+  const promptContractResult = resolvePromptContractForAiStep(input.step);
+  if (!promptContractResult.ok) {
+    return promptContractResult;
   }
 
   const binding = registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
   if (!binding) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
   }
-  if (binding.outputSchemaRef !== promptContract.outputSchemaRef) {
+  if (binding.outputSchemaRef !== promptContractResult.promptContract.outputSchemaRef) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
   }
 
@@ -145,7 +160,7 @@ const resolveAiDispatchRequirements = (input: {
   return {
     ok: true,
     value: {
-      taskType: promptContract.taskType,
+      taskType: promptContractResult.promptContract.taskType,
       promptContractVersion: input.state.promptContractVersion,
       outputSchemaRef: binding.outputSchemaRef,
       aiInputRefs: aiInputRefs as string[],

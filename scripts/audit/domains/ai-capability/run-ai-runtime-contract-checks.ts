@@ -33,6 +33,21 @@ const REQUIRED_EXECUTOR_CALLS = [
   { callName: "buildAiResult", file: `${AI_ROOT}/runtime/ai-terminal-result.ts` },
 ] as const;
 
+const INPUT_SCHEMA_DIAGNOSTIC_REQUIRED_SNIPPETS = [
+  "buildInputSchemaDiagnostics",
+  "schemaIssueRef",
+  "missingRequiredFields",
+  "invalidFieldPaths",
+  "actionableMessage",
+] as const;
+
+const INPUT_SCHEMA_DIAGNOSTIC_FORBIDDEN_SNIPPETS = [
+  "base64",
+  "rawPrompt",
+  "cookie",
+  "token",
+] as const;
+
 const findRequiredExecutorCalls = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   for (const { callName, file } of REQUIRED_EXECUTOR_CALLS) {
@@ -50,17 +65,14 @@ const hasDispatchFailureContract = (sourceFile: SourceFile): boolean => {
   return sourceFile.getExportedDeclarations().has("dispatchAiFailure") && hasNamedImport;
 };
 
+const includesAllSnippets = (text: string, snippets: readonly string[]): boolean => snippets.every((snippet) => text.includes(snippet));
+
+const excludesAllSnippets = (text: string, snippets: readonly string[]): boolean => snippets.every((snippet) => !text.includes(snippet));
+
 const hasInputSchemaDiagnostics = (sourceFile: SourceFile): boolean => {
   const text = sourceFile.getFullText();
-  return text.includes("buildInputSchemaDiagnostics")
-    && text.includes("schemaIssueRef")
-    && text.includes("missingRequiredFields")
-    && text.includes("invalidFieldPaths")
-    && text.includes("actionableMessage")
-    && !text.includes("base64")
-    && !text.includes("rawPrompt")
-    && !text.includes("cookie")
-    && !text.includes("token");
+  return includesAllSnippets(text, INPUT_SCHEMA_DIAGNOSTIC_REQUIRED_SNIPPETS)
+    && excludesAllSnippets(text, INPUT_SCHEMA_DIAGNOSTIC_FORBIDDEN_SNIPPETS);
 };
 
 const findRuntimeContractViolations = (project: Project): Finding[] => {
