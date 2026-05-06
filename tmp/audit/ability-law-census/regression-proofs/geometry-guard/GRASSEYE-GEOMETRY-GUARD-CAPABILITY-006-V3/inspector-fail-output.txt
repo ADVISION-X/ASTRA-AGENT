@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3 src/capabilities/geometry-guard/runtime/geometry-result-builder.ts:1 Geometry Guard result builder must preserve chain parity, output boundary, and runtime proof truth.

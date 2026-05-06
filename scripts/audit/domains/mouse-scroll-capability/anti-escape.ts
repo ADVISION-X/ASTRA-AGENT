@@ -58,31 +58,31 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
 
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
   return !resultBuilderSource || !hasVariableDeclaration(resultBuilderSource, "runtimeProof")
-    ? [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must preserve the proof builder output." })]
+    ? [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must preserve the proof builder output." })]
     : [];
 }
 
 function collectAbortControllerFindings(iterationSource: ReturnType<typeof getSourceFile>): Finding[] {
   return !iterationSource || !iterationSource.getFullText().includes("AbortController")
-    ? [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must allocate AbortController." })]
+    ? [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must allocate AbortController." })]
     : [];
 }
 
 function collectPortCallFindings(portCallSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!portCallSource) {
-    return [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive timeout port-call stage is missing." })];
+    return [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive timeout port-call stage is missing." })];
   }
 
   const fullText = portCallSource.getFullText();
   const findings: Finding[] = [];
   if (!fullText.includes("setTimeout(")) {
-    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must arm a timeout timer before calling the primitive port." }));
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must arm a timeout timer before calling the primitive port." }));
   }
   if (!fullText.includes("abortController.abort")) {
-    findings.push(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must abort timed-out primitive calls." }));
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must abort timed-out primitive calls." }));
   }
   return hasComputedScrollEscape(fullText)
-    ? findings.concat(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must not hide scroll execution behind computed property access." }))
+    ? findings.concat(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER_PORT_CALL, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must not hide scroll execution behind computed property access." }))
     : findings;
 }
 
@@ -91,7 +91,7 @@ function collectConcurrencyFindings(
   runnerStateSource: ReturnType<typeof getSourceFile>,
 ): Finding[] {
   return !runnerGuardSource || !runnerStateSource || !hasVariableDeclaration(runnerStateSource, "MAX_CONCURRENT_SCROLLS") || !runnerGuardSource.getFullText().includes("isPrimitiveConcurrencyBlocked")
-    ? [createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must enforce max concurrent scrolls." })]
+    ? [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RUNNER, line: 1, severity: "fatal", message: "Mouse Scroll primitive runner must enforce max concurrent scrolls." })]
     : [];
 }
 

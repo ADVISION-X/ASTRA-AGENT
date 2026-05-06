@@ -1,0 +1,8 @@
+scenarioId: negative-proof-invocation-removed
+mutationName: negative-proof-invocation-removed
+mutatedFile: scripts/audit/domains/post-action-verification-capability/inspector.ts
+rollbackRestoredHash: sha256:e4fe2c970e4b814d7d3dcb096eedc989cb9b666f349ae7fff7a6ee2dbcc1a69e
+startedAt: 2026-05-06T04:34:04.799Z
+endedAt: 2026-05-06T04:34:12.182Z
+
+Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

@@ -126,14 +126,17 @@ function collectExecutorFindings(executorSource: ReturnType<typeof getSourceFile
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
   const resultBuilderText = resultBuilderSource?.getFullText() ?? "";
   const findings: Finding[] = [];
-  if (!resultBuilderSource || !hasCallExpression(resultBuilderSource, "buildMouseClickRuntimeProof") || !hasCallExpressionPath(resultBuilderSource, ["MouseClickAbilityResultSchema", "parse"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must use proof builder and parse the governed result." }));
+  if (!resultBuilderSource || !hasCallExpressionPath(resultBuilderSource, ["MouseClickAbilityResultSchema", "parse"])) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must parse the governed result shape before returning success, failure, or review_required." }));
+  }
+  if (!resultBuilderSource || !hasCallExpression(resultBuilderSource, "buildMouseClickRuntimeProof")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the governed runtime proof output." }));
   }
   if (!resultBuilderText.includes("diagnosticPayloadRef")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve diagnosticPayloadRef and postActionVerificationHandoffRef." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve diagnosticPayloadRef for non-success outcomes." }));
   }
   if (!resultBuilderText.includes(RESULT_BUILDER_HANDOFF_BLOCK)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the top-level postActionVerificationHandoffRef handoff block." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the top-level postActionVerificationHandoffRef handoff block." }));
   }
   return findings;
 }
@@ -142,13 +145,13 @@ function collectProofBuilderFindings(proofBuilderSource: ReturnType<typeof getSo
   const proofBuilderText = proofBuilderSource?.getFullText() ?? "";
   const findings: Finding[] = [];
   if (!proofBuilderSource || !hasCallExpressionPath(proofBuilderSource, ["MouseClickRuntimeProofSchema", "parse"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must parse runtime proof output." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must parse runtime proof output." }));
   }
   if (!proofBuilderText.includes("runId: input.runId") || !proofBuilderText.includes("missionId: input.missionId")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must read missionId/runId from input chain." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must read missionId/runId from input chain." }));
   }
   if (proofBuilderText.includes('buildStableMouseClickRef("mouse-click-run"')) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must not fabricate runId from attemptRef/childCapabilityId." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Click proof builder must not fabricate runId from attemptRef/childCapabilityId." }));
   }
   return findings;
 }

@@ -139,8 +139,9 @@ const getEnclosingFunctionName = (node: MorphNode): string => {
   return variableDeclaration?.getName() ?? "anonymous";
 };
 
-const appendDeclaredLawIds = (sourceFile: SourceFile, kind: SyntaxKind, lawIds: Set<string>) => {
-  for (const literal of sourceFile.getDescendantsOfKind(kind)) {
+const appendDeclaredLawIds = (literals: readonly MorphNode[], lawIds: Set<string>) => {
+  for (const literal of literals) {
+    if (!Node.isStringLiteral(literal) && !Node.isNoSubstitutionTemplateLiteral(literal)) continue;
     const value = literal.getLiteralText();
     if (LAW_ID_PATTERN.test(value)) lawIds.add(value);
   }
@@ -155,8 +156,8 @@ const appendResolvedLawIds = (sourceFile: SourceFile, kind: SyntaxKind, lawIds: 
 
 const collectDeclaredLawIds = (sourceFile: SourceFile): string[] => {
   const lawIds = new Set<string>();
-  appendDeclaredLawIds(sourceFile, SyntaxKind.StringLiteral, lawIds);
-  appendDeclaredLawIds(sourceFile, SyntaxKind.NoSubstitutionTemplateLiteral, lawIds);
+  appendDeclaredLawIds(sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral), lawIds);
+  appendDeclaredLawIds(sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral), lawIds);
   appendResolvedLawIds(sourceFile, SyntaxKind.ElementAccessExpression, lawIds);
   appendResolvedLawIds(sourceFile, SyntaxKind.PropertyAccessExpression, lawIds);
   return [...lawIds];
@@ -177,7 +178,8 @@ const getLawIdPropertyInitializer = (property: PropertyAssignment | ShorthandPro
 
 const getLawIdCarrierArgument = (callExpression: CallExpression): ObjectLiteralExpression | null => {
   for (const argument of callExpression.getArguments()) {
-    const lawIdProperty = Node.isObjectLiteralExpression(argument) ? argument.getProperty("lawId") : null;
+    if (!Node.isObjectLiteralExpression(argument)) continue;
+    const lawIdProperty = argument.getProperty("lawId");
     if (isLawIdProperty(lawIdProperty)) return argument;
   }
   return null;

@@ -1,0 +1,6 @@
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: Mouse Scroll law baseline drifted away from the active enforcement contract.
+
+FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2 .github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md:1 Mouse Scroll active laws must remain machine-blocking.

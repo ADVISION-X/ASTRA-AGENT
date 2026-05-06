@@ -1,0 +1,8 @@
+scenarioId: proof-runid-from-session-child
+mutationName: proof-runId-from-session-child
+mutatedFile: src/capabilities/geometry-guard/runtime/geometry-proof-builder.ts
+rollbackRestoredHash: sha256:187987855fc0bb4c04a41aef1eb7f9adc5e9b3e44a3f7b65547e3b6efb8af1b3
+startedAt: 2026-05-06T04:21:28.944Z
+endedAt: 2026-05-06T04:21:35.079Z
+
+Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

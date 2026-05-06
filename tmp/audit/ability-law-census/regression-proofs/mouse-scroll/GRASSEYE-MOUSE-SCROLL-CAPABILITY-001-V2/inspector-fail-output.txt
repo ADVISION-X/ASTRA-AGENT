@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Mouse Scroll ownership drifted into public contract leaks, external scroll owners, or final action-log/business-verb truth.
+
+FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2 src/lib/local-runtime/workbench-mouse-scroll-runtime.ts:1 Platform adapters, runtime, and browser helpers must not own scroll strategy or call browser scroll primitives directly.

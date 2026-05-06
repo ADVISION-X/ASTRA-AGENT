@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3 src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts:1 Mouse Click and Mouse Scroll must not remap scaleMapping or recompute executable geometry downstream.

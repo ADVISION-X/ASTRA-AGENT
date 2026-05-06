@@ -5,6 +5,7 @@ import { createPendingDomainInspector } from "../_shared/create-pending-domain-i
 
 import { openInspectionConstants } from "./inspection-constants.js";
 import { runOpenEnforcementCoverage } from "./enforcement-coverage.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runOpenBoundaryChecks } from "./run-open-boundary-checks.js";
 import { runOpenExternalBoundaryChecks } from "./run-open-external-boundary-checks.js";
 import { runOpenRequiredShapeChecks } from "./run-open-required-shape-checks.js";
@@ -14,6 +15,8 @@ const {
   INSPECTOR_ENTRY,
   OPEN_ROOT,
 } = openInspectionConstants;
+
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_OPEN_NEGATIVE_PROOF";
 
 const createRequiredPhase = (input: { findings: Finding[]; openRootBound: boolean }): InspectorPhase => {
   const passed = input.openRootBound && input.findings.length === 0;
@@ -70,6 +73,17 @@ const runOpenExtraChecks = async (context: import("../../core/schema.js").Inspec
   const boundary = runOpenBoundaryChecks(project);
   const { platformBoundary, browserBoundary } = await runOpenExternalBoundaryChecks();
   const enforcementCoverage = await runOpenEnforcementCoverage(context);
+  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+    ? {
+        findings: [],
+        phase: {
+          name: "negative-proof-harness",
+          classification: "PASS" as const,
+          passed: true,
+          summary: "Open negative-proof harness was skipped for nested inspector execution.",
+        },
+      }
+    : await runNegativeProofHarness();
   const findings = [
     ...requiredShape.findings,
     ...runtimeFindings,
@@ -78,6 +92,7 @@ const runOpenExtraChecks = async (context: import("../../core/schema.js").Inspec
     ...platformBoundary.findings,
     ...browserBoundary.findings,
     ...enforcementCoverage.findings,
+    ...negativeProof.findings,
   ];
 
   return {
@@ -90,6 +105,7 @@ const runOpenExtraChecks = async (context: import("../../core/schema.js").Inspec
       ...platformBoundary.phases,
       ...browserBoundary.phases,
       enforcementCoverage.phase,
+      negativeProof.phase,
     ],
   };
 };

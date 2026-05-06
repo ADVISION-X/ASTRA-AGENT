@@ -1,0 +1,2564 @@
+diff --git a/src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json b/src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json
+index 00f937c..243adda 100644
+--- a/src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json
++++ b/src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json
+@@ -24,10 +24,22 @@
+     "recommended": false,
+     "taskCategory": "local-program-visual-seeding-video-discovery",
+     "version": "1.0.0",
+-    "defaultRunLimit": { "maxRounds": 2, "maxMinutes": 20 },
+-    "maxAllowedRunLimit": { "maxRounds": 5, "maxMinutes": 45 },
++    "defaultRunLimit": {
++      "maxRounds": 2,
++      "maxMinutes": 20
++    },
++    "maxAllowedRunLimit": {
++      "maxRounds": 5,
++      "maxMinutes": 45
++    },
+     "safetyLevel": "local-visual-readonly",
+-    "userVisibleCapabilities": ["Open iPhone Mirroring", "Navigate visible Facebook app safely", "Classify visible video frames", "Persist governed evidence", "Request review on uncertainty"],
++    "userVisibleCapabilities": [
++      "Open iPhone Mirroring",
++      "Navigate visible Facebook app safely",
++      "Classify visible video frames",
++      "Persist governed evidence",
++      "Request review on uncertainty"
++    ],
+     "availabilityPolicy": "active",
+     "requestedPlatformId": "iphone-mirroring-facebook-app",
+     "platformProfileRef": "macos-local:iphone-mirroring",
+@@ -38,120 +50,2440 @@
+     "mapId": "iphone.mirroring.facebook.seeding-video.discovery.v1",
+     "displayName": "iPhone Mirroring Facebook Seeding Video Discovery",
+     "humanGoal": "Open iPhone Mirroring, use visual targeting to open the Facebook app and video surface, sample visible frames, classify product-seeding signals, persist evidence, scroll safely, and review on ambiguity.",
+-    "allowedAbilityGroups": ["open", "post-action-verification", "screenshot", "page-state", "visual-target", "geometry-guard", "mouse-click", "ai", "forensics-persistence", "mouse-scroll"],
++    "allowedAbilityGroups": [
++      "open",
++      "post-action-verification",
++      "screenshot",
++      "page-state",
++      "visual-target",
++      "geometry-guard",
++      "mouse-click",
++      "ai",
++      "forensics-persistence",
++      "mouse-scroll"
++    ],
+     "initialStepId": "open-iphone-mirroring",
+     "steps": [
+-      { "stepId": "open-iphone-mirroring", "capabilityId": "orchestration", "childCapabilityId": "open-local-program", "stepKind": "ability", "targetAbilityGroupId": "open", "inputRefs": ["requestedPlatformId", "sourceTargetRef", "targetTitle"], "outputRefPolicy": { "storeAs": ["sourceEvidenceRef", "abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "open-iphone-mirroring:failed", "reviewBranch": "open-iphone-mirroring:review", "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "local-app-window-handoff", "timeoutMs": 5000, "onPassTransitionId": "verify-iphone-mirroring-window-opened:success", "onFailTransitionId": "verify-iphone-mirroring-window-opened:failed", "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:review" }, "timeoutPolicy": { "maxDurationMs": 15000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "verify-iphone-mirroring-window-opened", "capabilityId": "orchestration", "childCapabilityId": "verify-action-result", "stepKind": "ability", "targetAbilityGroupId": "post-action-verification", "inputRefs": ["abilityResultRef", "sourceEvidenceRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "verify-iphone-mirroring-window-opened:failed", "reviewBranch": "verify-iphone-mirroring-window-opened:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "capture-iphone-mirroring-window-overview", "capabilityId": "orchestration", "childCapabilityId": "capture-desktop-screen", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["sourceEvidenceRef", "targetTitle"], "outputRefPolicy": { "storeAs": ["screenshotEvidenceRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "capture-iphone-mirroring-window-overview:failed", "reviewBranch": "capture-iphone-mirroring-window-overview:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "detect-local-app-window-state", "capabilityId": "orchestration", "childCapabilityId": "detect-platform-page-kind", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "sourceEvidenceRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-local-app-window-state:failed", "reviewBranch": "detect-local-app-window-state:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "detect-modal-overlay-state", "capabilityId": "orchestration", "childCapabilityId": "detect-modal-overlay-state", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "pageStateRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-modal-overlay-state:failed", "reviewBranch": "detect-modal-overlay-state:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "locate-facebook-app-icon", "capabilityId": "orchestration", "childCapabilityId": "detect-next-video-region", "stepKind": "ability", "targetAbilityGroupId": "visual-target", "inputRefs": ["screenshotEvidenceRef", "pageStateRef"], "outputRefPolicy": { "storeAs": ["visualTargetRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "locate-facebook-app-icon:failed", "reviewBranch": "locate-facebook-app-icon:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "validate-facebook-app-icon-geometry", "capabilityId": "orchestration", "childCapabilityId": "validate-click-point", "stepKind": "ability", "targetAbilityGroupId": "geometry-guard", "inputRefs": ["visualTargetRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["geometryProofRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "validate-facebook-app-icon-geometry:failed", "reviewBranch": "validate-facebook-app-icon-geometry:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "click-facebook-app-icon", "capabilityId": "orchestration", "childCapabilityId": "click-desktop-coordinate", "stepKind": "ability", "targetAbilityGroupId": "mouse-click", "inputRefs": ["visualTargetRef", "geometryProofRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "click-facebook-app-icon:failed", "reviewBranch": "click-facebook-app-icon:review", "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "target-app-opened", "timeoutMs": 8000, "onPassTransitionId": "verify-target-app-opened:success", "onFailTransitionId": "verify-target-app-opened:failed", "onAmbiguousTransitionId": "verify-target-app-opened:review" }, "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "verify-target-app-opened", "capabilityId": "orchestration", "childCapabilityId": "verify-action-result", "stepKind": "ability", "targetAbilityGroupId": "post-action-verification", "inputRefs": ["abilityResultRef", "visualTargetRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "verify-target-app-opened:failed", "reviewBranch": "verify-target-app-opened:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "detect-app-feed-or-home-state", "capabilityId": "orchestration", "childCapabilityId": "detect-feed-ready", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "sourceEvidenceRef", "abilityResultRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-app-feed-or-home-state:failed", "reviewBranch": "detect-app-feed-or-home-state:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "capture-target-app-overview", "capabilityId": "orchestration", "childCapabilityId": "capture-region", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["pageStateRef", "sourceEvidenceRef"], "outputRefPolicy": { "storeAs": ["screenshotEvidenceRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "capture-target-app-overview:failed", "reviewBranch": "capture-target-app-overview:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "locate-video-tab-or-feed-entry", "capabilityId": "orchestration", "childCapabilityId": "detect-next-video-region", "stepKind": "ability", "targetAbilityGroupId": "visual-target", "inputRefs": ["screenshotEvidenceRef", "pageStateRef"], "outputRefPolicy": { "storeAs": ["visualTargetRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "locate-video-tab-or-feed-entry:failed", "reviewBranch": "locate-video-tab-or-feed-entry:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "validate-video-tab-click", "capabilityId": "orchestration", "childCapabilityId": "validate-click-point", "stepKind": "ability", "targetAbilityGroupId": "geometry-guard", "inputRefs": ["visualTargetRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["geometryProofRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "validate-video-tab-click:failed", "reviewBranch": "validate-video-tab-click:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "click-video-tab-or-feed-entry", "capabilityId": "orchestration", "childCapabilityId": "click-desktop-coordinate", "stepKind": "ability", "targetAbilityGroupId": "mouse-click", "inputRefs": ["visualTargetRef", "geometryProofRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "click-video-tab-or-feed-entry:failed", "reviewBranch": "click-video-tab-or-feed-entry:review", "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "video-feed-ready", "timeoutMs": 8000, "onPassTransitionId": "verify-video-feed-ready:success", "onFailTransitionId": "verify-video-feed-ready:failed", "onAmbiguousTransitionId": "verify-video-feed-ready:review" }, "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "verify-video-feed-ready", "capabilityId": "orchestration", "childCapabilityId": "verify-action-result", "stepKind": "ability", "targetAbilityGroupId": "post-action-verification", "inputRefs": ["abilityResultRef", "visualTargetRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "verify-video-feed-ready:failed", "reviewBranch": "verify-video-feed-ready:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "detect-video-stable", "capabilityId": "orchestration", "childCapabilityId": "detect-video-stable", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "pageStateRef", "abilityResultRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-video-stable:failed", "reviewBranch": "detect-video-stable:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "detect-page-abnormality", "capabilityId": "orchestration", "childCapabilityId": "detect-page-abnormality", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "pageStateRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-page-abnormality:failed", "reviewBranch": "detect-page-abnormality:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "sample-video-frames", "capabilityId": "orchestration", "childCapabilityId": "capture-region", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["pageStateRef", "abilityResultRef"], "outputRefPolicy": { "storeAs": ["screenshotEvidenceRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "sample-video-frames:failed", "reviewBranch": "sample-video-frames:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "prepare-video-ai-input", "capabilityId": "orchestration", "childCapabilityId": "prepare-ai-input", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["promptInputRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "prepare-video-ai-input:failed", "reviewBranch": "prepare-video-ai-input:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "judge-product-seeding-video", "capabilityId": "orchestration", "childCapabilityId": "product-presence-judgment", "stepKind": "ai", "targetAbilityGroupId": "ai", "inputRefs": ["promptInputRef"], "outputRefPolicy": { "storeAs": ["aiResultRef"] }, "promptContractId": "vision.productPresence.v1", "successCondition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "equals", "rightValue": "product_yes" }, "failureBranch": "judge-product-seeding-video:failed", "reviewBranch": "judge-product-seeding-video:review", "timeoutPolicy": { "maxDurationMs": 15000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "summarize-product-signal", "capabilityId": "orchestration", "childCapabilityId": "product-signal-summary", "stepKind": "ai", "targetAbilityGroupId": "ai", "inputRefs": ["aiResultRef"], "outputRefPolicy": { "storeAs": ["aiResultRef"] }, "promptContractId": "product.signal_summary.v1", "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "summarize-product-signal:failed", "reviewBranch": "summarize-product-signal:review", "timeoutPolicy": { "maxDurationMs": 15000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "write-ai-result-record", "capabilityId": "orchestration", "childCapabilityId": "write-ai-result-record", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["aiResultRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "write-ai-result-record:failed", "reviewBranch": "write-ai-result-record:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "write-product-video-evidence", "capabilityId": "orchestration", "childCapabilityId": "write-evidence-record", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["screenshotEvidenceRef", "aiResultRef", "abilityResultRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "write-product-video-evidence:failed", "reviewBranch": "write-product-video-evidence:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "locate-next-video-scroll-region", "capabilityId": "orchestration", "childCapabilityId": "detect-next-video-region", "stepKind": "ability", "targetAbilityGroupId": "visual-target", "inputRefs": ["screenshotEvidenceRef", "pageStateRef"], "outputRefPolicy": { "storeAs": ["visualTargetRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "locate-next-video-scroll-region:failed", "reviewBranch": "locate-next-video-scroll-region:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "validate-scroll-geometry", "capabilityId": "orchestration", "childCapabilityId": "validate-desktop-screen-bounds", "stepKind": "ability", "targetAbilityGroupId": "geometry-guard", "inputRefs": ["visualTargetRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["geometryProofRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "validate-scroll-geometry:failed", "reviewBranch": "validate-scroll-geometry:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "scroll-next-video", "capabilityId": "orchestration", "childCapabilityId": "scroll-desktop-screen", "stepKind": "ability", "targetAbilityGroupId": "mouse-scroll", "inputRefs": ["visualTargetRef", "geometryProofRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "scroll-next-video:failed", "reviewBranch": "scroll-next-video:review", "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "video-changed", "timeoutMs": 5000, "onPassTransitionId": "verify-video-changed:success", "onFailTransitionId": "verify-video-changed:failed", "onAmbiguousTransitionId": "verify-video-changed:review" }, "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "verify-video-changed", "capabilityId": "orchestration", "childCapabilityId": "verify-video-changed-after-scroll", "stepKind": "ability", "targetAbilityGroupId": "post-action-verification", "inputRefs": ["abilityResultRef", "visualTargetRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "verify-video-changed:failed", "reviewBranch": "verify-video-changed:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "finalize-evidence-packet", "capabilityId": "orchestration", "childCapabilityId": "finalize-evidence-packet", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["abilityResultRef", "aiResultRef", "screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "finalize-evidence-packet:failed", "reviewBranch": "finalize-evidence-packet:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "finalize-browse-ledger", "capabilityId": "orchestration", "childCapabilityId": "finalize-browse-ledger", "stepKind": "ability", "targetAbilityGroupId": "forensics-persistence", "inputRefs": ["abilityResultRef", "runtimeLogRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "finalize-browse-ledger:failed", "reviewBranch": "finalize-browse-ledger:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "request-human-review", "capabilityId": "orchestration", "childCapabilityId": "request-human-review", "stepKind": "review", "targetAbilityGroupId": null, "inputRefs": ["screenshotEvidenceRef", "aiResultRef", "abilityResultRef"], "outputRefPolicy": { "storeAs": ["reviewReasonRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "failureBranch": "request-human-review:failed", "reviewBranch": "request-human-review:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+-      { "stepId": "finalize-mission", "capabilityId": "orchestration", "childCapabilityId": "finalize-mission", "stepKind": "finalize", "targetAbilityGroupId": null, "inputRefs": ["abilityResultRef"], "outputRefPolicy": { "storeAs": [] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "finalize-mission:failed", "reviewBranch": "finalize-mission:review", "timeoutPolicy": { "maxDurationMs": 1000 }, "proofPolicy": { "requiresRuntimeProof": true } }
++      {
++        "stepId": "open-iphone-mirroring",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "open-local-program",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "open",
++        "inputRefs": [
++          "requestedPlatformId",
++          "sourceTargetRef",
++          "targetTitle"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "sourceEvidenceRef",
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "open-iphone-mirroring:missing-failed-transition",
++        "reviewBranch": "open-iphone-mirroring:review",
++        "postActionVerification": {
++          "required": true,
++          "verificationKind": "result-signal",
++          "expectedSignal": "local-app-window-handoff",
++          "timeoutMs": 5000,
++          "onPassTransitionId": "verify-iphone-mirroring-window-opened:success",
++          "onFailTransitionId": "verify-iphone-mirroring-window-opened:failed",
++          "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:review"
++        },
++        "timeoutPolicy": {
++          "maxDurationMs": 15000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "verify-iphone-mirroring-window-opened",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "verify-action-result",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "post-action-verification",
++        "inputRefs": [
++          "abilityResultRef",
++          "sourceEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "verify-iphone-mirroring-window-opened:failed",
++        "reviewBranch": "verify-iphone-mirroring-window-opened:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "capture-iphone-mirroring-window-overview",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "capture-desktop-screen",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "screenshot",
++        "inputRefs": [
++          "sourceEvidenceRef",
++          "targetTitle"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "screenshotEvidenceRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "capture-iphone-mirroring-window-overview:failed",
++        "reviewBranch": "capture-iphone-mirroring-window-overview:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "detect-local-app-window-state",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-platform-page-kind",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "page-state",
++        "inputRefs": [
++          "requestedPlatformId",
++          "sourceEvidenceRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "pageStateRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "detect-local-app-window-state:failed",
++        "reviewBranch": "detect-local-app-window-state:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "detect-modal-overlay-state",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-modal-overlay-state",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "page-state",
++        "inputRefs": [
++          "requestedPlatformId",
++          "pageStateRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "pageStateRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "detect-modal-overlay-state:failed",
++        "reviewBranch": "detect-modal-overlay-state:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "locate-facebook-app-icon",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-next-video-region",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "visual-target",
++        "inputRefs": [
++          "screenshotEvidenceRef",
++          "pageStateRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "visualTargetRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "locate-facebook-app-icon:failed",
++        "reviewBranch": "locate-facebook-app-icon:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 8000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "validate-facebook-app-icon-geometry",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "validate-click-point",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "geometry-guard",
++        "inputRefs": [
++          "visualTargetRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "geometryProofRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "validate-facebook-app-icon-geometry:failed",
++        "reviewBranch": "validate-facebook-app-icon-geometry:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "click-facebook-app-icon",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "click-desktop-coordinate",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "mouse-click",
++        "inputRefs": [
++          "visualTargetRef",
++          "geometryProofRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "click-facebook-app-icon:failed",
++        "reviewBranch": "click-facebook-app-icon:review",
++        "postActionVerification": {
++          "required": true,
++          "verificationKind": "result-signal",
++          "expectedSignal": "target-app-opened",
++          "timeoutMs": 8000,
++          "onPassTransitionId": "verify-target-app-opened:success",
++          "onFailTransitionId": "verify-target-app-opened:failed",
++          "onAmbiguousTransitionId": "verify-target-app-opened:review"
++        },
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "verify-target-app-opened",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "verify-action-result",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "post-action-verification",
++        "inputRefs": [
++          "abilityResultRef",
++          "visualTargetRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "verify-target-app-opened:failed",
++        "reviewBranch": "verify-target-app-opened:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 8000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "detect-app-feed-or-home-state",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-feed-ready",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "page-state",
++        "inputRefs": [
++          "requestedPlatformId",
++          "sourceEvidenceRef",
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "pageStateRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "detect-app-feed-or-home-state:failed",
++        "reviewBranch": "detect-app-feed-or-home-state:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "capture-target-app-overview",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "capture-region",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "screenshot",
++        "inputRefs": [
++          "pageStateRef",
++          "sourceEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "screenshotEvidenceRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "capture-target-app-overview:failed",
++        "reviewBranch": "capture-target-app-overview:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "locate-video-tab-or-feed-entry",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-next-video-region",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "visual-target",
++        "inputRefs": [
++          "screenshotEvidenceRef",
++          "pageStateRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "visualTargetRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "locate-video-tab-or-feed-entry:failed",
++        "reviewBranch": "locate-video-tab-or-feed-entry:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 8000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "validate-video-tab-click",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "validate-click-point",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "geometry-guard",
++        "inputRefs": [
++          "visualTargetRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "geometryProofRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "validate-video-tab-click:failed",
++        "reviewBranch": "validate-video-tab-click:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "click-video-tab-or-feed-entry",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "click-desktop-coordinate",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "mouse-click",
++        "inputRefs": [
++          "visualTargetRef",
++          "geometryProofRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "click-video-tab-or-feed-entry:failed",
++        "reviewBranch": "click-video-tab-or-feed-entry:review",
++        "postActionVerification": {
++          "required": true,
++          "verificationKind": "result-signal",
++          "expectedSignal": "video-feed-ready",
++          "timeoutMs": 8000,
++          "onPassTransitionId": "verify-video-feed-ready:success",
++          "onFailTransitionId": "verify-video-feed-ready:failed",
++          "onAmbiguousTransitionId": "verify-video-feed-ready:review"
++        },
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "verify-video-feed-ready",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "verify-action-result",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "post-action-verification",
++        "inputRefs": [
++          "abilityResultRef",
++          "visualTargetRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "verify-video-feed-ready:failed",
++        "reviewBranch": "verify-video-feed-ready:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 8000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "detect-video-stable",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-video-stable",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "page-state",
++        "inputRefs": [
++          "requestedPlatformId",
++          "pageStateRef",
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "pageStateRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "detect-video-stable:failed",
++        "reviewBranch": "detect-video-stable:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "detect-page-abnormality",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-page-abnormality",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "page-state",
++        "inputRefs": [
++          "requestedPlatformId",
++          "pageStateRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "pageStateRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "detect-page-abnormality:failed",
++        "reviewBranch": "detect-page-abnormality:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "sample-video-frames",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "capture-region",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "screenshot",
++        "inputRefs": [
++          "pageStateRef",
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "screenshotEvidenceRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "sample-video-frames:failed",
++        "reviewBranch": "sample-video-frames:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "prepare-video-ai-input",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "prepare-ai-input",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "screenshot",
++        "inputRefs": [
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "promptInputRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "prepare-video-ai-input:failed",
++        "reviewBranch": "prepare-video-ai-input:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "judge-product-seeding-video",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "product-presence-judgment",
++        "stepKind": "ai",
++        "targetAbilityGroupId": "ai",
++        "inputRefs": [
++          "promptInputRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "aiResultRef"
++          ]
++        },
++        "promptContractId": "vision.productPresence.v1",
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "schemaFieldRef:decision",
++          "operator": "equals",
++          "rightValue": "product_yes"
++        },
++        "failureBranch": "judge-product-seeding-video:failed",
++        "reviewBranch": "judge-product-seeding-video:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 15000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "summarize-product-signal",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "product-signal-summary",
++        "stepKind": "ai",
++        "targetAbilityGroupId": "ai",
++        "inputRefs": [
++          "aiResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "aiResultRef"
++          ]
++        },
++        "promptContractId": "product.signal_summary.v1",
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "summarize-product-signal:failed",
++        "reviewBranch": "summarize-product-signal:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 15000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "write-ai-result-record",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "write-ai-result-record",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "forensics-persistence",
++        "inputRefs": [
++          "aiResultRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "write-ai-result-record:failed",
++        "reviewBranch": "write-ai-result-record:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "write-product-video-evidence",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "write-evidence-record",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "forensics-persistence",
++        "inputRefs": [
++          "screenshotEvidenceRef",
++          "aiResultRef",
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "write-product-video-evidence:failed",
++        "reviewBranch": "write-product-video-evidence:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "locate-next-video-scroll-region",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "detect-next-video-region",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "visual-target",
++        "inputRefs": [
++          "screenshotEvidenceRef",
++          "pageStateRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "visualTargetRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "locate-next-video-scroll-region:failed",
++        "reviewBranch": "locate-next-video-scroll-region:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "validate-scroll-geometry",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "validate-desktop-screen-bounds",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "geometry-guard",
++        "inputRefs": [
++          "visualTargetRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "geometryProofRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "validate-scroll-geometry:failed",
++        "reviewBranch": "validate-scroll-geometry:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "scroll-next-video",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "scroll-desktop-screen",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "mouse-scroll",
++        "inputRefs": [
++          "visualTargetRef",
++          "geometryProofRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "scroll-next-video:failed",
++        "reviewBranch": "scroll-next-video:review",
++        "postActionVerification": {
++          "required": true,
++          "verificationKind": "result-signal",
++          "expectedSignal": "video-changed",
++          "timeoutMs": 5000,
++          "onPassTransitionId": "verify-video-changed:success",
++          "onFailTransitionId": "verify-video-changed:failed",
++          "onAmbiguousTransitionId": "verify-video-changed:review"
++        },
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "verify-video-changed",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "verify-video-changed-after-scroll",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "post-action-verification",
++        "inputRefs": [
++          "abilityResultRef",
++          "visualTargetRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "verify-video-changed:failed",
++        "reviewBranch": "verify-video-changed:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 5000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "finalize-evidence-packet",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "finalize-evidence-packet",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "forensics-persistence",
++        "inputRefs": [
++          "abilityResultRef",
++          "aiResultRef",
++          "screenshotEvidenceRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "finalize-evidence-packet:failed",
++        "reviewBranch": "finalize-evidence-packet:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "finalize-browse-ledger",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "finalize-browse-ledger",
++        "stepKind": "ability",
++        "targetAbilityGroupId": "forensics-persistence",
++        "inputRefs": [
++          "abilityResultRef",
++          "runtimeLogRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "abilityResultRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "finalize-browse-ledger:failed",
++        "reviewBranch": "finalize-browse-ledger:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "request-human-review",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "request-human-review",
++        "stepKind": "review",
++        "targetAbilityGroupId": null,
++        "inputRefs": [
++          "screenshotEvidenceRef",
++          "aiResultRef",
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": [
++            "reviewReasonRef"
++          ]
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "failureBranch": "request-human-review:failed",
++        "reviewBranch": "request-human-review:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 10000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      },
++      {
++        "stepId": "finalize-mission",
++        "capabilityId": "orchestration",
++        "childCapabilityId": "finalize-mission",
++        "stepKind": "finalize",
++        "targetAbilityGroupId": null,
++        "inputRefs": [
++          "abilityResultRef"
++        ],
++        "outputRefPolicy": {
++          "storeAs": []
++        },
++        "promptContractId": null,
++        "successCondition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "failureBranch": "finalize-mission:failed",
++        "reviewBranch": "finalize-mission:review",
++        "timeoutPolicy": {
++          "maxDurationMs": 1000
++        },
++        "proofPolicy": {
++          "requiresRuntimeProof": true
++        }
++      }
+     ],
+     "transitions": [
+-      { "transitionId": "open-iphone-mirroring:success", "fromStepId": "open-iphone-mirroring", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-iphone-mirroring-window-opened", "finalStatus": null },
+-      { "transitionId": "open-iphone-mirroring:failed", "fromStepId": "open-iphone-mirroring", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+-      { "transitionId": "open-iphone-mirroring:review", "fromStepId": "open-iphone-mirroring", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "verify-iphone-mirroring-window-opened:success", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "capture-iphone-mirroring-window-overview", "finalStatus": null },
+-      { "transitionId": "capture-iphone-mirroring-window-overview:success", "fromStepId": "capture-iphone-mirroring-window-overview", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-local-app-window-state", "finalStatus": null },
+-      { "transitionId": "detect-local-app-window-state:success", "fromStepId": "detect-local-app-window-state", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-modal-overlay-state", "finalStatus": null },
+-      { "transitionId": "detect-modal-overlay-state:success", "fromStepId": "detect-modal-overlay-state", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "locate-facebook-app-icon", "finalStatus": null },
+-      { "transitionId": "locate-facebook-app-icon:success", "fromStepId": "locate-facebook-app-icon", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "validate-facebook-app-icon-geometry", "finalStatus": null },
+-      { "transitionId": "validate-facebook-app-icon-geometry:success", "fromStepId": "validate-facebook-app-icon-geometry", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "click-facebook-app-icon", "finalStatus": null },
+-      { "transitionId": "click-facebook-app-icon:success", "fromStepId": "click-facebook-app-icon", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-target-app-opened", "finalStatus": null },
+-      { "transitionId": "verify-target-app-opened:success", "fromStepId": "verify-target-app-opened", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-app-feed-or-home-state", "finalStatus": null },
+-      { "transitionId": "detect-app-feed-or-home-state:success", "fromStepId": "detect-app-feed-or-home-state", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "capture-target-app-overview", "finalStatus": null },
+-      { "transitionId": "capture-target-app-overview:success", "fromStepId": "capture-target-app-overview", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "locate-video-tab-or-feed-entry", "finalStatus": null },
+-      { "transitionId": "locate-video-tab-or-feed-entry:success", "fromStepId": "locate-video-tab-or-feed-entry", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "validate-video-tab-click", "finalStatus": null },
+-      { "transitionId": "validate-video-tab-click:success", "fromStepId": "validate-video-tab-click", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "click-video-tab-or-feed-entry", "finalStatus": null },
+-      { "transitionId": "click-video-tab-or-feed-entry:success", "fromStepId": "click-video-tab-or-feed-entry", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-video-feed-ready", "finalStatus": null },
+-      { "transitionId": "verify-video-feed-ready:success", "fromStepId": "verify-video-feed-ready", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-video-stable", "finalStatus": null },
+-      { "transitionId": "detect-video-stable:success", "fromStepId": "detect-video-stable", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "detect-page-abnormality", "finalStatus": null },
+-      { "transitionId": "detect-page-abnormality:success", "fromStepId": "detect-page-abnormality", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "sample-video-frames", "finalStatus": null },
+-      { "transitionId": "sample-video-frames:success", "fromStepId": "sample-video-frames", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "prepare-video-ai-input", "finalStatus": null },
+-      { "transitionId": "prepare-video-ai-input:success", "fromStepId": "prepare-video-ai-input", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "judge-product-seeding-video", "finalStatus": null },
+-      { "transitionId": "judge-product-seeding-video:product", "fromStepId": "judge-product-seeding-video", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "equals", "rightValue": "product_yes" }, "toStepId": "summarize-product-signal", "finalStatus": null },
+-      { "transitionId": "judge-product-seeding-video:non-product", "fromStepId": "judge-product-seeding-video", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "notEquals", "rightValue": "product_yes" }, "toStepId": "locate-next-video-scroll-region", "finalStatus": null },
+-      { "transitionId": "summarize-product-signal:success", "fromStepId": "summarize-product-signal", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "write-ai-result-record", "finalStatus": null },
+-      { "transitionId": "write-ai-result-record:success", "fromStepId": "write-ai-result-record", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "write-product-video-evidence", "finalStatus": null },
+-      { "transitionId": "write-product-video-evidence:success", "fromStepId": "write-product-video-evidence", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "finalize-evidence-packet", "finalStatus": null },
+-      { "transitionId": "locate-next-video-scroll-region:success", "fromStepId": "locate-next-video-scroll-region", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "validate-scroll-geometry", "finalStatus": null },
+-      { "transitionId": "validate-scroll-geometry:success", "fromStepId": "validate-scroll-geometry", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "scroll-next-video", "finalStatus": null },
+-      { "transitionId": "scroll-next-video:success", "fromStepId": "scroll-next-video", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "verify-video-changed", "finalStatus": null },
+-      { "transitionId": "verify-video-changed:success", "fromStepId": "verify-video-changed", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "sample-video-frames", "finalStatus": null },
+-      { "transitionId": "finalize-evidence-packet:success", "fromStepId": "finalize-evidence-packet", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "finalize-browse-ledger", "finalStatus": null },
+-      { "transitionId": "finalize-browse-ledger:success", "fromStepId": "finalize-browse-ledger", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": "finalize-mission", "finalStatus": null },
+-      { "transitionId": "finalize-mission:completed", "fromStepId": "finalize-mission", "onStatus": "success", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "toStepId": null, "finalStatus": "completed" },
+-      { "transitionId": "request-human-review:review", "fromStepId": "request-human-review", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": null, "finalStatus": "review_required" },
+-      { "transitionId": "verify-iphone-mirroring-window-opened:failed", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+-      { "transitionId": "verify-iphone-mirroring-window-opened:review", "fromStepId": "verify-iphone-mirroring-window-opened", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "verify-target-app-opened:failed", "fromStepId": "verify-target-app-opened", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+-      { "transitionId": "verify-target-app-opened:review", "fromStepId": "verify-target-app-opened", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "verify-video-feed-ready:failed", "fromStepId": "verify-video-feed-ready", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+-      { "transitionId": "verify-video-feed-ready:review", "fromStepId": "verify-video-feed-ready", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "verify-video-changed:failed", "fromStepId": "verify-video-changed", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" },
+-      { "transitionId": "verify-video-changed:review", "fromStepId": "verify-video-changed", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "judge-product-seeding-video:review", "fromStepId": "judge-product-seeding-video", "onStatus": "review_required", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "review_required" }, "toStepId": "request-human-review", "finalStatus": null },
+-      { "transitionId": "judge-product-seeding-video:failed", "fromStepId": "judge-product-seeding-video", "onStatus": "failed", "condition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "failed" }, "toStepId": null, "finalStatus": "failed" }
++      {
++        "transitionId": "open-iphone-mirroring:success",
++        "fromStepId": "open-iphone-mirroring",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "verify-iphone-mirroring-window-opened",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "open-iphone-mirroring:failed",
++        "fromStepId": "open-iphone-mirroring",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "open-iphone-mirroring:review",
++        "fromStepId": "open-iphone-mirroring",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-iphone-mirroring-window-opened:success",
++        "fromStepId": "verify-iphone-mirroring-window-opened",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "capture-iphone-mirroring-window-overview",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "capture-iphone-mirroring-window-overview:success",
++        "fromStepId": "capture-iphone-mirroring-window-overview",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "detect-local-app-window-state",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-local-app-window-state:success",
++        "fromStepId": "detect-local-app-window-state",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "detect-modal-overlay-state",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-modal-overlay-state:success",
++        "fromStepId": "detect-modal-overlay-state",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "locate-facebook-app-icon",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-facebook-app-icon:success",
++        "fromStepId": "locate-facebook-app-icon",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "validate-facebook-app-icon-geometry",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-facebook-app-icon-geometry:success",
++        "fromStepId": "validate-facebook-app-icon-geometry",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "click-facebook-app-icon",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "click-facebook-app-icon:success",
++        "fromStepId": "click-facebook-app-icon",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "verify-target-app-opened",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-target-app-opened:success",
++        "fromStepId": "verify-target-app-opened",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "detect-app-feed-or-home-state",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-app-feed-or-home-state:success",
++        "fromStepId": "detect-app-feed-or-home-state",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "capture-target-app-overview",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "capture-target-app-overview:success",
++        "fromStepId": "capture-target-app-overview",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "locate-video-tab-or-feed-entry",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-video-tab-or-feed-entry:success",
++        "fromStepId": "locate-video-tab-or-feed-entry",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "validate-video-tab-click",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-video-tab-click:success",
++        "fromStepId": "validate-video-tab-click",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "click-video-tab-or-feed-entry",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "click-video-tab-or-feed-entry:success",
++        "fromStepId": "click-video-tab-or-feed-entry",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "verify-video-feed-ready",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-video-feed-ready:success",
++        "fromStepId": "verify-video-feed-ready",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "detect-video-stable",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-video-stable:success",
++        "fromStepId": "detect-video-stable",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "detect-page-abnormality",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-page-abnormality:success",
++        "fromStepId": "detect-page-abnormality",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "sample-video-frames",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "sample-video-frames:success",
++        "fromStepId": "sample-video-frames",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "prepare-video-ai-input",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "prepare-video-ai-input:success",
++        "fromStepId": "prepare-video-ai-input",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "judge-product-seeding-video",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "judge-product-seeding-video:product",
++        "fromStepId": "judge-product-seeding-video",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "schemaFieldRef:decision",
++          "operator": "equals",
++          "rightValue": "product_yes"
++        },
++        "toStepId": "summarize-product-signal",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "judge-product-seeding-video:non-product",
++        "fromStepId": "judge-product-seeding-video",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "schemaFieldRef:decision",
++          "operator": "notEquals",
++          "rightValue": "product_yes"
++        },
++        "toStepId": "locate-next-video-scroll-region",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "summarize-product-signal:success",
++        "fromStepId": "summarize-product-signal",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "write-ai-result-record",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "write-ai-result-record:success",
++        "fromStepId": "write-ai-result-record",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "write-product-video-evidence",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "write-product-video-evidence:success",
++        "fromStepId": "write-product-video-evidence",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "finalize-evidence-packet",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-next-video-scroll-region:success",
++        "fromStepId": "locate-next-video-scroll-region",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "validate-scroll-geometry",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-scroll-geometry:success",
++        "fromStepId": "validate-scroll-geometry",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "scroll-next-video",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "scroll-next-video:success",
++        "fromStepId": "scroll-next-video",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "verify-video-changed",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-video-changed:success",
++        "fromStepId": "verify-video-changed",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "sample-video-frames",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "finalize-evidence-packet:success",
++        "fromStepId": "finalize-evidence-packet",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "finalize-browse-ledger",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "finalize-browse-ledger:success",
++        "fromStepId": "finalize-browse-ledger",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": "finalize-mission",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "finalize-mission:completed",
++        "fromStepId": "finalize-mission",
++        "onStatus": "success",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "success"
++        },
++        "toStepId": null,
++        "finalStatus": "completed"
++      },
++      {
++        "transitionId": "request-human-review:review",
++        "fromStepId": "request-human-review",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": null,
++        "finalStatus": "review_required"
++      },
++      {
++        "transitionId": "verify-iphone-mirroring-window-opened:failed",
++        "fromStepId": "verify-iphone-mirroring-window-opened",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "verify-iphone-mirroring-window-opened:review",
++        "fromStepId": "verify-iphone-mirroring-window-opened",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-target-app-opened:failed",
++        "fromStepId": "verify-target-app-opened",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "verify-target-app-opened:review",
++        "fromStepId": "verify-target-app-opened",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-video-feed-ready:failed",
++        "fromStepId": "verify-video-feed-ready",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "verify-video-feed-ready:review",
++        "fromStepId": "verify-video-feed-ready",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "verify-video-changed:failed",
++        "fromStepId": "verify-video-changed",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "verify-video-changed:review",
++        "fromStepId": "verify-video-changed",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "judge-product-seeding-video:review",
++        "fromStepId": "judge-product-seeding-video",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "judge-product-seeding-video:failed",
++        "fromStepId": "judge-product-seeding-video",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "capture-iphone-mirroring-window-overview:failed",
++        "fromStepId": "capture-iphone-mirroring-window-overview",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "capture-iphone-mirroring-window-overview:review",
++        "fromStepId": "capture-iphone-mirroring-window-overview",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-local-app-window-state:failed",
++        "fromStepId": "detect-local-app-window-state",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "detect-local-app-window-state:review",
++        "fromStepId": "detect-local-app-window-state",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-modal-overlay-state:failed",
++        "fromStepId": "detect-modal-overlay-state",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "detect-modal-overlay-state:review",
++        "fromStepId": "detect-modal-overlay-state",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-facebook-app-icon:failed",
++        "fromStepId": "locate-facebook-app-icon",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "locate-facebook-app-icon:review",
++        "fromStepId": "locate-facebook-app-icon",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-facebook-app-icon-geometry:failed",
++        "fromStepId": "validate-facebook-app-icon-geometry",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "validate-facebook-app-icon-geometry:review",
++        "fromStepId": "validate-facebook-app-icon-geometry",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "click-facebook-app-icon:failed",
++        "fromStepId": "click-facebook-app-icon",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "click-facebook-app-icon:review",
++        "fromStepId": "click-facebook-app-icon",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-app-feed-or-home-state:failed",
++        "fromStepId": "detect-app-feed-or-home-state",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "detect-app-feed-or-home-state:review",
++        "fromStepId": "detect-app-feed-or-home-state",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "capture-target-app-overview:failed",
++        "fromStepId": "capture-target-app-overview",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "capture-target-app-overview:review",
++        "fromStepId": "capture-target-app-overview",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-video-tab-or-feed-entry:failed",
++        "fromStepId": "locate-video-tab-or-feed-entry",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "locate-video-tab-or-feed-entry:review",
++        "fromStepId": "locate-video-tab-or-feed-entry",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-video-tab-click:failed",
++        "fromStepId": "validate-video-tab-click",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "validate-video-tab-click:review",
++        "fromStepId": "validate-video-tab-click",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "click-video-tab-or-feed-entry:failed",
++        "fromStepId": "click-video-tab-or-feed-entry",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "click-video-tab-or-feed-entry:review",
++        "fromStepId": "click-video-tab-or-feed-entry",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-video-stable:failed",
++        "fromStepId": "detect-video-stable",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "detect-video-stable:review",
++        "fromStepId": "detect-video-stable",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "detect-page-abnormality:failed",
++        "fromStepId": "detect-page-abnormality",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "detect-page-abnormality:review",
++        "fromStepId": "detect-page-abnormality",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "sample-video-frames:failed",
++        "fromStepId": "sample-video-frames",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "sample-video-frames:review",
++        "fromStepId": "sample-video-frames",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "prepare-video-ai-input:failed",
++        "fromStepId": "prepare-video-ai-input",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "prepare-video-ai-input:review",
++        "fromStepId": "prepare-video-ai-input",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "summarize-product-signal:failed",
++        "fromStepId": "summarize-product-signal",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "summarize-product-signal:review",
++        "fromStepId": "summarize-product-signal",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "write-ai-result-record:failed",
++        "fromStepId": "write-ai-result-record",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "write-ai-result-record:review",
++        "fromStepId": "write-ai-result-record",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "write-product-video-evidence:failed",
++        "fromStepId": "write-product-video-evidence",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "write-product-video-evidence:review",
++        "fromStepId": "write-product-video-evidence",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "locate-next-video-scroll-region:failed",
++        "fromStepId": "locate-next-video-scroll-region",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "locate-next-video-scroll-region:review",
++        "fromStepId": "locate-next-video-scroll-region",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "validate-scroll-geometry:failed",
++        "fromStepId": "validate-scroll-geometry",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "validate-scroll-geometry:review",
++        "fromStepId": "validate-scroll-geometry",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "scroll-next-video:failed",
++        "fromStepId": "scroll-next-video",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "scroll-next-video:review",
++        "fromStepId": "scroll-next-video",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "finalize-evidence-packet:failed",
++        "fromStepId": "finalize-evidence-packet",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "finalize-evidence-packet:review",
++        "fromStepId": "finalize-evidence-packet",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "finalize-browse-ledger:failed",
++        "fromStepId": "finalize-browse-ledger",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "finalize-browse-ledger:review",
++        "fromStepId": "finalize-browse-ledger",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      },
++      {
++        "transitionId": "request-human-review:failed",
++        "fromStepId": "request-human-review",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "finalize-mission:failed",
++        "fromStepId": "finalize-mission",
++        "onStatus": "failed",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "failed"
++        },
++        "toStepId": null,
++        "finalStatus": "failed"
++      },
++      {
++        "transitionId": "finalize-mission:review",
++        "fromStepId": "finalize-mission",
++        "onStatus": "review_required",
++        "condition": {
++          "conditionType": "comparison",
++          "leftRef": "status",
++          "operator": "equals",
++          "rightValue": "review_required"
++        },
++        "toStepId": "request-human-review",
++        "finalStatus": null
++      }
++    ],
++    "failureBranches": [
++      "open-iphone-mirroring:failed",
++      "verify-iphone-mirroring-window-opened:failed",
++      "verify-target-app-opened:failed",
++      "verify-video-feed-ready:failed",
++      "verify-video-changed:failed",
++      "judge-product-seeding-video:failed",
++      "capture-iphone-mirroring-window-overview:failed",
++      "detect-local-app-window-state:failed",
++      "detect-modal-overlay-state:failed",
++      "locate-facebook-app-icon:failed",
++      "validate-facebook-app-icon-geometry:failed",
++      "click-facebook-app-icon:failed",
++      "detect-app-feed-or-home-state:failed",
++      "capture-target-app-overview:failed",
++      "locate-video-tab-or-feed-entry:failed",
++      "validate-video-tab-click:failed",
++      "click-video-tab-or-feed-entry:failed",
++      "detect-video-stable:failed",
++      "detect-page-abnormality:failed",
++      "sample-video-frames:failed",
++      "prepare-video-ai-input:failed",
++      "summarize-product-signal:failed",
++      "write-ai-result-record:failed",
++      "write-product-video-evidence:failed",
++      "locate-next-video-scroll-region:failed",
++      "validate-scroll-geometry:failed",
++      "scroll-next-video:failed",
++      "finalize-evidence-packet:failed",
++      "finalize-browse-ledger:failed",
++      "request-human-review:failed",
++      "finalize-mission:failed"
++    ],
++    "reviewBranches": [
++      "open-iphone-mirroring:review",
++      "verify-iphone-mirroring-window-opened:review",
++      "verify-target-app-opened:review",
++      "verify-video-feed-ready:review",
++      "verify-video-changed:review",
++      "judge-product-seeding-video:review",
++      "request-human-review:review",
++      "capture-iphone-mirroring-window-overview:review",
++      "detect-local-app-window-state:review",
++      "detect-modal-overlay-state:review",
++      "locate-facebook-app-icon:review",
++      "validate-facebook-app-icon-geometry:review",
++      "click-facebook-app-icon:review",
++      "detect-app-feed-or-home-state:review",
++      "capture-target-app-overview:review",
++      "locate-video-tab-or-feed-entry:review",
++      "validate-video-tab-click:review",
++      "click-video-tab-or-feed-entry:review",
++      "detect-video-stable:review",
++      "detect-page-abnormality:review",
++      "sample-video-frames:review",
++      "prepare-video-ai-input:review",
++      "summarize-product-signal:review",
++      "write-ai-result-record:review",
++      "write-product-video-evidence:review",
++      "locate-next-video-scroll-region:review",
++      "validate-scroll-geometry:review",
++      "scroll-next-video:review",
++      "finalize-evidence-packet:review",
++      "finalize-browse-ledger:review",
++      "finalize-mission:review"
+     ],
+-    "failureBranches": ["open-iphone-mirroring:failed", "verify-iphone-mirroring-window-opened:failed", "verify-target-app-opened:failed", "verify-video-feed-ready:failed", "verify-video-changed:failed", "judge-product-seeding-video:failed"],
+-    "reviewBranches": ["open-iphone-mirroring:review", "verify-iphone-mirroring-window-opened:review", "verify-target-app-opened:review", "verify-video-feed-ready:review", "verify-video-changed:review", "judge-product-seeding-video:review", "request-human-review:review"],
+-    "finalStates": ["completed", "failed", "review_required"],
+-    "forbiddenDirectCalls": ["shellCommand", "openApp", "osascript", "clickSelector", "typeText", "pageEvaluate", "browserAction", "rawCoordinates", "domQuery", "cookieRead"],
+-    "sequencePolicy": { "maxHops": 40, "maxRetriesPerStep": 1, "loopDecisionOnLimit": "review_required", "branchPolicy": "allow_review_handoff" },
++    "finalStates": [
++      "completed",
++      "failed",
++      "review_required"
++    ],
++    "forbiddenDirectCalls": [
++      "shellCommand",
++      "openApp",
++      "osascript",
++      "clickSelector",
++      "typeText",
++      "pageEvaluate",
++      "browserAction",
++      "rawCoordinates",
++      "domQuery",
++      "cookieRead"
++    ],
++    "sequencePolicy": {
++      "maxHops": 40,
++      "maxRetriesPerStep": 1,
++      "loopDecisionOnLimit": "review_required",
++      "branchPolicy": "allow_review_handoff"
++    },
+     "mapVersion": "1.0.0",
+-    "proofPolicy": { "runtimeProof": "required", "recordPackageSelection": true }
++    "proofPolicy": {
++      "runtimeProof": "required",
++      "recordPackageSelection": true
++    }
+   },
+   "dependencies": {
+-    "requiredCapabilities": ["open", "post-action-verification", "screenshot", "page-state", "visual-target", "geometry-guard", "mouse-click", "ai", "forensics-persistence", "mouse-scroll"],
+-    "requiredChildCapabilities": ["open-local-program", "verify-action-result", "capture-desktop-screen", "capture-region", "detect-platform-page-kind", "detect-modal-overlay-state", "detect-feed-ready", "detect-video-stable", "detect-page-abnormality", "detect-next-video-region", "validate-click-point", "validate-desktop-screen-bounds", "click-desktop-coordinate", "scroll-desktop-screen", "prepare-ai-input", "product-presence-judgment", "product-signal-summary", "write-ai-result-record", "write-evidence-record", "finalize-evidence-packet", "finalize-browse-ledger", "request-human-review", "finalize-mission"],
+-    "requiredPromptContracts": ["vision.productPresence.v1", "product.signal_summary.v1"],
+-    "requiredPlatformProfiles": ["macos-local:iphone-mirroring", "macos-app:iphone-mirroring"],
+-    "requiredForensicsRecords": ["structured_runtime_event", "ai_result_record", "evidence_record", "evidence_packet", "browse_ledger"]
++    "requiredCapabilities": [
++      "open",
++      "post-action-verification",
++      "screenshot",
++      "page-state",
++      "visual-target",
++      "geometry-guard",
++      "mouse-click",
++      "ai",
++      "forensics-persistence",
++      "mouse-scroll"
++    ],
++    "requiredChildCapabilities": [
++      "open-local-program",
++      "verify-action-result",
++      "capture-desktop-screen",
++      "capture-region",
++      "detect-platform-page-kind",
++      "detect-modal-overlay-state",
++      "detect-feed-ready",
++      "detect-video-stable",
++      "detect-page-abnormality",
++      "detect-next-video-region",
++      "validate-click-point",
++      "validate-desktop-screen-bounds",
++      "click-desktop-coordinate",
++      "scroll-desktop-screen",
++      "prepare-ai-input",
++      "product-presence-judgment",
++      "product-signal-summary",
++      "write-ai-result-record",
++      "write-evidence-record",
++      "finalize-evidence-packet",
++      "finalize-browse-ledger",
++      "request-human-review",
++      "finalize-mission"
++    ],
++    "requiredPromptContracts": [
++      "vision.productPresence.v1",
++      "product.signal_summary.v1"
++    ],
++    "requiredPlatformProfiles": [
++      "macos-local:iphone-mirroring",
++      "macos-app:iphone-mirroring"
++    ],
++    "requiredForensicsRecords": [
++      "structured_runtime_event",
++      "ai_result_record",
++      "evidence_record",
++      "evidence_packet",
++      "browse_ledger"
++    ]
+   },
+   "compatibility": {
+     "requiresGrassEye": "0.1.0",
+     "requiresMapSchema": "1",
+-    "requiresCapabilityRegistry": ["open", "post-action-verification", "screenshot", "page-state", "visual-target", "geometry-guard", "mouse-click", "ai", "forensics-persistence", "mouse-scroll"],
+-    "requiresPromptRegistry": ["vision.productPresence.v1", "product.signal_summary.v1"],
+-    "requiresPlatformProfileRegistry": ["macos-local:iphone-mirroring", "macos-app:iphone-mirroring"]
++    "requiresCapabilityRegistry": [
++      "open",
++      "post-action-verification",
++      "screenshot",
++      "page-state",
++      "visual-target",
++      "geometry-guard",
++      "mouse-click",
++      "ai",
++      "forensics-persistence",
++      "mouse-scroll"
++    ],
++    "requiresPromptRegistry": [
++      "vision.productPresence.v1",
++      "product.signal_summary.v1"
++    ],
++    "requiresPlatformProfileRegistry": [
++      "macos-local:iphone-mirroring",
++      "macos-app:iphone-mirroring"
++    ]
+   },
+   "policy": {
+     "safetyPolicy": "Open only governed iPhone Mirroring through open-local-program. Internal Facebook app navigation must use screenshot, visual-target, geometry-guard, mouse-click or mouse-scroll, PAV, and forensics. No posting, liking, commenting, messaging, purchasing, following, or private data extraction.",
+-    "runLimitPolicy": { "defaultMaxRounds": 2, "maxAllowedMaxRounds": 5, "maxAllowedMaxMinutes": 45 },
++    "runLimitPolicy": {
++      "defaultMaxRounds": 2,
++      "maxAllowedMaxRounds": 5,
++      "maxAllowedMaxMinutes": 45
++    },
+     "reviewPolicy": "Low confidence, missing target, modal overlay, screen lock, target app unavailable, PAV failure, or geometry ambiguity must route to human review.",
+     "exportPolicy": "forensics evidence refs and structured summaries only",
+     "debugPolicy": "scenario may publish a Commander start-mission task only; no direct local app launch or direct desktop actions"
+   },
+   "promptBindings": {
+     "bindings": [
+-      { "stepId": "judge-product-seeding-video", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "judge-product-seeding-video:failed" },
+-      { "stepId": "summarize-product-signal", "promptContractId": "product.signal_summary.v1", "requiredInputRefs": ["aiResultRef"], "outputSchemaRef": "ai.product_signal_summary.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "summarize-product-signal:failed" }
++      {
++        "stepId": "judge-product-seeding-video",
++        "promptContractId": "vision.productPresence.v1",
++        "requiredInputRefs": [
++          "promptInputRef"
++        ],
++        "outputSchemaRef": "ai.product_presence_judgment.v1",
++        "confidencePolicy": "review-on-low-confidence",
++        "reviewPolicy": "handoff",
++        "failureBranch": "judge-product-seeding-video:failed"
++      },
++      {
++        "stepId": "summarize-product-signal",
++        "promptContractId": "product.signal_summary.v1",
++        "requiredInputRefs": [
++          "aiResultRef"
++        ],
++        "outputSchemaRef": "ai.product_signal_summary.v1",
++        "confidencePolicy": "review-on-low-confidence",
++        "reviewPolicy": "handoff",
++        "failureBranch": "summarize-product-signal:failed"
++      }
+     ]
+   },
+   "changelog": "Initial iPhone Mirroring Facebook local-program visual-chain seeding video discovery map.",

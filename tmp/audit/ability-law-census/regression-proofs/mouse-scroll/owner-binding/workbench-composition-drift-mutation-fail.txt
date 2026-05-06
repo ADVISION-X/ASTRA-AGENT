@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Mouse Scroll still leaks private runtime or child boundaries.
+
+FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2 src/lib/local-runtime/workbench-mouse-scroll-ability-group.ts:1 Workbench mouse-scroll wrapper must route through the public mouse-scroll factory.

@@ -6,128 +6,29 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { createInspectorContext, loadGeneratedArtifacts } from "../../core/runtime.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
+import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
+import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
 import { runGeometryGuardChecks } from "./run-geometry-guard-checks.js";
+import { MUTATIONS, MUTATION_LAW_COVERAGE, OWNER_BINDING_MUTATION_NAMES, type NegativeProofMutation } from "./negative-proof-definitions.js";
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/geometry-guard-capability/inspector.ts";
 const LAW_FILE = ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md";
 
-type ReplaceMutation = {
-  kind: "replace";
-  name: string;
-  file: string;
-  oldText: string;
-  newText: string;
+type InspectorRun = {
+  passed: boolean;
+  violationCount: number;
+  output: string;
 };
 
-type NegativeProofMutation = ReplaceMutation;
-
-const MUTATIONS: NegativeProofMutation[] = [
-  {
-    kind: "replace",
-    name: "manual-first-enforcement-reintroduced",
-    file: ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-    oldText: "status: active\ntier: P0\ncapabilityDomain: geometry-guard-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-    newText: "status: active\ntier: P0\ncapabilityDomain: geometry-guard-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
-  },
-  {
-    kind: "replace",
-    name: "turn-p0-into-warning-only",
-    file: ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-    oldText: "status: active\ntier: P0\ncapabilityDomain: geometry-guard-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-    newText: "status: active\ntier: P1\ncapabilityDomain: geometry-guard-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-  },
-  {
-    kind: "replace",
-    name: "forbidden-plan-coordinate-action-child",
-    file: "src/capabilities/geometry-guard/registry.ts",
-    oldText: "    [\"validate-desktop-screen-bounds\", createValidateDesktopScreenBoundsCapability()],",
-    newText: "    [\"validate-desktop-screen-bounds\", createValidateDesktopScreenBoundsCapability()],\n    [\"plan-coordinate-action\", createValidateDesktopScreenBoundsCapability() as never],",
-  },
-  {
-    kind: "replace",
-    name: "mouse-click-scale-mapping-remap",
-    file: "src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts",
-    oldText: "  const inputRef = input.inputRef;",
-    newText: "  const inputRef = input.inputRef;\n  const remapScaleMapping = true;",
-  },
-  {
-    kind: "replace",
-    name: "platform-adapter-is-coordinate-safe",
-    file: "src/lib/local-runtime/workbench-browser-runtime.ts",
-    oldText: "  const browserSessionConfig = createLocalBrowserSessionConfig({",
-    newText: "  const isCoordinateSafe = () => true;\n  const browserSessionConfig = createLocalBrowserSessionConfig({",
-  },
-  {
-    kind: "replace",
-    name: "fallback-mode-result-escape",
-    file: "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
-    oldText: "    sourceVisualTargetResultRef: input.request.sourceVisualTargetResultRef,",
-    newText: "    sourceVisualTargetResultRef: input.request.sourceVisualTargetResultRef,\n    fallbackMode: \"soft-clamp\",",
-  },
-  {
-    kind: "replace",
-    name: "remove-capabilityCallId-from-input",
-    file: "src/capabilities/geometry-guard/schema-input.ts",
-    oldText: "  capabilityCallId: nullableString,",
-    newText: "  capabilityCallIdRemoved: nullableString,",
-  },
-  {
-    kind: "replace",
-    name: "remove-activationSnapshotRef-from-input",
-    file: "src/capabilities/geometry-guard/schema-input.ts",
-    oldText: "  activationSnapshotRef: nullableString,",
-    newText: "  activationSnapshotRefRemoved: nullableString,",
-  },
-  {
-    kind: "replace",
-    name: "remove-nerveBusEnvelopeId-from-input",
-    file: "src/capabilities/geometry-guard/schema-input.ts",
-    oldText: "  nerveBusEnvelopeId: nullableString,",
-    newText: "  nerveBusEnvelopeIdRemoved: nullableString,",
-  },
-  {
-    kind: "replace",
-    name: "silent-clamp-introduced",
-    file: "src/capabilities/geometry-guard/shared/geometry-transform.ts",
-    oldText: "    width: roundValue(bbox.width, policy),",
-    newText: "    width: Math.max(1, roundValue(bbox.width, policy)),",
-  },
-  {
-    kind: "replace",
-    name: "proof-runId-from-session-child",
-    file: "src/capabilities/geometry-guard/runtime/geometry-proof-builder.ts",
-    oldText: "    runId: input.request.runId,",
-    newText: "    runId: buildStableGeometryRef([input.request.sessionId, input.request.childCapabilityId, input.request.roundId, input.request.videoVisitId]),",
-  },
-  {
-    kind: "replace",
-    name: "allow-without-outputRef",
-    file: "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
-    oldText: "    outputRef: allowSuccess ? buildStableGeometryRef([geometryGuardRef, \"output\", input.request.idempotencyKey]) : null,",
-    newText: "    outputRef: null,",
-  },
-  {
-    kind: "replace",
-    name: "failed-with-output",
-    file: "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
-    oldText: "    output: decisionState.allowSuccess ? input.output : null,",
-    newText: "    output: input.output,",
-  },
-  {
-    kind: "replace",
-    name: "child-imports-browser-controller",
-    file: "src/capabilities/geometry-guard/children/validate-click-point/implementation.ts",
-    oldText: "import { createGeometryGuardChildCapability } from \"../../runtime/geometry-child-capability.js\";",
-    newText: "import { BrowserController } from \"../../../lib/browser/browser-controller.js\";\nimport { createGeometryGuardChildCapability } from \"../../runtime/geometry-child-capability.js\";",
-  },
-  {
-    kind: "replace",
-    name: "child-returns-boolean",
-    file: "src/capabilities/geometry-guard/children/validate-click-point/implementation.ts",
-    oldText: "  return createGeometryGuardChildCapability(\"validate-click-point\");",
-    newText: "  return true;",
-  },
-];
+type MutationProofRecord = {
+  mutation: NegativeProofMutation;
+  originalContent: string;
+  mutatedContent: string;
+  failOutput: string;
+  passOutput: string;
+  startedAt: string;
+  endedAt: string;
+};
 
 async function collectLawBaselineFindings(): Promise<Finding[]> {
   const content = await readFile(pathFromRepoRoot(LAW_FILE), "utf8");
@@ -164,7 +65,7 @@ async function collectLawBaselineFindings(): Promise<Finding[]> {
   return findings;
 }
 
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
+async function runInspector(): Promise<InspectorRun> {
   await buildAuditArtifacts();
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
@@ -176,10 +77,18 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
   const lawBaselineFindings = await collectLawBaselineFindings();
   const checks = await runGeometryGuardChecks();
   const findings = [...base.findings, ...lawBaselineFindings, ...checks.findings];
+  const passed = findings.length === 0;
 
   return {
-    passed: findings.length === 0,
+    passed,
     violationCount: findings.length,
+    output: [
+      `passed: ${passed}`,
+      `violationCount: ${findings.length}`,
+      "",
+      ...findings.map((finding) => `${finding.severity.toUpperCase()} ${finding.lawId ?? "no-law"} ${finding.file}:${finding.line} ${finding.message}`),
+      "",
+    ].join("\n"),
   };
 }
 
@@ -192,32 +101,92 @@ function applyReplaceMutation(source: string, mutation: ReplaceMutation): string
   return `${source.slice(0, matchIndex)}${mutation.newText}${source.slice(matchIndex + mutation.oldText.length)}`;
 }
 
-async function applyMutation(mutation: NegativeProofMutation): Promise<() => Promise<void>> {
+async function applyMutation(mutation: NegativeProofMutation): Promise<{ rollback: () => Promise<void>; originalContent: string; mutatedContent: string }> {
   const absolutePath = pathFromRepoRoot(mutation.file);
   const originalContent = await readFile(absolutePath, "utf8");
   const mutatedContent = applyReplaceMutation(originalContent, mutation);
   await writeFile(absolutePath, mutatedContent, "utf8");
-  return async () => {
-    await writeFile(absolutePath, originalContent, "utf8");
+  return {
+    rollback: async () => {
+      await writeFile(absolutePath, originalContent, "utf8");
+    },
+    originalContent,
+    mutatedContent,
   };
 }
 
-async function mutateAndVerify(mutation: NegativeProofMutation): Promise<void> {
-  const rollback = await applyMutation(mutation);
+async function mutateAndVerify(mutation: NegativeProofMutation): Promise<MutationProofRecord> {
+  const startedAt = new Date().toISOString();
+  const applied = await applyMutation(mutation);
+  let failOutput = "";
   try {
     const mutated = await runInspector();
+    failOutput = mutated.output;
     if (mutated.passed || mutated.violationCount === 0) {
       throw new Error(`Inspector did not fail for ${mutation.name}`);
     }
   } finally {
-    await rollback();
+    await applied.rollback();
   }
 
   const restored = await runInspector();
   if (!restored.passed) {
     throw new Error(`Rollback verification failed for ${mutation.name}`);
   }
+
+  return {
+    mutation,
+    originalContent: applied.originalContent,
+    mutatedContent: applied.mutatedContent,
+    failOutput,
+    passOutput: restored.output,
+    startedAt,
+    endedAt: new Date().toISOString(),
+  };
 }
+
+const writeMutationProof = async (record: MutationProofRecord): Promise<void> => {
+  const coverage = MUTATION_LAW_COVERAGE[record.mutation.name];
+  if (!coverage) {
+    return;
+  }
+
+  await writeProductionMutationProof({
+    owner: "geometry-guard",
+    ownerTitle: "Geometry Guard",
+    mutationName: record.mutation.name,
+    scenarioId: record.mutation.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    coveredLawIds: coverage.coveredLawIds,
+    coverageReasonByLawId: coverage.coverageReasonByLawId,
+    mutatedFile: record.mutation.file,
+    originalContent: record.originalContent,
+    mutatedContent: record.mutatedContent,
+    failOutput: record.failOutput,
+    passOutput: record.passOutput,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt,
+  });
+};
+
+const writeOwnerBindingBundle = async (records: MutationProofRecord[]): Promise<void> => {
+  const scenarios = OWNER_BINDING_MUTATION_NAMES.flatMap((mutationName) => {
+    const record = records.find((candidate) => candidate.mutation.name === mutationName);
+    return record
+      ? [{
+        scenario: mutationName.replace(/-/g, " "),
+        outputFileName: `${mutationName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}-fail.txt`,
+        output: record.failOutput,
+      }]
+      : [];
+  });
+
+  await writeOwnerBindingProof({
+    owner: "geometry-guard",
+    title: "Geometry Guard",
+    scenarios,
+    rollbackOutput: records.at(-1)?.passOutput ?? "rollback restored baseline PASS",
+  });
+};
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
   return {
@@ -251,9 +220,13 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
       );
     }
 
+    const records: MutationProofRecord[] = [];
     for (const mutation of MUTATIONS) {
-      await mutateAndVerify(mutation);
+      const record = await mutateAndVerify(mutation);
+      records.push(record);
+      await writeMutationProof(record);
     }
+    await writeOwnerBindingBundle(records);
 
     return createPassResult("Geometry Guard negative-proof harness rejects law weakening, input chain drift, silent clamp, fabricated proof chain, output-boundary drift, and child boundary escape mutations.");
   } catch (error) {

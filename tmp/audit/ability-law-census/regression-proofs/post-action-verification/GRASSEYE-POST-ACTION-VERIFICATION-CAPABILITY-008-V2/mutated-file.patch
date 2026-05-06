@@ -1,0 +1,12 @@
+diff --git a/scripts/audit/domains/post-action-verification-capability/inspector.ts b/scripts/audit/domains/post-action-verification-capability/inspector.ts
+--- a/scripts/audit/domains/post-action-verification-capability/inspector.ts
++++ b/scripts/audit/domains/post-action-verification-capability/inspector.ts
+@@ -28,7 +28,7 @@
+ async function resolveNegativeProof() {
+   return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+     ? createSkippedNegativeProofResult()
+-    : await runNegativeProofHarness();
++    : { findings: [], phase: { name: "negative-proof-harness", classification: "PASS" as const, passed: true, summary: "mutated skip" } };
+ }
+ 
+ function collectFindings(input: {

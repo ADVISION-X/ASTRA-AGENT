@@ -1,0 +1,1 @@
+[PASS] post-action-verification-capability: post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, anti-escape, and negative-proof phases

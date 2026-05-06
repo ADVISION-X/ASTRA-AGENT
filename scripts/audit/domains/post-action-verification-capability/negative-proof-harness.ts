@@ -4,135 +4,32 @@ import { spawnSync } from "node:child_process";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
+import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
 
 import { LAW_IDS } from "./config.js";
+import {
+  OWNER_BINDING_MUTATION_NAMES,
+  POST_ACTION_NEGATIVE_PROOF_MUTATIONS,
+  MUTATION_LAW_COVERAGE,
+  type NegativeProofMutation,
+} from "./negative-proof-definitions.js";
 
-export type NegativeProofMutation = {
-  name: string;
-  file: string;
-  oldText: string;
-  newText: string;
-  skipBuild?: boolean;
+type InspectorRun = {
+  status: number | null;
+  stdout: string;
+  stderr: string;
 };
 
-type NegativeProofMutationGroup = {
-  name: string;
-  mutations: NegativeProofMutation[];
-  skipBuild: boolean;
+type MutationProofRecord = {
+  mutation: NegativeProofMutation;
+  originalContent: string;
+  mutatedContent: string;
+  failOutput: string;
+  passOutput: string;
+  startedAt: string;
+  endedAt: string;
 };
-
-export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
-  {
-    name: "manual-first-enforcement",
-    file: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-    oldText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-    newText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: manual-first\nevidenceMode: law+inspector+negative-proof",
-    skipBuild: false,
-  },
-  {
-    name: "warning-only-p0",
-    file: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-    oldText: "status: active\ntier: P0\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-    newText: "status: active\ntier: P1\ncapabilityDomain: post-action-verification-capability\nenforcementMode: machine-blocking\nevidenceMode: law+inspector+negative-proof",
-    skipBuild: false,
-  },
-  {
-    name: "ability-group-creates-clock",
-    file: "src/capabilities/post-action-verification/ability-group.ts",
-    oldText: "export function createPostActionVerificationAbilityGroup(input: CreatePostActionVerificationAbilityGroupInput): PostActionVerificationAbilityGroup {",
-    newText: "export function createPostActionVerificationAbilityGroup(input: CreatePostActionVerificationAbilityGroupInput): PostActionVerificationAbilityGroup {\n  createSystemPostActionVerificationClock();",
-  },
-  {
-    name: "contract-exposes-child-interface",
-    file: "src/capabilities/post-action-verification/contract.ts",
-    oldText: "interface PostActionVerificationAbilityGroup {",
-    newText: "interface PostActionVerificationChildCapability { execute(input: PostActionVerificationAbilityInput): Promise<PostActionVerificationAbilityResult>; }\n\ninterface PostActionVerificationAbilityGroup {",
-  },
-  {
-    name: "schema-allows-non-success-output",
-    file: "src/capabilities/post-action-verification/schema.ts",
-    oldText: "failed/review_required result must not expose output",
-    newText: "failed/review_required result may retain output",
-  },
-  {
-    name: "input-schema-missing-capability-call-id",
-    file: "src/capabilities/post-action-verification/schema.ts",
-    oldText: "  capabilityCallId: requiredString,",
-    newText: "  capabilityCallId: nullableString,",
-  },
-  {
-    name: "input-schema-missing-activation-snapshot-ref",
-    file: "src/capabilities/post-action-verification/schema.ts",
-    oldText: "  activationSnapshotRef: requiredString,",
-    newText: "  activationSnapshotRef: nullableString,",
-  },
-  {
-    name: "input-schema-missing-nerve-bus-envelope-id",
-    file: "src/capabilities/post-action-verification/schema.ts",
-    oldText: "  nerveBusEnvelopeId: requiredString,",
-    newText: "  nerveBusEnvelopeId: nullableString,",
-  },
-  {
-    name: "local-runtime-builder-drops-run-id",
-    file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
-    oldText: "    runId: envelope.runId,",
-    newText: "    runId: null,",
-  },
-  {
-    name: "local-runtime-builder-strips-www-host",
-    file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
-    oldText: "    return \"www.tiktok.com\";",
-    newText: "    return \"tiktok.com\";",
-  },
-  {
-    name: "observation-only-boundary-regression",
-    file: "src/capabilities/post-action-verification/runtime/post-action-output-boundary-gate.ts",
-    oldText: "  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2 || hasObservationOnlySupport) {",
-    newText: "  if (input.assessment.supportingEvidenceRefs.length > 0 || input.assessment.supportingObservationRefs.length >= 2) {",
-  },
-  {
-    name: "external-imports-runtime-path",
-    file: "src/lib/local-runtime/workbench-post-action-runtime.ts",
-    oldText: "import { createPostActionVerificationAbilityGroup } from \"../../capabilities/post-action-verification/index.js\";",
-    newText: "import { createPostActionVerificationAbilityGroup } from \"../../capabilities/post-action-verification/index.js\";\nimport type { PostActionVerificationRuntimeContext } from \"../../capabilities/post-action-verification/runtime/post-action-verification-runtime-context.js\";",
-  },
-  {
-    name: "page-state-claims-verification-decision",
-    file: "src/capabilities/page-state/shared/page-state-result.ts",
-    oldText: "export type { PageStateClassificationOutcome } from \"./page-state-types.js\";",
-    newText: "export type { PageStateClassificationOutcome } from \"./page-state-types.js\";\nconst verificationDecision = \"verified\";",
-  },
-  {
-    name: "mouse-click-returns-verified",
-    file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-    oldText: "    runtimeProof,",
-    newText: "    runtimeProof,\n    verificationDecision: \"verified\",",
-  },
-  {
-    name: "orchestration-fabricates-verification-decision",
-    file: "src/capabilities/orchestration/ability-group.ts",
-    oldText: "import { createOrchestrationRuntimeContext } from \"./runtime/orchestration-runtime-context.js\";",
-    newText: "import { createOrchestrationRuntimeContext } from \"./runtime/orchestration-runtime-context.js\";\nconst verificationDecision = \"verified\";",
-  },
-  {
-    name: "proof-builder-fabricates-run-id",
-    file: "src/capabilities/post-action-verification/runtime/verification-proof-builder.ts",
-    oldText: "    runId: request?.runId ?? input.inputRef,",
-    newText: "    runId: `post-action-verification-run:${input.proofFingerprint}`,",
-  },
-  {
-    name: "proof-builder-fabricates-mission-id",
-    file: "src/capabilities/post-action-verification/runtime/verification-proof-builder.ts",
-    oldText: "    missionId: request?.missionId ?? null,",
-    newText: "    missionId: request?.sessionId ?? null,",
-  },
-  {
-    name: "negative-proof-invocation-removed",
-    file: "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-    oldText: "    : await runNegativeProofHarness();",
-    newText: "    : { findings: [], phase: { name: \"negative-proof-harness\", classification: \"PASS\" as const, passed: true, summary: \"mutated skip\" } };",
-  },
-];
 
 export function getNegativeProofMutationPaths(): string[] {
   return POST_ACTION_NEGATIVE_PROOF_MUTATIONS.map((mutation) => pathFromRepoRoot(mutation.file));
@@ -147,7 +44,7 @@ function applyMutationOnce(source: string, mutation: NegativeProofMutation): str
   return `${source.slice(0, matchIndex)}${mutation.newText}${source.slice(matchIndex + mutation.oldText.length)}`;
 }
 
-function runInspectorProcess(skipBuild = true): { status: number | null; stdout: string; stderr: string } {
+function runInspectorProcess(skipBuild = true): InspectorRun {
   const result = spawnSync(
     "node",
     ["--import", "tsx", "scripts/audit/domains/post-action-verification-capability/run-inspector.ts", ...(skipBuild ? ["--skip-build"] : [])],
@@ -165,57 +62,95 @@ function runInspectorProcess(skipBuild = true): { status: number | null; stdout:
   };
 }
 
-function createMutationGroups(): NegativeProofMutationGroup[] {
-  const groups = new Map<string, NegativeProofMutationGroup>();
-  for (const mutation of POST_ACTION_NEGATIVE_PROOF_MUTATIONS) {
-    const skipBuild = mutation.skipBuild ?? true;
-    const key = skipBuild ? "skip-build" : mutation.name;
-    const existing = groups.get(key);
-    if (existing) {
-      existing.mutations.push(mutation);
-      continue;
-    }
-    groups.set(key, { name: key, mutations: [mutation], skipBuild });
-  }
-  return [...groups.values()];
+function formatProcessOutput(run: InspectorRun): string {
+  return [run.stdout.trim(), run.stderr.trim()].filter(Boolean).join("\n\n") || `status=${run.status ?? "null"}`;
 }
 
-async function applyMutationGroup(group: NegativeProofMutationGroup): Promise<() => Promise<void>> {
-  const originalByFile = new Map<string, string>();
-  try {
-    for (const mutation of group.mutations) {
-      const absolutePath = pathFromRepoRoot(mutation.file);
-      if (!originalByFile.has(absolutePath)) {
-        originalByFile.set(absolutePath, await readFile(absolutePath, "utf8"));
-      }
-      const currentContent = await readFile(absolutePath, "utf8");
-      await writeFile(absolutePath, applyMutationOnce(currentContent, mutation), "utf8");
-    }
-    return async () => {
-      for (const [absolutePath, originalContent] of originalByFile) {
-        await writeFile(absolutePath, originalContent, "utf8");
-      }
-    };
-  } catch (error) {
-    for (const [absolutePath, originalContent] of originalByFile) {
+async function applyMutation(mutation: NegativeProofMutation): Promise<{ rollback: () => Promise<void>; originalContent: string; mutatedContent: string }> {
+  const absolutePath = pathFromRepoRoot(mutation.file);
+  const originalContent = await readFile(absolutePath, "utf8");
+  const mutatedContent = applyMutationOnce(originalContent, mutation);
+  await writeFile(absolutePath, mutatedContent, "utf8");
+  return {
+    rollback: async () => {
       await writeFile(absolutePath, originalContent, "utf8");
-    }
-    throw error;
-  }
+    },
+    originalContent,
+    mutatedContent,
+  };
 }
 
-async function mutateGroupAndVerify(group: NegativeProofMutationGroup): Promise<string> {
-  const rollback = await applyMutationGroup(group);
+async function mutateAndVerify(mutation: NegativeProofMutation): Promise<MutationProofRecord> {
+  const startedAt = new Date().toISOString();
+  const applied = await applyMutation(mutation);
+  let failOutput = "";
   try {
-    const failRun = runInspectorProcess(group.skipBuild);
+    const failRun = runInspectorProcess(mutation.skipBuild ?? true);
+    failOutput = formatProcessOutput(failRun);
     if (failRun.status === 0) {
-      throw new Error(`Mutation group ${group.name} did not fail inspector as expected.\n${failRun.stdout}\n${failRun.stderr}`);
+      throw new Error(`Mutation ${mutation.name} did not fail inspector as expected.\n${failRun.stdout}\n${failRun.stderr}`);
     }
   } finally {
-    await rollback();
+    await applied.rollback();
   }
 
-  return `${group.name}: ${group.mutations.map((mutation) => mutation.name).join(", ")} fail-ok`;
+  const rollbackRun = runInspectorProcess(mutation.skipBuild ?? true);
+  if (rollbackRun.status !== 0) {
+    throw new Error(`Post Action Verification mutation ${mutation.name} did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
+  }
+
+  return {
+    mutation,
+    originalContent: applied.originalContent,
+    mutatedContent: applied.mutatedContent,
+    failOutput,
+    passOutput: formatProcessOutput(rollbackRun),
+    startedAt,
+    endedAt: new Date().toISOString(),
+  };
+}
+
+async function writeMutationProof(record: MutationProofRecord): Promise<void> {
+  const coverage = MUTATION_LAW_COVERAGE[record.mutation.name];
+  if (!coverage) {
+    return;
+  }
+
+  await writeProductionMutationProof({
+    owner: "post-action-verification",
+    ownerTitle: "Post Action Verification",
+    mutationName: record.mutation.name,
+    scenarioId: record.mutation.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    coveredLawIds: coverage.coveredLawIds,
+    coverageReasonByLawId: coverage.coverageReasonByLawId,
+    mutatedFile: record.mutation.file,
+    originalContent: record.originalContent,
+    mutatedContent: record.mutatedContent,
+    failOutput: record.failOutput,
+    passOutput: record.passOutput,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt,
+  });
+}
+
+async function writeOwnerBindingBundle(records: MutationProofRecord[]): Promise<void> {
+  const scenarios = OWNER_BINDING_MUTATION_NAMES.flatMap((mutationName) => {
+    const record = records.find((candidate) => candidate.mutation.name === mutationName);
+    return record
+      ? [{
+        scenario: mutationName.replace(/-/g, " "),
+        outputFileName: `${mutationName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}-fail.txt`,
+        output: record.failOutput,
+      }]
+      : [];
+  });
+
+  await writeOwnerBindingProof({
+    owner: "post-action-verification",
+    title: "Post Action Verification",
+    scenarios,
+    rollbackOutput: records.at(-1)?.passOutput ?? "rollback restored baseline PASS",
+  });
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
@@ -235,19 +170,16 @@ function createFatalResult(message: string, summary: string): { findings: Findin
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const reports: string[] = [];
-
   try {
-    for (const group of createMutationGroups()) {
-      reports.push(await mutateGroupAndVerify(group));
+    const records: MutationProofRecord[] = [];
+    for (const mutation of POST_ACTION_NEGATIVE_PROOF_MUTATIONS) {
+      const record = await mutateAndVerify(mutation);
+      records.push(record);
+      await writeMutationProof(record);
     }
+    await writeOwnerBindingBundle(records);
 
-    const rollbackRun = runInspectorProcess(false);
-    if (rollbackRun.status !== 0) {
-      throw new Error(`Post Action Verification mutations did not restore inspector PASS after rollback.\n${rollbackRun.stdout}\n${rollbackRun.stderr}`);
-    }
-
-    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, local-runtime builder drift, observation-only boundary regressions, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");
+    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, child-boundary escape, local-runtime builder drift, observation-only boundary regressions, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Post Action Verification negative-proof harness failed.",

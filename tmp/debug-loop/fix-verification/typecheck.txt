@@ -1,0 +1,6 @@
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts(95,57): error TS2304: Cannot find name 'ReplaceMutation'.
+exitCode=2

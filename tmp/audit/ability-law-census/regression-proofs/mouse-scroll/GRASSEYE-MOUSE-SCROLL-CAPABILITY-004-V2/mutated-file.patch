@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts b/src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts
+--- a/src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts
++++ b/src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts
+@@ -8,6 +8,7 @@
+   expectedCoordinateSpace: MouseScrollCoordinateSpace;
+   context: MouseScrollExecutionContext;
+ }) {
++  while (input.request.purpose === "scroll_until_found") { break; }
+   const validated = validateMouseScrollExecution(input);
+   if (!validated.ok) {
+     return validated.result;

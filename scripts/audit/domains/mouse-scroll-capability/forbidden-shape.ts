@@ -6,6 +6,19 @@ import { sourceHasDynamicImport, sourceHasExportStar, sourceHasForbiddenImport, 
 
 const ALLOWED_PRIMITIVE_SCROLL_CALL_FILES = new Set<string>([PATHS.RUNNER_PORT_CALL]);
 
+const getForbiddenTokenLawId = (token: string): string => {
+  if (token === "scroll_until_found") {
+    return LAW_IDS.SCROLL_POLICY;
+  }
+  if (["scroll-next-video", "scroll_next_video", "continue_next", "open_comments", "capture_comment_region", "capture_video_region"].includes(token)) {
+    return LAW_IDS.CHILDREN;
+  }
+  if (["BrowserActionId", "BrowserActionResult", "postActionVerificationDecision", "fallbackUsed"].includes(token)) {
+    return LAW_IDS.RESULT;
+  }
+  return LAW_IDS.BOUNDARY;
+};
+
 function collectStructuralFindings(relativePath: string, sourceText: string, sourceFile: Parameters<typeof sourceHasExportStar>[0]): Finding[] {
   const findings: Finding[] = [];
   if (sourceHasExportStar(sourceFile)) {
@@ -19,7 +32,7 @@ function collectStructuralFindings(relativePath: string, sourceText: string, sou
   }
   for (const token of FORBIDDEN_TEXT_TOKENS) {
     if (sourceText.includes(token)) {
-      findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: relativePath, line: 1, severity: "fatal", message: `Mouse Scroll contains forbidden token ${token}.` }));
+      findings.push(createFinding({ lawId: getForbiddenTokenLawId(token), file: relativePath, line: 1, severity: "fatal", message: `Mouse Scroll contains forbidden token ${token}.` }));
     }
   }
   return findings;

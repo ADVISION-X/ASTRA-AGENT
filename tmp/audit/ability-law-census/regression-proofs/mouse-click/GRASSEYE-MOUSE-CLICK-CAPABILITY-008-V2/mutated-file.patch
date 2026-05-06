@@ -1,0 +1,12 @@
+diff --git a/.github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md b/.github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
+--- a/.github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
++++ b/.github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
+@@ -39,7 +39,7 @@
+ status: active
+ tier: P0
+ capabilityDomain: mouse-click-capability
+-enforcementMode: machine-blocking
++enforcementMode: manual-first
+ evidenceMode: law+inspector+negative-proof
+ ```
+ 

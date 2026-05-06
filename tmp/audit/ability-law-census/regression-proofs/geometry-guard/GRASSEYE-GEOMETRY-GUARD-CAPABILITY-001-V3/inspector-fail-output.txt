@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3 src/capabilities/geometry-guard/registry.ts:1 Geometry Guard must not declare forbidden action-planner or browser-geometry child owners.

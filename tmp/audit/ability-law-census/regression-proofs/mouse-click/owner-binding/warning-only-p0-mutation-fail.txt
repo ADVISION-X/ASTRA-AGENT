@@ -1,0 +1,6 @@
+classification: LAW-SCRIPT DRIFT
+passed: false
+violationCount: 1
+summary: Mouse Click law baseline drifted away from the active enforcement contract.
+
+FATAL GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2 .github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md:1 Mouse Click active laws must remain P0.

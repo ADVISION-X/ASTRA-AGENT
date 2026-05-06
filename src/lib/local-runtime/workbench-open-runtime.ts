@@ -4,7 +4,6 @@ import { createGovernedMacOSOpenLocalProgramAdapter } from "./open-local-program
 
 export const createOpenRuntime = (runtime: WorkbenchBaseRuntime) =>
   createOpenAbilityGroup({
-    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),
     browser: {
       getSessionSnapshot: async () => runtime.browserController.getSessionState(),
       open: async (openInput) => {
@@ -22,6 +21,7 @@ export const createOpenRuntime = (runtime: WorkbenchBaseRuntime) =>
         };
       },
     },
+    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),
     profilePort: {
       resolveProfileOverride: ({ childCapabilityId }) => {
         if (childCapabilityId !== "open-local-workbench") return null;

@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Mouse Click still leaks private runtime or child boundaries.
+
+FATAL GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V1 src/lib/local-runtime/workbench-mouse-click-runtime.ts:1 Workbench mouse-click runtime must compose the governed ability group with the primitive adapter at the composition root.

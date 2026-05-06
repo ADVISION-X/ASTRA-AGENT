@@ -80,3 +80,35 @@ map-plugin-package 是受 audit-system 治理的受控包治理域，不是新�
 - active registry enforcement
 - ordinary UI no internal map field enforcement
 - negative proof for quarantine, approval, activation, rollback, and validation bypass
+
+## 实战运行日志透明化修复补充
+
+本节只补当前 debug-loop 的执法细节，不新增 lawId，不修改冻结法案。
+
+owner inspector 最低要求：
+
+- Screenshot owner inspector 必须拦截 prepare-ai-input 缺 source handoff。
+- Open owner inspector 必须拦截 Workbench Open runtime 未注入 governed OpenLocalProgramPort。
+- Commander Console inspector 必须拦截 local-program platform mission preflight 漏检。
+- map-plugin-package inspector 必须拦截 step failureBranch / reviewBranch 未闭合。
+
+negative proof 最低要求：
+
+- 必须在真实生产文件中突变，并观测 owner inspector FAIL。
+- rollback 后必须观测同一 owner inspector PASS。
+- 删除 inspector、删除 negative proof、断开 manifest binding、generated fake PASS 必须被 anti-escape 拦截。
+
+禁止：
+
+- 用普通测试文件替代 negative proof。
+- 用 console.log 文本替代 structured runtime proof。
+- 用 grep / regex / includes 作为核心执法逻辑。
+- 用 debug-loop 脚本形成第二套 runtime。
+
+READY 标准：
+
+- 修复后必须真实执行 `npm run grasseye:start`。
+- 启动成功后必须通过 Commander Console / runtime API 的真实用户侧链路触发任务。
+- 必须读取最新 runtime log。
+- 必须对最新 log 重新完整执行 Phase 1 根因分析。
+- 只检查原 blocker 消失不算 READY。

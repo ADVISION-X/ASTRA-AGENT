@@ -1,0 +1,2 @@
+[LAW-SCRIPT DRIFT] post-action-verification-capability: post-action-verification owner inspector found capability-boundary or governance violations
+- FATAL .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md:1 Post Action Verification active laws must remain machine-blocking.

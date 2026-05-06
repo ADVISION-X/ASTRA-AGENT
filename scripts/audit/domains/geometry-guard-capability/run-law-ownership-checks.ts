@@ -58,7 +58,7 @@ function collectDownstreamRemapFindings(project: Project): Finding[] {
     const normalizedSource = normalizeToken(sourceFile.getFullText());
     const matchedMarker = DOWNSTREAM_REMAP_MARKERS.find((marker) => normalizedSource.includes(marker));
     return matchedMarker
-      ? [createFinding({ lawId: "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3", file: repoPath, line: 1, severity: "fatal", message: "Mouse Click and Mouse Scroll must not remap scaleMapping or recompute executable geometry downstream.", detail: `marker=${matchedMarker}` })]
+      ? [createFinding({ lawId: "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3", file: repoPath, line: 1, severity: "fatal", message: "Mouse Click and Mouse Scroll must not remap scaleMapping or recompute executable geometry downstream.", detail: `marker=${matchedMarker}` })]
       : [];
   });
 }

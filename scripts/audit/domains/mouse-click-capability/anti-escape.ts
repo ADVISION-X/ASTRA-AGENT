@@ -42,12 +42,12 @@ function collectExecutorFindings(project: ReturnType<typeof makeProject>): Findi
 
 function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof getSourceFile>): Finding[] {
   if (!resultBuilderSource) {
-    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder is missing for anti-escape checks." })];
+    return [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder is missing for anti-escape checks." })];
   }
 
   return hasVariableDeclaration(resultBuilderSource, "runtimeProof")
     ? []
-    : [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the proof builder output." })];
+    : [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the proof builder output." })];
 }
 
 function getRunnerSources(project: ReturnType<typeof makeProject>) {

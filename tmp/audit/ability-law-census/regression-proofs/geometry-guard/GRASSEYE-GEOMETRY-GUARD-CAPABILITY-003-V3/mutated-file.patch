@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/geometry-guard/schema-input.ts b/src/capabilities/geometry-guard/schema-input.ts
+--- a/src/capabilities/geometry-guard/schema-input.ts
++++ b/src/capabilities/geometry-guard/schema-input.ts
+@@ -28,7 +28,7 @@
+   selectedMapId: nullableString,
+   selectedMapVersion: nullableString,
+   activationSnapshotRef: nullableString,
+-  capabilityCallId: nullableString,
++  capabilityCallIdRemoved: nullableString,
+   nerveBusEnvelopeId: nullableString,
+   requestedBy: z.string().min(1),
+   purpose: z.string().min(1),

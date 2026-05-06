@@ -73,6 +73,43 @@ function collectExecutorFindings(project: Project): Finding[] {
   return findings;
 }
 
+const FORBIDDEN_CHILD_IMPORT_MARKERS = [
+  "/screenshot/",
+  "/ai/",
+  "/page-state/",
+  "/visual-target/",
+  "/open/",
+  "/mouse-click/",
+  "/mouse-scroll/",
+  "/text-input/",
+  "/forensics-persistence/",
+] as const;
+
+function collectChildImplementationFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+
+  for (const childId of CHILDREN) {
+    const file = `${PATHS.ROOT}/children/${childId}/implementation.ts`;
+    const source = getSource(project, file);
+    const sourceText = source.getFullText();
+    const hasForbiddenImport = source.getImportDeclarations().some((declaration) => {
+      const specifier = declaration.getModuleSpecifierValue() ?? "";
+      return FORBIDDEN_CHILD_IMPORT_MARKERS.some((marker) => specifier.includes(marker));
+    });
+    if (hasForbiddenImport) {
+      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not import foreign ability implementations or execution owners." }));
+    }
+    if (hasCallExpression(source, "buildPostActionVerificationResult") || hasCallExpression(source, "buildPostActionRuntimeProof")) {
+      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not build final result or runtime proof." }));
+    }
+    if (sourceText.includes("return true") || sourceText.includes("return false")) {
+      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not return raw booleans." }));
+    }
+  }
+
+  return findings;
+}
+
 const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean => {
   return [
     "missionId: request?.missionId ?? null",
@@ -150,6 +187,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
   findings.push(...collectAbilityAndContractFindings(project));
   findings.push(...collectSchemaFindings(project));
   findings.push(...collectExecutorFindings(project));
+  findings.push(...collectChildImplementationFindings(project));
   findings.push(...collectBuilderFindings(project));
   findings.push(...collectInspectorFindings(project));
 

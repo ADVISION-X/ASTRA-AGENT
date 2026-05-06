@@ -985,3 +985,64 @@ Forensics 记账存证。
 地图是路线，不是运行时。
 这些不能混。
 ```
+
+---
+
+## 24. 实战运行日志透明化修复补充：step branch closure
+
+本节只补施工细节，不新增 lawId，不修改冻结法案。
+
+正确链路：
+
+```txt
+map package step.failureBranch / step.reviewBranch
+-> operationalMap.failureBranches / operationalMap.reviewBranches 登记
+-> operationalMap.transitions.transitionId 实体存在
+-> runtime STEP_TRANSITION_EVALUATED 能定位到声明分支
+```
+
+禁止链路：
+
+```txt
+step 声明 failureBranch / reviewBranch 但只在文本里出现
+step 声明 failureBranch / reviewBranch 但没有 transitionId
+只验证顶层 branch list，不验证每个 step 自己声明的 branch
+运行时失败后才发现 no matching transition
+```
+
+inspector 应覆盖：
+
+```txt
+validateMapTransitionClosure 必须逐 step 检查 failureBranch / reviewBranch
+每个 step branch 必须同时存在于对应顶层 branch list 与 transitions.transitionId
+postActionVerification 三个 transition id 必须仍指向可达 PAV step
+```
+
+negative proof 应覆盖：
+
+```txt
+把 iPhone Mirroring open step 的 failureBranch 改成不存在的 transitionId 必须 FAIL
+rollback 后同一 inspector 必须 PASS
+删除对应 negative proof 或 inspector binding 必须被 anti-escape 拦截
+```
+
+结构化日志必备字段：
+
+```txt
+MAP_STEP_SELECTED.stepId
+CAPABILITY_CALL_FAILED.stepId
+STEP_TRANSITION_EVALUATED.transitionId
+STEP_TRANSITION_EVALUATED.fromStepId
+STEP_TRANSITION_EVALUATED.branchType
+STEP_TRANSITION_EVALUATED.failureReason
+STEP_TRANSITION_EVALUATED.ownerResponsible
+```
+
+READY 标准补充：
+
+```txt
+map-plugin-package inspector PASS
+生产突变删除/篡改 step branch closure 后 FAIL
+rollback 后 PASS
+真实 restart + 真实任务触发 + fresh phase-1 日志分析确认不再出现 no matching transition
+```

@@ -1,0 +1,8 @@
+scenarioId: platform-business-verb-child-mutation
+mutationName: platform-business-verb-child mutation
+mutatedFile: src/capabilities/mouse-scroll/registry.ts
+rollbackRestoredHash: sha256:d55289d4d221f46816063a1ce443b6ef6bda3cb1645aa6fb58b8525a2cbfac84
+startedAt: 2026-05-06T04:12:09.961Z
+endedAt: 2026-05-06T04:12:20.667Z
+
+Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

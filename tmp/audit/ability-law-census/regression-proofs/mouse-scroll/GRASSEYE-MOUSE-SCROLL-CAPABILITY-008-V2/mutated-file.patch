@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/mouse-scroll/registry.ts b/src/capabilities/mouse-scroll/registry.ts
+--- a/src/capabilities/mouse-scroll/registry.ts
++++ b/src/capabilities/mouse-scroll/registry.ts
+@@ -8,6 +8,7 @@
+   createScrollBrowserViewportCapability(),
+   createScrollDesktopScreenCapability(),
+   createScrollRegionCapability(),
++  "scroll-next-video" as never,
+ ] as const;
+ 
+ export function createMouseScrollCapabilityRegistry(): Map<MouseScrollChildCapabilityId, MouseScrollChildCapability> {

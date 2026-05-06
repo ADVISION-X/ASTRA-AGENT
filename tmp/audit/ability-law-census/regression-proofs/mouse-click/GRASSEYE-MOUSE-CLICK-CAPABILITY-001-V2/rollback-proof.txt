@@ -1,0 +1,8 @@
+scenarioId: platform-adapter-direct-click-mutation
+mutationName: platform-adapter-direct-click mutation
+mutatedFile: src/lib/local-runtime/workbench-mouse-click-runtime.ts
+rollbackRestoredHash: sha256:b6ddf4c69d28af5cddfee86cb27f9483a0fccdb6ed1f6a723aeaa112319455f1
+startedAt: 2026-05-06T03:54:43.554Z
+endedAt: 2026-05-06T03:54:48.632Z
+
+Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

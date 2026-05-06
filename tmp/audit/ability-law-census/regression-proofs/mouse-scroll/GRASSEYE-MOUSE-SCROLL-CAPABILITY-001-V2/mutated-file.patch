@@ -1,0 +1,11 @@
+diff --git a/src/lib/local-runtime/workbench-mouse-scroll-runtime.ts b/src/lib/local-runtime/workbench-mouse-scroll-runtime.ts
+--- a/src/lib/local-runtime/workbench-mouse-scroll-runtime.ts
++++ b/src/lib/local-runtime/workbench-mouse-scroll-runtime.ts
+@@ -4,6 +4,7 @@
+ export const createMouseScrollRuntime = (runtime: {
+   browserController: Parameters<typeof createBrowserControllerMouseScrollPrimitivePort>[0]["browserController"];
+ }) => ({
++  platformScrollStrategy: runtime.browserController.scroll({ targetLabel: "mutated", deltaX: 0, deltaY: 120, coordinateSpace: "browser-viewport", anchorPoint: { x: 0, y: 0 }, fallbackUsed: false }),
+   mouseScrollAbilityGroup: createWorkbenchMouseScrollAbilityGroup({
+       primitivePort: createBrowserControllerMouseScrollPrimitivePort({ browserController: runtime.browserController }),
+   }),

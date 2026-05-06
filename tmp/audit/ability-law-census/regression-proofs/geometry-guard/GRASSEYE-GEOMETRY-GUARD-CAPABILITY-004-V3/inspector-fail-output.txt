@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3 src/capabilities/geometry-guard/shared/geometry-transform.ts:1 Geometry Guard must not silently clamp coordinates.

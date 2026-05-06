@@ -1,0 +1,8 @@
+scenarioId: mouse-scroll-final-action-log-mutation
+mutationName: mouse-scroll-final-action-log mutation
+mutatedFile: src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts
+rollbackRestoredHash: sha256:4a585667fb2220878c306c3e2248b327736f3a0083d899385af8749a85fdaf3e
+startedAt: 2026-05-06T04:11:45.846Z
+endedAt: 2026-05-06T04:11:58.500Z
+
+Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

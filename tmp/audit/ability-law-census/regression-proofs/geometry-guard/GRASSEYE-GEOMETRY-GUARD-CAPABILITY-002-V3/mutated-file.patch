@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/geometry-guard/runtime/geometry-result-builder.ts b/src/capabilities/geometry-guard/runtime/geometry-result-builder.ts
+--- a/src/capabilities/geometry-guard/runtime/geometry-result-builder.ts
++++ b/src/capabilities/geometry-guard/runtime/geometry-result-builder.ts
+@@ -218,6 +218,7 @@
+     sourceAiResultRef: input.request.sourceAiResultRef,
+     sourcePageStateProofRef: input.request.sourcePageStateProofRef,
+     sourceVisualTargetResultRef: input.request.sourceVisualTargetResultRef,
++    fallbackMode: "soft-clamp",
+     failureReason: input.failureReason,
+     reviewRequiredReason: input.reviewRequiredReason,
+     debugLogRef: refs.diagnosticPayloadRef ?? refs.outputRef,

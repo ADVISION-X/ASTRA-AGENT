@@ -1,0 +1,8 @@
+scenarioId: remove-capabilitycallid-from-input
+mutationName: remove-capabilityCallId-from-input
+mutatedFile: src/capabilities/geometry-guard/schema-input.ts
+rollbackRestoredHash: sha256:bf237418b94a1c4d517d5baa3d3266d68e81d32ece94cfd889d747d7bc8798f7
+startedAt: 2026-05-06T04:20:54.106Z
+endedAt: 2026-05-06T04:21:01.942Z
+
+Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

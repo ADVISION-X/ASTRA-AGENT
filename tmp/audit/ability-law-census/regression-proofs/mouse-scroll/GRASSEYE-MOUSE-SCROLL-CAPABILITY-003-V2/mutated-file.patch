@@ -1,0 +1,12 @@
+diff --git a/src/capabilities/mouse-scroll/schema.ts b/src/capabilities/mouse-scroll/schema.ts
+--- a/src/capabilities/mouse-scroll/schema.ts
++++ b/src/capabilities/mouse-scroll/schema.ts
+@@ -319,7 +319,7 @@
+     context.addIssue({ code: z.ZodIssueCode.custom, message: "success requires output", path: ["output"] });
+   }
+   if (value.status !== "success" && value.output !== null) {
+-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed and review_required require output=null", path: ["output"] });
++    context.addIssue({ code: z.ZodIssueCode.custom, message: "mutated output null guard removed", path: ["output"] });
+   }
+   if (value.runtimeProof.status !== value.status) {
+     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });

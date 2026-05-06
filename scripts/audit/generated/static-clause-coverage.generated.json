@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T03:26:59.342Z",
+  "generatedAt": "2026-05-06T04:48:54.060Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -1634,13 +1634,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1678,18 +1678,9 @@
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-law-ownership-checks.ts",
           "targetSymbol": "anonymous",
           "checkKind": "runtime-proof"
-        },
-        {
-          "checkPhase": "run-law-ownership-checks",
-          "checkFunction": "anonymous",
-          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-law-ownership-checks.ts",
-          "targetSymbol": "anonymous",
-          "checkKind": "runtime-proof"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1709,13 +1700,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1749,8 +1740,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1770,13 +1759,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1789,8 +1778,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1810,13 +1797,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1836,8 +1823,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1857,13 +1842,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -1960,8 +1945,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -1981,13 +1964,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2000,8 +1983,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2021,20 +2002,25 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-law-ownership-checks",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/geometry-guard-capability/run-law-ownership-checks.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2054,13 +2040,13 @@
       "negativeProofPath": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:geometry-guard",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2129,8 +2115,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2182,13 +2166,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2264,8 +2248,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2285,13 +2267,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2304,8 +2286,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2325,13 +2305,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2379,8 +2359,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2400,13 +2378,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2430,7 +2408,90 @@
           "sourceFile": "scripts/audit/domains/mouse-click-capability/anti-escape.ts",
           "targetSymbol": "collectExecutorFindings",
           "checkKind": "anti-escape"
+        }
+      ],
+      "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "audit:capability-group-governance failed or is missing fresh evidence.",
+        "audit failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ],
+      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2/proof-summary.md",
+      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md"
+    },
+    {
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2",
+      "capabilityDomain": "mouse-click-capability",
+      "abilityGroupId": "mouse-click",
+      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
+      "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+      "ownerAuditScript": "audit:mouse-click",
+      "ownerAuditScriptDeclared": true,
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": true,
+      "negativeProofMapped": true,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
+      "ownerAuditPassed": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectResultBuilderFindings",
+          "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
+          "targetSymbol": "collectResultBuilderFindings",
+          "checkKind": "required-shape"
         },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectResultBuilderFindings",
+          "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
+          "targetSymbol": "collectResultBuilderFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectResultBuilderFindings",
+          "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
+          "targetSymbol": "collectResultBuilderFindings",
+          "checkKind": "required-shape"
+        }
+      ],
+      "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "audit:capability-group-governance failed or is missing fresh evidence.",
+        "audit failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ],
+      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2/proof-summary.md",
+      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md"
+    },
+    {
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2",
+      "capabilityDomain": "mouse-click-capability",
+      "abilityGroupId": "mouse-click",
+      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
+      "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
+      "ownerAuditScript": "audit:mouse-click",
+      "ownerAuditScriptDeclared": true,
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": true,
+      "negativeProofMapped": true,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
+      "ownerAuditPassed": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [
         {
           "checkPhase": "anti-escape",
           "checkFunction": "collectResultBuilderFindings",
@@ -2475,74 +2536,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
-        "Owner audit command is failing or missing fresh evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "audit:capability-group-governance failed or is missing fresh evidence.",
-        "audit failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ],
-      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2/proof-summary.md",
-      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md"
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
-      "ownerAuditScript": "audit:mouse-click",
-      "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
-      "ownerAuditPassed": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
-        "Owner audit command is failing or missing fresh evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "audit:capability-group-governance failed or is missing fresh evidence.",
-        "audit failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ],
-      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2/proof-summary.md",
-      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-click/owner-binding/owner-binding-proof-summary.md"
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
-      "ownerAuditScript": "audit:mouse-click",
-      "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
-      "ownerAuditPassed": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2562,13 +2555,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2651,8 +2644,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2672,13 +2663,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-click",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2688,25 +2679,9 @@
           "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
           "targetSymbol": "collectSchemaGuardFindings",
           "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectResultBuilderFindings",
-          "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
-          "targetSymbol": "collectResultBuilderFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectResultBuilderFindings",
-          "sourceFile": "scripts/audit/domains/mouse-click-capability/required-shape.ts",
-          "targetSymbol": "collectResultBuilderFindings",
-          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2726,13 +2701,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2849,13 +2824,6 @@
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectChildImplementationFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
-          "targetSymbol": "collectChildImplementationFindings",
-          "checkKind": "required-shape"
-        },
-        {
           "checkPhase": "run-scroll-ownership-attack",
           "checkFunction": "collectPublicContractFindings",
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/run-scroll-ownership-attack.ts",
@@ -2885,8 +2853,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2906,41 +2872,25 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
-        {
-          "checkPhase": "forbidden-shape",
-          "checkFunction": "collectStructuralFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
-          "targetSymbol": "collectStructuralFindings",
-          "checkKind": "forbidden-shape"
-        },
         {
           "checkPhase": "forbidden-shape",
           "checkFunction": "collectExecutionFindings",
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
           "targetSymbol": "collectExecutionFindings",
           "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectBuilderFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
-          "targetSymbol": "collectBuilderFindings",
-          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -2960,13 +2910,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -2997,18 +2947,9 @@
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
           "targetSymbol": "collectSchemaAndRegistryFindings",
           "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectChildImplementationFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
-          "targetSymbol": "collectChildImplementationFindings",
-          "checkKind": "required-shape"
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -3028,20 +2969,25 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectStructuralFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
+          "targetSymbol": "collectStructuralFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -3061,13 +3007,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -3106,6 +3052,96 @@
           "targetSymbol": "collectExecutorFindings",
           "checkKind": "anti-escape"
         },
+        {
+          "checkPhase": "anti-escape",
+          "checkFunction": "collectRunnerFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/anti-escape.ts",
+          "targetSymbol": "collectRunnerFindings",
+          "checkKind": "anti-escape"
+        },
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectExecutionFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
+          "targetSymbol": "collectExecutionFindings",
+          "checkKind": "forbidden-shape"
+        }
+      ],
+      "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "audit:capability-group-governance failed or is missing fresh evidence.",
+        "audit failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ],
+      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2/proof-summary.md",
+      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md"
+    },
+    {
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
+      "capabilityDomain": "mouse-scroll-capability",
+      "abilityGroupId": "mouse-scroll",
+      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
+      "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+      "ownerAuditScript": "audit:mouse-scroll",
+      "ownerAuditScriptDeclared": true,
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": true,
+      "negativeProofMapped": true,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
+      "ownerAuditPassed": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectStructuralFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
+          "targetSymbol": "collectStructuralFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectBuilderFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectBuilderFindings",
+          "checkKind": "required-shape"
+        }
+      ],
+      "blockers": [
+        "Owner audit command is failing or missing fresh evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "audit:capability-group-governance failed or is missing fresh evidence.",
+        "audit failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ],
+      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2/proof-summary.md",
+      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md"
+    },
+    {
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
+      "capabilityDomain": "mouse-scroll-capability",
+      "abilityGroupId": "mouse-scroll",
+      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
+      "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+      "ownerAuditScript": "audit:mouse-scroll",
+      "ownerAuditScriptDeclared": true,
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": true,
+      "negativeProofMapped": true,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
+      "ownerAuditPassed": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [
         {
           "checkPhase": "anti-escape",
           "checkFunction": "collectResultBuilderFindings",
@@ -3156,18 +3192,11 @@
           "checkKind": "anti-escape"
         },
         {
-          "checkPhase": "anti-escape",
-          "checkFunction": "collectRunnerFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/anti-escape.ts",
-          "targetSymbol": "collectRunnerFindings",
-          "checkKind": "anti-escape"
-        },
-        {
-          "checkPhase": "forbidden-shape",
-          "checkFunction": "collectExecutionFindings",
-          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
-          "targetSymbol": "collectExecutionFindings",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "required-shape",
+          "checkFunction": "collectBuilderFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectBuilderFindings",
+          "checkKind": "required-shape"
         },
         {
           "checkPhase": "required-shape",
@@ -3178,74 +3207,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
-        "Owner audit command is failing or missing fresh evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "audit:capability-group-governance failed or is missing fresh evidence.",
-        "audit failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ],
-      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2/proof-summary.md",
-      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md"
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-      "ownerAuditScript": "audit:mouse-scroll",
-      "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
-      "ownerAuditPassed": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
-        "Owner audit command is failing or missing fresh evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "audit:capability-group-governance failed or is missing fresh evidence.",
-        "audit failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ],
-      "mutationProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2/proof-summary.md",
-      "ownerBindingProofPath": "tmp/audit/ability-law-census/regression-proofs/mouse-scroll/owner-binding/owner-binding-proof-summary.md"
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-      "ownerAuditScript": "audit:mouse-scroll",
-      "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
-      "ownerAuditPassed": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -3265,20 +3226,39 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "forbidden-shape",
+          "checkFunction": "collectStructuralFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/forbidden-shape.ts",
+          "targetSymbol": "collectStructuralFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChildImplementationFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectChildImplementationFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChildImplementationFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectChildImplementationFindings",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -3298,13 +3278,13 @@
       "negativeProofPath": "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:mouse-scroll",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -3338,8 +3318,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -4361,6 +4339,13 @@
           "sourceFile": "scripts/audit/domains/open-capability/enforcement-coverage.ts",
           "targetSymbol": "collectMissingLawCoverage",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "negative-proof-harness",
+          "checkFunction": "createFatalResult",
+          "sourceFile": "scripts/audit/domains/open-capability/negative-proof-harness.ts",
+          "targetSymbol": "createFatalResult",
+          "checkKind": "anti-escape"
         }
       ],
       "blockers": [
@@ -5608,7 +5593,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5650,7 +5635,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5676,7 +5660,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5690,7 +5674,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5716,7 +5699,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5793,7 +5776,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5819,7 +5801,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5868,7 +5850,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5894,7 +5875,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5908,7 +5889,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5934,7 +5914,7 @@
       "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -5955,7 +5935,6 @@
       ],
       "blockers": [
         "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -5975,20 +5954,39 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChildImplementationFindings",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+          "targetSymbol": "collectChildImplementationFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChildImplementationFindings",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+          "targetSymbol": "collectChildImplementationFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChildImplementationFindings",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+          "targetSymbol": "collectChildImplementationFindings",
+          "checkKind": "required-shape"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",
@@ -6008,13 +6006,13 @@
       "negativeProofPath": "scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:post-action-verification",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
+      "coverageStatus": "OWNER_BINDING_PROOF_CAPTURED",
       "matrixMapped": true,
       "auditPlanMapped": true,
       "inspectorMapped": true,
       "negativeProofMapped": true,
-      "mutationProofPresent": false,
-      "ownerBindingProofPresent": false,
+      "mutationProofPresent": true,
+      "ownerBindingProofPresent": true,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
@@ -6055,8 +6053,6 @@
         }
       ],
       "blockers": [
-        "Production mutation proof bundle is missing.",
-        "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",
         "typecheck failed or is missing fresh evidence.",
         "lint failed or is missing fresh evidence.",

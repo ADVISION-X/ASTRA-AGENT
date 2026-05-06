@@ -1,0 +1,11 @@
+diff --git a/src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts b/src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts
+--- a/src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts
++++ b/src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts
+@@ -65,6 +65,7 @@
+ 
+ export const buildMouseClickExecutionSeed = (input: ParsedMouseClickAbilityInput): MouseClickExecutionSeed => {
+   const inputRef = input.inputRef;
++  const remapScaleMapping = true;
+ 
+   return {
+     attemptRef: stableHash("mouse-click-attempt", [inputRef, input.capabilityCallId, input.childCapabilityId]), inputRef, childCapabilityId: input.childCapabilityId,

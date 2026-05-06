@@ -965,3 +965,70 @@ Geometry Guard 是“这个坐标能不能安全执行”。
 PAV 是“动作后是否成功”。
 这些不能混。
 ```
+
+---
+
+## 24. 实战运行日志透明化修复补充：prepare-ai-input handoff
+
+本节只补当前 blocker 的执行细节，不新增 lawId，不修改冻结法案。
+
+正确链路：
+
+```txt
+Screenshot capture success
+-> ability result envelope records stored_image source handoff by outputRef/evidenceId
+-> prepare-ai-input dispatch adapter resolves source from screenshotEvidenceRef / abilityResultRef / inputRef
+-> Screenshot owner performs resize/compress/scaleMapping
+-> AI step consumes promptInputRef / aiInputArtifactRef, not original screenshot directly
+```
+
+禁止链路：
+
+```txt
+prepare-ai-input enters Screenshot without source
+Orchestration builds stored_image source itself
+AI adapter resizes/compresses governed screenshot artifact
+map hardcodes image compression or artifact paths
+AI step consumes original screenshot when prepare-ai-input is required
+```
+
+inspector 应覆盖：
+
+```txt
+workbench-screenshot-dispatch-input buildPrepareAiInputCommand 必须调用 resolveScreenshotSourceHandoff
+source candidates 必须包括 screenshotEvidenceRef、abilityResultRef、inputRef
+prepare-ai-input command 必须只在 resolved source 存在时携带 source
+ability result envelope 必须记录 screenshot source handoff
+handoff helper 必须保留 sourceArtifactRef、sourceProof、sha256、storageRef
+```
+
+negative proof 应覆盖：
+
+```txt
+删除 screenshotEvidenceRef source candidate 必须 FAIL
+删除 ability result source handoff recording 必须 FAIL
+删除 artifact hash handoff 字段必须 FAIL
+rollback 后 inspector 必须 PASS
+```
+
+结构化日志必备字段：
+
+```txt
+CAPABILITY_CALL_STARTED.stepId=prepare-ai-input
+CAPABILITY_CALL_STARTED.inputRefs
+CAPABILITY_CALL_COMPLETED.outputRefs
+sourceScreenshotEvidenceId
+originalArtifactRef
+aiInputArtifactRef
+artifactHash
+scaleMapping
+prepareAiInputExecuted
+```
+
+READY 标准补充：
+
+```txt
+fresh runtime log 不再出现 prepare-ai-input invalid_type source Required
+AI step inputRefs 指向 Screenshot 生成的 ai input artifact
+真实 restart + 真实任务触发 + fresh phase-1 日志分析确认旧 blocker 消失
+```

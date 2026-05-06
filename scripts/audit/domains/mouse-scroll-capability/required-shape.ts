@@ -76,12 +76,15 @@ function collectExecutorFindings(project: ReturnType<typeof makeProject>): Findi
 function collectBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   const resultBuilderSource = getSourceFile(project, PATHS.RESULT_BUILDER);
-  if (!resultBuilderSource || !hasCallExpression(resultBuilderSource, "buildMouseScrollRuntimeProof") || !hasCallExpressionPath(resultBuilderSource, ["MouseScrollAbilityResultSchema", "parse"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must use proof builder and parse the governed result." }));
+  if (!resultBuilderSource || !hasCallExpressionPath(resultBuilderSource, ["MouseScrollAbilityResultSchema", "parse"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must parse the governed result shape before returning success, failure, or review_required." }));
+  }
+  if (!resultBuilderSource || !hasCallExpression(resultBuilderSource, "buildMouseScrollRuntimeProof")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll result builder must preserve the governed runtime proof output." }));
   }
   const proofBuilderSource = getSourceFile(project, PATHS.PROOF_BUILDER);
   return !proofBuilderSource || !hasCallExpressionPath(proofBuilderSource, ["MouseScrollRuntimeProofSchema", "parse"])
-    ? findings.concat(createFinding({ lawId: LAW_IDS.TIMING, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll proof builder must parse runtime proof output." }))
+    ? findings.concat(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Mouse Scroll proof builder must parse runtime proof output." }))
     : findings;
 }
 
@@ -90,7 +93,7 @@ function collectChildImplementationFindings(project: ReturnType<typeof makeProje
   for (const filePath of [PATHS.BROWSER_CHILD_IMPL, PATHS.DESKTOP_CHILD_IMPL, PATHS.REGION_CHILD_IMPL]) {
     const childSource = getSourceFile(project, filePath);
     if (!childSource || !hasCallExpression(childSource, "executeMouseScroll")) {
-      findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: childSource ? toMouseScrollRelativePath(childSource) : PATHS.INDEX, line: 1, severity: "fatal", message: "Mouse Scroll child implementation must delegate through executeMouseScroll." }));
+      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file: childSource ? toMouseScrollRelativePath(childSource) : PATHS.INDEX, line: 1, severity: "fatal", message: "Mouse Scroll child implementation must delegate through executeMouseScroll." }));
       continue;
     }
     const hasParse = childSource.getDescendants().some((node) => {
@@ -101,7 +104,7 @@ function collectChildImplementationFindings(project: ReturnType<typeof makeProje
       return Node.isPropertyAccessExpression(expression) && expression.getName() === "parse";
     });
     if (!hasParse) {
-      findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: toMouseScrollRelativePath(childSource), line: 1, severity: "fatal", message: "Mouse Scroll child implementation must parse its governed child result." }));
+      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file: toMouseScrollRelativePath(childSource), line: 1, severity: "fatal", message: "Mouse Scroll child implementation must parse its governed child result." }));
     }
   }
   return findings;

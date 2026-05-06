@@ -1,0 +1,4 @@
+passed: false
+violationCount: 1
+
+ERROR GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3 src/capabilities/geometry-guard/schema.ts:1 Geometry Guard schema must define the full chain-aware input, result, runtime proof, child ids, and failure reasons.

@@ -1,0 +1,6 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Mouse Scroll still exposes anti-escape gaps in the governed chain.
+
+FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2 src/capabilities/mouse-scroll/runtime/mouse-scroll-execution-validator.ts:1 Mouse Scroll validator must keep policyGate as a governed checkpoint.

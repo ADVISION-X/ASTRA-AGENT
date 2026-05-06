@@ -190,7 +190,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     name: "commander direct registry write mutation",
     file: "src/lib/local-app-shell/task-template-registry.ts",
     search: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n',
-    replace: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n  getLocalAppShellMapRegistry().active.activate({} as never, {} as never);\n',
+    replace: '  const activeRegistry = getLocalAppShellMapRegistry().active;\n  if (false) {\n    getLocalAppShellMapRegistry().active.activate({} as never, {} as never);\n  }\n',
   },
   {
     name: "map contains shellCommand mutation",
@@ -215,6 +215,12 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
     search: '"childCapabilityId": "open-local-program"',
     replace: '"childCapabilityId": "open-local-workbench"',
+  },
+  {
+    name: "iphone mirroring step branch closure mutation",
+    file: "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
+    search: '"failureBranch": "open-iphone-mirroring:failed"',
+    replace: '"failureBranch": "open-iphone-mirroring:missing-failed-transition"',
   },
   {
     name: "forensics proof missing activationId mutation",

@@ -1,12 +1,18 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
 
-function shouldSkipStep(stepId: string | undefined, reachable: Set<string>): boolean {
-  return !stepId || reachable.has(stepId);
-}
+type Step = MapPackage["operationalMap"]["steps"][number];
+type Transition = MapPackage["operationalMap"]["transitions"][number];
 
-function collectNextStepIds(mapPackage: MapPackage, currentStepId: string, reachable: Set<string>): string[] {
-  return mapPackage.operationalMap.transitions.flatMap((transition) =>
+const issue = (input: { message: string; path: string }): MapPackageValidationIssue => ({
+  code: "transition_not_closed",
+  message: input.message,
+  path: input.path,
+  severity: "error",
+});
+
+function collectNextStepIds(transitions: readonly Transition[], currentStepId: string, reachable: Set<string>): string[] {
+  return transitions.flatMap((transition) =>
     transition.fromStepId === currentStepId && transition.toStepId && !reachable.has(transition.toStepId)
       ? [transition.toStepId]
       : [],
@@ -18,12 +24,13 @@ function collectReachableSteps(mapPackage: MapPackage): Set<string> {
   const queue = [mapPackage.operationalMap.initialStepId];
 
   while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current || shouldSkipStep(current, reachable)) {
+    const currentStepId = queue.shift();
+    if (!currentStepId || reachable.has(currentStepId)) {
       continue;
     }
-    reachable.add(current);
-    queue.push(...collectNextStepIds(mapPackage, current, reachable));
+
+    reachable.add(currentStepId);
+    queue.push(...collectNextStepIds(mapPackage.operationalMap.transitions, currentStepId, reachable));
   }
 
   return reachable;
@@ -33,27 +40,92 @@ function validateReachableSteps(mapPackage: MapPackage, reachable: Set<string>):
   return mapPackage.operationalMap.steps.flatMap((step) =>
     reachable.has(step.stepId)
       ? []
-      : [{
-        code: "transition_not_closed",
+      : [issue({
         message: `Step ${step.stepId} is unreachable from initialStepId.`,
         path: "operationalMap.steps",
-        severity: "error"
-      }],
+      })],
   );
+}
+
+function validateDeclaredBranchSet(input: {
+  branchId: string;
+  branchSet: Set<string>;
+  branchKind: "failureBranch" | "reviewBranch";
+  path: string;
+}): MapPackageValidationIssue[] {
+  return input.branchSet.has(input.branchId)
+    ? []
+    : [issue({
+      message: `Step ${input.branchKind} ${input.branchId} is not declared in operationalMap.${input.branchKind === "failureBranch" ? "failureBranches" : "reviewBranches"}.`,
+      path: input.path,
+    })];
+}
+
+function validateDeclaredBranchTransition(input: {
+  branchId: string;
+  transitionIds: Set<string>;
+  branchKind: "failureBranch" | "reviewBranch";
+  path: string;
+}): MapPackageValidationIssue[] {
+  return input.transitionIds.has(input.branchId)
+    ? []
+    : [issue({
+      message: `Step ${input.branchKind} ${input.branchId} is not backed by a transition id.`,
+      path: input.path,
+    })];
+}
+
+function validateStepBranch(input: {
+  step: Step;
+  branchId: string;
+  branchSet: Set<string>;
+  transitionIds: Set<string>;
+  branchKind: "failureBranch" | "reviewBranch";
+}): MapPackageValidationIssue[] {
+  const path = `operationalMap.steps.${input.step.stepId}.${input.branchKind}`;
+  return [
+    ...validateDeclaredBranchSet({ branchId: input.branchId, branchSet: input.branchSet, branchKind: input.branchKind, path }),
+    ...validateDeclaredBranchTransition({ branchId: input.branchId, transitionIds: input.transitionIds, branchKind: input.branchKind, path }),
+  ];
+}
+
+function validateStepBranchClosure(mapPackage: MapPackage): MapPackageValidationIssue[] {
+  const transitionIds = new Set(mapPackage.operationalMap.transitions.map((transition) => transition.transitionId));
+  const failureBranches = new Set(mapPackage.operationalMap.failureBranches);
+  const reviewBranches = new Set(mapPackage.operationalMap.reviewBranches);
+
+  return mapPackage.operationalMap.steps.flatMap((step) => [
+    ...validateStepBranch({
+      step,
+      branchId: step.failureBranch,
+      branchSet: failureBranches,
+      transitionIds,
+      branchKind: "failureBranch",
+    }),
+    ...validateStepBranch({
+      step,
+      branchId: step.reviewBranch,
+      branchSet: reviewBranches,
+      transitionIds,
+      branchKind: "reviewBranch",
+    }),
+  ]);
 }
 
 function validateBranchBacking(mapPackage: MapPackage): MapPackageValidationIssue[] {
   const transitionIds = new Set(mapPackage.operationalMap.transitions.map((transition) => transition.transitionId));
-  const branchIds = [...mapPackage.operationalMap.failureBranches, ...mapPackage.operationalMap.reviewBranches];
-  return branchIds.flatMap((branchId) =>
-    transitionIds.has(branchId)
+  const declaredBranches = [
+    ...mapPackage.operationalMap.failureBranches.map((branchId) => ({ branchId, path: "operationalMap.failureBranches" })),
+    ...mapPackage.operationalMap.reviewBranches.map((branchId) => ({ branchId, path: "operationalMap.reviewBranches" })),
+  ];
+
+  return declaredBranches.flatMap((branch) =>
+    transitionIds.has(branch.branchId)
       ? []
-      : [{
-        code: "transition_not_closed",
-        message: `Branch ${branchId} is not backed by a transition id.`,
-        path: "operationalMap.transitions",
-        severity: "error"
-      }],
+      : [issue({
+        message: `Branch ${branch.branchId} is not backed by a transition id.`,
+        path: branch.path,
+      })],
   );
 }
 
@@ -95,10 +167,7 @@ function collectReachableVerificationSteps(mapPackage: MapPackage, fromStepId: s
   return reachable;
 }
 
-type PostActionVerificationStep = MapPackage["operationalMap"]["steps"][number];
-type TransitionById = Map<string, MapPackage["operationalMap"]["transitions"][number]>;
-
-function getPolicyTransitions(step: PostActionVerificationStep): Array<[string, string]> {
+function collectPolicyTransitions(step: Step): Array<[string, string]> {
   const policy = step.postActionVerification;
   return policy === null
     ? []
@@ -114,39 +183,36 @@ function validatePolicyTransition(input: {
   fieldName: string;
   transitionId: string;
   reachableVerificationSteps: Set<string>;
-  transitionById: TransitionById;
+  transitionById: Map<string, Transition>;
 }): MapPackageValidationIssue[] {
   const transition = input.transitionById.get(input.transitionId);
+  const path = `operationalMap.steps.${input.stepId}.postActionVerification.${input.fieldName}`;
   if (!transition) {
-    return [{
-      code: "transition_not_closed",
+    return [issue({
       message: `Post-action verification policy ${input.fieldName} references unknown transition ${input.transitionId}.`,
-      path: `operationalMap.steps.${input.stepId}.postActionVerification.${input.fieldName}`,
-      severity: "error",
-    }];
+      path,
+    })];
   }
   if (!input.reachableVerificationSteps.has(transition.fromStepId)) {
-    return [{
-      code: "transition_not_closed",
+    return [issue({
       message: `Post-action verification policy ${input.fieldName} must resolve from a reachable post-action-verification step.`,
-      path: `operationalMap.steps.${input.stepId}.postActionVerification.${input.fieldName}`,
-      severity: "error",
-    }];
+      path,
+    })];
   }
   return [];
 }
 
 function validatePostActionVerificationStep(input: {
   mapPackage: MapPackage;
-  step: PostActionVerificationStep;
-  transitionById: TransitionById;
+  step: Step;
+  transitionById: Map<string, Transition>;
 }): MapPackageValidationIssue[] {
   if (!input.step.postActionVerification) {
     return [];
   }
 
   const reachableVerificationSteps = collectReachableVerificationSteps(input.mapPackage, input.step.stepId);
-  return getPolicyTransitions(input.step).flatMap(([fieldName, transitionId]) =>
+  return collectPolicyTransitions(input.step).flatMap(([fieldName, transitionId]) =>
     validatePolicyTransition({
       stepId: input.step.stepId,
       fieldName,
@@ -158,7 +224,7 @@ function validatePostActionVerificationStep(input: {
 }
 
 function validatePostActionVerificationPolicies(mapPackage: MapPackage): MapPackageValidationIssue[] {
-  const transitionById: TransitionById = new Map(
+  const transitionById = new Map(
     mapPackage.operationalMap.transitions.map((transition) => [transition.transitionId, transition]),
   );
 
@@ -172,6 +238,7 @@ export function validateMapTransitionClosure(mapPackage: MapPackage): MapPackage
   return [
     ...validateReachableSteps(mapPackage, reachable),
     ...validateBranchBacking(mapPackage),
+    ...validateStepBranchClosure(mapPackage),
     ...validatePostActionVerificationPolicies(mapPackage),
   ];
 }

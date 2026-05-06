@@ -1,0 +1,12 @@
+diff --git a/src/lib/local-runtime/workbench-open-runtime.ts b/src/lib/local-runtime/workbench-open-runtime.ts
+index aba830b..dec8da0 100644
+--- a/src/lib/local-runtime/workbench-open-runtime.ts
++++ b/src/lib/local-runtime/workbench-open-runtime.ts
+@@ -4,7 +4,6 @@ import { createGovernedMacOSOpenLocalProgramAdapter } from "./open-local-program
+ 
+ export const createOpenRuntime = (runtime: WorkbenchBaseRuntime) =>
+   createOpenAbilityGroup({
+-    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),
+     browser: {
+       getSessionSnapshot: async () => runtime.browserController.getSessionState(),
+       open: async (openInput) => {

@@ -7,12 +7,17 @@ import { buildGeometryActionEntries } from "./builders/build-geometry-action-ent
 import { buildInputScrollEntries } from "./builders/build-input-scroll-entries.js";
 import { buildPostActionEntries } from "./builders/build-post-action-entries.js";
 import { buildVisualCaptureEntries } from "./builders/build-visual-capture-entries.js";
-import { CapabilityCatalogDocumentSchema, type CapabilityCatalogDocument, type CapabilityCatalogEntry } from "./schema.js";
+import {
+  CapabilityCatalogDocumentSchema,
+  CapabilityCatalogEntrySchema,
+  type CapabilityCatalogDocument,
+  type CapabilityCatalogEntry,
+} from "./schema.js";
 
 export const CAPABILITY_CATALOG_VERSION = "2026-04-map-prompt-contract-v1";
 export const CAPABILITY_CATALOG_GENERATED_FROM = "src/map-plugins/authoring/capability-catalog/build-capability-catalog.ts";
 
-const collectCapabilityEntries = (): CapabilityCatalogEntry[] => [
+const collectCapabilityEntries = (): unknown[] => [
   ...buildAiOpenEntries(),
   ...buildVisualCaptureEntries(),
   ...buildGeometryActionEntries(),
@@ -20,6 +25,9 @@ const collectCapabilityEntries = (): CapabilityCatalogEntry[] => [
   ...buildForensicsPageStateEntries(),
   ...buildPostActionEntries(),
 ];
+
+const normalizeEntries = (entries: unknown[]): CapabilityCatalogEntry[] =>
+  entries.map((entry) => CapabilityCatalogEntrySchema.parse(entry));
 
 const sortEntries = (entries: CapabilityCatalogEntry[]): CapabilityCatalogEntry[] =>
   [...entries].sort((left, right) => {
@@ -30,10 +38,11 @@ const sortEntries = (entries: CapabilityCatalogEntry[]): CapabilityCatalogEntry[
   });
 
 export const buildCapabilityCatalog = (): CapabilityCatalogDocument => {
+  const entries = sortEntries(normalizeEntries(collectCapabilityEntries()));
   return CapabilityCatalogDocumentSchema.parse({
     version: CAPABILITY_CATALOG_VERSION,
     generatedFrom: CAPABILITY_CATALOG_GENERATED_FROM,
-    entries: sortEntries(collectCapabilityEntries()),
+    entries,
   });
 };
 

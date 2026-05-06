@@ -1,0 +1,9 @@
+classification: CODE VIOLATION
+passed: false
+violationCount: 1
+summary: Mouse Click required package or governed execution chain is incomplete.
+
+FATAL GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2 src/capabilities/mouse-click/schema.ts:1 Mouse Click input schema block drifted: activationSnapshotRef: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
+  requestedBy: z.string().min(1),
