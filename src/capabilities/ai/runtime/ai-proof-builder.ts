@@ -91,7 +91,7 @@ function buildAiRuntimeProofIdentityFields(input: AiRuntimeProofInput, proofIds:
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
     stepId: input.request.stepId,
-    capabilityCallId: null,
+    capabilityCallId: input.request.capabilityCallId,
   };
 }
 

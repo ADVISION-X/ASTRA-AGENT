@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T18:32:01.619Z",
+  "generatedAt": "2026-05-06T18:32:12.953Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "scripts/audit/generated/audit-conflicts.generated.json",
@@ -10,14 +10,6 @@
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
     "src/capabilities/ai/runtime/ai-proof-builder.ts",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-001-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-003-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-004-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-006-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-007-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-008-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-009-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-010-V1/rollback-proof.txt",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-011-V1/rollback-proof.txt"
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-013-V1/rollback-proof.txt"
   ]
 }
