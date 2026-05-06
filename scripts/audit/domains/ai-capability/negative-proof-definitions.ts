@@ -81,12 +81,7 @@ export const MUTATIONS: Mutation[] = [
     search: "  await context.debugSession.emitAiRequestDebug();\n",
     replace: "",
   },
-  {
-    name: "ai request debug pre-runtime mutation",
-    file: "src/capabilities/ai/runtime/ai-executor.ts",
-    search: "  await emitAiExecutionRequestDebug({\n    request: inputGate.request,\n    childContract: input.childContract,\n    context: input.context,\n    promptContract: promptResolution.contract,\n  });\n",
-    replace: "",
-  },
+  { name: "ai request debug pre-runtime mutation", file: "src/capabilities/ai/runtime/ai-executor.ts", search: "  await emitAiExecutionRequestDebug({\n    request: inputGate.request,\n    childContract: input.childContract,\n    context: input.context,\n    promptContract: promptResolution.contract,\n  });\n", replace: "" },
   {
     name: "implementation status collapse mutation",
     file: "src/capabilities/ai/runtime/ai-runtime-result.ts",

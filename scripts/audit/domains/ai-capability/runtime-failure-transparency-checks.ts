@@ -113,22 +113,28 @@ const collectOuterCatchDebugFindings = (project: Project): Finding[] => {
     : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-execution-failure-debug.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must emit AI_ERROR_DEBUG with diagnosticPayloadRef before returning the governed dispatch failure." })];
 };
 
-const collectRequestDebugStartFindings = (project: Project): Finding[] => {
+const hasExecutorPreRuntimeRequestDebug = (project: Project): boolean => {
   const executorSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-executor.ts`);
   const executionRequestDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-request-debug.ts`);
-  const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
-  const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
-  const localDebugContractSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`);
-  const hasExecutorPreRuntimeDebug = hasOrderedFunctionCall(executorSource, "executeAiChild", "emitAiExecutionRequestDebug", "resolveAiPreRuntimeResult")
+  return hasOrderedFunctionCall(executorSource, "executeAiChild", "emitAiExecutionRequestDebug", "resolveAiPreRuntimeResult")
     && hasFunctionCall(executionRequestDebugSource, "emitAiExecutionRequestDebug", "emitDebugEvent")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugRuntime", "runtimeCallId")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugRuntime", "implementationStatus")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugRuntime", "diagnosticPayloadRef")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugPrompt", "promptDebugRef");
-  const hasLocalPreGatewayDebug = hasFunctionCall(localAdapterSource, "executeLocalAiRuntimeRequest", "emitAiRequestDebug")
+};
+
+const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
+  const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
+  const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
+  const localDebugContractSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`);
+  return hasFunctionCall(localAdapterSource, "executeLocalAiRuntimeRequest", "emitAiRequestDebug")
     && hasSourceCall(localDebugSource, "emitRequestDebug")
     && hasTypeAliasProperty(localDebugContractSource, "LocalAiDebugSession", "emitAiRequestDebug");
-  return hasExecutorPreRuntimeDebug && hasLocalPreGatewayDebug
+};
+
+const collectRequestDebugStartFindings = (project: Project): Finding[] => {
+  return hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
     ? []
     : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and before provider/model await boundaries." })];
 };
