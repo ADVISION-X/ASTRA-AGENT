@@ -871,3 +871,38 @@ Commander 只发 governed envelope。
 Commander 只读 governed read model。
 Commander 不执行、不判断、不落盘、不推进地图。
 ```
+
+---
+
+## 22. 实战运行日志透明化补充：accepted 后禁止 COMMAND_REJECTED
+
+本节只补施工细节，不新增 lawId，不修改冻结法案。
+
+`COMMAND_REJECTED` 只能表示 command 未进入 mission runtime。对于同一 runId/commandId，一旦出现以下任一 accepted 边界，Commander 后续 observer timeout 不得再写 `COMMAND_REJECTED`：
+
+```txt
+NERVE_BUS_ENVELOPE_CREATED
+ORCHESTRATION_START_RECEIVED
+MISSION_ACTIVATION_SNAPSHOT_FROZEN
+COMMAND_ACCEPTED
+commandEnvelopeRef + resultEnvelopeRef runtime proof
+```
+
+accepted 后的 HTTP/receipt observer timeout 必须改写为：
+
+```txt
+COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED
+status=review_required
+ownerResponsible=Commander Console / Nerve Bus / Orchestration
+actionableMessage=continue tracking mission runtime events
+```
+
+该事件不得进入 command rejected truth，不得污染 review queue，不得让 UI 判断 mission 未启动。
+
+Inspector 必须覆盖：
+
+```txt
+recordAcceptedObserverTimeout 使用 COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED
+wasAcceptedBeforeResult 以 commandEnvelopeRef/resultEnvelopeRef 判定 accepted proof
+late accepted timeout path 不再发 COMMAND_REJECTED
+```

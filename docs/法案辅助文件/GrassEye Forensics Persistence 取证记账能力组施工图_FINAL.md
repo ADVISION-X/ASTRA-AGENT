@@ -726,3 +726,44 @@ Forensics 只写 envelope，不收留 finalizer。
 Forensics 只持有 record truth，不持有业务 truth。
 Forensics 必须能让每一条证据回到 map、step、capability call、prompt/action/verification。
 ```
+
+---
+
+## 20. 实战运行日志透明化补充：write idempotency proof
+
+本节只补施工细节，不新增 lawId，不修改冻结法案。
+
+Forensics 写账可以对每个 runtime event 记录 `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN`，但终端摘要必须足够判断是否正常写账、重复写账或 dedupe。
+
+`FORENSICS_RECORD_WRITE_REQUESTED` refs 至少包含：
+
+```txt
+sourceEventId
+sourceEventType
+sourceOwner
+recordKind
+pendingRecordId
+idempotencyKey
+dedupeDecision=pending
+```
+
+`FORENSICS_RECORD_WRITTEN` refs 至少包含：
+
+```txt
+sourceEventId
+sourceEventType
+recordKind
+recordId
+recordRef
+idempotencyKey
+dedupeDecision=written or deduped
+```
+
+禁止：
+
+```txt
+为了减少日志关闭 Forensics 写账
+为了通过审计删除 write requested/written event
+终端输出完整大 payload
+重复 idempotencyKey 产生第二条业务账
+```

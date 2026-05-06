@@ -116,7 +116,9 @@ const findRuntimeContractViolations = (project: Project): Finding[] => {
 };
 
 const hasObjectLiteralProperty = (sourceFile: SourceFile, propertyName: string): boolean =>
-  sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
+  sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment).some((property) => property.getName() === propertyName)
+  || sourceFile.getDescendantsOfKind(SyntaxKind.PropertySignature).some((property) => property.getName() === propertyName);
 
 const hasCallWithObjectProperty = (sourceFile: SourceFile, callName: string, propertyName: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {

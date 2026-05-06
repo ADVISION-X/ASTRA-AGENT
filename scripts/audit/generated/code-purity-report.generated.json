@@ -1,17 +1,10 @@
 {
-  "generatedAt": "2026-05-06T14:17:12.899Z",
+  "generatedAt": "2026-05-06T14:22:14.872Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/ai-capability/negative-proof-definitions.ts",
     "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-    "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
-    "scripts/audit/domains/orchestration-capability/ai-prompt-contract-tasktype-dispatch-checks.ts",
-    "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-    "scripts/audit/domains/visual-target-capability/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
-    "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
@@ -19,23 +12,10 @@
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
     "src/capabilities/ai/ability-group.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-contract.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug.ts",
-    "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
+    "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
+    "src/capabilities/ai/runtime-factory.ts",
     "src/capabilities/ai/runtime/ai-execution-context.ts",
-    "src/capabilities/ai/runtime/ai-runtime-result.ts",
-    "src/capabilities/ai/schema-runtime.schema.ts",
-    "src/capabilities/nerve-bus/schema-envelope.schema.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts",
-    "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
-    "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
-    "src/lib/local-runtime/structured-log-payload.ts",
-    "src/lib/local-runtime/structured-log-terminal.ts",
-    "src/lib/local-runtime/workbench-ai-debug-support.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
-    "src/types/structured-log.ts"
+    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -188,7 +168,7 @@
   "functionOverLimitInventory": [
     {
       "file": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-      "lines": 301,
+      "lines": 303,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -219,6 +199,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
+      "lines": 222,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildExternalDebugBase"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "src/capabilities/ai/runtime/ai-dispatch-failure.ts",
@@ -394,7 +391,7 @@
     },
     {
       "file": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-      "lines": 301,
+      "lines": 303,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -408,6 +405,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts",
+      "lines": 222,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildExternalDebugBase"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
       "file": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",

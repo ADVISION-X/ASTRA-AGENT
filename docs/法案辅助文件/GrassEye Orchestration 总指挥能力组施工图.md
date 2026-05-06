@@ -1046,3 +1046,35 @@ map-plugin-package inspector PASS
 rollback 后 PASS
 真实 restart + 真实任务触发 + fresh phase-1 日志分析确认不再出现 no matching transition
 ```
+
+---
+
+## 25. 实战运行日志透明化补充：AI failure passthrough
+
+本节只补施工细节，不新增 lawId，不修改冻结法案。
+
+Orchestration 对 AI step 的职责是 dispatch、接收 result envelope、评估 transition；不得重写 AI runtime 真相。`CAPABILITY_CALL_FAILED` / `CAPABILITY_CALL_REVIEW_REQUIRED` for AI 必须从 AI response envelope / payload refs 透传诊断摘要：
+
+```txt
+failureReason
+reviewRequiredReason
+implementationStatus
+runtimeCallId
+rawOutputRef
+rawOutputHash
+diagnosticPayloadRef
+schemaIssueCount
+qualityDecision
+outputBoundaryDecision
+```
+
+如果 AI child 返回 failed/review_required，Orchestration 可以进入 failed/review transition，但结构化日志不得只显示 `runtime_execution_failed`。`aiResultRef` 在非 success 情况下应指向 diagnostic payload ref，而不是丢成 null。
+
+禁止：
+
+```txt
+Orchestration 将 AI failureReason 覆盖成 generic runtime_execution_failed
+Orchestration 直接调用 AI runtime/local-ai adapter
+Orchestration 写 raw prompt/raw image/raw response text 到终端
+Orchestration 根据 AI free text 推进流程
+```

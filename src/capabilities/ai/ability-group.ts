@@ -72,7 +72,7 @@ const dispatchAiExecutableFailure = (
 const dispatchAiExecutionFailure = (
   input: {
     context: AiExecutionContext;
-    rawInput: { taskType: AiTaskType };
+    rawInput: ParsedAiAbilityInput;
     childCapabilityId: AiChildCapabilityId;
     providerKind: AiProviderKind | null;
     error: unknown;

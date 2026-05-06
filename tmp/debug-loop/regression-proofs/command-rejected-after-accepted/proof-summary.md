@@ -1,3 +1,9 @@
-# Command Rejected After Accepted Proof
+# COMMAND_REJECTED after accepted proof
 
-Late command results with command/result envelope refs are no longer logged as `COMMAND_REJECTED` when the failure reason is a timeout. They emit `COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED`, preserving mission runtime truth and pointing operators to runtime events.
+Commander inspector now checks that accepted observer timeout uses `COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED`, guarded by command/result envelope refs, rather than late `COMMAND_REJECTED`.
+
+Verification:
+
+```txt
+npm run audit:commander-console: PASS
+```

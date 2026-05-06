@@ -1070,3 +1070,76 @@ Local AI 是内部运行边界，不是第二个主权。
 失败必须被证明，不能伪装成功。
 没有 proof 的 AI result，不算真正执行。
 ```
+
+---
+
+## 25. 实战运行日志透明化补充：AI runtime failure diagnostics
+
+本节只补施工细节，不新增 lawId，不修改冻结法案。
+
+`runtime_execution_failed` 只能作为外层未预期 throw 的 fallback kind，不能作为 AI terminal failure 的唯一可见原因。AI runtime/adapter/child execution 失败必须保留并暴露：
+
+```txt
+stepId
+taskType
+promptContractId
+expectedOutputSchema
+childCapabilityId
+modelProvider
+modelName
+runtime
+runtimeCallId
+implementationStatus
+errorKind
+failureReason
+rawOutputRef or rawOutputHash
+diagnosticPayloadRef
+schemaIssueCount
+qualityDecision
+outputBoundaryDecision
+ownerResponsible
+actionableMessage
+```
+
+允许的 runtime implementationStatus 至少包括：
+
+```txt
+runtime_threw
+runtime_timeout
+runtime_invalid_response
+runtime_http_failed
+invalid_output
+model_missing
+engine_missing
+service_unreachable
+missing_evidence
+prompt_contract_rejected
+task_type_mismatch
+circuit_breaker_open
+concurrency_limited
+provider_not_configured
+provider_secret_missing
+local_ai_unavailable
+```
+
+`AI_REQUEST_DEBUG` / `AI_RESPONSE_DEBUG` / `AI_ERROR_DEBUG` 必须进入 structured runtime event sink。AI 不直接 import Forensics internals；composition root 注入 `emitDebugEvent`，Forensics public boundary 负责持久化。
+
+禁止：
+
+```txt
+local-ai adapter 自己写 Forensics storage
+AI result failureReason 只剩 runtime_execution_failed
+invalid_output 被改写成 schema_validation_failed 而丢失 rawOutputRef/runtimeCallId
+终端输出 raw image base64/raw prompt/secret/cookie/token
+```
+
+Inspector 必须用 AST/symbol/import graph 固化：
+
+```txt
+createConfiguredAiAbilityGroup -> createProviderAwareAiRuntimePort({ emitDebugEvent })
+createAiExecutionContext 支持 emitDebugEvent 注入
+provider-aware adapter -> createLocalAiRuntimePort({ emitDebugEvent })
+local adapter -> emitAiErrorDebug(implementationStatus)
+AI runtime result resolver 保留具体 implementationStatus
+unexpected child throw 暴露 implementationStatus/errorKind/diagnosticPayloadRef
+```

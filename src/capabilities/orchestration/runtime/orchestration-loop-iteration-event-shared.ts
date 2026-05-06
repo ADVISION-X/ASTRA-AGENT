@@ -10,6 +10,7 @@ type StepResultRecord = {
   outputRef?: string | null;
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
+  branchFieldValues: Record<string, string | number | boolean | null>;
   payloadRefs: MissionState["payloadRefs"];
 };
 

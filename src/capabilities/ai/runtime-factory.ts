@@ -15,13 +15,11 @@ export type CreateAiAbilityGroupInput = {
 export const createConfiguredAiAbilityGroup = (
   input: CreateAiAbilityGroupInput = {},
 ) => {
-  const runtimeOptions: ProviderAwareAiRuntimeInput = {
-    emitDebugEvent: input.emitDebugEvent,
-    dataDir: input.dataDir ?? null,
-  };
-
   return createAiAbilityGroup({
-    runtime: createProviderAwareAiRuntimePort(runtimeOptions),
+    runtime: createProviderAwareAiRuntimePort({
+      emitDebugEvent: input.emitDebugEvent,
+      dataDir: input.dataDir ?? null,
+    }),
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),
     promptRegistry: createAiPromptRegistry(),
