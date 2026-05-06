@@ -34,7 +34,24 @@ function renderEvent(event) {
     meta.push(`failureReason=${formatMetaValue(event.failureReason)}`);
   }
 
-  for (const key of ["ownerResponsible", "actionableMessage", "traceId", "runId", "packageFile", "selectedMapId", "requestedPlatformId", "activationSnapshotRef"]) {
+  for (const key of [
+    "ownerResponsible",
+    "actionableMessage",
+    "traceId",
+    "runId",
+    "packageFile",
+    "selectedMapId",
+    "requestedPlatformId",
+    "activationSnapshotRef",
+    "capabilityCallId",
+    "childCapabilityId",
+    "implementationStatus",
+    "errorKind",
+    "runtimeCallId",
+    "diagnosticPayloadRef",
+    "promptContractId",
+    "outputSchemaRef",
+  ]) {
     if (event[key]) {
       meta.push(`${key}=${formatMetaValue(event[key])}`);
     }
@@ -94,7 +111,10 @@ function createEmitter() {
 
 function createRuntimePayloadRelay(emit) {
   return (phase, payload) => {
-    const refs = [payload.sessionId, payload.roundId, payload.videoVisitId, payload.step].filter(Boolean);
+    const payloadRefs = Array.isArray(payload.refs) ? payload.refs.filter(Boolean) : [];
+    const refs = payloadRefs.length > 0
+      ? payloadRefs
+      : [payload.sessionId, payload.roundId, payload.videoVisitId, payload.step].filter(Boolean);
     emit({
       timestamp: payload.createdAt ?? new Date().toISOString(),
       level: resolveLevel(payload.status ?? payload.result),
@@ -111,6 +131,14 @@ function createRuntimePayloadRelay(emit) {
       selectedMapId: payload.mapId ?? payload.selectedMapId ?? null,
       requestedPlatformId: payload.requestedPlatformId ?? null,
       activationSnapshotRef: payload.activationSnapshotRef ?? null,
+      capabilityCallId: payload.capabilityCallId ?? null,
+      childCapabilityId: payload.childCapabilityId ?? null,
+      implementationStatus: payload.implementationStatus ?? null,
+      errorKind: payload.errorKind ?? null,
+      runtimeCallId: payload.runtimeCallId ?? null,
+      diagnosticPayloadRef: payload.diagnosticPayloadRef ?? null,
+      promptContractId: payload.promptContractId ?? null,
+      outputSchemaRef: payload.outputSchemaRef ?? null,
       refs,
       durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
     });

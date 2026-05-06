@@ -4,6 +4,7 @@ import type { AiClockPort } from "./ports/ai-clock-port.js";
 import type { AiModelRosterPort } from "./ports/ai-model-roster-port.js";
 import type { AiPromptRegistryPort } from "./ports/ai-prompt-registry-port.js";
 import type { AiRuntimePort } from "./ports/ai-runtime-port.js";
+import type { AiRuntimeStructuredDebugEvent } from "./runtime-adapters/local-ai-runtime-debug-contract.js";
 import {
   AI_ABILITY_GROUP_ID,
   AI_CHILD_CAPABILITY_IDS,
@@ -133,6 +134,7 @@ type AiExecutionContext = {
   clock: AiClockPort;
   modelRoster: AiModelRosterPort;
   promptRegistry: AiPromptRegistryPort;
+  emitDebugEvent?: ((event: AiRuntimeStructuredDebugEvent) => void | Promise<void>) | undefined;
 };
 
 type AiChildContract = {

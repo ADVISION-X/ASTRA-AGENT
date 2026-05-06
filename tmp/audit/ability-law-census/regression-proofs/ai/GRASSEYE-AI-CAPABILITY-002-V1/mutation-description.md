@@ -4,7 +4,7 @@ scenarioId: ai-error-diagnostic-ref-mutation
 mutationName: ai error diagnostic ref mutation
 mutatedFile: src/capabilities/ai/ability-group.ts
 coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
-beforeHash: sha256:c887845ec1f02c340932da5d8971c7b5caaea91573e7ad2037beb6cd3246fd20
-afterMutationHash: sha256:a99b6e40dadd8c39ee51bd896b2529171eb5bb142852edb8191c4e96fdfd553b
+beforeHash: sha256:62fc52c5906895d4d9774f04d80b89c4b242f70d813511f9da020348cc1aae7c
+afterMutationHash: sha256:3478fe202aab83565371c74328025dcb1cffe31b8f89f8c9774a47e34650aa5e
 
 The mutation removes diagnosticPayloadRef from unexpected AI child throw handling, proving outer runtime_execution_failed failures remain diagnosable.

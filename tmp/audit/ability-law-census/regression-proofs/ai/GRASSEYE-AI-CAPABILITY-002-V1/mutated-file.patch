@@ -1,10 +1,10 @@
 diff --git a/src/capabilities/ai/ability-group.ts b/src/capabilities/ai/ability-group.ts
 --- a/src/capabilities/ai/ability-group.ts
 +++ b/src/capabilities/ai/ability-group.ts
-@@ -98,7 +98,6 @@
-       statusMessage,
+@@ -106,7 +106,6 @@
        implementationStatus: "runtime_execution_failed",
        errorKind: originalErrorName,
+       runtimeCallId,
 -      diagnosticPayloadRef,
        rawOutputHash: originalErrorName,
      });

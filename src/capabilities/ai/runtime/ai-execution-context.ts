@@ -18,5 +18,6 @@ export function createAiExecutionContext(input: CreateAiExecutionContextInput = 
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),
     promptRegistry: createAiPromptRegistry(),
+    emitDebugEvent: input.emitDebugEvent,
   };
 }

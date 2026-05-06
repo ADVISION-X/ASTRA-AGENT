@@ -23,5 +23,6 @@ export const createConfiguredAiAbilityGroup = (
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),
     promptRegistry: createAiPromptRegistry(),
+    emitDebugEvent: input.emitDebugEvent,
   });
 };
