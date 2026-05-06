@@ -150,6 +150,7 @@ export async function emitForensicsRecordWriteRequested(
   await emitter.emitRuntimeEvent(
     buildBoundaryEvent(request, "FORENSICS_RECORD_WRITE_REQUESTED", "started", [
       `recordType=${request.recordType}`,
+      `recordKind=${request.recordType}`,
       `sourceEventId=${resolveSourceEventId(request)}`,
       `sourceEventType=${resolveSourceEventType(request)}`,
       `sourceOwner=${request.sourceAbilityGroupId}`,
@@ -179,6 +180,7 @@ export async function emitForensicsRecordWritten(
         "success",
         [
           `recordType=${request.recordType}`,
+          `recordKind=${request.recordType}`,
           `sourceEventId=${resolveSourceEventId(request)}`,
           `sourceEventType=${resolveSourceEventType(request)}`,
           `forensicsResultStatus=${result.status}`,

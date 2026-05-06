@@ -92,6 +92,12 @@ const MUTATIONS: Mutation[] = [
     replace: "",
   },
   {
+    name: "forensics idempotency proof field mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    search: "      `idempotencyKey=${idempotencyKey}`,\n",
+    replace: "",
+  },
+  {
     name: "generic storage port mutation",
     file: "src/capabilities/forensics-persistence/ports/forensics-storage-port.ts",
     search: "  writeRecord(input: ForensicsWriteRecordInput): Promise<StoredForensicsRecord>;\n",

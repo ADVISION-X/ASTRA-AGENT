@@ -17,6 +17,46 @@ import {
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiHandledResult = Awaited<ReturnType<CreateNerveBusAbilityGroupInput["handlerPort"]["requestAi"]>>;
+type AiRuntimeProofRecord = {
+  rawOutputRef?: string | null;
+  rawOutputHash?: string | null;
+  runtimeCallId?: string | null;
+  schemaIssueCount?: number | null;
+  qualityDecision?: string | null;
+  outputBoundaryDecision?: string | null;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+const readString = (value: unknown): string | null => typeof value === "string" && value.length > 0 ? value : null;
+
+const readNumber = (value: unknown): number | null => typeof value === "number" && Number.isFinite(value) ? value : null;
+
+const readRuntimeProof = (value: unknown): AiRuntimeProofRecord | null => isRecord(value) && isRecord(value.runtimeProof)
+  ? value.runtimeProof
+  : null;
+
+const buildAiDiagnosticFields = (aiResult: unknown) => {
+  const result = isRecord(aiResult) ? aiResult : {};
+  const runtimeProof = readRuntimeProof(aiResult);
+  const rawOutputRef = readString(runtimeProof?.rawOutputRef) ?? readString(result.rawOutputRef);
+  const rawOutputHash = readString(runtimeProof?.rawOutputHash) ?? readString(result.rawOutputHash);
+  const runtimeCallId = readString(runtimeProof?.runtimeCallId) ?? readString(result.runtimeCallId);
+  const implementationStatus = readString(result.implementationStatus);
+  const schemaIssueCount = readNumber(runtimeProof?.schemaIssueCount) ?? readNumber(result.schemaIssueCount);
+  const qualityDecision = readString(runtimeProof?.qualityDecision);
+  const outputBoundaryDecision = readString(runtimeProof?.outputBoundaryDecision);
+  return {
+    implementationStatus,
+    runtimeCallId,
+    rawOutputRef,
+    rawOutputHash,
+    diagnosticPayloadRef: readString(result.diagnosticPayloadRef) ?? rawOutputRef ?? rawOutputHash,
+    schemaIssueCount,
+    qualityDecision,
+    outputBoundaryDecision,
+  };
+};
 
 const buildAiOutputPayload = (input: {
   envelope: WorkbenchAiRequestEnvelope;
@@ -28,6 +68,7 @@ const buildAiOutputPayload = (input: {
   reviewRequiredReason: string | null;
   isProductVideo: boolean | null;
   mustReview: boolean | null;
+  diagnostics: ReturnType<typeof buildAiDiagnosticFields>;
 }) => buildPayloadDocument({
   documentType: "ai.response",
   documentRef: `${input.envelope.requestId}:response`,
@@ -41,6 +82,14 @@ const buildAiOutputPayload = (input: {
     confidence: input.confidence,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
+    implementationStatus: input.diagnostics.implementationStatus,
+    runtimeCallId: input.diagnostics.runtimeCallId,
+    rawOutputRef: input.diagnostics.rawOutputRef,
+    rawOutputHash: input.diagnostics.rawOutputHash,
+    diagnosticPayloadRef: input.diagnostics.diagnosticPayloadRef,
+    schemaIssueCount: input.diagnostics.schemaIssueCount,
+    qualityDecision: input.diagnostics.qualityDecision,
+    outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
   },
@@ -53,6 +102,7 @@ const buildWorkbenchAiResponseEnvelope = (input: {
   failureReason: string | null;
   resolvedDecision: ReturnType<typeof resolveWorkbenchAiDecision>;
   outputPayload: ReturnType<typeof buildAiOutputPayload>;
+  diagnostics: ReturnType<typeof buildAiDiagnosticFields>;
 }) => {
   return {
     ...buildMirroredEnvelopeBase({
@@ -74,6 +124,13 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     status: input.resolvedDecision.status,
     decision: input.resolvedDecision.decision,
     confidence: input.confidence,
+    implementationStatus: input.diagnostics.implementationStatus,
+    runtimeCallId: input.diagnostics.runtimeCallId,
+    rawOutputRef: input.diagnostics.rawOutputRef,
+    rawOutputHash: input.diagnostics.rawOutputHash,
+    schemaIssueCount: input.diagnostics.schemaIssueCount,
+    qualityDecision: input.diagnostics.qualityDecision,
+    outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
     outputRef: input.resolvedDecision.status === "success" ? input.outputPayload.documentRef : null,
     diagnosticPayloadRef: input.resolvedDecision.status === "success" ? null : input.outputPayload.documentRef,
     failureReason: input.resolvedDecision.status === "failed" ? input.failureReason : null,
@@ -95,6 +152,7 @@ const buildWorkbenchAiResponse = (input: {
   const aiTaskType = input.aiResult.taskType ?? input.envelope.taskType;
   const confidence = input.aiResult.confidence ?? null;
   const failureReason = describeFailureReason(input.aiResult.failureReason);
+  const diagnostics = buildAiDiagnosticFields(input.aiResult);
   const resolvedDecision = resolveWorkbenchAiDecision({
     aiTaskType,
     status: input.aiResult.status,
@@ -113,6 +171,7 @@ const buildWorkbenchAiResponse = (input: {
     reviewRequiredReason: resolvedDecision.reviewRequiredReason,
     isProductVideo: resolvedDecision.isProductVideo,
     mustReview: resolvedDecision.mustReview,
+    diagnostics,
   });
 
   return {
@@ -123,6 +182,7 @@ const buildWorkbenchAiResponse = (input: {
       failureReason,
       resolvedDecision,
       outputPayload,
+      diagnostics,
     }),
     outputPayload,
   };

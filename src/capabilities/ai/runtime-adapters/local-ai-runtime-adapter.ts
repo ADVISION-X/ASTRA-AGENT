@@ -146,7 +146,7 @@ async function rejectExecution(
   context: LocalAiExecutionContext,
   input: { implementationStatus: string; message: string; errorKind: string | null; gatewayDurationMs: number | null; modelHealthAfter: string },
 ): Promise<AiRuntimeExecutionOutput> {
-  await context.debugSession.emitAiErrorDebug(input.message, input.errorKind, input.gatewayDurationMs);
+  await context.debugSession.emitAiErrorDebug(input.message, input.errorKind, input.gatewayDurationMs, input.implementationStatus);
   return runtimeOutput.buildLocalAiFailureOutput({
     taskType: context.request.taskType,
     implementationStatus: input.implementationStatus,

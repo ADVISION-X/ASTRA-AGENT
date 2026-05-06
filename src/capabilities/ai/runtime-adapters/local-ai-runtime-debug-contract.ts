@@ -19,6 +19,11 @@ type AiRuntimeStructuredDebugEvent = {
   model: string | null;
   modelRole: string | null;
   runtime: string | null;
+  implementationStatus: string | null;
+  errorKind: string | null;
+  runtimeCallId: string | null;
+  diagnosticPayloadRef: string | null;
+  schemaIssueCount: number | null;
   promptContractId: string | null;
   promptVersion: string | null;
   outputSchemaRef: string | null;
@@ -51,7 +56,6 @@ type AiRuntimeStructuredDebugEvent = {
   imageInputs: StructuredAiImageInput[];
   tokenEstimate: number | null;
   failureReason: string | null;
-  errorKind: string | null;
   actionableMessage: string | null;
   ownerResponsible: string | null;
   durationMs: number | null;
@@ -66,6 +70,11 @@ type CollectedDebugState = {
   model: string | null;
   modelRole: string | null;
   runtime: string | null;
+  implementationStatus: string | null;
+  errorKind: string | null;
+  runtimeCallId: string | null;
+  diagnosticPayloadRef: string | null;
+  schemaIssueCount: number | null;
   promptContractId: string | null;
   promptVersion: string | null;
   outputSchemaRef: string | null;
@@ -91,7 +100,7 @@ type CollectedDebugState = {
 type LocalAiDebugSession = {
   state: CollectedDebugState;
   debugHook: (event: LocalAiDebugEvent) => Promise<void>;
-  emitAiErrorDebug: (failureReason: string, errorKind: string | null, durationMs: number | null) => Promise<void>;
+  emitAiErrorDebug: (failureReason: string, errorKind: string | null, durationMs: number | null, implementationStatus?: string | null) => Promise<void>;
   emitRuntimeSuccess: (parsedJson: unknown, durationMs: number | null) => Promise<void>;
 };
 

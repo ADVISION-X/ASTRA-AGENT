@@ -114,6 +114,22 @@ const hasBoundaryEventCall = (
   });
 };
 
+const hasForensicsWriteProofRefs = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const requiredLiterals = [
+    "sourceEventId=",
+    "sourceEventType=",
+    "sourceOwner=",
+    "recordKind=",
+    "pendingRecordId=",
+    "recordId=",
+    "recordRef=",
+    "idempotencyKey=",
+    "dedupeDecision=pending",
+    "dedupeDecision=written",
+  ];
+  return requiredLiterals.every((literal) => hasLiteralTextFragment(sourceFile, literal));
+};
+
 const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
   if (!emitWritten) {
@@ -195,6 +211,7 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
     hasBoundaryEmitterAbilityGroupWiring(workbenchSource),
     hasWrittenBoundaryFailureOnlyGate(boundarySource),
     hasLiteralTextFragment(boundarySource, "recordType="),
+    hasForensicsWriteProofRefs(boundarySource),
   ];
 
   return checks.every(Boolean)

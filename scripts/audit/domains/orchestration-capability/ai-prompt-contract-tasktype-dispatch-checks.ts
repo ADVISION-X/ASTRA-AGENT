@@ -33,7 +33,7 @@ export async function inspectAiPromptContractTaskTypeDispatch() {
   ]);
   const findings: Finding[] = [];
 
-  if (!sharedText.includes("tryGetPromptContractCatalogEntry") || !sharedText.includes("taskType: promptContract.taskType")) {
+  if (!sharedText.includes("findAiPromptContractCatalogEntry") || !sharedText.includes("taskType: contractBinding.promptContract.taskType")) {
     findings.push(createTaskTypeFinding({ file: STEP_DISPATCH_SHARED_PATH, message: "Orchestration AI dispatch requirements must resolve taskType from the AI Prompt Contract Registry before Nerve Bus transport." }));
   }
   if (envelopeText.includes("taskType: input.promptContractId") || !envelopeText.includes("taskType: input.taskType")) {

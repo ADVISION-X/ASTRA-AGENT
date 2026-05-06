@@ -147,13 +147,20 @@ function createLocalAiDebugSession(args: {
 
   return {
     state,
-    emitAiErrorDebug: (failureReason, errorKind, durationMs) => emitErrorDebug({
-      emit: args.emitDebugEvent,
-      baseEvent,
-      failureReason,
-      errorKind,
-      durationMs,
-    }),
+    emitAiErrorDebug: (failureReason, errorKind, durationMs, implementationStatus = null) => {
+      state.implementationStatus = implementationStatus;
+      state.errorKind = errorKind;
+      state.runtimeCallId = args.runtimeCallId;
+      state.diagnosticPayloadRef = args.rawOutputRef;
+      state.schemaIssueCount = state.parserErrors.length > 0 ? state.parserErrors.length : null;
+      return emitErrorDebug({
+        emit: args.emitDebugEvent,
+        baseEvent,
+        failureReason,
+        errorKind,
+        durationMs,
+      });
+    },
     emitRuntimeSuccess,
     debugHook: (event) => handleDebugHookEvent({
       emit: args.emitDebugEvent,

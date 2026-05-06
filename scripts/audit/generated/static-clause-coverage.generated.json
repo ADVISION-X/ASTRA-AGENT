@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T13:58:31.974Z",
+  "generatedAt": "2026-05-06T14:17:30.092Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -178,6 +178,55 @@
           "checkFunction": "findRuntimeContractViolations",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "findRuntimeContractViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findRuntimeDiagnosticTransparencyViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findRuntimeDiagnosticTransparencyViolations",
           "checkKind": "forbidden-shape"
         },
         {

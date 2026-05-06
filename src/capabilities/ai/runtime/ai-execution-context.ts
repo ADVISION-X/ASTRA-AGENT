@@ -4,9 +4,17 @@ import { createProviderAwareAiRuntimePort } from "../runtime-adapters/provider-a
 import { createSystemAiClock } from "./ai-clock.js";
 import { createAiPromptRegistry } from "./ai-prompt-registry.js";
 
-export function createAiExecutionContext(): AiExecutionContext {
+export type CreateAiExecutionContextInput = {
+  emitDebugEvent?: Parameters<typeof createProviderAwareAiRuntimePort>[0]["emitDebugEvent"];
+  dataDir?: string | null;
+};
+
+export function createAiExecutionContext(input: CreateAiExecutionContextInput = {}): AiExecutionContext {
   return {
-    runtime: createProviderAwareAiRuntimePort(),
+    runtime: createProviderAwareAiRuntimePort({
+      emitDebugEvent: input.emitDebugEvent,
+      dataDir: input.dataDir ?? null,
+    }),
     clock: createSystemAiClock(),
     modelRoster: createAiModelRosterPort(),
     promptRegistry: createAiPromptRegistry(),

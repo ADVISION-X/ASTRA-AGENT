@@ -70,6 +70,24 @@ export const MUTATIONS: Mutation[] = [
     replace: "input.context.runtime.execute(input.request)",
   },
   {
+    name: "debug event wiring mutation",
+    file: "src/capabilities/ai/runtime-factory.ts",
+    search: "    emitDebugEvent: input.emitDebugEvent,\n",
+    replace: "",
+  },
+  {
+    name: "implementation status collapse mutation",
+    file: "src/capabilities/ai/runtime/ai-runtime-result.ts",
+    search: '    "invalid_output",\n    "model_missing",\n    "engine_missing",\n    "service_unreachable",\n    "missing_evidence",\n',
+    replace: "",
+  },
+  {
+    name: "ai error diagnostic ref mutation",
+    file: "src/capabilities/ai/ability-group.ts",
+    search: "      diagnosticPayloadRef,\n",
+    replace: "",
+  },
+  {
     name: "hard timeout mutation",
     file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-gateway.ts",
     search: "const outcome = await Promise.race([executionPromise, waitForAbort(runtimeSignal.signal)]);",
@@ -289,6 +307,24 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
     coveredLawIds: ["GRASSEYE-AI-CAPABILITY-012-V1"],
     coverageReasonByLawId: {
       "GRASSEYE-AI-CAPABILITY-012-V1": "The mutation drops AbortController signal propagation to the runtime port, proving AI timeout and cancellation are machine-enforced.",
+    },
+  },
+  "debug event wiring mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation removes emitDebugEvent from the configured runtime factory, proving AI_ERROR_DEBUG cannot silently disconnect from structured runtime logging.",
+    },
+  },
+  "implementation status collapse mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation removes specific local runtime statuses, proving runtime failures cannot collapse into a single non-diagnostic reason.",
+    },
+  },
+  "ai error diagnostic ref mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation removes diagnosticPayloadRef from unexpected AI child throw handling, proving outer runtime_execution_failed failures remain diagnosable.",
     },
   },
   "proof chain mutation": {

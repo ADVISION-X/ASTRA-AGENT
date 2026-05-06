@@ -51,9 +51,26 @@ function getTerminalEventType(status: MissionState["status"]): "MISSION_FAILED" 
 }
 
 function collectLastResultRefs(lastResult: StepResultRecord): string[] {
+  const diagnosticRefs = [
+    "implementationStatus",
+    "runtimeCallId",
+    "rawOutputRef",
+    "rawOutputHash",
+    "diagnosticPayloadRef",
+    "schemaIssueCount",
+    "qualityDecision",
+    "outputBoundaryDecision",
+  ]
+    .map((key) => {
+      const value = lastResult.branchFieldValues[key];
+      return value !== null && value !== undefined && String(value).length > 0 ? `${key}=${String(value)}` : null;
+    })
+    .filter((value): value is string => Boolean(value));
+
   return [
     ...(lastResult.resultRef ? [lastResult.resultRef] : []),
     ...(lastResult.outputRef ? [lastResult.outputRef] : []),
+    ...diagnosticRefs,
   ];
 }
 

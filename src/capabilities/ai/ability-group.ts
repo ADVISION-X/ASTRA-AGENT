@@ -9,6 +9,7 @@ import type {
   ParsedAiAbilityInput,
 } from "./contract.js";
 import { AiHealthReportSchema, AiResultSchema, parseAiInput } from "./schema.js";
+import { buildStableAiRef } from "./shared/ai-types.js";
 import { createAiCapabilityRegistry, listAiChildren } from "./registry.js";
 import { dispatchAiFailure } from "./runtime/ai-dispatch-failure.js";
 import { executeAiChild } from "./runtime/ai-executor.js";
@@ -77,15 +78,30 @@ const dispatchAiExecutionFailure = (
     error: unknown;
   },
 ) =>
-  dispatchAiFailure({
-    rawInput: input.rawInput,
-    context: input.context,
-    childCapabilityId: input.childCapabilityId,
-    taskType: input.rawInput.taskType,
-    providerKind: input.providerKind,
-    failureReason: "runtime_execution_failed",
-    statusMessage: input.error instanceof Error ? input.error.message : "AI child execution failed.",
-  });
+  {
+    const statusMessage = input.error instanceof Error ? input.error.message : "AI child execution failed.";
+    const originalErrorName = input.error instanceof Error ? input.error.name : "UnknownError";
+    const diagnosticPayloadRef = buildStableAiRef("ai-runtime-execution-diagnostic", [
+      input.rawInput.missionId,
+      input.rawInput.sessionId,
+      input.rawInput.taskType,
+      originalErrorName,
+    ]);
+
+    return dispatchAiFailure({
+      rawInput: input.rawInput,
+      context: input.context,
+      childCapabilityId: input.childCapabilityId,
+      taskType: input.rawInput.taskType,
+      providerKind: input.providerKind,
+      failureReason: "runtime_execution_failed",
+      statusMessage,
+      implementationStatus: "runtime_execution_failed",
+      errorKind: originalErrorName,
+      diagnosticPayloadRef,
+      rawOutputHash: originalErrorName,
+    });
+  };
 
 const parseAiExecutionInput = (context: AiExecutionContext, inputValue: unknown) => {
   const parsed = parseAiInput(inputValue);

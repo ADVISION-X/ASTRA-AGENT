@@ -149,6 +149,13 @@ export const AiResponseEnvelopeSchema = ResultEnvelopeBaseCoreSchema.extend({
   to: z.literal("orchestration"),
   decision: z.string().min(1),
   confidence: z.number().min(0).max(1).nullable().default(null),
+  implementationStatus: z.string().min(1).nullable().default(null),
+  runtimeCallId: z.string().min(1).nullable().default(null),
+  rawOutputRef: z.string().min(1).nullable().default(null),
+  rawOutputHash: z.string().min(1).nullable().default(null),
+  schemaIssueCount: z.number().int().nonnegative().nullable().default(null),
+  qualityDecision: z.string().min(1).nullable().default(null),
+  outputBoundaryDecision: z.string().min(1).nullable().default(null),
 }).strict().superRefine(validateGovernedResultEnvelope);
 
 export const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseCoreSchema.extend({

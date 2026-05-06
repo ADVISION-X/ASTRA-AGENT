@@ -35,6 +35,11 @@ function createCollectedDebugState(request: ParsedAiAbilityInput, promptDebugRef
     model: null,
     modelRole: null,
     runtime: null,
+    implementationStatus: null,
+    errorKind: null,
+    runtimeCallId: null,
+    diagnosticPayloadRef: null,
+    schemaIssueCount: null,
     promptContractId: request.promptContractId,
     promptVersion: null,
     outputSchemaRef: request.expectedOutputSchema,
@@ -99,11 +104,17 @@ const buildDebugPromptFields = (args: {
   request: ParsedAiAbilityInput;
   state: CollectedDebugState;
   promptDebugRef: string;
+  runtimeCallId: string | null;
+  rawOutputRef: string;
 }) => ({
     provider: args.state.provider,
     model: args.state.model,
     modelRole: args.state.modelRole,
     runtime: args.state.runtime,
+    implementationStatus: args.state.implementationStatus,
+    runtimeCallId: args.state.runtimeCallId ?? args.runtimeCallId,
+    diagnosticPayloadRef: args.state.diagnosticPayloadRef ?? args.rawOutputRef,
+    schemaIssueCount: args.state.schemaIssueCount,
     promptContractId: args.state.promptContractId,
     promptVersion: args.state.promptVersion,
     outputSchemaRef: args.state.outputSchemaRef,

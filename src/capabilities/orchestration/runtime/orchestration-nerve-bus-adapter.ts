@@ -61,11 +61,19 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       branchFieldValues: {
         decision: transport.responseEnvelope.decision ?? null,
         confidence: transport.responseEnvelope.confidence ?? null,
+        implementationStatus: transport.responseEnvelope.implementationStatus ?? null,
+        runtimeCallId: transport.responseEnvelope.runtimeCallId ?? null,
+        rawOutputRef: transport.responseEnvelope.rawOutputRef ?? null,
+        rawOutputHash: transport.responseEnvelope.rawOutputHash ?? null,
+        diagnosticPayloadRef: transport.responseEnvelope.diagnosticPayloadRef ?? null,
+        schemaIssueCount: transport.responseEnvelope.schemaIssueCount ?? null,
+        qualityDecision: transport.responseEnvelope.qualityDecision ?? null,
+        outputBoundaryDecision: transport.responseEnvelope.outputBoundaryDecision ?? null,
       },
       failureReason: transport.responseEnvelope.failureReason ?? transport.responseEnvelope.reviewRequiredReason ?? null,
       payloadRefs: {
         ...input.payloadRefs,
-        aiResultRef: transport.responseEnvelope.outputRef ?? null,
+        aiResultRef: transport.responseEnvelope.outputRef ?? transport.responseEnvelope.diagnosticPayloadRef ?? null,
       },
     };
   };

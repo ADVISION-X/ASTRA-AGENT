@@ -75,6 +75,12 @@ const MUTATIONS: Mutation[] = [
     replace: 'eventType: "COMMAND_ACCEPTED",',
   },
   {
+    name: "accepted timeout command rejected mutation",
+    file: "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    search: 'eventType: "COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED",',
+    replace: 'eventType: "COMMAND_REJECTED",',
+  },
+  {
     name: "nerve-bus result proof terminal logs removal mutation",
     file: "src/lib/local-runtime/workbench-commander-command-transport.ts",
     search: "    await recordResultEnvelopeReceived(runtime, command, dispatchInput, transport);\n    await recordResultSemanticGatePassed(runtime, command, dispatchInput, transport);\n    await recordTransferProofBuilt(runtime, command, dispatchInput, transport);\n",

@@ -22,6 +22,11 @@ export type WorkbenchAiDebugEvent = {
   model: string | null;
   modelRole: string | null;
   runtime: string | null;
+  implementationStatus: string | null;
+  errorKind: string | null;
+  runtimeCallId: string | null;
+  diagnosticPayloadRef: string | null;
+  schemaIssueCount: number | null;
   promptContractId: string | null;
   promptVersion: string | null;
   outputSchemaRef: string | null;
@@ -131,7 +136,7 @@ const getAiDebugReason = (input: WorkbenchAiDebugEvent): string | null => {
 
 const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, trace: { missionId: string | null; mapId: string | null }) => ({
   eventId: createId("event"),
-  eventType: input.eventType === "AI_ERROR_DEBUG" ? "AI_FAILURE_DEBUG" : input.eventType,
+  eventType: input.eventType,
   level: input.level,
   phase: "ai-runtime",
   component: "local-ai-runtime",
@@ -179,6 +184,11 @@ const buildAiDebugModelFields = (input: WorkbenchAiDebugEvent) => ({
   model: input.model,
   modelRole: input.modelRole,
   runtime: input.runtime,
+  implementationStatus: input.implementationStatus,
+  errorKind: input.errorKind,
+  runtimeCallId: input.runtimeCallId,
+  diagnosticPayloadRef: input.diagnosticPayloadRef,
+  schemaIssueCount: input.schemaIssueCount,
 });
 
 const buildAiDebugPromptFields = (input: WorkbenchAiDebugEvent) => ({

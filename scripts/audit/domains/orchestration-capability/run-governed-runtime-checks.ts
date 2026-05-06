@@ -282,7 +282,7 @@ async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
 
 export async function runOrchestrationGovernedRuntimeChecks() {
   const project = createAuditProject();
-  const [publicSurface, frozenActivation, unifiedChildEnvelope, runtimeProofRunIdChain, typedFailureBoundary, postActionVerification, aiPromptContractTaskTypeDispatch, missionLoopTraceability, startMissionCommandBoundary, forensicsRetentionBoundary, negativeProof] = await Promise.all([
+  const phaseResults = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
@@ -297,31 +297,7 @@ export async function runOrchestrationGovernedRuntimeChecks() {
   ]);
 
   return {
-    findings: [
-      ...publicSurface.findings,
-      ...frozenActivation.findings,
-      ...unifiedChildEnvelope.findings,
-      ...runtimeProofRunIdChain.findings,
-      ...typedFailureBoundary.findings,
-      ...postActionVerification.findings,
-      ...aiPromptContractTaskTypeDispatch.findings,
-      ...missionLoopTraceability.findings,
-      ...startMissionCommandBoundary.findings,
-      ...forensicsRetentionBoundary.findings,
-      ...negativeProof.findings,
-    ],
-    phases: [
-      publicSurface.phase,
-      frozenActivation.phase,
-      unifiedChildEnvelope.phase,
-      runtimeProofRunIdChain.phase,
-      typedFailureBoundary.phase,
-      postActionVerification.phase,
-      aiPromptContractTaskTypeDispatch.phase,
-      missionLoopTraceability.phase,
-      startMissionCommandBoundary.phase,
-      forensicsRetentionBoundary.phase,
-      negativeProof.phase,
-    ],
+    findings: phaseResults.flatMap((result) => result.findings),
+    phases: phaseResults.map((result) => result.phase),
   };
 }

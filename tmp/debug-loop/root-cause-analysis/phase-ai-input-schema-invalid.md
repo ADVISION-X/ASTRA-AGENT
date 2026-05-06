@@ -59,9 +59,10 @@ The diagnostic builder does not emit raw prompt bodies or image data.
 ## Static Command Results
 
 - `npm run typecheck`: PASS
-- `npm run audit:ai`: still running negative proofs at time of report capture
-- `npm run audit:orchestration`: blocked by existing non-current Orchestration baseline findings
-- `npm run audit:forensics-persistence`: blocked by existing non-current Commander/startup baseline findings
+- `npm run audit:ai`: PASS
+- `npm run audit:orchestration`: blocked only by existing mission loop traceability findings; the AI taskType dispatch guard passes
+- `npm run audit`: no longer fails on `docs/debug` or capability-group governance; fail-fast now reaches the existing Orchestration mission-loop traceability blocker
+- `npm run ci:full`: progresses past foundation/code-purity/capability-group-governance, then fails on non-current ability-group owner findings listed in `tmp/debug-loop/fix-verification/non-current-owner-ci-blockers.md`
 
 ## Next Real Runtime Verification Points
 

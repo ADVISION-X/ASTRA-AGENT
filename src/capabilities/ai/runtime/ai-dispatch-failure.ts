@@ -135,6 +135,12 @@ export function dispatchAiFailure(input: {
   providerKind: AiProviderKind | null;
   failureReason: string;
   statusMessage: string;
+  implementationStatus?: string | null;
+  errorKind?: string | null;
+  runtimeCallId?: string | null;
+  rawOutputRef?: string | null;
+  rawOutputHash?: string | null;
+  diagnosticPayloadRef?: string | null;
 }): AiDispatchFailureEnvelope {
   const started = input.context.clock.startRun();
   const ended = input.context.clock.finishRun(started);
@@ -166,6 +172,12 @@ export function dispatchAiFailure(input: {
     rawInputRef,
     parseFailureReason: input.statusMessage,
     ...schemaDiagnostics,
+    implementationStatus: input.implementationStatus ?? null,
+    errorKind: input.errorKind ?? null,
+    runtimeCallId: input.runtimeCallId ?? null,
+    rawOutputRef: input.rawOutputRef ?? null,
+    rawOutputHash: input.rawOutputHash ?? null,
+    diagnosticPayloadRef: input.diagnosticPayloadRef ?? input.rawOutputRef ?? null,
     fallbackProof,
     outputAuthority: "non_authoritative",
     failureReason: input.failureReason,

@@ -48,6 +48,24 @@ const INPUT_SCHEMA_DIAGNOSTIC_FORBIDDEN_SNIPPETS = [
   "token",
 ] as const;
 
+const REQUIRED_AI_RUNTIME_FAILURE_STATUSES = [
+  "runtime_threw",
+  "runtime_timeout",
+  "runtime_invalid_response",
+  "runtime_http_failed",
+  "invalid_output",
+  "model_missing",
+  "engine_missing",
+  "service_unreachable",
+  "missing_evidence",
+  "prompt_contract_rejected",
+  "task_type_mismatch",
+  "circuit_breaker_open",
+  "concurrency_limited",
+  "provider_not_configured",
+  "provider_secret_missing",
+] as const;
+
 const findRequiredExecutorCalls = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   for (const { callName, file } of REQUIRED_EXECUTOR_CALLS) {
@@ -92,6 +110,62 @@ const findRuntimeContractViolations = (project: Project): Finding[] => {
   }
   if (!hasInputSchemaDiagnostics(dispatchFailureSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-dispatch-failure.ts`, line: 1, severity: "fatal", message: "AI input_schema_invalid failures must emit safe schema diagnostics with schemaIssueRef, missingRequiredFields, and invalidFieldPaths, without raw prompts, images, cookies, or tokens." }));
+  }
+
+  return findings;
+};
+
+const hasObjectLiteralProperty = (sourceFile: SourceFile, propertyName: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
+
+const hasCallWithObjectProperty = (sourceFile: SourceFile, callName: string, propertyName: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== callName) {
+      return false;
+    }
+    return callExpression.getArguments().some((argument) =>
+      Node.isObjectLiteralExpression(argument)
+      && argument.getProperties().some((property) => Node.isPropertyAssignment(property) && property.getName() === propertyName),
+    );
+  });
+
+const hasStringArrayElements = (sourceFile: SourceFile, values: readonly string[]): boolean => {
+  const literals = new Set(sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralText()));
+  return values.every((value) => literals.has(value));
+};
+
+const findRuntimeDiagnosticTransparencyViolations = (project: Project): Finding[] => {
+  const runtimeFactorySource = getSourceOrThrow(project, `${AI_ROOT}/runtime-factory.ts`);
+  const executionContextSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-context.ts`);
+  const providerAwareSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/provider-aware-ai-runtime-adapter.ts`);
+  const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
+  const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
+  const localDebugContractSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`);
+  const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
+  const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const findings: Finding[] = [];
+
+  if (!hasCallWithObjectProperty(runtimeFactorySource, "createProviderAwareAiRuntimePort", "emitDebugEvent")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-factory.ts`, line: 1, severity: "fatal", message: "Configured AI runtime factory must inject emitDebugEvent into createProviderAwareAiRuntimePort." }));
+  }
+  if (!hasCallWithObjectProperty(executionContextSource, "createProviderAwareAiRuntimePort", "emitDebugEvent")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-execution-context.ts`, line: 1, severity: "fatal", message: "createAiExecutionContext must support governed emitDebugEvent injection instead of constructing an opaque runtime." }));
+  }
+  if (!hasCallWithObjectProperty(providerAwareSource, "createLocalAiRuntimePort", "emitDebugEvent")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/provider-aware-ai-runtime-adapter.ts`, line: 1, severity: "fatal", message: "Provider-aware AI adapter must pass emitDebugEvent into the local AI runtime adapter." }));
+  }
+  if (!hasCallExpression(localDebugSource, "emitErrorDebug") || !hasStringLiteral(localDebugSource, "AI_ERROR_DEBUG")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "Local AI debug session must emit AI_ERROR_DEBUG through the structured debug port." }));
+  }
+  if (!hasCallExpression(localAdapterSource, "emitAiErrorDebug") || !hasObjectLiteralProperty(localDebugContractSource, "implementationStatus") || !hasObjectLiteralProperty(localDebugContractSource, "runtimeCallId") || !hasObjectLiteralProperty(localDebugContractSource, "diagnosticPayloadRef")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`, line: 1, severity: "fatal", message: "AI runtime debug events must expose implementationStatus, runtimeCallId, and diagnosticPayloadRef without raw prompt/image payloads." }));
+  }
+  if (!hasStringArrayElements(runtimeResultSource, REQUIRED_AI_RUNTIME_FAILURE_STATUSES)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-runtime-result.ts`, line: 1, severity: "fatal", message: "AI runtime result resolver must preserve specific implementationStatus values instead of collapsing them to runtime_execution_failed or schema_validation_failed." }));
+  }
+  if (!hasObjectLiteralProperty(abilityGroupSource, "implementationStatus") || !hasObjectLiteralProperty(abilityGroupSource, "diagnosticPayloadRef") || !hasObjectLiteralProperty(abilityGroupSource, "errorKind")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef." }));
   }
 
   return findings;
@@ -214,6 +288,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
     ...findRuntimeContractViolations(project),
+    ...findRuntimeDiagnosticTransparencyViolations(project),
     ...findPublicContractViolations(project),
     ...findFakeLiteralViolations(project),
     ...findDisabledChildExecutionViolations(project),

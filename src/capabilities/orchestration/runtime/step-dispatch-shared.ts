@@ -3,7 +3,7 @@ import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
-import { tryGetPromptContractCatalogEntry } from "../../ai/prompt-contracts/registry.js";
+import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
 import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
@@ -120,10 +120,71 @@ const resolvePromptContractForAiStep = (step: AiStep) => {
   if (!step.promptContractId) {
     return { ok: false as const, failureReason: `AI step "${step.stepId}" is missing promptContractId.` };
   }
-  const promptContract = tryGetPromptContractCatalogEntry(step.promptContractId);
+  const promptContract = findAiPromptContractCatalogEntry(step.promptContractId);
   return promptContract
     ? { ok: true as const, promptContract }
     : { ok: false as const, failureReason: `AI step "${step.stepId}" prompt_contract_resolution_failed for ${step.promptContractId}.` };
+};
+
+const resolveAiPromptBinding = (input: {
+  registration: NonNullable<ReturnType<ReturnType<typeof getDefaultMapPluginRegistry>["active"]["getRegistration"]>>;
+  step: AiStep;
+  outputSchemaRef: string;
+}) => {
+  const binding = input.registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
+  if (!binding) {
+    return { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
+  }
+  return binding.outputSchemaRef === input.outputSchemaRef
+    ? { ok: true as const, binding }
+    : { ok: false as const, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
+};
+
+const resolveRequiredAiInputRefs = (input: {
+  state: MissionState;
+  step: AiStep;
+  requiredInputRefs: string[];
+}) => {
+  const aiInputRefs = input.requiredInputRefs.map((key) => resolvePayloadRefValue(input.state.payloadRefs, key));
+  return aiInputRefs.some((value) => value === null)
+    ? { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from payloadRefs.` }
+    : { ok: true as const, aiInputRefs: aiInputRefs as string[] };
+};
+
+const buildAiDispatchRequirements = (input: {
+  taskType: string;
+  promptContractVersion: string;
+  outputSchemaRef: string;
+  aiInputRefs: string[];
+  stepId: string;
+}): { ok: true; value: AiDispatchRequirements } => ({
+  ok: true,
+  value: {
+    taskType: input.taskType,
+    promptContractVersion: input.promptContractVersion,
+    outputSchemaRef: input.outputSchemaRef,
+    aiInputRefs: input.aiInputRefs,
+    providerPolicyRef: `orchestration:${input.stepId}:provider-policy`,
+  },
+});
+
+const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep }) => {
+  const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
+  if (!registration) {
+    return { ok: false as const, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
+  }
+  const promptContractResult = resolvePromptContractForAiStep(input.step);
+  if (!promptContractResult.ok) {
+    return promptContractResult;
+  }
+  const bindingResult = resolveAiPromptBinding({
+    registration,
+    step: input.step,
+    outputSchemaRef: promptContractResult.promptContract.outputSchemaRef,
+  });
+  return bindingResult.ok
+    ? { ok: true as const, promptContract: promptContractResult.promptContract, binding: bindingResult.binding }
+    : bindingResult;
 };
 
 const resolveAiDispatchRequirements = (input: {
@@ -131,42 +192,29 @@ const resolveAiDispatchRequirements = (input: {
   map: OperationalMap;
   step: AiStep;
 }): { ok: true; value: AiDispatchRequirements } | { ok: false; failureReason: string } => {
-  const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
-  if (!registration) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
+  const contractBinding = resolveAiStepContractBinding({ map: input.map, step: input.step });
+  if (!contractBinding.ok) {
+    return contractBinding;
   }
-  const promptContractResult = resolvePromptContractForAiStep(input.step);
-  if (!promptContractResult.ok) {
-    return promptContractResult;
-  }
-
-  const binding = registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
-  if (!binding) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
-  }
-  if (binding.outputSchemaRef !== promptContractResult.promptContract.outputSchemaRef) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
-  }
-
   if (!input.state.promptContractVersion) {
     return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing promptContractVersion.` };
   }
-
-  const aiInputRefs = binding.requiredInputRefs.map((key) => resolvePayloadRefValue(input.state.payloadRefs, key));
-  if (aiInputRefs.some((value) => value === null)) {
-    return { ok: false, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from payloadRefs.` };
+  const aiInputRefsResult = resolveRequiredAiInputRefs({
+    state: input.state,
+    step: input.step,
+    requiredInputRefs: contractBinding.binding.requiredInputRefs,
+  });
+  if (!aiInputRefsResult.ok) {
+    return aiInputRefsResult;
   }
 
-  return {
-    ok: true,
-    value: {
-      taskType: promptContractResult.promptContract.taskType,
-      promptContractVersion: input.state.promptContractVersion,
-      outputSchemaRef: binding.outputSchemaRef,
-      aiInputRefs: aiInputRefs as string[],
-      providerPolicyRef: `orchestration:${input.step.stepId}:provider-policy`,
-    },
-  };
+  return buildAiDispatchRequirements({
+    taskType: contractBinding.promptContract.taskType,
+    promptContractVersion: input.state.promptContractVersion,
+    outputSchemaRef: contractBinding.binding.outputSchemaRef,
+    aiInputRefs: aiInputRefsResult.aiInputRefs,
+    stepId: input.step.stepId,
+  });
 };
 
 export {
