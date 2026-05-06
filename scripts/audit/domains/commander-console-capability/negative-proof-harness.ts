@@ -63,6 +63,24 @@ const MUTATIONS: Mutation[] = [
     replace: "const collectDispatchResultRefsDisabled = (result: StartCommandResult): string[] => {",
   },
   {
+    name: "duplicate pre-dispatch command accepted mutation",
+    file: "src/lib/local-app-shell/task-start-support.ts",
+    search: 'eventType: "COMMAND_DISPATCH_READY",',
+    replace: 'eventType: "COMMAND_ACCEPTED",',
+  },
+  {
+    name: "late command accepted mixed trace mutation",
+    file: "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    search: 'eventType: "COMMAND_RESPONSE_SENT",',
+    replace: 'eventType: "COMMAND_ACCEPTED",',
+  },
+  {
+    name: "nerve-bus result proof terminal logs removal mutation",
+    file: "src/lib/local-runtime/workbench-commander-command-transport.ts",
+    search: "    await recordResultEnvelopeReceived(runtime, command, dispatchInput, transport);\n    await recordResultSemanticGatePassed(runtime, command, dispatchInput, transport);\n    await recordTransferProofBuilt(runtime, command, dispatchInput, transport);\n",
+    replace: "",
+  },
+  {
     name: "terminal command rejection owner field removal mutation",
     file: "scripts/startup/lib/terminal-structured-log.mjs",
     search: "      ownerResponsible: payload.ownerResponsible ?? null,\n",

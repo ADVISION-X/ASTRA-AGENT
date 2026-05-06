@@ -444,7 +444,7 @@ const ScreenshotRuntimeProofBaseSchema = ScreenshotRuntimeProofIdentitySchema
 export const SCREENSHOT_SCHEMA_VALIDATION_MARKERS = [
   "success proof requires outputRef",
   "non-success proof must not expose outputRef",
-  "non-success result must not expose output",
+  "non-success result may expose output",
   "diagnosticPayloadRef",
   "prepare-ai-input proof requires scaleMapping",
   "capture-region success proof requires sourceScreenshotEvidenceId in scaleMapping",

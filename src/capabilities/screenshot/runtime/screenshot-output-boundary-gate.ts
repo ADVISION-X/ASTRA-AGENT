@@ -76,19 +76,26 @@ function resolveOutputImageKindFailure(input: { registryEntry: ScreenshotChildRe
   return buildScreenshotOutputBoundaryFailure("image_kind_mismatch", "Screenshot output imageKind must match the registered child output image kind.");
 }
 
-function isBrowserViewportScaleMappedCapture(input: { registryEntry: ScreenshotChildRegistryEntry; output: ScreenshotExecutionOutput }) {
-  const mapping = input.output.scaleMapping;
+function isBrowserViewportOriginalCapture(input: { registryEntry: ScreenshotChildRegistryEntry; output: ScreenshotExecutionOutput }) {
   return input.registryEntry.childCapabilityId === "capture-browser-viewport"
     && input.registryEntry.coordinateSpacePolicy === "browser_viewport_pixels"
     && input.output.imageKind === "evidence_original"
-    && input.output.coordinateSpace === "source_image_pixels"
-    && mapping !== null
+    && input.output.coordinateSpace === "source_image_pixels";
+}
+
+function hasBrowserViewportIdentityScaleMapping(output: ScreenshotExecutionOutput) {
+  const mapping = output.scaleMapping;
+  return mapping !== null
     && mapping.sourceCoordinateSpace === "browser_viewport_pixels"
     && mapping.targetCoordinateSpace === "source_image_pixels"
-    && mapping.targetWidth === input.output.width
-    && mapping.targetHeight === input.output.height
+    && mapping.targetWidth === output.width
+    && mapping.targetHeight === output.height
     && mapping.cropOffsetX === 0
     && mapping.cropOffsetY === 0;
+}
+
+function isBrowserViewportScaleMappedCapture(input: { registryEntry: ScreenshotChildRegistryEntry; output: ScreenshotExecutionOutput }) {
+  return isBrowserViewportOriginalCapture(input) && hasBrowserViewportIdentityScaleMapping(input.output);
 }
 
 function resolveOutputCoordinateSpaceFailure(input: { registryEntry: ScreenshotChildRegistryEntry; output: ScreenshotExecutionOutput }) {

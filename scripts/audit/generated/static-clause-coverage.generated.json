@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T13:35:07.105Z",
+  "generatedAt": "2026-05-06T13:38:44.623Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -6511,6 +6511,13 @@
           "checkFunction": "collectTransformTruthFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
           "targetSymbol": "collectTransformTruthFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectBrowserViewportScaleGapFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
+          "targetSymbol": "collectBrowserViewportScaleGapFindings",
           "checkKind": "required-shape"
         },
         {

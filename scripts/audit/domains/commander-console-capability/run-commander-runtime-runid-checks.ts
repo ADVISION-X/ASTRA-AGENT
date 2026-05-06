@@ -164,14 +164,16 @@ export const collectRuntimeProofRunIdFindings = (sourceFile: import("ts-morph").
 
 export const collectDebugRefFindings = (input: {
   workbenchDebugSource: import("ts-morph").SourceFile;
+  taskStartDispatchResultSource: import("ts-morph").SourceFile;
   taskStartSupportSource: import("ts-morph").SourceFile;
   acceptedBoundarySource: import("ts-morph").SourceFile;
+  commanderCommandTransportSource: import("ts-morph").SourceFile;
 }): Finding[] => {
   const findings: Finding[] = [];
   if (!hasDebugRefsPassthrough(input.workbenchDebugSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_COMMANDER_DEBUG_PATH, "Commander debug event builder must preserve refs/proofRefs/inputRefs/outputRefs/artifactRefs from dispatch results."));
   }
-  if (!hasTaskStartDispatchRefs(input.taskStartSupportSource)) {
+  if (!hasTaskStartDispatchRefs(input.taskStartDispatchResultSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task start dispatch result must keep commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef refs on the late COMMAND_REJECTED path."));
   }
   if (!hasEarlyAcceptedBoundaryRefs(input.acceptedBoundarySource)) {
@@ -180,10 +182,10 @@ export const collectDebugRefFindings = (input: {
   if (!hasPreDispatchReadyEvent(input.taskStartSupportSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_SUPPORT_PATH, "Task-start pre-dispatch logging must use COMMAND_DISPATCH_READY, not a duplicate COMMAND_ACCEPTED event."));
   }
-  if (!hasLateCommandResponseEvent(input.taskStartSupportSource)) {
+  if (!hasLateCommandResponseEvent(input.taskStartDispatchResultSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task-start dispatch response logging must use COMMAND_RESPONSE_SENT with a unified runtimeProof runId trace instead of emitting duplicate COMMAND_ACCEPTED with mixed trace/run."));
   }
-  if (!hasNerveBusResultProofEvents(input.taskStartSupportSource)) {
+  if (!hasNerveBusResultProofEvents(input.commanderCommandTransportSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", "src/lib/local-runtime/workbench-commander-command-transport.ts", "Commander command transport must emit terminal-visible Nerve Bus result envelope, semantic gate, and transfer proof events with governed trace/run."));
   }
   return findings;

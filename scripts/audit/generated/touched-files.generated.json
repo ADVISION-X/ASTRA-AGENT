@@ -1,22 +1,21 @@
 {
-  "generatedAt": "2026-05-06T13:35:04.783Z",
+  "generatedAt": "2026-05-06T13:38:46.631Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
+    "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-sources.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
-    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-    "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts",
     "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
-    "src/lib/local-app-shell/task-start-dispatch-result.ts",
-    "src/lib/local-app-shell/task-start-support.ts",
-    "src/lib/local-runtime/structured-log-terminal.ts",
-    "src/lib/local-runtime/workbench-commander-command-transport.ts"
+    "src/capabilities/screenshot/schema.ts"
   ]
 }
