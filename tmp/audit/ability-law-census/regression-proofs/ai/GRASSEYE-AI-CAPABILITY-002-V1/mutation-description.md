@@ -1,10 +1,10 @@
 # GRASSEYE-AI-CAPABILITY-002-V1 Production Mutation
 
-scenarioId: input-gate-mutation
-mutationName: input gate mutation
-mutatedFile: src/capabilities/ai/runtime/ai-pre-runtime.ts
+scenarioId: ai-error-diagnostic-ref-mutation
+mutationName: ai error diagnostic ref mutation
+mutatedFile: src/capabilities/ai/ability-group.ts
 coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
-beforeHash: sha256:6a403db9c551ae0295e0760d285b8cb090b449069d90104e9bb0c7e6ba61f5d3
-afterMutationHash: sha256:362f14a1b43c14be2a2b5397641af4f68e61d336b71f3dc84dc111e954293a2f
+beforeHash: sha256:bc2d85fb8843d959e0d23d26b200b8d0a3efa01b52ac59f17c254a6e54314a7c
+afterMutationHash: sha256:242e76921eb34e2500b2fe23c547a5fa5ae09d503876aa45ed7e676dd94e82e1
 
-The mutation bypasses the AI input schema gate in the runtime chain, proving provider/runtime channels cannot bypass AI-owned routing gates.
+The mutation removes diagnosticPayloadRef from unexpected AI child throw handling, proving outer runtime_execution_failed failures remain diagnosable.

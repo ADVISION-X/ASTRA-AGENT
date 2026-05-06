@@ -1,7 +1,7 @@
-mutationName: input gate mutation
+mutationName: ai error diagnostic ref mutation
 classification: LAW-SCRIPT DRIFT
 passed: false
 violationCount: 1
 summary: AI negative-proof harness was skipped for nested inspector execution.
 
-FATAL GRASSEYE-AI-CAPABILITY-002-V1 src/capabilities/ai/runtime/ai-pre-runtime.ts:1 AI executor must route through parseAiExecutorInput.
+FATAL GRASSEYE-AI-CAPABILITY-002-V1 src/capabilities/ai/ability-group.ts:1 Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef.

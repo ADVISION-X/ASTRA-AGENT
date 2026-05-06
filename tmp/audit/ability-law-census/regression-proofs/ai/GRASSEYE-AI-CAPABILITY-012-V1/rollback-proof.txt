@@ -2,7 +2,7 @@ scenarioId: runtime-signal-mutation
 mutationName: runtime signal mutation
 mutatedFile: src/capabilities/ai/runtime/ai-runtime-call-runner.ts
 rollbackRestoredHash: sha256:4ab61f942987f29e3ce7a07066e3cbbcd57c202669e5070c2ad2f09c5be946ab
-startedAt: 2026-05-06T17:07:39.940Z
-endedAt: 2026-05-06T17:07:47.661Z
+startedAt: 2026-05-06T17:18:36.383Z
+endedAt: 2026-05-06T17:18:44.152Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.
