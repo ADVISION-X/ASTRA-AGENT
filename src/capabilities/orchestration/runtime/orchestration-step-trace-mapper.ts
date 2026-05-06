@@ -37,6 +37,16 @@ const VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleSte
   "verify-video-changed-after-scroll": "scroll_next_video",
 };
 
+const FALLBACK_STEP_BY_KIND: Partial<Record<OperationalStep["stepKind"], RoundLifecycleStep>> = {
+  review: "review_required",
+  finalize: "stop",
+};
+
+const FALLBACK_STEP_BY_TARGET_ABILITY: Record<string, RoundLifecycleStep> = {
+  open: "open_target_page",
+  ai: "ask_ai_product_presence",
+};
+
 const ACTION_PURPOSE_BY_STEP: Record<RoundLifecycleStep, EvidencePacketActionPurpose> = {
   task_start: "initialize_discovery",
   open_target_page: "initialize_discovery",
@@ -72,27 +82,16 @@ const ACTION_PURPOSE_BY_STEP: Record<RoundLifecycleStep, EvidencePacketActionPur
 };
 
 function resolveFallbackRuntimeStep(step: OperationalStep): RoundLifecycleStep {
-  if (step.stepKind === "review") {
-    return "review_required";
-  }
-
-  if (step.stepKind === "finalize") {
-    return "stop";
-  }
-
-  if (step.targetAbilityGroupId === "open") {
-    return "open_target_page";
+  const stepKindFallback = FALLBACK_STEP_BY_KIND[step.stepKind];
+  if (stepKindFallback) {
+    return stepKindFallback;
   }
 
   if (step.targetAbilityGroupId === "post-action-verification") {
     return VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY[step.childCapabilityId] ?? "task_start";
   }
 
-  if (step.targetAbilityGroupId === "ai") {
-    return "ask_ai_product_presence";
-  }
-
-  return "task_start";
+  return FALLBACK_STEP_BY_TARGET_ABILITY[step.targetAbilityGroupId ?? ""] ?? "task_start";
 }
 
 export function resolveRuntimeStepForOperationalStep(step: OperationalStep): RoundLifecycleStep {

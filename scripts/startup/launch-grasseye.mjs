@@ -8,6 +8,7 @@ import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
+import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
 import { createTerminalStructuredLogger } from "./lib/terminal-structured-log.mjs";
 
@@ -18,22 +19,20 @@ const baseUrl = `http://${host}:${port}`;
 const healthUrl = `${baseUrl}/api/runtime/health`;
 const terminalLogger = createTerminalStructuredLogger();
 const startupRunId = new Date().toISOString();
-
-function toFailureReason(error) {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function logEvent(...[phase, component, eventType, status, message, extra = {}]) {
-  terminalLogger.event({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
-}
-
-function logPass(...[phase, component, eventType, status, message, extra = {}]) {
-  terminalLogger.pass({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
-}
-
-function logFail(...[phase, component, eventType, status, message, extra = {}]) {
-  terminalLogger.fail({ phase, component, eventType, status, message, runId: startupRunId, ...extra });
-}
+const {
+  toFailureReason,
+  logEvent,
+  logPass,
+  logFail,
+  logLocalAiPhase,
+  isRuntimeFailureReason,
+  getLocalAiRefs,
+  logMissionReadinessStarted,
+  logMissionReadinessPassed,
+  logMissionReadinessDegraded,
+  markMissionRuntimeAvailable,
+  logStartupReady,
+} = createStartupLogHelpers({ terminalLogger, runId: startupRunId, baseUrl });
 
 async function ensureDependencies(root, flags) {
   const startedAt = Date.now();
@@ -124,19 +123,6 @@ async function verifyAppHealth(serviceHandle) {
   });
 }
 
-function logLocalAiPhase(eventType, passed, message, extra = {}) {
-  const log = passed ? logPass : logFail;
-  log("AI", "local_ai_runtime", eventType, passed ? "passed" : "failed", message, extra);
-}
-
-function isRuntimeFailureReason(reason) {
-  return reason === "LOCAL_AI_RUNTIME_NOT_FOUND" || reason === "LOCAL_AI_RUNTIME_START_FAILED" || reason === "LOCAL_AI_READINESS_TIMEOUT";
-}
-
-function getLocalAiRefs(readiness) {
-  return readiness.modelRoles.map((role) => `${role.modelRole}=${role.health}:${role.modelName}`);
-}
-
 async function ensureLocalAiReadiness() {
   const startedAt = Date.now();
   logEvent("AI", "local_ai_runtime", "local_ai_runtime_presence_check", "started", "checking local AI runtime presence");
@@ -188,35 +174,6 @@ async function ensureStartupMapPackageReadiness() {
 
   logPass("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "passed", "map package readiness passed before app shell start", extra);
   return readiness;
-}
-
-function logMissionReadinessStarted() {
-  logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", "checking startup mission readiness after map and local AI gates");
-}
-
-function logMissionReadinessPassed(readiness) {
-  logPass("MISSION", "mission_readiness", "MISSION_READINESS_PASSED", "passed", "startup mission readiness gates passed", {
-    refs: getLocalAiRefs(readiness),
-  });
-}
-
-function logMissionReadinessDegraded(reason) {
-  logFail("MISSION", "mission_readiness", "MISSION_READINESS_DEGRADED", "failed", reason, {
-    failureReason: reason,
-  });
-}
-
-function markMissionRuntimeAvailable(readiness) {
-  logPass("MISSION", "mission_runtime", "mission_runtime_available", "passed", "mission runtime is available after startup gate passed", {
-    refs: getLocalAiRefs(readiness),
-  });
-}
-
-function logStartupReady() {
-  logPass("RUNTIME", "startup_entrypoint", "terminal_structured_log_relay", "ready", "terminal structured log relay active", {
-    refs: ["/api/runtime/logs", "/api/runtime/actions", "/api/runtime/mission-readiness"],
-  });
-  logEvent("RUNTIME", "startup_entrypoint", "waiting_for_human_command", "ready", `waiting for human command at ${baseUrl}`);
 }
 
 function isControlledServiceExit(exit, shuttingDown) {

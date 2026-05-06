@@ -47,7 +47,11 @@ function toUnexpectedPostStepFailureReason(currentStepId: string, error: unknown
 function buildTransitionSuccessState(input: RunMissionLoopIterationInput, details: { currentStepId: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; nextHopCount: number; }): MissionState {
   const nextStatus = details.transition.finalStatus;
   const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
-  const nextRoundIndex = input.state.currentRoundIndex + 1;
+  const nextRoundIndex = nextStatus === "running"
+    && nextStepId === input.map.initialStepId
+    && details.currentStepId !== input.map.initialStepId
+    ? input.state.currentRoundIndex + 1
+    : input.state.currentRoundIndex;
   return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
 }
 

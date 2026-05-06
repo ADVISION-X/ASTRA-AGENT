@@ -1,19 +1,16 @@
-import { readFile } from "node:fs/promises";
-
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { pathFromRepoRoot } from "../../core/paths.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
-import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
-import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
-import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
+import {
+  createInspectorRunner,
+  mutateAndVerify,
+  writeMutationProofBundle,
+  writeOwnerBindingBundle,
+  type AuditMutation,
+  type MutationCoverage,
+  type MutationProofRecord,
+} from "../_shared/negative-proof-runtime.js";
 
 import { LAW_IDS } from "./config.js";
 
-type Mutation = {
-  name: string;
-  file: string;
-  search: string;
-  replace: string;
+type Mutation = AuditMutation & {
   expectedNeedle: string;
 };
 
@@ -23,21 +20,7 @@ type ProofMutation = Mutation & {
   coverageReason: string;
 };
 
-type InspectorRunResult = {
-  passed: boolean;
-  violationCount: number;
-  output: string;
-};
-
-type MutationRecord = {
-  mutation: Mutation;
-  originalContent: string;
-  mutatedContent: string;
-  failOutput: string;
-  passOutput: string;
-  startedAt: string;
-  endedAt: string;
-};
+type MutationRecord = MutationProofRecord<Mutation>;
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/text-input-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF";
@@ -159,111 +142,48 @@ const PROOF_MUTATIONS: ProofMutation[] = [
   },
 ];
 
-async function createInspectorRunner(): Promise<() => Promise<InspectorRunResult>> {
-  await buildAuditArtifacts();
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  const inspector = await loadInspector(INSPECTOR_ENTRY);
+const PROOF_MUTATION_COVERAGE: Record<string, MutationCoverage> = Object.fromEntries(
+  PROOF_MUTATIONS.map((mutation) => [
+    mutation.name,
+    {
+      coveredLawIds: [mutation.lawId],
+      coverageReasonByLawId: {
+        [mutation.lawId]: mutation.coverageReason,
+      },
+    },
+  ]),
+);
 
-  return async () => {
-    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
-    try {
-      const result = await inspector(context);
-      return {
-        passed: result.passed,
-        violationCount: result.violationCount,
-        output: [
-          `classification: ${result.classification}`,
-          `passed: ${result.passed}`,
-          `violationCount: ${result.violationCount}`,
-          `summary: ${result.summary}`,
-          "",
-          ...result.findings.map((finding) => `${finding.severity.toUpperCase()} ${finding.lawId ?? "no-law"} ${finding.file}:${finding.line} ${finding.message}`),
-          "",
-        ].join("\n"),
-      };
-    } finally {
-      if (previous === undefined) {
-        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-      } else {
-        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
-      }
-    }
-  };
+const PROOF_MUTATION_SCENARIO_IDS: Record<string, string> = Object.fromEntries(
+  PROOF_MUTATIONS.map((mutation) => [mutation.name, mutation.scenarioId]),
+);
+
+async function verifyMutation(
+  runInspector: Awaited<ReturnType<typeof createInspectorRunner>>,
+  mutation: Mutation,
+): Promise<MutationRecord> {
+  const record = await mutateAndVerify(runInspector, mutation);
+  if (!record.failOutput.includes(mutation.expectedNeedle)) {
+    throw new Error(`Mutation ${mutation.name} failed without the expected reason: ${mutation.expectedNeedle}`);
+  }
+  return record;
 }
 
-async function verifyMutation(runInspector: () => Promise<InspectorRunResult>, mutation: Mutation): Promise<MutationRecord> {
-  const filePath = pathFromRepoRoot(mutation.file);
-  const state = await readAuditFileState(filePath);
-  const startedAt = new Date().toISOString();
-  await applyAuditMutation(filePath, state.original, mutation);
-  const mutatedContent = await readFile(filePath, "utf8");
-  let failOutput = "";
-
-  try {
-    const result = await runInspector();
-    failOutput = result.output;
-    if (result.passed || result.violationCount === 0) {
-      throw new Error(`Inspector did not fail for ${mutation.name}`);
-    }
-    if (!failOutput.includes(mutation.expectedNeedle)) {
-      throw new Error(`Mutation ${mutation.name} failed without the expected reason: ${mutation.expectedNeedle}`);
-    }
-  } finally {
-    await restoreAuditFileState(filePath, state);
-  }
-
-  const restored = await runInspector();
-  if (!restored.passed) {
-    throw new Error(`Rollback verification failed for ${mutation.name}`);
-  }
-
-  return {
-    mutation,
-    originalContent: state.original,
-    mutatedContent,
-    failOutput,
-    passOutput: restored.output,
-    startedAt,
-    endedAt: new Date().toISOString(),
-  };
-}
-
-async function writeLawProof(record: MutationRecord, mutation: ProofMutation): Promise<void> {
-  await writeProductionMutationProof({
+async function writeLawProof(record: MutationRecord): Promise<void> {
+  await writeMutationProofBundle({
     owner: "text-input",
     ownerTitle: "Text Input",
-    mutationName: mutation.name,
-    scenarioId: mutation.scenarioId,
-    coveredLawIds: [mutation.lawId],
-    coverageReasonByLawId: { [mutation.lawId]: mutation.coverageReason },
-    mutatedFile: mutation.file,
-    originalContent: record.originalContent,
-    mutatedContent: record.mutatedContent,
-    failOutput: record.failOutput,
-    passOutput: record.passOutput,
-    startedAt: record.startedAt,
-    endedAt: record.endedAt,
-  });
-}
-
-async function writeOwnerBindingBundle(records: MutationRecord[]): Promise<void> {
-  const scenarios = records.map((record) => ({
-    scenario: record.mutation.name,
-    outputFileName: `${record.mutation.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}-fail.txt`,
-    output: record.failOutput,
-  }));
-  await writeOwnerBindingProof({
-    owner: "text-input",
-    title: "Text Input",
-    scenarios,
-    rollbackOutput: records.at(-1)?.passOutput ?? "rollback restored baseline PASS",
+    record,
+    coverageByMutationName: PROOF_MUTATION_COVERAGE,
+    scenarioIdByMutationName: PROOF_MUTATION_SCENARIO_IDS,
   });
 }
 
 async function main(): Promise<void> {
-  const runInspector = await createInspectorRunner();
+  const runInspector = await createInspectorRunner({
+    inspectorEntry: INSPECTOR_ENTRY,
+    skipNegativeProofEnv: SKIP_NEGATIVE_PROOF_ENV,
+  });
   const baseline = await runInspector();
   if (!baseline.passed) {
     throw new Error(`Text Input inspector baseline must pass before proof generation.\n${baseline.output}`);
@@ -271,14 +191,19 @@ async function main(): Promise<void> {
 
   for (const mutation of PROOF_MUTATIONS) {
     const record = await verifyMutation(runInspector, mutation);
-    await writeLawProof(record, mutation);
+    await writeLawProof(record);
   }
 
   const ownerBindingRecords: MutationRecord[] = [];
   for (const mutation of OWNER_BINDING_MUTATIONS) {
     ownerBindingRecords.push(await verifyMutation(runInspector, mutation));
   }
-  await writeOwnerBindingBundle(ownerBindingRecords);
+  await writeOwnerBindingBundle({
+    owner: "text-input",
+    title: "Text Input",
+    ownerBindingMutationNames: OWNER_BINDING_MUTATIONS.map((mutation) => mutation.name),
+    records: ownerBindingRecords,
+  });
 
   process.stdout.write(`[TEXT-INPUT-PROOF-BUNDLES] generated ${PROOF_MUTATIONS.length} law proofs and ${ownerBindingRecords.length} owner-binding scenarios\n`);
 }

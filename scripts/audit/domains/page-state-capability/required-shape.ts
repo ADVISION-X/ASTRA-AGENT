@@ -1,4 +1,4 @@
-import { Node, type ObjectLiteralExpression, type Project } from "ts-morph";
+import { Node, SyntaxKind, type ObjectLiteralExpression, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";

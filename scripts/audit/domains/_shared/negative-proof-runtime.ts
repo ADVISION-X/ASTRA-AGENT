@@ -25,7 +25,7 @@ type InspectorRunResult = {
 type InspectorRunner = () => Promise<InspectorRunResult>;
 
 type MutationCoverage = {
-  coveredLawIds: string[];
+  coveredLawIds: readonly string[];
   coverageReasonByLawId: Record<string, string>;
 };
 
@@ -159,7 +159,7 @@ const writeOwnerBindingBundle = async <TMutation extends AuditMutation>(input: {
   title: string;
   ownerBindingMutationNames: readonly string[];
   records: MutationProofRecord<TMutation>[];
-  rollbackOutput?: string;
+  rollbackOutput?: string | undefined;
 }): Promise<void> => {
   const scenarios = input.ownerBindingMutationNames.flatMap((mutationName) => {
     const record = input.records.find((candidate) => candidate.mutation.name === mutationName);

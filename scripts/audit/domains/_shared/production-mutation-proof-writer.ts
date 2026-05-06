@@ -9,7 +9,7 @@ type ProductionMutationProofInput = {
   ownerTitle: string;
   mutationName: string;
   scenarioId: string;
-  coveredLawIds: string[];
+  coveredLawIds: readonly string[];
   coverageReasonByLawId: Record<string, string>;
   mutatedFile: string;
   originalContent: string;

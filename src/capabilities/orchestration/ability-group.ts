@@ -1,5 +1,5 @@
 import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
-import type { NerveBusAbilityGroup } from "../nerve-bus/index.js";
+import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import type {
   ForensicsPersistenceAbilityResult,
   ForensicsStructuredActionLogInput,
