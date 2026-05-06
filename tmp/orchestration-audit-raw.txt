@@ -1,0 +1,5 @@
+
+> grasseye-local-workbench@0.1.0 audit:orchestration
+> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
+
+[PASS] orchestration-capability: Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, capability-call-start event loss, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.

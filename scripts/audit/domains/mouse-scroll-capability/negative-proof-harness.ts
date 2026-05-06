@@ -1,34 +1,19 @@
-import { readFile } from "node:fs/promises";
-
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
-import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
-import { writeOwnerBindingProof } from "../_shared/owner-binding-proof-writer.js";
-import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
+import {
+  createInspectorRunner,
+  mutateAndVerify,
+  writeMutationProofBundle,
+  writeOwnerBindingBundle,
+  type AuditMutation,
+  type InspectorRunner,
+  type MutationCoverage,
+  type MutationProofRecord,
+} from "../_shared/negative-proof-runtime.js";
 
 import { LAW_IDS as BASE_LAW_IDS } from "./config.js";
 
-type Mutation = {
-  name: string;
-  file: string;
-  search: string;
-  replace: string;
-};
-
-type InspectorRunResult = { passed: boolean; violationCount: number; output: string };
-type InspectorRunner = () => Promise<InspectorRunResult>;
-type MutationProofRecord = {
-  mutation: Mutation;
-  originalContent: string;
-  mutatedContent: string;
-  failOutput: string;
-  passOutput: string;
-  startedAt: string;
-  endedAt: string;
-};
+type Mutation = AuditMutation;
 
 const INSPECTOR_ENTRY = "scripts/audit/domains/mouse-scroll-capability/inspector.ts";
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF";
@@ -154,10 +139,7 @@ const MUTATIONS: Mutation[] = [
   },
 ];
 
-const MUTATION_LAW_COVERAGE: Record<string, {
-  coveredLawIds: string[];
-  coverageReasonByLawId: Record<string, string>;
-}> = {
+const MUTATION_LAW_COVERAGE: Record<string, MutationCoverage> = {
   "manual-first-enforcement mutation": {
     coveredLawIds: [LAW_IDS.ENFORCEMENT],
     coverageReasonByLawId: {
@@ -209,138 +191,6 @@ const MUTATION_LAW_COVERAGE: Record<string, {
   },
 };
 
-async function createInspectorRunner(): Promise<InspectorRunner> {
-  await buildAuditArtifacts();
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  const inspector = await loadInspector(INSPECTOR_ENTRY);
-
-  return async () => {
-    const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-    process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
-
-    try {
-      const result = await inspector(context);
-      return {
-        passed: result.passed,
-        violationCount: result.violationCount,
-        output: [
-          `classification: ${result.classification}`,
-          `passed: ${result.passed}`,
-          `violationCount: ${result.violationCount}`,
-          `summary: ${result.summary}`,
-          "",
-          ...result.findings.map((finding) => `${finding.severity.toUpperCase()} ${finding.lawId ?? "no-law"} ${finding.file}:${finding.line} ${finding.message}`),
-          "",
-        ].join("\n"),
-      };
-    } finally {
-      if (previous === undefined) {
-        delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-      } else {
-        process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
-      }
-    }
-  };
-}
-
-async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
-  const previous = process.env[SKIP_NEGATIVE_PROOF_ENV];
-  process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
-
-  try {
-    await buildAuditArtifacts();
-    const artifacts = await loadGeneratedArtifacts();
-    const context = await createInspectorContext(artifacts);
-    const inspector = await loadInspector(INSPECTOR_ENTRY);
-    const result = await inspector(context);
-    return { passed: result.passed, violationCount: result.violationCount };
-  } finally {
-    if (previous === undefined) {
-      delete process.env[SKIP_NEGATIVE_PROOF_ENV];
-    } else {
-      process.env[SKIP_NEGATIVE_PROOF_ENV] = previous;
-    }
-  }
-}
-
-async function mutateAndVerify(runInspectorOnce: InspectorRunner, mutation: Mutation): Promise<MutationProofRecord> {
-  const filePath = pathFromRepoRoot(mutation.file);
-  const state = await readAuditFileState(filePath);
-  const startedAt = new Date().toISOString();
-  await applyAuditMutation(filePath, state.original, mutation);
-  const mutatedContent = await readFile(filePath, "utf8");
-  let failOutput = "";
-
-  try {
-    const result = await runInspectorOnce();
-    failOutput = result.output;
-    if (result.passed || result.violationCount === 0) {
-      throw new Error(`Inspector did not fail for ${mutation.name}`);
-    }
-  } finally {
-    await restoreAuditFileState(filePath, state);
-  }
-
-  const restored = await runInspectorOnce();
-  if (!restored.passed) {
-    throw new Error(`Rollback verification failed for ${mutation.name}`);
-  }
-
-  return {
-    mutation,
-    originalContent: state.original,
-    mutatedContent,
-    failOutput,
-    passOutput: restored.output,
-    startedAt,
-    endedAt: new Date().toISOString(),
-  };
-}
-
-const writeMutationProof = async (record: MutationProofRecord) => {
-  const coverage = MUTATION_LAW_COVERAGE[record.mutation.name];
-  if (!coverage) {
-    return;
-  }
-
-  await writeProductionMutationProof({
-    owner: "mouse-scroll",
-    ownerTitle: "Mouse Scroll",
-    mutationName: record.mutation.name,
-    scenarioId: record.mutation.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    coveredLawIds: coverage.coveredLawIds,
-    coverageReasonByLawId: coverage.coverageReasonByLawId,
-    mutatedFile: record.mutation.file,
-    originalContent: record.originalContent,
-    mutatedContent: record.mutatedContent,
-    failOutput: record.failOutput,
-    passOutput: record.passOutput,
-    startedAt: record.startedAt,
-    endedAt: record.endedAt,
-  });
-};
-
-const writeOwnerBindingBundle = async (records: MutationProofRecord[]) => {
-  const scenarios = OWNER_BINDING_MUTATION_NAMES.flatMap((mutationName) => {
-    const record = records.find((candidate) => candidate.mutation.name === mutationName);
-    return record
-      ? [{
-          scenario: mutationName.replace(/ mutation$/, ""),
-          outputFileName: `${mutationName.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}-fail.txt`,
-          output: record.failOutput,
-        }]
-      : [];
-  });
-
-  await writeOwnerBindingProof({
-    owner: "mouse-scroll",
-    title: "Mouse Scroll",
-    scenarios,
-    rollbackOutput: records.at(-1)?.passOutput ?? "rollback restored baseline PASS",
-  });
-};
-
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
   return {
     findings: [],
@@ -368,16 +218,29 @@ async function runMutations(runInspectorOnce: InspectorRunner): Promise<Mutation
   for (const mutation of MUTATIONS) {
     const record = await mutateAndVerify(runInspectorOnce, mutation);
     records.push(record);
-    await writeMutationProof(record);
+    await writeMutationProofBundle({
+      owner: "mouse-scroll",
+      ownerTitle: "Mouse Scroll",
+      record,
+      coverageByMutationName: MUTATION_LAW_COVERAGE,
+    });
   }
 
-  await writeOwnerBindingBundle(records);
+  await writeOwnerBindingBundle({
+    owner: "mouse-scroll",
+    title: "Mouse Scroll",
+    ownerBindingMutationNames: OWNER_BINDING_MUTATION_NAMES,
+    records,
+  });
   return records;
 }
 
 export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   try {
-    const runInspectorOnce = await createInspectorRunner();
+    const runInspectorOnce = await createInspectorRunner({
+      inspectorEntry: INSPECTOR_ENTRY,
+      skipNegativeProofEnv: SKIP_NEGATIVE_PROOF_ENV,
+    });
     const baseline = await runInspectorOnce();
     if (!baseline.passed) {
       return createFatalResult(

@@ -2,11 +2,13 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
-import { getSourceFileOrThrow, hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
+import { hasCallExpression, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
 
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { commanderConsoleInspectionUtils } from "./inspection-utils.js";
 import { collectDebugRefFindings, collectRuntimeProofRunIdFindings, collectTransportRunIdFindings } from "./run-commander-runtime-runid-checks.js";
+import { getCommanderRuntimeSources } from "./run-commander-runtime-sources.js";
+import { collectStartMissionAcceptanceBoundaryFindings } from "./run-commander-start-mission-acceptance-checks.js";
 
 const { ABILITY_GROUP_PATH, BOUNDARY_POLICY_PATH, CHILD_EXECUTORS_PATH, COMMAND_CHILD_EXECUTOR_PATH, COMMAND_GATE_PATH, COMMAND_OUTCOMES_PATH, COMMAND_PAYLOAD_PATH, DISPATCH_FAILURE_PATH, EXECUTOR_PATH, IDEMPOTENCY_GATE_PATH, PROOF_BUILDER_PATH } = commanderConsoleInspectionConstants;
 const { READ_CHILD_EXECUTOR_PATH, READ_GATE_PATH, READ_PROOF_GATE_PATH, RESULT_BUILDER_PATH, RUNTIME_PROOF_SCHEMA_PATH, TASK_START_DISPATCH_RESULT_PATH, TIMEOUT_GATE_PATH, TRANSPORT_SCHEMA_PATH, TRANSPORT_SEMANTIC_GATE_PATH, WORKBENCH_COMMANDER_DEBUG_PATH } = commanderConsoleInspectionConstants;
@@ -19,7 +21,6 @@ type RuntimeCheckResult = {
 };
 
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
-const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-human-command.ts";
 
 const hasNamedImport = (sourceFile: import("ts-morph").SourceFile, moduleSuffix: string, importName: string) => {
   return sourceFile.getImportDeclarations().some((declaration) => {
@@ -290,35 +291,6 @@ const collectCommandRuntimeFindings = (input: {
   return findings;
 };
 
-function collectStartMissionAcceptanceBoundaryFindings(sourceFile: import("ts-morph").SourceFile): Finding[] {
-  const handleStartMission = sourceFile.getFunction("handleStartMission")
-    ?? sourceFile.getVariableDeclaration("handleStartMission")?.getInitializerIfKind(SyntaxKind.ArrowFunction)
-    ?? sourceFile.getVariableDeclaration("handleStartMission")?.getInitializerIfKind(SyntaxKind.FunctionExpression);
-  if (!handleStartMission) {
-    return [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", WORKBENCH_HUMAN_COMMAND_PATH, "Workbench human-command runtime must expose handleStartMission for governed command acceptance.")];
-  }
-
-  const awaitsMissionLoop = handleStartMission.getDescendantsOfKind(SyntaxKind.AwaitExpression).some((awaitExpression) => {
-    const expression = awaitExpression.getExpression();
-    return expression.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((propertyAccess) =>
-      propertyAccess.getText() === "runtime.orchestrationAbilityGroup.startMission",
-    ) || expression.getText() === "missionStartPromise";
-  });
-  const startsMissionInBackground = handleStartMission.getDescendantsOfKind(SyntaxKind.VoidExpression).some((voidExpression) =>
-    voidExpression.getExpression().getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((propertyAccess) =>
-      propertyAccess.getText() === "missionStartPromise.catch",
-    ),
-  );
-  const callExpressions = handleStartMission.getDescendantsOfKind(SyntaxKind.CallExpression);
-  const acceptedCall = callExpressions.find((callExpression) => callExpression.getExpression().getText() === "recordCommandAccepted");
-  const missionStartCall = callExpressions.find((callExpression) => callExpression.getExpression().getText() === "runtime.orchestrationAbilityGroup.startMission");
-  const recordsAcceptanceBeforeMissionStart = Boolean(acceptedCall && missionStartCall && acceptedCall.getStart() < missionStartCall.getStart());
-
-  return !awaitsMissionLoop && startsMissionInBackground && recordsAcceptanceBeforeMissionStart
-    ? []
-    : [createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", WORKBENCH_HUMAN_COMMAND_PATH, "start-mission command acceptance must return a governed receipt without awaiting terminal mission execution.")];
-}
-
 const hasReadRuntimeWiring = (sourceFile: import("ts-morph").SourceFile) => {
   return hasNamedImport(sourceFile, "commander-timeout-gate.js", "runCommanderTimeoutGate")
     && hasNamedImport(sourceFile, "commander-idempotency-gate.js", "runCommanderIdempotencyGate")
@@ -344,45 +316,31 @@ const collectChildExecutorFindings = (childExecutorsSource: import("ts-morph").S
 };
 
 export function runCommanderRuntimeChecks(project: import("ts-morph").Project): RuntimeCheckResult {
-  const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
-  const commandGateSource = getSourceFileOrThrow(project, COMMAND_GATE_PATH);
-  const commandPayloadSource = getSourceFileOrThrow(project, COMMAND_PAYLOAD_PATH);
-  const readGateSource = getSourceFileOrThrow(project, READ_GATE_PATH);
-  const transportSchemaSource = getSourceFileOrThrow(project, TRANSPORT_SCHEMA_PATH);
-  const commandChildExecutorSource = getSourceFileOrThrow(project, COMMAND_CHILD_EXECUTOR_PATH);
-  const commandOutcomesSource = getSourceFileOrThrow(project, COMMAND_OUTCOMES_PATH);
-  const readChildExecutorSource = getSourceFileOrThrow(project, READ_CHILD_EXECUTOR_PATH);
-  const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
-  const resultBuilderSource = getSourceFileOrThrow(project, RESULT_BUILDER_PATH);
-  const proofBuilderSource = getSourceFileOrThrow(project, PROOF_BUILDER_PATH);
-  const runtimeProofSchemaSource = getSourceFileOrThrow(project, RUNTIME_PROOF_SCHEMA_PATH);
-  const dispatchFailureSource = getSourceFileOrThrow(project, DISPATCH_FAILURE_PATH);
-  const boundaryPolicySource = getSourceFileOrThrow(project, BOUNDARY_POLICY_PATH);
-  const childExecutorsSource = getSourceFileOrThrow(project, CHILD_EXECUTORS_PATH);
-  const timeoutGateSource = getSourceFileOrThrow(project, TIMEOUT_GATE_PATH);
-  const idempotencyGateSource = getSourceFileOrThrow(project, IDEMPOTENCY_GATE_PATH);
-  const transportSemanticGateSource = getSourceFileOrThrow(project, TRANSPORT_SEMANTIC_GATE_PATH);
-  const readProofGateSource = getSourceFileOrThrow(project, READ_PROOF_GATE_PATH);
-  const workbenchDebugSource = getSourceFileOrThrow(project, WORKBENCH_COMMANDER_DEBUG_PATH);
-  const taskStartSupportSource = getSourceFileOrThrow(project, TASK_START_DISPATCH_RESULT_PATH);
-  const acceptedBoundarySource = getSourceFileOrThrow(project, "src/lib/local-runtime/workbench-human-command-debug-events.ts");
-  const humanCommandSource = getSourceFileOrThrow(project, WORKBENCH_HUMAN_COMMAND_PATH);
-
-  const gateResult = collectGateFindings({ commandGateSource, commandPayloadSource, readGateSource, transportSchemaSource });
-  const childExecutorResult = collectChildExecutorFindings(childExecutorsSource);
+  const sources = getCommanderRuntimeSources(project);
+  const gateResult = collectGateFindings({
+    commandGateSource: sources.commandGateSource,
+    commandPayloadSource: sources.commandPayloadSource,
+    readGateSource: sources.readGateSource,
+    transportSchemaSource: sources.transportSchemaSource,
+  });
+  const childExecutorResult = collectChildExecutorFindings(sources.childExecutorsSource);
 
   return {
     findings: [
-      ...collectAbilityGroupFindings(abilityGroupSource),
+      ...collectAbilityGroupFindings(sources.abilityGroupSource),
       ...gateResult.findings,
-	      ...collectCommandRuntimeFindings({ executorSource: commandChildExecutorSource, outcomesSource: commandOutcomesSource, humanCommandSource }),
-	      ...collectTransportRunIdFindings({ transportSchemaSource, transportSemanticGateSource, commandOutcomesSource }),
-      ...collectRuntimeProofRunIdFindings(runtimeProofSchemaSource),
-      ...collectDebugRefFindings({ workbenchDebugSource, taskStartSupportSource, acceptedBoundarySource }),
-      ...collectReadRuntimeFindings(readChildExecutorSource),
-      ...collectExecutorSurfaceFindings({ executorSource, resultBuilderSource }),
-      ...collectProofAndBoundaryFindings({ proofBuilderSource, dispatchFailureSource, boundaryPolicySource }),
-      ...collectGateFileFindings({ timeoutGateSource, idempotencyGateSource, transportSemanticGateSource, readProofGateSource }),
+      ...collectCommandRuntimeFindings({ executorSource: sources.commandChildExecutorSource, outcomesSource: sources.commandOutcomesSource, humanCommandSource: sources.humanCommandSource }),
+      ...collectTransportRunIdFindings({
+        transportSchemaSource: sources.transportSchemaSource,
+        transportSemanticGateSource: sources.transportSemanticGateSource,
+        commandOutcomesSource: sources.commandOutcomesSource,
+      }),
+      ...collectRuntimeProofRunIdFindings(sources.runtimeProofSchemaSource),
+      ...collectDebugRefFindings({ workbenchDebugSource: sources.workbenchDebugSource, taskStartSupportSource: sources.taskStartSupportSource, acceptedBoundarySource: sources.acceptedBoundarySource }),
+      ...collectReadRuntimeFindings(sources.readChildExecutorSource),
+      ...collectExecutorSurfaceFindings({ executorSource: sources.executorSource, resultBuilderSource: sources.resultBuilderSource }),
+      ...collectProofAndBoundaryFindings({ proofBuilderSource: sources.proofBuilderSource, dispatchFailureSource: sources.dispatchFailureSource, boundaryPolicySource: sources.boundaryPolicySource }),
+      ...collectGateFileFindings({ timeoutGateSource: sources.timeoutGateSource, idempotencyGateSource: sources.idempotencyGateSource, transportSemanticGateSource: sources.transportSemanticGateSource, readProofGateSource: sources.readProofGateSource }),
       ...childExecutorResult.findings,
     ],
     readGatePassthrough: gateResult.readGatePassthrough,

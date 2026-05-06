@@ -6,7 +6,11 @@ import { buildEntry, humanize } from "../policies.js";
 
 const buildAiEntries = (): CapabilityCatalogEntry[] => {
   return listMapPluginAiChildren().map((childCapabilityId) =>
-    buildEntry("ai", childCapabilityId, `Execute governed AI child ${humanize(childCapabilityId)} for governed tasks.`),
+    buildEntry({
+      abilityGroupId: "ai",
+      childCapabilityId,
+      description: `Execute governed AI child ${humanize(childCapabilityId)} for governed tasks.`,
+    }),
   );
 };
 
@@ -31,13 +35,13 @@ const buildOpenEntries = (): CapabilityCatalogEntry[] => {
     const supportedTargets = isLocalProgram
       ? ["macos-local", "local-program-window", "desktop-screen"]
       : child ? [child.platformId] : undefined;
-    return buildEntry(
-      "open",
+    return buildEntry({
+      abilityGroupId: "open",
       childCapabilityId,
-      child?.purpose ?? `Open governed target ${humanize(childCapabilityId)}.`,
-      supportedTargets,
-      metadata,
-    );
+      description: child?.purpose ?? `Open governed target ${humanize(childCapabilityId)}.`,
+      ...(supportedTargets ? { supportedTargets } : {}),
+      ...(metadata ? { metadata } : {}),
+    });
   });
 };
 

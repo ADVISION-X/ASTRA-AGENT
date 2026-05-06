@@ -5,6 +5,20 @@ import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-han
 import { parseJsonBody, writeJsonResponse } from "./workbench-api-helpers.js";
 
 type AiProviderCompany = "openai" | "deepseek" | "openrouter";
+type ProviderConfigRequestBody = {
+  displayName?: string | null;
+  providerKind?: string | null;
+  providerCompany?: string | null;
+  baseUrl?: string;
+  model?: string;
+  apiKey?: string;
+  allowPaidProvider?: boolean;
+  providerAllowlist?: string[];
+  dataPolicy?: { allowExternalTransmission?: boolean };
+  costPolicy?: { maxEstimatedCost?: number };
+  operatorApprovalRef?: string | null;
+  approvalReason?: string | null;
+};
 
 const AI_PROVIDER_COMPANY_DEFAULTS: Record<AiProviderCompany, { baseUrl: string; model: string }> = {
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4.1-mini" },
@@ -16,37 +30,38 @@ function normalizeProviderCompany(value: unknown): AiProviderCompany {
   return value === "deepseek" || value === "openrouter" ? value : "openai";
 }
 
+async function handleMapLabStateRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> {
+  if (request.method !== "GET" || url.pathname !== "/api/map-lab/state") {
+    return false;
+  }
+  writeJsonResponse(response, 200, await activeWorkbench.getMapLabSnapshot());
+  return true;
+}
+
+const buildProviderConfig = (body: ProviderConfigRequestBody) => {
+  const providerCompany = normalizeProviderCompany(body.providerCompany);
+  const providerDefaults = AI_PROVIDER_COMPANY_DEFAULTS[providerCompany];
+  const baseUrl = body.baseUrl?.trim() || providerDefaults.baseUrl;
+  const model = body.model?.trim() || providerDefaults.model;
+  return { providerCompany, baseUrl, model };
+};
+
 async function handleProviderConfigRequest(
   request: IncomingMessage,
   response: ServerResponse,
   activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
-  if (request.method === "GET" && url.pathname === "/api/map-lab/state") {
-    writeJsonResponse(response, 200, await activeWorkbench.getMapLabSnapshot());
-    return true;
-  }
   if (request.method !== "POST" || url.pathname !== "/api/ai-provider-settings/provider-config") {
     return false;
   }
-  const body = await parseJsonBody(request) as {
-    displayName?: string | null;
-    providerKind?: string | null;
-    providerCompany?: string | null;
-    baseUrl?: string;
-    model?: string;
-    apiKey?: string;
-    allowPaidProvider?: boolean;
-    providerAllowlist?: string[];
-    dataPolicy?: { allowExternalTransmission?: boolean };
-    costPolicy?: { maxEstimatedCost?: number };
-    operatorApprovalRef?: string | null;
-    approvalReason?: string | null;
-  };
-  const providerCompany = normalizeProviderCompany(body.providerCompany);
-  const providerDefaults = AI_PROVIDER_COMPANY_DEFAULTS[providerCompany];
-  const baseUrl = body.baseUrl?.trim() || providerDefaults.baseUrl;
-  const model = body.model?.trim() || providerDefaults.model;
+  const body = await parseJsonBody(request) as ProviderConfigRequestBody;
+  const { providerCompany, baseUrl, model } = buildProviderConfig(body);
   if (!baseUrl || !model || !body.apiKey) {
     writeJsonResponse(response, 400, { error: "invalid_provider_config" });
     return true;
@@ -137,6 +152,9 @@ export async function handleMapLabRequest(
   activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
+  if (await handleMapLabStateRequest(request, response, activeWorkbench, url)) {
+    return true;
+  }
   if (await handleProviderConfigRequest(request, response, activeWorkbench, url)) {
     return true;
   }

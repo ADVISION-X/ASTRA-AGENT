@@ -2,7 +2,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
 import { IMPORT_EXPORT_LIMITS } from "./purity-thresholds.js";
-import { classifyPurityFileCategory } from "./purity-file-categories.js";
+import { classifyPurityFileCategory, isGovernedMapPackageArtifact } from "./purity-file-categories.js";
 import { inspectJsonContractPurity } from "./purity-json-inspection.js";
 import { getImportModuleSpecifiers, getImportedSourcePaths } from "./purity-import-analysis.js";
 import { classifyOwnerBoundary, getImportedOwnerBoundaries } from "./purity-owner-classification.js";
@@ -122,51 +122,83 @@ const inspectFileLineLimits = (input: {
   }
 };
 
+const shouldEnforceFileLineLimit = (relativePath: string): boolean =>
+  !isGovernedMapPackageArtifact(relativePath);
+
+const inspectLineAndJsonPurity = (input: {
+  sourceFile: SourceFile;
+  relativePath: string;
+  touchedPaths: Set<string>;
+  lineCount: number;
+  label: string;
+  hardLimit: number;
+  lineLimitApplies: boolean;
+  findings: Finding[];
+}): void => {
+  if (input.lineLimitApplies) {
+    inspectFileLineLimits(input);
+  }
+  inspectJsonContractPurity(input.sourceFile, input.relativePath, input.findings);
+};
+
+const inspectSourcePurityBody = (input: {
+  sourceFile: SourceFile;
+  relativePath: string;
+  categoryKind: string;
+  findings: Finding[];
+}): void => {
+  if (input.categoryKind !== "generatedArtifact" && input.categoryKind !== "jsonContract") {
+    inspectCleanupAndEscapes(input.sourceFile, input.relativePath, input.findings);
+    inspectLiteralAndPathPurity(input.sourceFile, input.relativePath, input.findings);
+  }
+};
+
+const recordPurityInventory = (input: {
+  report: PurityReportDraft;
+  touchedPaths: Set<string>;
+  relativePath: string;
+  lineCount: number;
+  hardLimit: number;
+  fileType: string;
+  primaryRole: PrimaryRole;
+  functionOverLimit: string[];
+  classOverLimit: string[];
+  maxClassMembers: number;
+  importDeclarations: number;
+  importSources: number;
+  exportCount: number;
+  crossOwnerImports: number;
+  importedOwners: string[];
+  roleMixingSignals: string[];
+}): void => {
+  const item = createPurityInventoryItem({
+    relativePath: input.relativePath,
+    lineCount: input.lineCount,
+    fileType: input.fileType,
+    overLimitBy: Math.max(0, input.lineCount - input.hardLimit),
+    primaryRole: input.primaryRole,
+    functionsOverLimit: input.functionOverLimit,
+    classMembers: input.maxClassMembers,
+    importCount: input.importDeclarations,
+    crossOwnerImports: input.crossOwnerImports,
+    ownerBoundaries: input.importedOwners.length,
+    roleMixingSignals: input.roleMixingSignals,
+  });
+  appendItemToInventories({ ...input, item });
+};
+
 export const inspectPurityMetrics = (sourceFile: SourceFile, relativePath: string, touchedPaths: Set<string>, report: PurityReportDraft): Finding[] => {
   const findings: Finding[] = [];
   const { category, lineCount, primaryRole, importedOwners, importDeclarations, importSources, crossOwnerImports, exportCount, roleMixingSignals } = collectPurityMetricContext(sourceFile, relativePath);
+  const lineLimitApplies = shouldEnforceFileLineLimit(relativePath);
+  const hardLimit = lineLimitApplies ? category.hardLimit : lineCount;
 
-  inspectFileLineLimits({ relativePath, touchedPaths, lineCount, label: category.label, hardLimit: category.hardLimit, findings });
-  inspectJsonContractPurity(sourceFile, relativePath, findings);
-
-  if (category.kind !== "generatedArtifact" && category.kind !== "jsonContract") {
-    inspectCleanupAndEscapes(sourceFile, relativePath, findings);
-    inspectLiteralAndPathPurity(sourceFile, relativePath, findings);
-  }
-
+  inspectLineAndJsonPurity({ sourceFile, relativePath, touchedPaths, lineCount, label: category.label, hardLimit, lineLimitApplies, findings });
+  inspectSourcePurityBody({ sourceFile, relativePath, categoryKind: category.kind, findings });
   const functionOverLimit = inspectFunctionLimits(sourceFile, relativePath, findings);
   const { classOverLimit, maxClassMembers } = inspectClassLimits(sourceFile, relativePath, findings);
   inspectBoundaryAndExportLimits({ sourceFile, relativePath, findings, importedOwners, crossOwnerImports, importDeclarations, importSources, exportCount, roleMixingSignals });
-
-  const item = createPurityInventoryItem({
-    relativePath,
-    lineCount,
-    fileType: category.label,
-    overLimitBy: Math.max(0, lineCount - category.hardLimit),
-    primaryRole,
-    functionsOverLimit: functionOverLimit,
-    classMembers: maxClassMembers,
-    importCount: importDeclarations,
-    crossOwnerImports,
-    ownerBoundaries: importedOwners.length,
-    roleMixingSignals,
-  });
-  appendItemToInventories({
-    report,
-    item,
-    touchedPaths,
-    relativePath,
-    lineCount,
-    hardLimit: category.hardLimit,
-    functionOverLimit,
-    classOverLimit,
-    importDeclarations,
-    importSources,
-    exportCount,
-    crossOwnerImports,
-    importedOwners,
-    roleMixingSignals,
-  });
+  recordPurityInventory({ report, touchedPaths, relativePath, lineCount, hardLimit, fileType: category.label, primaryRole, functionOverLimit, classOverLimit, maxClassMembers, importDeclarations, importSources, exportCount, crossOwnerImports, importedOwners, roleMixingSignals });
 
   return findings;
 };

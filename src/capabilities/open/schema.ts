@@ -38,13 +38,15 @@ export {
 export {
 	BrowserSessionSnapshotSchema,
 	NavigationResultSchema,
-	BrowserOpenOutputSchema,
-	LocalProgramOpenOutputSchema,
 	OpenNavigationDecisionSchema,
-	OpenOutputSchema,
 	OpenSessionDecisionSchema,
 	OpenTargetPolicyDecisionSchema,
 	OpenUrlSafetyDecisionSchema,
 	PostOpenStateDecisionSchema,
 } from "./schema-runtime.js";
+export {
+	BrowserOpenOutputSchema,
+	LocalProgramOpenOutputSchema,
+	OpenOutputSchema,
+} from "./schema-runtime-output.js";
 export { OpenResultBaseSchema, OpenResultSchema, OpenRuntimeProofSchema } from "./schema-proof.js";

@@ -15,78 +15,69 @@ This phase performed Runtime Log Blocker Mining & Root Cause Analysis only.
 
 ## Evidence Judgment
 
-The latest authoritative evidence is the real terminal log copied into `docs/Codex提示词/终端日志复制.md` with `runId=2026-05-05T17:10:09.996Z`.
+The authoritative real bundle for this pass is:
 
-That evidence is later than the 17:03 verification bundle and therefore controls current blocker truth.
+- `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
+- `tmp/debug-loop/post-fix-runtime-verification/runtime-logs-api.json`
+- `tmp/debug-loop/post-fix-runtime-verification/task-trigger-summary.md`
 
-The 17:03 bundle is still useful as cross-check evidence because it reproduces the same web and mirroring blocker families, but its mixed runtime snapshot cannot override the later terminal run.
+The selected authoritative task is:
+
+- `taskTemplateId=tiktok-seeding-video-discovery`
+- `requestedPlatformId=tiktok-web`
+- `selectedMapId=tiktok.seeding-video.discovery.meta.v1`
+- `runId=commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba:run`
+
+This bundle also contains a second run with the same Screenshot `scaleMapping` blocker, which is sufficient cross-run corroboration inside the same verification package.
 
 ## Final Judgment
 
-The latest evidence supports these conclusions:
+The latest real evidence supports these conclusions:
 
 1. Startup is not the blocker.
-2. `COMMAND_ACCEPTED` is present.
-3. `CAPABILITY_CALL_STARTED` is present on all four mission families.
-4. Web missions currently fail at screenshot `prepare-ai-input` because required `source` is missing.
-5. Mirroring missions currently fail first because `OpenLocalProgramPort` is not configured in the composed Open runtime.
-6. Mirroring missions then hit a second blocking governance defect because `open-iphone-mirroring` has no failed / review transition closure.
-7. Mission preflight and current inspectors failed to block these conditions before runtime.
-8. Older screenshot `videoVisitId` parity evidence is historical only and must not be reported as the current live blocker.
+2. Commander, Nerve Bus, Orchestration start, and Forensics writes are active.
+3. The mission reaches Screenshot `prepare-ai-input` after `capture-video-viewport` succeeds.
+4. The current execution stop point is Screenshot proof validation on `scaleMapping`.
+5. The older Screenshot missing-`source` story is no longer the first blocker in the authoritative run.
+6. Commander command-ingress transparency is incomplete in the same real bundle because required early ingress events are missing and accepted-command proof / event correlation fields are inconsistent.
+7. No additional current P2 blocker was elevated from the authoritative bundle.
 
 ## Confirmed Current Blocker Set
 
-### Web blocker
+### P0 execution blocker
 
-- `prepare-ai-input` fails on both web maps with `invalid_type` at `path ["source"]`.
-- Root cause: `src/lib/local-runtime/workbench-screenshot-dispatch-input.ts` does not build `source` for `prepare-ai-input`, while `src/capabilities/screenshot/schema.ts` requires it.
+`BLOCKER-RUNTIME-1`
 
-### Mirroring first blocker
+- `prepare-ai-input` fails with `prepare-ai-input proof requires scaleMapping`
+- root cause sits in Screenshot failed-path proof construction plus unconditional proof refinement
+- current runtime evidence cannot yet expose a deeper child failure underneath because proof validation aborts earlier
 
-- `open-iphone-mirroring` fails on both mirroring maps with `OpenLocalProgramPort is not configured`.
-- Root cause: `src/lib/local-runtime/workbench-open-runtime.ts` composes `createOpenAbilityGroup(...)` without `localProgram`, and `src/capabilities/open/runtime/local-program-runner.ts` fails closed when that port is absent.
+### P1 observability / proof-chain blocker
 
-### Mirroring secondary blocker
+`BLOCKER-LOG-1`
 
-- After the Open failure, both mirroring maps fail transition evaluation because the map has no matching `open-iphone-mirroring:failed` transition.
-- Root cause: the mirroring builtin map packages declare step-level `failureBranch` / `reviewBranch` but omit matching transitions and top-level branch registration.
+- `HUMAN_COMMAND_DRAFTED` and `HUMAN_COMMAND_RECEIVED` are missing from the latest real terminal/API bundle
+- accepted-command proof / event shapes still allow null mission correlation fields across some surfaces
+- the mission still runs, so this is not the stop point, but it blocks strict command-ingress provenance
 
 ## Confirmed Enforcement Gaps
 
-### Screenshot audit blind spot
+### Screenshot enforcement gap
 
-- Current screenshot adapter inspection validates common chain fields and `capture-browser-viewport` source derivation.
-- It does not validate `prepare-ai-input` source derivation.
-- Its negative proof has no mutation that deletes `source` from `prepare-ai-input`.
+- current Screenshot enforcement does not prove the failed-path distinction between success-only `scaleMapping` requirements and non-success diagnostic requirements
 
-### Open integration blind spot
+### Commander / structured logging enforcement gap
 
-- Open domain runtime checks live under `src/capabilities/open/**`.
-- The actual omission is in `src/lib/local-runtime/workbench-open-runtime.ts`, outside the current owner-local open audit surface.
+- current enforcement does not machine-block missing draft / received ingress events or null mission correlation fields across every accepted-command producer
 
-### Mission preflight blind spot
+## Historical / Non-Current Handling
 
-- `getMissionStartPreflight()` checks command contract, schema, browser, local AI, and data store.
-- It does not check whether the selected platform requires local-program execution wiring.
-- It therefore passes mirroring starts that should have been blocked before dispatch.
-
-### Map transition closure blind spot
-
-- `validateMapTransitionClosure()` checks top-level branch arrays and PAV policy refs.
-- It does not check whether each step-declared `failureBranch` / `reviewBranch` actually resolves to shipped transitions.
-- The map negative-proof harness has no mutation covering this missing closure shape.
-
-## Historical Blocker Handling
-
-Older screenshot `videoVisitId` parity failures still appear in stale RCA markdown and in the mixed runtime snapshot.
-
-They are not the first blocker in the latest 17:10 real run.
-
-Therefore this phase records them only as historical / non-current evidence.
+- The old `source Required` Screenshot blocker stays historical.
+- Earlier mirroring blockers stay historical in this package because they were not freshly exercised by the authoritative web rerun.
 
 ## Output Package Status
 
-The Phase 1 RCA package has been refreshed around the latest real runtime truth for:
+The Phase 1 RCA package is now aligned to the latest real runtime truth for:
 
 - `blocker-list.md`
 - `runtime-timeline.md`
@@ -95,11 +86,11 @@ The Phase 1 RCA package has been refreshed around the latest real runtime truth 
 - `enforcement-gap-matrix.md`
 - `phase-1-report.md`
 
-## Next-Phase Default Scope
+## Default Phase 2 Repair Order
 
-If Phase 2 begins, the narrow default repair scope should be:
+If Phase 2 begins, the narrow default repair order should be:
 
-1. repair `prepare-ai-input` source construction
-2. repair local-program runtime wiring and preflight coverage
-3. repair mirroring map transition closure
-4. add negative-proof coverage for all three failure families
+1. repair Screenshot failed-path `prepare-ai-input` proof validation / construction parity
+2. rerun the same real `tiktok-web` mission to expose any masked deeper child failure
+3. repair Commander ingress transparency and accepted-command proof completeness
+4. add owner-local negative proof for both blocker families

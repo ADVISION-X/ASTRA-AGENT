@@ -1,0 +1,1462 @@
+[
+  {
+    "createdAt": "2026-05-06T11:34:53.131Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:53.131Z",
+    "eventType": "NERVE_BUS_ENVELOPE_CREATED",
+    "status": "success",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Commander Console / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:53.739Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:54.053Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:54.053Z",
+    "eventType": "NERVE_BUS_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:54.645Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:54.924Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:54.924Z",
+    "eventType": "ORCHESTRATION_START_RECEIVED",
+    "status": "started",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:55.509Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:55.825Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:55.825Z",
+    "eventType": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+    "status": "success",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Map Plugin Registry"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:56.431Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:56.772Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:56.771Z",
+    "eventType": "COMMAND_ACCEPTED",
+    "status": "success",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Commander Console / Nerve Bus / Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:57.534Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:57.834Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:57.834Z",
+    "eventType": "COMMAND_ACCEPTED",
+    "status": "success",
+    "stepId": null,
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Commander Console / Nerve Bus / Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:59.068Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "task_start",
+    "step": "task_start",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:59.710Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:34:59.710Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:00.288Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:00.555Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:00.555Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:01.159Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:01.424Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:01.424Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / open"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:02.003Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:02.306Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:02.306Z",
+    "eventType": "CAPABILITY_CALL_COMPLETED",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / open"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:02.817Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:03.074Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:03.074Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:03.576Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "open-facebook-reels",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:03.830Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:03.830Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:04.355Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:04.622Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:04.622Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:05.196Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:05.465Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:05.465Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:06.060Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:06.335Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:06.335Z",
+    "eventType": "POST_ACTION_VERIFICATION_STARTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Post-action Verification"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:06.865Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:07.124Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:07.653Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:07.913Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:07.913Z",
+    "eventType": "POST_ACTION_VERIFICATION_PASSED",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Post-action Verification"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:08.440Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:08.698Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:08.698Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:09.219Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "verify-facebook-reels-open",
+    "step": "open_target_page",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:09.474Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:09.474Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:10.002Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:10.262Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:10.262Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:10.778Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:11.041Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:11.041Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:11.581Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:11.848Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:11.847Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:12.366Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:12.630Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:12.630Z",
+    "eventType": "CAPABILITY_CALL_COMPLETED",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:13.143Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:13.414Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:13.414Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:14.009Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-login-state",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:14.276Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:14.276Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:14.813Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:15.069Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:15.069Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:15.585Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:15.856Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:15.856Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:16.378Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:16.632Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:16.632Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:17.145Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:17.399Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:17.399Z",
+    "eventType": "CAPABILITY_CALL_COMPLETED",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:17.909Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:18.194Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:18.194Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:18.732Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-safety-page",
+    "step": "detect_login_or_safety",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:18.995Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:18.994Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:19.543Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:19.813Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:19.813Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:20.480Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:20.771Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:20.771Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:21.345Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:21.609Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:21.609Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:22.134Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:22.392Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:22.392Z",
+    "eventType": "CAPABILITY_CALL_COMPLETED",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / page-state"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:22.993Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:23.255Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:23.255Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:23.782Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "detect-feed-ready",
+    "step": "wait_feed_ready",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:24.041Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:24.041Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:24.576Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:24.837Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:24.837Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:25.354Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:25.604Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:25.604Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:26.175Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:26.434Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:26.434Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / screenshot"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:26.975Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:29.075Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:29.075Z",
+    "eventType": "CAPABILITY_CALL_COMPLETED",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / screenshot"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:29.799Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:30.097Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:30.097Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:30.895Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "capture-video-viewport",
+    "step": "screenshot_video_area",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:31.201Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:31.201Z",
+    "eventType": "MAP_STEP_SELECTED",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:31.851Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:32.149Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:32.148Z",
+    "eventType": "STEP_PRECONDITION_CHECKED",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:32.833Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:33.266Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:33.266Z",
+    "eventType": "STEP_DISPATCH_STARTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / Nerve Bus"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:33.834Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:34.099Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:34.099Z",
+    "eventType": "CAPABILITY_CALL_STARTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / screenshot"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:34.655Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:34.936Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:34.936Z",
+    "eventType": "CAPABILITY_CALL_FAILED",
+    "status": "failed",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": "Stored image source dimensions must match sourceProof dimensions.",
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration / screenshot"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:35.500Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:35.794Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:35.793Z",
+    "eventType": "STEP_TRANSITION_EVALUATED",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:36.346Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:36.616Z",
+    "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+    "status": "started",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:36.616Z",
+    "eventType": "MISSION_FAILED",
+    "status": "failed",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": "Stored image source dimensions must match sourceProof dimensions.",
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Orchestration"
+  },
+  {
+    "createdAt": "2026-05-06T11:35:37.140Z",
+    "eventType": "FORENSICS_RECORD_WRITTEN",
+    "status": "success",
+    "stepId": "prepare-ai-input",
+    "step": "record_video_evidence",
+    "failureReason": null,
+    "reviewRequiredReason": null,
+    "ownerResponsible": "Forensics Persistence"
+  }
+]

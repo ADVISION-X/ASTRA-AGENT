@@ -1,0 +1,151 @@
+diff --git a/scripts/audit/ci-full.ts b/scripts/audit/ci-full.ts
+index 09be744..508a9a8 100644
+--- a/scripts/audit/ci-full.ts
++++ b/scripts/audit/ci-full.ts
+@@ -1,53 +1,116 @@
+-import { spawnSync } from "node:child_process";
++import { spawn } from "node:child_process";
+ 
+ type CiStep = {
+   label: string;
+   args: string[];
++  timeoutMs: number;
++  mutatesProduction?: boolean;
+ };
+ 
+-const DEFAULT_CI_STEP_TIMEOUT_MS = 120_000;
+-const CI_STEP_TIMEOUT_MS_BY_LABEL: Record<string, number> = {
+-  audit: 600_000,
++type CiStage = {
++  label: string;
++  parallel: boolean;
++  steps: CiStep[];
+ };
+ 
+-const resolveCiStepTimeoutMs = (label: string): number => CI_STEP_TIMEOUT_MS_BY_LABEL[label] ?? DEFAULT_CI_STEP_TIMEOUT_MS;
++const DEFAULT_CI_STEP_TIMEOUT_MS = 120_000;
++const OWNER_AUDIT_TIMEOUT_MS = 300_000;
+ 
+-const steps: CiStep[] = [
+-  { label: "typecheck", args: ["run", "typecheck"] },
+-  { label: "audit build", args: ["run", "audit:build"] },
+-  { label: "audit coverage", args: ["run", "audit:coverage"] },
+-  { label: "audit coverage anti-fraud", args: ["run", "audit:coverage:anti-fraud"] },
+-  { label: "audit", args: ["run", "audit"] },
++const CI_STAGES: CiStage[] = [
++  {
++    label: "independent-preflight",
++    parallel: false,
++    steps: [
++      { label: "typecheck", args: ["run", "typecheck"], timeoutMs: DEFAULT_CI_STEP_TIMEOUT_MS },
++      { label: "audit build", args: ["run", "audit:build"], timeoutMs: DEFAULT_CI_STEP_TIMEOUT_MS },
++    ],
++  },
++  {
++    label: "owner-audit-law-compliance",
++    parallel: false,
++    steps: [
++      { label: "audit", args: ["run", "audit"], timeoutMs: OWNER_AUDIT_TIMEOUT_MS },
++    ],
++  },
+ ];
+ 
+ const exitNow = (code: number): never => {
+   process.exit(code);
+ };
+ 
+-for (const [index, step] of steps.entries()) {
+-  process.stdout.write(`[CI FULL] ${index + 1}/${steps.length} starting ${step.label}...\n`);
+-  const timeoutMs = resolveCiStepTimeoutMs(step.label);
++const runCiStep = async (step: CiStep, stageLabel: string): Promise<void> => {
++  process.stdout.write(`[CI FULL] ${stageLabel} starting ${step.label}...\n`);
++
++  await new Promise<void>((resolve, reject) => {
++    const child = spawn("npm", step.args, {
++      stdio: "inherit",
++      shell: process.platform === "win32",
++    });
++    let settled = false;
++    let timeoutHandle: ReturnType<typeof setTimeout>;
++
++    const finish = (error?: Error): void => {
++      if (settled) {
++        return;
++      }
++      settled = true;
++      clearTimeout(timeoutHandle);
++      if (error) {
++        reject(error);
++        return;
++      }
++      process.stdout.write(`[CI FULL] ${step.label} passed.\n`);
++      resolve();
++    };
++
++    timeoutHandle = setTimeout(() => {
++      child.kill("SIGTERM");
++      finish(new Error(`[CI FULL FAIL-FAST] stopped at ${step.label} after ${step.timeoutMs}ms.`));
++    }, step.timeoutMs);
+ 
+-  const result = spawnSync("npm", step.args, {
+-    stdio: "inherit",
+-    shell: process.platform === "win32",
+-    timeout: timeoutMs,
++    child.on("error", (error) => {
++      finish(new Error(`[CI FULL FAIL-FAST] ${step.label} could not start: ${error.message}`));
++    });
++    child.on("exit", (code, signal) => {
++      if (code === 0) {
++        finish();
++        return;
++      }
++      finish(new Error(`[CI FULL FAIL-FAST] stopped at ${step.label}${signal ? ` by ${signal}` : ""} with exit code ${code ?? 1}.`));
++    });
+   });
++};
+ 
+-  if (result.error) {
+-    process.stderr.write(`[CI FULL FAIL-FAST] ${step.label} could not start: ${result.error.message}\n`);
+-    exitNow(1);
++const runCiStage = async (stage: CiStage): Promise<void> => {
++  process.stdout.write(`[CI FULL] stage ${stage.label} starting (${stage.parallel ? "parallel" : "serial"}).\n`);
++  if (stage.parallel) {
++    await Promise.all(stage.steps.map((step) => runCiStep(step, stage.label)));
++  } else {
++    for (const step of stage.steps) {
++      await runCiStep(step, stage.label);
++    }
+   }
++  process.stdout.write(`[CI FULL] stage ${stage.label} passed.\n`);
++};
+ 
+-  if (result.status !== 0) {
+-    const status = result.status ?? 1;
+-    const timeoutDetail = result.signal === "SIGTERM" ? ` after ${timeoutMs}ms` : "";
+-    process.stderr.write(`[CI FULL FAIL-FAST] stopped at ${step.label}${timeoutDetail} with exit code ${status}.\n`);
+-    exitNow(status);
++const validateCiTopology = (): void => {
++  const mutatingParallelStage = CI_STAGES.find((stage) => stage.parallel && stage.steps.some((step) => step.mutatesProduction));
++  if (mutatingParallelStage) {
++    throw new Error(`[CI FULL TOPOLOGY] ${mutatingParallelStage.label} cannot run production-mutation audit steps in parallel.`);
+   }
++};
+ 
+-  process.stdout.write(`[CI FULL] ${step.label} passed.\n`);
+-}
++const main = async (): Promise<void> => {
++  validateCiTopology();
++  for (const stage of CI_STAGES) {
++    await runCiStage(stage);
++  }
++  process.stdout.write("[CI FULL PASS] typecheck, audit build, and audit law-compliance checks all passed.\n");
++  exitNow(0);
++};
+ 
+-process.stdout.write("[CI FULL PASS] typecheck, audit build, audit coverage, and audit all passed.\n");
+-exitNow(0);
++main().catch((error: unknown) => {
++  const message = error instanceof Error ? error.message : String(error);
++  process.stderr.write(`${message}\n`);
++  exitNow(1);
++});

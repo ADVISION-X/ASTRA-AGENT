@@ -1,5 +1,5 @@
 # BLOCKER-RUNTIME-1 Mutation
 
-Production mutation removed `screenshotEvidenceRef` from `buildPrepareAiInputCommand()` source handoff resolution in `src/lib/local-runtime/workbench-screenshot-dispatch-input.ts`.
+Production mutation removed the success-only gate from `validatePrepareAiInputScaleMapping()` in `src/capabilities/screenshot/screenshot-schema-refinements.ts`.
 
-Expected result: Screenshot owner inspector must fail because `prepare-ai-input` can no longer derive governed stored-image `source` before entering the Screenshot boundary.
+Expected result: Screenshot owner inspector must fail because `prepare-ai-input` would start requiring `scaleMapping` for failed and `review_required` proofs, masking the real non-success diagnostic path.

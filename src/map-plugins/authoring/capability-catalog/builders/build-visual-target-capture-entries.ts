@@ -5,5 +5,9 @@ import { buildEntry, humanize } from "../policies.js";
 
 export const buildVisualTargetCaptureEntries = (): CapabilityCatalogEntry[] =>
   listVisualTargetChildren().map((childCapabilityId) =>
-    buildEntry("visual-target", childCapabilityId, `Resolve a governed visual target for ${humanize(childCapabilityId)}.`),
+    buildEntry({
+      abilityGroupId: "visual-target",
+      childCapabilityId,
+      description: `Resolve a governed visual target for ${humanize(childCapabilityId)}.`,
+    }),
   );

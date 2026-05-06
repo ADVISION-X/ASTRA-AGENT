@@ -72,6 +72,31 @@ type BuildMapAuthoringInputPackageOptions = {
   requesterRef?: string;
 };
 
+const buildMapAuthoringPolicies = () => ({
+  safetyPolicy: buildPolicyDescriptor("policy://map-authoring/safety/v1", "Declares the no-code and review-gated safety baseline for map authoring.", ["no_code_generation", "no_runtime_activation", "review_high_risk_operations"]),
+  humanApprovalPolicy: buildPolicyDescriptor("policy://map-authoring/human-approval/v1", "Declares operations that require explicit human approval.", ["send_message_requires_approval", "submit_requires_approval", "purchase_requires_approval", "activate_ai_generated_map_requires_approval"]),
+  evidencePolicy: buildPolicyDescriptor("policy://map-authoring/evidence/v1", "Requires evidence refs and retention rules instead of raw content.", ["evidence_refs_only", "screenshot_retention_required", "record_evidence_packet_ref"]),
+  pavPolicy: buildPolicyDescriptor("policy://map-authoring/pav/v1", "Requires action steps to hand off to post-action verification when mandated by catalogs.", ["action_steps_require_pav_when_catalog_says_so", "mouse_click_requires_pav", "text_input_requires_pav"]),
+  forensicsPolicy: buildPolicyDescriptor("policy://map-authoring/forensics/v1", "Forensics stores refs and hashes, not raw secrets or prompt bodies.", ["store_refs_and_hashes_only", "record_prompt_contract_refs", "record_activation_hashes"]),
+  privacyPolicy: buildPolicyDescriptor("policy://map-authoring/privacy/v1", "Sensitive content must be redacted before proof persistence.", ["redact_sensitive_text", "no_raw_clipboard_text", "no_raw_prompt_body"]),
+  secretPolicy: buildPolicyDescriptor("policy://map-authoring/secret/v1", "Secrets and credentials must never enter the map package, prompt, or proof payload.", ["no_api_keys_in_map", "no_cookies_in_map", "no_credentials_in_proof"]),
+  rateLimitPolicy: buildPolicyDescriptor("policy://map-authoring/rate-limit/v1", "Bulk or repeated operations must respect platform rate limits and review gates.", ["bulk_actions_require_review", "respect_platform_rate_limit", "pause_on_limit_exceeded"]),
+});
+
+const buildMapAuthoringExamples = () => ({
+  exampleMaps: [],
+  exampleMapsVersion: "map-authoring-example-maps.v1",
+  exampleMapsSourceRef: "catalog://map-authoring/example-maps/empty-governed-v1",
+});
+
+const buildValidationPolicy = () => ({
+  policyRef: "policy://map-authoring/validation/v1",
+  blockedOnMissingInputs: true,
+  blockedOnUnknownCatalogRefs: true,
+  blockedOnPolicyDrift: true,
+  draftOnlyStatuses: ["draft", "needs_clarification", "needs_capability_expansion"],
+});
+
 export function buildMapAuthoringInputPackage(
   request: MapAuthoringRequest,
   options: BuildMapAuthoringInputPackageOptions = {},
@@ -98,24 +123,9 @@ export function buildMapAuthoringInputPackage(
     outputSchemaCatalog: buildOutputSchemaCatalog(promptContractEntries),
     mapPackageSchema: buildMapPackageSchemaDescriptor(),
     mapAuthoringOutputSchema: buildMapAuthoringOutputSchemaDescriptor(),
-    safetyPolicy: buildPolicyDescriptor("policy://map-authoring/safety/v1", "Declares the no-code and review-gated safety baseline for map authoring.", ["no_code_generation", "no_runtime_activation", "review_high_risk_operations"]),
-    humanApprovalPolicy: buildPolicyDescriptor("policy://map-authoring/human-approval/v1", "Declares operations that require explicit human approval.", ["send_message_requires_approval", "submit_requires_approval", "purchase_requires_approval", "activate_ai_generated_map_requires_approval"]),
-    evidencePolicy: buildPolicyDescriptor("policy://map-authoring/evidence/v1", "Requires evidence refs and retention rules instead of raw content.", ["evidence_refs_only", "screenshot_retention_required", "record_evidence_packet_ref"]),
-    pavPolicy: buildPolicyDescriptor("policy://map-authoring/pav/v1", "Requires action steps to hand off to post-action verification when mandated by catalogs.", ["action_steps_require_pav_when_catalog_says_so", "mouse_click_requires_pav", "text_input_requires_pav"]),
-    forensicsPolicy: buildPolicyDescriptor("policy://map-authoring/forensics/v1", "Forensics stores refs and hashes, not raw secrets or prompt bodies.", ["store_refs_and_hashes_only", "record_prompt_contract_refs", "record_activation_hashes"]),
-    privacyPolicy: buildPolicyDescriptor("policy://map-authoring/privacy/v1", "Sensitive content must be redacted before proof persistence.", ["redact_sensitive_text", "no_raw_clipboard_text", "no_raw_prompt_body"]),
-    secretPolicy: buildPolicyDescriptor("policy://map-authoring/secret/v1", "Secrets and credentials must never enter the map package, prompt, or proof payload.", ["no_api_keys_in_map", "no_cookies_in_map", "no_credentials_in_proof"]),
-    rateLimitPolicy: buildPolicyDescriptor("policy://map-authoring/rate-limit/v1", "Bulk or repeated operations must respect platform rate limits and review gates.", ["bulk_actions_require_review", "respect_platform_rate_limit", "pause_on_limit_exceeded"]),
-    exampleMaps: [],
-    exampleMapsVersion: "map-authoring-example-maps.v1",
-    exampleMapsSourceRef: "catalog://map-authoring/example-maps/empty-governed-v1",
-    validationPolicy: {
-      policyRef: "policy://map-authoring/validation/v1",
-      blockedOnMissingInputs: true,
-      blockedOnUnknownCatalogRefs: true,
-      blockedOnPolicyDrift: true,
-      draftOnlyStatuses: ["draft", "needs_clarification", "needs_capability_expansion"],
-    },
+    ...buildMapAuthoringPolicies(),
+    ...buildMapAuthoringExamples(),
+    validationPolicy: buildValidationPolicy(),
     expectedDraftStatus: "draft",
   });
 }

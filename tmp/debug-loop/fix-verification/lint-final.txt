@@ -1,0 +1,8 @@
+
+> grasseye-local-workbench@0.1.0 lint
+> npm run typecheck
+
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+

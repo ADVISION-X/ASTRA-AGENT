@@ -58,7 +58,7 @@
       "ownerResponsible": null,
       "actionableMessage": "App Shell ready. Commander Console can stay open while mission dependencies are checked separately.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T17:03:58.712Z"
+      "checkedAt": "2026-05-06T11:32:00.243Z"
     },
     {
       "id": "startup-readiness",
@@ -69,7 +69,7 @@
       "actionableMessage": "Startup gate passed before Commander Console opened mission runtime.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T17:03:57.535Z"
+      "checkedAt": "2026-05-06T11:31:58.968Z"
     },
     {
       "id": "mission",
@@ -79,7 +79,7 @@
       "ownerResponsible": "Orchestration / Map Plugin Registry",
       "actionableMessage": "Mission start binding will be resolved from the selected approved task template at command time.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T17:03:58.725Z"
+      "checkedAt": "2026-05-06T11:32:00.252Z"
     },
     {
       "id": "browserController",
@@ -89,7 +89,7 @@
       "ownerResponsible": "Commander Console / Local Browser Session",
       "actionableMessage": "Restore the governed local browser session before retrying mission start.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T17:03:58.725Z"
+      "checkedAt": "2026-05-06T11:32:00.252Z"
     },
     {
       "id": "localAi",
@@ -100,7 +100,7 @@
       "actionableMessage": "Start Ollama or repair the local AI runtime before starting this mission.",
       "failureReason": null,
       "missionRuntimeAvailable": true,
-      "checkedAt": "2026-05-05T17:03:58.725Z"
+      "checkedAt": "2026-05-06T11:32:00.252Z"
     },
     {
       "id": "dataStore",
@@ -110,7 +110,7 @@
       "ownerResponsible": "Forensics Persistence",
       "actionableMessage": "Repair the local Forensics store before starting this mission.",
       "failureReason": null,
-      "checkedAt": "2026-05-05T17:03:58.725Z"
+      "checkedAt": "2026-05-06T11:32:00.252Z"
     }
   ],
   "capabilityRoster": [
@@ -205,656 +205,656 @@
   "browseLedger": [],
   "failedRecords": [
     {
-      "id": "8ba81be4-f0fa-4f37-9f55-fffc4cb42b7b",
+      "id": "2aff6367-5889-4cbc-8013-56d464e3bdb1",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "03a2a015-c3bb-4d8b-aa9e-52b9a14f7d4f",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "76f667e9-a05e-4089-97e5-ceb3b23a58fc",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "9618b397-84c4-4d2c-aa9f-6854d6222158",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "4c64fe9a-c8d0-4f2c-9e8d-b1cf068d3d91",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "ed7d5d6e-9a1a-412f-85ad-d50e73f45ab3",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "ce6c6788-1545-4933-8887-a4d368659cf7",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "37fa9123-3430-46a3-9dfe-548d8a48c36d",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "8da2ced2-c8b7-479d-a2a7-8c487ebcc208",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "c19f0a8b-00e2-41bc-9cc5-5851376d7137",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "0bc24f2c-bfc3-4ee6-97b1-de1aca54f694",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "308c331d-56d5-425e-9f42-078308757913",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "46b0e158-5d35-49cb-a1c1-45183c879b92",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "893a1666-4868-401b-ac3a-8de59e0861e2",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "8fde125f-d295-4f71-999c-29d850518260",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "f87b7cc0-cae8-47f7-a14a-b65fb1830117",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "d7cad127-ea6d-46ca-a38b-26b1ae387b4b",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "efab137c-d8c8-4213-9339-de6068a69538",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "ae1d0ea7-08f4-4e2d-9325-a2789cbd7679",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "debfd530-43ca-48a8-96a0-d657070e2bfb",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "2996aa20-64d7-4b6f-aa30-9eb42fab04f5",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "53a20945-3e4d-46ca-846b-3add25007b74",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "a41cc756-9141-417b-a995-fe8392bb49de",
       "primary": "MISSION_FAILED",
       "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "detail": "Screenshot capture failed."
     },
     {
-      "id": "6d64887a-9c2e-4050-b8fc-7f29ee0d55b1",
+      "id": "6871a7a4-dc15-4865-b7d6-785f733eb966",
       "primary": "CAPABILITY_CALL_FAILED",
       "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "detail": "Screenshot capture failed."
     },
     {
-      "id": "09488117-b046-4a7b-a045-f606609bee9a",
+      "id": "f7f02977-c519-4f49-b9d6-aa7d92bcd0d3",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "021e42f9-e5ff-4ce3-b7b8-cdb2e6b4f5ca",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "1ee73175-35e3-4d56-9d8c-25ec9c1920e6",
       "primary": "MISSION_FAILED",
       "secondary": "open_target_page",
       "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "c284c742-583b-4876-b886-c0e498d07149",
+      "id": "8903555b-a524-45d4-8242-da6a836f28b6",
       "primary": "STEP_TRANSITION_EVALUATED",
       "secondary": "open_target_page",
       "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "008c9922-abd1-4485-87a3-fe224600066f",
+      "id": "c643a9d0-a20c-40c2-9a78-95dff0235111",
       "primary": "CAPABILITY_CALL_FAILED",
       "secondary": "open_target_page",
-      "detail": "OpenLocalProgramPort is not configured"
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
     },
     {
-      "id": "eab715cb-c497-44a9-abe7-e018c8a86f6a",
+      "id": "3118e897-6ebe-49cd-bb94-97768f87b8da",
       "primary": "MISSION_FAILED",
       "secondary": "open_target_page",
       "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "ac59c355-853e-4830-a914-1bb369278e5c",
+      "id": "2d585b69-a51d-4747-95d5-556ee14abb43",
       "primary": "STEP_TRANSITION_EVALUATED",
       "secondary": "open_target_page",
       "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "6467c6d5-4572-45b4-b3ce-49edbc62f2a6",
+      "id": "05727e83-4076-4d49-a942-0e223ac7dea0",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "open_target_page",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires windowHandoffRef\",\n    \"path\": [\n      \"windowHandoffRef\"\n    ]\n  },\n  {\n    \"code\": \"custom\",\n    \"message\": \"local program success proof requires localAppStateHandoffRef\",\n    \"path\": [\n      \"localAppStateHandoffRef\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "dc3129cd-3b9f-49ac-a3fe-3abfc7ece83b",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "b51f80aa-87b4-4867-8f52-d39e02ed4d06",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "a0bcee06-c8f2-4f5f-9a4f-f1a34269346f",
+      "primary": "MISSION_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "7cff4420-6fdd-46cd-9b6a-4dfcd922d8bb",
+      "primary": "CAPABILITY_CALL_FAILED",
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+    },
+    {
+      "id": "6821a785-0405-421e-8e46-9fcfb156a548",
+      "primary": "MISSION_FAILED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "b383a83e-23e9-4183-ad04-627f1f13fffb",
+      "primary": "STEP_TRANSITION_EVALUATED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.tiktok.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "fbebc818-f0ad-4f12-88eb-3ce2e452aeea",
       "primary": "CAPABILITY_CALL_FAILED",
       "secondary": "open_target_page",
       "detail": "OpenLocalProgramPort is not configured"
     },
     {
-      "id": "50e26faf-95a4-4c65-b86e-4f72ecaa32ba",
+      "id": "733c73af-f305-40e7-b1a8-bafe49ae68ce",
       "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "fe8c14be-2e6c-444a-bfa1-9d0d9244f82a",
+      "id": "de690917-2835-4b01-9951-5e580136365b",
+      "primary": "STEP_TRANSITION_EVALUATED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
+    },
+    {
+      "id": "7f3376dc-d6a2-42db-a31c-7dc38c36333c",
       "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "open_target_page",
+      "detail": "OpenLocalProgramPort is not configured"
     },
     {
-      "id": "6200b766-1ac1-435e-a3b2-cc3efaba9460",
+      "id": "7a785a73-12b1-44ba-af58-9c3b5c795feb",
       "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "cc5da553-80b7-4f58-bc39-45037b04c320",
+      "id": "0b4be181-a781-4e07-abaf-ae3593cfd8f3",
       "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "4cc7d40c-b983-42e0-a36d-4af3e0943926",
+      "id": "ce72ee9c-7d95-4e20-9267-9931ef5010fa",
       "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "15f8eca5-324b-432b-8c21-975d1ff3ee57",
+      "id": "cc6e4ffe-0d68-40dc-93ee-9001b447bfcb",
       "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "f2d3e0cd-932b-461d-bfa2-bb2f2cab14e9",
+      "id": "f6bd66bd-9696-419e-a8e9-6ca6beffc5f7",
       "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "2320f3a9-c356-4e05-a36d-b41d921dd4bc",
+      "id": "83bdba0b-94af-42e7-ac9f-4f103ca9414a",
       "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+      "secondary": "record_video_evidence",
+      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"source\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
     },
     {
-      "id": "9aefceea-15b0-455d-9f59-d1e1ab5f461b",
+      "id": "7abb657d-7f3d-4f20-8b51-3fa01067edfc",
       "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     },
     {
-      "id": "cbdfc5d8-a4e7-4e62-859d-d62be3bc853f",
-      "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
-    },
-    {
-      "id": "ba4c73da-6e2b-422d-8995-127f2691b971",
-      "primary": "MISSION_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
-    },
-    {
-      "id": "abadbbf3-8d80-441c-9d45-02c3a5b04fc9",
-      "primary": "CAPABILITY_CALL_FAILED",
-      "secondary": "screenshot_video_area",
-      "detail": "[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"stepId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"mapPackageVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"selectedMapVersion\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"activationSnapshotRef\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"capabilityCallId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"nerveBusEnvelopeId\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"inputRef\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
-    },
-    {
-      "id": "cb24ab9e-2931-4630-ad2b-8dfe028e4da5",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "32cf1355-4b1e-4af8-80f0-b2eed2ca1c89",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "18afa10d-9dbf-4c2c-8758-83e25a69c3fa",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "e2817471-7bb7-4f62-8afc-f9a13750afb5",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "811fa120-1a51-4bf2-af26-63b2deb268d4",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "88e9ca46-2ecd-4203-b89d-b61a105817f4",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "93da95d8-f6af-49a6-9657-6a5e105066d6",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "12f023a5-dfca-4b4d-a401-13af096057ff",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "99bdc861-c64f-466f-b444-7b42a678f3c3",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "1696431f-504e-45e7-b88c-4dc9a45e8453",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "f95d6b3a-3964-44d2-9cb5-d9707529418e",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "b1884227-940d-4908-a87e-e37dfd7ea06c",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "2c6ffcf3-4a93-4099-85d7-9f058a0430ff",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "40703d79-4c4c-4c1d-bdfc-42c2fbd47d9c",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "9b8e736f-636b-450c-81e9-45eb7c016f9c",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "fa1ecb0a-16ac-467e-ae77-d2ac69ec8dac",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "1f773753-f623-433b-85c0-7d4cb12cbee9",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "950fa1c7-9a52-4062-96d9-89fb531e3369",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "f55db1d9-ce11-45a0-a849-49b4715efb65",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "639df19b-1840-420f-a8fa-d3e187362e36",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "4e859e19-0f21-48d3-8b6f-eb1ed188c9e5",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "864fbc7a-40dc-4919-b03a-897836937fc3",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "8b17210c-6242-4d5f-949f-ab7d5a34a98d",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "a54be93c-c14a-4b95-a491-9ac8e889c97c",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "event_7574f612-69d9-47b1-9f71-2bb1c2f2a3c2",
-      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
-      "secondary": "task_start",
-      "detail": "activation snapshot missing before mission execution"
-    },
-    {
-      "id": "aa405246-f5a4-4516-88b6-d59a0a4a1b5b",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "c567dcc2-6044-4269-90f8-6ac3235e9f09",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
-    },
-    {
-      "id": "245bd098-61d3-4e79-b701-2de72b13280b",
-      "primary": "CAPABILITY_CALL_REVIEW_REQUIRED",
-      "secondary": "detect_login_or_safety",
-      "detail": "Child detect-safety-page requires governed observation refs before success."
-    },
-    {
-      "id": "event_6c67fbab-0007-4cba-9680-06bcf5d32957",
-      "primary": "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
-      "secondary": "task_start",
-      "detail": "activation snapshot missing before mission execution"
-    },
-    {
-      "id": "c482d6e8-ef2f-4c7f-aadb-190d15486221",
-      "primary": "MISSION_REVIEW_REQUIRED",
-      "secondary": "review_required",
-      "detail": "orchestration requires human review"
+      "id": "a5c4fc85-731f-4117-bbed-6024866f9733",
+      "primary": "STEP_TRANSITION_EVALUATED",
+      "secondary": "open_target_page",
+      "detail": "Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
     }
   ],
   "runtimeProof": [
     {
-      "id": "8ba81be4-f0fa-4f37-9f55-fffc4cb42b7b",
-      "createdAt": "2026-05-05T16:37:41.261Z",
-      "step": "screenshot_video_area",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_written:1778063782210",
+      "createdAt": "2026-05-06T10:36:22.210Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
     },
     {
-      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999061261",
-      "createdAt": "2026-05-05T16:37:41.261Z",
-      "step": "screenshot_video_area",
+      "id": "2aff6367-5889-4cbc-8013-56d464e3bdb1",
+      "createdAt": "2026-05-06T10:36:21.722Z",
+      "step": "record_video_evidence",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_write_requested:1778063781722",
+      "createdAt": "2026-05-06T10:36:21.722Z",
+      "step": "record_video_evidence",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "5e188f6c-1e8b-44c7-b173-9e8c0f57c8db",
-      "createdAt": "2026-05-05T16:37:41.045Z",
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_written:1778063781454",
+      "createdAt": "2026-05-06T10:36:21.454Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "47a58ec3-afe8-4b2b-a700-32c6114fd7a8",
+      "createdAt": "2026-05-06T10:36:20.961Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Transition \"prepare-ai-input:failed\" matched for step \"prepare-ai-input\"."
+    },
+    {
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_write_requested:1778063780961",
+      "createdAt": "2026-05-06T10:36:20.961Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_written:1778063780697",
+      "createdAt": "2026-05-06T10:36:20.697Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "03a2a015-c3bb-4d8b-aa9e-52b9a14f7d4f",
+      "createdAt": "2026-05-06T10:36:20.177Z",
+      "step": "record_video_evidence",
+      "status": "failed",
+      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"prepare-ai-input proof requires scaleMapping\",\n    \"path\": [\n      \"scaleMapping\"\n    ]\n  }\n]"
+    },
+    {
+      "id": "a69a5647-ce34-451b-84d0-4078726f9f28:forensics_record_write_requested:1778063780177",
+      "createdAt": "2026-05-06T10:36:20.177Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_written:1778063779918",
+      "createdAt": "2026-05-06T10:36:19.918Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "a118ce4b-fd7b-4cae-9fe7-9fe2007bee81",
+      "createdAt": "2026-05-06T10:36:19.409Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Governed ability step \"prepare-ai-input\" entered \"screenshot\" execution."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_write_requested:1778063779409",
+      "createdAt": "2026-05-06T10:36:19.409Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_written:1778063779170",
+      "createdAt": "2026-05-06T10:36:19.170Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "20c667f5-37df-423e-b766-801e01f17f2d",
+      "createdAt": "2026-05-06T10:36:18.640Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Dispatching step \"prepare-ai-input\" to ability group \"screenshot\"."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_write_requested:1778063778640",
+      "createdAt": "2026-05-06T10:36:18.640Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_written:1778063778373",
+      "createdAt": "2026-05-06T10:36:18.373Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "3ce5c48d-797f-454a-8490-bca0bb3d9a31",
+      "createdAt": "2026-05-06T10:36:17.869Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Step \"prepare-ai-input\" passed dispatch and loop guard checks."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_write_requested:1778063777869",
+      "createdAt": "2026-05-06T10:36:17.869Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_written:1778063777624",
+      "createdAt": "2026-05-06T10:36:17.624Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "48f65956-e03e-46e5-9519-b49b7bbae867",
+      "createdAt": "2026-05-06T10:36:17.120Z",
+      "step": "record_video_evidence",
+      "status": "success",
+      "message": "Orchestration selected governed step \"prepare-ai-input\" from the frozen operational map."
+    },
+    {
+      "id": "c141bf56-8112-47b3-93ea-a5d5e7d39a62:forensics_record_write_requested:1778063777120",
+      "createdAt": "2026-05-06T10:36:17.120Z",
+      "step": "record_video_evidence",
+      "status": "started",
+      "message": "Forensics accepted structured_runtime_event write request from orchestration."
+    },
+    {
+      "id": "77219ff1-4786-4072-9550-875abef34dc4:forensics_record_written:1778063776875",
+      "createdAt": "2026-05-06T10:36:16.875Z",
       "step": "screenshot_video_area",
       "status": "success",
-      "message": "Transition \"capture-video-viewport:failed\" matched for step \"capture-video-viewport\"."
+      "message": "Forensics persisted structured_runtime_event for orchestration."
     },
     {
-      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999061045",
-      "createdAt": "2026-05-05T16:37:41.045Z",
+      "id": "26ea6177-96e3-4fef-82f3-cbf86420493d",
+      "createdAt": "2026-05-06T10:36:16.377Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Transition \"capture-video-viewport:success\" matched for step \"capture-video-viewport\"."
+    },
+    {
+      "id": "77219ff1-4786-4072-9550-875abef34dc4:forensics_record_write_requested:1778063776377",
+      "createdAt": "2026-05-06T10:36:16.377Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "6d64887a-9c2e-4050-b8fc-7f29ee0d55b1",
-      "createdAt": "2026-05-05T16:37:40.822Z",
+      "id": "77219ff1-4786-4072-9550-875abef34dc4:forensics_record_written:1778063776121",
+      "createdAt": "2026-05-06T10:36:16.121Z",
       "step": "screenshot_video_area",
-      "status": "failed",
-      "message": "[\n  {\n    \"code\": \"custom\",\n    \"message\": \"videoVisitId is required in runtimeProof\",\n    \"path\": [\n      \"videoVisitId\"\n    ]\n  }\n]"
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
     },
     {
-      "id": "8bc7297f-5d2e-4e1f-9aae-8e33136e8b9f:forensics_record_write_requested:1777999060823",
-      "createdAt": "2026-05-05T16:37:40.823Z",
+      "id": "7eaf5c86-b5a3-4ce4-9539-77a7f9671451",
+      "createdAt": "2026-05-06T10:36:15.618Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Governed step \"capture-video-viewport\" returned status \"success\"."
+    },
+    {
+      "id": "77219ff1-4786-4072-9550-875abef34dc4:forensics_record_write_requested:1778063775618",
+      "createdAt": "2026-05-06T10:36:15.618Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "6e9261e6-9449-4234-8ca9-4cafc2ea8bbd",
-      "createdAt": "2026-05-05T16:37:39.966Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_written:1778063774724",
+      "createdAt": "2026-05-06T10:36:14.724Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "85c3ab66-e9fb-4c65-94a9-1d913b3c5f06",
+      "createdAt": "2026-05-06T10:36:14.249Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Governed ability step \"capture-video-viewport\" entered \"screenshot\" execution."
     },
     {
-      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059966",
-      "createdAt": "2026-05-05T16:37:39.966Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_write_requested:1778063774249",
+      "createdAt": "2026-05-06T10:36:14.249Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "0337d091-b4ad-4613-a4ed-4e319a90eb98",
-      "createdAt": "2026-05-05T16:37:39.746Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_written:1778063774010",
+      "createdAt": "2026-05-06T10:36:14.010Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "38e726c9-1475-4063-abb5-f4d669f25442",
+      "createdAt": "2026-05-06T10:36:13.401Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Dispatching step \"capture-video-viewport\" to ability group \"screenshot\"."
     },
     {
-      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059746",
-      "createdAt": "2026-05-05T16:37:39.746Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_write_requested:1778063773401",
+      "createdAt": "2026-05-06T10:36:13.401Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "a92abe0a-d508-4c8d-ad83-2fdaebe2bc82",
-      "createdAt": "2026-05-05T16:37:39.525Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_written:1778063773145",
+      "createdAt": "2026-05-06T10:36:13.145Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "671e0de5-039a-4ee5-a53a-da34f4b0d495",
+      "createdAt": "2026-05-06T10:36:12.611Z",
       "step": "screenshot_video_area",
       "status": "success",
       "message": "Step \"capture-video-viewport\" passed dispatch and loop guard checks."
     },
     {
-      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059525",
-      "createdAt": "2026-05-05T16:37:39.525Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_write_requested:1778063772611",
+      "createdAt": "2026-05-06T10:36:12.611Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "080bcc87-997e-4d22-a9ba-7b6d3b7f7715",
-      "createdAt": "2026-05-05T16:37:39.293Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_written:1778063772366",
+      "createdAt": "2026-05-06T10:36:12.366Z",
+      "step": "screenshot_video_area",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "56a70c2e-3476-47cc-8c9e-7ca1db3875c3",
+      "createdAt": "2026-05-06T10:36:11.878Z",
       "step": "screenshot_video_area",
       "status": "success",
       "message": "Orchestration selected governed step \"capture-video-viewport\" from the frozen operational map."
     },
     {
-      "id": "159897f5-bd9f-47bf-8ca2-be97e14f4012:forensics_record_write_requested:1777999059293",
-      "createdAt": "2026-05-05T16:37:39.293Z",
+      "id": "2cc49ce1-487a-4692-9400-2ec3b5712479:forensics_record_write_requested:1778063771878",
+      "createdAt": "2026-05-06T10:36:11.878Z",
       "step": "screenshot_video_area",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "522a4e6e-d398-4903-9660-d0ae8aa4e404",
-      "createdAt": "2026-05-05T16:37:39.075Z",
+      "id": "688d0d43-14bc-460c-af22-a528648a39c7:forensics_record_written:1778063771631",
+      "createdAt": "2026-05-06T10:36:11.631Z",
+      "step": "wait_feed_ready",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "5911b50e-19c9-4765-a519-60a14f30073e",
+      "createdAt": "2026-05-06T10:36:11.127Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Transition \"detect-feed-ready:success\" matched for step \"detect-feed-ready\"."
     },
     {
-      "id": "d725031d-565f-4fcc-94f6-8c07dfde5763:forensics_record_write_requested:1777999059075",
-      "createdAt": "2026-05-05T16:37:39.075Z",
+      "id": "688d0d43-14bc-460c-af22-a528648a39c7:forensics_record_write_requested:1778063771128",
+      "createdAt": "2026-05-06T10:36:11.128Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "7da1c48d-3086-48d0-bb54-7b6ed062efd9",
-      "createdAt": "2026-05-05T16:37:38.852Z",
+      "id": "688d0d43-14bc-460c-af22-a528648a39c7:forensics_record_written:1778063770876",
+      "createdAt": "2026-05-06T10:36:10.876Z",
+      "step": "wait_feed_ready",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "d3a1d7e4-a751-4555-abe8-ea310c966696",
+      "createdAt": "2026-05-06T10:36:10.391Z",
       "step": "wait_feed_ready",
       "status": "success",
       "message": "Governed step \"detect-feed-ready\" returned status \"success\"."
     },
     {
-      "id": "d725031d-565f-4fcc-94f6-8c07dfde5763:forensics_record_write_requested:1777999058852",
-      "createdAt": "2026-05-05T16:37:38.852Z",
+      "id": "688d0d43-14bc-460c-af22-a528648a39c7:forensics_record_write_requested:1778063770391",
+      "createdAt": "2026-05-06T10:36:10.391Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "f430813d-a069-4407-99d6-702e9b8b7614",
-      "createdAt": "2026-05-05T16:37:38.631Z",
+      "id": "bf1b05d7-772d-4aaf-8588-38f959b69edb:forensics_record_written:1778063770139",
+      "createdAt": "2026-05-06T10:36:10.139Z",
+      "step": "wait_feed_ready",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "ab1826b1-5e44-4582-aeec-b06475dd6b83",
+      "createdAt": "2026-05-06T10:36:09.618Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Governed ability step \"detect-feed-ready\" entered \"page-state\" execution."
     },
     {
-      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058631",
-      "createdAt": "2026-05-05T16:37:38.631Z",
+      "id": "bf1b05d7-772d-4aaf-8588-38f959b69edb:forensics_record_write_requested:1778063769618",
+      "createdAt": "2026-05-06T10:36:09.618Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Forensics accepted structured_runtime_event write request from orchestration."
     },
     {
-      "id": "b6aa3547-b9fb-4222-a9b0-8721868f5d6a",
-      "createdAt": "2026-05-05T16:37:38.416Z",
+      "id": "bf1b05d7-772d-4aaf-8588-38f959b69edb:forensics_record_written:1778063769323",
+      "createdAt": "2026-05-06T10:36:09.323Z",
+      "step": "wait_feed_ready",
+      "status": "success",
+      "message": "Forensics persisted structured_runtime_event for orchestration."
+    },
+    {
+      "id": "6981983e-f6dd-4e41-90c2-0653c2f9f1be",
+      "createdAt": "2026-05-06T10:36:08.801Z",
       "step": "wait_feed_ready",
       "status": "started",
       "message": "Dispatching step \"detect-feed-ready\" to ability group \"page-state\"."
-    },
-    {
-      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058416",
-      "createdAt": "2026-05-05T16:37:38.416Z",
-      "step": "wait_feed_ready",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "86e83fff-be8b-40f7-a21f-a38ab120b706",
-      "createdAt": "2026-05-05T16:37:38.204Z",
-      "step": "wait_feed_ready",
-      "status": "success",
-      "message": "Step \"detect-feed-ready\" passed dispatch and loop guard checks."
-    },
-    {
-      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999058204",
-      "createdAt": "2026-05-05T16:37:38.204Z",
-      "step": "wait_feed_ready",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "e96d6fd1-5e65-4bb2-aa2b-19fe7156f9ab",
-      "createdAt": "2026-05-05T16:37:37.957Z",
-      "step": "wait_feed_ready",
-      "status": "success",
-      "message": "Orchestration selected governed step \"detect-feed-ready\" from the frozen operational map."
-    },
-    {
-      "id": "38cae87c-d587-4ac6-967a-7e3165ddc3f3:forensics_record_write_requested:1777999057957",
-      "createdAt": "2026-05-05T16:37:37.957Z",
-      "step": "wait_feed_ready",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "66916525-df98-4229-ac7a-d8b2a4a1294b",
-      "createdAt": "2026-05-05T16:37:37.740Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Transition \"detect-safety-page:success\" matched for step \"detect-safety-page\"."
-    },
-    {
-      "id": "4b63543b-b331-451a-a601-69fb8cbe16d8:forensics_record_write_requested:1777999057740",
-      "createdAt": "2026-05-05T16:37:37.740Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "637e1ed9-be6f-4da8-bad4-dd47dfbea5a6",
-      "createdAt": "2026-05-05T16:37:37.528Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Governed step \"detect-safety-page\" returned status \"success\"."
-    },
-    {
-      "id": "4b63543b-b331-451a-a601-69fb8cbe16d8:forensics_record_write_requested:1777999057528",
-      "createdAt": "2026-05-05T16:37:37.528Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "3312a889-8120-48ba-a711-89f0e4c3b75d",
-      "createdAt": "2026-05-05T16:37:37.317Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Governed ability step \"detect-safety-page\" entered \"page-state\" execution."
-    },
-    {
-      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999057318",
-      "createdAt": "2026-05-05T16:37:37.318Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "274dbfd7-ed5a-4f27-8a9e-e5b4d275bbfa",
-      "createdAt": "2026-05-05T16:37:37.107Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Dispatching step \"detect-safety-page\" to ability group \"page-state\"."
-    },
-    {
-      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999057107",
-      "createdAt": "2026-05-05T16:37:37.107Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "dd186f42-53fa-4291-a8b9-06329810416a",
-      "createdAt": "2026-05-05T16:37:36.896Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Step \"detect-safety-page\" passed dispatch and loop guard checks."
-    },
-    {
-      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999056896",
-      "createdAt": "2026-05-05T16:37:36.896Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "7246399b-c989-429e-9217-4bfdcd111a31",
-      "createdAt": "2026-05-05T16:37:36.680Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Orchestration selected governed step \"detect-safety-page\" from the frozen operational map."
-    },
-    {
-      "id": "58dd94b1-a7ca-4044-ab40-4f89cfae625a:forensics_record_write_requested:1777999056680",
-      "createdAt": "2026-05-05T16:37:36.680Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "f51d9149-7c79-4d36-9b47-b439c9041e9c",
-      "createdAt": "2026-05-05T16:37:36.444Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Transition \"detect-login-state:success\" matched for step \"detect-login-state\"."
-    },
-    {
-      "id": "82d0afea-5547-4c5b-b7c8-2908dd5436bc:forensics_record_write_requested:1777999056445",
-      "createdAt": "2026-05-05T16:37:36.445Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "44329e91-5890-49b9-a3d4-979bf3d0cc36",
-      "createdAt": "2026-05-05T16:37:36.233Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Governed step \"detect-login-state\" returned status \"success\"."
-    },
-    {
-      "id": "82d0afea-5547-4c5b-b7c8-2908dd5436bc:forensics_record_write_requested:1777999056233",
-      "createdAt": "2026-05-05T16:37:36.233Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "762a9e5f-8ee6-4d73-a931-a3b32a7e932d",
-      "createdAt": "2026-05-05T16:37:35.982Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Governed ability step \"detect-login-state\" entered \"page-state\" execution."
-    },
-    {
-      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055982",
-      "createdAt": "2026-05-05T16:37:35.982Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "fdce8d68-5624-4f02-9af8-7082fc2ba619",
-      "createdAt": "2026-05-05T16:37:35.754Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Dispatching step \"detect-login-state\" to ability group \"page-state\"."
-    },
-    {
-      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055754",
-      "createdAt": "2026-05-05T16:37:35.754Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "d955e150-5a4c-4301-9c5d-1c69f545ce97",
-      "createdAt": "2026-05-05T16:37:35.521Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Step \"detect-login-state\" passed dispatch and loop guard checks."
-    },
-    {
-      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055521",
-      "createdAt": "2026-05-05T16:37:35.521Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
-    },
-    {
-      "id": "f6ee515d-34ed-4998-b128-e78cb207249f",
-      "createdAt": "2026-05-05T16:37:35.299Z",
-      "step": "detect_login_or_safety",
-      "status": "success",
-      "message": "Orchestration selected governed step \"detect-login-state\" from the frozen operational map."
-    },
-    {
-      "id": "964334e7-b21f-4d8e-9005-d4323f0f2ca4:forensics_record_write_requested:1777999055299",
-      "createdAt": "2026-05-05T16:37:35.299Z",
-      "step": "detect_login_or_safety",
-      "status": "started",
-      "message": "Forensics accepted structured_runtime_event write request from orchestration."
     }
   ],
   "auditSummary": {
@@ -881,13 +881,13 @@
       "visual-target-capability",
       "forensics-persistence-capability"
     ],
-    "lastGeneratedAt": "2026-05-05T16:58:48.252Z",
-    "lastRunGeneratedAt": "2026-05-05T16:58:48.252Z",
+    "lastGeneratedAt": "2026-05-06T11:29:16.796Z",
+    "lastRunGeneratedAt": "2026-05-06T11:29:16.796Z",
     "totals": {
-      "inspectors": 3,
-      "passed": 2,
-      "failed": 1,
-      "blocking": 1
+      "inspectors": 20,
+      "passed": 20,
+      "failed": 0,
+      "blocking": 0
     }
   }
 }

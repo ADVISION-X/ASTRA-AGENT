@@ -1,4 +1,4 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type CallExpression } from "ts-morph";
 
 import { prepareAuditArtifactsSnapshot } from "../../../build-audit-artifacts.js";
 import { createFinding, createPhase } from "../../../core/result.js";
@@ -98,70 +98,99 @@ const buildExpectedArtifactContent = async (): Promise<Map<string, string>> => {
   ]);
 };
 
-const getStaticClauseCoverageWriterFindings = (): Finding[] => {
-  const project = getAuditProject();
-  const sourceFile = getSourceFileOrThrow(project, "scripts/audit/core/artifact-writers.ts");
-  const relativePath = toRelativeSourcePath(sourceFile);
+type StaticClauseWriterInspection = {
+  relativePath: string;
+  importedBuilder: boolean;
+  builderCall: CallExpression | undefined;
+  staticWriteCall: CallExpression | undefined;
+};
+
+const hasStaticClauseCoverageBuilderImport = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const importDeclaration = sourceFile.getImportDeclarations().find((declaration) => {
     return declaration.getModuleSpecifierValue() === "./static-clause-coverage-artifact.js";
   });
-  const importedBuilder = importDeclaration?.getNamedImports().find((namedImport) => {
+  return Boolean(importDeclaration?.getNamedImports().some((namedImport) => {
     return namedImport.getName() === "buildStaticClauseCoverageArtifact";
-  });
-  const builderCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression)
-      && expression.getText() === "buildStaticClauseCoverageArtifact";
-  });
-  const staticWriteCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "writeJsonFile") {
-      return false;
-    }
-    const [firstArg] = callExpression.getArguments();
-    return firstArg?.getText() === "generatedArtifactPaths.staticClauseCoverage";
-  });
-  const findings: Finding[] = [];
+  }));
+};
 
-  if (!importedBuilder) {
+const getStaticClauseCoverageBuilderCall = (sourceFile: import("ts-morph").SourceFile): CallExpression | undefined =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "buildStaticClauseCoverageArtifact";
+  });
+
+const getStaticClauseCoverageWriteCall = (sourceFile: import("ts-morph").SourceFile): CallExpression | undefined =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    const [firstArg] = callExpression.getArguments();
+    return Node.isIdentifier(expression)
+      && expression.getText() === "writeJsonFile"
+      && firstArg?.getText() === "generatedArtifactPaths.staticClauseCoverage";
+  });
+
+const inspectStaticClauseCoverageWriter = (): StaticClauseWriterInspection => {
+  const project = getAuditProject();
+  const sourceFile = getSourceFileOrThrow(project, "scripts/audit/core/artifact-writers.ts");
+  const relativePath = toRelativeSourcePath(sourceFile);
+  return {
+    relativePath,
+    importedBuilder: hasStaticClauseCoverageBuilderImport(sourceFile),
+    builderCall: getStaticClauseCoverageBuilderCall(sourceFile),
+    staticWriteCall: getStaticClauseCoverageWriteCall(sourceFile),
+  };
+};
+
+const getStaticClauseCoverageWriterShapeFindings = (inspection: StaticClauseWriterInspection): Finding[] => {
+  const findings: Finding[] = [];
+  if (!inspection.importedBuilder) {
     findings.push(createFinding({
       lawId: LAW_ID,
-      file: relativePath,
+      file: inspection.relativePath,
       line: 1,
       severity: "fatal",
       message: "artifact-writers.ts must import buildStaticClauseCoverageArtifact from the canonical helper.",
     }));
   }
-  if (!builderCall) {
+  if (!inspection.builderCall) {
     findings.push(createFinding({
       lawId: LAW_ID,
-      file: relativePath,
+      file: inspection.relativePath,
       line: 1,
       severity: "fatal",
       message: "artifact-writers.ts must build static-clause-coverage during generated artifact writes.",
     }));
   }
-  if (!staticWriteCall) {
+  if (!inspection.staticWriteCall) {
     findings.push(createFinding({
       lawId: LAW_ID,
-      file: relativePath,
+      file: inspection.relativePath,
       line: 1,
       severity: "fatal",
       message: "artifact-writers.ts must write static-clause-coverage to the canonical generated artifact path.",
     }));
   }
+  return findings;
+};
 
-  if (staticWriteCall && builderCall && staticWriteCall.getStart() < builderCall.getStart()) {
-    findings.push(createFinding({
+const getStaticClauseCoverageWriterOrderFinding = (inspection: StaticClauseWriterInspection): Finding[] => {
+  return inspection.staticWriteCall && inspection.builderCall && inspection.staticWriteCall.getStart() < inspection.builderCall.getStart()
+    ? [createFinding({
       lawId: LAW_ID,
-      file: relativePath,
-      line: getNodeLine(staticWriteCall),
+      file: inspection.relativePath,
+      line: getNodeLine(inspection.staticWriteCall),
       severity: "error",
       message: "artifact-writers.ts must build static-clause-coverage before writing the generated artifact.",
-    }));
-  }
+    })]
+    : [];
+};
 
-  return findings;
+const getStaticClauseCoverageWriterFindings = (): Finding[] => {
+  const inspection = inspectStaticClauseCoverageWriter();
+  return [
+    ...getStaticClauseCoverageWriterShapeFindings(inspection),
+    ...getStaticClauseCoverageWriterOrderFinding(inspection),
+  ];
 };
 
 const getGeneratedArtifactFreshnessFindings = async (): Promise<Finding[]> => {

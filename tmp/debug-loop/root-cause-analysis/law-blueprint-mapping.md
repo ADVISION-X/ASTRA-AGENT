@@ -2,26 +2,20 @@
 
 ## Current Blockers
 
-| Blocker | Owner boundary | Law file / lawId | Blueprint file / section | Mapping |
+| Blocker | Owner boundary | Governing law / contract | Blueprint / construction anchor | Mapping |
 |---|---|---|---|---|
-| BLOCKER-RUNTIME-1 | local runtime screenshot dispatch feeding Screenshot input | `module-screenshot-capability.instructions.md` / `GRASSEYE-SCREENSHOT-CAPABILITY-003-V2`; `GRASSEYE-SCREENSHOT-CAPABILITY-005-V2` | `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md` / `5. Input Model`; source-proof section for stored-image / prepare-ai-input | Screenshot input must carry full chain fields, `source`, source proof, capture policy, and timeout, and runtime must fail closed on source violations. The blueprint also marks `source` as required and requires transformed paths like `prepare-ai-input` to carry stored-image lineage. Current runtime violates this before Screenshot execution can produce a valid `prepare-ai-input` request because the adapter omits `source` entirely. |
-| BLOCKER-RUNTIME-2 | local runtime Open composition | `module-open-capability.instructions.md` / `GRASSEYE-OPEN-CAPABILITY-004-V2`; `GRASSEYE-OPEN-CAPABILITY-009-V1` | `docs/法案辅助文件/GrassEye Open 能力组施工图.md` / Open local-program branch; local-program port and handoff sections | Open must run a fixed target / profile / session / navigation / idempotency / timeout / page-state-handoff pipeline, and local program launch must be first-class through `OpenLocalProgramPort`. Current runtime composes the Open ability group without a `localProgram` port, so the governed local-program path fails immediately with `OpenLocalProgramPort is not configured`. |
-| BLOCKER-RUNTIME-3 | builtin map package transition closure consumed by Orchestration | `module-map-plugin-package.instructions.md` / `GRASSEYE-MAP-PLUGIN-002-V2`; `module-orchestration-capability.instructions.md` / `GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3` | `docs/法案辅助文件/GrassEye 地图插件包治理施工图.md` / `2.2 地图验证到激活`; `3. 标准目录结构` validation list | Map packages must pass transition closure validation before activation, and Orchestration may only consume validated declarative maps. The mirroring builtin maps declare `failureBranch` / `reviewBranch` on `open-iphone-mirroring` but ship without matching transitions, so the runtime map consumed by Orchestration violates the declared closure contract. |
+| BLOCKER-RUNTIME-1 | Screenshot runtime proof / result truth | `module-screenshot-capability.instructions.md` -> `GRASSEYE-SCREENSHOT-CAPABILITY-004-V2`, `GRASSEYE-SCREENSHOT-CAPABILITY-006-V2`, `GRASSEYE-SCREENSHOT-CAPABILITY-007-V2` | `docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md` -> transformed output rules, `prepare-ai-input success 必须有 scaleMapping`, `diagnosticPayloadRef: required-if-not-success`, section `24. 实战运行日志透明化修复补充：prepare-ai-input handoff` | Screenshot owns transformed screenshot truth, AI-input preparation truth, and scale-mapping truth. The blueprint explicitly separates success requirements from non-success diagnostics. The current runtime violates that contract by rejecting failed `prepare-ai-input` proofs for lacking a success-only field, which makes the live stop point a Screenshot proof-governance defect. |
+| BLOCKER-LOG-1 | Commander command-ingress logging and accepted-command proof chain | `module-commander-console-capability.instructions.md` -> `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2`; `module-structured-logging.instructions.md` general DEBUG-field requirements; historical corroboration: `GRASSEYE-STRUCTURED-LOGGING-007-V1` exact ingress-event chain | `docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md` -> `18.1 start-mission runId 传输契约补充`, `结构化日志必备字段`, accepted receipt / `COMMAND_ACCEPTED` required-field list | Commander result / proof must preserve the governed command chain, and accepted-command runtime truth must carry mission correlation fields instead of null placeholders. The blueprint also requires `COMMAND_ACCEPTED` to expose `traceId`, `runId`, `missionId`, `selectedMapId`, `requestedPlatformId`, and `activationSnapshotRef`, while the structured logging contract requires the full user-command ingress path. The latest real bundle violates that transparency contract because draft / received events are missing and some accepted-command surfaces still carry null mission correlation fields. |
 
-## Supporting Governance Gaps
+## Historical / Non-Current Mapping
 
-| Gap | Owner boundary | Law file / lawId | Mapping |
-|---|---|---|---|
-| PREFLIGHT-GAP-1 | Commander mission preflight | `module-commander-console-capability.instructions.md` / `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2` | Commander command dispatch must be explicit, platform-safe, and semantically validated before dispatch. Current mission preflight checks map binding, command contract, schema, browser, local AI, and data store, but it does not validate mirroring-specific local-program runtime readiness, so it incorrectly returns passed before the Open step fails. |
-| ENFORCEMENT-GAP-1 | screenshot / map / commander inspectors | `module-screenshot-capability.instructions.md` / `GRASSEYE-SCREENSHOT-CAPABILITY-008-V2`; `module-map-plugin-package.instructions.md` / enforcement law; `module-commander-console-capability.instructions.md` / `GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2` | Each owner domain claims machine-blocking enforcement through owner-local inspector plus negative proof, but the current checks leave concrete blind spots: missing `prepare-ai-input` source mapping, missing local-program runtime dependency validation, and missing step-level transition closure validation. |
+| Historical item | Why it is not current |
+|---|---|
+| older Screenshot `source Required` blocker | the latest authoritative run advanced beyond source handoff and failed later on `scaleMapping` proof validation |
+| earlier mirroring open / map-closure blockers | not exercised by the authoritative `tiktok-web` rerun in this verification bundle |
 
-## Fresh Elimination Of Wrong Owners
+## Governance Judgment
 
-- Startup is not the current owner.
-  - Latest startup run passed through app shell, local AI, map readiness, and mission runtime availability.
-- Nerve Bus acceptance is not the current owner.
-  - `COMMAND_ACCEPTED` exists on all four mission families.
-- Page State is not the current owner.
-  - web missions pass `detect-login-state`, `detect-safety-page`, and `detect-feed-ready` before failing.
-- Historical screenshot `videoVisitId` parity is not the current owner.
-  - It appears only in earlier mixed evidence, not in the latest 17:10 terminal run.
+- The current P0 does not require new law text; the governing Screenshot law and blueprint are already explicit enough.
+- The current P1 also does not require new law text; the Commander / structured-logging contract already requires stronger ingress transparency than the latest real bundle delivers.
+- Both current blockers are therefore implementation / enforcement failures against existing governance, not blueprint gaps.

@@ -3,11 +3,10 @@ import type { Project } from "ts-morph";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { inspectScreenshotDispatchAdapter } from "../_shared/screenshot-dispatch-adapter-check.js";
-import { getZodEnumValues, hasInterfaceMethod } from "../_shared/ast-schema-queries.js";
-import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
 
 import { CHILDREN, LAW_IDS, PATHS } from "./config.js";
 import { getRegistryChildIds, getSource, missingCanonicalFiles } from "./project-access.js";
+import { getZodEnumValues, hasInterfaceMethod, hasCallExpression, hasCallExpressionPath } from "./required-shape-ast-support.js";
 import { inspectScreenshotRuntimeProofParity } from "./runtime-proof-parity-check.js";
 import { isThinAbilityGroup } from "./source-rules.js";
 
@@ -88,10 +87,10 @@ const TRANSFORM_REGISTRY_SNIPPETS = [
 ] as const;
 
 const TRANSFORM_SUCCESS_SNIPPETS = [
-  "resolveCaptureRegionScaleMapping",
-  "targetCoordinateSpace: \"region_crop_pixels\"",
+  'resolveDerivedTransformScaleMapping(input, "region_crop_pixels")',
   "return \"region_crop_pixels\";",
-  "input.plan.sourceProof.coordinateSpace ?? \"source_image_pixels\"",
+  "sourceCoordinateSpace: input.sourceProof.coordinateSpace ?? \"source_image_pixels\"",
+  "resolveTransformScaleMapping",
 ] as const;
 
 const STRICT_GOVERNANCE_COUNT_RULES = [
@@ -247,7 +246,8 @@ function collectTransformTruthFindings(project: Project): Finding[] {
   if (!sourceContainsAll(PATHS.REGISTRY, project, TRANSFORM_REGISTRY_SNIPPETS)) {
     findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: "Screenshot registry must keep capture-region as region_crop/region_crop_pixels and optimize-lossless as derived coordinate truth." }));
   }
-  return sourceContainsAll(PATHS.SUCCESS_HELPERS, project, TRANSFORM_SUCCESS_SNIPPETS)
+  return sourceContainsAll(PATHS.SUCCESS_HELPERS, project, ["resolveTransformScaleMapping({", "resolveTransformCoordinateSpace({"])
+    && sourceContainsAll("src/capabilities/screenshot/runtime/screenshot-transform-truth.ts", project, TRANSFORM_SUCCESS_SNIPPETS)
     ? findings
     : findings.concat(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.SUCCESS_HELPERS, line: 1, severity: "fatal", message: "Screenshot success helpers must preserve region-crop coordinate truth and transformed scaleMapping lineage." }));
 }

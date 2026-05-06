@@ -1,0 +1,37 @@
+{
+  "lineCount": 212,
+  "offenders": [
+    {
+      "name": "buildPageStateObservations",
+      "line": 67,
+      "logicalLines": 50,
+      "statements": 4,
+      "parameters": 1,
+      "returns": 1,
+      "depth": 1,
+      "complexity": 8,
+      "switchCases": 0,
+      "ifChain": 0,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines"
+      ]
+    },
+    {
+      "name": "buildPageStateDispatchInput",
+      "line": 152,
+      "logicalLines": 54,
+      "statements": 9,
+      "parameters": 3,
+      "returns": 1,
+      "depth": 0,
+      "complexity": 1,
+      "switchCases": 0,
+      "ifChain": 0,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines"
+      ]
+    }
+  ]
+}

@@ -33,9 +33,11 @@ export async function recordStepSelected(input: LoopIterationEventInput, step: O
 export async function recordPreconditionCheck(
   input: LoopIterationEventInput,
   step: OperationalStep,
-  status: "success" | "failed",
-  reason: string,
-  failureReason?: string,
+  details: {
+    status: "success" | "failed";
+    reason: string;
+    failureReason?: string;
+  },
 ): Promise<void> {
   await recordMissionRuntimeEvent({
     context: input.context,
@@ -43,15 +45,31 @@ export async function recordPreconditionCheck(
     mapRecord: input.mapRecord,
     step,
     eventType: "STEP_PRECONDITION_CHECKED",
-    status,
-    reason,
-    failureReason: failureReason ?? null,
-    actionableMessage: status === "success"
+    status: details.status,
+    reason: details.reason,
+    failureReason: details.failureReason ?? null,
+    actionableMessage: details.status === "success"
       ? "Dispatch the governed step through Nerve Bus."
       : "Repair the blocking step gate before retrying this mission step.",
     ownerResponsible: "Orchestration",
     capabilityCallId: input.stepDispatchCallId,
   });
+}
+
+function buildStepResultEventDetails(lastResult: StepResultRecord, input: LoopIterationEventInput, step: OperationalStep, actionLog: ActionLogRecord) {
+  return {
+    actionableMessage: lastResult.status === "success"
+      ? "Evaluate the declared transition for this step result."
+      : "Inspect the blocking step result and runtime proof before retrying.",
+    actionLogRefs: actionLog ? [actionLog.actionLogId] : [],
+    actionRef: actionLog?.actionRef ?? null,
+    capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
+    outputRefs: collectLastResultRefs(lastResult),
+    ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
+      ? "Orchestration / Post-action Verification"
+      : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
+    postActionVerificationRef: actionLog?.postActionVerificationRef ?? null,
+  };
 }
 
 async function recordPostActionVerificationStarted(input: LoopIterationEventInput, step: OperationalStep): Promise<void> {
@@ -136,32 +154,31 @@ export async function recordStepDispatchFailure(
 export async function recordStepResult(
   input: LoopIterationEventInput,
   step: OperationalStep,
-  lastResult: StepResultRecord,
-  durationMs: number,
-  actionLog: ActionLogRecord,
+  details: {
+    lastResult: StepResultRecord;
+    durationMs: number;
+    actionLog: ActionLogRecord;
+  },
 ): Promise<void> {
+  const eventDetails = buildStepResultEventDetails(details.lastResult, input, step, details.actionLog);
   await recordMissionRuntimeEvent({
     context: input.context,
     state: input.state,
     mapRecord: input.mapRecord,
     step,
-    eventType: buildCapabilityEventType(step, lastResult.status),
-    status: lastResult.status,
-    reason: `Governed step "${step.stepId}" returned status "${lastResult.status}".`,
-    failureReason: lastResult.failureReason ?? null,
-    reviewRequiredReason: lastResult.reviewRequiredReason ?? null,
-    actionableMessage: lastResult.status === "success"
-      ? "Evaluate the declared transition for this step result."
-      : "Inspect the blocking step result and runtime proof before retrying.",
-    ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
-      ? "Orchestration / Post-action Verification"
-      : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
-    durationMs,
-    capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
-    outputRefs: collectLastResultRefs(lastResult),
-    actionLogRefs: actionLog ? [actionLog.actionLogId] : [],
-    actionRef: actionLog?.actionRef ?? null,
-    postActionVerificationRef: actionLog?.postActionVerificationRef ?? null,
+    eventType: buildCapabilityEventType(step, details.lastResult.status),
+    status: details.lastResult.status,
+    reason: `Governed step "${step.stepId}" returned status "${details.lastResult.status}".`,
+    failureReason: details.lastResult.failureReason ?? null,
+    reviewRequiredReason: details.lastResult.reviewRequiredReason ?? null,
+    actionableMessage: eventDetails.actionableMessage,
+    ownerResponsible: eventDetails.ownerResponsible,
+    durationMs: details.durationMs,
+    capabilityCallId: eventDetails.capabilityCallId,
+    outputRefs: eventDetails.outputRefs,
+    actionLogRefs: eventDetails.actionLogRefs,
+    actionRef: eventDetails.actionRef,
+    postActionVerificationRef: eventDetails.postActionVerificationRef,
   });
 }
 

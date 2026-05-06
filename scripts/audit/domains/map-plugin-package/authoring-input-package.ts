@@ -2,136 +2,25 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { Project } from "ts-morph";
 
-import { createFinding, createPhase } from "../../core/result.js";
+import { createPhase } from "../../core/result.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
-import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { getSource } from "./audit-project.js";
+import { inspectInputPackageSchema } from "./authoring-input-package-schema-checks.js";
+import { createAuthoringFinding } from "./authoring-input-package-shared.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import {
   MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE,
   MAP_AUTHORING_USER_PROMPT_TEMPLATE,
 } from "../../../../src/map-plugins/authoring/map-authoring-template.js";
 
-const INPUT_PACKAGE_SCHEMA_FILE = "src/map-plugins/authoring/map-authoring-input-package.schema.ts";
 const INPUT_PACKAGE_BUILDER_FILE = "src/map-plugins/authoring/map-authoring-input-package-builder.ts";
 const PROMPT_BUILDER_FILE = "src/map-plugins/authoring/map-authoring-prompt-builder.ts";
 const PROMPT_TEMPLATE_FILE = "src/map-plugins/authoring/map-authoring-template.ts";
 const AI_INPUT_SCHEMA_FILE = "src/capabilities/ai/schema-map-authoring.schema.ts";
 const MAP_LAB_REQUEST_FILE = "src/lib/local-runtime/map-lab/map-lab-draft-request.ts";
 const MAP_AUTHORING_PROMPT_CONTRACT_FILE = "src/capabilities/ai/prompt-contracts/builtins/map.authoring.v1.prompt-contract.json";
-
-const REQUIRED_INPUT_PACKAGE_FIELDS = [
-  "inputPackageId",
-  "inputPackageVersion",
-  "generatedAt",
-  "requesterRef",
-  "userRequirement",
-  "userRequirementRef",
-  "sourceRequirementHash",
-  "targetPlatformProfileRef",
-  "targetPlatformProfile",
-  "capabilityCatalog",
-  "promptContractCatalog",
-  "outputSchemaCatalog",
-  "mapPackageSchema",
-  "mapAuthoringOutputSchema",
-  "safetyPolicy",
-  "humanApprovalPolicy",
-  "evidencePolicy",
-  "pavPolicy",
-  "forensicsPolicy",
-  "privacyPolicy",
-  "secretPolicy",
-  "rateLimitPolicy",
-  "exampleMaps",
-  "exampleMapsVersion",
-  "exampleMapsSourceRef",
-  "validationPolicy",
-  "expectedDraftStatus",
-] as const;
-
-const REQUIRED_CAPABILITY_GROUP_FIELDS = [
-  "abilityGroupId",
-  "abilityGroupCode",
-  "displayName",
-  "description",
-  "ownerDomain",
-  "routableByMap",
-  "publicContractRef",
-  "inputSchemaRef",
-  "outputSchemaRef",
-  "forbiddenResponsibilities",
-  "children",
-] as const;
-
-const REQUIRED_CAPABILITY_CATALOG_FIELDS = [
-  "version",
-  "generatedAt",
-  "generatedFrom",
-  "activeAbilityGroupCount",
-  "abilityGroups",
-  "mapRoutableChildren",
-  "runtimeOnlyOwners",
-  "authoringVisibilityPolicy",
-] as const;
-
-const REQUIRED_CAPABILITY_CHILD_FIELDS = [
-  "childCapabilityId",
-  "childCapabilityCode",
-  "displayName",
-  "description",
-  "inputSchemaRef",
-  "outputSchemaRef",
-  "requiredInputRefs",
-  "producedOutputRefs",
-  "requiresGeometryProof",
-  "requiresTargetProof",
-  "requiresFocusProof",
-  "requiresApprovedText",
-  "requiresPostActionVerification",
-  "requiresHumanReview",
-  "sensitiveOperation",
-  "sideEffectLevel",
-  "allowedStepKinds",
-  "supportedTargetKinds",
-  "forbiddenResponsibilities",
-  "proofRequirements",
-  "failureModes",
-] as const;
-
-const REQUIRED_PROMPT_CATALOG_FIELDS = [
-  "promptContractId",
-  "promptContractVersion",
-  "promptHash",
-  "displayName",
-  "description",
-  "inputSchemaRef",
-  "outputSchemaRef",
-  "allowedInputRefs",
-  "dataPolicy",
-  "providerPolicy",
-  "reviewPolicy",
-  "failurePolicy",
-  "redactionPolicy",
-  "forensicsPolicy",
-  "forbiddenOutputs",
-  "branchableOutputFields",
-] as const;
-
-const REQUIRED_OUTPUT_SCHEMA_FIELDS = [
-  "outputSchemaRef",
-  "schemaVersion",
-  "declaredFields",
-  "branchableFields",
-  "fieldTypes",
-  "requiredFields",
-  "reviewFields",
-  "confidenceFields",
-  "forbiddenFields",
-  "exampleOutput",
-] as const;
 
 const REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS = [
   "capabilityCatalog",
@@ -153,74 +42,6 @@ const REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS = [
   "validationPolicy",
   "expectedDraftStatus",
 ] as const;
-
-const createAuthoringFinding = (
-  lawId: string,
-  file: string,
-  message: string,
-  detail?: string,
-): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message, ...(detail ? { detail } : {}) });
-
-const collectMissingFieldFindings = (input: {
-  fieldNames: Set<string>;
-  requiredFields: readonly string[];
-  lawId: string;
-  file: string;
-  message: string;
-}): Finding[] => {
-  const missingFields = input.requiredFields.filter((fieldName) => !input.fieldNames.has(fieldName));
-  return missingFields.length === 0
-    ? []
-    : [createAuthoringFinding(input.lawId, input.file, input.message, missingFields.join(", "))];
-};
-
-const inspectInputPackageSchema = (project: Project): Finding[] => {
-  const schemaSource = getSource(project, INPUT_PACKAGE_SCHEMA_FILE);
-  return [
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringInputPackageSchema"),
-      requiredFields: REQUIRED_INPUT_PACKAGE_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Map Authoring Input Package schema must declare every required top-level governance field.",
-    }),
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringCapabilityCatalogSchema"),
-      requiredFields: REQUIRED_CAPABILITY_CATALOG_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Capability catalog schema must separate 14-owner boundary truth from map-routable child capabilities.",
-    }),
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringCapabilityGroupSchema"),
-      requiredFields: REQUIRED_CAPABILITY_GROUP_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Capability group schema must declare the full authoring catalog contract.",
-    }),
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringCapabilityChildSchema"),
-      requiredFields: REQUIRED_CAPABILITY_CHILD_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Capability child schema must declare proof, review, and boundary metadata.",
-    }),
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringPromptContractCatalogEntrySchema"),
-      requiredFields: REQUIRED_PROMPT_CATALOG_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Prompt contract catalog schema must declare the full governed reference contract.",
-    }),
-    ...collectMissingFieldFindings({
-      fieldNames: getZodObjectPropertyNames(schemaSource, "MapAuthoringOutputSchemaCatalogEntrySchema"),
-      requiredFields: REQUIRED_OUTPUT_SCHEMA_FIELDS,
-      lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS,
-      file: INPUT_PACKAGE_SCHEMA_FILE,
-      message: "Output schema catalog schema must declare fields, branchability, and confidence/review metadata.",
-    }),
-  ];
-};
 
 const inspectInputPackageBuilder = (project: Project): Finding[] => {
   const builderSource = getSource(project, INPUT_PACKAGE_BUILDER_FILE);

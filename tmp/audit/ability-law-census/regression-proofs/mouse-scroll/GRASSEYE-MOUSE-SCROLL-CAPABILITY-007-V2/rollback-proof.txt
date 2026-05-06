@@ -2,7 +2,7 @@ scenarioId: proof-drop-mutation
 mutationName: proof drop mutation
 mutatedFile: src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts
 rollbackRestoredHash: sha256:4a585667fb2220878c306c3e2248b327736f3a0083d899385af8749a85fdaf3e
-startedAt: 2026-05-06T04:13:32.168Z
-endedAt: 2026-05-06T04:13:44.780Z
+startedAt: 2026-05-06T12:41:44.550Z
+endedAt: 2026-05-06T12:42:01.359Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

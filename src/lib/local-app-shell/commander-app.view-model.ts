@@ -3,19 +3,15 @@ import type { CommanderConsoleViewModel } from "./types.js";
 import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, CommanderAppViewModel } from "./commander-app.types.js";
 import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 
+const COMMANDER_APP_PAGE_IDS = new Set<CommanderAppPageId>(["map-lab", "mission", "results", "review", "settings", "health"]);
+const COMMANDER_LEGACY_SETTINGS_PAGE_IDS = new Set(["ai-provider-settings", "developer"]);
+
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
-  if (
-    value === "map-lab"
-    || value === "mission"
-    || value === "results"
-    || value === "review"
-    || value === "settings"
-    || value === "health"
-  ) {
-    return value;
+  if (COMMANDER_APP_PAGE_IDS.has(value as CommanderAppPageId)) {
+    return value as CommanderAppPageId;
   }
 
-  if (value === "ai-provider-settings" || value === "developer") {
+  if (COMMANDER_LEGACY_SETTINGS_PAGE_IDS.has(value ?? "")) {
     return "settings";
   }
 

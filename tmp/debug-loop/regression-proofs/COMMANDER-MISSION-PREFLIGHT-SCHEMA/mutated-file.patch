@@ -1,0 +1,13 @@
+diff --git a/src/lib/local-runtime/workbench-mission-command-preflight.ts b/src/lib/local-runtime/workbench-mission-command-preflight.ts
+index 2269fba..21ac1fb 100644
+--- a/src/lib/local-runtime/workbench-mission-command-preflight.ts
++++ b/src/lib/local-runtime/workbench-mission-command-preflight.ts
+@@ -7,7 +7,7 @@ export const checkMissionCommandSchemaPreflight = (input: {
+   taskTemplateId?: string | null;
+   activationId?: string | null;
+   targetProfileRef?: string | null;
+-}) => MissionCommandSchema.safeParse({
++}) => MissionCommandSchema.parse({
+   missionId: "mission-preflight",
+   runId: "mission-preflight:run",
+   humanGoal: "Mission preflight verifies the final start-mission command schema before dispatch.",

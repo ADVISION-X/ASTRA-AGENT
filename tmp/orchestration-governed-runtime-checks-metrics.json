@@ -1,0 +1,54 @@
+{
+  "lineCount": 530,
+  "offenders": [
+    {
+      "name": "hasSuccessProofClosure",
+      "line": 173,
+      "logicalLines": 18,
+      "statements": 3,
+      "parameters": 1,
+      "returns": 6,
+      "depth": 1,
+      "complexity": 2,
+      "switchCases": 0,
+      "ifChain": 1,
+      "booleanParameters": 0,
+      "over": [
+        "returns"
+      ]
+    },
+    {
+      "name": "inspectMissionLoopTraceability",
+      "line": 370,
+      "logicalLines": 43,
+      "statements": 21,
+      "parameters": 1,
+      "returns": 1,
+      "depth": 2,
+      "complexity": 12,
+      "switchCases": 0,
+      "ifChain": 1,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines",
+        "complexity"
+      ]
+    },
+    {
+      "name": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts:179",
+      "line": 179,
+      "logicalLines": 13,
+      "statements": 10,
+      "parameters": 1,
+      "returns": 4,
+      "depth": 2,
+      "complexity": 10,
+      "switchCases": 0,
+      "ifChain": 1,
+      "booleanParameters": 0,
+      "over": [
+        "complexity"
+      ]
+    }
+  ]
+}

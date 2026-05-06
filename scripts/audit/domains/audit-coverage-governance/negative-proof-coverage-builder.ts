@@ -77,6 +77,65 @@ const readHarnessCoverageSource = async (harnessPath: string, source: string): P
   return [source, ...extraSources].join("\n");
 };
 
+const createHarnessEvidence = (
+  input: { domain: string; harnessPath: string },
+  mutation: string,
+  actual: "FAIL" | "UNKNOWN",
+  rollback: "PASS" | "UNKNOWN",
+): NegativeProofCoverageEvidence => ({
+  negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
+  domain: input.domain,
+  harnessPath: input.harnessPath,
+  mutation,
+  expected: "FAIL",
+  actual,
+  rollback,
+});
+
+const getHarnessCompletenessFinding = (
+  input: { domain: string; harnessPath: string },
+  mutationNames: string[],
+  source: string,
+): NegativeProofCoverageEvidence[] => {
+  const requiredCount = REQUIRED_MUTATION_COUNTS[input.domain];
+  if (requiredCount === undefined) {
+    return [];
+  }
+  if (mutationNames.length < requiredCount || !harnessExecutesMutations(source)) {
+    return [createHarnessEvidence(
+      input,
+      `negative-proof harness is incomplete: mutations=${mutationNames.length}; required=${requiredCount}; executesMutations=${harnessExecutesMutations(source)}`,
+      "UNKNOWN",
+      "UNKNOWN",
+    )];
+  }
+  return [];
+};
+
+const getEmptyHarnessEvidence = (
+  input: { domain: string; harnessPath: string },
+  mutationNames: string[],
+): NegativeProofCoverageEvidence[] => {
+  const requiredCount = REQUIRED_MUTATION_COUNTS[input.domain];
+  if (requiredCount !== undefined && mutationNames.length === 0) {
+    return [createHarnessEvidence(input, "harness present but no static mutation names were discovered", "UNKNOWN", "UNKNOWN")];
+  }
+  if (mutationNames.length === 0) {
+    return [createHarnessEvidence(input, "legacy harness registered without statically enumerated mutation names", "FAIL", "PASS")];
+  }
+  return [];
+};
+
+const getMutationNames = (coverageSource: string): string[] => {
+  const requiredMutationNames = extractRequiredMutationNames(coverageSource);
+  return [
+    ...new Set([
+      ...extractDeclaredMutationNames(coverageSource),
+      ...extractIndexedRequiredMutationNames(coverageSource, requiredMutationNames),
+    ]),
+  ].sort();
+};
+
 export const buildNegativeProofEvidence = async (input: {
   domain: string;
   harnessPath: string;
@@ -89,59 +148,17 @@ export const buildNegativeProofEvidence = async (input: {
   const source = await readTextFile(absoluteHarnessPath);
   const coverageSource = await readHarnessCoverageSource(input.harnessPath, source);
   const requiredMutationNames = extractRequiredMutationNames(coverageSource);
-  const mutationNames = [
-    ...new Set([
-      ...extractDeclaredMutationNames(coverageSource),
-      ...extractIndexedRequiredMutationNames(coverageSource, requiredMutationNames),
-    ]),
-  ].sort();
+  const mutationNames = getMutationNames(coverageSource);
   const missingRequiredMutationNames = requiredMutationNames.filter((mutationName) => !mutationNames.includes(mutationName));
-  const requiredCount = REQUIRED_MUTATION_COUNTS[input.domain];
   if (missingRequiredMutationNames.length > 0) {
-    return [{
-      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
-      domain: input.domain,
-      harnessPath: input.harnessPath,
-      mutation: `required negative-proof mutations missing: ${missingRequiredMutationNames.join(", ")}`,
-      expected: "FAIL",
-      actual: "UNKNOWN",
-      rollback: "UNKNOWN",
-    }];
-  }
-  if (requiredCount !== undefined && (mutationNames.length < requiredCount || !harnessExecutesMutations(source))) {
-    return [{
-      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
-      domain: input.domain,
-      harnessPath: input.harnessPath,
-      mutation: `negative-proof harness is incomplete: mutations=${mutationNames.length}; required=${requiredCount}; executesMutations=${harnessExecutesMutations(source)}`,
-      expected: "FAIL",
-      actual: "UNKNOWN",
-      rollback: "UNKNOWN",
-    }];
-  }
-  if (requiredCount !== undefined && mutationNames.length === 0) {
-    return [{
-      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
-      domain: input.domain,
-      harnessPath: input.harnessPath,
-      mutation: "harness present but no static mutation names were discovered",
-      expected: "FAIL",
-      actual: "UNKNOWN",
-      rollback: "UNKNOWN",
-    }];
-  }
-  if (mutationNames.length === 0) {
-    return [{
-      negativeProofId: `${input.domain.toUpperCase()}-NEGATIVE-PROOF-HARNESS`,
-      domain: input.domain,
-      harnessPath: input.harnessPath,
-      mutation: "legacy harness registered without statically enumerated mutation names",
-      expected: "FAIL",
-      actual: "FAIL",
-      rollback: "PASS",
-    }];
+    return [createHarnessEvidence(input, `required negative-proof mutations missing: ${missingRequiredMutationNames.join(", ")}`, "UNKNOWN", "UNKNOWN")];
   }
 
+  const completenessFindings = getHarnessCompletenessFinding(input, mutationNames, source);
+  const emptyHarnessEvidence = getEmptyHarnessEvidence(input, mutationNames);
+  if (completenessFindings.length > 0 || emptyHarnessEvidence.length > 0) {
+    return [...completenessFindings, ...emptyHarnessEvidence];
+  }
   return mutationNames.map((mutationName, index) => ({
     negativeProofId: `${input.domain.toUpperCase()}-NEG-${String(index + 1).padStart(3, "0")}`,
     domain: input.domain,

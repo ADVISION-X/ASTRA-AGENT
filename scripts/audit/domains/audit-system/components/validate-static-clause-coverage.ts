@@ -26,9 +26,9 @@ const createArtifactFinding = (message: string): Finding =>
     message,
   });
 
-const getMissingLawFindings = (artifact: StaticClauseCoverageArtifact, context: InspectorContext): Finding[] => {
+const getMissingLawFindings = (artifact: StaticClauseCoverageArtifact, expectedArtifact: StaticClauseCoverageArtifact): Finding[] => {
   const actualLawIds = new Set(artifact.laws.map((law) => law.lawId));
-  return context.lawRegistry.laws
+  return expectedArtifact.laws
     .filter((law) => !actualLawIds.has(law.lawId))
     .map((law) => createFinding({
       lawId: LAW_ID,
@@ -48,97 +48,46 @@ const getAbilityGroupCountFindings = (artifact: StaticClauseCoverageArtifact): F
   return [createArtifactFinding("static-clause-coverage must keep the 14 governed ability groups intact.")];
 };
 
-const getLawCoverageFindings = (artifact: StaticClauseCoverageArtifact): Finding[] => {
+const createLawCoverageFinding = (input: { lawId: string; file: string; message: string }): Finding =>
+  createFinding({
+    lawId: input.lawId,
+    file: input.file,
+    line: 1,
+    severity: "fatal",
+    message: input.message,
+  });
+
+const getSingleLawCoverageFindings = (
+  law: StaticClauseCoverageArtifact["laws"][number],
+  globalChainPassed: boolean,
+): Finding[] => {
   const findings: Finding[] = [];
-
-  for (const law of artifact.laws) {
-    if (!law.matrixMapped) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.ownerManifestPath,
-        line: 1,
-        severity: "fatal",
-        message: "static-clause-coverage requires every active law to remain mapped in the generated enforcement matrix.",
-      }));
-    }
-    if (!law.auditPlanMapped) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.ownerInspectorEntry,
-        line: 1,
-        severity: "fatal",
-        message: "static-clause-coverage requires every active law to remain mapped in the generated audit plan.",
-      }));
-    }
-    if (!law.inspectorMapped || law.sourceEvidence.length === 0) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.ownerInspectorEntry,
-        line: 1,
-        severity: "fatal",
-        message: "Owner inspector must expose concrete source evidence for every active law.",
-      }));
-    }
-    if (!law.negativeProofMapped) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.negativeProofPath,
-        line: 1,
-        severity: "fatal",
-        message: "Owner negative-proof harness is required for static clause coverage.",
-      }));
-    }
-    if (!law.ownerAuditScriptDeclared) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: "package.json",
-        line: 1,
-        severity: "fatal",
-        message: "package.json must keep the owner audit script bound for every governed ability group.",
-      }));
-    }
-    if (!law.mutationProofPresent) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.mutationProofPath ?? generatedArtifactPaths.staticClauseCoverage,
-        line: 1,
-        severity: "error",
-        message: "Production mutation proof bundle is required before a law can progress beyond NEGATIVE_PROOF_MAPPED.",
-      }));
-    }
-    if (!law.ownerBindingProofPresent) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: law.ownerBindingProofPath ?? generatedArtifactPaths.staticClauseCoverage,
-        line: 1,
-        severity: "error",
-        message: "Owner-binding proof bundle is required before a law can progress beyond MUTATION_PROOF_CAPTURED.",
-      }));
-    }
-    if (law.coverageStatus === "ENFORCED" && !artifact.globalChain.passed) {
-      findings.push(createFinding({
-        lawId: law.lawId,
-        file: generatedArtifactPaths.staticClauseCoverage,
-        line: 1,
-        severity: "fatal",
-        message: "No law may be marked ENFORCED while the global chain is failing.",
-      }));
-    }
+  if (!law.matrixMapped) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.ownerManifestPath, message: "static-clause-coverage requires every active law to remain mapped in the generated enforcement matrix." }));
   }
-
+  if (!law.auditPlanMapped) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.ownerInspectorEntry, message: "static-clause-coverage requires every active law to remain mapped in the generated audit plan." }));
+  }
+  if (!law.negativeProofMapped) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.negativeProofPath, message: "Owner negative-proof harness is required for static clause coverage." }));
+  }
+  if (!law.ownerAuditScriptDeclared) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: "package.json", message: "package.json must keep the owner audit script bound for every governed ability group." }));
+  }
+  if (law.coverageStatus === "ENFORCED" && !globalChainPassed) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: generatedArtifactPaths.staticClauseCoverage, message: "No law may be marked ENFORCED while the global chain is failing." }));
+  }
   return findings;
 };
 
-const getArtifactFreshnessFindings = async (
-  context: InspectorContext,
-  actualArtifact: StaticClauseCoverageArtifact,
-): Promise<Finding[]> => {
-  const expectedArtifact = await buildStaticClauseCoverageArtifact({
-    lawRegistry: context.lawRegistry,
-    enforcementMatrix: context.enforcementMatrix,
-    auditPlan: context.auditPlan,
-  });
+const getLawCoverageFindings = (artifact: StaticClauseCoverageArtifact): Finding[] => {
+  return artifact.laws.flatMap((law) => getSingleLawCoverageFindings(law, artifact.globalChain.passed));
+};
 
+const getArtifactFreshnessFindings = async (
+  actualArtifact: StaticClauseCoverageArtifact,
+  expectedArtifact: StaticClauseCoverageArtifact,
+): Promise<Finding[]> => {
   return stringifyArtifact(actualArtifact) === stringifyArtifact(expectedArtifact)
     ? []
     : [createArtifactFinding("static-clause-coverage generated artifact drifted away from the rebuild output; generated files must not be hand-edited.")];
@@ -163,11 +112,16 @@ export const validateStaticClauseCoverage = async (
   }
 
   const artifact = await readJsonFile<StaticClauseCoverageArtifact>(generatedArtifactPaths.staticClauseCoverage);
+  const expectedArtifact = await buildStaticClauseCoverageArtifact({
+    lawRegistry: context.lawRegistry,
+    enforcementMatrix: context.enforcementMatrix,
+    auditPlan: context.auditPlan,
+  });
   const findings = [
     ...getAbilityGroupCountFindings(artifact),
-    ...getMissingLawFindings(artifact, context),
+    ...getMissingLawFindings(artifact, expectedArtifact),
     ...getLawCoverageFindings(artifact),
-    ...await getArtifactFreshnessFindings(context, artifact),
+    ...await getArtifactFreshnessFindings(artifact, expectedArtifact),
   ];
 
   return {

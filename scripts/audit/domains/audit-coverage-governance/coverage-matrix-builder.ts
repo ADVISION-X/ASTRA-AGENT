@@ -61,6 +61,43 @@ const createRequirementBlockers = (requirement: CoverageRequirement): string[] =
 const hasBlockingReason = (requirement: CoverageRequirement): boolean =>
   requirement.blockingReason.some((reason) => !reason.startsWith("ownerAuditCommand="));
 
+const getP0P1Requirements = (requirements: CoverageRequirement[]): CoverageRequirement[] =>
+  requirements.filter((requirement) => P0P1.has(requirement.tier));
+
+const getMissingOwnerCommands = (
+  requirements: CoverageRequirement[],
+  scripts: Record<string, string>,
+): Set<string> =>
+  new Set(
+    getP0P1Requirements(requirements)
+      .map((requirement) => getOwnerAuditCommand(requirement.owner).replace(/^audit:/, "audit:"))
+      .filter((command) => scripts[command] === undefined),
+  );
+
+const getCoverageBlockers = (requirements: CoverageRequirement[]): string[] =>
+  getP0P1Requirements(requirements)
+    .filter((requirement) => requirement.coverageStatus !== "covered" || hasBlockingReason(requirement))
+    .slice(0, 50)
+    .map((requirement) => `${requirement.requirementId}: ${requirement.blockingReason.join("; ")}`);
+
+const countByStatus = (
+  requirements: CoverageRequirement[],
+  status: CoverageRequirement["coverageStatus"],
+): number =>
+  requirements.filter((requirement) => requirement.coverageStatus === status).length;
+
+const countNegativeProofCovered = (requirements: CoverageRequirement[]): number =>
+  requirements.filter((requirement) =>
+    requirement.negativeProofCoverage.some((proof) => proof.actual === "FAIL" && proof.rollback === "PASS"),
+  ).length;
+
+const countWarningOnlyP0 = (requirements: CoverageRequirement[]): number =>
+  requirements.filter((requirement) =>
+    requirement.tier === "P0"
+    && /warning-only/i.test(requirement.sourceText)
+    && !/must never|must not|forbid|forbidden|禁止|不得|严禁|不能/i.test(requirement.sourceText),
+  ).length;
+
 const resolveCoverageStatus = (input: {
   hasStatic: boolean;
   hasNegative: boolean;
@@ -147,31 +184,17 @@ export const buildCoverageSummaryWithIntegrity = async (input: {
   integrity: Pick<CoverageSummary, "sourceLawHash" | "sourceBlueprintHash" | "inspectorHash" | "negativeProofHash" | "packageScriptHash" | "auditPlanHash" | "coverageBuilderVersion" | "antiFraudVerified">;
 }): Promise<CoverageSummary> => {
   const requirements = input.requirements;
-  const p0p1Requirements = requirements.filter((requirement) => P0P1.has(requirement.tier));
+  const p0p1Requirements = getP0P1Requirements(requirements);
   const scripts = await readPackageScripts();
-  const missingOwnerCommands = new Set(
-    p0p1Requirements
-      .map((requirement) => getOwnerAuditCommand(requirement.owner).replace(/^audit:/, "audit:"))
-      .filter((command) => scripts[command] === undefined),
-  );
-  const blockers = p0p1Requirements
-    .filter((requirement) => requirement.coverageStatus !== "covered" || hasBlockingReason(requirement))
-    .slice(0, 50)
-    .map((requirement) => `${requirement.requirementId}: ${requirement.blockingReason.join("; ")}`);
-
-  const weakCoverage = requirements.filter((requirement) => requirement.coverageStatus === "weak").length;
-  const missingCoverage = requirements.filter((requirement) => requirement.coverageStatus === "missing").length;
-  const negativeProofCovered = requirements.filter((requirement) =>
-    requirement.negativeProofCoverage.some((proof) => proof.actual === "FAIL" && proof.rollback === "PASS"),
-  ).length;
+  const missingOwnerCommands = getMissingOwnerCommands(requirements, scripts);
+  const blockers = getCoverageBlockers(requirements);
+  const weakCoverage = countByStatus(requirements, "weak");
+  const missingCoverage = countByStatus(requirements, "missing");
+  const negativeProofCovered = countNegativeProofCovered(requirements);
   const staticCovered = requirements.filter((requirement) => requirement.staticCoverage.length > 0).length;
   const manualOnly = requirements.filter((requirement) => requirement.enforcementStrength === "LEVEL_0_MANUAL_ONLY_OR_MISSING").length;
   const inspectorNotInRunner = missingOwnerCommands.size;
-  const warningOnlyP0 = requirements.filter((requirement) =>
-    requirement.tier === "P0"
-    && /warning-only/i.test(requirement.sourceText)
-    && !/must never|must not|forbid|forbidden|禁止|不得|严禁|不能/i.test(requirement.sourceText),
-  ).length;
+  const warningOnlyP0 = countWarningOnlyP0(requirements);
   const finalVerdict = blockers.length === 0 && weakCoverage === 0 && missingCoverage === 0 && manualOnly === 0 && warningOnlyP0 === 0 && inspectorNotInRunner === 0
     ? "PASS"
     : "BLOCKED";

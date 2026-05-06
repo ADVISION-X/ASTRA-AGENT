@@ -190,6 +190,30 @@ const buildBlockedMissionStartPreflight = (components: MissionStartPreflightComp
   };
 };
 
+const readMissionStartPreflightDependencies = async (runtime: WorkbenchRuntime) => {
+  const [dataStoreHealth, localAiHealth, localAiRuntimeHealth] = await Promise.all([
+    runtime.evidenceStore.getHealth(),
+    runtime.aiAbilityGroup.getHealth(),
+    runtime.aiAbilityGroup.getRuntimeHealth(),
+  ]);
+  return {
+    dataStoreHealth,
+    localAiHealth,
+    localAiRuntimeHealth,
+    browserHealth: runtime.browserController.getHealth(),
+    openLocalProgramReadiness: getOpenLocalProgramAdapterReadiness(),
+    availableMapIds: new Set(runtime.orchestrationAbilityGroup.listMapIds()),
+  };
+};
+
+const requiresOpenLocalProgram = (requestedPlatformId: RequestedPlatformId): boolean =>
+  requestedPlatformId === "macos-local"
+  || requestedPlatformId === "iphone-mirroring-facebook-app"
+  || requestedPlatformId === "iphone-mirroring-tiktok-app";
+
+const getOpenLocalProgramDetail = (readiness: ReturnType<typeof getOpenLocalProgramAdapterReadiness>): string =>
+  readiness.ok ? readiness.detail : `${readiness.code}: ${readiness.detail}`;
+
 export const getMissionStartPreflight = async (
   runtime: WorkbenchRuntime,
   input: {
@@ -208,16 +232,9 @@ export const getMissionStartPreflight = async (
   ownerResponsible: string;
   components: MissionStartPreflightComponent[];
 }> => {
-  const [dataStoreHealth, localAiHealth, localAiRuntimeHealth] = await Promise.all([
-    runtime.evidenceStore.getHealth(),
-    runtime.aiAbilityGroup.getHealth(),
-    runtime.aiAbilityGroup.getRuntimeHealth(),
-  ]);
-  const browserHealth = runtime.browserController.getHealth();
-  const openLocalProgramReadiness = getOpenLocalProgramAdapterReadiness();
-  const requiresOpenLocalProgram = input.requestedPlatformId === "macos-local" || input.requestedPlatformId === "iphone-mirroring-facebook-app" || input.requestedPlatformId === "iphone-mirroring-tiktok-app";
-  const availableMapIds = new Set(runtime.orchestrationAbilityGroup.listMapIds());
-  const selectedMapOk = availableMapIds.has(input.selectedMapId);
+  const dependencies = await readMissionStartPreflightDependencies(runtime);
+  const localProgramRequired = requiresOpenLocalProgram(input.requestedPlatformId);
+  const selectedMapOk = dependencies.availableMapIds.has(input.selectedMapId);
   const commandContractOk = Boolean(input.taskTemplateId && input.activationId && input.activationSnapshotRef && input.targetProfileRef);
   const commandSchemaCheck = checkMissionCommandSchemaPreflight(input);
   const commandSchemaOk = commandContractOk && commandSchemaCheck.success;
@@ -232,15 +249,15 @@ export const getMissionStartPreflight = async (
     commandContractOk,
     commandSchemaOk,
     commandSchemaDetail: describeMissionCommandSchemaPreflight(commandSchemaCheck),
-    browserDetail: browserHealth.detail,
-    browserOk: browserHealth.ok,
-    openLocalProgramDetail: openLocalProgramReadiness.ok ? openLocalProgramReadiness.detail : `${openLocalProgramReadiness.code}: ${openLocalProgramReadiness.detail}`,
-    openLocalProgramOk: !requiresOpenLocalProgram || openLocalProgramReadiness.ok,
-    requiresOpenLocalProgram,
-    localAiDetail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`,
-    localAiOk: localAiHealth.ok,
-    dataStoreDetail: dataStoreHealth.detail,
-    dataStoreOk: dataStoreHealth.ok,
+    browserDetail: dependencies.browserHealth.detail,
+    browserOk: dependencies.browserHealth.ok,
+    openLocalProgramDetail: getOpenLocalProgramDetail(dependencies.openLocalProgramReadiness),
+    openLocalProgramOk: !localProgramRequired || dependencies.openLocalProgramReadiness.ok,
+    requiresOpenLocalProgram: localProgramRequired,
+    localAiDetail: `${dependencies.localAiHealth.detail}; lastTask=${dependencies.localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${dependencies.localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${dependencies.localAiRuntimeHealth.lastFailureReason ?? "none"}`,
+    localAiOk: dependencies.localAiHealth.ok,
+    dataStoreDetail: dependencies.dataStoreHealth.detail,
+    dataStoreOk: dependencies.dataStoreHealth.ok,
   });
   if (components.every((component) => component.ok === true)) {
     return { status: "passed", actionableMessage: "Mission preflight passed. Commander Console can dispatch the governed human command.", failureReason: null, nextAction: "Dispatch the governed human command through Commander Console and Nerve Bus.", ownerResponsible: "Commander Console", components };

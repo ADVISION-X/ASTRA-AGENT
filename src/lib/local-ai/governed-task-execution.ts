@@ -67,18 +67,23 @@ const buildVisionEvidenceObservations = (summary: string) => {
   return [summary.slice(0, 120)].filter((item) => item.length > 0);
 };
 
-const resolveVisionDecision = (summary: string, tags: string[]) => {
-  const isUncertain = summary.includes("uncertain") || summary.includes("maybe");
-  const isProduct = resolveVisionClassification(summary, tags);
-  const suggestedNextAction = isUncertain
+const resolveVisionUncertainty = (summary: string) =>
+  summary.includes("uncertain") || summary.includes("maybe");
+
+const resolveSuggestedVisionAction = (input: { isUncertain: boolean; isProduct: boolean }) =>
+  input.isUncertain
     ? "skip_or_operator_review"
-    : (isProduct ? "collect_metrics_like_marker_open_comments" : "click_not_interested_or_scroll_next");
+    : (input.isProduct ? "collect_metrics_like_marker_open_comments" : "click_not_interested_or_scroll_next");
+
+const resolveVisionDecision = (summary: string, tags: string[]) => {
+  const isUncertain = resolveVisionUncertainty(summary);
+  const isProduct = resolveVisionClassification(summary, tags);
   return {
     confidence: isUncertain ? 0.45 : 0.91,
     isProductVideo: isUncertain ? null : isProduct,
     decision: isUncertain ? "product_uncertain" : (isProduct ? "product_yes" : "product_no"),
     reason: isProduct ? "summary contains product usage and utility hints" : "summary lacks product utility hints",
-    suggestedNextAction,
+    suggestedNextAction: resolveSuggestedVisionAction({ isUncertain, isProduct }),
     visibleProductTypes: resolveVisibleProductTypes(isProduct, tags),
     evidenceObservations: buildVisionEvidenceObservations(summary),
     uncertainty: isUncertain ? ["product visibility is uncertain in the current screenshot"] : [],
@@ -86,57 +91,75 @@ const resolveVisionDecision = (summary: string, tags: string[]) => {
   } as const;
 };
 
+const buildNoValidFrameVisionResult = (input: {
+  request: Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
+  roleConfig: LocalModelRoleConfig;
+  createdAt: string;
+  summary: string;
+  frameLevelObservations: ReturnType<typeof buildFrameLevelObservations>;
+}): LocalAiTaskResult =>
+  buildVisionTaskResult(createResultBase(input.request, input.roleConfig, input.createdAt), input.request, 0, {
+    isProductVideo: null,
+    decision: "product_uncertain",
+    confidence: 0,
+    visibleProductTypes: [],
+    evidenceObservations: buildVisionEvidenceObservations(input.summary),
+    reason: "no valid frames available for product-presence classification",
+    frameLevelObservations: input.frameLevelObservations,
+    aggregateReason: "no valid frames available for product-presence classification",
+    suggestedNextAction: "review_required",
+    uncertainty: ["no_valid_frames"],
+    mustReview: true,
+  });
+
+const resolveVisionCoverage = (input: {
+  request: Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
+  decision: ReturnType<typeof resolveVisionDecision>;
+}) => {
+  const singleFramePositiveFallback = input.request.input.validFrameCount === 1 && input.decision.isProductVideo === true;
+  const confidence = singleFramePositiveFallback ? Math.min(input.decision.confidence, 0.74) : input.decision.confidence;
+  const uncertainty = [...input.decision.uncertainty];
+  if (input.request.input.inputMode === "single_frame_fallback") uncertainty.push("single_frame_fallback");
+  if (input.request.input.validFrameCount < 2) uncertainty.push("reduced_frame_coverage");
+  return { singleFramePositiveFallback, confidence, uncertainty };
+};
+
+const buildValidFrameVisionResult = (input: {
+  request: Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
+  roleConfig: LocalModelRoleConfig;
+  createdAt: string;
+  decision: ReturnType<typeof resolveVisionDecision>;
+  frameLevelObservations: ReturnType<typeof buildFrameLevelObservations>;
+}): LocalAiTaskResult => {
+  const coverage = resolveVisionCoverage({ request: input.request, decision: input.decision });
+  const aggregateReason = coverage.singleFramePositiveFallback
+    ? `single-frame fallback reduced trust: ${input.decision.reason}`
+    : input.decision.reason;
+  return buildVisionTaskResult(createResultBase(input.request, input.roleConfig, input.createdAt), input.request, coverage.confidence, {
+    isProductVideo: input.decision.isProductVideo,
+    decision: coverage.singleFramePositiveFallback ? "product_uncertain" : input.decision.decision,
+    confidence: coverage.confidence,
+    visibleProductTypes: input.decision.visibleProductTypes,
+    evidenceObservations: input.decision.evidenceObservations,
+    reason: aggregateReason,
+    frameLevelObservations: input.frameLevelObservations,
+    aggregateReason,
+    suggestedNextAction: coverage.singleFramePositiveFallback ? "skip_or_operator_review" : input.decision.suggestedNextAction,
+    uncertainty: [...new Set(coverage.uncertainty)],
+    mustReview: input.decision.mustReview,
+  });
+};
+
 const executeVisionTask = (request: Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>, roleConfig: LocalModelRoleConfig, createdAt: string): LocalAiTaskResult => {
   const summary = request.input.summary.toLowerCase();
   const tags = request.input.tags.map((tag) => tag.toLowerCase());
   const frameLevelObservations = buildFrameLevelObservations(request);
-  const resultBase = createResultBase(request, roleConfig, createdAt);
-
   if (request.input.validFrameCount === 0) {
-    return buildVisionTaskResult(resultBase, request, 0, {
-      isProductVideo: null,
-      decision: "product_uncertain",
-      confidence: 0,
-      visibleProductTypes: [],
-      evidenceObservations: [summary.slice(0, 120)].filter((item) => item.length > 0),
-      reason: "no valid frames available for product-presence classification",
-      frameLevelObservations,
-      aggregateReason: "no valid frames available for product-presence classification",
-      suggestedNextAction: "review_required",
-      uncertainty: ["no_valid_frames"],
-      mustReview: true,
-    });
+    return buildNoValidFrameVisionResult({ request, roleConfig, createdAt, summary, frameLevelObservations });
   }
 
   const decision = resolveVisionDecision(summary, tags);
-  const singleFramePositiveFallback = request.input.validFrameCount === 1 && decision.isProductVideo === true;
-  const confidence = singleFramePositiveFallback ? Math.min(decision.confidence, 0.74) : decision.confidence;
-  const uncertainty = [...decision.uncertainty];
-
-  if (request.input.inputMode === "single_frame_fallback") {
-    uncertainty.push("single_frame_fallback");
-  }
-  if (request.input.validFrameCount < 2) {
-    uncertainty.push("reduced_frame_coverage");
-  }
-
-  const aggregateReason = singleFramePositiveFallback
-    ? `single-frame fallback reduced trust: ${decision.reason}`
-    : decision.reason;
-
-  return buildVisionTaskResult(resultBase, request, confidence, {
-    isProductVideo: decision.isProductVideo,
-    decision: singleFramePositiveFallback ? "product_uncertain" : decision.decision,
-    confidence,
-    visibleProductTypes: decision.visibleProductTypes,
-    evidenceObservations: decision.evidenceObservations,
-    reason: aggregateReason,
-    frameLevelObservations,
-    aggregateReason,
-    suggestedNextAction: singleFramePositiveFallback ? "skip_or_operator_review" : decision.suggestedNextAction,
-    uncertainty: [...new Set(uncertainty)],
-    mustReview: decision.mustReview,
-  });
+  return buildValidFrameVisionResult({ request, roleConfig, createdAt, decision, frameLevelObservations });
 };
 
 const executeOcrTask = (request: Extract<LocalAiTaskRequest, { taskType: "comments.ocr_cleanup" }>, roleConfig: LocalModelRoleConfig, createdAt: string): LocalAiTaskResult => {

@@ -46,6 +46,8 @@ const ACTIVE_RECORD_REQUIRED_FIELDS = [
   "humanApprovalRef",
   "proofPolicy",
 ] as const;
+const BUILTIN_INDEX_PATH = `${ROOT}/builtins/index.ts`;
+const BUILTIN_PARSER_PATH = `${ROOT}/builtin-loader/builtin-map-package-parser.ts`;
 
 const collectMissingTypeFieldFindings = (input: {
   fieldSet: Set<string>;
@@ -99,10 +101,11 @@ const inspectBuiltinRecords = async (): Promise<Finding[]> => {
 };
 
 const inspectBuiltinIndexSource = (project: Project): Finding[] => {
-  const builtinsIndexSource = getSource(project, `${ROOT}/builtins/index.ts`);
-  const parseFindings = hasCallExpressionPath(builtinsIndexSource, ["MapPackageSchema", "parse"])
+  const builtinsIndexSource = getSource(project, BUILTIN_INDEX_PATH);
+  const parserSource = getSource(project, BUILTIN_PARSER_PATH);
+  const parseFindings = hasCallExpressionPath(parserSource, ["MapPackageSchema", "parse"])
     ? []
-    : [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader must parse builtin packages through MapPackageSchema.parse." })];
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: BUILTIN_PARSER_PATH, line: 1, severity: "fatal", message: "Builtin loader must parse builtin packages through MapPackageSchema.parse." })];
   return [
     ...parseFindings,
     ...inspectBuiltinLoaderFileRefs(builtinsIndexSource),
@@ -129,10 +132,10 @@ const inspectBuiltinLoaderFileRefs = (source: import("ts-morph").SourceFile): Fi
   const extra = [...declared].filter((file) => !expected.has(file));
   return [
     ...(missing.length > 0
-      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader omitted governed builtin package files.", detail: missing.join(", ") })]
+      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: BUILTIN_INDEX_PATH, line: 1, severity: "fatal", message: "Builtin loader omitted governed builtin package files.", detail: missing.join(", ") })]
       : []),
     ...(extra.length > 0
-      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/builtins/index.ts`, line: 1, severity: "fatal", message: "Builtin loader references files outside the governed builtin package file list.", detail: extra.join(", ") })]
+      ? [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: BUILTIN_INDEX_PATH, line: 1, severity: "fatal", message: "Builtin loader references files outside the governed builtin package file list.", detail: extra.join(", ") })]
       : []),
   ];
 };

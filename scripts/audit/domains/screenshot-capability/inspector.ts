@@ -2,7 +2,6 @@ import type { InspectorContext, InspectorResult } from "../../core/schema.js";
 import { finalizeInspectorResult } from "../../core/result.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { runAntiEscape } from "./anti-escape.js";
-import { PATHS } from "./config.js";
 import { createScreenshotAuditProject } from "./project-access.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runChildRuntimeCheck } from "./child-runtime-check.js";

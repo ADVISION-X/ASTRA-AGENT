@@ -23,12 +23,12 @@ import {
 } from "./schema-base.js";
 import {
   OpenNavigationDecisionSchema,
-  OpenOutputSchema,
   OpenSessionDecisionSchema,
   OpenTargetPolicyDecisionSchema,
   OpenUrlSafetyDecisionSchema,
   PostOpenStateDecisionSchema,
 } from "./schema-runtime.js";
+import { OpenOutputSchema } from "./schema-runtime-output.js";
 import { validateOpenResult, validateOpenRuntimeProof } from "./schema-proof-refinements.js";
 import { OPEN_ABILITY_GROUP_ID, OPEN_POST_OPEN_CLASSIFICATIONS } from "./shared/open-target-profile.js";
 import { OPEN_CLOCK_KIND } from "./shared/open-proof.js";

@@ -2,7 +2,7 @@ scenarioId: proof-fabricated-runid-mutation
 mutationName: proof fabricated runId mutation
 mutatedFile: src/capabilities/mouse-click/runtime/mouse-click-proof-builder.ts
 rollbackRestoredHash: sha256:4d72e1b90cad9b0c3cf31dec9dba52cfecd6899368fcec4a753ca7e8e929a0e5
-startedAt: 2026-05-06T03:55:28.138Z
-endedAt: 2026-05-06T03:55:32.597Z
+startedAt: 2026-05-06T12:35:18.851Z
+endedAt: 2026-05-06T12:35:23.441Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

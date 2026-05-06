@@ -1,27 +1,13 @@
 import type { AiRuntimeExecutionOutput, AiRuntimeHealth, ParsedAiAbilityInput } from "../contract.js";
 import type { AiClockPort } from "../ports/ai-clock-port.js";
-import type { AiRuntimeExecuteOptions, AiRuntimePort } from "../ports/ai-runtime-port.js";
+import type { AiRuntimePort } from "../ports/ai-runtime-port.js";
 import { createSystemAiClock } from "../runtime/ai-clock.js";
 import { AiRuntimeHealthSchema } from "../schema.js";
-import { parseExtractedJson } from "../shared/ai-json-extract.js";
-import {
-  getAiExternalProviderPublicState,
-  resolveAiExternalProviderRuntimeConfig,
-} from "../runtime/provider-config-store.js";
-import {
-  buildExternalProviderMessages,
-  normalizeExternalProviderOutput,
-} from "./external-provider-runtime-messages.js";
+import { getAiExternalProviderPublicState } from "../runtime/provider-config-store.js";
 import type { LocalAiRuntimePortOptions } from "./local-ai-runtime-debug-contract.js";
-import { buildExternalDebugBase, emitExternalDebugEvent } from "./external-provider-runtime-debug.js";
-import {
-  buildExternalProviderFailureOutput,
-  buildExternalProviderSuccessOutput,
-  parseExternalProviderResponseText,
-} from "./external-provider-runtime-response.js";
-import { requestExternalPayload } from "./external-provider-runtime-request.js";
+import { callExternalProvider } from "./external-provider-runtime-execution.js";
 
-type ExternalProviderRuntimeInput = {
+export type ExternalProviderRuntimeInput = {
   dataDir?: string | null;
   clock?: AiClockPort;
   emitDebugEvent?: LocalAiRuntimePortOptions["emitDebugEvent"];
@@ -75,207 +61,6 @@ function buildHealth(input: {
     lastTaskType: input.state.lastTaskType,
     lastFailureReason: input.state.lastFailureReason,
     lastInvocationStatus: input.state.lastInvocationStatus,
-  });
-}
-
-function buildProviderNotConfiguredOutput(): AiRuntimeExecutionOutput {
-  return buildExternalProviderFailureOutput({
-    implementationStatus: "provider_not_configured",
-    modelName: "not-configured",
-    failureReason: "provider_not_configured",
-  });
-}
-
-function buildDryRunCapturedOutput(modelName: string): AiRuntimeExecutionOutput {
-  return buildExternalProviderFailureOutput({
-    implementationStatus: "DRY_RUN_CAPTURED",
-    modelName,
-    failureReason: "WOULD_SEND_TO_PROVIDER",
-  });
-}
-
-function buildRuntimeInvalidResponse(modelName: string): AiRuntimeExecutionOutput {
-  return buildExternalProviderFailureOutput({
-    implementationStatus: "runtime_invalid_response",
-    modelName,
-    failureReason: "runtime_invalid_response",
-  });
-}
-
-function buildExternalProviderOutput(
-  request: ParsedAiAbilityInput,
-  configModel: string,
-  payload: unknown,
-  timing: { createdAt: string; gatewayDurationMs: number },
-): AiRuntimeExecutionOutput {
-  const parsedResponse = parseExternalProviderResponseText(payload);
-  if (!parsedResponse.text) {
-    return buildRuntimeInvalidResponse(parsedResponse.model ?? configModel);
-  }
-
-  const extracted = parseExtractedJson(parsedResponse.text);
-  if (!extracted.ok) {
-    return buildRuntimeInvalidResponse(parsedResponse.model ?? configModel);
-  }
-
-  const normalizedOutput = normalizeExternalProviderOutput(request, extracted.value);
-  if (!normalizedOutput.ok) {
-    return buildRuntimeInvalidResponse(parsedResponse.model ?? configModel);
-  }
-
-  return buildExternalProviderSuccessOutput({
-    taskType: request.taskType,
-    rawText: parsedResponse.text,
-    modelName: parsedResponse.model ?? configModel,
-    responseId: parsedResponse.responseId,
-    normalizedOutput: normalizedOutput.value,
-    createdAt: timing.createdAt,
-    gatewayDurationMs: timing.gatewayDurationMs,
-  });
-}
-
-async function emitExternalRequestDebug(input: {
-  runtimeInput: ExternalProviderRuntimeInput;
-  request: ParsedAiAbilityInput;
-  config: Exclude<Awaited<ReturnType<typeof resolveAiExternalProviderRuntimeConfig>>, null>;
-  messages: { system: string; user: string };
-}) {
-  await emitExternalDebugEvent(input.runtimeInput.emitDebugEvent, {
-    eventType: "AI_REQUEST_DEBUG",
-    level: "DEBUG",
-    status: "started",
-    ...buildExternalDebugBase(input),
-    failureReason: null,
-    errorKind: null,
-    actionableMessage: null,
-    ownerResponsible: "ai-capability",
-    durationMs: null,
-  });
-}
-
-async function emitExternalErrorDebug(input: {
-  runtimeInput: ExternalProviderRuntimeInput;
-  request: ParsedAiAbilityInput;
-  config: Exclude<Awaited<ReturnType<typeof resolveAiExternalProviderRuntimeConfig>>, null>;
-  messages: { system: string; user: string };
-  output: AiRuntimeExecutionOutput;
-  durationMs: number;
-}) {
-  await emitExternalDebugEvent(input.runtimeInput.emitDebugEvent, {
-    eventType: "AI_ERROR_DEBUG",
-    level: "ERROR",
-    status: "failed",
-    ...buildExternalDebugBase(input),
-    failureReason: input.output.implementationStatus,
-    errorKind: input.output.implementationStatus,
-    actionableMessage: "Check paid-analysis-ai provider config, secretRef, operator approval, external transmission policy, and upstream provider response.",
-    ownerResponsible: "ai-capability",
-    durationMs: input.durationMs,
-  });
-}
-
-async function emitExternalResponseDebug(input: {
-  runtimeInput: ExternalProviderRuntimeInput;
-  request: ParsedAiAbilityInput;
-  config: Exclude<Awaited<ReturnType<typeof resolveAiExternalProviderRuntimeConfig>>, null>;
-  messages: { system: string; user: string };
-  payload: unknown;
-  durationMs: number;
-}) {
-  const parsedResponse = parseExternalProviderResponseText(input.payload);
-  const parsedJson = parsedResponse.text ? parseExtractedJson(parsedResponse.text) : null;
-  await emitExternalDebugEvent(input.runtimeInput.emitDebugEvent, {
-    eventType: "AI_RESPONSE_DEBUG",
-    level: "DEBUG",
-    status: "success",
-    ...buildExternalDebugBase({
-      ...input,
-      rawResponseText: parsedResponse.text,
-      parsedJson: parsedJson?.ok ? parsedJson.value : null,
-      parserErrors: parsedJson && !parsedJson.ok ? ["json_extraction_failed"] : [],
-    }),
-    failureReason: null,
-    errorKind: null,
-    actionableMessage: null,
-    ownerResponsible: "ai-capability",
-    durationMs: input.durationMs,
-  });
-}
-
-async function callExternalProvider(
-  request: ParsedAiAbilityInput,
-  input: ExternalProviderRuntimeInput,
-  clock: AiClockPort,
-  options?: AiRuntimeExecuteOptions,
-): Promise<AiRuntimeExecutionOutput> {
-  if (isMapAuthoringProviderDryRun() && request.taskType === "map_authoring") {
-    const config = {
-      providerId: "openai-compatible",
-      displayName: "Dry-run map authoring provider",
-      providerKind: "openai-compatible",
-      providerCompany: "openai",
-      model: "dry-run-map-authoring-model",
-      configRef: request.providerPolicy.providerConfigRef ?? "provider-config:map-authoring-self-check",
-      secretRef: request.providerPolicy.secretRef ?? "provider-secret:map-authoring-self-check",
-      baseUrl: "dry-run://blocked-before-external-provider-call",
-      apiKey: "[REDACTED]",
-      allowPaidProvider: true,
-      providerAllowlist: ["paid-analysis-ai"] as ["paid-analysis-ai"],
-      dataPolicy: { allowExternalTransmission: false },
-      costPolicy: { maxEstimatedCost: 1 },
-      operatorApprovalRef: request.providerPolicy.operatorApprovalRef,
-      approvalReason: "dry-run map authoring self-check",
-      enabled: true,
-      updatedAt: clock.finishRun(clock.startRun()).endedAt,
-    } as const;
-    const messages = buildExternalProviderMessages(request);
-    if (messages === null) {
-      return buildExternalProviderFailureOutput({
-        implementationStatus: "task_type_mismatch",
-        modelName: config.model,
-        failureReason: "task_type_mismatch",
-      });
-    }
-    await emitExternalRequestDebug({ runtimeInput: input, request, config, messages });
-    return buildDryRunCapturedOutput(config.model);
-  }
-
-  if (!input.dataDir) {
-    return buildProviderNotConfiguredOutput();
-  }
-
-  const config = await resolveAiExternalProviderRuntimeConfig(input.dataDir, {
-    providerConfigRef: request.providerPolicy.providerConfigRef,
-    secretRef: request.providerPolicy.secretRef,
-  });
-  if (config === null) {
-    return buildProviderNotConfiguredOutput();
-  }
-
-  const messages = buildExternalProviderMessages(request);
-  if (messages === null) {
-    return buildExternalProviderFailureOutput({
-      implementationStatus: "task_type_mismatch",
-      modelName: config.model,
-      failureReason: "task_type_mismatch",
-    });
-  }
-
-  await emitExternalRequestDebug({ runtimeInput: input, request, config, messages });
-
-  const started = clock.startRun();
-  const payloadResult = await requestExternalPayload(config, messages, options?.signal ?? null);
-  const ended = clock.finishRun(started);
-  if (!payloadResult.ok) {
-    await emitExternalErrorDebug({ runtimeInput: input, request, config, messages, output: payloadResult.output, durationMs: ended.durationMs });
-    return payloadResult.output;
-  }
-
-  await emitExternalResponseDebug({ runtimeInput: input, request, config, messages, payload: payloadResult.payload, durationMs: ended.durationMs });
-
-  return buildExternalProviderOutput(request, config.model, payloadResult.payload, {
-    createdAt: ended.endedAt,
-    gatewayDurationMs: ended.durationMs,
   });
 }
 
@@ -336,7 +121,12 @@ export function createExternalProviderRuntimePort(input: ExternalProviderRuntime
 
   return {
     async execute(request, options) {
-      const result = await callExternalProvider(request, input, clock, options);
+      const result = await callExternalProvider({
+        request,
+        runtimeInput: input,
+        clock,
+        ...(options ? { options } : {}),
+      });
       updateRuntimeState(state, request, result);
       return result;
     },

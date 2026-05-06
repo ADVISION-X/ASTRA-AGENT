@@ -1,6 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
-
 import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
 import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
 import type {
@@ -15,9 +12,6 @@ import type {
 } from "./browser-controller.js";
 import { createId } from "../local-runtime/ids.js";
 import {
-  runSpawn,
-} from "./current-chrome-window-control.js";
-import {
   activateChrome,
   buildOpenUrlScript,
   clickAt,
@@ -29,6 +23,7 @@ import {
   createBrowserActionResult,
   resolveChromeLoginState,
 } from "./current-chrome-browser-session-state.js";
+import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
 
 type CurrentChromeBrowserControllerOptions = {
@@ -141,14 +136,12 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
     const geometry = await this.getGeometrySnapshot();
-    await mkdir(this.options.screenshotDir, { recursive: true });
-    const screenshotPath = path.join(this.options.screenshotDir, `${createId(input.regionLabel)}.png`);
-    await activateChrome();
-    await runSpawn(
-      "screencapture",
-      ["-x", "-R", `${Math.round(geometry.windowX)},${Math.round(geometry.windowY)},${Math.round(geometry.viewportWidth)},${Math.round(geometry.viewportHeight)}`, screenshotPath],
-      input.abortSignal ? { signal: input.abortSignal } : undefined,
-    );
+    const screenshot = await captureCurrentChromeScreenshot({
+      screenshotDir: this.options.screenshotDir,
+      geometry,
+      regionLabel: input.regionLabel,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
     await this.refreshSnapshot();
 
     return {
@@ -157,10 +150,12 @@ export class CurrentChromeBrowserController implements BrowserController {
       pageTitle: this.snapshot.currentTitle,
       regionLabel: input.regionLabel,
       regionType: "viewport",
-      width: geometry.viewportWidth,
-      height: geometry.viewportHeight,
+      width: screenshot.dimensions.width,
+      height: screenshot.dimensions.height,
+      viewportWidth: geometry.viewportWidth,
+      viewportHeight: geometry.viewportHeight,
       ...(input.contentLines ? { contentLines: input.contentLines } : {}),
-      sourceFilePath: screenshotPath,
+      sourceFilePath: screenshot.screenshotPath,
       createdAt: new Date().toISOString(),
     };
   }

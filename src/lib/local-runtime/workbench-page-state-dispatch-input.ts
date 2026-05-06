@@ -1,5 +1,5 @@
-import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/index.js";
-import { resolvePageStatePlatformProfile as resolveObservationPlatformProfile, urlMatchesFeedPath } from "../../capabilities/page-state/index.js";
+import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { resolvePageStatePlatformProfile as resolveObservationPlatformProfile, urlMatchesFeedPath } from "../../capabilities/page-state/shared/page-state-profile.js";
 import type { RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
@@ -64,6 +64,97 @@ const collectSourceEvidenceRefs = (
   ].filter((value, index, refs): value is string => Boolean(value) && refs.indexOf(value) === index);
 };
 
+type BrowserLoginState = ReturnType<WorkbenchRuntime["browserController"]["getSessionState"]>["loginState"];
+
+type ObservationBuildInput = {
+  envelope: AbilityCommandEnvelope;
+  currentUrl: string;
+  loginState: BrowserLoginState;
+  platformProfileId: RequestedPlatformId;
+  sourceProofRef: string;
+  capturedAt: string;
+};
+
+type DispatchPayloadBuildInput = {
+  envelope: AbilityCommandEnvelope;
+  session: ReturnType<WorkbenchRuntime["browserController"]["getSessionState"]>;
+  childCapabilityId: string;
+  sourceEvidenceRefs: string[];
+  openProofRef: string;
+  currentUrl: string;
+  platformProfileId: RequestedPlatformId;
+  capturedAt: string;
+  observations: ReturnType<typeof buildPageStateObservations>;
+};
+
+const buildObservationSource = (sourceProofRef: string) => ({
+  sourceAbilityGroupId: "runtime-signal" as const,
+  sourceChildCapabilityId: "page-runtime-signal",
+  sourceProofRef,
+});
+
+const buildFeedReady = (currentUrl: string, platformProfileId: RequestedPlatformId): boolean => {
+  const resolvedProfile = resolveObservationPlatformProfile(platformProfileId);
+  return Boolean(resolvedProfile && URL.canParse(currentUrl) && urlMatchesFeedPath(currentUrl, resolvedProfile));
+};
+
+const buildCaptchaObservation = (input: ObservationBuildInput) => ({
+  observationId: `${input.envelope.inputRef}:captcha-marker`,
+  kind: "page_marker" as const,
+  capturedAt: input.capturedAt,
+  ...buildObservationSource(input.sourceProofRef),
+  payload: {
+    marker: "captcha" as const,
+    present: input.loginState === "review_required",
+    detail: input.loginState === "review_required" ? "Browser session requires review." : "No captcha review signal is active.",
+  },
+});
+
+const buildSafetyWallObservation = (input: ObservationBuildInput) => ({
+  observationId: `${input.envelope.inputRef}:safety-wall-marker`,
+  kind: "page_marker" as const,
+  capturedAt: input.capturedAt,
+  ...buildObservationSource(input.sourceProofRef),
+  payload: {
+    marker: "safety_wall" as const,
+    present: false,
+    detail: "No governed safety-wall marker is present in the runtime session snapshot.",
+  },
+});
+
+const buildFeedShellObservation = (input: ObservationBuildInput) => {
+  const feedReady = buildFeedReady(input.currentUrl, input.platformProfileId);
+
+  return {
+    observationId: `${input.envelope.inputRef}:feed-shell-marker`,
+    kind: "page_marker" as const,
+    capturedAt: input.capturedAt,
+    ...buildObservationSource(input.sourceProofRef),
+    payload: {
+      marker: "feed_shell" as const,
+      present: feedReady,
+      detail: feedReady ? `Current URL matches ${input.platformProfileId} feed path.` : "Current URL does not confirm feed-shell readiness.",
+    },
+  };
+};
+
+const buildPostOpenCaptureObservation = (input: ObservationBuildInput) => {
+  const feedReady = buildFeedReady(input.currentUrl, input.platformProfileId);
+
+  return {
+    observationId: `${input.envelope.inputRef}:post-open-capture`,
+    kind: "platform_capture" as const,
+    capturedAt: input.capturedAt,
+    ...buildObservationSource(input.sourceProofRef),
+    payload: {
+      captureKind: "post_open_capture" as const,
+      tags: feedReady ? ["feed-shell", "feed-ready"] : [],
+      confidence: feedReady ? 0.84 : 0.51,
+      detail: feedReady ? "Runtime session URL and platform profile indicate feed readiness." : "Runtime session capture does not yet prove feed readiness.",
+    },
+  };
+};
+
 const buildPageStateObservations = (input: {
   envelope: AbilityCommandEnvelope;
   currentUrl: string;
@@ -72,62 +163,65 @@ const buildPageStateObservations = (input: {
   sourceProofRef: string;
   capturedAt: string;
 }) => {
-  const resolvedProfile = resolveObservationPlatformProfile(input.platformProfileId);
-  const feedReady = Boolean(resolvedProfile && URL.canParse(input.currentUrl) && urlMatchesFeedPath(input.currentUrl, resolvedProfile));
-  const source = {
-    sourceAbilityGroupId: "runtime-signal" as const,
-    sourceChildCapabilityId: "page-runtime-signal",
-    sourceProofRef: input.sourceProofRef,
-  };
-
   return [
-    {
-      observationId: `${input.envelope.inputRef}:captcha-marker`,
-      kind: "page_marker" as const,
-      capturedAt: input.capturedAt,
-      ...source,
-      payload: {
-        marker: "captcha" as const,
-        present: input.loginState === "review_required",
-        detail: input.loginState === "review_required" ? "Browser session requires review." : "No captcha review signal is active.",
-      },
-    },
-    {
-      observationId: `${input.envelope.inputRef}:safety-wall-marker`,
-      kind: "page_marker" as const,
-      capturedAt: input.capturedAt,
-      ...source,
-      payload: {
-        marker: "safety_wall" as const,
-        present: false,
-        detail: "No governed safety-wall marker is present in the runtime session snapshot.",
-      },
-    },
-    {
-      observationId: `${input.envelope.inputRef}:feed-shell-marker`,
-      kind: "page_marker" as const,
-      capturedAt: input.capturedAt,
-      ...source,
-      payload: {
-        marker: "feed_shell" as const,
-        present: feedReady,
-        detail: feedReady ? `Current URL matches ${input.platformProfileId} feed path.` : "Current URL does not confirm feed-shell readiness.",
-      },
-    },
-    {
-      observationId: `${input.envelope.inputRef}:post-open-capture`,
-      kind: "platform_capture" as const,
-      capturedAt: input.capturedAt,
-      ...source,
-      payload: {
-        captureKind: "post_open_capture" as const,
-        tags: feedReady ? ["feed-shell", "feed-ready"] : [],
-        confidence: feedReady ? 0.84 : 0.51,
-        detail: feedReady ? "Runtime session URL and platform profile indicate feed readiness." : "Runtime session capture does not yet prove feed readiness.",
-      },
-    },
+    buildCaptchaObservation(input),
+    buildSafetyWallObservation(input),
+    buildFeedShellObservation(input),
+    buildPostOpenCaptureObservation(input),
   ];
 };
+
+const buildPageStateSnapshot = (input: DispatchPayloadBuildInput) => ({
+  snapshotId: `${input.envelope.inputRef}:snapshot`,
+  currentUrl: input.currentUrl,
+  currentTitle: input.session.currentTitle ?? "",
+  browserLoginState: input.session.loginState,
+  viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
+  scrollOffset: { x: 0, y: 0 },
+  capturedAt: input.capturedAt,
+  sourceAbilityGroupId: "runtime-signal",
+  sourceChildCapabilityId: "nerve-bus-dispatch",
+  sourceProofRef: input.envelope.inputRef,
+});
+
+const buildPageStatePolicies = () => ({
+  freshnessPolicy: { maxSnapshotAgeMs: 300000, maxObservationAgeMs: 300000, maxObservationSkewMs: 300000 },
+  confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
+  statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: true, allowModalOverlay: false, allowUnknownState: true },
+});
+
+const buildDispatchCurrentUrl = (
+  payload: Record<string, string | number | boolean | null>,
+  session: ReturnType<WorkbenchRuntime["browserController"]["getSessionState"]>,
+  platformProfileId: RequestedPlatformId,
+) => payloadValueToString(payload.targetUrl) ?? session.currentUrl ?? DEFAULT_PLATFORM_URL[platformProfileId];
+
+const buildPageStateDispatchPayload = (input: DispatchPayloadBuildInput) => ({
+  abilityGroupId: "page-state",
+  childCapabilityId: input.childCapabilityId,
+  runId: input.envelope.runId,
+  missionId: input.envelope.missionId,
+  sessionId: input.envelope.sessionId,
+  roundId: input.envelope.roundId,
+  videoVisitId: input.envelope.videoVisitId,
+  stepId: input.envelope.stepId,
+  mapPackageId: input.envelope.mapPackageId,
+  mapPackageVersion: input.envelope.mapPackageVersion,
+  selectedMapId: input.envelope.selectedMapId,
+  selectedMapVersion: input.envelope.selectedMapVersion,
+  activationSnapshotRef: input.envelope.activationSnapshotRef,
+  capabilityCallId: input.envelope.capabilityCallId,
+  nerveBusEnvelopeId: input.envelope.nerveBusEnvelopeId,
+  requestedBy: "orchestration",
+  snapshot: buildPageStateSnapshot(input),
+  observations: input.observations,
+  sourceEvidenceRefs: input.sourceEvidenceRefs,
+  openHandoff: { openProofRef: input.openProofRef, browserSessionRef: input.session.browserProfileRef, platformProfileId: input.platformProfileId },
+  previousPageStateFingerprint: null,
+  inputRef: input.envelope.inputRef,
+  idempotencyKey: input.envelope.idempotencyKey,
+  ...buildPageStatePolicies(),
+});
 
 const resolvePageStatePlatformProfile = async (runtime: WorkbenchRuntime): Promise<RequestedPlatformId> => {
   const session = runtime.browserController.getSessionState();
@@ -161,51 +255,25 @@ export const buildPageStateDispatchInput = async (
   const sourceEvidenceRefs = collectSourceEvidenceRefs(payload, envelope);
   const openProofRef = sourceEvidenceRefs[0] ?? envelope.inputRef;
   const capturedAt = new Date().toISOString();
-  const currentUrl = payloadValueToString(payload.targetUrl) ?? session.currentUrl ?? DEFAULT_PLATFORM_URL[platformProfileId];
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "page-state",
+  const currentUrl = buildDispatchCurrentUrl(payload, session, platformProfileId);
+  const observations = buildPageStateObservations({
+    envelope,
+    currentUrl,
+    loginState: session.loginState,
+    platformProfileId,
+    sourceProofRef: openProofRef,
+    capturedAt,
+  });
+
+  return JSON.parse(JSON.stringify(buildPageStateDispatchPayload({
+    envelope,
+    session,
     childCapabilityId,
-    runId: envelope.runId,
-    missionId: envelope.missionId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    snapshot: {
-      snapshotId: `${envelope.inputRef}:snapshot`,
-      currentUrl,
-      currentTitle: session.currentTitle ?? "",
-      browserLoginState: session.loginState,
-      viewport: { width: 1, height: 1, deviceScaleFactor: 1 },
-      scrollOffset: { x: 0, y: 0 },
-      capturedAt,
-      sourceAbilityGroupId: "runtime-signal",
-      sourceChildCapabilityId: "nerve-bus-dispatch",
-      sourceProofRef: envelope.inputRef,
-    },
-    observations: buildPageStateObservations({
-      envelope,
-      currentUrl,
-      loginState: session.loginState,
-      platformProfileId,
-      sourceProofRef: openProofRef,
-      capturedAt,
-    }),
     sourceEvidenceRefs,
-    freshnessPolicy: { maxSnapshotAgeMs: 300000, maxObservationAgeMs: 300000, maxObservationSkewMs: 300000 },
-    confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
-    statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: true, allowModalOverlay: false, allowUnknownState: true },
-    openHandoff: { openProofRef, browserSessionRef: session.browserProfileRef, platformProfileId },
-    previousPageStateFingerprint: null,
-    inputRef: envelope.inputRef,
-    idempotencyKey: envelope.idempotencyKey,
-  }));
+    openProofRef,
+    currentUrl,
+    platformProfileId,
+    capturedAt,
+    observations,
+  })));
 };

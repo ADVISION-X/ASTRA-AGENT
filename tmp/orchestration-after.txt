@@ -1,0 +1,4 @@
+
+> grasseye-local-workbench@0.1.0 audit:orchestration
+> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
+

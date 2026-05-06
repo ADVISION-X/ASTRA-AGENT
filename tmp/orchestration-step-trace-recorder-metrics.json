@@ -1,0 +1,37 @@
+{
+  "lineCount": 316,
+  "offenders": [
+    {
+      "name": "buildRuntimeEvent",
+      "line": 112,
+      "logicalLines": 49,
+      "statements": 5,
+      "parameters": 1,
+      "returns": 1,
+      "depth": 0,
+      "complexity": 1,
+      "switchCases": 0,
+      "ifChain": 0,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines"
+      ]
+    },
+    {
+      "name": "recordPostActionVerificationActionLog",
+      "line": 261,
+      "logicalLines": 46,
+      "statements": 10,
+      "parameters": 1,
+      "returns": 4,
+      "depth": 2,
+      "complexity": 5,
+      "switchCases": 0,
+      "ifChain": 1,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines"
+      ]
+    }
+  ]
+}

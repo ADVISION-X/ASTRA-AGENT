@@ -6,7 +6,6 @@ import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { getNodeLine } from "../../core/ts-morph.js";
 import { createStartupProject, getIdentifierCallWithin, hasNamedImport } from "../local-app-shell/inspection-utils.js";
-
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 import { collectStartupPlatformGovernanceFindings } from "./startup-platform-target-checks.js";
 
@@ -24,6 +23,8 @@ const APP_SERVER_PATH = "src/app/server.ts";
 const TASK_START_FLOW_PATH = "src/lib/local-app-shell/task-start-flow.ts";
 const WORKBENCH_STATUS_PATH = "src/lib/local-runtime/workbench-status.ts";
 const WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH = "src/lib/local-runtime/workbench-mission-command-preflight.ts";
+const ORCHESTRATION_PUBLIC_INDEX_PATH = "src/capabilities/orchestration/index.ts";
+const ORCHESTRATION_SCHEMA_PATH = "src/capabilities/orchestration/schema.ts";
 const TERMINAL_STRUCTURED_LOG_PATH = "scripts/startup/lib/terminal-structured-log.mjs";
 const STRUCTURED_LOG_PAYLOAD_PATH = "src/lib/local-runtime/structured-log-payload.ts";
 
@@ -38,7 +39,6 @@ const ALLOWED_BOOTSTRAP_FILES = new Set([
   STARTUP_MAIN_SUPPORT_PATH,
   STARTUP_CONTRACT_PATH,
 ]);
-
 const FORBIDDEN_BOOTSTRAP_MARKERS = [
   "ensureLocalAiRuntimeReady(",
   'open", ["-a", "Ollama"]',
@@ -224,7 +224,7 @@ function collectMissionPreflightContractFindings(project: import("ts-morph").Pro
   const statusHasContractComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "commandTransportContract");
   const statusHasMissionCommandSchemaComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "missionCommandSchema");
   const statusImportsMissionCommandPreflight = hasNamedImport(workbenchStatus, "./workbench-mission-command-preflight.js", "checkMissionCommandSchemaPreflight");
-  const preflightImportsMissionCommandSchema = hasNamedImport(commandPreflight, "../../capabilities/orchestration/schema.js", "MissionCommandSchema");
+  const preflightImportsMissionCommandSchema = importsGovernedMissionCommandSchema(project, commandPreflight);
   const statusValidatesMissionCommandSchema = commandPreflight.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isPropertyAccessExpression(expression)
@@ -245,6 +245,29 @@ function collectMissionPreflightContractFindings(project: import("ts-morph").Pro
   }
 
   return findings;
+}
+
+function sourceExportsMissionCommandSchema(sourceFile: import("ts-morph").SourceFile): boolean {
+  return sourceFile.getExportedDeclarations().has("MissionCommandSchema");
+}
+
+function importsGovernedMissionCommandSchema(
+  project: import("ts-morph").Project,
+  commandPreflight: import("ts-morph").SourceFile,
+): boolean {
+  const schemaSource = project.getSourceFileOrThrow(pathFromRepoRoot(ORCHESTRATION_SCHEMA_PATH));
+  const indexSource = project.getSourceFileOrThrow(pathFromRepoRoot(ORCHESTRATION_PUBLIC_INDEX_PATH));
+  const schemaExportsCommandSchema = sourceExportsMissionCommandSchema(schemaSource);
+
+  if (hasNamedImport(commandPreflight, "../../capabilities/orchestration/schema.js", "MissionCommandSchema")) {
+    return schemaExportsCommandSchema;
+  }
+
+  if (!hasNamedImport(commandPreflight, "../../capabilities/orchestration/index.js", "MissionCommandSchema")) {
+    return false;
+  }
+
+  return schemaExportsCommandSchema && sourceExportsMissionCommandSchema(indexSource);
 }
 
 function collectTerminalRelayFieldFindings(project: import("ts-morph").Project): Finding[] {
@@ -308,6 +331,8 @@ export async function runStartupReadinessGateChecks(): Promise<Finding[]> {
   startupProject.addSourceFileAtPath(pathFromRepoRoot(TASK_START_FLOW_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(WORKBENCH_STATUS_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(ORCHESTRATION_PUBLIC_INDEX_PATH));
+  startupProject.addSourceFileAtPath(pathFromRepoRoot(ORCHESTRATION_SCHEMA_PATH));
   startupProject.addSourceFileAtPath(pathFromRepoRoot(STRUCTURED_LOG_PAYLOAD_PATH));
   const launchSource = startupProject.getSourceFileOrThrow(pathFromRepoRoot(commanderConsoleInspectionConstants.STARTUP_PATH));
 

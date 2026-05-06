@@ -49,87 +49,89 @@ const resolveOpenSourceChildCapabilityId = (selectedMapId: string) => {
   return "open-local-workbench" as const;
 };
 
+const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInputPolicy, "sourceChildCapabilityId"> & {
+  sourceChildCapabilityId?: PostActionInputPolicy["sourceChildCapabilityId"];
+}>> = {
+  "verify-page-opened": {
+    childCapabilityId: "verify-page-opened",
+    outcomeType: "page_opened",
+    sourceAbilityGroupId: "open",
+    sourceActionType: "open_feed",
+    verificationMode: "observation_only",
+    requireAfterEvidence: false,
+    requireBeforeAfterComparison: false,
+    requiresVisualEvidence: false,
+    executionRefField: "navigationAttemptRef",
+  },
+  "verify-comments-panel-opened": {
+    childCapabilityId: "verify-comments-panel-opened",
+    outcomeType: "comments_panel_opened",
+    sourceAbilityGroupId: "mouse-click",
+    sourceChildCapabilityId: "click-browser-coordinate",
+    sourceActionType: "open_comments",
+    verificationMode: "visual_evidence",
+    requireAfterEvidence: true,
+    requireBeforeAfterComparison: false,
+    requiresVisualEvidence: true,
+    executionRefField: "primitiveExecutionRef",
+  },
+  "verify-comments-panel-closed": {
+    childCapabilityId: "verify-comments-panel-closed",
+    outcomeType: "comments_panel_closed",
+    sourceAbilityGroupId: "mouse-click",
+    sourceChildCapabilityId: "click-browser-coordinate",
+    sourceActionType: "close_comments",
+    verificationMode: "visual_evidence",
+    requireAfterEvidence: true,
+    requireBeforeAfterComparison: false,
+    requiresVisualEvidence: true,
+    executionRefField: "primitiveExecutionRef",
+  },
+  "verify-video-changed-after-scroll": {
+    childCapabilityId: "verify-video-changed-after-scroll",
+    outcomeType: "video_changed_after_scroll",
+    sourceAbilityGroupId: "mouse-scroll",
+    sourceChildCapabilityId: "scroll-browser-viewport",
+    sourceActionType: "scroll_next_video",
+    verificationMode: "before_after_comparison",
+    requireAfterEvidence: true,
+    requireBeforeAfterComparison: true,
+    requiresVisualEvidence: false,
+    executionRefField: "scrollExecutionRef",
+  },
+  "verify-not-interested-result": {
+    childCapabilityId: "verify-not-interested-result",
+    outcomeType: "not_interested_result",
+    sourceAbilityGroupId: "mouse-click",
+    sourceChildCapabilityId: "click-browser-coordinate",
+    sourceActionType: "not_interested",
+    verificationMode: "before_after_comparison",
+    requireAfterEvidence: true,
+    requireBeforeAfterComparison: true,
+    requiresVisualEvidence: false,
+    executionRefField: "primitiveExecutionRef",
+  },
+};
+
+const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
+  childCapabilityId: "verify-target-state-changed",
+  outcomeType: "target_state_changed",
+  sourceAbilityGroupId: "mouse-click",
+  sourceChildCapabilityId: "click-browser-coordinate",
+  sourceActionType: "click_target_state_change",
+  verificationMode: "before_after_comparison",
+  requireAfterEvidence: true,
+  requireBeforeAfterComparison: true,
+  requiresVisualEvidence: false,
+  executionRefField: "primitiveExecutionRef",
+};
+
 const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {
-  switch (envelope.commandName) {
-    case "verify-page-opened":
-      return {
-        childCapabilityId: "verify-page-opened",
-        outcomeType: "page_opened",
-        sourceAbilityGroupId: "open",
-        sourceChildCapabilityId: resolveOpenSourceChildCapabilityId(envelope.selectedMapId),
-        sourceActionType: "open_feed",
-        verificationMode: "observation_only",
-        requireAfterEvidence: false,
-        requireBeforeAfterComparison: false,
-        requiresVisualEvidence: false,
-        executionRefField: "navigationAttemptRef",
-      };
-    case "verify-comments-panel-opened":
-      return {
-        childCapabilityId: "verify-comments-panel-opened",
-        outcomeType: "comments_panel_opened",
-        sourceAbilityGroupId: "mouse-click",
-        sourceChildCapabilityId: "click-browser-coordinate",
-        sourceActionType: "open_comments",
-        verificationMode: "visual_evidence",
-        requireAfterEvidence: true,
-        requireBeforeAfterComparison: false,
-        requiresVisualEvidence: true,
-        executionRefField: "primitiveExecutionRef",
-      };
-    case "verify-comments-panel-closed":
-      return {
-        childCapabilityId: "verify-comments-panel-closed",
-        outcomeType: "comments_panel_closed",
-        sourceAbilityGroupId: "mouse-click",
-        sourceChildCapabilityId: "click-browser-coordinate",
-        sourceActionType: "close_comments",
-        verificationMode: "visual_evidence",
-        requireAfterEvidence: true,
-        requireBeforeAfterComparison: false,
-        requiresVisualEvidence: true,
-        executionRefField: "primitiveExecutionRef",
-      };
-    case "verify-video-changed-after-scroll":
-      return {
-        childCapabilityId: "verify-video-changed-after-scroll",
-        outcomeType: "video_changed_after_scroll",
-        sourceAbilityGroupId: "mouse-scroll",
-        sourceChildCapabilityId: "scroll-browser-viewport",
-        sourceActionType: "scroll_next_video",
-        verificationMode: "before_after_comparison",
-        requireAfterEvidence: true,
-        requireBeforeAfterComparison: true,
-        requiresVisualEvidence: false,
-        executionRefField: "scrollExecutionRef",
-      };
-    case "verify-not-interested-result":
-      return {
-        childCapabilityId: "verify-not-interested-result",
-        outcomeType: "not_interested_result",
-        sourceAbilityGroupId: "mouse-click",
-        sourceChildCapabilityId: "click-browser-coordinate",
-        sourceActionType: "not_interested",
-        verificationMode: "before_after_comparison",
-        requireAfterEvidence: true,
-        requireBeforeAfterComparison: true,
-        requiresVisualEvidence: false,
-        executionRefField: "primitiveExecutionRef",
-      };
-    default:
-      return {
-        childCapabilityId: "verify-target-state-changed",
-        outcomeType: "target_state_changed",
-        sourceAbilityGroupId: "mouse-click",
-        sourceChildCapabilityId: "click-browser-coordinate",
-        sourceActionType: "click_target_state_change",
-        verificationMode: "before_after_comparison",
-        requireAfterEvidence: true,
-        requireBeforeAfterComparison: true,
-        requiresVisualEvidence: false,
-        executionRefField: "primitiveExecutionRef",
-      };
-  }
+  const policy = POST_ACTION_POLICY_BY_COMMAND[envelope.commandName] ?? DEFAULT_POST_ACTION_POLICY;
+  return {
+    ...policy,
+    sourceChildCapabilityId: policy.sourceChildCapabilityId ?? resolveOpenSourceChildCapabilityId(envelope.selectedMapId),
+  };
 };
 
 const resolveSourceProofRef = (
@@ -212,6 +214,44 @@ const buildActionProof = (input: {
   selfReportedOnly: false,
 });
 
+const buildExpectedOutcome = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+  policy: PostActionInputPolicy,
+) => ({
+  outcomeType: policy.outcomeType,
+  description: inputPayload.summary,
+  expectedUrlHost: policy.childCapabilityId === "verify-page-opened" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
+  expectedUrlPrefix: null,
+  expectedState: null,
+  expectedTargetType: null,
+  requiresBeforeAfterComparison: policy.requireBeforeAfterComparison,
+  requiresVisualEvidence: policy.requiresVisualEvidence,
+});
+
+const buildVerificationPolicy = (policy: PostActionInputPolicy) => ({
+  verificationMode: policy.verificationMode,
+  requireAfterEvidence: policy.requireAfterEvidence,
+  requireBeforeAfterComparison: policy.requireBeforeAfterComparison,
+  allowSelfReportedSuccess: false,
+});
+
+const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
+  missionId: envelope.missionId,
+  runId: envelope.runId,
+  sessionId: envelope.sessionId,
+  roundId: envelope.roundId,
+  videoVisitId: envelope.videoVisitId,
+  stepId: envelope.stepId,
+  mapPackageId: envelope.mapPackageId,
+  mapPackageVersion: envelope.mapPackageVersion,
+  selectedMapId: envelope.selectedMapId,
+  selectedMapVersion: envelope.selectedMapVersion,
+  activationSnapshotRef: envelope.activationSnapshotRef,
+  capabilityCallId: envelope.capabilityCallId,
+  nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+});
+
 export const buildPostActionVerificationInput = (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -224,43 +264,17 @@ export const buildPostActionVerificationInput = (
     abilityGroupId: "post-action-verification",
     childCapabilityId: policy.childCapabilityId,
     requestedBy: "orchestration",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+    ...buildPostActionChainFields(envelope),
     sourceAbilityGroupId: policy.sourceAbilityGroupId,
     sourceChildCapabilityId: policy.sourceChildCapabilityId,
     sourceActionType: policy.sourceActionType,
-    expectedOutcome: {
-      outcomeType: policy.outcomeType,
-      description: inputPayload.summary,
-      expectedUrlHost: policy.childCapabilityId === "verify-page-opened" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
-      expectedUrlPrefix: null,
-      expectedState: null,
-      expectedTargetType: null,
-      requiresBeforeAfterComparison: policy.requireBeforeAfterComparison,
-      requiresVisualEvidence: policy.requiresVisualEvidence,
-    },
+    expectedOutcome: buildExpectedOutcome(envelope, inputPayload, policy),
     actionProof: buildActionProof({ envelope, sourceProofRef, policy }),
     beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
     observationSet: {
       observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
-    verificationPolicy: {
-      verificationMode: policy.verificationMode,
-      requireAfterEvidence: policy.requireAfterEvidence,
-      requireBeforeAfterComparison: policy.requireBeforeAfterComparison,
-      allowSelfReportedSuccess: false,
-    },
+    verificationPolicy: buildVerificationPolicy(policy),
     confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,

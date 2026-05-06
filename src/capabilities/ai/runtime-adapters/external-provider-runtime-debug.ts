@@ -96,27 +96,53 @@ const findMapAuthoringPromptContract = (request: ParsedAiAbilityInput) =>
     ? request.input.promptContractCatalog.entries.find((entry) => entry.promptContractId === request.promptContractId) ?? null
     : null;
 
-const buildMapAuthoringRefs = (request: ParsedAiAbilityInput) => ({
-  inputPackageId: request.taskType === "map_authoring" ? request.input.inputPackageId : null,
-  inputPackageVersion: request.taskType === "map_authoring" ? request.input.inputPackageVersion : null,
-  inputPackageHash: request.taskType === "map_authoring" ? `sha256:${hashExternalDebugValue(request.input)}` : null,
-  userRequirementRef: request.taskType === "map_authoring" ? request.input.userRequirementRef : null,
-  sourceRequirementHash: request.taskType === "map_authoring" ? request.input.sourceRequirementHash : null,
-  capabilityCatalogVersion: request.taskType === "map_authoring" ? request.input.capabilityCatalog.version : null,
-  promptContractCatalogVersion: request.taskType === "map_authoring" ? request.input.promptContractCatalog.version : null,
-  outputSchemaCatalogVersion: request.taskType === "map_authoring" ? request.input.outputSchemaCatalog.version : null,
-  mapPackageSchemaVersion: request.taskType === "map_authoring" ? request.input.mapPackageSchema.schemaVersion : null,
-  mapAuthoringOutputSchemaVersion: request.taskType === "map_authoring" ? request.input.mapAuthoringOutputSchema.schemaVersion : null,
-  safetyPolicyRef: request.taskType === "map_authoring" ? request.input.safetyPolicy.policyRef : null,
-  humanApprovalPolicyRef: request.taskType === "map_authoring" ? request.input.humanApprovalPolicy.policyRef : null,
-  evidencePolicyRef: request.taskType === "map_authoring" ? request.input.evidencePolicy.policyRef : null,
-  pavPolicyRef: request.taskType === "map_authoring" ? request.input.pavPolicy.policyRef : null,
-  forensicsPolicyRef: request.taskType === "map_authoring" ? request.input.forensicsPolicy.policyRef : null,
-  privacyPolicyRef: request.taskType === "map_authoring" ? request.input.privacyPolicy.policyRef : null,
-  secretPolicyRef: request.taskType === "map_authoring" ? request.input.secretPolicy.policyRef : null,
-  rateLimitPolicyRef: request.taskType === "map_authoring" ? request.input.rateLimitPolicy.policyRef : null,
-  platformProfileRef: request.taskType === "map_authoring" ? request.input.targetPlatformProfileRef : null,
-});
+const EMPTY_MAP_AUTHORING_REFS = {
+  inputPackageId: null,
+  inputPackageVersion: null,
+  inputPackageHash: null,
+  userRequirementRef: null,
+  sourceRequirementHash: null,
+  capabilityCatalogVersion: null,
+  promptContractCatalogVersion: null,
+  outputSchemaCatalogVersion: null,
+  mapPackageSchemaVersion: null,
+  mapAuthoringOutputSchemaVersion: null,
+  safetyPolicyRef: null,
+  humanApprovalPolicyRef: null,
+  evidencePolicyRef: null,
+  pavPolicyRef: null,
+  forensicsPolicyRef: null,
+  privacyPolicyRef: null,
+  secretPolicyRef: null,
+  rateLimitPolicyRef: null,
+  platformProfileRef: null,
+};
+
+const buildMapAuthoringRefs = (request: ParsedAiAbilityInput) => {
+  if (request.taskType !== "map_authoring") return EMPTY_MAP_AUTHORING_REFS;
+  const input = request.input;
+  return {
+    inputPackageId: input.inputPackageId,
+    inputPackageVersion: input.inputPackageVersion,
+    inputPackageHash: `sha256:${hashExternalDebugValue(input)}`,
+    userRequirementRef: input.userRequirementRef,
+    sourceRequirementHash: input.sourceRequirementHash,
+    capabilityCatalogVersion: input.capabilityCatalog.version,
+    promptContractCatalogVersion: input.promptContractCatalog.version,
+    outputSchemaCatalogVersion: input.outputSchemaCatalog.version,
+    mapPackageSchemaVersion: input.mapPackageSchema.schemaVersion,
+    mapAuthoringOutputSchemaVersion: input.mapAuthoringOutputSchema.schemaVersion,
+    safetyPolicyRef: input.safetyPolicy.policyRef,
+    humanApprovalPolicyRef: input.humanApprovalPolicy.policyRef,
+    evidencePolicyRef: input.evidencePolicy.policyRef,
+    pavPolicyRef: input.pavPolicy.policyRef,
+    forensicsPolicyRef: input.forensicsPolicy.policyRef,
+    privacyPolicyRef: input.privacyPolicy.policyRef,
+    secretPolicyRef: input.secretPolicy.policyRef,
+    rateLimitPolicyRef: input.rateLimitPolicy.policyRef,
+    platformProfileRef: input.targetPlatformProfileRef,
+  };
+};
 
 const buildResponseFields = (input: {
   request: ParsedAiAbilityInput;

@@ -9,6 +9,19 @@ type AbilityGroupPolicy = {
   sensitiveOperation: boolean;
   forbiddenResponsibilities: string[];
 };
+type EntryMetadata = {
+  platformId?: string;
+  targetKind?: string;
+  requiresPostOpenWindowHandoff?: boolean;
+  forbiddenResponsibilities?: string[];
+};
+type BuildEntryInput = {
+  abilityGroupId: string;
+  childCapabilityId: string;
+  description: string;
+  supportedTargets?: string[];
+  metadata?: EntryMetadata;
+};
 
 const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
   ai: {
@@ -114,38 +127,57 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
 
 export const humanize = (value: string | undefined): string => (value ?? "unknown-child").split("-").filter(Boolean).join(" ");
 
-export const buildEntry = (
-  abilityGroupId: string,
-  childCapabilityId: string,
-  description: string,
+const buildSchemaRefs = (abilityGroupId: string, childCapabilityId: string) => ({
+  inputSchemaRef: `${abilityGroupId}.${childCapabilityId}.input`,
+  outputSchemaRef: `${abilityGroupId}.${childCapabilityId}.output`,
+});
+
+const buildTargetMetadata = (
+  policy: AbilityGroupPolicy,
   supportedTargets?: string[],
-  metadata?: {
-    platformId?: string;
-    targetKind?: string;
-    requiresPostOpenWindowHandoff?: boolean;
-    forbiddenResponsibilities?: string[];
-  },
-): CapabilityCatalogEntry => {
+  metadata?: EntryMetadata,
+) => ({
+  platformId: metadata?.platformId ?? null,
+  targetKind: metadata?.targetKind ?? null,
+  supportedTargets: supportedTargets ?? policy.supportedTargets,
+  requiresPostOpenWindowHandoff: metadata?.requiresPostOpenWindowHandoff ?? false,
+  forbiddenResponsibilities: metadata?.forbiddenResponsibilities ?? policy.forbiddenResponsibilities,
+});
+
+const buildPolicyFlags = (policy: AbilityGroupPolicy) => ({
+  routableByMap: policy.routableByMap,
+  requiresGeometryProof: policy.requiresGeometryProof,
+  requiresPostActionVerification: policy.requiresPostActionVerification,
+  requiresReviewGate: policy.requiresReviewGate,
+  sensitiveOperation: policy.sensitiveOperation,
+});
+
+const getAbilityGroupPolicy = (abilityGroupId: string): AbilityGroupPolicy => {
   const policy = ABILITY_GROUP_POLICIES[abilityGroupId];
   if (!policy) {
     throw new Error(`Unsupported ability group in capability catalog builder: ${abilityGroupId}`);
   }
-
-  return {
-    abilityGroupId,
-    childCapabilityId,
-    description,
-    inputSchemaRef: `${abilityGroupId}.${childCapabilityId}.input`,
-    outputSchemaRef: `${abilityGroupId}.${childCapabilityId}.output`,
-    platformId: metadata?.platformId ?? null,
-    targetKind: metadata?.targetKind ?? null,
-    supportedTargets: supportedTargets ?? policy.supportedTargets,
-    routableByMap: policy.routableByMap,
-    requiresPostOpenWindowHandoff: metadata?.requiresPostOpenWindowHandoff ?? false,
-    requiresGeometryProof: policy.requiresGeometryProof,
-    requiresPostActionVerification: policy.requiresPostActionVerification,
-    requiresReviewGate: policy.requiresReviewGate,
-    sensitiveOperation: policy.sensitiveOperation,
-    forbiddenResponsibilities: metadata?.forbiddenResponsibilities ?? policy.forbiddenResponsibilities,
-  };
+  return policy;
 };
+
+const createCapabilityCatalogEntry = (input: {
+  abilityGroupId: string;
+  childCapabilityId: string;
+  description: string;
+  supportedTargets?: string[];
+  metadata?: EntryMetadata;
+  policy: AbilityGroupPolicy;
+}): CapabilityCatalogEntry => ({
+  abilityGroupId: input.abilityGroupId,
+  childCapabilityId: input.childCapabilityId,
+  description: input.description,
+  ...buildSchemaRefs(input.abilityGroupId, input.childCapabilityId),
+  ...buildTargetMetadata(input.policy, input.supportedTargets, input.metadata),
+  ...buildPolicyFlags(input.policy),
+});
+
+export const buildEntry = (input: BuildEntryInput): CapabilityCatalogEntry =>
+  createCapabilityCatalogEntry({
+    ...input,
+    policy: getAbilityGroupPolicy(input.abilityGroupId),
+  });

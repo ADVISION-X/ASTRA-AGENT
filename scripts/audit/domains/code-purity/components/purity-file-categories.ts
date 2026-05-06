@@ -30,6 +30,10 @@ const isJsonLikeFile = (relativePath: string): boolean => relativePath.endsWith(
 const isGeneratedArtifactFile = (relativePath: string): boolean =>
   relativePath.startsWith("scripts/audit/generated/") || relativePath.endsWith(".generated.json") || relativePath.endsWith(".generated.jsonc");
 
+export const isGovernedMapPackageArtifact = (relativePath: string): boolean =>
+  relativePath.startsWith("src/map-plugins/")
+  && relativePath.endsWith(".meta.map-package.json");
+
 const isJsonContractFile = (relativePath: string): boolean =>
   isJsonLikeFile(relativePath)
   && !isGeneratedArtifactFile(relativePath)

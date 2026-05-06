@@ -2,7 +2,7 @@ scenarioId: mouse-click-final-action-log-mutation
 mutationName: mouse-click-final-action-log mutation
 mutatedFile: src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts
 rollbackRestoredHash: sha256:9eadcba7d82a743f70268376a2bc9aad96eb2a2c0e8afeb3453fbae0e5f6caaa
-startedAt: 2026-05-06T03:54:52.175Z
-endedAt: 2026-05-06T03:54:56.667Z
+startedAt: 2026-05-06T12:34:43.488Z
+endedAt: 2026-05-06T12:34:47.605Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

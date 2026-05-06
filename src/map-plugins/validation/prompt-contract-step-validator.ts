@@ -5,7 +5,7 @@ import {
   getPromptContractCatalogEntry,
   type PromptContractCatalogEntry,
 } from "./prompt-contract-catalog-port.js";
-import { findAiOutputSchemaDescriptor } from "../../capabilities/ai/output-schema-catalog-port.js";
+import { validateAllowedBranchFields } from "./prompt-contract-branch-field-validator.js";
 
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
 type MapStep = MapPackage["operationalMap"]["steps"][number];
@@ -18,7 +18,7 @@ type PromptStepValidationInput = {
   transitions: Transition[];
 };
 
-type ResolvedPromptStepState = {
+export type ResolvedPromptStepState = {
   step: MapStep;
   binding: PromptBinding;
   promptContract: PromptContractCatalogEntry;
@@ -183,71 +183,6 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
   }
 
   return issues;
-};
-
-const collectBranchFields = (state: ResolvedPromptStepState): string[] => {
-  const stepBranchFields = state.transitions
-    .filter((transition) => transition.fromStepId === state.step.stepId)
-    .map((transition) => transition.condition.leftRef);
-
-  return Array.from(new Set([state.step.successCondition.leftRef, ...stepBranchFields]));
-};
-
-const parseSchemaFieldRef = (leftRef: string): { ok: true; fieldName: string } | { ok: false } => {
-  if (!leftRef.startsWith("schemaFieldRef:")) {
-    return { ok: false };
-  }
-  const fieldName = leftRef.slice("schemaFieldRef:".length);
-  return fieldName.length > 0 ? { ok: true, fieldName } : { ok: false };
-};
-
-const validateAllowedBranchFields = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
-  const allowedBranchFields = new Set(state.promptContract.allowedBranchFields);
-  const outputSchemaDescriptor = findAiOutputSchemaDescriptor(state.promptContract.taskType);
-  if (!outputSchemaDescriptor) {
-    return [createIssue({
-      code: "map_validation_failed",
-      message: `AI step ${state.step.stepId} references prompt contract ${state.promptContract.promptContractId}, but no output schema descriptor exists for taskType ${state.promptContract.taskType}.`,
-      path: `promptBindings.bindings.${state.step.stepId}`,
-      severity: "fatal",
-    })];
-  }
-
-  const declaredOutputFields = new Set(Object.keys(outputSchemaDescriptor.schema.shape));
-  const undeclaredAllowedFields = state.promptContract.allowedBranchFields.filter((fieldName) => !declaredOutputFields.has(fieldName));
-  if (undeclaredAllowedFields.length > 0) {
-    return undeclaredAllowedFields.map((fieldName) => createIssue({
-      code: "map_validation_failed",
-      message: `Prompt contract ${state.promptContract.promptContractId} allows branch field ${fieldName}, but ${state.binding.outputSchemaRef} does not declare it.`,
-      path: `promptBindings.bindings.${state.step.stepId}`,
-      severity: "fatal",
-    }));
-  }
-
-  const invalidBranchFields = collectBranchFields(state).filter((leftRef) => {
-    if (leftRef === "status") {
-      return false;
-    }
-    const parsedRef = parseSchemaFieldRef(leftRef);
-    if (!parsedRef.ok) {
-      return true;
-    }
-    return !allowedBranchFields.has(parsedRef.fieldName) || !declaredOutputFields.has(parsedRef.fieldName);
-  });
-  if (invalidBranchFields.length === 0) {
-    return [];
-  }
-
-  const allowedDescription = state.promptContract.allowedBranchFields.length > 0
-    ? `status or declared branch fields: ${state.promptContract.allowedBranchFields.join(", ")}`
-    : "status only";
-
-  return invalidBranchFields.map((leftRef) => createIssue({
-    code: "map_validation_failed",
-    message: `AI step ${state.step.stepId} branches on ${leftRef} but prompt contract ${state.promptContract.promptContractId} allows ${allowedDescription}.`,
-    path: `operationalMap.steps.${state.step.stepId}`,
-    severity: "fatal",
-  }));
 };
 
 const validateReviewPolicy = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {

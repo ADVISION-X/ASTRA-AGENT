@@ -26,7 +26,7 @@ export const AUTHORING_INPUT_PACKAGE_MUTATIONS = [
   {
     name: "remove exampleMaps from input package mutation",
     file: "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
-    search: '    exampleMaps: [],\n',
+    search: '  exampleMaps: [],\n',
     replace: "",
   },
   {

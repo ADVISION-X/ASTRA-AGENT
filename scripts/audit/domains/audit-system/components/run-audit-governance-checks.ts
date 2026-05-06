@@ -1,5 +1,6 @@
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 import { validateGeneratedArtifacts } from "./validate-generated-artifacts.js";
+import { validateCiFullTopology } from "./validate-ci-full-topology.js";
 import { validateLawHome } from "./validate-law-home.js";
 import { validateManifestOwnership } from "./validate-manifest-ownership.js";
 import { validateOwnerEvidence } from "./validate-owner-evidence.js";
@@ -19,6 +20,7 @@ export const runAuditGovernanceChecks = async (
     validateLawHome(context),
     validateManifestOwnership(context),
     validateGeneratedArtifacts(context),
+    validateCiFullTopology(context),
     validateStaticClauseCoverage(context),
     validateRequiredPhaseDomains(context),
     validateRunnerBoundary(context),

@@ -103,6 +103,58 @@ function createCommanderPhases(input: {
   ];
 }
 
+const getSkippedStartupExitNegativeProof = () => Promise.resolve({
+  findings: [],
+  phase: {
+    name: "startup-exit-negative-proof",
+    classification: "PASS" as const,
+    passed: true,
+    summary: "Startup exit negative proof was skipped for nested inspector execution.",
+  },
+});
+
+const runStartupExitProofOrSkip = () =>
+  process.env[SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV] === "1"
+    ? getSkippedStartupExitNegativeProof()
+    : runStartupExitNegativeProof();
+
+const runCommanderExtraChecks = async () => {
+  const project = createAuditProject();
+  const structure = await runCommanderStructureChecks(project);
+  const childFindings = runCommanderChildChecks(project);
+  const runtime = runCommanderRuntimeChecks(project);
+  const boundary = await runCommanderBoundaryChecks(project);
+  const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
+    runStartupReadinessGateChecks(),
+    runStartupExitClassificationChecks(),
+    runStartupExitProofOrSkip(),
+  ]);
+  const findings: Finding[] = [
+    ...structure.findings,
+    ...childFindings,
+    ...runtime.findings,
+    ...boundary.findings,
+    ...startupGateFindings,
+    ...startupExitChecks.findings,
+    ...startupExitNegativeProof.findings,
+  ];
+
+  return {
+    findings,
+    phases: createCommanderPhases({
+      findings,
+      exportStarPresent: structure.exportStarPresent,
+      registryThrows: structure.registryThrows,
+      readGatePassthrough: runtime.readGatePassthrough,
+      childExecutorReceiptCount: runtime.childExecutorReceiptCount,
+      boundaryViolation: boundary.boundaryViolation,
+      antiEscapeViolation: boundary.antiEscapeViolation,
+      startupGateViolation: startupGateFindings.length > 0,
+      startupExitViolation: startupExitChecks.findings.length > 0 || startupExitNegativeProof.findings.length > 0,
+    }),
+  };
+};
+
 export const commanderConsoleCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Commander Console Capability Owner Inspector",
   inspectorId: "commander-console-capability-owner",
@@ -111,50 +163,5 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
   ownedPaths: [ROOT],
   pendingSummary: "commander-console-capability requires hard production enforcement for execute-only routing, child privacy, strict gates, and negative proof",
   implementedSummary: "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner",
-  extraChecks: async () => {
-    const project = createAuditProject();
-    const structure = await runCommanderStructureChecks(project);
-    const childFindings = runCommanderChildChecks(project);
-    const runtime = runCommanderRuntimeChecks(project);
-    const boundary = await runCommanderBoundaryChecks(project);
-    const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
-      runStartupReadinessGateChecks(),
-      runStartupExitClassificationChecks(),
-      process.env[SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV] === "1"
-        ? Promise.resolve({
-            findings: [],
-            phase: {
-              name: "startup-exit-negative-proof",
-              classification: "PASS" as const,
-              passed: true,
-              summary: "Startup exit negative proof was skipped for nested inspector execution.",
-            },
-          })
-        : runStartupExitNegativeProof(),
-    ]);
-    const findings: Finding[] = [
-      ...structure.findings,
-      ...childFindings,
-      ...runtime.findings,
-      ...boundary.findings,
-      ...startupGateFindings,
-      ...startupExitChecks.findings,
-      ...startupExitNegativeProof.findings,
-    ];
-
-    return {
-      findings,
-      phases: createCommanderPhases({
-        findings,
-        exportStarPresent: structure.exportStarPresent,
-        registryThrows: structure.registryThrows,
-        readGatePassthrough: runtime.readGatePassthrough,
-        childExecutorReceiptCount: runtime.childExecutorReceiptCount,
-        boundaryViolation: boundary.boundaryViolation,
-        antiEscapeViolation: boundary.antiEscapeViolation,
-        startupGateViolation: startupGateFindings.length > 0,
-        startupExitViolation: startupExitChecks.findings.length > 0 || startupExitNegativeProof.findings.length > 0,
-      }),
-    };
-  },
+  extraChecks: runCommanderExtraChecks,
 });

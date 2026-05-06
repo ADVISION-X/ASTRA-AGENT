@@ -20,6 +20,9 @@ const RUNNER_PATH = "scripts/audit/domains/map-plugin-package/run-inspector.ts";
 const AUDIT_PLAN_PATH = "scripts/audit/generated/audit-plan.generated.json";
 const ENFORCEMENT_MATRIX_PATH = "scripts/audit/generated/enforcement-matrix.generated.json";
 const BUILTIN_INDEX_PATH = "src/map-plugins/builtins/index.ts";
+const BUILTIN_LOADER_PATH = "src/map-plugins/builtin-loader/builtin-map-package-loader.ts";
+const BUILTIN_PARSER_PATH = "src/map-plugins/builtin-loader/builtin-map-package-parser.ts";
+const BUILTIN_ERROR_PATH = "src/map-plugins/builtin-loader/builtin-map-package-load-error.ts";
 
 const createEnforcementFinding = (file: string, line: number, message: string): Finding =>
   createFinding({ lawId: MAP_PLUGIN_LAWS.ENFORCEMENT, file, line, severity: "fatal", message });
@@ -104,11 +107,13 @@ const collectReadBuiltinFindings = (source: import("ts-morph").SourceFile): Find
 };
 
 const inspectBuiltinLoaderDiagnostics = (project: Project): Finding[] => {
-  const source = getSource(project, BUILTIN_INDEX_PATH);
+  const source = getSource(project, BUILTIN_ERROR_PATH);
+  const parserSource = getSource(project, BUILTIN_PARSER_PATH);
+  const loaderSource = getSource(project, BUILTIN_LOADER_PATH);
   return [
     ...collectBuiltinErrorClassFindings(source),
-    ...collectBuiltinParserFindings(source),
-    ...collectReadBuiltinFindings(source),
+    ...collectBuiltinParserFindings(parserSource),
+    ...collectReadBuiltinFindings(loaderSource),
   ];
 };
 

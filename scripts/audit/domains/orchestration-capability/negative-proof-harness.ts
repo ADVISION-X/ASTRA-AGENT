@@ -115,8 +115,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "post-action action log writer removal mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
-    search: "writeStructuredActionLog({",
-    replace: "writeStructuredRuntimeEvent({",
+    search: "input.context.forensics.writeStructuredActionLog(",
+    replace: "input.context.forensics.writeStructuredRuntimeEvent(",
   },
 ];
 

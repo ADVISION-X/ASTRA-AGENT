@@ -1,0 +1,115 @@
+
+> grasseye-local-workbench@0.1.0 audit:audit-system
+> node --import tsx scripts/audit/domains/audit-system/run-inspector.ts
+
+{
+  "auditConflicts": [],
+  "result": {
+    "inspector": "GrassEye Audit System Owner Inspector",
+    "inspectorId": "audit-system-owner",
+    "capabilityDomain": "audit-system",
+    "findings": [],
+    "phases": [
+      {
+        "name": "owner-foundation",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+      },
+      {
+        "name": "law-home",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Active law home is parseable and metadata-complete."
+      },
+      {
+        "name": "manifest-ownership",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Each active capabilityDomain resolves to one manifest owner."
+      },
+      {
+        "name": "generated-artifacts",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Generated registry, matrix, plan, and conflicts artifacts are present, readable, and rebuild-faithful."
+      },
+      {
+        "name": "ci-full-topology",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "CI full runs foundation first with code-purity as gate one, then map, then the 14 ability groups."
+      },
+      {
+        "name": "static-clause-coverage",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "static-clause-coverage is generated, clause-complete, and bound to the current global enforcement chain."
+      },
+      {
+        "name": "required-phase-domains",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Current phase gate and generated plan include every frozen owner and every active law domain from docs/法案辅助文件/GrassEye 法案冻结基线.md."
+      },
+      {
+        "name": "runner-boundary",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Runner stays on the generated-plan boundary."
+      },
+      {
+        "name": "owner-evidence",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Every owner inspector exposes shared owner evidence and static registry alignment."
+      },
+      {
+        "name": "audit-quality-authority",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Audit system remains the only repository quality gate authority."
+      },
+      {
+        "name": "owned-law-execution",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
+      },
+      {
+        "name": "production-path-simulation-ban",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Production startup and runtime paths are free of fixture/demo simulation markers."
+      },
+      {
+        "name": "negative-proof-wiring",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Audit-system inspector imports, invokes, and reports its negative-proof harness."
+      },
+      {
+        "name": "negative-proof-runtime-topology",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "All spawned negative-proof harnesses avoid unbounded full-inspector replay."
+      },
+      {
+        "name": "code-purity-nested-skip",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Code-purity scan is skipped for nested audit-system negative-proof execution."
+      },
+      {
+        "name": "negative-proof-harness",
+        "classification": "PASS",
+        "passed": true,
+        "summary": "Audit-system negative-proof harness was skipped for nested inspector execution."
+      }
+    ],
+    "summary": "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced",
+    "passed": true,
+    "classification": "PASS",
+    "violationCount": 0
+  }
+}

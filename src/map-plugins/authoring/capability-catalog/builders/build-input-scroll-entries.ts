@@ -6,12 +6,20 @@ import { buildEntry, humanize } from "../policies.js";
 
 const buildTextInputEntries = (): CapabilityCatalogEntry[] =>
   listMapPluginTextInputChildren().map((childCapabilityId) =>
-    buildEntry("text-input", childCapabilityId, `Execute governed text-input behavior for ${humanize(childCapabilityId)}.`),
+    buildEntry({
+      abilityGroupId: "text-input",
+      childCapabilityId,
+      description: `Execute governed text-input behavior for ${humanize(childCapabilityId)}.`,
+    }),
   );
 
 const buildMouseScrollEntries = (): CapabilityCatalogEntry[] =>
   listMapPluginMouseScrollChildren().map((childCapabilityId) =>
-    buildEntry("mouse-scroll", childCapabilityId, `Execute governed scroll behavior for ${humanize(childCapabilityId)}.`),
+    buildEntry({
+      abilityGroupId: "mouse-scroll",
+      childCapabilityId,
+      description: `Execute governed scroll behavior for ${humanize(childCapabilityId)}.`,
+    }),
   );
 
 export const buildInputScrollEntries = (): CapabilityCatalogEntry[] => [

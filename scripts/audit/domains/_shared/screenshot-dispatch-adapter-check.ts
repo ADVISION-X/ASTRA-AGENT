@@ -69,19 +69,22 @@ function sourceContainsAll(project: Project, filePath: string, snippets: readonl
 function getReturnedObjectLiteral(project: Project, functionName: string): ObjectLiteralExpression | null {
   const source = getSourceFileOrThrow(project, DISPATCH_FILE);
   const functionLike = getFunctionLike(source, functionName);
-  if (!functionLike || (!Node.isArrowFunction(functionLike) && !Node.isFunctionDeclaration(functionLike) && !Node.isFunctionExpression(functionLike))) {
+  if (!functionLike) {
     return null;
   }
+  const body = Node.isArrowFunction(functionLike) || Node.isFunctionDeclaration(functionLike) || Node.isFunctionExpression(functionLike)
+    ? functionLike.getBody()
+    : undefined;
+  return getReturnedObjectLiteralFromBody(body);
+}
 
-  const body = functionLike.getBody();
+function getReturnedObjectLiteralFromBody(body: import("ts-morph").Node | null | undefined): ObjectLiteralExpression | null {
   if (body && Node.isObjectLiteralExpression(body)) {
     return body;
   }
-
   if (!body || !Node.isBlock(body)) {
     return null;
   }
-
   const returnStatement = body.getDescendantsOfKind(SyntaxKind.ReturnStatement).find((statement) => {
     const expression = statement.getExpression();
     return Boolean(expression && Node.isObjectLiteralExpression(expression));
@@ -109,10 +112,7 @@ function getObjectPropertyLiteral(objectLiteral: ObjectLiteralExpression, proper
   return initializer && Node.isObjectLiteralExpression(initializer) ? initializer : null;
 }
 
-export function inspectScreenshotDispatchAdapter(project: Project, lawId: string): Finding[] {
-  const commonFields = getReturnedObjectLiteral(project, "buildScreenshotCommonFields");
-  const captureBrowserViewport = getReturnedObjectLiteral(project, "buildCaptureBrowserViewportCommand");
-
+const getMissingCommonFieldsFinding = (commonFields: ObjectLiteralExpression | null, lawId: string): Finding[] => {
   if (!commonFields) {
     return [createFinding({
       lawId,
@@ -122,27 +122,30 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
       message: "Screenshot local-runtime dispatch adapter must expose a dedicated governed common-field builder.",
     })];
   }
+  return [];
+};
 
-  const findings: Finding[] = [];
-  if (!COMMON_BINDINGS.every((binding) => hasBinding(commonFields, binding))) {
-    findings.push(createFinding({
+const getCommonBindingFindings = (commonFields: ObjectLiteralExpression, lawId: string): Finding[] =>
+  COMMON_BINDINGS.every((binding) => hasBinding(commonFields, binding))
+    ? []
+    : [createFinding({
       lawId,
       file: DISPATCH_FILE,
       line: 1,
       severity: "fatal",
       message: "Screenshot local-runtime dispatch adapter must preserve governed chain fields, inputRef, idempotencyKey, and timeoutMs before entering the Screenshot owner boundary.",
-    }));
-  }
+    })];
 
+const getViewportDispatchFindings = (captureBrowserViewport: ObjectLiteralExpression | null, lawId: string): Finding[] => {
+  const findings: Finding[] = [];
   if (!captureBrowserViewport) {
-    findings.push(createFinding({
+    return [createFinding({
       lawId,
       file: DISPATCH_FILE,
       line: 1,
       severity: "fatal",
       message: "Screenshot browser viewport dispatch adapter must remain explicit and owner-auditable.",
-    }));
-    return findings;
+    })];
   }
 
   const sourceLiteral = getObjectPropertyLiteral(captureBrowserViewport, "source");
@@ -165,7 +168,11 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
       message: "Screenshot browser viewport dispatch adapter must derive browser_viewport source and pageStateProof from governed transport payload refs.",
     }));
   }
+  return findings;
+};
 
+const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] => {
+  const findings: Finding[] = [];
   if (!sourceContainsAll(project, DISPATCH_FILE, PREPARE_AI_INPUT_SNIPPETS)) {
     findings.push(createFinding({
       lawId,
@@ -197,4 +204,18 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
   }
 
   return findings;
+};
+
+export function inspectScreenshotDispatchAdapter(project: Project, lawId: string): Finding[] {
+  const commonFields = getReturnedObjectLiteral(project, "buildScreenshotCommonFields");
+  const captureBrowserViewport = getReturnedObjectLiteral(project, "buildCaptureBrowserViewportCommand");
+  const missingCommonFields = getMissingCommonFieldsFinding(commonFields, lawId);
+
+  return commonFields
+    ? [
+      ...getCommonBindingFindings(commonFields, lawId),
+      ...getViewportDispatchFindings(captureBrowserViewport, lawId),
+      ...getSourceHandoffFindings(project, lawId),
+    ]
+    : missingCommonFields;
 }

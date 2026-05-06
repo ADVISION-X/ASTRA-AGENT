@@ -22,7 +22,7 @@ status: active
 
 本任务只有一个主循环：
 
-```txt
+
 读取当前 CI-FULL 违规报错
 → 通读对应法条
 → 通读对应施工图
@@ -44,7 +44,7 @@ status: active
 
 允许：
 
-```txt
+
 修正格式
 修正 OCR/识别错误
 修正明显文件编码/标题/换行问题
@@ -52,7 +52,7 @@ status: active
 
 禁止：
 
-```txt
+
 改法案内容
 降低法条
 删除法条
@@ -66,7 +66,7 @@ status: active
 
 如果发现法案内容本身疑似冲突：
 
-```txt
+
 不得自行改法案内容。
 输出 LAW-GAP，等待用户裁决。
 ```
@@ -79,7 +79,7 @@ status: active
 
 允许：
 
-```txt
+
 修正格式
 修正 OCR/识别错误
 修正文档结构导致的读取错误
@@ -87,7 +87,7 @@ status: active
 
 禁止：
 
-```txt
+
 为了过 CI 改施工图内容
 删除施工图要求
 弱化施工图要求
@@ -96,7 +96,7 @@ status: active
 
 如果施工图与法案冲突：
 
-```txt
+
 法案优先。
 不得自行改法案。
 不得自行改施工图内容。
@@ -114,7 +114,7 @@ CI-FULL 不是架构真相。
 
 权威顺序：
 
-```txt
+
 法案
 → 施工图
 → 对应质检脚本 / inspector
@@ -125,7 +125,7 @@ CI-FULL 不是架构真相。
 CI 报错后，第一步不是立刻改代码。  
 第一步是鉴权：
 
-```txt
+
 这个报错到底是代码错？
 还是质检脚本错？
 还是 generated/runner 漂移？
@@ -138,7 +138,7 @@ CI 报错后，第一步不是立刻改代码。
 
 Codex 必须严格按这个循环执行。
 
-```txt
+
 LOOP START
 
 1. 运行 npm run ci:full。
@@ -163,7 +163,7 @@ LOOP END
 
 禁止：
 
-```txt
+
 一次处理一堆问题然后不复验
 只看 CI 报错不读法案
 只看法案不读施工图
@@ -181,7 +181,7 @@ CI-FULL 未全绿就输出最终完成
 
 每一个 CI-FULL 违规必须输出以下结构。
 
-```txt
+
 [CI-VIOLATION]
 失败命令：
 失败文件：
@@ -196,7 +196,7 @@ CI-FULL 未全绿就输出最终完成
 
 然后输出：
 
-```txt
+
 [AUTH-READ]
 已通读法条：YES/NO
 已通读施工图：YES/NO
@@ -205,7 +205,7 @@ CI-FULL 未全绿就输出最终完成
 
 然后输出：
 
-```txt
+
 [FAULT-JUDGMENT]
 裁决只能是以下之一：
 
@@ -218,7 +218,7 @@ CI-FULL 未全绿就输出最终完成
 
 不得输出模糊裁决：
 
-```txt
+
 可能是
 大概是
 建议后续
@@ -234,13 +234,13 @@ CI-FULL 未全绿就输出最终完成
 
 定义：
 
-```txt
+
 代码文件违反了冻结法案、冻结施工图、以及经过鉴权的合法质检脚本。
 ```
 
 处理：
 
-```txt
+
 删除 / 删除重写 / 物理切割违规代码文件或违规模块。
 不得小补丁糊住。
 不得新增 bridge。
@@ -252,7 +252,7 @@ CI-FULL 未全绿就输出最终完成
 
 要求：
 
-```txt
+
 重写后的代码必须更小、更清楚、更符合 owner 边界。
 必须满足 code-purity。
 必须满足 type-safety。
@@ -261,7 +261,7 @@ CI-FULL 未全绿就输出最终完成
 
 输出：
 
-```txt
+
 [CODE-FILE-REWRITE]
 违规原因：
 删除/重写文件：
@@ -275,20 +275,20 @@ CI-FULL 未全绿就输出最终完成
 
 定义：
 
-```txt
+
 质检脚本逻辑错误、越权、误读法案、误读施工图、或把施工图辅助内容当成新增法案。
 ```
 
 处理：
 
-```txt
+
 删除对应质检脚本文件。
 按法案 + 施工图重新写。
 ```
 
 原则：
 
-```txt
+
 现在 code-purity 已经执行，质检脚本应该小而清楚。
 如果 inspector 逻辑错，不要补丁修补。
 直接删除对应 inspector 文件并重写。
@@ -296,13 +296,13 @@ CI-FULL 未全绿就输出最终完成
 
 必须重写：
 
-```txt
+
 scripts/audit/domains/<owner>/inspector.ts
 ```
 
 必要时同步重写：
 
-```txt
+
 scripts/audit/domains/<owner>/negative-proof-harness.ts
 scripts/audit/domains/<owner>/run-inspector.ts
 scripts/audit/domains/<owner>/manifest.json
@@ -310,7 +310,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 禁止：
 
-```txt
+
 为了消除误报去改代码
 为了保留旧 inspector 加例外
 把 FAIL 改 WARNING
@@ -320,7 +320,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 输出：
 
-```txt
+
 [INSPECTOR-REWRITE]
 错误逻辑：
 对应法条：
@@ -335,13 +335,13 @@ scripts/audit/domains/<owner>/manifest.json
 
 定义：
 
-```txt
+
 法案/施工图有明确要求，但质检脚本没有覆盖，导致 CI 没拦或拦得不完整。
 ```
 
 处理：
 
-```txt
+
 补齐 inspector。
 补齐 negative proof。
 补齐 owner audit 入口。
@@ -350,7 +350,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 要求：
 
-```txt
+
 该要求必须能 fail。
 必须有正反例。
 必须有 negative proof。
@@ -358,7 +358,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 输出：
 
-```txt
+
 [ENFORCEMENT-ADD]
 缺失要求：
 新增 inspector 检查：
@@ -371,13 +371,13 @@ scripts/audit/domains/<owner>/manifest.json
 
 定义：
 
-```txt
+
 法案、manifest、matrix、audit-plan、runner-summary、generated artifacts 之间漂移。
 ```
 
 处理：
 
-```txt
+
 修 source law / manifest / generator / runner source。
 重新运行 audit:build。
 不得手工改 generated 伪造 PASS。
@@ -385,7 +385,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 输出：
 
-```txt
+
 [GENERATED-DRIFT-FIX]
 漂移位置：
 真实源头：
@@ -399,13 +399,13 @@ scripts/audit/domains/<owner>/manifest.json
 
 定义：
 
-```txt
+
 冻结法案与施工图内容真实冲突，或法案本身缺授权，Codex 无权裁决。
 ```
 
 处理：
 
-```txt
+
 停止当前项。
 不得继续猜。
 不得修改法案内容。
@@ -415,7 +415,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 输出：
 
-```txt
+
 [LAW-BLUEPRINT-CONFLICT-NEEDS-USER]
 冲突法条：
 冲突施工图段落：
@@ -434,7 +434,7 @@ CI 报错：
 
 必须读取：
 
-```txt
+
 lawId
 summary
 主题
@@ -449,7 +449,7 @@ Final readiness gate
 
 必须读取：
 
-```txt
+
 对应 owner 施工图
 对应章节
 对应目录结构
@@ -461,7 +461,7 @@ Final readiness gate
 
 必须读取：
 
-```txt
+
 inspector 当前逻辑
 run-inspector 当前入口
 negative-proof 当前覆盖
@@ -477,26 +477,26 @@ package.json 当前 audit 命令
 
 ### 6.1 质检脚本错
 
-```txt
+
 删除对应 inspector 文件，重写。
 ```
 
 原因：
 
-```txt
+
 当前 code-purity 已经要求质检脚本小而清楚。
 小文件逻辑错，继续补丁只会形成缝合怪。
 ```
 
 ### 6.2 代码文件错
 
-```txt
+
 删除违规文件 / 删除违规模块 / 物理切割后重写。
 ```
 
 原因：
 
-```txt
+
 代码文件违规说明它已经偏离法案或施工图。
 不要打补丁。
 重写成单一职责、小文件、清晰 owner 边界。
@@ -504,14 +504,14 @@ package.json 当前 audit 命令
 
 ### 6.3 generated 漂移
 
-```txt
+
 修 source，不手改 generated。
 重新运行 audit:build。
 ```
 
 ### 6.4 法案/施工图识别错误
 
-```txt
+
 只允许修格式/OCR/识别错误。
 内容不改。
 ```
@@ -522,7 +522,7 @@ package.json 当前 audit 命令
 
 重写 inspector 必须满足：
 
-```txt
+
 1. 小文件。
 2. 单 owner。
 3. 单职责。
@@ -539,7 +539,7 @@ package.json 当前 audit 命令
 
 禁止：
 
-```txt
+
 warning-only
 info-only
 no-op pass
@@ -555,7 +555,7 @@ fake pass
 
 重写代码必须满足：
 
-```txt
+
 1. 文件小。
 2. 函数小。
 3. 职责单一。
@@ -585,14 +585,14 @@ npm run ci:full
 
 如果 ci:full 仍失败：
 
-```txt
+
 读取新的第一个阻断项。
 继续循环。
 ```
 
 如果同一个阻断项仍失败：
 
-```txt
+
 继续当前项，不得进入下一个。
 ```
 
@@ -618,7 +618,7 @@ npm run ci:full
 
 只有 CI-FULL 连续两次全绿，才输出：
 
-```txt
+
 [FINAL-CI-FULL-SIMPLE-REPORT]
 
 1. VERDICT
@@ -670,7 +670,7 @@ CI-FULL 已真实全绿；法案和施工图内容冻结未被破坏；质检脚
 
 以下任一存在，不得输出最终报告：
 
-```txt
+
 CI-FULL 未全绿
 只绿了一次，没有第二次确认
 法案内容被改
@@ -688,7 +688,7 @@ generated 被手工改
 
 ## 13. 一句话启动纪律
 
-```txt
+
 现在开始：
 运行 npm run ci:full。
 读取第一个违规。

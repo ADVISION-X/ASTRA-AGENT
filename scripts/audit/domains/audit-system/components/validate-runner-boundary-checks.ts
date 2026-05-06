@@ -102,3 +102,40 @@ export const hasFailureExitAssignment = (sourceFile: AuditSourceFile): boolean =
 
   return hasExitCodeAssignment || hasFailFastExitCall;
 };
+
+export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): boolean => {
+  const envDeclaration = sourceFile.getVariableDeclaration("RUN_NEGATIVE_PROOF_ENV");
+  const skipDeclaration = sourceFile.getVariableDeclaration("DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV");
+  const applyPolicy = sourceFile.getFunction("applyDefaultNegativeProofPolicy")
+    ?? sourceFile.getVariableDeclaration("applyDefaultNegativeProofPolicy");
+  const skipInitializer = skipDeclaration?.getInitializer();
+  const skipArray = Node.isArrayLiteralExpression(skipInitializer)
+    ? skipInitializer
+    : Node.isAsExpression(skipInitializer)
+      ? skipInitializer.getExpression().asKind(SyntaxKind.ArrayLiteralExpression)
+      : undefined;
+  const skipValues = skipArray?.getElements()
+    .filter(Node.isStringLiteral)
+    .map((literal) => literal.getLiteralText()) ?? [];
+  const requiredSkipValues = [
+    "GRASSEYE_SKIP_AI_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY",
+    "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF",
+  ];
+  const policyCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "applyDefaultNegativeProofPolicy";
+  });
+  const buildCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "buildAuditArtifacts";
+  });
+
+  return envDeclaration?.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralText() === "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF"
+    && requiredSkipValues.every((value) => skipValues.includes(value))
+    && Boolean(applyPolicy)
+    && Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());
+};

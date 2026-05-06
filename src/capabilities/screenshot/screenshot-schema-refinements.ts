@@ -112,6 +112,12 @@ const validateScreenshotRuntimeProofSuccessArtifacts = (value: ScreenshotRuntime
   validateScreenshotRuntimeProofSuccessArtifactLifecycle(value, context);
 };
 
+const validatePrepareAiInputScaleMapping = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
+  if (value.status === "success" && value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-ai-input proof requires scaleMapping", path: ["scaleMapping"] });
+  }
+};
+
 const validateScreenshotRuntimeProofSuccessOutputRef = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
   if (value.status === "success" && !value.outputRef) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
@@ -160,9 +166,7 @@ const validateOptimizeLosslessProof = (value: ScreenshotRuntimeProofValidationTa
 };
 
 export const validateScreenshotRuntimeProofPrepareAiInput = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
-  if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-ai-input proof requires scaleMapping", path: ["scaleMapping"] });
-  }
+  validatePrepareAiInputScaleMapping(value, context);
   validateCaptureRegionScaleMapping(value, context);
   validateOptimizeLosslessProof(value, context);
 };

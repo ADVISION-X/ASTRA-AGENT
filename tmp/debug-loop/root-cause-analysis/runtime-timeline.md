@@ -7,170 +7,137 @@ Boundary: analysis only; no production, law, blueprint, inspector, or negative-p
 
 Primary evidence:
 
-- `docs/Codex提示词/终端日志复制.md`
-- latest real startup / runtime run
-- `runId=2026-05-05T17:10:09.996Z`
-
-Cross-check evidence:
-
 - `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
-- earlier but consistent with the same blocker families
+- `tmp/debug-loop/post-fix-runtime-verification/runtime-logs-api.json`
+- `tmp/debug-loop/post-fix-runtime-verification/task-trigger-summary.md`
 
-Mixed evidence only:
+Supporting ingress-proof evidence:
 
-- `tmp/debug-loop/post-fix-runtime-verification/runtime-snapshot.json`
-- contains both current blocker families and older screenshot parity failures
+- `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-tiktok.json`
+- `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-facebook.json`
+
+Historical only:
+
+- older markdown already present under `tmp/debug-loop/root-cause-analysis/`
+- older mixed snapshots in the verification bundle
 
 ## Startup Timeline
 
-The latest real startup log proves startup is not the blocker:
+The latest real runtime restart began at `2026-05-06T10:16:17.515Z`.
 
-1. `dependency_check`: PASS
-2. `update_preflight_check`: PASS
-3. `map_package_readiness_check`: PASS
-4. local AI presence / roster / health: PASS
-5. app shell health gate: PASS
-6. Commander Console opened: PASS
-7. `mission_runtime_available`: PASS
-8. `waiting_for_human_command`: READY
+Startup passed these gates before any task dispatch:
 
-`tmp/debug-loop/startup-failures/` contains older failure bundles, but none override the latest 17:10 startup pass.
+1. `dependency_check`
+2. `update_preflight_check`
+3. `map_package_readiness_check`
+4. local AI readiness gates
+5. `port_clear`
+6. `app_server`
+7. `APP_SHELL_HEALTH_PASSED`
+8. `open_console`
+9. `mission_runtime_available`
+10. `terminal_structured_log_relay`
+11. `waiting_for_human_command`
 
-## Mission Timeline By Map
+Conclusion:
 
-### Facebook Web
+- startup is not the current blocker
 
-Key latest-log sequence:
+## Command Path Timeline
 
-1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_PREFLIGHT_PASSED`
-3. `COMMANDER_COMMAND_ENVELOPE_BUILT`
-4. `NERVE_BUS_ENVELOPE_CREATED`
-5. `ORCHESTRATION_START_RECEIVED`
-6. `MISSION_ACTIVATION_SNAPSHOT_FROZEN`
-7. `COMMAND_ACCEPTED`
-8. `open-facebook-reels`: success
-9. `verify-facebook-reels-open`: success
-10. `detect-login-state`: success
-11. `detect-safety-page`: success
-12. `detect-feed-ready`: success
-13. `capture-video-viewport`: success
-14. `prepare-ai-input`: `CAPABILITY_CALL_FAILED`
-15. `STEP_TRANSITION_EVALUATED prepare-ai-input:failed`: success
-16. `MISSION_FAILED`
+Selected authoritative task:
 
-First blocking failure:
+- `taskTemplateId=tiktok-seeding-video-discovery`
+- `requestedPlatformId=tiktok-web`
+- `selectedMapId=tiktok.seeding-video.discovery.meta.v1`
+- `commandId=commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba`
+- `runId=commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba:run`
 
-```txt
-invalid_type -> path ["source"] -> message "Required"
-```
-
-Meaning:
-
-- Open, page-state, screenshot capture, and transition routing all worked up to the `prepare-ai-input` dispatch.
-- The stop point is not startup and not missing runtime event emission.
-
-### iPhone Mirroring Facebook App
-
-Key latest-log sequence:
+Observed command / preflight sequence:
 
 1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_PREFLIGHT_PASSED`
-3. `COMMAND_ACCEPTED`
-4. `open-iphone-mirroring`: `CAPABILITY_CALL_STARTED`
-5. `open-iphone-mirroring`: `CAPABILITY_CALL_FAILED`
-6. `STEP_TRANSITION_EVALUATED`: failed
-7. `MISSION_FAILED`
+2. `MISSION_READINESS_CHECK_STARTED`
+3. `MISSION_PREFLIGHT_STARTED`
+4. `MISSION_PREFLIGHT_PASSED`
+5. `COMMANDER_COMMAND_ENVELOPE_BUILT`
+6. `NERVE_BUS_ENVELOPE_CREATED`
+7. `NERVE_BUS_DISPATCH_STARTED`
+8. `ORCHESTRATION_START_RECEIVED`
+9. `MISSION_ACTIVATION_SNAPSHOT_FROZEN`
+10. `COMMAND_ACCEPTED`
 
-First direct step failure:
+Observed forensics continuity during command start:
 
-```txt
-OpenLocalProgramPort is not configured
-```
+- `FORENSICS_RECORD_WRITE_REQUESTED`
+- `FORENSICS_RECORD_WRITTEN`
 
-Second derived failure:
+Conclusion:
 
-```txt
-Map "iphone.mirroring.facebook.seeding-video.discovery.v1" has no matching transition from step "open-iphone-mirroring" for status "failed".
-```
+- Commander, Nerve Bus, Orchestration start, and Forensics write flow are all active in the latest real bundle
 
-Meaning:
+## Mission Loop Timeline
 
-- The first blocker is missing local-program execution wiring.
-- The map then fails its declared failure path closure.
+Observed governed step sequence for the authoritative run:
 
-### iPhone Mirroring TikTok App
+1. `open-tiktok-feed` selected, dispatched, executed, and completed successfully
+2. `verify-tiktok-feed-open` selected and completed successfully
+3. `detect-login-state` selected and completed successfully
+4. `detect-safety-page` selected and completed successfully
+5. `detect-feed-ready` selected and completed successfully
+6. `capture-video-viewport` selected, dispatched, executed, and completed successfully
+7. `prepare-ai-input` selected
+8. `STEP_PRECONDITION_CHECKED` passed for `prepare-ai-input`
+9. `STEP_DISPATCH_STARTED` for Screenshot `prepare-ai-input`
+10. `CAPABILITY_CALL_STARTED` for Screenshot `prepare-ai-input`
+11. `CAPABILITY_CALL_FAILED` with `prepare-ai-input proof requires scaleMapping`
+12. `STEP_TRANSITION_EVALUATED prepare-ai-input:failed` succeeded
+13. `MISSION_FAILED`
 
-Key latest-log sequence mirrors the Facebook mirroring run:
+Conclusion:
 
-1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_PREFLIGHT_PASSED`
-3. `COMMAND_ACCEPTED`
-4. `open-iphone-mirroring`: `CAPABILITY_CALL_STARTED`
-5. `open-iphone-mirroring`: `CAPABILITY_CALL_FAILED`
-6. `STEP_TRANSITION_EVALUATED`: failed
-7. `MISSION_FAILED`
+- the authoritative mission reaches Screenshot child execution after full startup and mission dispatch
+- the first live execution blocker is Screenshot `prepare-ai-input`
 
-First direct step failure:
+## Cross-Run Consistency Inside The Same Bundle
 
-```txt
-OpenLocalProgramPort is not configured
-```
+The API bundle contains the same `prepare-ai-input proof requires scaleMapping` failure on:
 
-Second derived failure:
+- `commander_command_89508c2b-4391-4f44-a98f-766f0c6ce39a:run`
+- `commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba:run`
 
-```txt
-Map "iphone.mirroring.tiktok.seeding-video.discovery.v1" has no matching transition from step "open-iphone-mirroring" for status "failed".
-```
+Conclusion:
 
-### TikTok Web
+- the Screenshot blocker is not a single-run artifact
 
-Key latest-log sequence mirrors Facebook web:
+## LOG_EVENT_MISSING Findings
 
-1. `HUMAN_COMMAND_VALIDATED`
-2. `MISSION_PREFLIGHT_PASSED`
-3. `COMMAND_ACCEPTED`
-4. `open-tiktok-feed`: success
-5. `verify-tiktok-feed-open`: success
-6. `detect-login-state`: success
-7. `detect-safety-page`: success
-8. `detect-feed-ready`: success
-9. `capture-video-viewport`: success
-10. `prepare-ai-input`: `CAPABILITY_CALL_FAILED`
-11. `STEP_TRANSITION_EVALUATED prepare-ai-input:failed`: success
-12. `MISSION_FAILED`
+### LOG_EVENT_MISSING-1: `HUMAN_COMMAND_DRAFTED`
 
-First blocking failure:
+- required by the command-ingress transparency contract
+- not present in the latest terminal relay
+- not present in the latest API bundle
+- code path for emission exists in `recordTaskStartDraftEvents(...)`
 
-```txt
-invalid_type -> path ["source"] -> message "Required"
-```
+### LOG_EVENT_MISSING-2: `HUMAN_COMMAND_RECEIVED`
 
-## Cross-Run Consistency
+- required by the command-ingress transparency contract
+- not present in the latest terminal relay
+- not present in the latest API bundle
+- code path for emission exists in `recordTaskStartDraftEvents(...)`
 
-The earlier 17:03 verification log confirms the same live blocker families:
+### LOG_EVENT_INCONSISTENT-1: `COMMAND_ACCEPTED`
 
-- web maps still fail on missing `source` at `prepare-ai-input`
-- mirroring maps still fail on missing `OpenLocalProgramPort`
-- mirroring maps still fail on missing `open-iphone-mirroring:failed` transition closure
+- present in multiple forms
+- at least one accepted-command payload in the API bundle still carries `missionId: null`
+- accepted HTTP receipt runtime proofs in both `current-facebook` and `current-tiktok` artifacts carry `missionId: null` and `traceId: null`
+- later mission-bound `COMMAND_ACCEPTED` records do carry stronger correlation data
 
-What it does not justify:
+Conclusion:
 
-- treating older mixed `videoVisitId` parity failures as the current primary blocker
+- the ingress timeline is reconstructible only by combining multiple artifacts
+- this is sufficient to elevate a P1 observability / proof-chain blocker
 
-## Removed Old Narrative
+## Historical / Non-Current Timeline Notes
 
-The latest real evidence disproves these claims as current:
-
-- startup is the stop point
-- `COMMAND_ACCEPTED` is missing
-- `CAPABILITY_CALL_STARTED` is missing
-- screenshot `videoVisitId` parity is the only live blocker
-
-## Current Bottom Line
-
-The latest real runtime proves three current blocker facts:
-
-1. Web maps currently stop at screenshot `prepare-ai-input` because `source` is missing.
-2. Mirroring maps first stop because the Open runtime has no `OpenLocalProgramPort` wired.
-3. Mirroring maps then hit a second blocking governance defect because `open-iphone-mirroring` has no failed / review transition closure.
+- the old `prepare-ai-input` missing-`source` blocker is not the first failure in the latest authoritative run
+- earlier mirroring blockers were not exercised by the selected authoritative web rerun and therefore stay historical in this package

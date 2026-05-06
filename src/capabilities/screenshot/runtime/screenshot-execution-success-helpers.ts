@@ -6,6 +6,14 @@ import type {
   ScreenshotSourceProof,
 } from "../contract.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
+import {
+  resolveBrowserCaptureCoordinateSpace,
+  resolveBrowserCaptureScaleMapping,
+} from "./screenshot-browser-capture-truth.js";
+import {
+  resolveTransformCoordinateSpace,
+  resolveTransformScaleMapping,
+} from "./screenshot-transform-truth.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import { dispatchScreenshotExecutionFailure, type ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
@@ -147,90 +155,55 @@ const resolveScreenshotSourceHash = async (input: ScreenshotSuccessPathInput): P
 const isScreenshotTransformPath = (input: ScreenshotSuccessPathInput): input is ScreenshotTransformPathInput =>
   input.plan.kind === "image-processing";
 
-const resolveStoredSourceDimensions = (input: ScreenshotTransformPathInput) => ({
-  sourceWidth: input.plan.sourceProof.sourceWidth ?? input.imageRun?.output?.sourceWidth ?? input.captureRun?.captureResult?.capture.width ?? 0,
-  sourceHeight: input.plan.sourceProof.sourceHeight ?? input.imageRun?.output?.sourceHeight ?? input.captureRun?.captureResult?.capture.height ?? 0,
-});
+const resolveCaptureScaleMapping = (input: ScreenshotSuccessPathInput): ScreenshotScaleMapping => {
+  const storageRef = input.artifactGate.artifactRef?.storageRef ?? input.scope.fallbackSourceArtifactRef?.storageRef ?? null;
+  const captureResult = input.captureRun?.captureResult;
 
-const resolveTransformedTargetDimensions = (input: ScreenshotTransformPathInput) => ({
-  targetWidth: input.imageRun?.output?.width ?? input.captureRun?.captureResult?.capture.width ?? 0,
-  targetHeight: input.imageRun?.output?.height ?? input.captureRun?.captureResult?.capture.height ?? 0,
-});
+  if (captureResult?.kind === "browser") {
+    return resolveBrowserCaptureScaleMapping({
+      capture: captureResult.capture,
+      sourceStorageRef: storageRef,
+    });
+  }
 
-const resolveCaptureScaleMapping = (input: ScreenshotSuccessPathInput): ScreenshotScaleMapping =>
-  buildIdentityScaleMapping({
+  return buildIdentityScaleMapping({
     sourceScreenshotEvidenceId: null,
-    sourceStorageRef: input.artifactGate.artifactRef?.storageRef ?? input.scope.fallbackSourceArtifactRef?.storageRef ?? null,
+    sourceStorageRef: storageRef,
     sourceCoordinateSpace: input.registryEntry.coordinateSpacePolicy === "desktop_screen_pixels" ? "desktop_screen_pixels" : "browser_viewport_pixels",
     sourceWidth: input.captureRun?.captureResult?.capture.width ?? input.imageRun?.output?.sourceWidth ?? 0,
     sourceHeight: input.captureRun?.captureResult?.capture.height ?? input.imageRun?.output?.sourceHeight ?? 0,
   });
-
-const resolveCaptureRegionScaleMapping = (input: ScreenshotTransformPathInput): ScreenshotScaleMapping =>
-  buildDerivedScaleMapping({
-    sourceScreenshotEvidenceId: input.plan.sourceProof.sourceScreenshotEvidenceId,
-    sourceStorageRef: input.plan.sourceProof.sourceStorageRef,
-    sourceCoordinateSpace: input.plan.sourceProof.coordinateSpace ?? "source_image_pixels",
-    targetCoordinateSpace: "region_crop_pixels",
-    ...resolveStoredSourceDimensions(input),
-    ...resolveTransformedTargetDimensions(input),
-    cropOffsetX: input.imageRun?.output?.cropOffsetX ?? input.request.region?.x ?? 0,
-    cropOffsetY: input.imageRun?.output?.cropOffsetY ?? input.request.region?.y ?? 0,
-  });
-
-const resolveOptimizeLosslessScaleMapping = (input: ScreenshotTransformPathInput): ScreenshotScaleMapping =>
-  buildIdentityScaleMapping({
-    sourceScreenshotEvidenceId: input.plan.sourceProof.sourceScreenshotEvidenceId,
-    sourceStorageRef: input.plan.sourceProof.sourceStorageRef,
-    sourceCoordinateSpace: input.plan.sourceProof.coordinateSpace ?? "source_image_pixels",
-    ...resolveStoredSourceDimensions(input),
-  });
-
-const resolvePrepareAiInputScaleMapping = (input: ScreenshotTransformPathInput): ScreenshotScaleMapping =>
-  buildDerivedScaleMapping({
-    sourceScreenshotEvidenceId: input.plan.sourceProof.sourceScreenshotEvidenceId,
-    sourceStorageRef: input.plan.sourceProof.sourceStorageRef,
-    sourceCoordinateSpace: input.plan.sourceProof.coordinateSpace ?? "source_image_pixels",
-    targetCoordinateSpace: "ai_input_pixels",
-    ...resolveStoredSourceDimensions(input),
-    ...resolveTransformedTargetDimensions(input),
-    cropOffsetX: input.imageRun?.output?.cropOffsetX ?? 0,
-    cropOffsetY: input.imageRun?.output?.cropOffsetY ?? 0,
-  });
-
-const resolveTransformScaleMapping = (input: ScreenshotTransformPathInput): ScreenshotScaleMapping => {
-  switch (input.plan.operation) {
-    case "capture-region":
-      return resolveCaptureRegionScaleMapping(input);
-    case "optimize-lossless":
-      return resolveOptimizeLosslessScaleMapping(input);
-    case "prepare-ai-input":
-      return resolvePrepareAiInputScaleMapping(input);
-  }
-
-  throw new Error("Unsupported screenshot transform operation.");
 };
 
 const resolveScreenshotScaleMapping = (input: ScreenshotSuccessPathInput): ScreenshotScaleMapping | null =>
-  isScreenshotTransformPath(input) ? resolveTransformScaleMapping(input) : resolveCaptureScaleMapping(input);
+  isScreenshotTransformPath(input)
+    ? resolveTransformScaleMapping({
+        operation: input.plan.operation,
+        sourceProof: input.plan.sourceProof,
+        imageOutput: input.imageRun?.output ?? null,
+        captureSize: input.captureRun?.captureResult?.capture ?? null,
+        region: input.request.region,
+      })
+    : resolveCaptureScaleMapping(input);
 
-const resolveTransformCoordinateSpace = (input: ScreenshotTransformPathInput): ScreenshotRuntimeProof["coordinateSpace"] => {
-  switch (input.plan.operation) {
-    case "capture-region":
-      return "region_crop_pixels";
-    case "optimize-lossless":
-      return input.plan.sourceProof.coordinateSpace ?? "source_image_pixels";
-    case "prepare-ai-input":
-      return "ai_input_pixels";
+const resolveCaptureCoordinateSpace = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["coordinateSpace"] => {
+  const captureResult = input.captureRun?.captureResult;
+  if (captureResult?.kind === "browser") {
+    return resolveBrowserCaptureCoordinateSpace(captureResult.capture);
   }
 
-  throw new Error("Unsupported screenshot transform coordinate space.");
+  return input.registryEntry.coordinateSpacePolicy === "desktop_screen_pixels"
+    ? "desktop_screen_pixels"
+    : "browser_viewport_pixels";
 };
 
 const resolveScreenshotCoordinateSpace = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["coordinateSpace"] =>
   isScreenshotTransformPath(input)
-    ? resolveTransformCoordinateSpace(input)
-    : (input.registryEntry.coordinateSpacePolicy === "desktop_screen_pixels" ? "desktop_screen_pixels" : "browser_viewport_pixels");
+    ? resolveTransformCoordinateSpace({
+        operation: input.plan.operation,
+        sourceCoordinateSpace: input.plan.sourceProof.coordinateSpace,
+      })
+    : resolveCaptureCoordinateSpace(input);
 
 const resolveScreenshotOutputDimensions = (input: ScreenshotSuccessPathInput): { outputWidth: number | null; outputHeight: number | null } => ({
   outputWidth: input.captureRun?.captureResult?.capture.width ?? input.imageRun?.output?.width ?? null,

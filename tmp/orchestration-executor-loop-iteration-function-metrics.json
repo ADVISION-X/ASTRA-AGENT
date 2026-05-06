@@ -1,0 +1,22 @@
+{
+  "lineCount": 360,
+  "offenders": [
+    {
+      "name": "runMissionLoopIteration",
+      "line": 263,
+      "logicalLines": 88,
+      "statements": 26,
+      "parameters": 1,
+      "returns": 6,
+      "depth": 1,
+      "complexity": 6,
+      "switchCases": 0,
+      "ifChain": 1,
+      "booleanParameters": 0,
+      "over": [
+        "logicalLines",
+        "returns"
+      ]
+    }
+  ]
+}

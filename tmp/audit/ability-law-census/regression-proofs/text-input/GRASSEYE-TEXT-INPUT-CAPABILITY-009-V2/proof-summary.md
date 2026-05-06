@@ -1,6 +1,6 @@
 # GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2 Proof Summary
 
-scenarioId: text-input-negative-proof-removed
+scenarioId: text-input-negative-proof-invocation-removed
 mutationName: negative proof invocation removed mutation
 mutatedFile: scripts/audit/domains/text-input-capability/inspector.ts
 coveredLawIds: GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2
@@ -9,7 +9,7 @@ rollbackPassOutput: tmp/audit/ability-law-census/regression-proofs/text-input/GR
 
 ## Why This Law Is Covered
 
-The mutation disconnects the Text Input inspector from its negative-proof harness, proving release truth requires live inspector plus negative-proof wiring.
+The mutation disconnects the Text Input inspector from its negative-proof harness, proving enforcement must close through the owner-local inspector plus negative-proof chain.
 
 ## Result
 

@@ -74,6 +74,22 @@ const MUTATIONS: Mutation[] = [
     skipBuild: true,
   },
   {
+    name: "ci full parallel preflight disabled mutation",
+    file: "scripts/audit/ci-full.ts",
+    search: "    label: \"independent-preflight\",\n    parallel: true,",
+    replace: "    label: \"independent-preflight\",\n    parallel: false,",
+    expectedNeedle: "CI full must run independent preflight as a parallel stage.",
+    skipBuild: true,
+  },
+  {
+    name: "default audit negative proof policy removed mutation",
+    file: "scripts/audit/runner.ts",
+    search: "applyDefaultNegativeProofPolicy();",
+    replace: "process.stdout.write(\"[AUDIT] negative proof policy removed by mutation.\\n\");",
+    expectedNeedle: "Runner must keep production mutation negative proof out of the default law-compliance audit unless GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 is explicitly set.",
+    skipBuild: true,
+  },
+  {
     name: "static-clause-coverage fake ENFORCED mutation",
     file: "scripts/audit/generated/static-clause-coverage.generated.json",
     search: '"coverageStatus": "OWNER_BINDING_PROOF_CAPTURED"',

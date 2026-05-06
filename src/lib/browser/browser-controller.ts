@@ -18,6 +18,8 @@ type BrowserCaptureResult = {
   regionType: string;
   width: number;
   height: number;
+  viewportWidth: number;
+  viewportHeight: number;
   contentLines?: string[];
   sourceFilePath: string;
   createdAt: string;

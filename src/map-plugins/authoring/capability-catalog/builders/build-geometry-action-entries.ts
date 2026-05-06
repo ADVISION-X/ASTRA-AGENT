@@ -8,16 +8,28 @@ const MAP_PLUGIN_GEOMETRY_GUARD_ALIAS_CHILDREN = ["normalize-coordinate-geometry
 
 const buildGeometryGuardEntries = (): CapabilityCatalogEntry[] => [
   ...listGeometryGuardChildren().map((childCapabilityId) =>
-    buildEntry("geometry-guard", childCapabilityId, `Normalize or validate governed geometry for ${humanize(childCapabilityId)}.`),
+    buildEntry({
+      abilityGroupId: "geometry-guard",
+      childCapabilityId,
+      description: `Normalize or validate governed geometry for ${humanize(childCapabilityId)}.`,
+    }),
   ),
   ...MAP_PLUGIN_GEOMETRY_GUARD_ALIAS_CHILDREN.map((childCapabilityId) =>
-    buildEntry("geometry-guard", childCapabilityId, "Normalize governed coordinate geometry for map-routable action steps."),
+    buildEntry({
+      abilityGroupId: "geometry-guard",
+      childCapabilityId,
+      description: "Normalize governed coordinate geometry for map-routable action steps.",
+    }),
   ),
 ];
 
 const buildMouseClickEntries = (): CapabilityCatalogEntry[] =>
   listMouseClickChildren().map((childCapabilityId) =>
-    buildEntry("mouse-click", childCapabilityId, `Execute governed click behavior for ${humanize(childCapabilityId)}.`),
+    buildEntry({
+      abilityGroupId: "mouse-click",
+      childCapabilityId,
+      description: `Execute governed click behavior for ${humanize(childCapabilityId)}.`,
+    }),
   );
 
 export const buildGeometryActionEntries = (): CapabilityCatalogEntry[] => [

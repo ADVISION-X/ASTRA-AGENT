@@ -213,6 +213,8 @@ const ScreenshotBrowserCaptureSchema = z.object({
   regionType: z.string().min(1),
   width: positiveFiniteNumber,
   height: positiveFiniteNumber,
+  viewportWidth: positiveFiniteNumber,
+  viewportHeight: positiveFiniteNumber,
   contentLines: z.array(z.string().min(1)).default([]),
   sourceFilePath: z.string().min(1),
   createdAt: z.string().datetime(),

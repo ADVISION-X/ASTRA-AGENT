@@ -49,56 +49,61 @@ const createUnifiedPatch = (filePath: string, original: string, mutated: string)
   return `${lines.join("\n")}\n`;
 };
 
+const buildCombinedPatch = (scenarios: ScenarioProof[]): string =>
+  scenarios.map((scenario) => createUnifiedPatch(scenario.file, scenario.originalContent, scenario.mutatedContent)).join("\n");
+
+const buildCombinedFailOutput = (scenarios: ScenarioProof[]): string =>
+  scenarios.map((scenario) => [`## ${scenario.name}`, scenario.failOutput.trim()].join("\n\n")).join("\n\n");
+
+const buildMutationDescription = (scenarios: ScenarioProof[]): string => [
+  "# Audit-System Static Clause Coverage Mutations",
+  "",
+  ...scenarios.flatMap((scenario) => [
+    `## ${scenario.name}`,
+    `- file: ${scenario.file}`,
+    `- expectedNeedle: ${scenario.expectedNeedle}`,
+    `- beforeHash: sha256:${hashText(scenario.originalContent)}`,
+    `- afterHash: sha256:${hashText(scenario.mutatedContent)}`,
+    "",
+  ]),
+].join("\n");
+
+const buildRollbackProof = (rollbackOutput: string): string => [
+  "# Rollback Proof",
+  "",
+  "All temporary audit-system static-clause-coverage mutations were rolled back before the baseline inspector output was rechecked.",
+  "",
+  rollbackOutput.trim(),
+  "",
+].join("\n");
+
+const buildProofSummary = (scenarios: ScenarioProof[]): string => [
+  "# Audit-System Static Clause Coverage Proof Summary",
+  "",
+  `scenarioCount: ${scenarios.length}`,
+  `proofDir: ${PROOF_DIR}`,
+  "",
+  "## Covered Anti-Escape Scenarios",
+  "",
+  ...scenarios.map((scenario) => `- ${scenario.name}: FAIL observed and rollback restored baseline.`),
+  "",
+  "## Result",
+  "",
+  "- Mutated production/governance files caused audit-system FAIL.",
+  "- Rollback restored the baseline audit-system result.",
+  "",
+].join("\n");
+
 export async function writeStaticClauseCoverageProof(input: {
   scenarios: ScenarioProof[];
   rollbackOutput: string;
 }): Promise<void> {
   const proofDir = path.join(process.cwd(), PROOF_DIR);
   await mkdir(proofDir, { recursive: true });
-  const combinedPatch = input.scenarios.map((scenario) => {
-    return createUnifiedPatch(scenario.file, scenario.originalContent, scenario.mutatedContent);
-  }).join("\n");
-  const combinedFailOutput = input.scenarios.map((scenario) => {
-    return [`## ${scenario.name}`, scenario.failOutput.trim()].join("\n\n");
-  }).join("\n\n");
-
-  await writeFile(path.join(proofDir, "mutation-description.md"), [
-    "# Audit-System Static Clause Coverage Mutations",
-    "",
-    ...input.scenarios.flatMap((scenario) => [
-      `## ${scenario.name}`,
-      `- file: ${scenario.file}`,
-      `- expectedNeedle: ${scenario.expectedNeedle}`,
-      `- beforeHash: sha256:${hashText(scenario.originalContent)}`,
-      `- afterHash: sha256:${hashText(scenario.mutatedContent)}`,
-      "",
-    ]),
-  ].join("\n"));
-  await writeFile(path.join(proofDir, "mutated-file.patch"), combinedPatch);
-  await writeFile(path.join(proofDir, "inspector-fail-output.txt"), `${combinedFailOutput}\n`);
-  await writeFile(path.join(proofDir, "rollback-proof.txt"), [
-    "# Rollback Proof",
-    "",
-    "All temporary audit-system static-clause-coverage mutations were rolled back before the baseline inspector output was rechecked.",
-    "",
-    input.rollbackOutput.trim(),
-    "",
-  ].join("\n"));
+  await writeFile(path.join(proofDir, "mutation-description.md"), buildMutationDescription(input.scenarios));
+  await writeFile(path.join(proofDir, "mutated-file.patch"), buildCombinedPatch(input.scenarios));
+  await writeFile(path.join(proofDir, "inspector-fail-output.txt"), `${buildCombinedFailOutput(input.scenarios)}\n`);
+  await writeFile(path.join(proofDir, "rollback-proof.txt"), buildRollbackProof(input.rollbackOutput));
   await writeFile(path.join(proofDir, "inspector-pass-output.txt"), `${input.rollbackOutput.trim()}\n`);
-  await writeFile(path.join(proofDir, "proof-summary.md"), [
-    "# Audit-System Static Clause Coverage Proof Summary",
-    "",
-    `scenarioCount: ${input.scenarios.length}`,
-    `proofDir: ${PROOF_DIR}`,
-    "",
-    "## Covered Anti-Escape Scenarios",
-    "",
-    ...input.scenarios.map((scenario) => `- ${scenario.name}: FAIL observed and rollback restored baseline.`),
-    "",
-    "## Result",
-    "",
-    "- Mutated production/governance files caused audit-system FAIL.",
-    "- Rollback restored the baseline audit-system result.",
-    "",
-  ].join("\n"));
+  await writeFile(path.join(proofDir, "proof-summary.md"), buildProofSummary(input.scenarios));
 }

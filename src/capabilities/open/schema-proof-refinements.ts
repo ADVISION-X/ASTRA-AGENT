@@ -134,25 +134,37 @@ const validateOpenRuntimeProofStatus = (value: OpenRuntimeProofValidationValue, 
   }
 };
 
-const validateSuccessRuntimeProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
+const validateSuccessRuntimeProofOutput = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
   if (value.outputRef === null) {
     addIssue(context, ["outputRef"], "success proof requires outputRef");
   }
   if (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null) {
     addIssue(context, ["pageStateHandoffRef"], "success proof requires page-state handoff");
   }
+};
+
+const validateSuccessLocalProgramProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
   if (value.targetKind === "local-program" && value.windowHandoffRef === null) {
     addIssue(context, ["windowHandoffRef"], "local program success proof requires windowHandoffRef");
   }
   if (value.targetKind === "local-program" && value.localAppStateHandoffRef === null) {
     addIssue(context, ["localAppStateHandoffRef"], "local program success proof requires localAppStateHandoffRef");
   }
+};
+
+const validateSuccessRuntimeProofDiagnostics = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
   if (value.diagnosticPayloadRef !== null) {
     addIssue(context, ["diagnosticPayloadRef"], "success proof must not expose diagnosticPayloadRef");
   }
   if (value.dataQualityFlags.some((flag) => flag.severity === "error")) {
     addIssue(context, ["dataQualityFlags"], "success proof must not retain error-severity data-quality flags");
   }
+};
+
+const validateSuccessRuntimeProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {
+  validateSuccessRuntimeProofOutput(value, context);
+  validateSuccessLocalProgramProof(value, context);
+  validateSuccessRuntimeProofDiagnostics(value, context);
 };
 
 const validateNonSuccessRuntimeProof = (value: OpenRuntimeProofValidationValue, context: z.RefinementCtx): void => {

@@ -1,13 +1,6 @@
-diff --git a/src/lib/local-runtime/workbench-screenshot-dispatch-input.ts b/src/lib/local-runtime/workbench-screenshot-dispatch-input.ts
-index cdc59f4..1f7fc46 100644
---- a/src/lib/local-runtime/workbench-screenshot-dispatch-input.ts
-+++ b/src/lib/local-runtime/workbench-screenshot-dispatch-input.ts
-@@ -85,7 +85,7 @@ function buildPrepareAiInputCommand(
-   payload: Record<string, string | number | boolean | null>,
- ) {
-   const source = resolveScreenshotSourceHandoff([
--    payloadValueToString(payload.screenshotEvidenceRef),
-+    null,
-     payloadValueToString(payload.abilityResultRef),
-     envelope.inputRef,
-   ]);
+diff --git a/src/capabilities/screenshot/screenshot-schema-refinements.ts b/src/capabilities/screenshot/screenshot-schema-refinements.ts
+--- a/src/capabilities/screenshot/screenshot-schema-refinements.ts
++++ b/src/capabilities/screenshot/screenshot-schema-refinements.ts
+@@
+-  if (value.status === "success" && value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
++  if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {

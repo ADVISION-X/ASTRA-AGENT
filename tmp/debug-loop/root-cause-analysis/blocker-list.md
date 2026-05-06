@@ -5,180 +5,155 @@ Boundary: analysis only; no production code, law, blueprint, inspector, or negat
 
 ## Evidence Precedence
 
-1. Primary evidence: `docs/Codex提示词/终端日志复制.md`, latest real startup/runtime run, `runId=2026-05-05T17:10:09.996Z`.
-2. Cross-check only: `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`, earlier run, `runId=2026-05-05T17:03:56.478Z`.
-3. Mixed / non-authoritative summary only: `tmp/debug-loop/post-fix-runtime-verification/runtime-snapshot.json`, because it aggregates older screenshot parity failures together with current open / transition failures.
+1. Authoritative runtime evidence:
+   - `tmp/debug-loop/post-fix-runtime-verification/runtime-log.txt`
+   - `tmp/debug-loop/post-fix-runtime-verification/runtime-logs-api.json`
+   - `tmp/debug-loop/post-fix-runtime-verification/task-trigger-summary.md`
+   - `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-tiktok.json`
+2. Supporting command-proof corroboration only:
+   - `tmp/debug-loop/post-fix-runtime-verification/task-start-response-current-facebook.json`
+3. Historical / non-authoritative only:
+   - older markdown already present in this folder
+   - older mixed snapshots in the same verification bundle
 
 ## P0 Confirmed
 
-### BLOCKER-RUNTIME-1: Web maps fail at `prepare-ai-input` because required `source` is never built
+### BLOCKER-RUNTIME-1: Screenshot `prepare-ai-input` failed-path proof is schema-invalid because `scaleMapping` is enforced unconditionally
 
 Priority: P0
-Affected missions:
 
-- `facebook-web`
-- `tiktok-web`
+Affected latest real mission:
 
-Latest log evidence:
+- `tiktok-seeding-video-discovery`
+- `selectedMapId=tiktok.seeding-video.discovery.meta.v1`
+- authoritative failed run: `commander_command_9412137b-5123-45ef-bf1d-23c550b4dfba:run`
 
-- Latest terminal log reaches `COMMAND_ACCEPTED` and multiple `CAPABILITY_CALL_STARTED` events before failure.
-- Facebook web fails at `prepare-ai-input` with:
+Repeated within the same verification bundle:
+
+- `commander_command_89508c2b-4391-4f44-a98f-766f0c6ce39a:run`
+
+Latest runtime evidence:
+
+- `capture-video-viewport` completed successfully.
+- Orchestration then selected `prepare-ai-input`.
+- `CAPABILITY_CALL_FAILED` emitted:
 
 ```txt
-failureReason="[
-  {
-    \"code\": \"invalid_type\",
-    \"expected\": \"object\",
-    \"received\": \"undefined\",
-    \"path\": [\"source\"],
-    \"message\": \"Required\"
-  }
-]"
+message: prepare-ai-input proof requires scaleMapping
+path: ["scaleMapping"]
 ```
 
-- TikTok web later fails with the same error.
+- `STEP_TRANSITION_EVALUATED prepare-ai-input:failed` succeeded.
+- `MISSION_FAILED` followed immediately after the same step.
 
-Actual behavior proved before the stop point:
+What this disproves:
 
-- Startup passed.
-- `COMMAND_ACCEPTED` exists.
-- `CAPABILITY_CALL_STARTED` exists.
-- Open succeeded.
-- Page-state checks succeeded.
-- `capture-video-viewport` succeeded.
-- Failure happens only when the map advances to screenshot child `prepare-ai-input`.
+- startup is not the stop point
+- command acceptance is not missing
+- the older `prepare-ai-input` missing-`source` failure is no longer the first blocker in the latest run
+- map transition closure is not the current stop point for the selected web mission
 
 Direct owner boundary:
 
-- Local runtime screenshot dispatch adapter feeding Screenshot input.
+- Screenshot runtime proof / result construction and validation
 
 Primary code path:
 
-- `src/lib/local-runtime/workbench-screenshot-dispatch-input.ts`
-  - `buildPrepareAiInputCommand()` returns common fields plus `childCapabilityId: "prepare-ai-input"`.
-  - It does not build `source`.
-- `src/capabilities/screenshot/schema.ts`
-  - `PrepareAiInputInputSchema` requires `source: ScreenshotStoredImageSourceSchema`.
-- `src/capabilities/screenshot/children/prepare-ai-input/implementation.ts`
-  - Execution immediately dereferences `request.source.sourceStorageRef` and `request.source.sourceProof`, confirming `source` is not optional at execution time either.
+- `src/capabilities/screenshot/screenshot-schema-refinements.ts`
+  - `validateScreenshotRuntimeProofPrepareAiInput(...)` rejects `prepare-ai-input` whenever `scaleMapping` is null, without checking `status`
+- `src/capabilities/screenshot/runtime/screenshot-dispatch-failure.ts`
+  - `buildScreenshotFailureRuntimeProof(...)` hardcodes `scaleMapping: null` on non-success proofs
+- `src/capabilities/screenshot/runtime/screenshot-execution-success-helpers.ts`
+  - `resolvePrepareAiInputScaleMapping(...)` proves the success path already knows how to compute the mapping
+- `src/capabilities/screenshot/runtime/screenshot-proof-builder.ts`
+  - non-success proofs already preserve `diagnosticPayloadRef`, which matches the blueprint expectation for non-success outcomes
 
-Why this is the current blocker:
+Why this is the live P0:
 
-- The latest real run shows `source` failure, not `videoVisitId` failure.
-- The earlier 17:03 runtime log cross-check reproduces the same `source` failure family on web maps.
+- the authoritative runtime log stops exactly at Screenshot `prepare-ai-input`
+- the failure reproduced across multiple runs inside the same verification bundle
+- Orchestration did its job correctly after the step failure; the blocking truth remains inside Screenshot proof validation
 
-### BLOCKER-RUNTIME-2: Mirroring maps fail first because `OpenLocalProgramPort` is not wired into the Open runtime
+What remains intentionally unresolved in Phase 1:
 
-Priority: P0
-Affected missions:
+- a deeper image-processing or output-boundary failure may still exist underneath
+- current runtime evidence cannot prove that deeper cause because the failed proof is rejected earlier by the schema refinement
 
-- `iphone-mirroring-facebook-app`
-- `iphone-mirroring-tiktok-app`
+Required future fix layers:
 
-Latest log evidence:
+- production code
+- screenshot inspector
+- screenshot negative proof
 
-- Both mirroring missions reach `COMMAND_ACCEPTED`, `MAP_STEP_SELECTED open-iphone-mirroring`, and `CAPABILITY_CALL_STARTED`.
-- The first direct step failure is:
+## P1 Confirmed
 
-```txt
-failureReason="OpenLocalProgramPort is not configured"
-```
+### BLOCKER-LOG-1: Commander command-ingress transparency is incomplete; required start events are missing and accepted-command proof fields are inconsistent
 
-Actual behavior proved before the stop point:
+Priority: P1
 
-- Startup passed.
-- Mission preflight passed.
-- Orchestration selected the governed map and dispatched the open step.
-- Failure occurs inside governed Open execution, not during startup or command acceptance.
+Latest runtime evidence:
+
+- `HUMAN_COMMAND_VALIDATED` exists in both the terminal relay and API bundle.
+- `COMMAND_ACCEPTED` exists in both the terminal relay and API bundle.
+- `HUMAN_COMMAND_DRAFTED` does not appear in the latest terminal relay.
+- `HUMAN_COMMAND_DRAFTED` does not appear in the latest API bundle.
+- `HUMAN_COMMAND_RECEIVED` does not appear in the latest terminal relay.
+- `HUMAN_COMMAND_RECEIVED` does not appear in the latest API bundle.
+- `task-start-response-current-tiktok.json` accepted receipt runtime proof has `missionId: null` and `traceId: null`.
+- `task-start-response-current-facebook.json` accepted receipt runtime proof has the same null shape.
+- `runtime-logs-api.json` contains multiple `COMMAND_ACCEPTED` shapes, including an accepted command event whose payload still carries `missionId: null`.
+
+Why this is not the P0 stop point:
+
+- the mission still dispatches through Commander, Nerve Bus, and Orchestration
+- the selected mission reaches Screenshot execution and fails later at `prepare-ai-input`
+
+Why it is still a real blocker:
+
+- Phase 1 requires a complete user-command-to-mission timeline
+- the latest real bundle cannot prove the full command ingress path from received request through accepted mission identity without reconstructing across mixed artifacts
+- accepted-command proof / log fields are not consistent enough to serve as single-source mission provenance
 
 Direct owner boundary:
 
-- Open runtime composition in local runtime.
+- Local App Shell task-start logging
+- Commander accepted receipt / runtime proof construction
+- Commander structured runtime-event payload building
 
 Primary code path:
 
-- `src/lib/local-runtime/workbench-open-runtime.ts`
-  - `createOpenRuntime()` passes `browser` and `profilePort` into `createOpenAbilityGroup(...)`.
-  - It does not pass `localProgram`.
-- `src/capabilities/open/contract.ts`
-  - `CreateOpenAbilityGroupInput` allows optional `localProgram?: OpenLocalProgramPort`.
-- `src/capabilities/open/runtime/open-runtime-context.ts`
-  - `localProgram` is only added to runtime context when present.
-- `src/capabilities/open/runtime/local-program-runner.ts`
-  - `runLocalProgramLaunch()` fails closed with `OpenLocalProgramPort is not configured` when `context.localProgram` is absent.
+- `src/lib/local-app-shell/task-start-flow.ts`
+  - `runTaskStartFlow(...)` calls `recordTaskStartDraftEvents(...)`
+- `src/lib/local-app-shell/task-start-support.ts`
+  - `recordTaskStartDraftEvents(...)` defines both `HUMAN_COMMAND_DRAFTED` and `HUMAN_COMMAND_RECEIVED`
+  - `recordTaskStartCommandAccepted(...)` emits a pre-dispatch `COMMAND_ACCEPTED` shape without mission/run identity fields on the payload input
+- `src/capabilities/commander-console/runtime/commander-command-outcomes.ts`
+  - `createTransportOutcome(...)` keeps `traceId: null` in the accepted receipt proof path
+- `src/capabilities/commander-console/runtime/commander-proof-builder.ts`
+  - `buildCommanderRuntimeProof(...)` copies the nullable receipt fields into the final runtime proof
+- `src/lib/local-runtime/workbench-commander-debug.ts`
+  - `buildCommanderDebugIdentity(...)` allows `missionId` to remain null in the structured event payload even though the forensics write request itself falls back to `traceId`
 
-Why this is the first mirroring blocker:
+Required future fix layers:
 
-- It is the first concrete runtime failure emitted on both mirroring maps.
-- The later transition error is downstream of this failure, not the first cause.
+- production code
+- structured logging enforcement
+- commander inspector
+- commander negative proof
 
-### BLOCKER-RUNTIME-3: Mirroring maps are missing failure / review transition closure for `open-iphone-mirroring`
+## P2
 
-Priority: P0 secondary blocker
-Affected missions:
+No additional current P2 blocker was elevated from the latest real runtime bundle.
 
-- `iphone-mirroring-facebook-app`
-- `iphone-mirroring-tiktok-app`
+## Historical / Non-Current Findings
 
-Latest log evidence:
+### HISTORICAL-NONCURRENT-1: The older `prepare-ai-input` missing-`source` blocker is no longer the first failure
 
-- Immediately after `OpenLocalProgramPort is not configured`, Orchestration emits:
+- The latest authoritative run reached and completed `capture-video-viewport`.
+- The latest authoritative run then failed on `prepare-ai-input proof requires scaleMapping`.
+- The old `invalid_type -> path ["source"] -> Required` story must therefore stay historical in this phase package.
 
-```txt
-failureReason="Map \"iphone.mirroring.facebook.seeding-video.discovery.v1\" has no matching transition from step \"open-iphone-mirroring\" for status \"failed\"."
-```
+### HISTORICAL-NONCURRENT-2: Earlier mirroring blockers were not exercised by the selected authoritative web rerun
 
-- The TikTok mirroring map emits the same shape.
-
-Actual behavior:
-
-- The map step declares `failureBranch` and `reviewBranch` on `open-iphone-mirroring`.
-- When the step actually returns `failed`, Orchestration cannot find a matching transition and terminates the mission on transition evaluation failure.
-
-Direct owner boundary:
-
-- Builtin map package closure, not Open execution.
-
-Primary code path:
-
-- `src/capabilities/orchestration/runtime/transition-evaluator.ts`
-  - Builds the exact `no matching transition` failure.
-- `src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json`
-  - Step `open-iphone-mirroring` declares `failureBranch: "open-iphone-mirroring:failed"` and `reviewBranch: "open-iphone-mirroring:review"`.
-  - Top-level `failureBranches` / `reviewBranches` omit those ids.
-  - `transitions` also omit matching `open-iphone-mirroring:failed` and `open-iphone-mirroring:review`.
-- `src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json`
-  - Same defect.
-- `src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json`
-  - Contains the expected `open-iphone-mirroring:failed` and `open-iphone-mirroring:review` transitions and serves as the control sample.
-
-Why this remains a real blocker even though it is secondary:
-
-- It converts the original open failure into a second terminal governance failure.
-- It prevents the declared failure / review path from closing correctly.
-- It masks the upstream open failure in final mission truth.
-
-## Historical / Non-Current Evidence
-
-### HISTORICAL-NONCURRENT-1: Screenshot `videoVisitId` parity defect remains in older mixed evidence, but not in the latest real run
-
-This issue still appears in:
-
-- stale RCA markdown already present in this folder
-- `tmp/debug-loop/post-fix-runtime-verification/runtime-snapshot.json` failedRecords
-
-It does not appear as the first blocker in the latest 17:10 terminal run.
-
-Therefore:
-
-- it must not be reported as the current primary blocker
-- it can only be carried as historical / mixed evidence
-
-## Not Current Blockers
-
-The latest real evidence disproves these older narratives as current blockers:
-
-- startup stop point
-- missing `COMMAND_ACCEPTED`
-- missing `CAPABILITY_CALL_STARTED`
-- screenshot `videoVisitId` parity as the only current blocker
+- The latest selected mission is `tiktok-web`.
+- This Phase 1 package therefore does not re-promote old mirroring open / map-closure blockers as current blockers without fresh runtime evidence from the same bundle.

@@ -2,7 +2,7 @@ scenarioId: manual-first-enforcement-mutation
 mutationName: manual-first-enforcement mutation
 mutatedFile: .github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
 rollbackRestoredHash: sha256:894da4a6810d6cefd622b9e3aaeb8601f6153f7f8475804dfe4653662e960122
-startedAt: 2026-05-06T03:54:27.242Z
-endedAt: 2026-05-06T03:54:31.739Z
+startedAt: 2026-05-06T12:34:26.369Z
+endedAt: 2026-05-06T12:34:30.660Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

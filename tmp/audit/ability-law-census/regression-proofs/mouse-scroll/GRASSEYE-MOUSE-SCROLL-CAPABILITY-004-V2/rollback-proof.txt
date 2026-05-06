@@ -2,7 +2,7 @@ scenarioId: scroll-until-found-loop-mutation
 mutationName: scroll-until-found loop mutation
 mutatedFile: src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts
 rollbackRestoredHash: sha256:eb9b84b95cba0581559e3b10914041dd7a9e7c2b1a6228e04aecdffb7b4bc5a8
-startedAt: 2026-05-06T04:12:31.098Z
-endedAt: 2026-05-06T04:12:41.453Z
+startedAt: 2026-05-06T12:40:33.672Z
+endedAt: 2026-05-06T12:40:47.072Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

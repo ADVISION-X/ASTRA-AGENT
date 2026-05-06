@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T10:15:24.626Z",
+  "generatedAt": "2026-05-06T13:05:13.494Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -911,6 +911,13 @@
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
           "targetSymbol": "createFatalFinding",
           "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-commander-start-mission-acceptance-checks",
+          "checkFunction": "createAcceptanceFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-start-mission-acceptance-checks.ts",
+          "targetSymbol": "createAcceptanceFinding",
+          "checkKind": "runtime-proof"
         }
       ],
       "blockers": [
@@ -2062,27 +2069,6 @@
           "sourceFile": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
           "targetSymbol": "runLawBaselineCheck",
           "checkKind": "runtime-proof"
-        },
-        {
-          "checkPhase": "negative-proof-harness",
-          "checkFunction": "collectLawBaselineFindings",
-          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
-          "targetSymbol": "collectLawBaselineFindings",
-          "checkKind": "anti-escape"
-        },
-        {
-          "checkPhase": "negative-proof-harness",
-          "checkFunction": "collectLawBaselineFindings",
-          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
-          "targetSymbol": "collectLawBaselineFindings",
-          "checkKind": "anti-escape"
-        },
-        {
-          "checkPhase": "negative-proof-harness",
-          "checkFunction": "collectLawBaselineFindings",
-          "sourceFile": "scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts",
-          "targetSymbol": "collectLawBaselineFindings",
-          "checkKind": "anti-escape"
         },
         {
           "checkPhase": "negative-proof-harness",
@@ -4487,60 +4473,60 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectForensicsBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectForensicsBoundaryFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectForensicsBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectForensicsBoundaryFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectForensicsBoundaryFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectForensicsBoundaryFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectRuntimeEventFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectRuntimeEventFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectRuntimeEventFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectRuntimeEventFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectRuntimeEventFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectRuntimeEventFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectStepTraceRecorderFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectStepTraceRecorderFindings",
+          "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectStepTraceRecorderFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectStepTraceRecorderFindings",
+          "checkKind": "runtime-proof"
         }
       ],
       "blockers": [
@@ -4609,18 +4595,11 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectForensicsRetentionBoundary",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectForensicsRetentionBoundary",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectForensicsRetentionBoundary",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectForensicsRetentionBoundary",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "forensics-retention-boundary-phase",
+          "checkFunction": "createFatalFinding",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/forensics-retention-boundary-phase.ts",
+          "targetSymbol": "createFatalFinding",
+          "checkKind": "boundary-attack"
         }
       ],
       "blockers": [
@@ -4663,11 +4642,11 @@
           "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "inspectMissionLoopTraceability",
-          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "inspectMissionLoopTraceability",
-          "checkKind": "forbidden-shape"
+          "checkPhase": "mission-loop-traceability-phase",
+          "checkFunction": "collectSuccessProofFindings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+          "targetSymbol": "collectSuccessProofFindings",
+          "checkKind": "runtime-proof"
         },
         {
           "checkPhase": "start-mission-boundary-checks",
@@ -4926,38 +4905,38 @@
           "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "required-shape",
-          "checkFunction": "inspectSchemaShape",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "inspectSchemaShape",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "inspectSchemaShape",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "inspectSchemaShape",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "inspectSchemaShape",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "inspectSchemaShape",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectLocalRuntimeDispatchBuilderFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectLocalRuntimeExecutorFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectLocalRuntimeExecutorFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "inspectSchemaShape",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "targetSymbol": "inspectSchemaShape",
           "checkKind": "required-shape"
         }
       ],
@@ -5008,17 +4987,17 @@
           "checkKind": "runtime-proof"
         },
         {
-          "checkPhase": "required-shape",
-          "checkFunction": "inspectSchemaShape",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "inspectSchemaShape",
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "collectLocalRuntimeDispatchBuilderFindings",
           "checkKind": "required-shape"
         },
         {
           "checkPhase": "required-shape",
-          "checkFunction": "collectLocalRuntimeDispatchBuilderFindings",
+          "checkFunction": "inspectSchemaShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "collectLocalRuntimeDispatchBuilderFindings",
+          "targetSymbol": "inspectSchemaShape",
           "checkKind": "required-shape"
         }
       ],
@@ -5083,52 +5062,52 @@
           "checkKind": "forbidden-shape"
         },
         {
-          "checkPhase": "required-shape",
-          "checkFunction": "inspectSchemaShape",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "inspectSchemaShape",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectBuilderParseFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectBuilderParseFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "anonymous",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "anonymous",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectDetectSafetyPageNormalEvidenceFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectDetectSafetyPageNormalEvidenceFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectDetectSafetyPageNormalEvidenceFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectDetectSafetyPageNormalEvidenceFindings",
           "checkKind": "required-shape"
         },
         {
-          "checkPhase": "required-shape",
+          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "collectNonSuccessParityFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "collectNonSuccessParityFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "collectNonSuccessParityFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "collectNonSuccessParityFindings",
           "checkKind": "required-shape"
         },
         {
           "checkPhase": "required-shape",
-          "checkFunction": "collectNonSuccessParityFindings",
+          "checkFunction": "inspectSchemaShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "collectNonSuccessParityFindings",
+          "targetSymbol": "inspectSchemaShape",
           "checkKind": "required-shape"
         }
       ],
@@ -5221,45 +5200,45 @@
           "checkKind": "runtime-proof"
         },
         {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "collectBuilderParseFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "collectBuilderParseFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "collectBuilderParseFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "collectBuilderParseFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "collectNonSuccessParityFindings",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "collectNonSuccessParityFindings",
+          "checkKind": "required-shape"
+        },
+        {
           "checkPhase": "required-shape",
           "checkFunction": "inspectSchemaShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
           "targetSymbol": "inspectSchemaShape",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectBuilderParseFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "collectBuilderParseFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectBuilderParseFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "collectBuilderParseFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "anonymous",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "anonymous",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "anonymous",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "anonymous",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "collectNonSuccessParityFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "collectNonSuccessParityFindings",
           "checkKind": "required-shape"
         }
       ],
@@ -5317,6 +5296,13 @@
           "checkKind": "runtime-proof"
         },
         {
+          "checkPhase": "required-shape-builder-findings",
+          "checkFunction": "anonymous",
+          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
+          "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
           "checkPhase": "required-shape",
           "checkFunction": "inspectSchemaShape",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
@@ -5335,13 +5321,6 @@
           "checkFunction": "routeFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
           "targetSymbol": "routeFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape",
-          "checkFunction": "anonymous",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape.ts",
-          "targetSymbol": "anonymous",
           "checkKind": "required-shape"
         }
       ],
@@ -5896,9 +5875,9 @@
         },
         {
           "checkPhase": "run-governed-runtime-checks",
-          "checkFunction": "runGovernedFixtureChecks",
+          "checkFunction": "runGovernedRuntimeChecks",
           "sourceFile": "scripts/audit/domains/post-action-verification-capability/run-governed-runtime-checks.ts",
-          "targetSymbol": "runGovernedFixtureChecks",
+          "targetSymbol": "runGovernedRuntimeChecks",
           "checkKind": "forbidden-shape"
         }
       ],
@@ -6390,51 +6369,58 @@
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectGovernanceFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectGovernanceFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectGovernanceFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectGovernanceFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectGovernanceFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectGovernanceFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectGovernanceFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectGovernanceFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectSchemaFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectSchemaFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectRefinementFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectRefinementFieldFindings",
           "checkKind": "forbidden-shape"
         },
         {
           "checkPhase": "runtime-proof-parity-check",
-          "checkFunction": "inspectScreenshotRuntimeProofParity",
+          "checkFunction": "collectRefinementFieldFindings",
           "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
-          "targetSymbol": "inspectScreenshotRuntimeProofParity",
+          "targetSymbol": "collectRefinementFieldFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "collectBrowserViewportCaptureTruthFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "collectBrowserViewportCaptureTruthFindings",
           "checkKind": "forbidden-shape"
         }
       ],
@@ -6526,6 +6512,27 @@
           "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape.ts",
           "targetSymbol": "collectTransformTruthFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "collectPrepareAiInputScaleMappingFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "collectPrepareAiInputScaleMappingFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "collectBrowserViewportCaptureTruthFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "collectBrowserViewportCaptureTruthFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-proof-parity-check",
+          "checkFunction": "collectBrowserViewportCaptureTruthFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/runtime-proof-parity-check.ts",
+          "targetSymbol": "collectBrowserViewportCaptureTruthFindings",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [

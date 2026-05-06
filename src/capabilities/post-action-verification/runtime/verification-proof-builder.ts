@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { PostActionRuntimeProofSchema } from "../schema.js";
 import type { PostActionRuntimeProof, ParsedPostActionVerificationAbilityInput } from "../contract.js";
 import type { PostActionVerificationRuntimeContext } from "./post-action-verification-runtime-context.js";
-
 function buildPostActionRuntimeProofHashes(input: {
   request: ParsedPostActionVerificationAbilityInput | null;
   inputRef: string;

@@ -105,28 +105,55 @@ const collectLocalProgramSmokeFindings = (
 const collectIphoneMirroringRecordFindings = (
   record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number],
 ): Finding[] => {
+  return collectIphoneMirroringEntryFindings(record)
+    .concat(collectIphoneMirroringForbiddenChildFindings(record))
+    .concat(collectIphoneMirroringInputFindings(record));
+};
+
+const collectIphoneMirroringEntryFindings = (
+  record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number],
+): Finding[] => {
+  const mapPackage = record.mapPackage;
+  if (!mapPackage) {
+    return [];
+  }
+  const initialStep = mapPackage.operationalMap.steps.find((step) => step.stepId === mapPackage.operationalMap.initialStepId);
+  return initialStep?.childCapabilityId === "open-local-program"
+    ? []
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must start through open-local-program." })];
+};
+
+const collectIphoneMirroringForbiddenChildFindings = (
+  record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number],
+): Finding[] => {
+  const mapPackage = record.mapPackage;
+  if (!mapPackage) {
+    return [];
+  }
+  const childIds = new Set(mapPackage.operationalMap.steps.map((step) => step.childCapabilityId));
+  const findings: Finding[] = [];
+  if (childIds.has("open-local-workbench") || childIds.has("open-facebook") || childIds.has("open-tiktok")) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not use local workbench or web-platform Open children." }));
+  }
+  if (mapPackage.taskTemplate.requestedPlatformId === "facebook-web" || mapPackage.taskTemplate.requestedPlatformId === "tiktok-web") {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not bind to web requestedPlatformId values." }));
+  }
+  return findings;
+};
+
+const collectIphoneMirroringInputFindings = (
+  record: Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number],
+): Finding[] => {
   const mapPackage = record.mapPackage;
   if (!mapPackage) {
     return [];
   }
   const steps = mapPackage.operationalMap.steps;
-  const initialStep = steps.find((step) => step.stepId === mapPackage.operationalMap.initialStepId);
-  const childIds = new Set(steps.map((step) => step.childCapabilityId));
-  const requestedPlatformId = mapPackage.taskTemplate.requestedPlatformId;
-  const actionWithoutProof = findActionWithoutProof(steps);
   const findings: Finding[] = [];
-  if (initialStep?.childCapabilityId !== "open-local-program") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must start through open-local-program." }));
-  }
-  if (childIds.has("open-local-workbench") || childIds.has("open-facebook") || childIds.has("open-tiktok")) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not use local workbench or web-platform Open children." }));
-  }
-  if (requestedPlatformId === "facebook-web" || requestedPlatformId === "tiktok-web") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not bind to web requestedPlatformId values." }));
-  }
   if (steps.some((step) => step.inputRefs.includes("targetUrl"))) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring maps must not route through targetUrl or web URL fallback input refs." }));
   }
+  const actionWithoutProof = findActionWithoutProof(steps);
   return actionWithoutProof
     ? findings.concat(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef, geometryProofRef, and postActionVerification.", detail: actionWithoutProof.stepId }))
     : findings;

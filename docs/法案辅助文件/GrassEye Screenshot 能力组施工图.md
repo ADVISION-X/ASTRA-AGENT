@@ -1032,3 +1032,63 @@ fresh runtime log 不再出现 prepare-ai-input invalid_type source Required
 AI step inputRefs 指向 Screenshot 生成的 ai input artifact
 真实 restart + 真实任务触发 + fresh phase-1 日志分析确认旧 blocker 消失
 ```
+
+## 24.1 实战运行日志透明化修复补充：prepare-ai-input failed-path scaleMapping 语义
+
+本节只补当前 blocker 的执行细节，不新增 lawId，不修改冻结法案。
+
+正确链路：
+
+```txt
+prepare-ai-input success
+-> Screenshot proof/result 必须保留 scaleMapping
+-> scaleMappingDecision=passed
+
+prepare-ai-input failed/review_required
+-> Screenshot proof/result 必须保留 diagnosticPayloadRef
+-> 不得为了满足 success-only 规则而伪造 scaleMapping
+-> 更深层 image-processing/output 失败要通过真实 failureReason 暴露出来
+```
+
+禁止链路：
+
+```txt
+把 prepare-ai-input 的 scaleMapping 作为所有 status 的 blanket required
+failed/review_required proof 因缺少 scaleMapping 被 schema 先行拦截
+为了绕过 refine 而在 failed/review_required proof 中伪造 scaleMapping
+fresh runtime log 只是不再报 scaleMapping，但继续吞掉真实底层失败原因
+```
+
+inspector 应覆盖：
+
+```txt
+AST 校验 validatePrepareAiInputScaleMapping 必须显式包含 status=success 门禁
+AST 校验 validateScreenshotRuntimeProofPrepareAiInput 必须调用 success-only helper
+AST 校验 non-success diagnosticPayloadRef 暴露规则仍然存在
+不得用 grep/includes 作为最终结论
+```
+
+negative proof 应覆盖：
+
+```txt
+移除 prepare-ai-input success 状态门禁必须 FAIL
+把 prepare-ai-input 的 scaleMapping 检查恢复成 blanket required 必须 FAIL
+rollback 后 inspector 必须 PASS
+```
+
+结构化日志必备字段：
+
+```txt
+CAPABILITY_CALL_FAILED 必须带 stepId=prepare-ai-input childCapabilityId status missionId runId capabilityCallId activationSnapshotRef nerveBusEnvelopeId selectedMapId
+若阻断点来自 schema refine，failureReason 必须精确指向 scaleMapping 或 diagnosticPayloadRef
+若旧 blocker 消失后暴露更深层失败，fresh runtime log 必须显示真实 child failure，而不是新的 blanket refine 错误串
+```
+
+READY 标准补充：
+
+```txt
+fresh runtime log 不再出现 `prepare-ai-input proof requires scaleMapping` 作为 failed/review_required 结果的首个阻断
+prepare-ai-input success 仍保持 scaleMapping 强约束
+真实 restart + 真实任务触发 + fresh phase-1 日志分析确认旧 blocker 消失
+若旧 blocker 消失后出现更深层 child failure，必须进入 fresh RCA，不得假装 READY
+```

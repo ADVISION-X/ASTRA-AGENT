@@ -1,0 +1,10 @@
+
+> grasseye-local-workbench@0.1.0 audit:map-plugin-package
+> tsx scripts/audit/domains/map-plugin-package/run-inspector.ts
+
+[map-plugin-negative-proof][baseline]
+[map-plugin-negative-proof][fail] durationMs=13559 detail="baseline inspector failed"
+[FAKE ENFORCEMENT] map-plugin-package: Map package enforcement still has placeholder or owner-chain escape gaps.
+- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must call parseBuiltinPackage so package file context is preserved.
+- FATAL scripts/audit/domains/map-plugin-package/inspector.ts:1 Map package inspector baseline must pass before negative-proof mutations can run: exitCode=1 | stdout=[FAKE ENFORCEMENT] map-plugin-package: Map package enforcement still has placeholder or owner-chain escape gaps.
+- FATAL src/map-plugins/builtins/index.ts:1 readBuiltin must call parseBuiltinPackage so package file context is preserved.

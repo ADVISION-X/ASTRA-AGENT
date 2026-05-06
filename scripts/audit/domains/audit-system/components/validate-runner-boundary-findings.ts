@@ -5,6 +5,7 @@ import {
   getManualOwnerListViolationLine,
   getPlanDrivenInspectorViolationLine,
   hasBuildAuditImport,
+  hasDefaultNegativeProofPolicyGate,
   hasFailureExitAssignment,
 } from "./validate-runner-boundary-checks.js";
 
@@ -58,6 +59,16 @@ export const collectRunnerBoundaryFindings = (sourceFile: AuditSourceFile, relat
         line: 1,
         severity: "error",
         message: "Runner must set a failing process exit code when blocking findings are present.",
+      }),
+    );
+  }
+  if (!hasDefaultNegativeProofPolicyGate(sourceFile)) {
+    findings.push(
+      createAuditSystemFinding({
+        file: relativePath,
+        line: 1,
+        severity: "error",
+        message: "Runner must keep production mutation negative proof out of the default law-compliance audit unless GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 is explicitly set.",
       }),
     );
   }

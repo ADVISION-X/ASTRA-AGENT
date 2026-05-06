@@ -1,0 +1,13 @@
+
+> grasseye-local-workbench@0.1.0 audit:code-purity
+> node --import tsx scripts/audit/domains/code-purity/run-inspector.ts
+
+[CODE VIOLATION] code-purity: 8 finding(s)
+- ERROR GRASSEYE-CODE-PURITY-005-V1 scripts/audit/domains/screenshot-capability/required-shape.ts:1 File crosses too many real owner boundaries or cross-owner imports.
+- ERROR GRASSEYE-CODE-PURITY-005-V1 scripts/audit/domains/text-input-capability/generate-proof-bundles.ts:1 File crosses too many real owner boundaries or cross-owner imports.
+- ERROR GRASSEYE-CODE-PURITY-006-V1 scripts/audit/domains/visual-target-capability/inspector.ts:1 Import or export structure exceeds code-purity limits.
+- ERROR GRASSEYE-CODE-PURITY-001-V1 scripts/startup/launch-grasseye.mjs:1 File exceeds the ordinary implementation hard limit of 300 lines.
+- ERROR GRASSEYE-CODE-PURITY-005-V1 src/capabilities/orchestration/ability-group.ts:1 File crosses too many real owner boundaries or cross-owner imports.
+- ERROR GRASSEYE-CODE-PURITY-003-V1 src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts:74 Function resolveFallbackRuntimeStep exceeds code-purity function limits.
+- ERROR GRASSEYE-CODE-PURITY-001-V1 src/lib/local-app-shell/commander-console-shell-client.ts:1 File exceeds the ordinary implementation hard limit of 300 lines.
+- ERROR GRASSEYE-CODE-PURITY-001-V1 src/lib/local-app-shell/styles/commander-console-styles.ts:1 File exceeds the ordinary implementation hard limit of 300 lines.

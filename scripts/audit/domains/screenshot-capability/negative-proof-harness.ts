@@ -92,6 +92,12 @@ const MUTATIONS: Mutation[] = [
     replace: "    validateRequiredChainFields(resultRecord, SCREENSHOT_RESULT_CHAIN_FIELD_NAMES, \"result\", context);",
   },
   {
+    name: "prepare-ai-input failure-path scaleMapping regression mutation",
+    file: "src/capabilities/screenshot/screenshot-schema-refinements.ts",
+    search: "  if (value.status === \"success\" && value.childCapabilityId === \"prepare-ai-input\" && !value.scaleMapping) {",
+    replace: "  if (value.childCapabilityId === \"prepare-ai-input\" && !value.scaleMapping) {",
+  },
+  {
     name: "non-success output escape mutation",
     file: "src/capabilities/screenshot/schema.ts",
     search: "non-success result must not expose output",
@@ -145,6 +151,7 @@ const MUTATIONS: Mutation[] = [
     search: "  const sourceHash = readString(artifactRef, \"sha256\");\n",
     replace: "  const sourceHash = readString(result.output, \"sourceHash\");\n",
   },
+  { name: "browser capture measured-dimension regression mutation", file: "src/lib/browser/current-chrome-browser-controller.ts", search: "      width: screenshot.dimensions.width,\n      height: screenshot.dimensions.height,\n", replace: "      width: geometry.viewportWidth,\n      height: geometry.viewportHeight,\n" },
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
@@ -227,7 +234,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
 
     await runMutations();
 
-    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, local-runtime screenshot chain mapping regression, nullable chain regression, videoVisitId requiredness regression, result nullable parity requiredness regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, lifecycle manifest removal, prepare-ai-input source handoff ref regression, ability-result source handoff recording regression, and source handoff artifact hash regression mutations.");
+    return createPassResult("Screenshot negative-proof harness rejects historical screenshot-drawer resurrection, local-ai screenshot artifact helper ownership, browser capture outside adapters, export-star, public workbench entry, contract leak, payload-gate bypass, private-runtime import, local-runtime screenshot chain mapping regression, nullable chain regression, videoVisitId requiredness regression, result nullable parity requiredness regression, prepare-ai-input failure-path scaleMapping regression, non-success output escape, region-crop flattening, timeout truth bypass, result chain parity escape, lifecycle self-promotion, lifecycle manifest removal, prepare-ai-input source handoff ref regression, ability-result source handoff recording regression, source handoff artifact hash regression, and browser capture measured-dimension regression mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Screenshot negative-proof harness failed.",
