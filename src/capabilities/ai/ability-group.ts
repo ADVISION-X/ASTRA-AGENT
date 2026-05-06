@@ -13,6 +13,7 @@ import { buildStableAiRef } from "./shared/ai-types.js";
 import { createAiCapabilityRegistry, listAiChildren } from "./registry.js";
 import { dispatchAiFailure } from "./runtime/ai-dispatch-failure.js";
 import { emitAiExecutionFailureDebug } from "./runtime/ai-execution-failure-debug.js";
+import { emitAiExecutionInputDebug } from "./runtime/ai-execution-input-debug.js";
 import { executeAiChild } from "./runtime/ai-executor.js";
 import { createAiExecutionContext } from "./runtime/ai-execution-context.js";
 import { routeAiTaskToChild } from "./task-router.js";
@@ -202,6 +203,7 @@ const executeAiRequest = async (
   registry: ReturnType<typeof createAiCapabilityRegistry>,
   inputValue: unknown,
 ): Promise<AiAbilityOutcome> => {
+  await emitAiExecutionInputDebug(context, inputValue);
   const parsedData = parseAiExecutionInput(context, inputValue);
   if ("status" in parsedData) {
     return parsedData;

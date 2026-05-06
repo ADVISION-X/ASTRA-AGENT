@@ -124,6 +124,16 @@ const hasExecutorPreRuntimeRequestDebug = (project: Project): boolean => {
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugPrompt", "promptDebugRef");
 };
 
+const hasAbilityPreParseRequestDebug = (project: Project): boolean => {
+  const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const executionInputDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-input-debug.ts`);
+  return hasOrderedFunctionCall(abilityGroupSource, "executeAiRequest", "emitAiExecutionInputDebug", "parseAiExecutionInput")
+    && hasFunctionCall(executionInputDebugSource, "emitAiExecutionInputDebug", "emitDebugEvent")
+    && hasFunctionObjectProperty(executionInputDebugSource, "buildInputDebugRuntime", "implementationStatus")
+    && hasFunctionObjectProperty(executionInputDebugSource, "buildInputDebugRuntime", "diagnosticPayloadRef")
+    && hasFunctionObjectProperty(executionInputDebugSource, "buildInputDebugPrompt", "promptDebugRef");
+};
+
 const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
   const localAdapterSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-adapter.ts`);
   const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
@@ -134,7 +144,7 @@ const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
 };
 
 const collectRequestDebugStartFindings = (project: Project): Finding[] => {
-  return hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
+  return hasAbilityPreParseRequestDebug(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
     ? []
     : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and before provider/model await boundaries." })];
 };

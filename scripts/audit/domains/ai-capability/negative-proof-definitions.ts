@@ -6,7 +6,6 @@ export type Mutation = {
   replace?: string;
   content?: string;
 };
-
 export const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_AI_NEGATIVE_PROOF";
 const EXPORT_STAR_MUTATION = `export ${"*"} from "./schema.js";`;
 const AS_ANY_MUTATION = `const mutatedEscape = runtimeResult as ${"any"};`;
@@ -75,6 +74,7 @@ export const MUTATIONS: Mutation[] = [
     search: "    emitDebugEvent: input.emitDebugEvent,\n",
     replace: "",
   },
+  { name: "ai request debug pre-parse mutation", file: "src/capabilities/ai/ability-group.ts", search: "  await emitAiExecutionInputDebug(context, inputValue);\n", replace: "" },
   {
     name: "ai request debug pre-gateway mutation",
     file: "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",

@@ -1,8 +1,8 @@
-scenarioId: ai-error-diagnostic-ref-mutation
-mutationName: ai error diagnostic ref mutation
-mutatedFile: src/capabilities/ai/ability-group.ts
-rollbackRestoredHash: sha256:bc2d85fb8843d959e0d23d26b200b8d0a3efa01b52ac59f17c254a6e54314a7c
-startedAt: 2026-05-06T18:28:41.381Z
-endedAt: 2026-05-06T18:28:49.157Z
+scenarioId: debug-event-wiring-mutation
+mutationName: debug event wiring mutation
+mutatedFile: src/capabilities/ai/runtime-factory.ts
+rollbackRestoredHash: sha256:e6d95550f2a0242b571720cab708c00d377e3c03a179234df8fe6d8191189384
+startedAt: 2026-05-06T18:41:49.570Z
+endedAt: 2026-05-06T18:41:57.247Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

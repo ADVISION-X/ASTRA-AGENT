@@ -1,15 +1,24 @@
 {
-  "generatedAt": "2026-05-06T18:32:12.953Z",
+  "generatedAt": "2026-05-06T18:42:08.892Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
+    "scripts/audit/domains/ai-capability/negative-proof-definitions.ts",
+    "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
+    "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/ai/runtime/ai-proof-builder.ts",
-    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-013-V1/rollback-proof.txt"
+    "src/capabilities/ai/ability-group.ts",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/inspector-fail-output.txt",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/inspector-pass-output.txt",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/mutated-file.patch",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/mutation-description.md",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/proof-summary.md",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/rollback-proof.txt",
+    "tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-012-V1/rollback-proof.txt"
   ]
 }
