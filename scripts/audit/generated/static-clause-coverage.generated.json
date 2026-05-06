@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T17:20:41.713Z",
+  "generatedAt": "2026-05-06T17:26:42.380Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -196,27 +196,6 @@
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeFailureReasonFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeFailureReasonFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeFailureReasonFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeFailureReasonFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeFailureReasonFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeFailureReasonFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
           "checkFunction": "collectRuntimeDebugEmitterFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "collectRuntimeDebugEmitterFindings",
@@ -262,6 +241,27 @@
           "checkFunction": "findReferenceIntegrityViolations",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "findReferenceIntegrityViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-failure-transparency-checks",
+          "checkFunction": "collectRuntimeStatusFindings",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+          "targetSymbol": "collectRuntimeStatusFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-failure-transparency-checks",
+          "checkFunction": "collectDispatchFailureEnvelopeFindings",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+          "targetSymbol": "collectDispatchFailureEnvelopeFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-failure-transparency-checks",
+          "checkFunction": "collectOuterCatchDebugFindings",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+          "targetSymbol": "collectOuterCatchDebugFindings",
           "checkKind": "forbidden-shape"
         }
       ],

@@ -1,5 +1,7 @@
 import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 
+export { collectRuntimeFailureReasonFindings } from "./runtime-failure-transparency-checks.js";
+
 const hasGovernedFailureStatus = (objectLiteral: ObjectLiteralExpression): boolean => {
   const implementationStatusProperty = objectLiteral.getProperty("implementationStatus");
   if (!implementationStatusProperty || !Node.isPropertyAssignment(implementationStatusProperty)) {

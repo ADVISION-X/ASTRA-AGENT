@@ -1,0 +1,90 @@
+import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
+
+import { createFinding } from "../../core/result.js";
+import type { Finding } from "../../core/schema.js";
+
+import { aiInspectionConstants } from "./inspection-constants.js";
+import { aiInspectionUtils } from "./inspection-utils.js";
+
+const { AI_ROOT } = aiInspectionConstants;
+const { getSourceOrThrow } = aiInspectionUtils;
+
+const REQUIRED_AI_RUNTIME_FAILURE_STATUSES = [
+  "runtime_threw",
+  "runtime_timeout",
+  "runtime_invalid_response",
+  "runtime_http_failed",
+  "invalid_output",
+  "model_missing",
+  "engine_missing",
+  "service_unreachable",
+  "missing_evidence",
+  "prompt_contract_rejected",
+  "task_type_mismatch",
+  "circuit_breaker_open",
+  "concurrency_limited",
+  "provider_not_configured",
+  "provider_secret_missing",
+] as const;
+
+const hasStringArrayElements = (sourceFile: SourceFile, values: readonly string[]): boolean => {
+  const literals = new Set(sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralText()));
+  return values.every((value) => literals.has(value));
+};
+
+const hasFunctionObjectProperty = (sourceFile: SourceFile, functionName: string, propertyName: string): boolean => {
+  const functionNode = sourceFile.getFunction(functionName)
+    ?? sourceFile.getVariableDeclaration(functionName)?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  return Boolean(
+    functionNode?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName)
+    || functionNode?.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment).some((property) => property.getName() === propertyName),
+  );
+};
+
+const hasFunctionCall = (sourceFile: SourceFile, functionName: string, callName: string): boolean => {
+  const functionNode = sourceFile.getFunction(functionName)
+    ?? sourceFile.getVariableDeclaration(functionName)?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  return Boolean(functionNode?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression)
+      ? expression.getText() === callName
+      : Node.isPropertyAccessExpression(expression) && expression.getName() === callName;
+  }));
+};
+
+const collectRuntimeStatusFindings = (project: Project): Finding[] => {
+  const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
+  return hasStringArrayElements(runtimeResultSource, REQUIRED_AI_RUNTIME_FAILURE_STATUSES)
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-runtime-result.ts`, line: 1, severity: "fatal", message: "AI runtime result resolver must preserve specific implementationStatus values instead of collapsing them to runtime_execution_failed or schema_validation_failed." })];
+};
+
+const collectDispatchFailureEnvelopeFindings = (project: Project): Finding[] => {
+  const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const hasDiagnosticEnvelope = hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "implementationStatus")
+    && hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "diagnosticPayloadRef")
+    && hasFunctionObjectProperty(abilityGroupSource, "dispatchAiExecutionFailure", "errorKind");
+  return hasDiagnosticEnvelope
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/ability-group.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must keep runtime_execution_failed as an outer kind while exposing implementationStatus, errorKind, and diagnosticPayloadRef." })];
+};
+
+const collectOuterCatchDebugFindings = (project: Project): Finding[] => {
+  const abilityGroupSource = getSourceOrThrow(project, `${AI_ROOT}/ability-group.ts`);
+  const executionFailureDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-failure-debug.ts`);
+  const hasOuterDebug = hasFunctionCall(abilityGroupSource, "executeResolvedAiEntry", "emitAiExecutionFailureDebug")
+    && hasFunctionCall(executionFailureDebugSource, "emitAiExecutionFailureDebug", "emitDebugEvent")
+    && hasFunctionObjectProperty(executionFailureDebugSource, "buildExecutionFailureDebugRefs", "diagnosticPayloadRef")
+    && hasFunctionObjectProperty(executionFailureDebugSource, "buildExecutionFailureDebugRuntime", "diagnosticPayloadRef");
+  return hasOuterDebug
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-execution-failure-debug.ts`, line: 1, severity: "fatal", message: "Unexpected AI child throws must emit AI_ERROR_DEBUG with diagnosticPayloadRef before returning the governed dispatch failure." })];
+};
+
+export const collectRuntimeFailureReasonFindings = (project: Project): Finding[] => {
+  return [
+    ...collectRuntimeStatusFindings(project),
+    ...collectDispatchFailureEnvelopeFindings(project),
+    ...collectOuterCatchDebugFindings(project),
+  ];
+};
