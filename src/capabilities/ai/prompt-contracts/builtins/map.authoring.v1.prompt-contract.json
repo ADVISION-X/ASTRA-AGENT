@@ -88,7 +88,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:map-authoring-v1afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+  "promptHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
   "promptContractHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
   "sensitiveOperation": true
 }

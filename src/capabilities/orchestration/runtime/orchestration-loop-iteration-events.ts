@@ -65,6 +65,7 @@ function buildStepResultEventDetails(lastResult: StepResultRecord, input: LoopIt
     actionRef: actionLog?.actionRef ?? null,
     capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
     outputRefs: collectLastResultRefs(lastResult),
+    proofSummary: lastResult.branchFieldValues,
     ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
       ? "Orchestration / Post-action Verification"
       : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
@@ -176,6 +177,7 @@ export async function recordStepResult(
     durationMs: details.durationMs,
     capabilityCallId: eventDetails.capabilityCallId,
     outputRefs: eventDetails.outputRefs,
+    proofSummary: eventDetails.proofSummary,
     actionLogRefs: eventDetails.actionLogRefs,
     actionRef: eventDetails.actionRef,
     postActionVerificationRef: eventDetails.postActionVerificationRef,

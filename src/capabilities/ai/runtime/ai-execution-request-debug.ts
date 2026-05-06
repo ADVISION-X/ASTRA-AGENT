@@ -95,8 +95,8 @@ const buildRequestDebugOutput = (
     parsedJson: null,
     parsedDecision: null,
     parserErrors: [],
-    sourceScreenshotEvidenceId: proof?.sourceScreenshotEvidenceId ?? input.request.inputRefs[0]?.id ?? null,
-    aiInputArtifactRef: proof?.aiInputArtifactRef ?? input.request.inputRefs[0]?.id ?? null,
+    sourceScreenshotEvidenceId: proof?.sourceScreenshotEvidenceId ?? null,
+    aiInputArtifactRef: proof?.aiInputArtifactRef ?? null,
     imageInputs: proof ? [{
       refId: proof.promptInputRef,
       artifactRef: proof.aiInputArtifactRef,

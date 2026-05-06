@@ -8,6 +8,7 @@ import {
   StructuredActionLogSchema,
   StructuredRuntimeEventSchema,
   type StructuredActionLog,
+  type StructuredRuntimeEvent,
 } from "../../../types/structured-log.js";
 import {
   resolveRuntimeActionPurpose,
@@ -38,7 +39,29 @@ export type RuntimeEventInput = {
   actionRef?: string | null;
   postActionVerificationRef?: string | null;
   createdAt?: string;
+  proofSummary?: RuntimeEventProofSummary;
 };
+
+type RuntimeEventProofSummary = Partial<Pick<
+  StructuredRuntimeEvent,
+  | "screenshotEvidenceId"
+  | "artifactRef"
+  | "artifactStorageRef"
+  | "outputHash"
+  | "artifactHash"
+  | "byteSize"
+  | "width"
+  | "height"
+  | "coordinateSpace"
+  | "runtimeProofRef"
+  | "promptInputRef"
+  | "aiInputArtifactRef"
+  | "sourceScreenshotEvidenceId"
+  | "sourceStorageRef"
+  | "preparedImageHash"
+  | "preparedImageWidth"
+  | "preparedImageHeight"
+>>;
 
 export type StepResultRecord = {
   status: "success" | "failed" | "review_required";
@@ -99,10 +122,12 @@ const buildRuntimeEventIdentity = (input: RuntimeEventInput) => {
   };
 };
 
+const toEvidenceRef = (id: string, summary: string) => ({ id, kind: "ai-result" as const, summary });
+
 const buildRuntimeEventRefs = (input: RuntimeEventInput) => ({
   refs: input.refs ?? [],
-  inputRefs: [],
-  outputRefs: [],
+  inputRefs: (input.inputRefs ?? []).map((id) => toEvidenceRef(id, "input")),
+  outputRefs: (input.outputRefs ?? []).map((id) => toEvidenceRef(id, "output")),
   evidenceRefs: [],
   proofRefs: input.proofRefs ?? [],
   artifactRefs: [],
@@ -141,6 +166,7 @@ export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) => {
     decision: input.decision ?? null,
     createdAt: input.createdAt ?? new Date().toISOString(),
     durationMs: input.durationMs ?? null,
+    ...(input.proofSummary ?? {}),
     ...identity,
     ...buildRuntimeEventRefs(input),
   });

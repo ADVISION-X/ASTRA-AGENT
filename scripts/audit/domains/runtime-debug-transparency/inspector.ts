@@ -3,6 +3,7 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { hasIdentifier, hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
+import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createRuntimeDebugTransparencyProject, getSource } from "./ast-utils.js";
 
 const LAW_ID = "GRASSEYE-STRUCTURED-LOGGING-002-V2";
@@ -21,7 +22,7 @@ const hasRequiredTraceFields = (
   aiProofBuilder: ReturnType<typeof getSource>,
   aiExecutor: ReturnType<typeof getSource>,
   structuredLogPayload: ReturnType<typeof getSource>,
-  localAiRuntimeExecution: ReturnType<typeof getSource>,
+  localAiRuntimeSources: ReturnType<typeof getSource>[],
 ): boolean => {
   const proofBuilderShape = hasIdentifier(aiProofBuilder, "promptContractId")
     && hasIdentifier(aiProofBuilder, "promptContractHash");
@@ -30,10 +31,53 @@ const hasRequiredTraceFields = (
     (propertyName) => hasIdentifier(structuredLogPayload, propertyName),
   );
   const localAiTraceShape = ["promptContractId", "outputSchemaRef", "systemPromptHash", "userPromptHash"].every(
-    (fragment) => hasIdentifier(localAiRuntimeExecution, fragment),
+    (fragment) => localAiRuntimeSources.some((source) => hasIdentifier(source, fragment)),
   );
 
   return proofBuilderShape && executorCarriesPromptContract && structuredLogShape && localAiTraceShape;
+};
+
+const REQUIRED_SCREENSHOT_TERMINAL_FIELDS = [
+  "screenshotEvidenceId",
+  "artifactRef",
+  "artifactStorageRef",
+  "outputHash",
+  "artifactHash",
+  "byteSize",
+  "width",
+  "height",
+  "coordinateSpace",
+  "runtimeProofRef",
+] as const;
+
+const REQUIRED_PREPARE_AI_TERMINAL_FIELDS = [
+  "promptInputRef",
+  "aiInputArtifactRef",
+  "sourceScreenshotEvidenceId",
+  "sourceStorageRef",
+  "preparedImageHash",
+  "preparedImageWidth",
+  "preparedImageHeight",
+] as const;
+
+const REQUIRED_TERMINAL_PROOF_FIELDS = [
+  ...REQUIRED_SCREENSHOT_TERMINAL_FIELDS,
+  ...REQUIRED_PREPARE_AI_TERMINAL_FIELDS,
+] as const;
+
+const hasTerminalProofFieldShape = (
+  structuredLogSchema: ReturnType<typeof getSource>,
+  structuredLogPayload: ReturnType<typeof getSource>,
+  orchestrationPayloads: ReturnType<typeof getSource>,
+  orchestrationEvents: ReturnType<typeof getSource>,
+): boolean => {
+  const runtimeEventFields = getZodObjectPropertyNames(structuredLogSchema, "StructuredRuntimeEventSchema");
+  return REQUIRED_TERMINAL_PROOF_FIELDS.every((field) => runtimeEventFields.has(field))
+    && REQUIRED_TERMINAL_PROOF_FIELDS.every((field) => hasIdentifier(structuredLogPayload, field))
+    && hasIdentifier(structuredLogPayload, "buildEventProofPayload")
+    && hasIdentifier(orchestrationPayloads, "proofSummary")
+    && hasIdentifier(orchestrationEvents, "branchFieldValues")
+    && hasIdentifier(orchestrationEvents, "proofSummary");
 };
 
 const inspector: DomainInspector = async () => {
@@ -42,10 +86,18 @@ const inspector: DomainInspector = async () => {
   const aiProofBuilder = getSource(project, "src/capabilities/ai/runtime/ai-proof-builder.ts");
   const aiExecutor = getSource(project, "src/capabilities/ai/runtime/ai-executor.ts");
   const structuredLogPayload = getSource(project, "src/lib/local-runtime/structured-log-payload.ts");
-  const localAiRuntimeExecution = getSource(project, "src/lib/local-ai/local-ai-runtime-execution.ts");
+  const structuredLogSchema = getSource(project, "src/types/structured-log.ts");
+  const orchestrationPayloads = getSource(project, "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts");
+  const orchestrationEvents = getSource(project, "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts");
+  const localAiRuntimeSources = [
+    getSource(project, "src/lib/local-ai/local-ai-runtime-vision-task.ts"),
+    getSource(project, "src/lib/local-ai/local-ai-runtime-ocr-task.ts"),
+    getSource(project, "src/lib/local-ai/local-ai-runtime-comment-signal-task.ts"),
+    getSource(project, "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts"),
+  ];
 
   const whyText = await readTextFile(pathFromRepoRoot(WHY_PATH));
-  if (!hasRequiredWhySections(whyText) || !hasRequiredTraceFields(aiProofBuilder, aiExecutor, structuredLogPayload, localAiRuntimeExecution)) {
+  if (!hasRequiredWhySections(whyText) || !hasRequiredTraceFields(aiProofBuilder, aiExecutor, structuredLogPayload, localAiRuntimeSources)) {
     findings.push(createFinding({
       lawId: LAW_ID,
       file: WHY_PATH,
@@ -54,14 +106,23 @@ const inspector: DomainInspector = async () => {
       message: "Runtime debug transparency is missing WHY coverage or prompt-trace structured logging fields across AI and local runtime surfaces.",
     }));
   }
+  if (!hasTerminalProofFieldShape(structuredLogSchema, structuredLogPayload, orchestrationPayloads, orchestrationEvents)) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: "src/lib/local-runtime/structured-log-payload.ts",
+      line: 1,
+      severity: "error",
+      message: "Runtime debug transparency must carry screenshot artifact refs and prepare-ai-input proof refs as first-class structured terminal payload fields, not only opaque outputRefs strings.",
+    }));
+  }
 
   const phase = createPhase(
     "traceability-shape",
     findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
     findings.length === 0,
     findings.length === 0
-      ? "Runtime debug transparency keeps WHY guidance and structured prompt-trace fields wired across AI proof and runtime logs."
-      : "Runtime debug transparency lost required WHY guidance or structured prompt-trace fields.",
+      ? "Runtime debug transparency keeps WHY guidance, structured prompt traces, and screenshot-to-AI proof refs wired into terminal payloads."
+      : "Runtime debug transparency lost required WHY guidance, prompt-trace fields, or screenshot-to-AI terminal proof refs.",
   );
 
   return finalizeInspectorResult({

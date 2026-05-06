@@ -117,6 +117,24 @@ const buildEventAiPayload = (entry: StructuredRuntimeEvent): Record<string, unkn
   tokenEstimate: entry.tokenEstimate,
 });
 
+const buildEventProofPayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => ({
+  screenshotEvidenceId: entry.screenshotEvidenceId,
+  artifactRef: entry.artifactRef,
+  artifactStorageRef: entry.artifactStorageRef,
+  outputHash: entry.outputHash,
+  artifactHash: entry.artifactHash,
+  byteSize: entry.byteSize,
+  width: entry.width,
+  height: entry.height,
+  coordinateSpace: entry.coordinateSpace,
+  runtimeProofRef: entry.runtimeProofRef,
+  promptInputRef: entry.promptInputRef,
+  sourceStorageRef: entry.sourceStorageRef,
+  preparedImageHash: entry.preparedImageHash,
+  preparedImageWidth: entry.preparedImageWidth,
+  preparedImageHeight: entry.preparedImageHeight,
+});
+
 const buildEventOutcomePayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => ({
   decision: entry.decision,
   roundOutcome: entry.roundOutcome,
@@ -162,6 +180,7 @@ export const buildEventPayload = (entry: StructuredRuntimeEvent, level: Structur
     ...buildEventIdentityPayload(entry),
     ...buildEventReasonPayload(entry),
     ...buildEventAiPayload(entry),
+    ...buildEventProofPayload(entry),
     ...buildEventOutcomePayload(entry),
     ...buildSnapshotPayload(entry),
   });

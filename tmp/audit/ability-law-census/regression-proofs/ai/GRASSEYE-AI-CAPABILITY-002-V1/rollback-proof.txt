@@ -1,8 +1,8 @@
-scenarioId: input-gate-mutation
-mutationName: input gate mutation
-mutatedFile: src/capabilities/ai/runtime/ai-pre-runtime.ts
-rollbackRestoredHash: sha256:6a403db9c551ae0295e0760d285b8cb090b449069d90104e9bb0c7e6ba61f5d3
-startedAt: 2026-05-06T21:15:31.701Z
-endedAt: 2026-05-06T21:15:39.948Z
+scenarioId: success-raw-output-hash-mutation
+mutationName: success raw output hash mutation
+mutatedFile: src/capabilities/ai/schema-runtime-success-invariants.ts
+rollbackRestoredHash: sha256:7ea6443e91a649b59a3a18bc06b77d6d563befdcaab753a4c7e6692a7ab6d262
+startedAt: 2026-05-06T21:32:28.414Z
+endedAt: 2026-05-06T21:32:36.996Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

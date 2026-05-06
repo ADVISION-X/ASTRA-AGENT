@@ -24,6 +24,11 @@ const readNumber = (value: JsonObject | null | undefined, key: string): number |
   return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
 };
 
+const readObject = (value: JsonObject | null | undefined, key: string): JsonObject | null => {
+  const candidate = value?.[key];
+  return isObject(candidate) ? candidate : null;
+};
+
 const describeAbilityFailure = (
   failure: WorkbenchAbilityExecutionResult["failureReason"],
 ): string | null => {
@@ -134,15 +139,16 @@ function buildPrepareAiInputProofSummary(input: {
   const runtimeProof = input.result.runtimeProof;
   const artifactRef = isObject(output.artifactRef) ? output.artifactRef : isObject(runtimeProof.artifactRef) ? runtimeProof.artifactRef : null;
   const sourceArtifactRef = isObject(runtimeProof.sourceArtifactRef) ? runtimeProof.sourceArtifactRef : null;
+  const scaleMapping = readObject(output, "scaleMapping") ?? readObject(runtimeProof, "scaleMapping");
   const sourceScreenshotEvidenceId = readString(output, "sourceScreenshotEvidenceId")
-    ?? readString(runtimeProof, "sourceProofRef")
-    ?? readString(runtimeProof, "screenshotEvidenceId");
-  const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(runtimeProof, "sourceProofRef");
+    ?? readString(scaleMapping, "sourceScreenshotEvidenceId")
+    ?? readString(sourceArtifactRef, "evidenceId");
+  const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(scaleMapping, "sourceStorageRef");
   const aiInputArtifactRef = readString(artifactRef, "artifactId");
   const preparedImageHash = readString(output, "outputHash") ?? readString(artifactRef, "sha256");
-  const preparedImageWidth = readNumber(output, "width");
-  const preparedImageHeight = readNumber(output, "height");
-  const coordinateSpace = readString(output, "coordinateSpace");
+  const preparedImageWidth = readNumber(output, "width") ?? readNumber(runtimeProof, "outputWidth");
+  const preparedImageHeight = readNumber(output, "height") ?? readNumber(runtimeProof, "outputHeight");
+  const coordinateSpace = readString(output, "coordinateSpace") ?? readString(runtimeProof, "coordinateSpace");
   const prepareSummary = {
     ...screenshotSummary,
     promptInputRef: input.outputRef,

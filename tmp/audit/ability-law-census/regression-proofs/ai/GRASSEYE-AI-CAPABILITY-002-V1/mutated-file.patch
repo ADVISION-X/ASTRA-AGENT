@@ -1,9 +1,12 @@
-diff --git a/src/capabilities/ai/runtime/ai-pre-runtime.ts b/src/capabilities/ai/runtime/ai-pre-runtime.ts
---- a/src/capabilities/ai/runtime/ai-pre-runtime.ts
-+++ b/src/capabilities/ai/runtime/ai-pre-runtime.ts
-@@ -259,4 +259,4 @@
- export const runAiExecutorInputGate = (
-   request: ParsedAiAbilityInput,
-   childCapabilityId: AiChildContract["childCapabilityId"],
--) => parseAiExecutorInput(request, childCapabilityId);
-+) => ({ ok: true, request });
+diff --git a/src/capabilities/ai/schema-runtime-success-invariants.ts b/src/capabilities/ai/schema-runtime-success-invariants.ts
+--- a/src/capabilities/ai/schema-runtime-success-invariants.ts
++++ b/src/capabilities/ai/schema-runtime-success-invariants.ts
+@@ -52,7 +52,7 @@
+   if (input.status === "success" && input.runtimeProof.rawOutputRef === null) {
+     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputRef", path: ["runtimeProof", "rawOutputRef"] });
+   }
+-  if (input.status === "success" && input.runtimeProof.rawOutputHash === null) {
++  if (input.status === "failed" && input.runtimeProof.rawOutputHash === null) {
+     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputHash", path: ["runtimeProof", "rawOutputHash"] });
+   }
+ }
