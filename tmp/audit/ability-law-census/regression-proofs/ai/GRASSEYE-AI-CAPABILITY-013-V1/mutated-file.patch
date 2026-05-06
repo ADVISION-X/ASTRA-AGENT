@@ -1,12 +1,12 @@
-diff --git a/src/capabilities/ai/schema-runtime-success-invariants.ts b/src/capabilities/ai/schema-runtime-success-invariants.ts
---- a/src/capabilities/ai/schema-runtime-success-invariants.ts
-+++ b/src/capabilities/ai/schema-runtime-success-invariants.ts
-@@ -52,7 +52,7 @@
-   if (input.status === "success" && input.runtimeProof.rawOutputRef === null) {
-     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputRef", path: ["runtimeProof", "rawOutputRef"] });
-   }
--  if (input.status === "success" && input.runtimeProof.rawOutputHash === null) {
-+  if (input.status === "failed" && input.runtimeProof.rawOutputHash === null) {
-     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputHash", path: ["runtimeProof", "rawOutputHash"] });
-   }
+diff --git a/src/capabilities/ai/runtime/ai-proof-builder.ts b/src/capabilities/ai/runtime/ai-proof-builder.ts
+--- a/src/capabilities/ai/runtime/ai-proof-builder.ts
++++ b/src/capabilities/ai/runtime/ai-proof-builder.ts
+@@ -91,7 +91,7 @@
+     roundId: input.request.roundId,
+     videoVisitId: input.request.videoVisitId,
+     stepId: input.request.stepId,
+-    capabilityCallId: input.request.capabilityCallId,
++    capabilityCallId: null,
+   };
  }
+ 

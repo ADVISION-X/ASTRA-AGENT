@@ -1,4 +1,5 @@
 export type MapActivationRecord = {
+  activationId: string;
   activationSnapshotRef: string;
   activationSnapshotHash: string;
   mapPackageId: string;

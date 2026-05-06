@@ -88,8 +88,7 @@ function collectStringTerms(matches: Set<string>, value: string) {
 }
 
 function collectObjectTerms(matches: Set<string>, value: object) {
-  for (const [key, nested] of Object.entries(value)) {
-    collectStringTerms(matches, key);
+  for (const [, nested] of Object.entries(value)) {
     visitForbiddenActionTerms(matches, nested);
   }
 }

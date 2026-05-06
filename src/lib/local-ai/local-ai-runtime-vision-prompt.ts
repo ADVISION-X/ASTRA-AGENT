@@ -18,7 +18,7 @@ export const resolveExpectedFrameLabels = (request: VisionProductPresenceRequest
   return ["adaptive_first", "adaptive_mid", "adaptive_late"];
 };
 
-const buildVisionOutputExample = (request: VisionProductPresenceRequest) => ({
+const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
   taskType: "vision.productPresence",
   promptId: "vision.productPresence.v1",
   promptVersion: "v1",
@@ -35,7 +35,7 @@ const buildVisionOutputExample = (request: VisionProductPresenceRequest) => ({
   missingFrames: request.input.missingFrames,
   isProductVideo: null,
   decision: null,
-  confidence: 0.5,
+  confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
   visibleProductTypes: [],
   evidenceObservations: ["describe only what is visibly present in the sampled frames"],
   reason: "one sentence explaining the product-presence decision",
@@ -56,10 +56,11 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
   const userPrompt = [
     "Every key in the required schema is mandatory. If uncertain, keep the key and use null, [], or review_required-compatible values instead of omitting fields.",
+    "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
     `frameLevelObservations[].frameLabel must use only these labels: ${expectedFrameLabels.join(", ")}.`,
     "frameLevelObservations[].hasVisibleProduct must be true, false, or null.",
     `Return JSON matching this schema: ${JSON.stringify(contract.requiredOutputSchema)}`,
-    `Return JSON structurally similar to this example: ${JSON.stringify(buildVisionOutputExample(request))}`,
+    `Return JSON structurally similar to this template: ${JSON.stringify(buildVisionOutputTemplate(request))}`,
     `Task input: ${JSON.stringify(request.input)}`,
     `Forbidden outputs: ${contract.forbiddenOutputs.join("; ")}`,
   ].join("\n\n");

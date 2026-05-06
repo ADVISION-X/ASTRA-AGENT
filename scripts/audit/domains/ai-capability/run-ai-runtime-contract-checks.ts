@@ -268,6 +268,44 @@ const findReferenceIntegrityViolations = (project: Project): Finding[] => {
   return findings;
 };
 
+const findModelOwnedConfidenceViolations = (project: Project): Finding[] => {
+  const promptSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision-prompt.ts");
+  const parserSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision.ts");
+  const taskSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision-task.ts");
+  const findings: Finding[] = [];
+
+  const confidenceAssignments = [
+    ...promptSource.getDescendantsOfKind(SyntaxKind.PropertyAssignment),
+    ...parserSource.getDescendantsOfKind(SyntaxKind.PropertyAssignment),
+    ...taskSource.getDescendantsOfKind(SyntaxKind.PropertyAssignment),
+  ].filter((property) => property.getName() === "confidence");
+  const hardcodedNumericConfidence = confidenceAssignments.find((property) => {
+    const initializer = property.getInitializer();
+    return initializer !== undefined && Node.isNumericLiteral(initializer);
+  });
+
+  if (hardcodedNumericConfidence) {
+    findings.push(createFinding({
+      lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+      file: hardcodedNumericConfidence.getSourceFile().getFilePath(),
+      line: hardcodedNumericConfidence.getStartLineNumber(),
+      severity: "fatal",
+      message: "Vision product-presence confidence must be model-owned; prompt templates and local vision parsing must not hard-code numeric confidence values that the model can copy or that runtime can substitute.",
+    }));
+  }
+  if (!promptSource.getFullText().includes("AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER") || !promptSource.getFullText().includes("confidence must be your own calibrated estimate")) {
+    findings.push(createFinding({
+      lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+      file: "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",
+      line: 1,
+      severity: "fatal",
+      message: "Vision product-presence prompt must explicitly require model-owned confidence and avoid a fixed numeric confidence example.",
+    }));
+  }
+
+  return findings;
+};
+
 export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
@@ -277,6 +315,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findFakeLiteralViolations(project),
     ...findDisabledChildExecutionViolations(project),
     ...findReferenceIntegrityViolations(project),
+    ...findModelOwnedConfidenceViolations(project),
     ...findTimeoutCancellationViolations(project),
     ...findPromptGovernanceViolations(project),
     ...findProofChainViolations(project),

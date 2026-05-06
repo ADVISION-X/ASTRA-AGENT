@@ -2,7 +2,7 @@ scenarioId: ai-debug-trace-step-unsanctioned-stepid-mutation
 mutationName: ai debug trace step unsanctioned stepId mutation
 mutatedFile: src/lib/local-runtime/workbench-ai-debug-support.ts
 rollbackRestoredHash: sha256:118731f6b770fae2d1a304108a91879ef40c8368d3a3becbe3fcc7681447a80d
-startedAt: 2026-05-06T21:24:02.135Z
-endedAt: 2026-05-06T21:24:09.788Z
+startedAt: 2026-05-06T21:58:01.822Z
+endedAt: 2026-05-06T21:58:17.378Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

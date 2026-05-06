@@ -1,4 +1,4 @@
-import { readTextFile } from "../../core/filesystem.js";
+import { readJsonFile, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
@@ -8,6 +8,14 @@ import { createRuntimeDebugTransparencyProject, getSource } from "./ast-utils.js
 
 const LAW_ID = "GRASSEYE-STRUCTURED-LOGGING-002-V2";
 const WHY_PATH = "docs/why/runtime-debug-transparency.WHY.md";
+const PACKAGE_JSON_PATH = "package.json";
+const COPY_RUNTIME_ASSETS_PATH = "scripts/copy-runtime-assets.mjs";
+
+const REQUIRED_RUNTIME_ASSET_SOURCES = [
+  "src/capabilities/ai/prompt-contracts/builtins",
+  "src/map-plugins/builtins",
+  "src/map-plugins/authoring/capability-catalog",
+] as const;
 
 const hasRequiredWhySections = (whyText: string): boolean => [
   "Why this exists",
@@ -80,6 +88,15 @@ const hasTerminalProofFieldShape = (
     && hasIdentifier(orchestrationEvents, "proofSummary");
 };
 
+const hasRuntimeAssetCopyShape = async (): Promise<boolean> => {
+  const packageJson = await readJsonFile<{ scripts?: Record<string, string> }>(pathFromRepoRoot(PACKAGE_JSON_PATH));
+  const buildScript = packageJson.scripts?.build ?? "";
+  const copyScriptText = await readTextFile(pathFromRepoRoot(COPY_RUNTIME_ASSETS_PATH));
+
+  return buildScript.includes("scripts/copy-runtime-assets.mjs")
+    && REQUIRED_RUNTIME_ASSET_SOURCES.every((source) => copyScriptText.includes(source));
+};
+
 const inspector: DomainInspector = async () => {
   const findings = [];
   const project = createRuntimeDebugTransparencyProject();
@@ -113,6 +130,15 @@ const inspector: DomainInspector = async () => {
       line: 1,
       severity: "error",
       message: "Runtime debug transparency must carry screenshot artifact refs and prepare-ai-input proof refs as first-class structured terminal payload fields, not only opaque outputRefs strings.",
+    }));
+  }
+  if (!await hasRuntimeAssetCopyShape()) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: COPY_RUNTIME_ASSETS_PATH,
+      line: 1,
+      severity: "error",
+      message: "Build/runtime transparency must copy prompt-contract JSON, builtin map-package JSON, and generated capability-catalog JSON into dist so startup cannot fail before AI debug events become observable.",
     }));
   }
 

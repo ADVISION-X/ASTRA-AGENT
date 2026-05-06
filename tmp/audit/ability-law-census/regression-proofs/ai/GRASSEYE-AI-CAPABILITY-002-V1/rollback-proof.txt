@@ -1,8 +1,8 @@
-scenarioId: success-raw-output-hash-mutation
-mutationName: success raw output hash mutation
-mutatedFile: src/capabilities/ai/schema-runtime-success-invariants.ts
-rollbackRestoredHash: sha256:7ea6443e91a649b59a3a18bc06b77d6d563befdcaab753a4c7e6692a7ab6d262
-startedAt: 2026-05-06T21:32:28.414Z
-endedAt: 2026-05-06T21:32:36.996Z
+scenarioId: debug-emitter-required-mutation
+mutationName: debug emitter required mutation
+mutatedFile: src/capabilities/ai/ability-group.ts
+rollbackRestoredHash: sha256:d5ddc103a0966e425fcc28413c21bfb32439e57cd8b4ca85d21ca4f04eded512
+startedAt: 2026-05-06T22:04:46.365Z
+endedAt: 2026-05-06T22:04:54.205Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

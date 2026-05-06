@@ -139,11 +139,13 @@ function buildPrepareAiInputProofSummary(input: {
   const runtimeProof = input.result.runtimeProof;
   const artifactRef = isObject(output.artifactRef) ? output.artifactRef : isObject(runtimeProof.artifactRef) ? runtimeProof.artifactRef : null;
   const sourceArtifactRef = isObject(runtimeProof.sourceArtifactRef) ? runtimeProof.sourceArtifactRef : null;
+  const sourceProof = isObject(runtimeProof.sourceProof) ? runtimeProof.sourceProof : null;
   const scaleMapping = readObject(output, "scaleMapping") ?? readObject(runtimeProof, "scaleMapping");
   const sourceScreenshotEvidenceId = readString(output, "sourceScreenshotEvidenceId")
     ?? readString(scaleMapping, "sourceScreenshotEvidenceId")
+    ?? readString(sourceProof, "sourceScreenshotEvidenceId")
     ?? readString(sourceArtifactRef, "evidenceId");
-  const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(scaleMapping, "sourceStorageRef");
+  const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(sourceProof, "sourceStorageRef") ?? readString(scaleMapping, "sourceStorageRef");
   const aiInputArtifactRef = readString(artifactRef, "artifactId");
   const preparedImageHash = readString(output, "outputHash") ?? readString(artifactRef, "sha256");
   const preparedImageWidth = readNumber(output, "width") ?? readNumber(runtimeProof, "outputWidth");

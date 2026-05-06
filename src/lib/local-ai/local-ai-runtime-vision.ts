@@ -190,11 +190,27 @@ const normalizeVisionRuntimeOutput = (
   );
 
   return {
-    adjusted: normalizedRootIsProductVideo !== value.isProductVideo || decision !== value.decision || normalizedFrameObservations.adjusted,
+    adjusted: normalizedRootIsProductVideo !== value.isProductVideo
+      || decision !== value.decision
+      || normalizedFrameObservations.adjusted
+      || value.taskType !== "vision.productPresence"
+      || value.promptId !== "vision.productPresence.v1"
+      || value.promptVersion !== "v1"
+      || value.schemaVersion !== "vision.productPresence.schema.v1"
+      || typeof value.reason !== "string",
     normalized: {
       ...value,
+      taskType: "vision.productPresence",
+      promptId: "vision.productPresence.v1",
+      promptVersion: "v1",
+      schemaVersion: "vision.productPresence.schema.v1",
       isProductVideo,
       decision,
+      reason: typeof value.reason === "string" && value.reason.length > 0
+        ? value.reason
+        : (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0
+          ? value.aggregateReason
+          : "Local vision model did not provide a separate reason field; aggregateReason was unavailable."),
       frameLevelObservations: normalizedFrameObservations.observations,
     },
   };

@@ -1,7 +1,7 @@
-mutationName: success raw output hash mutation
+mutationName: proof chain mutation
 classification: LAW-SCRIPT DRIFT
 passed: false
 violationCount: 1
 summary: AI negative-proof harness was skipped for nested inspector execution.
 
-FATAL GRASSEYE-AI-CAPABILITY-006-V1 src/capabilities/ai/schema-runtime.schema.ts:1 AI runtime/result schemas must require raw output references and hashes for governed success paths.
+FATAL GRASSEYE-AI-CAPABILITY-007A-V1 src/capabilities/ai/runtime/ai-proof-builder.ts:1 AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, activationSnapshotRef, promptContractVersion, and promptCatalogVersion from governed request context.

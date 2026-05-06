@@ -3,6 +3,23 @@ import { AiRuntimeExecutionOutputSchema } from "../schema.js";
 
 type LocalAiCircuitBreakerState = "closed" | "open" | "half_open" | "not_applicable";
 
+const AI_RUNTIME_CONTRACT_META_FIELDS = new Set([
+  "taskType",
+  "promptId",
+  "promptVersion",
+  "schemaVersion",
+]);
+
+function stripRuntimeContractMetaFields(output: unknown): unknown {
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return output;
+  }
+
+  return Object.fromEntries(
+    Object.entries(output).filter(([key]) => !AI_RUNTIME_CONTRACT_META_FIELDS.has(key)),
+  );
+}
+
 function resolveFallbackModelRole(taskType: string): "vision" | "ocr" | "multi-role" {
   if (taskType === "ocr_cleanup") {
     return "ocr";
@@ -75,7 +92,7 @@ function buildLocalAiSuccessOutput(input: {
     createdAt: input.createdAt,
     confidence: input.confidence,
     costEstimate: 0,
-    output: input.output,
+    output: stripRuntimeContractMetaFields(input.output),
     rawOutputRef: input.rawOutputRef,
     rawOutputHash: input.rawOutputHash,
     runtimeCallId: input.runtimeCallId,

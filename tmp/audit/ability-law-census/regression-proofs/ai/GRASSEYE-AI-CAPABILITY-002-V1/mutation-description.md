@@ -1,10 +1,10 @@
 # GRASSEYE-AI-CAPABILITY-002-V1 Production Mutation
 
-scenarioId: success-raw-output-hash-mutation
-mutationName: success raw output hash mutation
-mutatedFile: src/capabilities/ai/schema-runtime-success-invariants.ts
-coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1, GRASSEYE-AI-CAPABILITY-013-V1
-beforeHash: sha256:7ea6443e91a649b59a3a18bc06b77d6d563befdcaab753a4c7e6692a7ab6d262
-afterMutationHash: sha256:d7e260c3fe0d475f2ae10908cdffbe57c058e5a5ed17f6d5b8967244cbe06040
+scenarioId: debug-emitter-required-mutation
+mutationName: debug emitter required mutation
+mutatedFile: src/capabilities/ai/ability-group.ts
+coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
+beforeHash: sha256:d5ddc103a0966e425fcc28413c21bfb32439e57cd8b4ca85d21ca4f04eded512
+afterMutationHash: sha256:44ed6396b56e85f4d9dfa5a34de5f29da0bc6aea4b5182b81a14ae4082b3fba5
 
-The mutation weakens raw response hash enforcement, proving ASK AI success requires rawResponseHash evidence.
+The mutation lets ASK AI continue without a structured debug emitter, proving AI_REQUEST_DEBUG is a hard execution precondition.
