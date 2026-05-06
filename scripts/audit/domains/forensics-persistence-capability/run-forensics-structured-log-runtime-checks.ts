@@ -103,8 +103,8 @@ const matchesStatusComparison = (expression: import("ts-morph").BinaryExpression
 
 const hasBoundaryEventCall = (
   sourceFile: import("ts-morph").SourceFile,
-  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN",
-  status: "started" | "success",
+  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN" | "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED",
+  status: "started" | "success" | "review_required",
 ): boolean => {
   return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
     const expression = callExpression.getExpression();
@@ -147,7 +147,9 @@ const hasForensicsWriteProofRefs = (sourceFile: import("ts-morph").SourceFile): 
     "recordId=",
     "recordRef=",
     "idempotencyKey=",
-    "dedupeDecision=written",
+    "dedupeDecision=${dedupeDecision}",
+    "durabilityMode=",
+    "storageRef=",
   ];
 
   return functionHasLiteralFragments(sourceFile, "emitForensicsRecordWriteRequested", requestedRefs)
@@ -168,6 +170,16 @@ const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").Source
   });
 
   return hasFailedGate && !hasSuccessOnlyGate;
+};
+
+const hasReviewRequiredWriteSemantics = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
+  const bodyText = emitWritten?.getText() ?? "";
+  return bodyText.includes('result.status === "review_required"')
+    && bodyText.includes("FORENSICS_RECORD_WRITE_REVIEW_REQUIRED")
+    && bodyText.includes('status = reviewRequired ? "review_required" : "success"')
+    && bodyText.includes('dedupeDecision = reviewRequired ? "review_required" : "written"')
+    && bodyText.includes('durabilityMode=${result.storageRef ? "durable" : "memory_only"}');
 };
 
 const hasPersistedBoundaryEventEmitter = (sourceFile: import("ts-morph").SourceFile): boolean => {
@@ -217,13 +229,14 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
   const checks = [
     hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITE_REQUESTED"),
     hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITTEN"),
+    hasStringLiteral(boundarySource, "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED"),
     hasBoundaryEventCall(boundarySource, "FORENSICS_RECORD_WRITE_REQUESTED", "started"),
-    hasBoundaryEventCall(boundarySource, "FORENSICS_RECORD_WRITTEN", "success"),
     hasCallExpression(abilityGroupSource, "emitForensicsRecordWriteRequested"),
     hasCallExpression(abilityGroupSource, "emitForensicsRecordWritten"),
     hasPersistedBoundaryEventEmitter(workbenchSource),
     hasBoundaryEmitterAbilityGroupWiring(workbenchSource),
     hasWrittenBoundaryFailureOnlyGate(boundarySource),
+    hasReviewRequiredWriteSemantics(boundarySource),
     hasLiteralTextFragment(boundarySource, "recordType="),
     hasForensicsWriteProofRefs(boundarySource),
   ];

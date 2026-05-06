@@ -86,6 +86,12 @@ const MUTATIONS: Mutation[] = [
     replace: '  if (!emitter || result.status !== "success") {',
   },
   {
+    name: "forensics review written success mutation",
+    file: "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    search: '  const eventType = reviewRequired ? "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED" : "FORENSICS_RECORD_WRITTEN";\n  const status = reviewRequired ? "review_required" : "success";\n',
+    replace: '  const eventType = "FORENSICS_RECORD_WRITTEN";\n  const status = "success";\n',
+  },
+  {
     name: "forensics structured log bus wiring mutation",
     file: "src/lib/local-runtime/workbench-persistence-runtime.ts",
     search: "      structuredLogBus: boundaryEventEmitter,\n",

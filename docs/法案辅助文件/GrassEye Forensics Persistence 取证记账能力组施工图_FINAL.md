@@ -733,7 +733,7 @@ Forensics 必须能让每一条证据回到 map、step、capability call、promp
 
 本节只补施工细节，不新增 lawId，不修改冻结法案。
 
-Forensics 写账可以对每个 runtime event 记录 `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN`，但终端摘要必须足够判断是否正常写账、重复写账或 dedupe。
+Forensics 写账可以对每个 runtime event 记录 `FORENSICS_RECORD_WRITE_REQUESTED` / `FORENSICS_RECORD_WRITTEN` / `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED`，但终端摘要必须足够判断是否正常写账、重复写账、dedupe 或 durability review。
 
 `FORENSICS_RECORD_WRITE_REQUESTED` refs 至少包含：
 
@@ -757,7 +757,11 @@ recordId
 recordRef
 idempotencyKey
 dedupeDecision=written or deduped
+storageRef
+durabilityMode=durable or memory_only
 ```
+
+当 Forensics child result 为 `review_required` 时，不得输出 `FORENSICS_RECORD_WRITTEN status=success`。必须输出 `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED status=review_required`；如果 `storageRef=MISSING`，终端摘要必须明确 `durabilityMode=memory_only` 或进入 durability review，不得把该记录描述成 durable persisted proof。
 
 禁止：
 

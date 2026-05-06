@@ -136,17 +136,12 @@ function createLocalAiDebugSession(args: {
 }): LocalAiDebugSession {
   const state = createCollectedDebugState(args.request, args.promptDebugRef);
   const baseEvent = () => buildBaseDebugEvent({ ...args, state });
-  const emitRuntimeSuccess = async (parsedJson: unknown, durationMs: number | null) => {
-    state.parsedJson = parsedJson;
-    if (state.responseEmitted) {
-      return;
-    }
-    state.responseEmitted = true;
-    await emitResponseDebug({ emit: args.emitDebugEvent, baseEvent, durationMs });
-  };
+  const emitAiRequestDebug = createRequestDebugEmitter({ emit: args.emitDebugEvent, state, baseEvent });
+  const emitRuntimeSuccess = createRuntimeSuccessEmitter({ emit: args.emitDebugEvent, state, baseEvent });
 
   return {
     state,
+    emitAiRequestDebug,
     emitAiErrorDebug: (failureReason, errorKind, durationMs, implementationStatus = null) => {
       state.implementationStatus = implementationStatus;
       state.errorKind = errorKind;
@@ -169,6 +164,35 @@ function createLocalAiDebugSession(args: {
       baseEvent,
       emitRuntimeSuccess,
     }),
+  };
+}
+
+function createRequestDebugEmitter(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  return async () => {
+    if (args.state.requestEmitted) {
+      return;
+    }
+    args.state.requestEmitted = true;
+    await emitRequestDebug({ emit: args.emit, baseEvent: args.baseEvent });
+  };
+}
+
+function createRuntimeSuccessEmitter(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  return async (parsedJson: unknown, durationMs: number | null) => {
+    args.state.parsedJson = parsedJson;
+    if (args.state.responseEmitted) {
+      return;
+    }
+    args.state.responseEmitted = true;
+    await emitResponseDebug({ emit: args.emit, baseEvent: args.baseEvent, durationMs });
   };
 }
 

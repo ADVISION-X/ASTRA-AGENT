@@ -69,14 +69,28 @@ function resolveStructuredWritePayload(request: StructuredWriteRequest) {
 
 function buildBoundaryEvent(
   request: StructuredWriteRequest,
-  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN",
-  status: "started" | "success",
+  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN" | "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED",
+  status: "started" | "success" | "review_required",
   refs: string[],
 ): StructuredRuntimeEvent {
   const payload = resolveStructuredWritePayload(request);
-  const writeRequested = eventType === "FORENSICS_RECORD_WRITE_REQUESTED";
 
   return StructuredRuntimeEventSchema.parse({
+    ...buildBoundaryEventIdentity(request, payload, eventType),
+    ...buildBoundaryEventStatus(request, eventType, status),
+    createdAt: new Date().toISOString(),
+    refs,
+    proofRefs: [],
+    ...buildEmptyBoundaryEventFields(),
+  });
+}
+
+function buildBoundaryEventIdentity(
+  request: StructuredWriteRequest,
+  payload: ReturnType<typeof resolveStructuredWritePayload>,
+  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN" | "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED",
+) {
+  return {
     eventId: `${request.capabilityCallId ?? request.childCapabilityId}:${eventType.toLowerCase()}:${Date.now()}`,
     eventType,
     level: "INFO",
@@ -101,19 +115,30 @@ function buildBoundaryEvent(
     actionRef: payload.actionRef,
     postActionVerificationRef: payload.postActionVerificationRef,
     step: payload.step,
+  };
+}
+
+function buildBoundaryEventStatus(
+  request: StructuredWriteRequest,
+  eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN" | "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED",
+  status: "started" | "success" | "review_required",
+) {
+  const writeRequested = eventType === "FORENSICS_RECORD_WRITE_REQUESTED";
+  const reviewRequired = eventType === "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED";
+  return {
     status,
     reason: writeRequested
       ? `Forensics accepted ${request.recordType} write request from ${request.sourceAbilityGroupId}.`
+      : reviewRequired
+        ? `Forensics write for ${request.recordType} requires durability review.`
       : `Forensics persisted ${request.recordType} for ${request.sourceAbilityGroupId}.`,
     actionableMessage: writeRequested
       ? "Wait for Forensics persistence completion before treating the record as durable."
+      : reviewRequired
+        ? "Do not treat this record as durable proof until storage durability is reviewed."
       : "Use the persisted record refs and runtime proof for downstream verification.",
     ownerResponsible: "Forensics Persistence",
-    createdAt: new Date().toISOString(),
-    refs,
-    proofRefs: [],
-    ...buildEmptyBoundaryEventFields(),
-  });
+  };
 }
 
 function withBoundaryProofRefs(event: StructuredRuntimeEvent, proofRefs: string[]): StructuredRuntimeEvent {
@@ -172,12 +197,16 @@ export async function emitForensicsRecordWritten(
     return;
   }
 
+  const reviewRequired = result.status === "review_required";
+  const eventType = reviewRequired ? "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED" : "FORENSICS_RECORD_WRITTEN";
+  const status = reviewRequired ? "review_required" : "success";
+  const dedupeDecision = reviewRequired ? "review_required" : "written";
   await emitter.emitRuntimeEvent(
     withBoundaryProofRefs(
       buildBoundaryEvent(
         request,
-        "FORENSICS_RECORD_WRITTEN",
-        "success",
+        eventType,
+        status,
         [
           `recordType=${request.recordType}`,
           `recordKind=${request.recordType}`,
@@ -187,7 +216,8 @@ export async function emitForensicsRecordWritten(
           `recordId=${result.recordRef.recordId}`,
           `recordRef=${result.recordRef.recordId}`,
           `idempotencyKey=${result.policyDecision.idempotencyKey}`,
-          `dedupeDecision=written`,
+          `dedupeDecision=${dedupeDecision}`,
+          `durabilityMode=${result.storageRef ? "durable" : "memory_only"}`,
           `storageRef=${result.storageRef ?? "MISSING"}`,
         ],
       ),

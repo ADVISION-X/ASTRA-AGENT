@@ -1,7 +1,7 @@
 diff --git a/src/capabilities/ai/runtime/ai-executor.ts b/src/capabilities/ai/runtime/ai-executor.ts
 --- a/src/capabilities/ai/runtime/ai-executor.ts
 +++ b/src/capabilities/ai/runtime/ai-executor.ts
-@@ -43,6 +43,7 @@
+@@ -50,6 +50,7 @@
    if (preRuntimeResult) {
      return preRuntimeResult;
    }

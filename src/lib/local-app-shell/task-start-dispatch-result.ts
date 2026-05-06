@@ -41,6 +41,20 @@ const collectDispatchProofRefs = (result: StartCommandResult): string[] => {
   return proofId ? [proofId] : [];
 };
 
+const resolveCommandIdFromRunId = (runId: string | null | undefined): string | null => {
+  if (!runId?.startsWith("commander_command_")) {
+    return null;
+  }
+  return runId.endsWith(":run") ? runId.slice(0, -":run".length) : runId;
+};
+
+const hasCommanderReceiptRef = (result: StartCommandResult): boolean => {
+  const proof = result.runtimeProof;
+  const commandId = resolveCommandIdFromRunId(proof?.runId);
+  const receiptPrefix = commandId ? `commander_receipt:${commandId}` : "commander_receipt:";
+  return [proof?.outputRef, proof?.resultEnvelopeRef].some((ref) => typeof ref === "string" && ref.startsWith(receiptPrefix));
+};
+
 const buildDispatchResultContext = (result: StartCommandResult): DispatchResultContext => {
   const resultMessage = resolveResultMessage(result.output);
   return {
@@ -104,7 +118,7 @@ const recordAcceptedObserverTimeout = async (input: {
 
 const wasAcceptedBeforeResult = (result: StartCommandResult): boolean => {
   const proof = result.runtimeProof;
-  return Boolean(proof?.commandEnvelopeRef && proof?.resultEnvelopeRef);
+  return Boolean((proof?.commandEnvelopeRef && proof?.resultEnvelopeRef) || hasCommanderReceiptRef(result));
 };
 
 const recordAcceptedDispatch = async (input: {

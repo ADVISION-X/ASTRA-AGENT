@@ -117,8 +117,10 @@ const hasAcceptedObserverTimeoutEvent = (sourceFile: import("ts-morph").SourceFi
 
 const hasAcceptedBeforeResultGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const body = getVariableFunctionBody(sourceFile, "wasAcceptedBeforeResult");
-  const bodyText = body?.getText() ?? "";
-  return bodyText.includes("proof?.commandEnvelopeRef") && bodyText.includes("proof?.resultEnvelopeRef");
+  const hasEnvelopeGate = Boolean(body?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "proof?.commandEnvelopeRef"))
+    && Boolean(body?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === "proof?.resultEnvelopeRef"));
+  const hasReceiptGate = Boolean(body?.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "hasCommanderReceiptRef"));
+  return hasEnvelopeGate && hasReceiptGate;
 };
 
 const hasPreDispatchReadyEvent = (sourceFile: import("ts-morph").SourceFile): boolean => {

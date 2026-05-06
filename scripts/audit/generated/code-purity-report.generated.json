@@ -1,18 +1,29 @@
 {
-  "generatedAt": "2026-05-06T17:25:39.648Z",
+  "generatedAt": "2026-05-06T18:00:03.849Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-    "scripts/audit/domains/ai-capability/runtime-result-shape.ts",
+    "scripts/audit/domains/ai-capability/negative-proof-definitions.ts",
+    "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+    "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
+    "scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-runtime-checks.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/code-purity-report.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/ai/index.ts"
+    "src/capabilities/ai/index.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-contract.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug.ts",
+    "src/capabilities/forensics-persistence/shared/forensics-write-boundary-events.ts",
+    "src/lib/local-app-shell/task-start-dispatch-result.ts",
+    "src/lib/local-runtime/structured-log-terminal.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -100,8 +111,23 @@
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/generated/runner-summary.json",
+      "lines": 1418,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8469,
+      "lines": 8476,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -213,7 +239,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8469,
+      "lines": 8476,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",
@@ -300,6 +326,21 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split generated artifact by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/generated/runner-summary.json",
+      "lines": 1418,
+      "fileType": "generated artifact",
+      "overLimitBy": 0,
+      "primaryRole": "read-model",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split generated artifact by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -350,7 +391,7 @@
     },
     {
       "file": "scripts/audit/generated/static-clause-coverage.generated.json",
-      "lines": 8469,
+      "lines": 8476,
       "fileType": "generated artifact",
       "overLimitBy": 0,
       "primaryRole": "read-model",

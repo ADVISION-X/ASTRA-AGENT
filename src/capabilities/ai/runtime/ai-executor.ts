@@ -4,6 +4,7 @@ import {
   resolveAiPreRuntimeResult,
   runAiExecutorInputGate,
 } from "./ai-pre-runtime.js";
+import { emitAiExecutionRequestDebug } from "./ai-execution-request-debug.js";
 import { buildAiInputGateFailureResult, buildAiPromptGateFailureResult } from "./ai-pre-runtime-terminal-results.js";
 import { runAiRuntimeCall } from "./ai-runtime-call-runner.js";
 import { resolveAiRuntimeResult } from "./ai-runtime-result.js";
@@ -34,6 +35,12 @@ export async function executeAiChild(input: { request: ParsedAiAbilityInput; chi
   }
 
   const plan = buildAiExecutionPlan({
+    request: inputGate.request,
+    childContract: input.childContract,
+    context: input.context,
+    promptContract: promptResolution.contract,
+  });
+  await emitAiExecutionRequestDebug({
     request: inputGate.request,
     childContract: input.childContract,
     context: input.context,

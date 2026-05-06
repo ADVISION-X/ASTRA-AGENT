@@ -263,6 +263,7 @@ async function executeLocalAiRuntimeRequest(input: LocalAiRuntimeExecutionInput)
     });
   }
 
+  await context.debugSession.emitAiRequestDebug();
   state.activeRuns += 1;
   try {
     return await runConvertedRequest(gateway, state, context, converted.request);

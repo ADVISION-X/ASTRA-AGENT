@@ -100,6 +100,7 @@ type CollectedDebugState = {
 type LocalAiDebugSession = {
   state: CollectedDebugState;
   debugHook: (event: LocalAiDebugEvent) => Promise<void>;
+  emitAiRequestDebug: () => Promise<void>;
   emitAiErrorDebug: (failureReason: string, errorKind: string | null, durationMs: number | null, implementationStatus?: string | null) => Promise<void>;
   emitRuntimeSuccess: (parsedJson: unknown, durationMs: number | null) => Promise<void>;
 };

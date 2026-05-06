@@ -110,6 +110,7 @@ Forensics structured write boundary 必须发：
 ```txt
 FORENSICS_RECORD_WRITE_REQUESTED
 FORENSICS_RECORD_WRITTEN
+FORENSICS_RECORD_WRITE_REVIEW_REQUIRED
 ```
 
 `WRITE_REQUESTED` refs 至少包含：
@@ -133,7 +134,11 @@ recordId
 recordRef
 idempotencyKey
 dedupeDecision=written 或 deduped
+storageRef
+durabilityMode=durable 或 memory_only
 ```
+
+当 Forensics child result 为 `review_required` 时，不得输出 `FORENSICS_RECORD_WRITTEN status=success`。必须输出 `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED status=review_required`，并保留 `sourceEventId/sourceEventType/recordId/recordRef/idempotencyKey/storageRef/durabilityMode`。如果 `storageRef=MISSING`，终端摘要必须明确 `durabilityMode=memory_only` 或进入 review-required durability 事件，不能把该记录描述成 durable persisted proof。
 
 大 payload 只能给 ref/hash，不得把完整 runtime payload 打进终端摘要。
 
