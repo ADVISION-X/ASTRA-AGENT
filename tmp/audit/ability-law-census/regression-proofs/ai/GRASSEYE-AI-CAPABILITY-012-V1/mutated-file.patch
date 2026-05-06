@@ -1,11 +1,11 @@
 diff --git a/src/capabilities/ai/runtime/ai-runtime-call-runner.ts b/src/capabilities/ai/runtime/ai-runtime-call-runner.ts
 --- a/src/capabilities/ai/runtime/ai-runtime-call-runner.ts
 +++ b/src/capabilities/ai/runtime/ai-runtime-call-runner.ts
-@@ -17,7 +17,7 @@
-   const timeoutHandle = setTimeout(() => abortRuntimeCall(controller, timeoutPolicy.timeoutMs), timeoutPolicy.timeoutMs);
+@@ -30,7 +30,7 @@
+   });
  
    try {
--    const result = await input.context.runtime.execute(input.request, { signal: controller.signal });
+-    const result = await input.context.runtime.execute(input.request, { signal });
 +    const result = await input.context.runtime.execute(input.request);
  
      return AiRuntimeExecutionOutputSchema.parse({

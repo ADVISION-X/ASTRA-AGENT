@@ -1,8 +1,8 @@
-scenarioId: input-gate-mutation
-mutationName: input gate mutation
-mutatedFile: src/capabilities/ai/runtime/ai-pre-runtime.ts
-rollbackRestoredHash: sha256:6a403db9c551ae0295e0760d285b8cb090b449069d90104e9bb0c7e6ba61f5d3
-startedAt: 2026-05-06T19:15:07.650Z
-endedAt: 2026-05-06T19:15:15.949Z
+scenarioId: ai-error-diagnostic-ref-mutation
+mutationName: ai error diagnostic ref mutation
+mutatedFile: src/capabilities/ai/ability-group.ts
+rollbackRestoredHash: sha256:d5ddc103a0966e425fcc28413c21bfb32439e57cd8b4ca85d21ca4f04eded512
+startedAt: 2026-05-06T20:18:26.436Z
+endedAt: 2026-05-06T20:18:34.047Z
 
 Rollback was verified by restoring the original production file content and rerunning the AI owner inspector.

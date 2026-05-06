@@ -702,9 +702,9 @@
         "promptContractId": "vision.productPresence.v1",
         "successCondition": {
           "conditionType": "comparison",
-          "leftRef": "schemaFieldRef:decision",
+          "leftRef": "status",
           "operator": "equals",
-          "rightValue": "product_yes"
+          "rightValue": "success"
         },
         "failureBranch": "judge-product-seeding-video:failed",
         "reviewBranch": "judge-product-seeding-video:review",

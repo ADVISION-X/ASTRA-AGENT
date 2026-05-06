@@ -29,7 +29,7 @@ const hasRuntimeSignalPropagation = (sourceFile: SourceFile): boolean => {
 
     const signalArgument = expression.getArguments()[1];
     return Node.isObjectLiteralExpression(signalArgument)
-      && signalArgument.getProperty("signal")?.getText().includes("controller.signal") === true;
+      && signalArgument.getProperty("signal")?.getText().includes("signal") === true;
   });
 };
 

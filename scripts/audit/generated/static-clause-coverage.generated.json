@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T19:16:17.426Z",
+  "generatedAt": "2026-05-06T20:19:02.150Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -269,6 +269,13 @@
           "checkFunction": "collectRequestDebugStartFindings",
           "sourceFile": "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
           "targetSymbol": "collectRequestDebugStartFindings",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "runtime-failure-transparency-checks",
+          "checkFunction": "collectAskAiProofFindings",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+          "targetSymbol": "collectAskAiProofFindings",
           "checkKind": "forbidden-shape"
         }
       ],

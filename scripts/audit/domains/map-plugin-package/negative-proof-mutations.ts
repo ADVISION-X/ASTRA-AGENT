@@ -238,4 +238,16 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     search: '    : runNegativeProofHarness();\n',
     replace: '    : Promise.resolve({\n        findings: [],\n        phase: createPhase("negative-proof-harness", "PASS", true, "mutated bypass"),\n      });\n',
   },
+  {
+    name: "judge-seeding-video multi-decision success condition reverted mutation",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    search: '"promptContractId": "vision.productPresence.v1", "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "judge-seeding-video:failed"',
+    replace: '"promptContractId": "vision.productPresence.v1", "successCondition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "equals", "rightValue": "product_yes" }, "failureBranch": "judge-seeding-video:failed"',
+  },
+  {
+    name: "prompt template legacy meta field reintroduced mutation",
+    file: "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
+    search: '  requiredOutputSchema: {\n    inputMode: "multi_frame_contact_sheet | multi_image | single_frame_fallback",\n',
+    replace: '  requiredOutputSchema: {\n    taskType: "vision.productPresence",\n    inputMode: "multi_frame_contact_sheet | multi_image | single_frame_fallback",\n',
+  },
 ];

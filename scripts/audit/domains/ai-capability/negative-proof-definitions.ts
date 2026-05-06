@@ -65,7 +65,7 @@ export const MUTATIONS: Mutation[] = [
   {
     name: "runtime signal mutation",
     file: "src/capabilities/ai/runtime/ai-runtime-call-runner.ts",
-    search: "input.context.runtime.execute(input.request, { signal: controller.signal })",
+    search: "input.context.runtime.execute(input.request, { signal })",
     replace: "input.context.runtime.execute(input.request)",
   },
   {
@@ -74,11 +74,17 @@ export const MUTATIONS: Mutation[] = [
     search: "    emitDebugEvent: input.emitDebugEvent,\n",
     replace: "",
   },
-  { name: "ai request debug pre-parse mutation", file: "src/capabilities/ai/ability-group.ts", search: "  await emitAiExecutionInputDebug(context, inputValue);\n", replace: "" },
+  { name: "ai request debug pre-parse mutation", file: "src/capabilities/ai/ability-group.ts", search: "  await emitAiExecutionInputDebug(executionContext, inputValue);\n", replace: "" },
   {
     name: "debug emitter required mutation",
     file: "src/capabilities/ai/ability-group.ts",
-    search: "  if (!context.emitDebugEvent) {\n    return dispatchAiDebugEmitterMissing(context, inputValue);\n  }\n",
+    search: "  if (!executionContext.emitDebugEvent) {\n    return dispatchAiDebugEmitterMissing(executionContext, inputValue);\n  }\n",
+    replace: "",
+  },
+  {
+    name: "workbench ai terminal relay mutation",
+    file: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
+    search: "  runtime.structuredLogBus?.emitRuntimeEvent(structuredRuntimeEvent);\n",
     replace: "",
   },
   {

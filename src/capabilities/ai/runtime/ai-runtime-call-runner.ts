@@ -7,6 +7,15 @@ function abortRuntimeCall(controller: AbortController, timeoutMs: number) {
   controller.abort(`AI runtime timed out after ${timeoutMs}ms.`);
 }
 
+function resolveRuntimeSignal(input: {
+  timeoutSignal: AbortSignal;
+  parentSignal?: AbortSignal | undefined;
+}): AbortSignal {
+  return input.parentSignal
+    ? AbortSignal.any([input.timeoutSignal, input.parentSignal])
+    : input.timeoutSignal;
+}
+
 export async function runAiRuntimeCall(input: {
   request: ParsedAiAbilityInput;
   context: AiExecutionContext;
@@ -15,9 +24,13 @@ export async function runAiRuntimeCall(input: {
   const identity = buildAiRuntimeCallIdentity(input.request);
   const controller = new AbortController();
   const timeoutHandle = setTimeout(() => abortRuntimeCall(controller, timeoutPolicy.timeoutMs), timeoutPolicy.timeoutMs);
+  const signal = resolveRuntimeSignal({
+    timeoutSignal: controller.signal,
+    parentSignal: input.context.abortSignal,
+  });
 
   try {
-    const result = await input.context.runtime.execute(input.request, { signal: controller.signal });
+    const result = await input.context.runtime.execute(input.request, { signal });
 
     return AiRuntimeExecutionOutputSchema.parse({
       ...result,

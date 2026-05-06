@@ -195,7 +195,7 @@ export const handleWorkbenchNerveBusAiRequest = async (
   signal: AbortSignal,
 ): Promise<WorkbenchAiHandledResult> => {
   throwIfAborted(signal);
-  const aiResult = await runtime.aiAbilityGroup.execute(buildWorkbenchAiAbilityRequest(envelope, inputPayload));
+  const aiResult = await runtime.aiAbilityGroup.execute(buildWorkbenchAiAbilityRequest(envelope, inputPayload), { signal });
   throwIfAborted(signal);
   return buildWorkbenchAiResponse({ envelope, aiResult });
 };

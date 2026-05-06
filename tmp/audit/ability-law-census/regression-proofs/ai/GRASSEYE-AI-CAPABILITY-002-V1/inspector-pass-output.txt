@@ -1,4 +1,4 @@
-mutationName: input gate mutation
+mutationName: ai error diagnostic ref mutation
 classification: PASS
 passed: true
 violationCount: 0

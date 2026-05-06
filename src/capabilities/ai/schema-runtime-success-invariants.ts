@@ -18,7 +18,7 @@ export function validateAiRuntimeExecutionOutputSuccessInvariants(input: {
   rawOutputRef: string | null;
   rawOutputHash: string | null;
 }, context: z.RefinementCtx) {
-  if (input.createdAt !== null && input.rawOutputRef === null) {
+  if (input.createdAt === null && input.rawOutputRef === null) {
     context.addIssue({ code: "custom", message: "runtime success requires rawOutputRef", path: ["rawOutputRef"] });
   }
   if (input.createdAt !== null && input.rawOutputHash === null) {

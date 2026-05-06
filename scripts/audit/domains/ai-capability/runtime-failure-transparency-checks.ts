@@ -154,6 +154,13 @@ const hasLocalPreGatewayRequestDebug = (project: Project): boolean => {
     && hasTypeAliasProperty(localDebugContractSource, "LocalAiDebugSession", "emitAiRequestDebug");
 };
 
+const hasWorkbenchTerminalAiDebugRelay = (project: Project): boolean => {
+  const recorderSource = getSourceOrThrow(project, "src/lib/local-runtime/workbench-ai-debug-recorder.ts");
+  return hasFunctionCall(recorderSource, "recordWorkbenchAiDebugEvent", "buildAiStructuredRuntimeEvent")
+    && hasFunctionCall(recorderSource, "recordWorkbenchAiDebugEvent", "emitRuntimeEvent")
+    && hasFunctionCall(recorderSource, "recordWorkbenchAiDebugEvent", "writeStructuredRuntimeEvent");
+};
+
 const hasRawResponseSuccessProof = (project: Project): boolean => {
   const successInvariantSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime-success-invariants.ts`);
   const localOutputSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-output.ts`);
@@ -167,9 +174,9 @@ const hasRawResponseSuccessProof = (project: Project): boolean => {
 };
 
 const collectRequestDebugStartFindings = (project: Project): Finding[] => {
-  return hasAbilityPreParseRequestDebug(project) && hasDebugEmitterRequiredBeforeExecution(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project)
+  return hasAbilityPreParseRequestDebug(project) && hasDebugEmitterRequiredBeforeExecution(project) && hasExecutorPreRuntimeRequestDebug(project) && hasLocalPreGatewayRequestDebug(project) && hasWorkbenchTerminalAiDebugRelay(project)
     ? []
-    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and before provider/model await boundaries." })];
+    : [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime/ai-executor.ts`, line: 1, severity: "fatal", message: "AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates and relay AI debug events into structured terminal/runtime logging." })];
 };
 
 const collectAskAiProofFindings = (project: Project): Finding[] => {

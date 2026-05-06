@@ -12,6 +12,9 @@ type WorkbenchAiDebugForensicsRuntime = WorkbenchAiDebugRuntime & {
   forensicsPersistenceAbilityGroup: {
     writeStructuredRuntimeEvent(input: unknown): Promise<unknown>;
   };
+  structuredLogBus?: {
+    emitRuntimeEvent(entry: ReturnType<typeof buildAiStructuredRuntimeEvent>): void;
+  };
 };
 
 const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"]): boolean => (
@@ -26,6 +29,7 @@ export const recordWorkbenchAiDebugEvent = async (
   const mapChain = getActiveMapChain(trace.mapId);
   const artifactRefs = buildAiDebugArtifactRefs(input);
   const structuredRuntimeEvent = buildAiStructuredRuntimeEvent(runtime, input, artifactRefs);
+  runtime.structuredLogBus?.emitRuntimeEvent(structuredRuntimeEvent);
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",

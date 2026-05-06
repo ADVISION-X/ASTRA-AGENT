@@ -5,7 +5,7 @@ import {
   getPromptContractCatalogEntry,
   type PromptContractCatalogEntry,
 } from "./prompt-contract-catalog-port.js";
-import { validateAllowedBranchFields } from "./prompt-contract-branch-field-validator.js";
+import { validateAllowedBranchFields, validateAiStepSuccessConditionConflict } from "./prompt-contract-branch-field-validator.js";
 
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
 type MapStep = MapPackage["operationalMap"]["steps"][number];
@@ -235,6 +235,7 @@ export const validatePromptContractStep = (input: PromptStepValidationInput): Ma
     ...validateOutputSchema(resolved.state),
     ...validateRequiredInputRefs(resolved.state),
     ...validateAllowedBranchFields(resolved.state),
+    ...validateAiStepSuccessConditionConflict(resolved.state),
     ...validateReviewPolicy(resolved.state),
     ...validatePromptRestrictions(resolved.state),
   ];

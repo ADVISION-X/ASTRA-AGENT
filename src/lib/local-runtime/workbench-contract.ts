@@ -76,7 +76,7 @@ type WorkbenchExecuteAbilityGroup = {
 };
 
 type WorkbenchAiAbilityGroup = {
-  execute(input: unknown): Promise<WorkbenchAiExecutionResult>;
+  execute(input: unknown, options?: { signal?: AbortSignal | undefined }): Promise<WorkbenchAiExecutionResult>;
   getHealth(): Promise<WorkbenchAiHealth>;
   getRuntimeHealth(): Promise<WorkbenchAiRuntimeHealth>;
 };

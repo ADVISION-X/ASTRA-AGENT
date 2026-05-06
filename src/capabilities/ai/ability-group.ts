@@ -3,6 +3,7 @@ import type {
   AiAbilityOutcome,
   AiChildCapabilityId,
   AiChildCapabilityRegistryEntry,
+  AiExecuteOptions,
   AiExecutionContext,
   AiProviderKind,
   AiTaskType,
@@ -222,27 +223,29 @@ const executeAiRequest = async (
   context: AiExecutionContext,
   registry: ReturnType<typeof createAiCapabilityRegistry>,
   inputValue: unknown,
+  options: AiExecuteOptions = {},
 ): Promise<AiAbilityOutcome> => {
-  if (!context.emitDebugEvent) {
-    return dispatchAiDebugEmitterMissing(context, inputValue);
+  const executionContext: AiExecutionContext = options.signal ? { ...context, abortSignal: options.signal } : context;
+  if (!executionContext.emitDebugEvent) {
+    return dispatchAiDebugEmitterMissing(executionContext, inputValue);
   }
-  await emitAiExecutionInputDebug(context, inputValue);
-  const parsedData = parseAiExecutionInput(context, inputValue);
+  await emitAiExecutionInputDebug(executionContext, inputValue);
+  const parsedData = parseAiExecutionInput(executionContext, inputValue);
   if ("status" in parsedData) {
     return parsedData;
   }
 
-  const resolvedEntry = resolveAiRegistryEntry(context, registry, parsedData);
+  const resolvedEntry = resolveAiRegistryEntry(executionContext, registry, parsedData);
   if ("status" in resolvedEntry) {
     return resolvedEntry;
   }
 
-  const executableEntry = resolveExecutableAiEntry(context, parsedData, resolvedEntry);
+  const executableEntry = resolveExecutableAiEntry(executionContext, parsedData, resolvedEntry);
   if ("status" in executableEntry) {
     return executableEntry;
   }
 
-  return executeResolvedAiEntry(context, parsedData, executableEntry);
+  return executeResolvedAiEntry(executionContext, parsedData, executableEntry);
 };
 
 const buildAiHealthReport = async (
@@ -266,8 +269,8 @@ export function createAiAbilityGroup(context: AiExecutionContext = createAiExecu
     listChildCapabilityIds() {
       return listAiChildren();
     },
-    async execute(inputValue) {
-      return executeAiRequest(context, registry, inputValue);
+    async execute(inputValue, options) {
+      return executeAiRequest(context, registry, inputValue, options);
     },
     async getHealth() {
       return buildAiHealthReport(context, registry);

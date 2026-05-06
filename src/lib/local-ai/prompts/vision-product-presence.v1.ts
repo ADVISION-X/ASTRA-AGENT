@@ -26,10 +26,6 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "page assumptions outside the sampled frames",
   ],
   requiredOutputSchema: {
-    taskType: "vision.productPresence",
-    promptId: "vision.productPresence.v1",
-    promptVersion: "v1",
-    schemaVersion: "vision.productPresence.schema.v1",
     inputMode: "multi_frame_contact_sheet | multi_image | single_frame_fallback",
     multiFrameEvidenceSetId: "string | null",
     contactSheetEvidenceId: "string | null",

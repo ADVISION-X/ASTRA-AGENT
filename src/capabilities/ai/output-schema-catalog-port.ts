@@ -8,6 +8,12 @@ export const findAiOutputSchemaDescriptor = (
   return AI_OUTPUT_SCHEMA_BY_TASK_TYPE[taskType] ?? null;
 };
 
+export const findAiOutputSchemaDescriptorBySchemaVersion = (
+  schemaVersion: string,
+): AiOutputSchemaDescriptor | null => {
+  return Object.values(AI_OUTPUT_SCHEMA_BY_TASK_TYPE).find((descriptor) => descriptor.schemaVersion === schemaVersion) ?? null;
+};
+
 export const requireAiOutputSchemaDescriptor = (
   taskType: string,
 ): AiOutputSchemaDescriptor => {

@@ -135,6 +135,11 @@ type AiExecutionContext = {
   modelRoster: AiModelRosterPort;
   promptRegistry: AiPromptRegistryPort;
   emitDebugEvent?: ((event: AiRuntimeStructuredDebugEvent) => void | Promise<void>) | undefined;
+  abortSignal?: AbortSignal | undefined;
+};
+
+type AiExecuteOptions = {
+  signal?: AbortSignal | undefined;
 };
 
 type AiChildContract = {
@@ -191,7 +196,7 @@ type AiChildCapabilityRegistryEntry = {
 
 interface AiAbilityGroup {
   listChildCapabilityIds(): AiChildCapabilityId[];
-  execute(input: AiAbilityInput): Promise<AiAbilityOutcome>;
+  execute(input: AiAbilityInput, options?: AiExecuteOptions): Promise<AiAbilityOutcome>;
   getHealth(): Promise<AiHealthReport>;
   getRuntimeHealth(): Promise<AiRuntimeHealth>;
 }
@@ -253,6 +258,7 @@ export type {
   AiExecutionStatus,
   AiModelRole,
   AiExecutionContext,
+  AiExecuteOptions,
   AiChildContract,
   AiChildImplementation,
   AiChildCapability,
