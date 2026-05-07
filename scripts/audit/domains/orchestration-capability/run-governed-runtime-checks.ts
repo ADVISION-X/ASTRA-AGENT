@@ -279,8 +279,8 @@ function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditPr
   if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
   }
-  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("verify-video-changed-after-scroll") || !loopSupportText.includes("capture-video-viewport")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat verified next-video scroll returning to capture-video-viewport as a round boundary." }));
+  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("scroll-next-video") || !loopSupportText.includes("capture-video-viewport")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat scroll-next-video returning to capture-video-viewport as a round boundary; non-AI video-change PAV must not be required." }));
   }
 
   return {
@@ -301,14 +301,14 @@ function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject
   const nerveBusAdapterSource = getSourceFileOrThrow(project, NERVE_BUS_ADAPTER_PATH);
   const findings: Finding[] = [];
 
-  if (!hasCallExpressionPath(sharedSource, ["Number", "isFinite"]) || !sharedSource.getFullText().includes("step.timeoutPolicy.maxDurationMs")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration must resolve dispatch timeout from the governed map step timeoutPolicy." }));
+  if (!sharedSource.getFullText().includes("PRODUCTION_STEP_TIMEOUT_MS_BY_KIND") || !sharedSource.getFullText().includes("PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY") || sharedSource.getFullText().includes("step.timeoutPolicy")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration must resolve dispatch timeout from production runtime policy only; maps must not own timeoutPolicy." }));
   }
   if (!hasCallExpressionPath(dispatcherSource, ["dispatchWithTimeout"]) || !dispatcherSource.getFullText().includes("AI dispatch timed out after ${timeoutMs}ms")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatch must be wrapped by the resolved step timeout and return a governed timeout failure." }));
   }
   if (!requestBuilderSource.getFullText().includes("timeoutMs: resolveStepTimeoutMs(input.step)")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "AI Nerve Bus dispatch request must carry the governed step timeoutPolicy value." }));
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "AI Nerve Bus dispatch request must carry the production-owned step timeout value." }));
   }
   if (!dispatcherSource.getFullText().includes("async (signal)") || !dispatcherSource.getFullText().includes("signal,")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatchWithTimeout must pass its AbortSignal into sendRequestToAi, not discard it with _signal." }));
@@ -322,8 +322,8 @@ function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject
     phase: createRuntimePhase(
       "ai-step-timeout-chain",
       findings,
-      "Orchestration applies governed step timeoutPolicy to AI dispatch and timeout terminal failure.",
-      "Orchestration still lets AI dispatch ignore the governed step timeoutPolicy.",
+      "Orchestration applies production-owned step timeout policy to AI dispatch and timeout terminal failure.",
+      "Orchestration still lets AI dispatch ignore the production-owned step timeout policy.",
     ),
   };
 }

@@ -9,7 +9,8 @@ type StepValue = {
   } | null;
 };
 
-const ACTION_TARGET_ABILITY_GROUP_IDS = new Set(["open", "mouse-click", "mouse-scroll", "text-input"]);
+const POST_ACTION_VERIFICATION_REQUIRED_ABILITY_GROUP_IDS = new Set(["open", "mouse-click", "text-input"]);
+const POST_ACTION_VERIFICATION_ALLOWED_ABILITY_GROUP_IDS = new Set(["open", "mouse-click", "mouse-scroll", "text-input"]);
 
 const addIssue = (context: z.RefinementCtx, path: string, message: string): void => {
   context.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
@@ -17,13 +18,14 @@ const addIssue = (context: z.RefinementCtx, path: string, message: string): void
 
 const validatePostActionVerificationPolicy = (value: StepValue, context: z.RefinementCtx): void => {
   const targetAbilityGroupId = value.targetAbilityGroupId ?? null;
-  const requiresPostActionVerification = targetAbilityGroupId !== null && ACTION_TARGET_ABILITY_GROUP_IDS.has(targetAbilityGroupId);
+  const requiresPostActionVerification = targetAbilityGroupId !== null && POST_ACTION_VERIFICATION_REQUIRED_ABILITY_GROUP_IDS.has(targetAbilityGroupId);
+  const allowsPostActionVerification = targetAbilityGroupId !== null && POST_ACTION_VERIFICATION_ALLOWED_ABILITY_GROUP_IDS.has(targetAbilityGroupId);
 
   if (requiresPostActionVerification && value.postActionVerification === null) {
     addIssue(context, "postActionVerification", "State-changing action step must declare postActionVerification policy.");
   }
 
-  if (!requiresPostActionVerification && value.postActionVerification !== null) {
+  if (!allowsPostActionVerification && value.postActionVerification !== null) {
     addIssue(context, "postActionVerification", "Only open, mouse-click, mouse-scroll, and text-input steps may declare postActionVerification policy.");
   }
 };

@@ -50,6 +50,19 @@ const inspectBuiltinRecordSafety = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
 
   for (const record of await loadBuiltinPackageRecords()) {
+    const automationHumanReviewFragment = ["request-human-review", "\"review_required\"", "human review", "manual review", "operator review"].find((fragment) =>
+      record.text.toLowerCase().includes(fragment),
+    );
+    if (automationHumanReviewFragment) {
+      findings.push(createFinding({
+        lawId: MAP_PLUGIN_LAWS.NO_CODE,
+        file: record.file,
+        line: 1,
+        severity: "fatal",
+        message: `Automation map packages must not contain human-review action or review_required routing fragment ${automationHumanReviewFragment}.`,
+      }));
+    }
+
     const securityIssue = record.validationIssues.find((issue) => issue.code === "security_violation");
     if (securityIssue) {
       findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: `Builtin map package contains executable or code-like payload content: ${securityIssue.message}` }));
@@ -78,7 +91,7 @@ const isGovernedLocalProgramRecord = (record: Awaited<ReturnType<typeof loadBuil
 const findActionWithoutProof = (steps: NonNullable<Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number]["mapPackage"]>["operationalMap"]["steps"]) =>
   steps.find((step) => {
     const actionStep = step.targetAbilityGroupId === "mouse-click" || step.targetAbilityGroupId === "mouse-scroll";
-    return actionStep && (!step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryProofRef") || step.postActionVerification === null);
+    return actionStep && (!step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryProofRef"));
   });
 
 const collectLocalProgramSmokeFindings = (
@@ -155,7 +168,7 @@ const collectIphoneMirroringInputFindings = (
   }
   const actionWithoutProof = findActionWithoutProof(steps);
   return actionWithoutProof
-    ? findings.concat(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef, geometryProofRef, and postActionVerification.", detail: actionWithoutProof.stepId }))
+    ? findings.concat(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef and geometryProofRef.", detail: actionWithoutProof.stepId }))
     : findings;
 };
 

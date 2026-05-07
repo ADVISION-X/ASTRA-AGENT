@@ -139,6 +139,8 @@ const collectRuntimeFindings = async (taskPublisherContent: string, debugLoopFil
   findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /childCapabilityId:\s*'issue-human-command'/, message: "mission-runtime must start missions through Commander issue-human-command." }));
   findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /commandType:\s*'start-mission'/, message: "mission-runtime must publish a human-like start-mission command." }));
   findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /childCapabilityId:\s*'show-mission-dashboard'/, message: "mission-runtime must observe mission state only through Commander mission dashboard read model." }));
+  findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /deriveMissionFromRuntimeEvents/, message: "mission-runtime must keep observing governed runtime terminal events when dashboard observer reads are transiently unavailable." }));
+  findings.push(...requirePattern({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", file: TASK_PUBLISHER, content: missionBlock, pattern: /dashboardReadFailureReason/, message: "mission-runtime must treat dashboard observer timeout as observer evidence only, not as accepted mission failure." }));
   return findings;
 };
 

@@ -127,6 +127,12 @@ function collectWorkbenchDispatchFindings(project: ReturnType<typeof makeProject
   const boundsText = boundsProperty?.getInitializer()?.getText() ?? "";
   const bindsViewportBounds = boundsText.includes("geometry.viewportWidth") && boundsText.includes("geometry.viewportHeight");
   const hasSyntheticHundredPxBounds = boundsText.includes("width: 100") || boundsText.includes("height: 100");
+  const anchorProperty = builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) => property.getName() === "normalizedAnchorPoint");
+  const anchorText = anchorProperty?.getInitializer()?.getText() ?? "";
+  const bindsViewportCenterAnchor = anchorText.includes("executableAnchorPoint")
+    && builderNode.getText().includes("geometry.viewportWidth / 2")
+    && builderNode.getText().includes("geometry.viewportHeight / 2");
+  const hasHardcodedTopLeftAnchor = anchorText.includes("x: 50") || anchorText.includes("y: 50");
   const findings: Finding[] = [];
   if (!hasGeometrySnapshot || !bindsViewportBounds || hasSyntheticHundredPxBounds) {
     findings.push(createFinding({
@@ -135,6 +141,15 @@ function collectWorkbenchDispatchFindings(project: ReturnType<typeof makeProject
       line: builder.getStartLineNumber(),
       severity: "fatal",
       message: "Workbench mouse-scroll dispatch must bind onePage bounds to the live browser viewport, not synthetic 100px bounds.",
+    }));
+  }
+  if (!bindsViewportCenterAnchor || hasHardcodedTopLeftAnchor) {
+    findings.push(createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
+      line: builder.getStartLineNumber(),
+      severity: "fatal",
+      message: "Workbench mouse-scroll dispatch must target the live viewport center, not a hardcoded top-left anchor that can miss the video feed.",
     }));
   }
   return findings;
@@ -164,6 +179,23 @@ function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makePr
       line: scrollMethod.getStartLineNumber(),
       severity: "fatal",
       message: "Current Chrome scroll primitive must activate Chrome before posting the wheel event so production scroll is visible and targets the controlled browser.",
+    })];
+  }
+
+  const text = source.getFullText();
+  const hasAndThenObservation = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("waitForScrollNextVideoIdentityChange") !== undefined
+    && text.includes("AND THEN observed video identity change")
+    && text.includes("AND THEN fallback timeout reached without video identity change")
+    && text.includes("readCurrentVideoIdentitySnapshot");
+  const hasFixedScrollNextTimeout = text.includes("targetLabel.includes(\"scroll_next_video\") ? 1200 : 300")
+    || text.includes("targetLabel.includes('scroll_next_video') ? 1200 : 300");
+  if (!hasAndThenObservation || hasFixedScrollNextTimeout) {
+    return [createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll-next-video primitive must use ACTION AND THEN observable video identity polling; fixed debug waits may only be deadlock fallbacks and must not be the technical success condition.",
     })];
   }
   return [];

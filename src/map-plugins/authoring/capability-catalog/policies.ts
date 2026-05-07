@@ -91,10 +91,10 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     supportedTargets: ["browser-viewport", "desktop-screen"],
     routableByMap: true,
     requiresGeometryProof: true,
-    requiresPostActionVerification: true,
+    requiresPostActionVerification: false,
     requiresReviewGate: false,
     sensitiveOperation: false,
-    forbiddenResponsibilities: ["invent geometry", "capture screenshots", "persist evidence"],
+    forbiddenResponsibilities: ["invent geometry", "capture screenshots", "persist evidence", "judge whether video content changed"],
   },
   "forensics-persistence": {
     supportedTargets: ["structured-log", "evidence-ledger", "artifact-store"],

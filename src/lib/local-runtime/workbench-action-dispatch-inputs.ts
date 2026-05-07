@@ -347,6 +347,10 @@ export const buildMouseScrollCommand = async (
   const geometryProofRef = payloadValueToString(payload.geometryProofRef) ?? envelope.inputRef;
   const sourceTargetRef = payloadValueToString(payload.sourceTargetRef) ?? payloadValueToString(payload.visualTargetRef) ?? envelope.inputRef;
   const sourceEvidenceRef = payloadValueToString(payload.sourceEvidenceRef) ?? payloadValueToString(payload.screenshotEvidenceRef);
+  const executableAnchorPoint = {
+    x: Math.round(geometry.viewportWidth / 2),
+    y: Math.round(geometry.viewportHeight / 2),
+  };
   return JSON.parse(JSON.stringify({
     abilityGroupId: "mouse-scroll",
     childCapabilityId: "scroll-browser-viewport",
@@ -373,7 +377,7 @@ export const buildMouseScrollCommand = async (
       status: "success",
       guardDecision: "allow",
       normalizedCoordinateSpace: "browserViewport",
-      normalizedAnchorPoint: { x: 50, y: 50 },
+      normalizedAnchorPoint: executableAnchorPoint,
       normalizedRegion: null,
       sourceScreenshotEvidenceRef: sourceEvidenceRef,
       sourceTargetRef,
@@ -384,6 +388,7 @@ export const buildMouseScrollCommand = async (
     bounds: { width: geometry.viewportWidth, height: geometry.viewportHeight },
     direction: "down",
     magnitude: "onePage",
+    repeat: 2,
     safetyPolicy: {
       primitiveTimeoutMs: 12000,
       maxDurationMs: 15000,

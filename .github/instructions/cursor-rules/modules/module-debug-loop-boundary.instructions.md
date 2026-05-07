@@ -31,6 +31,7 @@ debug-loop may call map-authoring public contract.
 debug-loop may read active map binding through governed read model.
 debug-loop may start mission through Commander.
 debug-loop may observe runtime logs/events/proofs.
+debug-loop mission-runtime must publish through Commander AND THEN observe governed mission terminal status through dashboard/runtime events; observer timeout is only a deadlock guard and must not become production mission failure.
 debug-loop may classify failure.
 debug-loop may write repair packets for Codex.
 debug-loop may perform auth/environment preflight under explicit preflight mode.
@@ -47,6 +48,7 @@ debug-loop must not write Forensics evidence packets as production proof.
 debug-loop must not write active map registry or activation snapshots directly.
 debug-loop must not mutate Orchestration mission state.
 debug-loop must not bypass Commander, Nerve Bus, Orchestration, PAV, Forensics, or map-plugin lifecycle.
+debug-loop must not treat `show-mission-dashboard` observer timeout as mission failure after command acceptance.
 ```
 
 All active laws below are:

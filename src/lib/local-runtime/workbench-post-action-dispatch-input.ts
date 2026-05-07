@@ -1,10 +1,4 @@
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-
-import sharp from "sharp";
-
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
@@ -14,13 +8,12 @@ type SupportedPostActionChildCapabilityId =
   | "verify-page-opened"
   | "verify-comments-panel-opened"
   | "verify-comments-panel-closed"
-  | "verify-video-changed-after-scroll"
   | "verify-not-interested-result"
   | "verify-target-state-changed";
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
-  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "video_changed_after_scroll" | "not_interested_result" | "target_state_changed";
+  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
   sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
   sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "open-local-workbench" | "click-browser-coordinate" | "scroll-browser-viewport";
   sourceActionType: string;
@@ -94,18 +87,6 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInput
     requiresVisualEvidence: true,
     executionRefField: "primitiveExecutionRef",
   },
-  "verify-video-changed-after-scroll": {
-    childCapabilityId: "verify-video-changed-after-scroll",
-    outcomeType: "video_changed_after_scroll",
-    sourceAbilityGroupId: "mouse-scroll",
-    sourceChildCapabilityId: "scroll-browser-viewport",
-    sourceActionType: "scroll_next_video",
-    verificationMode: "before_after_comparison",
-    requireAfterEvidence: true,
-    requireBeforeAfterComparison: true,
-    requiresVisualEvidence: false,
-    executionRefField: "scrollExecutionRef",
-  },
   "verify-not-interested-result": {
     childCapabilityId: "verify-not-interested-result",
     outcomeType: "not_interested_result",
@@ -153,35 +134,6 @@ const resolveSourceProofRef = (
 const readSummaryString = (summary: AbilityResultProofSummary | null, key: string): string | null => {
   const value = summary?.[key];
   return typeof value === "string" && value.length > 0 ? value : null;
-};
-
-const resolveIsoBefore = (isoTimestamp: string) => {
-  const parsed = Date.parse(isoTimestamp);
-  return Number.isFinite(parsed) ? new Date(parsed - 1).toISOString() : new Date(Date.now() - 1).toISOString();
-};
-
-const hashFileSha256 = async (filePath: string) => createHash("sha256")
-  .update(await readFile(filePath))
-  .digest("hex");
-
-const buildPerceptualImageSignature = async (filePath: string): Promise<string> => {
-  const { data } = await sharp(filePath)
-    .grayscale()
-    .resize(16, 16, { fit: "fill" })
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const pixels = [...data];
-  const average = pixels.reduce((sum, value) => sum + value, 0) / pixels.length;
-  const bits = pixels.map((value) => (value >= average ? "1" : "0")).join("");
-  return `ahash16:${bits}`;
-};
-
-const buildImageIdentitySignature = async (filePath: string): Promise<string> => {
-  try {
-    return await buildPerceptualImageSignature(filePath);
-  } catch {
-    return `sha256:${await hashFileSha256(filePath)}`;
-  }
 };
 
 const resolveExpectedUrlHost = (selectedMapId: string) => {
@@ -300,122 +252,6 @@ const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
   nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
 });
 
-const buildVideoIdentityEvidencePair = async (input: {
-  runtime: WorkbenchRuntime;
-  envelope: AbilityCommandEnvelope;
-  payload: Record<string, string | number | boolean | null>;
-  sourceProofRef: string;
-  sourceSummary: AbilityResultProofSummary | null;
-}) => {
-  const promptInputRef = payloadValueToString(input.payload.promptInputRef);
-  const screenshotEvidenceRef = payloadValueToString(input.payload.screenshotEvidenceRef);
-  const aiInputProofSummary = resolveAiInputProofSummary(promptInputRef);
-  const beforeProofSummary = resolveAbilityResultProofSummary(promptInputRef) ?? resolveAbilityResultProofSummary(screenshotEvidenceRef);
-  const beforeStorageRef = readSummaryString(beforeProofSummary, "sourceStorageRef")
-    ?? aiInputProofSummary?.sourceStorageRef
-    ?? readSummaryString(beforeProofSummary, "aiInputStorageRef")
-    ?? readSummaryString(beforeProofSummary, "artifactStorageRef")
-    ?? aiInputProofSummary?.aiInputStorageRef
-    ?? null;
-  const beforeSignature = beforeStorageRef
-    ? await buildImageIdentitySignature(beforeStorageRef)
-    : readSummaryString(beforeProofSummary, "preparedImageHash")
-    ?? readSummaryString(beforeProofSummary, "outputHash")
-    ?? readSummaryString(beforeProofSummary, "artifactHash")
-    ?? aiInputProofSummary?.preparedImageHash
-    ?? null;
-  const beforeProofRef = readSummaryString(beforeProofSummary, "sourceScreenshotEvidenceId")
-    ?? aiInputProofSummary?.sourceScreenshotEvidenceId
-    ?? screenshotEvidenceRef
-    ?? promptInputRef;
-  const beforeVideoId = readSummaryString(beforeProofSummary, "pageUrl");
-
-  if (beforeSignature === null || beforeProofRef === null) {
-    return null;
-  }
-
-  const actionStartedAt = readSummaryString(input.sourceSummary, "primitiveStartedAt")
-    ?? readSummaryString(input.sourceSummary, "startedAt")
-    ?? input.envelope.createdAt;
-  const actionEndedAt = readSummaryString(input.sourceSummary, "primitiveEndedAt")
-    ?? readSummaryString(input.sourceSummary, "endedAt")
-    ?? input.envelope.createdAt;
-  const beforeCapturedAt = resolveIsoBefore(actionStartedAt);
-  const afterCapture = await input.runtime.browserController.screenshotRegion({
-    regionLabel: "post-scroll-video-identity",
-    contentLines: ["post-action video identity evidence"],
-  });
-  const afterSignature = await buildImageIdentitySignature(afterCapture.sourceFilePath);
-  const session = input.runtime.browserController.getSessionState();
-
-  const beforeEvidence = {
-    evidenceRef: beforeProofRef,
-    evidenceKind: "video_identity" as const,
-    source: {
-      sourceAbilityGroupId: "screenshot" as const,
-      sourceChildCapabilityId: "capture-browser-viewport",
-      sourceProofRef: beforeProofRef,
-    },
-    capturedAt: beforeCapturedAt,
-    sessionId: input.envelope.sessionId,
-    roundId: input.envelope.roundId,
-    videoVisitId: input.envelope.videoVisitId,
-  };
-  const afterEvidence = {
-    evidenceRef: `${input.envelope.inputRef}:post-scroll-video-identity:evidence`,
-    evidenceKind: "video_identity" as const,
-    source: {
-      sourceAbilityGroupId: "post-action-verification" as const,
-      sourceChildCapabilityId: "verify-video-changed-after-scroll",
-      sourceProofRef: input.sourceProofRef,
-    },
-    capturedAt: afterCapture.createdAt,
-    sessionId: input.envelope.sessionId,
-    roundId: input.envelope.roundId,
-    videoVisitId: input.envelope.videoVisitId,
-  };
-
-  return {
-    beforeAfterEvidence: { beforeEvidence, afterEvidence },
-    observations: [
-      {
-        ref: `${input.envelope.inputRef}:video-identity:before`,
-        kind: "video_identity" as const,
-        source: beforeEvidence.source,
-        capturedAt: beforeCapturedAt,
-        sessionId: input.envelope.sessionId,
-        roundId: input.envelope.roundId,
-        videoVisitId: input.envelope.videoVisitId,
-        payload: {
-          kind: "video_identity" as const,
-          role: "before" as const,
-          videoId: beforeVideoId,
-          visualSignature: beforeSignature,
-          confirmed: true,
-        },
-      },
-      {
-        ref: `${input.envelope.inputRef}:video-identity:after`,
-        kind: "video_identity" as const,
-        source: afterEvidence.source,
-        capturedAt: afterCapture.createdAt,
-        sessionId: input.envelope.sessionId,
-        roundId: input.envelope.roundId,
-        videoVisitId: input.envelope.videoVisitId,
-        payload: {
-          kind: "video_identity" as const,
-          role: "after" as const,
-          videoId: session.currentUrl || afterCapture.pageUrl || null,
-          visualSignature: afterSignature,
-          confirmed: true,
-        },
-      },
-    ],
-    actionStartedAt,
-    actionEndedAt,
-  };
-};
-
 export const buildPostActionVerificationInput = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -425,9 +261,6 @@ export const buildPostActionVerificationInput = async (
   const policy = resolvePostActionInputPolicy(envelope);
   const sourceProofRef = resolveSourceProofRef(envelope, payload);
   const sourceSummary = resolveAbilityResultProofSummary(sourceProofRef);
-  const videoIdentityEvidence = policy.childCapabilityId === "verify-video-changed-after-scroll"
-    ? await buildVideoIdentityEvidencePair({ runtime, envelope, payload, sourceProofRef, sourceSummary })
-    : null;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "post-action-verification",
     childCapabilityId: policy.childCapabilityId,
@@ -439,14 +272,10 @@ export const buildPostActionVerificationInput = async (
     expectedOutcome: buildExpectedOutcome(envelope, inputPayload, policy),
     actionProof: {
       ...buildActionProof({ envelope, sourceProofRef, policy, sourceSummary }),
-      ...(videoIdentityEvidence ? {
-        startedAt: videoIdentityEvidence.actionStartedAt,
-        endedAt: videoIdentityEvidence.actionEndedAt,
-      } : {}),
     },
-    beforeAfterEvidence: videoIdentityEvidence?.beforeAfterEvidence ?? { beforeEvidence: null, afterEvidence: null },
+    beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
     observationSet: {
-      observations: videoIdentityEvidence?.observations ?? [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
+      observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
     confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },

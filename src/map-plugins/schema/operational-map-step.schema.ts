@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { MapPluginAllowedAbilityGroupIdSchema } from "./operational-map-ability.schema.js";
 import { MapPluginPayloadRefKeySchema, MapPluginStepKindSchema, MapPluginTransitionConditionSchema } from "./operational-map-payload.schema.js";
-import { MapPluginProofPolicySchema, MapPluginTimeoutPolicySchema } from "./operational-map-policy.schema.js";
+import { MapPluginProofPolicySchema } from "./operational-map-policy.schema.js";
 import { validateMapPluginOperationalMapStep } from "./operational-map-step-validation.js";
 
 const MAP_PLUGIN_CAPABILITY_ID = "orchestration";
@@ -18,7 +18,6 @@ export const MapPluginPostActionVerificationPolicySchema = z.object({
     "result-signal",
   ]),
   expectedSignal: z.string().min(1),
-  timeoutMs: z.number().int().positive(),
   onPassTransitionId: z.string().min(1),
   onFailTransitionId: z.string().min(1),
   onAmbiguousTransitionId: z.string().min(1),
@@ -39,7 +38,6 @@ export const MapPluginOperationalMapStepSchema = z.object({
   failureBranch: z.string().min(1),
   reviewBranch: z.string().min(1),
   postActionVerification: MapPluginPostActionVerificationPolicySchema.nullable().optional().default(null),
-  timeoutPolicy: MapPluginTimeoutPolicySchema,
   proofPolicy: MapPluginProofPolicySchema,
 }).strict().superRefine((value, context) => {
   validateMapPluginOperationalMapStep(value, context);

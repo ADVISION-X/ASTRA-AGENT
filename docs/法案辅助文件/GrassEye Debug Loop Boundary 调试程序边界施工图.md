@@ -80,6 +80,22 @@ debug-loop 不得成为第二套能力运行时。
 生成 repair packet
 ```
 
+mission-runtime 必须采用：
+
+```txt
+publish command AND THEN observe terminal runtime/dashboard status
+```
+
+也就是：
+
+```txt
+先通过 Commander 发布任务
+AND THEN 持续观察 governed runtime events / Commander dashboard
+直到 mission terminal status
+```
+
+observer timeout 只能防死锁，不能在 command accepted 之后写成 mission failed；`show-mission-dashboard` 读取超时只代表本次观察失败，必须继续用 runtime events/dashboard 下一轮观察。
+
 ---
 
 ### 2.2 Authority / Lifecycle 排除

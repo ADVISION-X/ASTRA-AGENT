@@ -65,6 +65,31 @@ DOM/BOM 查询
 评论采集
 ```
 
+真实平台 `scroll-next-video` 的 primitive adapter 必须采用：
+
+```txt
+ACTION AND THEN observation
+```
+
+也就是：
+
+```txt
+先执行受治理的滚动 primitive
+AND THEN 轮询浏览器原生可观测身份（视频 DOM identity / URL）
+直到看到视频身份变化
+```
+
+这里的 timeout 只允许作为大额度防死锁兜底：
+
+```txt
+timeout = 防止系统困死
+timeout != 技术成功条件
+timeout != 调试手段
+timeout != 换视频证明
+```
+
+如果 AND THEN 没有观测到视频身份变化，后续 PAV 必须用二元结果判定成功或失败，不能进入人工审查。
+
 一句话：
 
 ```txt

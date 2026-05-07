@@ -4,7 +4,6 @@ export const POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS = [
   "verify-page-opened",
   "verify-comments-panel-opened",
   "verify-comments-panel-closed",
-  "verify-video-changed-after-scroll",
   "verify-not-interested-result",
   "verify-target-state-changed",
 ] as const;
@@ -13,7 +12,6 @@ export const POST_ACTION_EXPECTED_OUTCOME_TYPES = [
   "page_opened",
   "comments_panel_opened",
   "comments_panel_closed",
-  "video_changed_after_scroll",
   "not_interested_result",
   "target_state_changed",
 ] as const;

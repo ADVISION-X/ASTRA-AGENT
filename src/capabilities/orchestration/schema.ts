@@ -10,7 +10,6 @@ import {
   OrchestrationRequestedPlatformIdSchemaSource,
   OrchestrationSequencePolicySchemaSource,
   OrchestrationStepKindSchemaSource,
-  OrchestrationTimeoutPolicySchemaSource,
   OrchestrationTransitionConditionSchemaSource,
   OrchestrationTransitionConditionSourceSchemaSource,
   OrchestrationTransitionSchemaSource,
@@ -158,7 +157,6 @@ const MissionControlCommandSchema = z.object({
 
 const TransitionConditionSchema = OrchestrationTransitionConditionSchemaSource;
 const OrchestrationSequencePolicySchema = OrchestrationSequencePolicySchemaSource;
-const TimeoutPolicySchema = OrchestrationTimeoutPolicySchemaSource;
 const ProofPolicySchema = OrchestrationProofPolicySchemaSource;
 const OperationalMapStepSchema = OrchestrationOperationalMapStepSchemaSource;
 const TransitionSchema = OrchestrationTransitionSchemaSource;
@@ -380,7 +378,6 @@ export {
   MissionControlCommandSchema,
   TransitionConditionSchema,
   OrchestrationSequencePolicySchema,
-  TimeoutPolicySchema,
   ProofPolicySchema,
   OperationalMapStepSchema,
   TransitionSchema,

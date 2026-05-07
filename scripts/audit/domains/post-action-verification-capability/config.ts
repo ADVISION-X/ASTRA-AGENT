@@ -29,7 +29,6 @@ export const CHILDREN = [
   "verify-page-opened",
   "verify-comments-panel-opened",
   "verify-comments-panel-closed",
-  "verify-video-changed-after-scroll",
   "verify-not-interested-result",
   "verify-target-state-changed",
 ] as const;

@@ -82,7 +82,9 @@ const buildPromptContractCatalogPolicies = (entry: PromptContractCatalogEntry) =
   reviewPolicy: buildPolicyDescriptor(
     `policy://prompt-contract/${entry.promptContractId}/review`,
     "Declares when review is required.",
-    entry.reviewPolicy.requiredWhen,
+    entry.reviewPolicy.requiredWhen.length > 0
+      ? entry.reviewPolicy.requiredWhen
+      : ["no_human_review_required_route_to_failed"],
   ),
   failurePolicy: buildPolicyDescriptor(
     `policy://prompt-contract/${entry.promptContractId}/failure`,
@@ -180,10 +182,10 @@ export const buildMapPackageSchemaDescriptor = (): MapAuthoringInputPackage["map
   schemaVersion: MAP_AUTHORING_SCHEMA_VERSION,
   requiredSections: ["manifest", "taskTemplate", "operationalMap", "dependencies", "compatibility", "policy", "promptBindings", "changelog", "signature"],
   requiredManifestFields: ["packageId", "packageKind", "packageVersion", "mapId", "taskTemplateId", "approvalStatus", "aiGenerated"],
-  requiredStepFields: ["stepId", "childCapabilityId", "stepKind", "targetAbilityGroupId", "inputRefs", "outputRefPolicy", "timeoutPolicy", "proofPolicy"],
+  requiredStepFields: ["stepId", "childCapabilityId", "stepKind", "targetAbilityGroupId", "inputRefs", "outputRefPolicy", "proofPolicy"],
   draftOnlyFields: ["approvalStatus=draft", "availabilityPolicy=draft", "validationReportRef=null", "humanApprovalRef=null"],
   activationFields: ["validationReportRef", "humanApprovalRef", "activationProofRef", "activationSnapshotRef", "mapPackageHash", "operationalMapHash"],
-  forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "functionBody", "eval", "directAbilityCall"],
+  forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "functionBody", "eval", "directAbilityCall", "timeoutPolicy", "timeoutMs", "maxDurationMs", "primitiveTimeoutMs"],
 });
 
 export const buildMapAuthoringOutputSchemaDescriptor = (): MapAuthoringInputPackage["mapAuthoringOutputSchema"] => {

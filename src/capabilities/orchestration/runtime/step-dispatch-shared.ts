@@ -168,11 +168,41 @@ const buildAiDispatchRequirements = (input: {
   },
 });
 
-const resolveStepTimeoutMs = (step: OperationalStep): number => (
-  Number.isFinite(step.timeoutPolicy.maxDurationMs) && step.timeoutPolicy.maxDurationMs > 0
-    ? step.timeoutPolicy.maxDurationMs
-    : DEFAULT_STEP_TIMEOUT_MS
-);
+const PRODUCTION_STEP_TIMEOUT_MS_BY_KIND = {
+  ability: 30_000,
+  ai: 120_000,
+  review: 1_000,
+  finalize: 10_000,
+} as const;
+
+const PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY: Partial<Record<Exclude<OperationalStep["targetAbilityGroupId"], null>, number>> = {
+  ai: PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai,
+  open: 30_000,
+  screenshot: 20_000,
+  "visual-target": 15_000,
+  "geometry-guard": 10_000,
+  "mouse-click": 15_000,
+  "mouse-scroll": 30_000,
+  "text-input": 20_000,
+  "post-action-verification": 20_000,
+  "page-state": 10_000,
+  "forensics-persistence": 10_000,
+} as const;
+
+const resolveStepTimeoutMs = (step: OperationalStep): number => {
+  if (step.stepKind === "ai") {
+    return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai;
+  }
+  if (step.stepKind === "review") {
+    return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.review;
+  }
+  if (step.stepKind === "finalize") {
+    return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.finalize;
+  }
+  return step.targetAbilityGroupId
+    ? PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY[step.targetAbilityGroupId] ?? DEFAULT_STEP_TIMEOUT_MS
+    : DEFAULT_STEP_TIMEOUT_MS;
+};
 
 const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep }) => {
   const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T15:28:24.214Z",
+  "generatedAt": "2026-05-07T16:20:04.582Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -538,7 +538,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop is local development tooling and must not be registered as an active ability group, runtime owner, or production capability owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 145
+      "line": 147
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
@@ -549,7 +549,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop may start missions only through Commander public contract and must not directly dispatch Nerve Bus, Orchestration, or ability actions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 198
+      "line": 200
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
@@ -560,7 +560,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop must not execute direct browser/page/platform operations during mission runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 247
+      "line": 249
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
@@ -571,7 +571,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop must not write production Forensics proof, evidence packets, activation snapshots, or active registry truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 299
+      "line": 301
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
@@ -582,7 +582,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop map-authoring harness may create input/prompt artifacts but must not bypass map-plugin lifecycle or execute generated maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 353
+      "line": 355
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
@@ -593,7 +593,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop scenario files describe user/operator intent and success/failure signals; they must not contain executable ability logic or direct platform automation logic.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 406
+      "line": 408
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
@@ -604,7 +604,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop repair packets are diagnostic artifacts and must not become code, proof, policy, or runtime truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 485
+      "line": 487
     },
     {
       "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1",
@@ -615,7 +615,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "debug-loop boundary must be machine-enforced by owner-local inspector, negative proof, and package scripts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 539
+      "line": 541
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -857,7 +857,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 403
+      "line": 404
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
@@ -868,7 +868,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 524
+      "line": 525
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
@@ -879,7 +879,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and human approval pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 599
+      "line": 600
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
@@ -890,7 +890,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 751
+      "line": 752
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
@@ -901,7 +901,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 828
+      "line": 829
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
@@ -912,7 +912,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/approval path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 926
+      "line": 927
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -923,7 +923,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map activation, validation, approval, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1024
+      "line": 1025
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -934,7 +934,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1125
+      "line": 1126
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
@@ -945,7 +945,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1195
+      "line": 1196
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
@@ -956,7 +956,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1373
+      "line": 1374
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
@@ -967,7 +967,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1494
+      "line": 1495
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
@@ -978,7 +978,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1600
+      "line": 1601
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
@@ -989,7 +989,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "safety, human approval, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1697
+      "line": 1698
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
@@ -1000,7 +1000,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1793
+      "line": 1794
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -1099,7 +1099,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll is the only owner of governed primitive scroll execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 97
+      "line": 100
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2",
@@ -1110,7 +1110,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 157
+      "line": 160
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2",
@@ -1121,7 +1121,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll input must carry full chain fields, Geometry Guard allow proof, explicit direction/magnitude/repeat, safety policy, source refs, idempotency, and timeout policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 220
+      "line": 223
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2",
@@ -1132,7 +1132,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Scroll direction, magnitude, delta, and repeat are input/policy only, not child capability or hidden loop.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 337
+      "line": 340
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2",
@@ -1143,7 +1143,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll must run one fixed gate pipeline and execute primitive scroll only after all gates pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 415
+      "line": 418
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
@@ -1154,7 +1154,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll result must mean primitive scroll only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 494
+      "line": 497
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
@@ -1165,7 +1165,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency, and PAV handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 564
+      "line": 567
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2",
@@ -1176,7 +1176,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll children are narrow primitive bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 771
+      "line": 774
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2",
@@ -1187,7 +1187,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 840
+      "line": 843
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
@@ -1682,7 +1682,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "PAV enforcement must close through owner-local AST/symbol inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 589
+      "line": 590
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",

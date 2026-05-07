@@ -19,7 +19,6 @@ const POST_ACTION_CHILD_OUTCOME_MAP = {
   "verify-page-opened": "page_opened",
   "verify-comments-panel-opened": "comments_panel_opened",
   "verify-comments-panel-closed": "comments_panel_closed",
-  "verify-video-changed-after-scroll": "video_changed_after_scroll",
   "verify-not-interested-result": "not_interested_result",
   "verify-target-state-changed": "target_state_changed",
 } as const;
@@ -28,7 +27,6 @@ const POST_ACTION_CHILD_VERIFICATION_MODE_MAP = {
   "verify-page-opened": "observation_only",
   "verify-comments-panel-opened": "visual_evidence",
   "verify-comments-panel-closed": "visual_evidence",
-  "verify-video-changed-after-scroll": "before_after_comparison",
   "verify-not-interested-result": "before_after_comparison",
   "verify-target-state-changed": "before_after_comparison",
 } as const;
@@ -66,17 +64,6 @@ const POST_ACTION_CHILD_POLICY_MAP = {
     allowedActionTypes: ["close_comments", "click_close_comments"],
     requiredExecutionRef: "primitiveExecutionRef",
     allowedObservationKinds: ["page_state", "visual_target", "ai_observation"],
-  },
-  "verify-video-changed-after-scroll": {
-    expectedOutcomeType: "video_changed_after_scroll",
-    verificationMode: "before_after_comparison",
-    requireAfterEvidence: true,
-    requireBeforeAfterComparison: true,
-    allowedSourceAbilityGroupId: "mouse-scroll",
-    allowedSourceChildCapabilityIds: ["scroll-browser-viewport", "scroll-region"],
-    allowedActionTypes: ["continue_next", "scroll", "scroll_next_video"],
-    requiredExecutionRef: "scrollExecutionRef",
-    allowedObservationKinds: ["video_identity", "runtime_signal"],
   },
   "verify-not-interested-result": {
     expectedOutcomeType: "not_interested_result",
@@ -127,8 +114,8 @@ const POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST = {
     sourceChildCapabilityIds: ["capture-browser-viewport", "compare-screenshot-diff", "detect-target"],
   },
   video_identity: {
-    sourceAbilityGroupIds: ["screenshot", "page-state", "visual-target", "post-action-verification"],
-    sourceChildCapabilityIds: ["capture-browser-viewport", "detect-video-stable", "detect-target", "verify-video-changed-after-scroll"],
+    sourceAbilityGroupIds: ["screenshot", "page-state", "visual-target"],
+    sourceChildCapabilityIds: ["capture-browser-viewport", "detect-video-stable", "detect-target"],
   },
   action_completion: {
     sourceAbilityGroupIds: ["page-state", "post-action-verification"],
@@ -138,14 +125,13 @@ const POST_ACTION_OBSERVATION_SOURCE_ALLOWLIST = {
       "page_opened",
       "comments_panel_opened",
       "comments_panel_closed",
-      "video_changed_after_scroll",
       "not_interested_result",
       "target_state_changed",
     ],
   },
   runtime_signal: {
     sourceAbilityGroupIds: ["page-state", "post-action-verification"],
-    sourceChildCapabilityIds: ["detect-feed-ready", "detect-video-stable", "detect-comment-panel-state", "verify-video-changed-after-scroll"],
+    sourceChildCapabilityIds: ["detect-feed-ready", "detect-video-stable", "detect-comment-panel-state"],
   },
 } as const;
 

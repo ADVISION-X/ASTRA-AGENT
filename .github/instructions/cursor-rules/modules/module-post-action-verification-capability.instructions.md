@@ -549,7 +549,6 @@ Active child capabilities:
 verify-page-opened
 verify-comments-panel-opened
 verify-comments-panel-closed
-verify-video-changed-after-scroll
 verify-not-interested-result
 verify-target-state-changed
 ```
@@ -558,6 +557,8 @@ Required:
 - Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
 - Each child returns child assessment only, not final PAV result.
 - Each child uses only observations/evidence already provided through PAV runtime context/read port.
+- `verify-video-changed-after-scroll` is physically forbidden. Video-switch truth is AI cognition, never a PAV/DOM/hash rule.
+- Non-AI ability groups must not judge whether before/after video content changed by URL, DOM, perceptual hash, screenshot diff, thresholds, or hand-written rules.
 - Each child cannot call screenshot/AI/page-state/visual-target/open/mouse/text-input implementations.
 - Each child cannot write Forensics.
 - Each child cannot decide Orchestration next step.

@@ -122,9 +122,6 @@ function validateMouseScrollDryRun(
   const issues = hasScrollContext
     ? []
     : [createIssue("mouse-scroll step requires preceding page-state or visual-target context.", "operationalMap.steps")];
-  if (!hasReachableVerification(steps[scrollStepIndex]!.stepId, steps, adjacency, stepIndex)) {
-    issues.push(createIssue("mouse-scroll step requires reachable post-action-verification.", "operationalMap.steps"));
-  }
   return issues;
 }
 

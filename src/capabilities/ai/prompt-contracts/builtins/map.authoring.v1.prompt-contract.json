@@ -20,7 +20,7 @@
   "allowedBranchFields": [],
   "systemPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#system",
   "userPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#user",
-  "systemPromptTemplateHash": "sha256:0701d42362eda0f049cccab863001e75e3c8decea6b0f07ac01330045774c8d8",
+  "systemPromptTemplateHash": "sha256:eaaf8d6581d5474488a67f19c4b37968385bd99256dff5458d35b3719ed1246e",
   "userPromptTemplateHash": "sha256:03b247ed24f9b2a1899b6f802af88a16dcd67f594062e5341e9589e41a4482bb",
   "purpose": "Draft a governed GrassEye map package candidate from Commander operator requirements.",
   "forbiddenOutputs": [
@@ -38,7 +38,12 @@
     "unknown abilityGroupId",
     "unknown childCapabilityId",
     "unknown promptContractId",
-    "unknown outputSchemaRef"
+    "unknown outputSchemaRef",
+    "request-human-review",
+    "human-review action",
+    "manual-review action",
+    "operator-review action",
+    "review_required terminal routing"
   ],
   "prohibitedActions": [
     "click",
@@ -82,13 +87,16 @@
     "draftOnly": true,
     "forbidRuntimeActions": true,
     "forbidCodeGeneration": true,
-    "requireHumanReviewForSensitiveOperations": true
+    "requireHumanReviewForSensitiveOperations": false,
+    "forbidHumanReviewActionsInAutomationMaps": true,
+    "automationMapsMustCompleteWithoutHumanReview": true,
+    "automationMapRule": "forbid-human-review-actions-and-review-required-terminal-routing"
   },
   "debugPolicy": {
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
-  "promptContractHash": "sha256:afe3248b08de5866114475be8ce139724fc7c70b5be05e878aec688f89627766",
+  "promptHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
+  "promptContractHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
   "sensitiveOperation": true
 }

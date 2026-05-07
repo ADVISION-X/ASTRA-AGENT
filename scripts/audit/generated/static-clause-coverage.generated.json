@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T15:28:26.188Z",
+  "generatedAt": "2026-05-07T16:20:06.932Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -2932,6 +2932,20 @@
           "checkFunction": "collectWorkbenchDispatchFindings",
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
           "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectWorkbenchDispatchFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectVisibleScrollPrimitiveFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectVisibleScrollPrimitiveFindings",
           "checkKind": "required-shape"
         },
         {

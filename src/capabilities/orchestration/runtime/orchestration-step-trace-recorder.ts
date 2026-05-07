@@ -56,10 +56,18 @@ function isRuntimeEventWriteDegraded(): boolean {
 
 async function writeStructuredRuntimeEventWithoutBlockingLoop(
   input: RuntimeEventInput,
-  _request: Parameters<OrchestrationRuntimeContext["forensics"]["writeStructuredRuntimeEvent"]>[0],
+  request: Parameters<OrchestrationRuntimeContext["forensics"]["writeStructuredRuntimeEvent"]>[0],
 ): Promise<void> {
-  markRuntimeEventWriteDegraded();
-  logRuntimeEventFallback(input, isRuntimeEventWriteDegraded() ? "forensics_write_circuit_open" : "forensics_write_skipped_for_mission_loop");
+  if (isRuntimeEventWriteDegraded()) {
+    logRuntimeEventFallback(input, "forensics_write_circuit_open");
+    return;
+  }
+  try {
+    await input.context.forensics.writeStructuredRuntimeEvent(request);
+  } catch {
+    markRuntimeEventWriteDegraded();
+    logRuntimeEventFallback(input, "forensics_write_circuit_open");
+  }
 }
 
 function resolveSessionId(state: MissionState): string {

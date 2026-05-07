@@ -359,7 +359,6 @@ targetAbilityGroupId
 inputRefs
 outputRefPolicy
 promptContractId for AI step
-timeoutPolicy
 proofPolicy
 successCondition
 failureBranch
@@ -371,6 +370,8 @@ Forbidden:
 
 - package schema importing Orchestration static map truth as authority.
 - schema default that turns missing governance fields into active-safe values.
+- map package declaring timeoutPolicy, timeoutMs, maxDurationMs, primitiveTimeoutMs, or other execution-time budgets.
+- map package deciding timeout, wait, retry, polling, or AND THEN fallback behavior. Maps may only choose ability group / child capability / transition truth; production runtime code owns all timeout and observable-condition control.
 - approved manifest without validationReportRef.
 - approved manifest without humanApprovalRef.
 - approved manifest without activation/validation proof dependencies.

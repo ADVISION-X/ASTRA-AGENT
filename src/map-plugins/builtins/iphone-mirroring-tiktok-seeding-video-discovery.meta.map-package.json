@@ -37,8 +37,7 @@
       "Open iPhone Mirroring",
       "Navigate visible TikTok app safely",
       "Classify visible video frames",
-      "Persist governed evidence",
-      "Request review on uncertainty"
+      "Persist governed evidence"
     ],
     "availabilityPolicy": "active",
     "requestedPlatformId": "iphone-mirroring-tiktok-app",
@@ -49,7 +48,7 @@
   "operationalMap": {
     "mapId": "iphone.mirroring.tiktok.seeding-video.discovery.v1",
     "displayName": "iPhone Mirroring TikTok Seeding Video Discovery",
-    "humanGoal": "Open iPhone Mirroring, use visual targeting to open the TikTok app and video surface, sample visible frames, classify product-seeding signals, persist evidence, scroll safely, and review on ambiguity.",
+    "humanGoal": "Open iPhone Mirroring, use visual targeting to open the TikTok app and video surface, sample visible frames, classify product-seeding signals, persist evidence, scroll safely.",
     "allowedAbilityGroups": [
       "open",
       "post-action-verification",
@@ -89,18 +88,14 @@
           "rightValue": "success"
         },
         "failureBranch": "open-iphone-mirroring:failed",
-        "reviewBranch": "open-iphone-mirroring:review",
+        "reviewBranch": "open-iphone-mirroring:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "local-app-window-handoff",
-          "timeoutMs": 5000,
           "onPassTransitionId": "verify-iphone-mirroring-window-opened:success",
           "onFailTransitionId": "verify-iphone-mirroring-window-opened:failed",
-          "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 15000
+          "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -129,10 +124,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-iphone-mirroring-window-opened:failed",
-        "reviewBranch": "verify-iphone-mirroring-window-opened:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "verify-iphone-mirroring-window-opened:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -160,10 +152,7 @@
           "rightValue": "success"
         },
         "failureBranch": "capture-iphone-mirroring-window-overview:failed",
-        "reviewBranch": "capture-iphone-mirroring-window-overview:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "capture-iphone-mirroring-window-overview:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -192,10 +181,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-local-app-window-state:failed",
-        "reviewBranch": "detect-local-app-window-state:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-local-app-window-state:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -224,10 +210,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-modal-overlay-state:failed",
-        "reviewBranch": "detect-modal-overlay-state:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-modal-overlay-state:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -255,10 +238,7 @@
           "rightValue": "success"
         },
         "failureBranch": "locate-tiktok-app-icon:failed",
-        "reviewBranch": "locate-tiktok-app-icon:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 8000
-        },
+        "reviewBranch": "locate-tiktok-app-icon:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -286,10 +266,7 @@
           "rightValue": "success"
         },
         "failureBranch": "validate-tiktok-app-icon-geometry:failed",
-        "reviewBranch": "validate-tiktok-app-icon-geometry:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "validate-tiktok-app-icon-geometry:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -317,18 +294,14 @@
           "rightValue": "success"
         },
         "failureBranch": "click-tiktok-app-icon:failed",
-        "reviewBranch": "click-tiktok-app-icon:review",
+        "reviewBranch": "click-tiktok-app-icon:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "target-app-opened",
-          "timeoutMs": 8000,
           "onPassTransitionId": "verify-target-app-opened:success",
           "onFailTransitionId": "verify-target-app-opened:failed",
-          "onAmbiguousTransitionId": "verify-target-app-opened:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "onAmbiguousTransitionId": "verify-target-app-opened:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -357,10 +330,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-target-app-opened:failed",
-        "reviewBranch": "verify-target-app-opened:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 8000
-        },
+        "reviewBranch": "verify-target-app-opened:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -389,10 +359,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-app-feed-or-home-state:failed",
-        "reviewBranch": "detect-app-feed-or-home-state:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-app-feed-or-home-state:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -420,10 +387,7 @@
           "rightValue": "success"
         },
         "failureBranch": "capture-target-app-overview:failed",
-        "reviewBranch": "capture-target-app-overview:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "capture-target-app-overview:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -451,10 +415,7 @@
           "rightValue": "success"
         },
         "failureBranch": "locate-video-tab-or-feed-entry:failed",
-        "reviewBranch": "locate-video-tab-or-feed-entry:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 8000
-        },
+        "reviewBranch": "locate-video-tab-or-feed-entry:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -482,10 +443,7 @@
           "rightValue": "success"
         },
         "failureBranch": "validate-video-tab-click:failed",
-        "reviewBranch": "validate-video-tab-click:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "validate-video-tab-click:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -513,18 +471,14 @@
           "rightValue": "success"
         },
         "failureBranch": "click-video-tab-or-feed-entry:failed",
-        "reviewBranch": "click-video-tab-or-feed-entry:review",
+        "reviewBranch": "click-video-tab-or-feed-entry:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "video-feed-ready",
-          "timeoutMs": 8000,
           "onPassTransitionId": "verify-video-feed-ready:success",
           "onFailTransitionId": "verify-video-feed-ready:failed",
-          "onAmbiguousTransitionId": "verify-video-feed-ready:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "onAmbiguousTransitionId": "verify-video-feed-ready:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -553,10 +507,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-video-feed-ready:failed",
-        "reviewBranch": "verify-video-feed-ready:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 8000
-        },
+        "reviewBranch": "verify-video-feed-ready:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -585,10 +536,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-video-stable:failed",
-        "reviewBranch": "detect-video-stable:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-video-stable:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -616,10 +564,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-page-abnormality:failed",
-        "reviewBranch": "detect-page-abnormality:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-page-abnormality:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -647,10 +592,7 @@
           "rightValue": "success"
         },
         "failureBranch": "sample-video-frames:failed",
-        "reviewBranch": "sample-video-frames:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "sample-video-frames:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -677,10 +619,7 @@
           "rightValue": "success"
         },
         "failureBranch": "prepare-video-ai-input:failed",
-        "reviewBranch": "prepare-video-ai-input:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "prepare-video-ai-input:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -707,10 +646,7 @@
           "rightValue": "success"
         },
         "failureBranch": "judge-product-seeding-video:failed",
-        "reviewBranch": "judge-product-seeding-video:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 15000
-        },
+        "reviewBranch": "judge-product-seeding-video:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -737,10 +673,7 @@
           "rightValue": "success"
         },
         "failureBranch": "summarize-product-signal:failed",
-        "reviewBranch": "summarize-product-signal:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 15000
-        },
+        "reviewBranch": "summarize-product-signal:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -768,10 +701,7 @@
           "rightValue": "success"
         },
         "failureBranch": "write-ai-result-record:failed",
-        "reviewBranch": "write-ai-result-record:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "write-ai-result-record:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -800,10 +730,7 @@
           "rightValue": "success"
         },
         "failureBranch": "write-product-video-evidence:failed",
-        "reviewBranch": "write-product-video-evidence:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "write-product-video-evidence:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -831,10 +758,7 @@
           "rightValue": "success"
         },
         "failureBranch": "locate-next-video-scroll-region:failed",
-        "reviewBranch": "locate-next-video-scroll-region:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "locate-next-video-scroll-region:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -862,10 +786,7 @@
           "rightValue": "success"
         },
         "failureBranch": "validate-scroll-geometry:failed",
-        "reviewBranch": "validate-scroll-geometry:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "validate-scroll-geometry:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -893,50 +814,7 @@
           "rightValue": "success"
         },
         "failureBranch": "scroll-next-video:failed",
-        "reviewBranch": "scroll-next-video:review",
-        "postActionVerification": {
-          "required": true,
-          "verificationKind": "result-signal",
-          "expectedSignal": "video-changed",
-          "timeoutMs": 5000,
-          "onPassTransitionId": "verify-video-changed:success",
-          "onFailTransitionId": "verify-video-changed:failed",
-          "onAmbiguousTransitionId": "verify-video-changed:failed"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
-      },
-      {
-        "stepId": "verify-video-changed",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-video-changed-after-scroll",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef",
-          "visualTargetRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
-        "failureBranch": "verify-video-changed:failed",
-        "reviewBranch": "verify-video-changed:failed",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "scroll-next-video:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -965,10 +843,7 @@
           "rightValue": "success"
         },
         "failureBranch": "finalize-evidence-packet:failed",
-        "reviewBranch": "finalize-evidence-packet:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "finalize-evidence-packet:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -996,10 +871,7 @@
           "rightValue": "success"
         },
         "failureBranch": "finalize-browse-ledger:failed",
-        "reviewBranch": "finalize-browse-ledger:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "finalize-browse-ledger:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -1024,10 +896,7 @@
           "rightValue": "success"
         },
         "failureBranch": "finalize-mission:failed",
-        "reviewBranch": "finalize-mission:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 1000
-        },
+        "reviewBranch": "finalize-mission:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -1056,19 +925,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "open-iphone-mirroring:review",
-        "fromStepId": "open-iphone-mirroring",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1408,19 +1264,6 @@
           "operator": "equals",
           "rightValue": "success"
         },
-        "toStepId": "verify-video-changed",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-video-changed:success",
-        "fromStepId": "verify-video-changed",
-        "onStatus": "success",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
         "toStepId": "sample-video-frames",
         "finalStatus": null
       },
@@ -1477,19 +1320,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "verify-iphone-mirroring-window-opened:review",
-        "fromStepId": "verify-iphone-mirroring-window-opened",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "verify-target-app-opened:failed",
         "fromStepId": "verify-target-app-opened",
         "onStatus": "failed",
@@ -1503,19 +1333,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "verify-target-app-opened:review",
-        "fromStepId": "verify-target-app-opened",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "verify-video-feed-ready:failed",
         "fromStepId": "verify-video-feed-ready",
         "onStatus": "failed",
@@ -1524,45 +1341,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-video-feed-ready:review",
-        "fromStepId": "verify-video-feed-ready",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-video-changed:failed",
-        "fromStepId": "verify-video-changed",
-        "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "judge-product-seeding-video:review",
-        "fromStepId": "judge-product-seeding-video",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1594,19 +1372,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "capture-iphone-mirroring-window-overview:review",
-        "fromStepId": "capture-iphone-mirroring-window-overview",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "detect-local-app-window-state:failed",
         "fromStepId": "detect-local-app-window-state",
         "onStatus": "failed",
@@ -1615,19 +1380,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "detect-local-app-window-state:review",
-        "fromStepId": "detect-local-app-window-state",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1646,19 +1398,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "detect-modal-overlay-state:review",
-        "fromStepId": "detect-modal-overlay-state",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "locate-tiktok-app-icon:failed",
         "fromStepId": "locate-tiktok-app-icon",
         "onStatus": "failed",
@@ -1667,19 +1406,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "locate-tiktok-app-icon:review",
-        "fromStepId": "locate-tiktok-app-icon",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1698,19 +1424,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "validate-tiktok-app-icon-geometry:review",
-        "fromStepId": "validate-tiktok-app-icon-geometry",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "click-tiktok-app-icon:failed",
         "fromStepId": "click-tiktok-app-icon",
         "onStatus": "failed",
@@ -1719,19 +1432,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "click-tiktok-app-icon:review",
-        "fromStepId": "click-tiktok-app-icon",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1750,19 +1450,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "detect-app-feed-or-home-state:review",
-        "fromStepId": "detect-app-feed-or-home-state",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "capture-target-app-overview:failed",
         "fromStepId": "capture-target-app-overview",
         "onStatus": "failed",
@@ -1771,19 +1458,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "capture-target-app-overview:review",
-        "fromStepId": "capture-target-app-overview",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1802,19 +1476,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "locate-video-tab-or-feed-entry:review",
-        "fromStepId": "locate-video-tab-or-feed-entry",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "validate-video-tab-click:failed",
         "fromStepId": "validate-video-tab-click",
         "onStatus": "failed",
@@ -1823,19 +1484,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "validate-video-tab-click:review",
-        "fromStepId": "validate-video-tab-click",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1854,19 +1502,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "click-video-tab-or-feed-entry:review",
-        "fromStepId": "click-video-tab-or-feed-entry",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "detect-video-stable:failed",
         "fromStepId": "detect-video-stable",
         "onStatus": "failed",
@@ -1875,19 +1510,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "detect-video-stable:review",
-        "fromStepId": "detect-video-stable",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1906,19 +1528,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "detect-page-abnormality:review",
-        "fromStepId": "detect-page-abnormality",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "sample-video-frames:failed",
         "fromStepId": "sample-video-frames",
         "onStatus": "failed",
@@ -1927,19 +1536,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "sample-video-frames:review",
-        "fromStepId": "sample-video-frames",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -1958,19 +1554,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "prepare-video-ai-input:review",
-        "fromStepId": "prepare-video-ai-input",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "summarize-product-signal:failed",
         "fromStepId": "summarize-product-signal",
         "onStatus": "failed",
@@ -1979,19 +1562,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "summarize-product-signal:review",
-        "fromStepId": "summarize-product-signal",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -2010,19 +1580,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "write-ai-result-record:review",
-        "fromStepId": "write-ai-result-record",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "write-product-video-evidence:failed",
         "fromStepId": "write-product-video-evidence",
         "onStatus": "failed",
@@ -2031,19 +1588,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "write-product-video-evidence:review",
-        "fromStepId": "write-product-video-evidence",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -2062,19 +1606,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "locate-next-video-scroll-region:review",
-        "fromStepId": "locate-next-video-scroll-region",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "validate-scroll-geometry:failed",
         "fromStepId": "validate-scroll-geometry",
         "onStatus": "failed",
@@ -2083,19 +1614,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "validate-scroll-geometry:review",
-        "fromStepId": "validate-scroll-geometry",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -2114,19 +1632,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "scroll-next-video:review",
-        "fromStepId": "scroll-next-video",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "finalize-evidence-packet:failed",
         "fromStepId": "finalize-evidence-packet",
         "onStatus": "failed",
@@ -2135,19 +1640,6 @@
           "leftRef": "status",
           "operator": "equals",
           "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "finalize-evidence-packet:review",
-        "fromStepId": "finalize-evidence-packet",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
         },
         "toStepId": null,
         "finalStatus": "failed"
@@ -2166,19 +1658,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "finalize-browse-ledger:review",
-        "fromStepId": "finalize-browse-ledger",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "finalize-mission:failed",
         "fromStepId": "finalize-mission",
         "onStatus": "failed",
@@ -2190,19 +1669,6 @@
         },
         "toStepId": null,
         "finalStatus": "failed"
-      },
-      {
-        "transitionId": "finalize-mission:review",
-        "fromStepId": "finalize-mission",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
       }
     ],
     "failureBranches": [
@@ -2210,7 +1676,6 @@
       "verify-iphone-mirroring-window-opened:failed",
       "verify-target-app-opened:failed",
       "verify-video-feed-ready:failed",
-      "verify-video-changed:failed",
       "judge-product-seeding-video:failed",
       "capture-iphone-mirroring-window-overview:failed",
       "detect-local-app-window-state:failed",
@@ -2238,36 +1703,35 @@
       "finalize-mission:failed"
     ],
     "reviewBranches": [
-      "open-iphone-mirroring:review",
-      "verify-iphone-mirroring-window-opened:review",
-      "verify-target-app-opened:review",
-      "verify-video-feed-ready:review",
-      "judge-product-seeding-video:review",
-      "capture-iphone-mirroring-window-overview:review",
-      "detect-local-app-window-state:review",
-      "detect-modal-overlay-state:review",
-      "locate-tiktok-app-icon:review",
-      "validate-tiktok-app-icon-geometry:review",
-      "click-tiktok-app-icon:review",
-      "detect-app-feed-or-home-state:review",
-      "capture-target-app-overview:review",
-      "locate-video-tab-or-feed-entry:review",
-      "validate-video-tab-click:review",
-      "click-video-tab-or-feed-entry:review",
-      "detect-video-stable:review",
-      "detect-page-abnormality:review",
-      "sample-video-frames:review",
-      "prepare-video-ai-input:review",
-      "summarize-product-signal:review",
-      "write-ai-result-record:review",
-      "write-product-video-evidence:review",
-      "locate-next-video-scroll-region:review",
-      "validate-scroll-geometry:review",
-      "scroll-next-video:review",
-      "finalize-evidence-packet:review",
-      "finalize-browse-ledger:review",
-      "finalize-mission:review",
-      "verify-video-changed:failed"
+      "open-iphone-mirroring:failed",
+      "verify-iphone-mirroring-window-opened:failed",
+      "verify-target-app-opened:failed",
+      "verify-video-feed-ready:failed",
+      "judge-product-seeding-video:failed",
+      "capture-iphone-mirroring-window-overview:failed",
+      "detect-local-app-window-state:failed",
+      "detect-modal-overlay-state:failed",
+      "locate-tiktok-app-icon:failed",
+      "validate-tiktok-app-icon-geometry:failed",
+      "click-tiktok-app-icon:failed",
+      "detect-app-feed-or-home-state:failed",
+      "capture-target-app-overview:failed",
+      "locate-video-tab-or-feed-entry:failed",
+      "validate-video-tab-click:failed",
+      "click-video-tab-or-feed-entry:failed",
+      "detect-video-stable:failed",
+      "detect-page-abnormality:failed",
+      "sample-video-frames:failed",
+      "prepare-video-ai-input:failed",
+      "summarize-product-signal:failed",
+      "write-ai-result-record:failed",
+      "write-product-video-evidence:failed",
+      "locate-next-video-scroll-region:failed",
+      "validate-scroll-geometry:failed",
+      "scroll-next-video:failed",
+      "finalize-evidence-packet:failed",
+      "finalize-browse-ledger:failed",
+      "finalize-mission:failed"
     ],
     "finalStates": [
       "completed",
@@ -2289,7 +1753,7 @@
       "maxHops": 40,
       "maxRetriesPerStep": 1,
       "loopDecisionOnLimit": "failed",
-      "branchPolicy": "allow_review_handoff"
+      "branchPolicy": "strict"
     },
     "mapVersion": "1.0.0",
     "proofPolicy": {
@@ -2381,7 +1845,7 @@
       "maxAllowedMaxRounds": 5,
       "maxAllowedMaxMinutes": 45
     },
-    "reviewPolicy": "Low confidence, missing target, modal overlay, screen lock, target app unavailable, PAV failure, or geometry ambiguity must route to human review.",
+    "reviewPolicy": "Automation maps must terminate unresolved guarded outcomes as failed.",
     "exportPolicy": "forensics evidence refs and structured summaries only",
     "debugPolicy": "scenario may publish a Commander start-mission task only; no direct local app launch or direct desktop actions"
   },

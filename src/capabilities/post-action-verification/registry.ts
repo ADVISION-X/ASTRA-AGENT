@@ -6,14 +6,12 @@ import { createVerifyCommentsPanelOpenedCapability } from "./children/verify-com
 import { createVerifyNotInterestedResultCapability } from "./children/verify-not-interested-result/implementation.js";
 import { createVerifyPageOpenedCapability } from "./children/verify-page-opened/implementation.js";
 import { createVerifyTargetStateChangedCapability } from "./children/verify-target-state-changed/implementation.js";
-import { createVerifyVideoChangedAfterScrollCapability } from "./children/verify-video-changed-after-scroll/implementation.js";
 
 export function createPostActionVerificationRegistry(): Map<PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability> {
   const entries: Array<readonly [PostActionVerificationChildCapabilityId, PostActionVerificationChildCapability]> = [
     ["verify-page-opened", createVerifyPageOpenedCapability()],
     ["verify-comments-panel-opened", createVerifyCommentsPanelOpenedCapability()],
     ["verify-comments-panel-closed", createVerifyCommentsPanelClosedCapability()],
-    ["verify-video-changed-after-scroll", createVerifyVideoChangedAfterScrollCapability()],
     ["verify-not-interested-result", createVerifyNotInterestedResultCapability()],
     ["verify-target-state-changed", createVerifyTargetStateChangedCapability()],
   ];

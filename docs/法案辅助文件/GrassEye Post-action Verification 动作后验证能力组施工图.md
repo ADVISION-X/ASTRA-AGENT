@@ -109,7 +109,6 @@ src/capabilities/post-action-verification/
     ├── verify-page-opened/
     ├── verify-comments-panel-opened/
     ├── verify-comments-panel-closed/
-    ├── verify-video-changed-after-scroll/
     ├── verify-not-interested-result/
     └── verify-target-state-changed/
 ```
@@ -263,7 +262,6 @@ expectedOutcome:
     - page_opened
     - comments_panel_opened
     - comments_panel_closed
-    - video_changed_after_scroll
     - not_interested_applied
     - target_state_changed
   description: required
@@ -388,9 +386,13 @@ success without proof
 | verify-page-opened | 验证页面打开 | page_state / url evidence | open page |
 | verify-comments-panel-opened | 验证评论面板打开 | page_state / visual_target / ai_observation | click |
 | verify-comments-panel-closed | 验证评论面板关闭 | page_state / visual_target / ai_observation | click |
-| verify-video-changed-after-scroll | 验证滚动后视频变化 | video_identity / screenshot_diff / page_state | scroll |
 | verify-not-interested-result | 验证 not interested 生效 | page_state / screenshot_diff / runtime_signal | click |
 | verify-target-state-changed | 验证目标状态变化 | visual_target / screenshot_diff / page_state | action |
+
+禁止项：
+- `verify-video-changed-after-scroll` 不得作为 PAV 子能力存在。
+- 滚动前后是否为同一视频属于视觉语义判断，只能由 AI 能力组在后续截图/AI 判断步骤中完成。
+- PAV、Page State、Visual Target、Mouse Scroll、Screenshot、Browser Controller 不得通过 DOM、URL、hash、像素差或阈值判断“视频是否已切换”。
 
 Child 只能返回 assessment：
 

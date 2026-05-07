@@ -89,18 +89,14 @@
           "rightValue": "success"
         },
         "failureBranch": "open-local-workbench-diagnostic:failed",
-        "reviewBranch": "open-local-workbench-diagnostic:review",
+        "reviewBranch": "open-local-workbench-diagnostic:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "url-change",
           "expectedSignal": "local-workbench-visible",
-          "timeoutMs": 5000,
           "onPassTransitionId": "verify-local-workbench-open:success",
           "onFailTransitionId": "verify-local-workbench-open:failed",
-          "onAmbiguousTransitionId": "verify-local-workbench-open:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
+          "onAmbiguousTransitionId": "verify-local-workbench-open:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -128,10 +124,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-local-workbench-open:failed",
-        "reviewBranch": "verify-local-workbench-open:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "verify-local-workbench-open:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -160,10 +153,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-diagnostic-page-kind:failed",
-        "reviewBranch": "detect-diagnostic-page-kind:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "detect-diagnostic-page-kind:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -192,10 +182,7 @@
           "rightValue": "success"
         },
         "failureBranch": "capture-diagnostic-viewport:failed",
-        "reviewBranch": "capture-diagnostic-viewport:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "capture-diagnostic-viewport:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -222,10 +209,7 @@
           "rightValue": "success"
         },
         "failureBranch": "prepare-diagnostic-ai-input:failed",
-        "reviewBranch": "prepare-diagnostic-ai-input:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "prepare-diagnostic-ai-input:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -252,10 +236,7 @@
           "rightValue": "success"
         },
         "failureBranch": "diagnostic-schema-validation-ai-dry-run:failed",
-        "reviewBranch": "diagnostic-schema-validation-ai-dry-run:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 75000
-        },
+        "reviewBranch": "diagnostic-schema-validation-ai-dry-run:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -282,10 +263,7 @@
           "rightValue": "success"
         },
         "failureBranch": "detect-diagnostic-control-target:failed",
-        "reviewBranch": "detect-diagnostic-control-target:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 8000
-        },
+        "reviewBranch": "detect-diagnostic-control-target:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -312,10 +290,7 @@
           "rightValue": "success"
         },
         "failureBranch": "normalize-diagnostic-control-geometry:failed",
-        "reviewBranch": "normalize-diagnostic-control-geometry:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "normalize-diagnostic-control-geometry:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -343,18 +318,14 @@
           "rightValue": "success"
         },
         "failureBranch": "mouse-click-local-sandbox-noop:failed",
-        "reviewBranch": "mouse-click-local-sandbox-noop:review",
+        "reviewBranch": "mouse-click-local-sandbox-noop:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "local-sandbox-click-noop",
-          "timeoutMs": 5000,
           "onPassTransitionId": "verify-click-noop:success",
           "onFailTransitionId": "verify-click-noop:failed",
-          "onAmbiguousTransitionId": "verify-click-noop:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "onAmbiguousTransitionId": "verify-click-noop:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -382,10 +353,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-click-noop:failed",
-        "reviewBranch": "verify-click-noop:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "verify-click-noop:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -414,18 +382,14 @@
           "rightValue": "success"
         },
         "failureBranch": "text-input-local-sandbox-dry-run:failed",
-        "reviewBranch": "text-input-local-sandbox-dry-run:review",
+        "reviewBranch": "text-input-local-sandbox-dry-run:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "local-sandbox-text-input-dry-run",
-          "timeoutMs": 5000,
           "onPassTransitionId": "verify-text-input-dry-run:success",
           "onFailTransitionId": "verify-text-input-dry-run:failed",
-          "onAmbiguousTransitionId": "verify-text-input-dry-run:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "onAmbiguousTransitionId": "verify-text-input-dry-run:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -453,10 +417,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-text-input-dry-run:failed",
-        "reviewBranch": "verify-text-input-dry-run:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "verify-text-input-dry-run:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -484,18 +445,14 @@
           "rightValue": "success"
         },
         "failureBranch": "mouse-scroll-local-sandbox:failed",
-        "reviewBranch": "mouse-scroll-local-sandbox:review",
+        "reviewBranch": "mouse-scroll-local-sandbox:failed",
         "postActionVerification": {
           "required": true,
           "verificationKind": "result-signal",
           "expectedSignal": "local-sandbox-scroll",
-          "timeoutMs": 5000,
           "onPassTransitionId": "verify-scroll-result:success",
           "onFailTransitionId": "verify-scroll-result:failed",
-          "onAmbiguousTransitionId": "verify-scroll-result:review"
-        },
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "onAmbiguousTransitionId": "verify-scroll-result:failed"
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -523,10 +480,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-scroll-result:failed",
-        "reviewBranch": "verify-scroll-result:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 5000
-        },
+        "reviewBranch": "verify-scroll-result:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -555,10 +509,7 @@
           "rightValue": "success"
         },
         "failureBranch": "persist-diagnostic-evidence-record:failed",
-        "reviewBranch": "persist-diagnostic-evidence-record:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "persist-diagnostic-evidence-record:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -583,40 +534,7 @@
           "rightValue": "success"
         },
         "failureBranch": "finalize-diagnostic-mission:failed",
-        "reviewBranch": "finalize-diagnostic-mission:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 1000
-        },
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
-      },
-      {
-        "stepId": "request-human-review",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "request-human-review",
-        "stepKind": "review",
-        "targetAbilityGroupId": null,
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "reviewReasonRef"
-          ]
-        },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "failureBranch": "request-human-review:failed",
-        "reviewBranch": "request-human-review:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
+        "reviewBranch": "finalize-diagnostic-mission:failed",
         "proofPolicy": {
           "requiresRuntimeProof": true
         }
@@ -819,19 +737,6 @@
         "finalStatus": null
       },
       {
-        "transitionId": "request-human-review:review",
-        "fromStepId": "request-human-review",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "review_required"
-      },
-      {
         "transitionId": "open-local-workbench-diagnostic:failed",
         "fromStepId": "open-local-workbench-diagnostic",
         "onStatus": "failed",
@@ -1027,214 +932,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "request-human-review:failed",
-        "fromStepId": "request-human-review",
-        "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "open-local-workbench-diagnostic:review",
-        "fromStepId": "open-local-workbench-diagnostic",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-local-workbench-open:review",
-        "fromStepId": "verify-local-workbench-open",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "detect-diagnostic-page-kind:review",
-        "fromStepId": "detect-diagnostic-page-kind",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "capture-diagnostic-viewport:review",
-        "fromStepId": "capture-diagnostic-viewport",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "prepare-diagnostic-ai-input:review",
-        "fromStepId": "prepare-diagnostic-ai-input",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "diagnostic-schema-validation-ai-dry-run:review",
-        "fromStepId": "diagnostic-schema-validation-ai-dry-run",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "detect-diagnostic-control-target:review",
-        "fromStepId": "detect-diagnostic-control-target",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "normalize-diagnostic-control-geometry:review",
-        "fromStepId": "normalize-diagnostic-control-geometry",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "mouse-click-local-sandbox-noop:review",
-        "fromStepId": "mouse-click-local-sandbox-noop",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-click-noop:review",
-        "fromStepId": "verify-click-noop",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "text-input-local-sandbox-dry-run:review",
-        "fromStepId": "text-input-local-sandbox-dry-run",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-text-input-dry-run:review",
-        "fromStepId": "verify-text-input-dry-run",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "mouse-scroll-local-sandbox:review",
-        "fromStepId": "mouse-scroll-local-sandbox",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-scroll-result:review",
-        "fromStepId": "verify-scroll-result",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "persist-diagnostic-evidence-record:review",
-        "fromStepId": "persist-diagnostic-evidence-record",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
         "transitionId": "finalize-diagnostic-mission:success",
         "fromStepId": "finalize-diagnostic-mission",
         "onStatus": "success",
@@ -1259,19 +956,6 @@
         },
         "toStepId": null,
         "finalStatus": "failed"
-      },
-      {
-        "transitionId": "finalize-diagnostic-mission:review",
-        "fromStepId": "finalize-diagnostic-mission",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
       }
     ],
     "failureBranches": [
@@ -1290,32 +974,29 @@
       "mouse-scroll-local-sandbox:failed",
       "verify-scroll-result:failed",
       "persist-diagnostic-evidence-record:failed",
-      "finalize-diagnostic-mission:failed",
-      "request-human-review:failed"
+      "finalize-diagnostic-mission:failed"
     ],
     "reviewBranches": [
-      "finalize-diagnostic-mission:review",
-      "open-local-workbench-diagnostic:review",
-      "verify-local-workbench-open:review",
-      "detect-diagnostic-page-kind:review",
-      "capture-diagnostic-viewport:review",
-      "prepare-diagnostic-ai-input:review",
-      "diagnostic-schema-validation-ai-dry-run:review",
-      "detect-diagnostic-control-target:review",
-      "normalize-diagnostic-control-geometry:review",
-      "mouse-click-local-sandbox-noop:review",
-      "verify-click-noop:review",
-      "text-input-local-sandbox-dry-run:review",
-      "verify-text-input-dry-run:review",
-      "mouse-scroll-local-sandbox:review",
-      "verify-scroll-result:review",
-      "persist-diagnostic-evidence-record:review",
-      "request-human-review:review"
+      "open-local-workbench-diagnostic:failed",
+      "verify-local-workbench-open:failed",
+      "detect-diagnostic-page-kind:failed",
+      "capture-diagnostic-viewport:failed",
+      "prepare-diagnostic-ai-input:failed",
+      "diagnostic-schema-validation-ai-dry-run:failed",
+      "detect-diagnostic-control-target:failed",
+      "normalize-diagnostic-control-geometry:failed",
+      "mouse-click-local-sandbox-noop:failed",
+      "verify-click-noop:failed",
+      "text-input-local-sandbox-dry-run:failed",
+      "verify-text-input-dry-run:failed",
+      "mouse-scroll-local-sandbox:failed",
+      "verify-scroll-result:failed",
+      "persist-diagnostic-evidence-record:failed",
+      "finalize-diagnostic-mission:failed"
     ],
     "finalStates": [
       "completed",
-      "failed",
-      "review_required"
+      "failed"
     ],
     "forbiddenDirectCalls": [
       "shellCommand",
@@ -1330,8 +1011,8 @@
     "sequencePolicy": {
       "maxHops": 16,
       "maxRetriesPerStep": 0,
-      "loopDecisionOnLimit": "review_required",
-      "branchPolicy": "allow_review_handoff"
+      "loopDecisionOnLimit": "failed",
+      "branchPolicy": "strict"
     },
     "mapVersion": "1.0.0",
     "proofPolicy": {
@@ -1368,7 +1049,6 @@
       "verify-action-result",
       "verify-target-state-changed",
       "write-evidence-record",
-      "request-human-review",
       "finalize-mission"
     ],
     "requiredPromptContracts": [
@@ -1412,7 +1092,7 @@
       "maxAllowedMaxRounds": 1,
       "maxAllowedMaxMinutes": 15
     },
-    "reviewPolicy": "Review branches hand off to human review, but the primary diagnostic success path must finalize as completed after evidence persistence.",
+    "reviewPolicy": "Automation maps must terminate unresolved guarded outcomes as failed.",
     "exportPolicy": "runtime proof refs only",
     "debugPolicy": "developer-inspect only; dry-run diagnostic payloads only"
   },

@@ -595,13 +595,14 @@
       "routableByMap": true,
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
-      "requiresPostActionVerification": true,
+      "requiresPostActionVerification": false,
       "requiresReviewGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
         "capture screenshots",
-        "persist evidence"
+        "persist evidence",
+        "judge whether video content changed"
       ]
     },
     {
@@ -619,13 +620,14 @@
       "routableByMap": true,
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
-      "requiresPostActionVerification": true,
+      "requiresPostActionVerification": false,
       "requiresReviewGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
         "capture screenshots",
-        "persist evidence"
+        "persist evidence",
+        "judge whether video content changed"
       ]
     },
     {
@@ -643,13 +645,14 @@
       "routableByMap": true,
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
-      "requiresPostActionVerification": true,
+      "requiresPostActionVerification": false,
       "requiresReviewGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
         "capture screenshots",
-        "persist evidence"
+        "persist evidence",
+        "judge whether video content changed"
       ]
     },
     {
@@ -1064,31 +1067,6 @@
       "description": "Verify governed post-action outcome for verify target state changed.",
       "inputSchemaRef": "post-action-verification.verify-target-state-changed.input",
       "outputSchemaRef": "post-action-verification.verify-target-state-changed.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-video-changed-after-scroll",
-      "description": "Verify governed post-action outcome for verify video changed after scroll.",
-      "inputSchemaRef": "post-action-verification.verify-video-changed-after-scroll.input",
-      "outputSchemaRef": "post-action-verification.verify-video-changed-after-scroll.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [

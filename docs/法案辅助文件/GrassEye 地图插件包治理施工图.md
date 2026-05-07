@@ -264,7 +264,6 @@ targetAbilityGroupId: required
 inputRefs: list
 outputRefPolicy: required
 promptContractId: required for AI step
-timeoutPolicy: required
 proofPolicy: required
 successCondition: required
 failureBranch: required
@@ -278,6 +277,9 @@ Rules:
 AI step must have promptContractId.
 Action step must obey capability catalog PAV/geometry/review requirements.
 Steps may reference only known abilityGroupId/childCapabilityId from capability catalog.
+Map step must not declare timeoutPolicy / timeoutMs / maxDurationMs / primitiveTimeoutMs.
+Map step must not decide wait, retry, polling, or AND THEN fallback behavior.
+Timeout and observable-condition control belong only to production runtime code.
 ```
 
 ---

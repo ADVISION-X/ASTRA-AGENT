@@ -54,5 +54,5 @@
     "SESSION_EXPIRED",
     "REVIEW_REQUIRED"
   ],
-  "maxRuntimeMs": 180000
+  "maxRuntimeMs": 900000
 }

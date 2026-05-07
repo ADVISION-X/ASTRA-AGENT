@@ -21,6 +21,7 @@ const PROMPT_TEMPLATE_FILE = "src/map-plugins/authoring/map-authoring-template.t
 const AI_INPUT_SCHEMA_FILE = "src/capabilities/ai/schema-map-authoring.schema.ts";
 const MAP_LAB_REQUEST_FILE = "src/lib/local-runtime/map-lab/map-lab-draft-request.ts";
 const MAP_AUTHORING_PROMPT_CONTRACT_FILE = "src/capabilities/ai/prompt-contracts/builtins/map.authoring.v1.prompt-contract.json";
+const AUTOMATION_NO_HUMAN_REVIEW_RULE = "自动化地图，严厉禁止加入任何人工审查的动作，必须自动化完成。";
 
 const REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS = [
   "capabilityCatalog",
@@ -144,6 +145,18 @@ const inspectPromptTemplateHardcoding = (project: Project): Finding[] => {
       "Map authoring prompt template must not maintain a second hand-written capability table.",
     ));
   }
+  if (
+    !sourceText.includes(AUTOMATION_NO_HUMAN_REVIEW_RULE)
+    || !sourceText.includes("request-human-review")
+    || !sourceText.includes("review_required terminal routing")
+    || !sourceText.includes("automated failed termination")
+  ) {
+    findings.push(createAuthoringFinding(
+      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
+      PROMPT_TEMPLATE_FILE,
+      "Map authoring prompt template must explicitly forbid human-review actions and require automation maps to complete through automated execution, blocking, or failed termination.",
+    ));
+  }
   return findings;
 };
 
@@ -180,6 +193,22 @@ const inspectMapAuthoringPromptContract = (): Finding[] => {
   }
   if (contract.userPromptTemplateHash !== hashValue(MAP_AUTHORING_USER_PROMPT_TEMPLATE)) {
     findings.push(createAuthoringFinding(MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, MAP_AUTHORING_PROMPT_CONTRACT_FILE, "Map authoring userPromptTemplateHash must match the static user template."));
+  }
+  const forbiddenOutputs = Array.isArray(contract.forbiddenOutputs) ? contract.forbiddenOutputs : [];
+  const safetyPolicy = contract.safetyPolicy && typeof contract.safetyPolicy === "object" ? contract.safetyPolicy as Record<string, unknown> : {};
+  if (
+    !forbiddenOutputs.includes("request-human-review")
+    || !forbiddenOutputs.includes("review_required terminal routing")
+    || safetyPolicy.forbidHumanReviewActionsInAutomationMaps !== true
+    || safetyPolicy.automationMapsMustCompleteWithoutHumanReview !== true
+    || safetyPolicy.requireHumanReviewForSensitiveOperations !== false
+    || safetyPolicy.automationMapRule !== "forbid-human-review-actions-and-review-required-terminal-routing"
+  ) {
+    findings.push(createAuthoringFinding(
+      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
+      MAP_AUTHORING_PROMPT_CONTRACT_FILE,
+      "Map authoring prompt contract must encode the automation-map ban on human-review actions and review_required terminal routing.",
+    ));
   }
   return findings;
 };

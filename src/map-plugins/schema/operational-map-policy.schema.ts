@@ -7,10 +7,6 @@ export const MapPluginOrchestrationSequencePolicySchema = z.object({
   branchPolicy: z.enum(["strict", "allow_review_handoff"]),
 }).strict();
 
-export const MapPluginTimeoutPolicySchema = z.object({
-  maxDurationMs: z.number().int().positive(),
-}).strict();
-
 export const MapPluginProofPolicySchema = z.object({
   requiresRuntimeProof: z.literal(true),
 }).strict();

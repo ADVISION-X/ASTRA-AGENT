@@ -13,7 +13,6 @@ const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
   "detect-next-video-region": "scroll_next_video",
   "normalize-next-video-region": "scroll_next_video",
   "scroll-next-video": "scroll_next_video",
-  "verify-video-changed-after-scroll": "scroll_next_video",
   "persist-seeding-candidate-record": "create_pending_candidate",
 };
 
@@ -34,7 +33,6 @@ const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
 const VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
   "verify-page-opened": "open_target_page",
   "verify-comments-panel-opened": "open_comments",
-  "verify-video-changed-after-scroll": "scroll_next_video",
 };
 
 const FALLBACK_STEP_BY_KIND: Partial<Record<OperationalStep["stepKind"], RoundLifecycleStep>> = {
