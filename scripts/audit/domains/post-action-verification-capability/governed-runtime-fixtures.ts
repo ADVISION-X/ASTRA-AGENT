@@ -222,7 +222,7 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
       ],
     },
   });
-  assertCondition(rawSignatureDriftResult.status === "review_required" && rawSignatureDriftResult.verificationDecision === "review_required", "Video-changed verification must not pass raw frame-signature drift without governed before/after video identity.");
+  assertCondition(rawSignatureDriftResult.status === "failed" && rawSignatureDriftResult.verificationDecision === "failed", "Video-changed verification must fail raw frame-signature drift without governed before/after video identity and must not request review.");
 
   const urlOnlyChangeResult = await abilityGroup.execute({
     ...videoInput,
@@ -251,5 +251,5 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
       ],
     },
   });
-  assertCondition(urlOnlyChangeResult.status === "failed" && urlOnlyChangeResult.verificationDecision === "failed", "Video-changed verification must fail URL-only changes when perceptual video identity is unchanged.");
+  assertCondition(urlOnlyChangeResult.status === "success" && urlOnlyChangeResult.verificationDecision === "verified", "Video-changed verification must accept governed DOM URL identity changes as a binary fast path without AI or review.");
 }

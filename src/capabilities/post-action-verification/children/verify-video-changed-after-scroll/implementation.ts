@@ -19,10 +19,10 @@ function buildVideoChangedAfterScrollIncompleteResult(input: {
 }) {
   return VerifyVideoChangedAfterScrollOutputSchema.parse({
     observedOutcome: "video_identity_incomplete",
-    verificationDecision: "review_required",
+    verificationDecision: "failed",
     confidence: 0,
     failureReason: "missing_before_after_evidence",
-    reviewRequiredReason: "Video-change verification requires governed before and after identity observations.",
+    reviewRequiredReason: null,
     statusMessage: "Before and after video identity observations are incomplete.",
     dataQualityFlags: ["video_identity_incomplete"],
     supportingEvidenceRefs: [],
@@ -41,10 +41,10 @@ function buildVideoChangedAfterScrollWindowConflictResult(input: {
 }) {
   return VerifyVideoChangedAfterScrollOutputSchema.parse({
     observedOutcome: "video_identity_out_of_window",
-    verificationDecision: "review_required",
+    verificationDecision: "failed",
     confidence: 0.2,
     failureReason: "before_after_conflict",
-    reviewRequiredReason: "Video identity observations must straddle the scroll execution window.",
+    reviewRequiredReason: null,
     statusMessage: "Video identity observation timing is not valid for governed scroll verification.",
     dataQualityFlags: ["before_after_conflict"],
     supportingEvidenceRefs: [],
@@ -63,10 +63,10 @@ function buildVideoChangedAfterScrollUnknownResult(input: {
 }) {
   return VerifyVideoChangedAfterScrollOutputSchema.parse({
     observedOutcome: "video_identity_unknown",
-    verificationDecision: "review_required",
+    verificationDecision: "failed",
     confidence: 0,
     failureReason: "insufficient_evidence",
-    reviewRequiredReason: "Video-change verification could not establish before/after identity.",
+    reviewRequiredReason: null,
     statusMessage: "Video identity evidence is insufficient for scroll verification.",
     dataQualityFlags: ["video_identity_unknown"],
     supportingEvidenceRefs: [],
@@ -86,10 +86,10 @@ function buildVideoChangedAfterScrollUnconfirmedResult(input: {
 }) {
   return VerifyVideoChangedAfterScrollOutputSchema.parse({
     observedOutcome: "video_change_unconfirmed",
-    verificationDecision: "review_required",
+    verificationDecision: "failed",
     confidence: 0.35,
     failureReason: "conflicting_observation",
-    reviewRequiredReason: "A new video appeared, but the after observation could not confirm the feed settled on it.",
+    reviewRequiredReason: null,
     statusMessage: "Video-change verification requires a confirmed post-scroll landing state.",
     dataQualityFlags: ["after_unconfirmed"],
     supportingEvidenceRefs: input.afterEvidenceRef ? [input.afterEvidenceRef] : [],
@@ -238,6 +238,10 @@ function resolveVideoChangedDecision(input: {
   const afterSignature = input.afterObservation.payload.visualSignature ?? null;
   const perceptualChange = resolvePerceptualSignatureChange(beforeSignature, afterSignature);
 
+  if (beforeVideoId !== null && afterVideoId !== null && beforeVideoId !== afterVideoId) {
+    return "changed";
+  }
+
   if (perceptualChange === "unchanged") {
     return "unchanged";
   }
@@ -246,7 +250,6 @@ function resolveVideoChangedDecision(input: {
     if (beforeVideoId === afterVideoId) {
       return "unchanged";
     }
-    return perceptualChange === "changed" ? "changed" : "unknown";
   }
 
   if (perceptualChange === "changed") {

@@ -607,7 +607,7 @@
           "timeoutMs": 15000,
           "onPassTransitionId": "verify-video-changed-after-scroll:success",
           "onFailTransitionId": "verify-video-changed-after-scroll:failed",
-          "onAmbiguousTransitionId": "verify-video-changed-after-scroll:review"
+          "onAmbiguousTransitionId": "verify-video-changed-after-scroll:failed"
         },
         "timeoutPolicy": {
           "maxDurationMs": 20000
@@ -638,7 +638,7 @@
           "rightValue": "success"
         },
         "failureBranch": "verify-video-changed-after-scroll:failed",
-        "reviewBranch": "verify-video-changed-after-scroll:review",
+        "reviewBranch": "verify-video-changed-after-scroll:failed",
         "timeoutPolicy": {
           "maxDurationMs": 15000
         },
@@ -672,37 +672,6 @@
         },
         "failureBranch": "persist-seeding-candidate-record:failed",
         "reviewBranch": "persist-seeding-candidate-record:review",
-        "timeoutPolicy": {
-          "maxDurationMs": 10000
-        },
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
-      },
-      {
-        "stepId": "request-human-review",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "request-human-review",
-        "stepKind": "review",
-        "targetAbilityGroupId": null,
-        "inputRefs": [
-          "screenshotEvidenceRef",
-          "aiResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "reviewReasonRef"
-          ]
-        },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "failureBranch": "request-human-review:failed",
-        "reviewBranch": "request-human-review:review",
         "timeoutPolicy": {
           "maxDurationMs": 10000
         },
@@ -776,8 +745,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "verify-facebook-reels-open:success",
@@ -815,8 +784,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "detect-login-state:success",
@@ -854,8 +823,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "detect-safety-page:success",
@@ -893,8 +862,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "detect-feed-ready:success",
@@ -932,8 +901,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "capture-video-viewport:success",
@@ -971,8 +940,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "prepare-ai-input:success",
@@ -1010,8 +979,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "judge-seeding-video:product",
@@ -1101,8 +1070,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "normalize-comments-target:success",
@@ -1140,8 +1109,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "click-comments-button:success",
@@ -1179,8 +1148,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "verify-comments-open:success",
@@ -1218,8 +1187,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "capture-comments-panel:success",
@@ -1257,8 +1226,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "analyze-comment-intent:success",
@@ -1296,8 +1265,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "detect-next-video-region:success",
@@ -1335,8 +1304,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "normalize-next-video-region:success",
@@ -1374,8 +1343,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "scroll-next-video:success",
@@ -1413,8 +1382,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
+        "toStepId": null,
+        "finalStatus": "failed"
       },
       {
         "transitionId": "verify-video-changed-after-scroll:success",
@@ -1443,19 +1412,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "verify-video-changed-after-scroll:review",
-        "fromStepId": "verify-video-changed-after-scroll",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
         "transitionId": "persist-seeding-candidate-record:success",
         "fromStepId": "persist-seeding-candidate-record",
         "onStatus": "success",
@@ -1465,7 +1421,7 @@
           "operator": "equals",
           "rightValue": "success"
         },
-        "toStepId": "detect-next-video-region",
+        "toStepId": "finalize-mission",
         "finalStatus": null
       },
       {
@@ -1491,47 +1447,8 @@
           "operator": "equals",
           "rightValue": "review_required"
         },
-        "toStepId": "request-human-review",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "request-human-review:failed",
-        "fromStepId": "request-human-review",
-        "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
         "toStepId": null,
         "finalStatus": "failed"
-      },
-      {
-        "transitionId": "request-human-review:success",
-        "fromStepId": "request-human-review",
-        "onStatus": "success",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
-        "toStepId": "finalize-mission",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "request-human-review:review",
-        "fromStepId": "request-human-review",
-        "onStatus": "review_required",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "review_required"
-        },
-        "toStepId": null,
-        "finalStatus": "review_required"
       },
       {
         "transitionId": "finalize-mission:success",
@@ -1570,7 +1487,7 @@
           "rightValue": "review_required"
         },
         "toStepId": null,
-        "finalStatus": "review_required"
+        "finalStatus": "failed"
       }
     ],
     "failureBranches": [
@@ -1593,7 +1510,6 @@
       "scroll-next-video:failed",
       "verify-video-changed-after-scroll:failed",
       "persist-seeding-candidate-record:failed",
-      "request-human-review:failed",
       "finalize-mission:failed"
     ],
     "reviewBranches": [
@@ -1613,16 +1529,14 @@
       "detect-next-video-region:review",
       "normalize-next-video-region:review",
       "scroll-next-video:review",
-      "verify-video-changed-after-scroll:review",
       "persist-seeding-candidate-record:review",
-      "request-human-review:review",
       "finalize-mission:review",
-      "judge-seeding-video:review"
+      "judge-seeding-video:review",
+      "verify-video-changed-after-scroll:failed"
     ],
     "finalStates": [
       "completed",
-      "failed",
-      "review_required"
+      "failed"
     ],
     "forbiddenDirectCalls": [
       "PlatformAdapter",
@@ -1632,7 +1546,7 @@
     "sequencePolicy": {
       "maxHops": 80,
       "maxRetriesPerStep": 1,
-      "loopDecisionOnLimit": "review_required",
+      "loopDecisionOnLimit": "failed",
       "branchPolicy": "allow_review_handoff"
     },
     "mapVersion": "1.0.0",

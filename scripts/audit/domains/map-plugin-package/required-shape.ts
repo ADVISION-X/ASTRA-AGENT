@@ -107,12 +107,42 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
   const verifyChanged = steps.find((step) => step.stepId === "verify-video-changed-after-scroll");
   const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
   const judgeTransitions = record.mapPackage.operationalMap.transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
+  const transitions = record.mapPackage.operationalMap.transitions;
+  const dependencies = record.mapPackage.dependencies;
   const hasTransition = (fromStepId: string, onStatus: string, toStepId: string) =>
-    record.mapPackage?.operationalMap.transitions.some((transition) =>
+    transitions.some((transition) =>
       transition.fromStepId === fromStepId
       && transition.onStatus === onStatus
       && transition.toStepId === toStepId,
-    ) === true;
+    );
+  const verifyChangedTransitions = transitions.filter((transition) => transition.fromStepId === "verify-video-changed-after-scroll");
+  const hasForbiddenHumanReviewHandoff =
+    steps.some((step) => step.stepId === "request-human-review" || step.childCapabilityId === "request-human-review")
+    || transitions.some((transition) =>
+      transition.fromStepId === "request-human-review"
+      || transition.toStepId === "request-human-review"
+      || transition.finalStatus === "review_required",
+    )
+    || record.mapPackage.operationalMap.finalStates.includes("review_required")
+    || record.mapPackage.operationalMap.sequencePolicy.loopDecisionOnLimit === "review_required"
+    || dependencies.requiredChildCapabilities.includes("request-human-review");
+  const hasBinaryVideoChangedVerification =
+    scrollNext?.postActionVerification?.onAmbiguousTransitionId === "verify-video-changed-after-scroll:failed"
+    && verifyChanged?.failureBranch === "verify-video-changed-after-scroll:failed"
+    && verifyChanged.reviewBranch === "verify-video-changed-after-scroll:failed"
+    && verifyChangedTransitions.some((transition) =>
+      transition.transitionId === "verify-video-changed-after-scroll:success"
+      && transition.onStatus === "success"
+      && transition.toStepId === "capture-video-viewport"
+      && transition.finalStatus === null,
+    )
+    && verifyChangedTransitions.some((transition) =>
+      transition.transitionId === "verify-video-changed-after-scroll:failed"
+      && transition.onStatus === "failed"
+      && transition.toStepId === null
+      && transition.finalStatus === "failed",
+    )
+    && verifyChangedTransitions.every((transition) => transition.onStatus !== "review_required" && !transition.transitionId.endsWith(":review"));
   const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
     transition.condition.rightValue === "product_uncertain"
     || transition.toStepId === "request-human-review"
@@ -134,7 +164,8 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && scrollNext.postActionVerification?.required === true
     && scrollNext.postActionVerification.expectedSignal === "video-changed"
     && verifyChanged?.targetAbilityGroupId === "post-action-verification"
-    && verifyChanged.childCapabilityId === "verify-video-changed-after-scroll";
+    && verifyChanged.childCapabilityId === "verify-video-changed-after-scroll"
+    && hasBinaryVideoChangedVerification;
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
     && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
     && prepare.outputRefPolicy.storeAs.includes("promptInputRef")
@@ -147,6 +178,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && promptBinding.confidencePolicy === "binary-no-human-review"
     && promptBinding.reviewPolicy === "no-human-handoff-for-product-presence"
     && !hasForbiddenUncertainBranch
+    && !hasForbiddenHumanReviewHandoff
     && hasAutomaticNonProductScrollPath;
 
   return hasChain
@@ -156,7 +188,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep product-presence routing binary: product_yes opens evidence capture, product_no must automatically flow through visual-target -> geometry-guard -> mouse-scroll -> video-changed PAV, and product_uncertain/human-review handoff is forbidden.",
+      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep routing binary: product_yes opens evidence capture, product_no must automatically flow through visual-target -> geometry-guard -> mouse-scroll -> binary video-changed PAV, and product_uncertain/review_required/request-human-review handoff is forbidden.",
     })];
 };
 
