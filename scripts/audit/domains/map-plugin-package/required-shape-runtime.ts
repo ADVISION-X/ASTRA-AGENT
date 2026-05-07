@@ -195,6 +195,32 @@ export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
     if (surface === "orchestration") return map.steps.every((step) => step.capabilityId === "orchestration");
     return map.steps.some((step) => step.stepKind === "ability" || step.stepKind === "ai");
   });
+  const stepsById = new Map(map.steps.map((step) => [step.stepId, step]));
+  const successPathStepIds: string[] = [];
+  let currentStepId: string | null = map.initialStepId;
+  let successPathFinalStatus: string | null = null;
+  for (let hop = 0; currentStepId && hop <= map.steps.length; hop += 1) {
+    const step = stepsById.get(currentStepId);
+    if (!step) break;
+    successPathStepIds.push(step.stepId);
+    const transition = map.transitions.find((item) => item.fromStepId === step.stepId && item.onStatus === "success");
+    if (!transition) break;
+    successPathFinalStatus = transition.finalStatus;
+    currentStepId = transition.toStepId;
+  }
+  const successPathSteps = successPathStepIds.map((stepId) => stepsById.get(stepId)).filter((step): step is NonNullable<typeof step> => Boolean(step));
+  const successPathSurface = new Set(successPathSteps.map((step) => step.targetAbilityGroupId).filter((value) => Boolean(value)));
+  const missingSuccessPathSurface = PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !successPathSurface.has(abilityGroupId));
+  const diagnosticAiStep = successPathSteps.find((step) => step.targetAbilityGroupId === "ai");
+  const successPathPersistsEvidence = successPathStepIds.includes("persist-diagnostic-evidence-record");
+  const successPathUsesHumanReviewTerminal = successPathStepIds.includes("request-human-review") || successPathFinalStatus === "review_required";
+  const hasDeterministicDiagnosticAi = diagnosticAiStep?.childCapabilityId === "schema-validation-only"
+    && diagnosticAiStep.promptContractId === "ai.schema_validation_only.internal"
+    && diagnosticPackage.promptBindings.bindings.some((binding) =>
+      binding.stepId === diagnosticAiStep.stepId
+      && binding.promptContractId === "ai.schema_validation_only.internal"
+      && binding.reviewPolicy === "diagnostic-no-early-review",
+    );
 
   const findings: Finding[] = [];
   if (missingAbilitySurface.length > 0 || !hasControlSurface) {
@@ -205,6 +231,27 @@ export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
   }
   if (!hasNoExecutablePayload) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map package must not contain executable payloads, handlers, shell commands, or raw prompts." }));
+  }
+  if (diagnosticPackage.manifest.approvalStatus !== "approved" || diagnosticPackage.taskTemplate.availabilityPolicy !== "active") {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must be approved and active so acceptance cannot confuse a dormant draft package with a runnable diagnostic." }));
+  }
+  if (missingSuccessPathSurface.length > 0 || !successPathPersistsEvidence || successPathFinalStatus !== "completed" || successPathUsesHumanReviewTerminal) {
+    findings.push(createFinding({
+      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
+      file: PHASE_05_DIAGNOSTIC_MAP_PATH,
+      line: 1,
+      severity: "fatal",
+      message: "Phase-05 diagnostic map primary success path must visit every required ability surface, persist evidence, and finish completed instead of using human review as the success terminal.",
+      detail: [
+        missingSuccessPathSurface.length > 0 ? `missingSuccessPathSurface=${missingSuccessPathSurface.join(",")}` : null,
+        !successPathPersistsEvidence ? "persist-diagnostic-evidence-record not reached" : null,
+        successPathFinalStatus !== "completed" ? `finalStatus=${successPathFinalStatus ?? "MISSING"}` : null,
+        successPathUsesHumanReviewTerminal ? "success path reaches request-human-review/review_required" : null,
+      ].filter(Boolean).join("; "),
+    }));
+  }
+  if (!hasDeterministicDiagnosticAi) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic AI step must use deterministic schema-validation-only with diagnostic-no-early-review, not product-presence business judgment." }));
   }
 
   return findings;

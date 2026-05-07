@@ -12,6 +12,8 @@ export type Mutation = {
 
 export const REQUIRED_MUTATION_NAMES = [
   "macos local smoke missing open-local-program mutation",
+  "phase05 diagnostic success path uses review terminal mutation",
+  "phase05 diagnostic ai reverted to product presence mutation",
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
@@ -219,6 +221,18 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
     search: '"childCapabilityId": "open-local-program"',
     replace: '"childCapabilityId": "open-local-workbench"',
+  },
+  {
+    name: "phase05 diagnostic success path uses review terminal mutation",
+    file: "src/map-plugins/builtins/phase-05-full-surface-diagnostic.meta.map-package.json",
+    search: '"transitionId": "persist-diagnostic-evidence-record:success",\n      "fromStepId": "persist-diagnostic-evidence-record",\n      "onStatus": "success",\n      "condition": {\n        "conditionType": "comparison",\n        "leftRef": "status",\n        "operator": "equals",\n        "rightValue": "success"\n      },\n      "toStepId": "finalize-diagnostic-mission",\n      "finalStatus": null',
+    replace: '"transitionId": "persist-diagnostic-evidence-record:success",\n      "fromStepId": "persist-diagnostic-evidence-record",\n      "onStatus": "success",\n      "condition": {\n        "conditionType": "comparison",\n        "leftRef": "status",\n        "operator": "equals",\n        "rightValue": "success"\n      },\n      "toStepId": "request-human-review",\n      "finalStatus": null',
+  },
+  {
+    name: "phase05 diagnostic ai reverted to product presence mutation",
+    file: "src/map-plugins/builtins/phase-05-full-surface-diagnostic.meta.map-package.json",
+    search: '"childCapabilityId": "schema-validation-only",',
+    replace: '"childCapabilityId": "product-presence-judgment",',
   },
   {
     name: "iphone mirroring step branch closure mutation",
