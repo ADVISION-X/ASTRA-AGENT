@@ -21,8 +21,9 @@ async function handleArtifactOrRootRequest(
   }
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
+    const html = renderCommanderConsolePage(await activeWorkbench.getCommanderConsoleSnapshot(), url);
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(renderCommanderConsolePage(await activeWorkbench.getCommanderConsoleSnapshot(), url));
+    response.end(html);
     return true;
   }
 
@@ -66,6 +67,14 @@ export function createWorkbenchServer(input: {
   baseUrl: string;
 }): ReturnType<typeof createServer> {
   return createServer(async (request, response) => {
-    await handleRequest(request, response, input.workbench, input.baseUrl);
+    try {
+      await handleRequest(request, response, input.workbench, input.baseUrl);
+    } catch (error) {
+      const failureReason = error instanceof Error ? error.message : String(error);
+      if (!response.headersSent) {
+        response.writeHead(500, { "content-type": "application/json; charset=utf-8" });
+      }
+      response.end(JSON.stringify({ error: "workbench_request_failed", failureReason }));
+    }
   });
 }

@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
+import sharp from "sharp";
+
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
@@ -161,6 +163,26 @@ const hashFileSha256 = async (filePath: string) => createHash("sha256")
   .update(await readFile(filePath))
   .digest("hex");
 
+const buildPerceptualImageSignature = async (filePath: string): Promise<string> => {
+  const { data } = await sharp(filePath)
+    .grayscale()
+    .resize(16, 16, { fit: "fill" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixels = [...data];
+  const average = pixels.reduce((sum, value) => sum + value, 0) / pixels.length;
+  const bits = pixels.map((value) => (value >= average ? "1" : "0")).join("");
+  return `ahash16:${bits}`;
+};
+
+const buildImageIdentitySignature = async (filePath: string): Promise<string> => {
+  try {
+    return await buildPerceptualImageSignature(filePath);
+  } catch {
+    return `sha256:${await hashFileSha256(filePath)}`;
+  }
+};
+
 const resolveExpectedUrlHost = (selectedMapId: string) => {
   if (selectedMapId.includes("facebook")) {
     return "www.facebook.com";
@@ -287,7 +309,12 @@ const buildVideoIdentityEvidencePair = async (input: {
   const promptInputRef = payloadValueToString(input.payload.promptInputRef);
   const screenshotEvidenceRef = payloadValueToString(input.payload.screenshotEvidenceRef);
   const beforeProofSummary = resolveAbilityResultProofSummary(promptInputRef) ?? resolveAbilityResultProofSummary(screenshotEvidenceRef);
-  const beforeSignature = readSummaryString(beforeProofSummary, "preparedImageHash")
+  const beforeStorageRef = readSummaryString(beforeProofSummary, "aiInputStorageRef")
+    ?? readSummaryString(beforeProofSummary, "artifactStorageRef")
+    ?? readSummaryString(beforeProofSummary, "sourceStorageRef");
+  const beforeSignature = beforeStorageRef
+    ? await buildImageIdentitySignature(beforeStorageRef)
+    : readSummaryString(beforeProofSummary, "preparedImageHash")
     ?? readSummaryString(beforeProofSummary, "outputHash")
     ?? readSummaryString(beforeProofSummary, "artifactHash");
   const beforeProofRef = readSummaryString(beforeProofSummary, "sourceScreenshotEvidenceId")
@@ -309,7 +336,7 @@ const buildVideoIdentityEvidencePair = async (input: {
     regionLabel: "post-scroll-video-identity",
     contentLines: ["post-action video identity evidence"],
   });
-  const afterSignature = await hashFileSha256(afterCapture.sourceFilePath);
+  const afterSignature = await buildImageIdentitySignature(afterCapture.sourceFilePath);
   const session = input.runtime.browserController.getSessionState();
 
   const beforeEvidence = {

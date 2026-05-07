@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/index.js";
 export { buildScreenshotCommand } from "./workbench-screenshot-dispatch-input.js";
+import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
@@ -336,11 +337,13 @@ export const buildTextInputCommand = (
   }));
 };
 
-export const buildMouseScrollCommand = (
+export const buildMouseScrollCommand = async (
+  runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
+  const geometry = await runtime.browserController.getGeometrySnapshot();
   const geometryProofRef = payloadValueToString(payload.geometryProofRef) ?? envelope.inputRef;
   const sourceTargetRef = payloadValueToString(payload.sourceTargetRef) ?? payloadValueToString(payload.visualTargetRef) ?? envelope.inputRef;
   const sourceEvidenceRef = payloadValueToString(payload.sourceEvidenceRef) ?? payloadValueToString(payload.screenshotEvidenceRef);
@@ -378,7 +381,7 @@ export const buildMouseScrollCommand = (
       outputRef: geometryProofRef,
     },
     coordinateSpace: "browserViewport",
-    bounds: { width: 100, height: 100 },
+    bounds: { width: geometry.viewportWidth, height: geometry.viewportHeight },
     direction: "down",
     magnitude: "onePage",
   }));

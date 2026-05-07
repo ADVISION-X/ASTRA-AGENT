@@ -110,6 +110,65 @@ function collectChildImplementationFindings(project: ReturnType<typeof makeProje
   return findings;
 }
 
+function collectWorkbenchDispatchFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const source = getSourceFile(project, PATHS.WORKBENCH_ACTION_DISPATCH_INPUT);
+  if (!source) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Workbench mouse-scroll dispatch input builder is missing." })];
+  }
+
+  const builder = source.getVariableDeclaration("buildMouseScrollCommand");
+  if (!builder) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Workbench must expose buildMouseScrollCommand for governed mouse-scroll dispatch." })];
+  }
+
+  const builderNode = builder.getInitializerOrThrow();
+  const hasGeometrySnapshot = builderNode.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === "runtime.browserController.getGeometrySnapshot");
+  const boundsProperty = builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) => property.getName() === "bounds");
+  const boundsText = boundsProperty?.getInitializer()?.getText() ?? "";
+  const bindsViewportBounds = boundsText.includes("geometry.viewportWidth") && boundsText.includes("geometry.viewportHeight");
+  const hasSyntheticHundredPxBounds = boundsText.includes("width: 100") || boundsText.includes("height: 100");
+  const findings: Finding[] = [];
+  if (!hasGeometrySnapshot || !bindsViewportBounds || hasSyntheticHundredPxBounds) {
+    findings.push(createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
+      line: builder.getStartLineNumber(),
+      severity: "fatal",
+      message: "Workbench mouse-scroll dispatch must bind onePage bounds to the live browser viewport, not synthetic 100px bounds.",
+    }));
+  }
+  return findings;
+}
+
+function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const source = getSourceFile(project, PATHS.CURRENT_CHROME_BROWSER_CONTROLLER);
+  if (!source) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER, line: 1, severity: "fatal", message: "Current Chrome browser controller is missing." })];
+  }
+
+  const scrollMethod = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("scroll") ?? null;
+  if (!scrollMethod) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER, line: 1, severity: "fatal", message: "Current Chrome browser controller must expose governed scroll primitive execution." })];
+  }
+
+  const calls = scrollMethod.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => ({
+    name: call.getExpression().getText(),
+    position: call.getStart(),
+  }));
+  const activateCall = calls.find((call) => call.name === "activateChrome") ?? null;
+  const scrollAtCall = calls.find((call) => call.name === "scrollAt") ?? null;
+  if (activateCall === null || scrollAtCall === null || activateCall.position > scrollAtCall.position) {
+    return [createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll primitive must activate Chrome before posting the wheel event so production scroll is visible and targets the controlled browser.",
+    })];
+  }
+  return [];
+}
+
 export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
   await collectMissingFileFindings(findings);
@@ -119,6 +178,8 @@ export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; p
   findings.push(...collectExecutorFindings(project));
   findings.push(...collectBuilderFindings(project));
   findings.push(...collectChildImplementationFindings(project));
+  findings.push(...collectWorkbenchDispatchFindings(project));
+  findings.push(...collectVisibleScrollPrimitiveFindings(project));
 
   const passed = findings.length === 0;
   return {

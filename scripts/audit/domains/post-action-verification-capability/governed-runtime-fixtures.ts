@@ -144,4 +144,37 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
 
   const videoVerificationResult = await abilityGroup.execute(videoInput);
   assertCondition(videoVerificationResult.status === "success" && videoVerificationResult.verificationDecision === "verified", "verify-video-changed-after-scroll fixture must reach governed success with before/after image hashes.");
+
+  const closeFrameSignature = `${"1".repeat(128)}${"0".repeat(128)}`;
+  const closeFrameAfterSignature = `${"1".repeat(124)}${"0".repeat(4)}${"0".repeat(128)}`;
+  const [beforeVideoObservation, afterVideoObservation] = videoIdentityObservations;
+  assertCondition(beforeVideoObservation !== undefined && afterVideoObservation !== undefined, "Video-changed perceptual fixture must have before/after video observations.");
+  const unchangedVideoResult = await abilityGroup.execute({
+    ...videoInput,
+    observationSet: {
+      observations: [
+        {
+          ...beforeVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "before",
+            videoId: null,
+            visualSignature: `ahash16:${closeFrameSignature}`,
+            confirmed: true,
+          },
+        },
+        {
+          ...afterVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "after",
+            videoId: null,
+            visualSignature: `ahash16:${closeFrameAfterSignature}`,
+            confirmed: true,
+          },
+        },
+      ],
+    },
+  });
+  assertCondition(unchangedVideoResult.status === "failed" && unchangedVideoResult.verificationDecision === "failed", "Video-changed verification must fail same-video perceptual frame drift instead of treating raw image variation as a new video.");
 }

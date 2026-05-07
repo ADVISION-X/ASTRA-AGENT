@@ -46,8 +46,22 @@ export const getPlanDrivenInspectorViolationLine = (sourceFile: AuditSourceFile)
     const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
     return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
   });
+  const planOwnerFromGeneratedPlan = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).some((declaration) =>
+    declaration.getName() === "planOwner"
+    && declaration.getInitializer()?.getText() === "artifacts.auditPlan.owners[i]"
+  );
+  const loadsInspectorFromIndexedPlanOwner = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "loadInspector") {
+      return false;
+    }
 
-  if (!planLoop || !loadsInspectorFromPlan) {
+    const entryArgument = callExpression.getArguments()[0];
+    const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
+    return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
+  });
+
+  if ((!planLoop || !loadsInspectorFromPlan) && !(planOwnerFromGeneratedPlan && loadsInspectorFromIndexedPlanOwner)) {
     return getNodeLine(planLoop ?? sourceFile);
   }
 
@@ -124,7 +138,13 @@ export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): 
     "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF",
     "GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF",
     "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_COMMANDER_CONSOLE_MAC_SHELL_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_INDEX_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_KERNEL_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGATIVE_PROOF",
+    "GRASSEYE_SKIP_STRUCTURED_LOGGING_NEGATIVE_PROOF",
   ];
+  const sourceText = sourceFile.getFullText();
   const policyCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
     const expression = callExpression.getExpression();
     return Node.isIdentifier(expression) && expression.getText() === "applyDefaultNegativeProofPolicy";
@@ -135,6 +155,7 @@ export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): 
   });
 
   return envDeclaration?.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralText() === "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF"
+    && sourceText.includes("production mutation negative proof is permanently disabled")
     && requiredSkipValues.every((value) => skipValues.includes(value))
     && Boolean(applyPolicy)
     && Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());

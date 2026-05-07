@@ -52,6 +52,8 @@ export const PATHS = {
   WORKBENCH_RUNTIME: "src/lib/local-runtime/workbench-mouse-scroll-runtime.ts",
   WORKBENCH_ABILITY_GROUP: "src/lib/local-runtime/workbench-mouse-scroll-ability-group.ts",
   PRIMITIVE_ADAPTER: "src/lib/browser/mouse-scroll-primitive-port.ts",
+  CURRENT_CHROME_BROWSER_CONTROLLER: "src/lib/browser/current-chrome-browser-controller.ts",
+  WORKBENCH_ACTION_DISPATCH_INPUT: "src/lib/local-runtime/workbench-action-dispatch-inputs.ts",
 } as const;
 
 export const REQUIRED_FILES = [

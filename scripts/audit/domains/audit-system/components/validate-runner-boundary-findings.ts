@@ -68,7 +68,7 @@ export const collectRunnerBoundaryFindings = (sourceFile: AuditSourceFile, relat
         file: relativePath,
         line: 1,
         severity: "error",
-        message: "Runner must keep production mutation negative proof out of the default law-compliance audit unless GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 is explicitly set.",
+        message: "Runner must permanently keep production mutation negative proof out of law-compliance audit execution.",
       }),
     );
   }

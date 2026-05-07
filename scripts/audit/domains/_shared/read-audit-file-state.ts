@@ -40,6 +40,7 @@ const NEGATIVE_PROOF_MUTATION_LOCK_DIR = "/private/tmp/grasseye-audit-negative-p
 const NEGATIVE_PROOF_MUTATION_LOCK_OWNER = `${NEGATIVE_PROOF_MUTATION_LOCK_DIR}/owner`;
 const NEGATIVE_PROOF_MUTATION_LOCK_RETRY_MS = 250;
 const NEGATIVE_PROOF_MUTATION_LOCK_STALE_MS = 10 * 60 * 1000;
+const PRODUCTION_TREE_MUTATION_PROOF_DISABLED = true;
 
 let activeLockRelease: (() => Promise<void>) | undefined;
 let activeLockDepth = 0;
@@ -79,6 +80,10 @@ async function removeStaleMutationLock(): Promise<boolean> {
 }
 
 export async function acquireAuditMutationLock(): Promise<() => Promise<void>> {
+  if (PRODUCTION_TREE_MUTATION_PROOF_DISABLED) {
+    throw new Error("Production-tree mutation negative proof is disabled; use static AST/schema inspectors or an isolated throwaway workspace instead.");
+  }
+
   if (activeLockRelease) {
     activeLockDepth += 1;
     let released = false;

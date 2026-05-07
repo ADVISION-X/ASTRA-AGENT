@@ -24,19 +24,13 @@ function isDefinitiveNonProductOutput(output: unknown): boolean {
     decision?: unknown;
     mustReview?: unknown;
     visibleProductTypes?: unknown;
-    uncertainty?: unknown;
     suggestedNextAction?: unknown;
   };
   const visibleProductTypes = Array.isArray(candidate.visibleProductTypes) ? candidate.visibleProductTypes : [];
-  const uncertainty = Array.isArray(candidate.uncertainty) ? candidate.uncertainty : [];
-  const onlyFrameCoverageUncertainty = uncertainty.every((entry) =>
-    entry === "single_frame_fallback" || entry === "reduced_frame_coverage"
-  );
   return candidate.decision === "product_no"
     && candidate.mustReview === false
     && visibleProductTypes.length === 0
-    && candidate.suggestedNextAction === "scroll_next"
-    && onlyFrameCoverageUncertainty;
+    && candidate.suggestedNextAction === "scroll_next";
 }
 
 function resolveSchemaIssueDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {

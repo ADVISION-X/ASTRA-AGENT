@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T22:44:13.677Z",
+  "generatedAt": "2026-05-07T09:06:19.922Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -2890,6 +2890,48 @@
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
           "targetSymbol": "anonymous",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectWorkbenchDispatchFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectWorkbenchDispatchFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectWorkbenchDispatchFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectVisibleScrollPrimitiveFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectVisibleScrollPrimitiveFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectVisibleScrollPrimitiveFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectVisibleScrollPrimitiveFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectVisibleScrollPrimitiveFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectVisibleScrollPrimitiveFindings",
           "checkKind": "required-shape"
         },
         {

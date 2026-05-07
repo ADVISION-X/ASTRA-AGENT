@@ -306,6 +306,30 @@ const findModelOwnedConfidenceViolations = (project: Project): Finding[] => {
   return findings;
 };
 
+const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[] => {
+  const qualityGateSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-quality-gate.ts`);
+  const qualityGateText = qualityGateSource.getFullText();
+  const findings: Finding[] = [];
+
+  if (
+    !qualityGateText.includes("isDefinitiveNonProductOutput(input.output)")
+    || !qualityGateText.includes('candidate.decision === "product_no"')
+    || !qualityGateText.includes("candidate.mustReview === false")
+    || !qualityGateText.includes('candidate.suggestedNextAction === "scroll_next"')
+    || !qualityGateText.includes("visibleProductTypes.length === 0")
+  ) {
+    findings.push(createFinding({
+      lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+      file: `${AI_ROOT}/runtime/ai-quality-gate.ts`,
+      line: 1,
+      severity: "fatal",
+      message: "AI quality gate must not let a numeric confidence threshold override a model-owned definitive non-product scroll decision with mustReview=false and no visible product evidence.",
+    }));
+  }
+
+  return findings;
+};
+
 export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
@@ -316,6 +340,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findDisabledChildExecutionViolations(project),
     ...findReferenceIntegrityViolations(project),
     ...findModelOwnedConfidenceViolations(project),
+    ...findModelOwnedNonProductDecisionViolations(project),
     ...findTimeoutCancellationViolations(project),
     ...findPromptGovernanceViolations(project),
     ...findProofChainViolations(project),

@@ -39,7 +39,7 @@ const executeVisualAbilityCommand = (
   throw new Error(`Unsupported visual ability target: ${envelope.to}`);
 };
 
-const executePointerAbilityCommand = (
+const executePointerAbilityCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -50,7 +50,7 @@ const executePointerAbilityCommand = (
     case "text-input":
       return runtime.textInputAbilityGroup.execute(buildTextInputCommand(envelope, inputPayload));
     case "mouse-scroll":
-      return runtime.mouseScrollAbilityGroup.execute(buildMouseScrollCommand(envelope, inputPayload));
+      return runtime.mouseScrollAbilityGroup.execute(await buildMouseScrollCommand(runtime, envelope, inputPayload));
   }
 
   throw new Error(`Unsupported pointer ability target: ${envelope.to}`);

@@ -107,6 +107,7 @@ export class CurrentChromeBrowserController implements BrowserController {
     if (input.deltaX === 0 && input.deltaY === 0) {
       return this.createActionResult({ message: `skipped zero scroll for ${input.targetLabel}`, ok: false, fallbackUsed: input.fallbackUsed ?? false });
     }
+    await activateChrome();
     await scrollAt({
       x: Math.round(scrollX),
       y: Math.round(scrollY),

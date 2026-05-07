@@ -2,7 +2,7 @@ scenarioId: result-output-null-guard-mutation
 mutationName: result output null guard mutation
 mutatedFile: src/capabilities/mouse-scroll/schema.ts
 rollbackRestoredHash: sha256:eacd5042e227d041393d84b0d64505a6c0e549ab24c9cd5c1c50763687db4675
-startedAt: 2026-05-06T12:39:48.263Z
-endedAt: 2026-05-06T12:40:01.035Z
+startedAt: 2026-05-07T08:46:53.569Z
+endedAt: 2026-05-07T08:47:04.221Z
 
 Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

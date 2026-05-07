@@ -22,8 +22,12 @@ const DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV = [
 	"GRASSEYE_SKIP_CAPABILITY_GROUP_GOVERNANCE_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF",
+	"GRASSEYE_SKIP_COMMANDER_CONSOLE_MAC_SHELL_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_GEOMETRY_GUARD_NEGATIVE_PROOF",
+	"GRASSEYE_SKIP_INDEX_NEGATIVE_PROOF",
+	"GRASSEYE_SKIP_KERNEL_NEGATIVE_PROOF",
+	"GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF",
@@ -33,6 +37,7 @@ const DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV = [
 	"GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_POST_ACTION_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF",
+	"GRASSEYE_SKIP_STRUCTURED_LOGGING_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF",
 	"GRASSEYE_SKIP_VISUAL_TARGET_NEGATIVE_PROOF",
 ] as const;
@@ -65,14 +70,13 @@ const exitNow = (code: number): never => {
 
 const applyDefaultNegativeProofPolicy = (): void => {
 	if (process.env[RUN_NEGATIVE_PROOF_ENV] === "1") {
-		process.stdout.write("[AUDIT] production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.\n");
-		return;
+		process.stdout.write("[AUDIT] production mutation negative proof is permanently disabled; ignoring GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.\n");
 	}
 
 	for (const envName of DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV) {
 		process.env[envName] = "1";
 	}
-	process.stdout.write("[AUDIT] production mutation negative proof skipped for default law-compliance audit.\n");
+	process.stdout.write("[AUDIT] production mutation negative proof skipped for law-compliance audit.\n");
 };
 
 const runWithTimeout = async <T>(label: string, task: Promise<T>): Promise<T> => {

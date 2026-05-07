@@ -158,17 +158,63 @@ function isVideoIdentityOutsideScrollWindow(input: {
     || parsePostActionTimestampMs(input.afterObservation.capturedAt) <= input.actionEndedAtMs;
 }
 
+function parseAhashSignature(signature: string | null | undefined): string | null {
+  if (!signature?.startsWith("ahash16:")) {
+    return null;
+  }
+  const bits = signature.slice("ahash16:".length);
+  return /^[01]{256}$/.test(bits) ? bits : null;
+}
+
+function hammingDistance(left: string, right: string): number {
+  let distance = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      distance += 1;
+    }
+  }
+  return distance;
+}
+
+type PerceptualVideoChangeDecision = "changed" | "unchanged" | "unknown";
+
+const isVideoChangedDecision = (decision: PerceptualVideoChangeDecision) => decision === "changed";
+
+function resolvePerceptualSignatureChange(
+  beforeSignature: string | null | undefined,
+  afterSignature: string | null | undefined,
+): PerceptualVideoChangeDecision {
+  const beforeAhash = parseAhashSignature(beforeSignature);
+  const afterAhash = parseAhashSignature(afterSignature);
+  if (beforeAhash === null || afterAhash === null) {
+    return "unknown";
+  }
+
+  const distance = hammingDistance(beforeAhash, afterAhash);
+  if (distance <= 16) {
+    return "unchanged";
+  }
+  if (distance >= 24) {
+    return "changed";
+  }
+  return "unknown";
+}
+
 function resolveVideoChangedDecision(input: {
   beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
   afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
 }) {
   const beforeVideoId = input.beforeObservation.payload.videoId;
   const afterVideoId = input.afterObservation.payload.videoId;
-  const beforeSignature = input.beforeObservation.payload.visualSignature;
-  const afterSignature = input.afterObservation.payload.visualSignature;
+  const beforeSignature = input.beforeObservation.payload.visualSignature ?? null;
+  const afterSignature = input.afterObservation.payload.visualSignature ?? null;
 
   if (beforeVideoId !== null && afterVideoId !== null) {
     return beforeVideoId !== afterVideoId;
+  }
+  const perceptualChange = resolvePerceptualSignatureChange(beforeSignature, afterSignature);
+  if (perceptualChange !== "unknown") {
+    return isVideoChangedDecision(perceptualChange);
   }
   if (beforeSignature !== null && afterSignature !== null) {
     return beforeSignature !== afterSignature;

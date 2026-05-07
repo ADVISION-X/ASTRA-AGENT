@@ -2,7 +2,7 @@ scenarioId: child-builds-final-result
 mutationName: child-builds-final-result
 mutatedFile: src/capabilities/post-action-verification/children/verify-page-opened/implementation.ts
 rollbackRestoredHash: sha256:360ae3cfb8857e435d99c7508b376567f176dcefd72c1615687e654fb696f1ef
-startedAt: 2026-05-07T02:01:47.794Z
-endedAt: 2026-05-07T02:01:54.179Z
+startedAt: 2026-05-07T08:30:12.422Z
+endedAt: 2026-05-07T08:30:19.363Z
 
 Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.
