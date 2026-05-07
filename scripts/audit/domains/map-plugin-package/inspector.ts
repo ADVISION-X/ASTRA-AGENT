@@ -10,6 +10,7 @@ import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runScorecardGate } from "./scorecard-gate.js";
 import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
+import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
@@ -33,7 +34,8 @@ const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPlu
   const authoringInput = await runAuthoringInputPackage(project);
   const forbidden = await runForbiddenShape(project);
   const boundary = runBoundaryAttack(project);
-  return { required, authoringInput, forbidden, boundary };
+  const startupPreparation = await runStartupPreparationEntrySpine();
+  return { required, authoringInput, forbidden, boundary, startupPreparation };
 };
 
 const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginAuditProject>, context: Parameters<DomainInspector>[0]) => {
@@ -82,6 +84,7 @@ const collectFindings = (input: {
   ...input.directPhases.authoringInput.findings,
   ...input.directPhases.forbidden.findings,
   ...input.directPhases.boundary.findings,
+  ...input.directPhases.startupPreparation.findings,
   ...input.supplementalPhases.antiEscape.findings,
   ...input.supplementalPhases.scorecard.findings,
   ...input.supplementalPhases.integrationPhases.required.findings,
@@ -101,6 +104,7 @@ const collectPhases = (input: {
   input.directPhases.authoringInput.phase,
   input.directPhases.forbidden.phase,
   input.directPhases.boundary.phase,
+  input.directPhases.startupPreparation.phase,
   input.supplementalPhases.antiEscape.phase,
   input.supplementalPhases.scorecard.phase,
   input.supplementalPhases.integrationPhases.required.phase,

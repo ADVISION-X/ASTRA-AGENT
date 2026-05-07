@@ -46,6 +46,27 @@
     },
     {
       "abilityGroupId": "ai",
+      "childCapabilityId": "page-preparation-judgment",
+      "description": "Execute governed AI child page preparation judgment for governed tasks.",
+      "inputSchemaRef": "ai.page-preparation-judgment.input",
+      "outputSchemaRef": "ai.page-preparation-judgment.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute browser actions",
+        "invent prompt text",
+        "read credentials or cookies"
+      ]
+    },
+    {
+      "abilityGroupId": "ai",
       "childCapabilityId": "product-presence-judgment",
       "description": "Execute governed AI child product presence judgment for governed tasks.",
       "inputSchemaRef": "ai.product-presence-judgment.input",

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { findRoutePlanById } from "../route-plans/index.js";
+import { STARTUP_PREPARATION_ROUTE_LABELS } from "../shared/startup-preparation.constants.js";
 
 type StepValue = {
   stepId: string;
@@ -27,6 +28,16 @@ type OperationalMapValue = {
 const addIssue = (context: z.RefinementCtx, path: string, message: string): void => {
   context.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
 };
+
+const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
+
+const isStartupPreparationTransitionId = (transitionId: string): boolean =>
+  STARTUP_PREPARATION_ROUTE_LABELS.some((routeLabel) => transitionId.endsWith(`:${routeLabel}`));
+
+const collectStartupPreparationStepIds = (value: OperationalMapValue): string[] =>
+  value.steps
+    .filter((step) => step.targetAbilityGroupId === "ai" && step.promptContractId === STARTUP_PREPARATION_PROMPT_CONTRACT_ID)
+    .map((step) => step.stepId);
 
 const collectStepIds = (value: OperationalMapValue, context: z.RefinementCtx): Set<string> => {
   const stepIds = new Set<string>();
@@ -78,6 +89,11 @@ const validateRoutePlanBoundMap = (
   routePlan: NonNullable<ReturnType<typeof findRoutePlanById>>,
   context: z.RefinementCtx,
 ): void => {
+  const startupPreparationStepIds = collectStartupPreparationStepIds(value);
+  if (startupPreparationStepIds.length > 1) {
+    addIssue(context, "steps", "routePlanBoundMap may declare at most one startup preparation AI step.");
+  }
+
   const mapStepIds = new Set(value.steps.map((step) => step.stepId));
   const routePlanStepIds = new Set(routePlan.steps.map((step) => step.stepId));
   const duplicatedStepIds = [...routePlanStepIds].filter((stepId) => mapStepIds.has(stepId));
@@ -105,7 +121,12 @@ const validateRoutePlanBoundMap = (
     .filter((step) => step.targetAbilityGroupId === "ai")
     .map((step) => step.stepId);
   const localAiSuccessTransitions = value.transitions
-    .filter((transition) => aiStepIds.includes(transition.fromStepId) && transition.onStatus === "success")
+    .filter((transition) => {
+      if (!aiStepIds.includes(transition.fromStepId) || transition.onStatus !== "success") {
+        return false;
+      }
+      return !startupPreparationStepIds.includes(transition.fromStepId) || !isStartupPreparationTransitionId(transition.transitionId);
+    })
     .map((transition) => transition.transitionId);
   if (localAiSuccessTransitions.length > 0) {
     addIssue(context, "transitions", `routePlanBoundMap must let Route Plan own AI success routing: ${localAiSuccessTransitions.join(", ")}.`);

@@ -1,6 +1,7 @@
 export const MAP_PLUGIN_AI_CHILD_CAPABILITY_IDS = [
   "comment-intent-analysis",
   "comment-text-cleanup",
+  "page-preparation-judgment",
   "product-presence-judgment",
   "product-signal-summary",
   "schema-validation-only",

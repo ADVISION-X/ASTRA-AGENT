@@ -55,9 +55,9 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "promptHash": "sha256:af477f4a337ddb208a46221d20e41d0ed339a7f51d38e21f0132c349eb9c35d4",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "promptContractHash": "sha256:af477f4a337ddb208a46221d20e41d0ed339a7f51d38e21f0132c349eb9c35d4",
   "dataPolicy": {
     "startupPreparationDecisionMode": "binary_yes_no",
     "ambiguousEvidenceRouting": "fail_closed",

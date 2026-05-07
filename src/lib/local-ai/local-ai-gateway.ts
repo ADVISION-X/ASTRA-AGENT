@@ -97,6 +97,13 @@ export class LocalAiGateway {
     const roleConfig = await this.resolveGovernedRoleConfig(request);
     this.lastTaskType = request.taskType;
 
+    if (request.taskType === "vision.pagePreparation" && options?.executionMode && options.executionMode !== "real-platform") {
+      throw new LocalAiRuntimeError(
+        "disabled_by_policy",
+        "vision.pagePreparation requires real-platform AI execution and forbids governed fallback modes.",
+      );
+    }
+
     if (options?.executionMode && options.executionMode !== "real-platform") {
       this.lastInvocationStatus = "success";
       this.lastFailureReason = null;

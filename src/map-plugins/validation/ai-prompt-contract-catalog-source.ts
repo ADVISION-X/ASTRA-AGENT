@@ -1,6 +1,7 @@
 import { findAiPromptContractCatalogEntry } from "../../capabilities/ai/public-contracts/prompt-contract-catalog/contract.js";
 
 export type MapPluginAiTaskType =
+  | "page_preparation_judgment"
   | "product_presence_judgment"
   | "ocr_cleanup"
   | "comment_signal_summary"

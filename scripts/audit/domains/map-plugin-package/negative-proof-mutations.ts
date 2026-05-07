@@ -173,6 +173,12 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-next-video-region",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
+    name: "startup preparation spine bypass mutation",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    search: '      {\n        "transitionId": "prepare-ai-input:success",\n        "fromStepId": "prepare-ai-input",\n        "onStatus": "success",\n        "toStepId": "startup-preparation",\n        "finalStatus": null\n      },\n',
+    replace: '      {\n        "transitionId": "prepare-ai-input:success",\n        "fromStepId": "prepare-ai-input",\n        "onStatus": "success",\n        "toStepId": "judge-seeding-video",\n        "finalStatus": null\n      },\n',
+  },
+  {
     name: "activation snapshot proof mutation",
     file: "src/map-plugins/import/map-package-activation.ts",
     search: '  return {\n    activationId: input.activationId,\n    activationSnapshotRef: snapshotFields.activationSnapshotRef,\n    activationSnapshotHash: snapshotFields.activationSnapshotHash,\n',

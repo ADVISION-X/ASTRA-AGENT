@@ -4,15 +4,10 @@ import { buildVisionTaskResult } from "./vision-task-result.js";
 import {
   CommentSignalTaskResultSchema,
   OcrTaskResultSchema,
-  PagePreparationTaskResultSchema,
   ProductSignalTaskResultSchema,
   type LocalAiTaskRequest,
   type LocalAiTaskResult,
 } from "../../types/local-ai.js";
-import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../map-plugins/shared/startup-preparation.constants.js";
 
 const createResultBase = (request: LocalAiTaskRequest, roleConfig: LocalModelRoleConfig, createdAt: string) => ({
   id: createId("ai"),
@@ -29,43 +24,6 @@ const createResultBase = (request: LocalAiTaskRequest, roleConfig: LocalModelRol
 });
 
 const includesHint = (text: string, hints: string[]) => hints.some((hint) => text.includes(hint));
-
-const executePagePreparationTask = (
-  request: Extract<LocalAiTaskRequest, { taskType: "vision.pagePreparation" }>,
-  roleConfig: LocalModelRoleConfig,
-  createdAt: string,
-): LocalAiTaskResult => {
-  const summary = request.input.summary.toLowerCase();
-  const tags = request.input.tags.map((tag) => tag.toLowerCase());
-  const blockedHints = ["login", "captcha", "safety", "blocked", "loading", "spinner", "wrong page", "error"];
-  const readyHints = ["feed", "video", "reel", "watch", "for you", "explore", "short video"];
-  const blockingSignals = blockedHints.filter((hint) => summary.includes(hint) || tags.includes(hint));
-  const readinessSignals = readyHints.filter((hint) => summary.includes(hint) || tags.includes(hint));
-  const decision = blockingSignals.length > 0 || readinessSignals.length === 0 ? "no" : "yes";
-  return PagePreparationTaskResultSchema.parse({
-    ...createResultBase(request, roleConfig, createdAt),
-    confidence: decision === "yes" ? 0.72 : 0.18,
-    result: {
-      taskType: "vision.pagePreparation",
-      promptId: "vision.pagePreparation.v1",
-      promptVersion: "v1",
-      schemaVersion: "vision.pagePreparation.schema.v1",
-      decision,
-      routeLabel: decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-      nonExecutableSummary: decision === "yes"
-        ? "当前页面看起来已完成准备工作，可以继续后续产品判断。"
-        : "当前页面尚未完成准备工作，必须 fail-closed。",
-      confidence: decision === "yes" ? 0.72 : 0.18,
-      reason: decision === "yes"
-        ? "governed fallback detected visible feed/video readiness signals"
-        : "governed fallback detected blocking or insufficient startup readiness evidence",
-      evidenceObservations: [summary.slice(0, 120)].filter((item) => item.length > 0),
-      readinessSignals,
-      blockingSignals,
-      mustReview: false,
-    },
-  });
-};
 
 const resolveFrameLabels = (request: Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>) => {
   if (request.input.samplingStrategy === "fixed_3_6_10") {
@@ -243,7 +201,7 @@ const executeProductSignalTask = (request: Extract<LocalAiTaskRequest, { taskTyp
 export const executeGovernedTask = (request: LocalAiTaskRequest, roleConfig: LocalModelRoleConfig, createdAt: string): LocalAiTaskResult => {
   switch (request.taskType) {
     case "vision.pagePreparation":
-      return executePagePreparationTask(request, roleConfig, createdAt);
+      throw new Error("vision.pagePreparation forbids governed fallback execution.");
     case "vision.productPresence":
       return executeVisionTask(request, roleConfig, createdAt);
     case "comments.ocr_cleanup":

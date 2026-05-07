@@ -106,6 +106,22 @@
         "promptContractId": null
       },
       {
+        "stepId": "startup-preparation",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "page-preparation-judgment",
+        "stepKind": "ai",
+        "targetAbilityGroupId": "ai",
+        "inputRefs": [
+          "promptInputRef"
+        ],
+        "outputRefPolicy": {
+          "storeAs": [
+            "aiResultRef"
+          ]
+        },
+        "promptContractId": "vision.pagePreparation.v1"
+      },
+      {
         "stepId": "judge-seeding-video",
         "capabilityId": "orchestration",
         "childCapabilityId": "product-presence-judgment",
@@ -155,12 +171,33 @@
         "transitionId": "prepare-ai-input:success",
         "fromStepId": "prepare-ai-input",
         "onStatus": "success",
-        "toStepId": "judge-seeding-video",
+        "toStepId": "startup-preparation",
         "finalStatus": null
       },
       {
         "transitionId": "prepare-ai-input:failed",
         "fromStepId": "prepare-ai-input",
+        "onStatus": "failed",
+        "toStepId": null,
+        "finalStatus": "failed"
+      },
+      {
+        "transitionId": "startup-preparation:startup-ready-for-seeding-judgment",
+        "fromStepId": "startup-preparation",
+        "onStatus": "success",
+        "toStepId": "judge-seeding-video",
+        "finalStatus": null
+      },
+      {
+        "transitionId": "startup-preparation:startup-fail-closed",
+        "fromStepId": "startup-preparation",
+        "onStatus": "success",
+        "toStepId": null,
+        "finalStatus": "failed"
+      },
+      {
+        "transitionId": "startup-preparation:failed",
+        "fromStepId": "startup-preparation",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -201,6 +238,7 @@
       "open-tiktok",
       "capture-browser-viewport",
       "prepare-ai-input",
+      "page-preparation-judgment",
       "product-presence-judgment",
       "observe-comments-button",
       "normalize-coordinate-geometry",
@@ -213,6 +251,7 @@
       "write-evidence-record"
     ],
     "requiredPromptContracts": [
+      "vision.pagePreparation.v1",
       "vision.productPresence.v1",
       "comments.intent_analysis.v1"
     ],
@@ -239,6 +278,7 @@
       "forensics-persistence"
     ],
     "requiresPromptRegistry": [
+      "vision.pagePreparation.v1",
       "vision.productPresence.v1",
       "comments.intent_analysis.v1"
     ],
@@ -249,6 +289,14 @@
   "promptBindings": {
     "bindings": [
       {
+        "stepId": "startup-preparation",
+        "promptContractId": "vision.pagePreparation.v1",
+        "requiredInputRefs": [
+          "promptInputRef"
+        ],
+        "outputSchemaRef": "ai.page_preparation_judgment.v1"
+      },
+      {
         "stepId": "judge-seeding-video",
         "promptContractId": "vision.productPresence.v1",
         "requiredInputRefs": [
@@ -258,6 +306,6 @@
       }
     ]
   },
-  "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain. Product-presence judgment emits AI routeLabel only; product-discovery-route-plan.v1 is the single muscle-memory source for post-judgment action chains.",
+  "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain. Startup preparation emits AI-owned yes/no routeLabel before product judgment; product-discovery-route-plan.v1 remains the single muscle-memory source for post-judgment action chains.",
   "signature": null
 }
