@@ -68,8 +68,8 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
     name: "local-runtime-builder-drops-run-id",
     file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
-    oldText: "    runId: envelope.runId,",
-    newText: "    runId: null,",
+    oldText: "  runId: envelope.runId,",
+    newText: "  runId: null,",
   },
   {
     name: "local-runtime-builder-strips-www-host",

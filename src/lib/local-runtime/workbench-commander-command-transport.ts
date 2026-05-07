@@ -25,6 +25,14 @@ type CommanderHumanCommand = {
   payload: unknown;
 };
 
+const logCommanderTransportDebugFailure = (error: unknown) => {
+  console.error("[grasseye:commander-transport-debug]", error instanceof Error ? error.message : "Unknown commander transport debug write failure");
+};
+
+const recordTransportDebugEvent = (write: Promise<void>) => {
+  void write.catch(logCommanderTransportDebugFailure);
+};
+
 const recordEnvelopeCreated = async (
   runtime: WorkbenchRuntime,
   command: CommanderHumanCommand,
@@ -200,12 +208,12 @@ export const createCommandTransport = (
  ) => ({
   emitHumanCommand: async (command: CommanderHumanCommand) => {
     const dispatchInput = await buildHumanCommandDispatchInput(runtime, command);
-    await recordEnvelopeCreated(runtime, command, dispatchInput);
-    await recordDispatchStarted(runtime, command, dispatchInput);
+    recordTransportDebugEvent(recordEnvelopeCreated(runtime, command, dispatchInput));
+    recordTransportDebugEvent(recordDispatchStarted(runtime, command, dispatchInput));
     const transport = await dispatchHumanCommand(dispatchInput);
-    await recordResultEnvelopeReceived(runtime, command, dispatchInput, transport);
-    await recordResultSemanticGatePassed(runtime, command, dispatchInput, transport);
-    await recordTransferProofBuilt(runtime, command, dispatchInput, transport);
+    recordTransportDebugEvent(recordResultEnvelopeReceived(runtime, command, dispatchInput, transport));
+    recordTransportDebugEvent(recordResultSemanticGatePassed(runtime, command, dispatchInput, transport));
+    recordTransportDebugEvent(recordTransferProofBuilt(runtime, command, dispatchInput, transport));
     updateMissionSelectionState(missionSelectionState, command);
     return buildTransportResult(command, transport);
   },

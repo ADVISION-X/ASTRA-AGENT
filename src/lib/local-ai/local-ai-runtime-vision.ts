@@ -162,6 +162,36 @@ const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | n
   return "product_uncertain";
 };
 
+const normalizeDecisionConsistency = (input: {
+  decision: "product_yes" | "product_no" | "product_uncertain";
+  isProductVideo: boolean | null;
+  visibleProductTypes: string[];
+  uncertainty: string[];
+  suggestedNextAction: unknown;
+  mustReview: unknown;
+}) => {
+  if (input.decision === "product_no" && input.visibleProductTypes.length === 0 && input.uncertainty.length === 0) {
+    return {
+      isProductVideo: false,
+      suggestedNextAction: "scroll_next",
+      mustReview: false,
+    } as const;
+  }
+  if (input.decision === "product_yes" && input.visibleProductTypes.length > 0) {
+    return {
+      isProductVideo: true,
+      suggestedNextAction: input.suggestedNextAction,
+      mustReview: input.mustReview,
+    } as const;
+  }
+
+  return {
+    isProductVideo: input.decision === "product_uncertain" ? null : input.isProductVideo,
+    suggestedNextAction: input.suggestedNextAction,
+    mustReview: input.mustReview,
+  } as const;
+};
+
 const normalizeVisionRuntimeOutput = (
   value: unknown,
   request: VisionProductPresenceRequest,
@@ -174,8 +204,18 @@ const normalizeVisionRuntimeOutput = (
   const visibleProductTypes = toStringArray(value.visibleProductTypes);
   const evidenceObservations = toStringArray(value.evidenceObservations);
   const normalizedRootIsProductVideo = normalizeNullableBoolean(value.isProductVideo);
-  const isProductVideo = normalizedRootIsProductVideo === undefined ? null : normalizedRootIsProductVideo;
-  const decision = normalizeProductDecision(value, isProductVideo);
+  const rootIsProductVideo = normalizedRootIsProductVideo === undefined ? null : normalizedRootIsProductVideo;
+  const decision = normalizeProductDecision(value, rootIsProductVideo);
+  const uncertainty = toStringArray(value.uncertainty);
+  const consistentDecision = normalizeDecisionConsistency({
+    decision,
+    isProductVideo: rootIsProductVideo,
+    visibleProductTypes,
+    uncertainty,
+    suggestedNextAction: value.suggestedNextAction,
+    mustReview: value.mustReview,
+  });
+  const isProductVideo = consistentDecision.isProductVideo;
   const fallbackObservation = createFallbackFrameObservation({
     expectedFrameLabels,
     evidenceObservations,
@@ -191,6 +231,9 @@ const normalizeVisionRuntimeOutput = (
 
   return {
     adjusted: normalizedRootIsProductVideo !== value.isProductVideo
+      || consistentDecision.isProductVideo !== rootIsProductVideo
+      || consistentDecision.suggestedNextAction !== value.suggestedNextAction
+      || consistentDecision.mustReview !== value.mustReview
       || decision !== value.decision
       || normalizedFrameObservations.adjusted
       || value.taskType !== "vision.productPresence"
@@ -212,6 +255,9 @@ const normalizeVisionRuntimeOutput = (
           ? value.aggregateReason
           : "Local vision model did not provide a separate reason field; aggregateReason was unavailable."),
       frameLevelObservations: normalizedFrameObservations.observations,
+      suggestedNextAction: consistentDecision.suggestedNextAction,
+      uncertainty,
+      mustReview: consistentDecision.mustReview,
     },
   };
 };

@@ -472,7 +472,14 @@ const validateVisualTargetRuntimeProofRefs = (value: z.infer<typeof VisualTarget
   if (value.status !== "success" && value.diagnosticPayloadRef === null) context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must keep diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
 };
 const VisualTargetRuntimeProofSchema = VisualTargetRuntimeProofBaseSchema.superRefine(validateVisualTargetRuntimeProof);
-const VisualTargetAbilityResultSchemaBase = VisualTargetResultSchema.and(z.object({ runtimeProof: VisualTargetRuntimeProofSchema }));
+const VisualTargetAbilityResultProofShape = { runtimeProof: VisualTargetRuntimeProofSchema };
+const VisualTargetAbilityResultSchemaBase = z.union([
+  VisualTargetActionSuccessResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
+  VisualTargetRegionSuccessResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
+  VisualTargetMetricSuccessResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
+  VisualTargetNonSuccessResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
+  VisualTargetInvalidInputFailureResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
+]);
 const validateVisualTargetAbilityResultChainParity = (
   resultRecord: Record<string, unknown>,
   proofRecord: Record<string, unknown>,

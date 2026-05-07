@@ -1,4 +1,5 @@
 import { readJsonFile, readTextFile } from "../../core/filesystem.js";
+import { Node } from "ts-morph";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
@@ -61,6 +62,7 @@ const REQUIRED_SCREENSHOT_TERMINAL_FIELDS = [
 const REQUIRED_PREPARE_AI_TERMINAL_FIELDS = [
   "promptInputRef",
   "aiInputArtifactRef",
+  "aiInputStorageRef",
   "sourceScreenshotEvidenceId",
   "sourceStorageRef",
   "preparedImageHash",
@@ -97,6 +99,25 @@ const hasRuntimeAssetCopyShape = async (): Promise<boolean> => {
     && REQUIRED_RUNTIME_ASSET_SOURCES.every((source) => copyScriptText.includes(source));
 };
 
+const hasAiDebugStructuredSchemaShape = (
+  aiDebugSupport: ReturnType<typeof getSource>,
+): boolean => {
+  const hasPropertyInitializer = (propertyName: string, expectedFragment: string): boolean => {
+    return aiDebugSupport.getDescendants().some((node) =>
+      Node.isPropertyAssignment(node)
+      && node.getName() === propertyName
+      && node.getInitializer()?.getText().includes(expectedFragment) === true,
+    );
+  };
+
+  return hasIdentifier(aiDebugSupport, "toAiEvidenceRefs")
+    && hasIdentifier(aiDebugSupport, "toIntegerDurationMs")
+    && hasPropertyInitializer("inputRefs", "toAiEvidenceRefs")
+    && hasPropertyInitializer("outputRefs", "toAiEvidenceRef")
+    && hasPropertyInitializer("artifactRefs", ".map")
+    && hasPropertyInitializer("durationMs", "toIntegerDurationMs");
+};
+
 const inspector: DomainInspector = async () => {
   const findings = [];
   const project = createRuntimeDebugTransparencyProject();
@@ -106,6 +127,7 @@ const inspector: DomainInspector = async () => {
   const structuredLogSchema = getSource(project, "src/types/structured-log.ts");
   const orchestrationPayloads = getSource(project, "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts");
   const orchestrationEvents = getSource(project, "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts");
+  const aiDebugSupport = getSource(project, "src/lib/local-runtime/workbench-ai-debug-support.ts");
   const localAiRuntimeSources = [
     getSource(project, "src/lib/local-ai/local-ai-runtime-vision-task.ts"),
     getSource(project, "src/lib/local-ai/local-ai-runtime-ocr-task.ts"),
@@ -139,6 +161,15 @@ const inspector: DomainInspector = async () => {
       line: 1,
       severity: "error",
       message: "Build/runtime transparency must copy prompt-contract JSON, builtin map-package JSON, and generated capability-catalog JSON into dist so startup cannot fail before AI debug events become observable.",
+    }));
+  }
+  if (!hasAiDebugStructuredSchemaShape(aiDebugSupport)) {
+    findings.push(createFinding({
+      lawId: LAW_ID,
+      file: "src/lib/local-runtime/workbench-ai-debug-support.ts",
+      line: 1,
+      severity: "error",
+      message: "AI debug structured runtime events must map inputRefs/outputRefs/artifactRefs/durationMs into the StructuredRuntimeEventSchema shape before terminal or forensics emission.",
     }));
   }
 

@@ -1,13 +1,12 @@
-diff --git a/src/capabilities/ai/ability-group.ts b/src/capabilities/ai/ability-group.ts
---- a/src/capabilities/ai/ability-group.ts
-+++ b/src/capabilities/ai/ability-group.ts
-@@ -226,9 +226,6 @@
-   options: AiExecuteOptions = {},
- ): Promise<AiAbilityOutcome> => {
-   const executionContext: AiExecutionContext = options.signal ? { ...context, abortSignal: options.signal } : context;
--  if (!executionContext.emitDebugEvent) {
--    return dispatchAiDebugEmitterMissing(executionContext, inputValue);
--  }
-   await emitAiExecutionInputDebug(executionContext, inputValue);
-   const parsedData = parseAiExecutionInput(executionContext, inputValue);
-   if ("status" in parsedData) {
+diff --git a/src/capabilities/ai/schema-runtime-success-invariants.ts b/src/capabilities/ai/schema-runtime-success-invariants.ts
+--- a/src/capabilities/ai/schema-runtime-success-invariants.ts
++++ b/src/capabilities/ai/schema-runtime-success-invariants.ts
+@@ -52,7 +52,7 @@
+   if (input.status === "success" && input.runtimeProof.rawOutputRef === null) {
+     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputRef", path: ["runtimeProof", "rawOutputRef"] });
+   }
+-  if (input.status === "success" && input.runtimeProof.rawOutputHash === null) {
++  if (input.status === "failed" && input.runtimeProof.rawOutputHash === null) {
+     context.addIssue({ code: "custom", message: "success result requires runtimeProof.rawOutputHash", path: ["runtimeProof", "rawOutputHash"] });
+   }
+ }

@@ -1,6 +1,10 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
+import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =
@@ -143,6 +147,20 @@ const resolveSourceProofRef = (
     ?? envelope.inputRef;
 };
 
+const readSummaryString = (summary: AbilityResultProofSummary | null, key: string): string | null => {
+  const value = summary?.[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+};
+
+const resolveIsoBefore = (isoTimestamp: string) => {
+  const parsed = Date.parse(isoTimestamp);
+  return Number.isFinite(parsed) ? new Date(parsed - 1).toISOString() : new Date(Date.now() - 1).toISOString();
+};
+
+const hashFileSha256 = async (filePath: string) => createHash("sha256")
+  .update(await readFile(filePath))
+  .digest("hex");
+
 const resolveExpectedUrlHost = (selectedMapId: string) => {
   if (selectedMapId.includes("facebook")) {
     return "www.facebook.com";
@@ -192,6 +210,7 @@ const buildActionProof = (input: {
   envelope: AbilityCommandEnvelope;
   sourceProofRef: string;
   policy: PostActionInputPolicy;
+  sourceSummary?: AbilityResultProofSummary | null;
 }) => ({
   actionProofRef: input.sourceProofRef,
   actionLogRef: input.sourceProofRef,
@@ -205,12 +224,18 @@ const buildActionProof = (input: {
   actionStatus: "success" as const,
   primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef" ? input.sourceProofRef : null,
   navigationAttemptRef: input.policy.executionRefField === "navigationAttemptRef" ? input.sourceProofRef : null,
-  scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef" ? input.sourceProofRef : null,
+  scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef"
+    ? readSummaryString(input.sourceSummary ?? null, "scrollExecutionRef") ?? input.sourceProofRef
+    : null,
   sessionId: input.envelope.sessionId,
   roundId: input.envelope.roundId,
   videoVisitId: input.envelope.videoVisitId,
-  startedAt: input.envelope.createdAt,
-  endedAt: input.envelope.createdAt,
+  startedAt: readSummaryString(input.sourceSummary ?? null, "primitiveStartedAt")
+    ?? readSummaryString(input.sourceSummary ?? null, "startedAt")
+    ?? input.envelope.createdAt,
+  endedAt: readSummaryString(input.sourceSummary ?? null, "primitiveEndedAt")
+    ?? readSummaryString(input.sourceSummary ?? null, "endedAt")
+    ?? input.envelope.createdAt,
   selfReportedOnly: false,
 });
 
@@ -252,7 +277,110 @@ const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
   nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
 });
 
-export const buildPostActionVerificationInput = (
+const buildVideoIdentityEvidencePair = async (input: {
+  runtime: WorkbenchRuntime;
+  envelope: AbilityCommandEnvelope;
+  payload: Record<string, string | number | boolean | null>;
+  sourceProofRef: string;
+  sourceSummary: AbilityResultProofSummary | null;
+}) => {
+  const promptInputRef = payloadValueToString(input.payload.promptInputRef);
+  const screenshotEvidenceRef = payloadValueToString(input.payload.screenshotEvidenceRef);
+  const beforeProofSummary = resolveAbilityResultProofSummary(promptInputRef) ?? resolveAbilityResultProofSummary(screenshotEvidenceRef);
+  const beforeSignature = readSummaryString(beforeProofSummary, "preparedImageHash")
+    ?? readSummaryString(beforeProofSummary, "outputHash")
+    ?? readSummaryString(beforeProofSummary, "artifactHash");
+  const beforeProofRef = readSummaryString(beforeProofSummary, "sourceScreenshotEvidenceId")
+    ?? screenshotEvidenceRef
+    ?? promptInputRef;
+
+  if (beforeSignature === null || beforeProofRef === null) {
+    return null;
+  }
+
+  const actionStartedAt = readSummaryString(input.sourceSummary, "primitiveStartedAt")
+    ?? readSummaryString(input.sourceSummary, "startedAt")
+    ?? input.envelope.createdAt;
+  const actionEndedAt = readSummaryString(input.sourceSummary, "primitiveEndedAt")
+    ?? readSummaryString(input.sourceSummary, "endedAt")
+    ?? input.envelope.createdAt;
+  const beforeCapturedAt = resolveIsoBefore(actionStartedAt);
+  const afterCapture = await input.runtime.browserController.screenshotRegion({
+    regionLabel: "post-scroll-video-identity",
+    contentLines: ["post-action video identity evidence"],
+  });
+  const afterSignature = await hashFileSha256(afterCapture.sourceFilePath);
+  const session = input.runtime.browserController.getSessionState();
+
+  const beforeEvidence = {
+    evidenceRef: beforeProofRef,
+    evidenceKind: "video_identity" as const,
+    source: {
+      sourceAbilityGroupId: "screenshot" as const,
+      sourceChildCapabilityId: "capture-browser-viewport",
+      sourceProofRef: beforeProofRef,
+    },
+    capturedAt: beforeCapturedAt,
+    sessionId: input.envelope.sessionId,
+    roundId: input.envelope.roundId,
+    videoVisitId: input.envelope.videoVisitId,
+  };
+  const afterEvidence = {
+    evidenceRef: `${input.envelope.inputRef}:post-scroll-video-identity:evidence`,
+    evidenceKind: "video_identity" as const,
+    source: {
+      sourceAbilityGroupId: "post-action-verification" as const,
+      sourceChildCapabilityId: "verify-video-changed-after-scroll",
+      sourceProofRef: input.sourceProofRef,
+    },
+    capturedAt: afterCapture.createdAt,
+    sessionId: input.envelope.sessionId,
+    roundId: input.envelope.roundId,
+    videoVisitId: input.envelope.videoVisitId,
+  };
+
+  return {
+    beforeAfterEvidence: { beforeEvidence, afterEvidence },
+    observations: [
+      {
+        ref: `${input.envelope.inputRef}:video-identity:before`,
+        kind: "video_identity" as const,
+        source: beforeEvidence.source,
+        capturedAt: beforeCapturedAt,
+        sessionId: input.envelope.sessionId,
+        roundId: input.envelope.roundId,
+        videoVisitId: input.envelope.videoVisitId,
+        payload: {
+          kind: "video_identity" as const,
+          role: "before" as const,
+          videoId: null,
+          visualSignature: beforeSignature,
+          confirmed: true,
+        },
+      },
+      {
+        ref: `${input.envelope.inputRef}:video-identity:after`,
+        kind: "video_identity" as const,
+        source: afterEvidence.source,
+        capturedAt: afterCapture.createdAt,
+        sessionId: input.envelope.sessionId,
+        roundId: input.envelope.roundId,
+        videoVisitId: input.envelope.videoVisitId,
+        payload: {
+          kind: "video_identity" as const,
+          role: "after" as const,
+          videoId: session.currentUrl || afterCapture.pageUrl || null,
+          visualSignature: afterSignature,
+          confirmed: true,
+        },
+      },
+    ],
+    actionStartedAt,
+    actionEndedAt,
+  };
+};
+
+export const buildPostActionVerificationInput = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -260,6 +388,10 @@ export const buildPostActionVerificationInput = (
   const payload = payloadDocumentToObject(inputPayload);
   const policy = resolvePostActionInputPolicy(envelope);
   const sourceProofRef = resolveSourceProofRef(envelope, payload);
+  const sourceSummary = resolveAbilityResultProofSummary(sourceProofRef);
+  const videoIdentityEvidence = policy.childCapabilityId === "verify-video-changed-after-scroll"
+    ? await buildVideoIdentityEvidencePair({ runtime, envelope, payload, sourceProofRef, sourceSummary })
+    : null;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "post-action-verification",
     childCapabilityId: policy.childCapabilityId,
@@ -269,10 +401,16 @@ export const buildPostActionVerificationInput = (
     sourceChildCapabilityId: policy.sourceChildCapabilityId,
     sourceActionType: policy.sourceActionType,
     expectedOutcome: buildExpectedOutcome(envelope, inputPayload, policy),
-    actionProof: buildActionProof({ envelope, sourceProofRef, policy }),
-    beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
+    actionProof: {
+      ...buildActionProof({ envelope, sourceProofRef, policy, sourceSummary }),
+      ...(videoIdentityEvidence ? {
+        startedAt: videoIdentityEvidence.actionStartedAt,
+        endedAt: videoIdentityEvidence.actionEndedAt,
+      } : {}),
+    },
+    beforeAfterEvidence: videoIdentityEvidence?.beforeAfterEvidence ?? { beforeEvidence: null, afterEvidence: null },
     observationSet: {
-      observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
+      observations: videoIdentityEvidence?.observations ?? [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
     confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },

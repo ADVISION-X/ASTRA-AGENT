@@ -113,6 +113,20 @@ export const buildAiDebugArtifactRefs = (input: WorkbenchAiDebugEvent): LocalFor
   return refs;
 };
 
+const toAiEvidenceRef = (ref: string) => ({
+  id: ref,
+  kind: "ai-result" as const,
+  summary: `AI runtime ref ${ref}`,
+});
+
+const toAiEvidenceRefs = (refs: string[]) => refs.map(toAiEvidenceRef);
+
+const toIntegerDurationMs = (durationMs: number | null): number | null => (
+  typeof durationMs === "number" && Number.isFinite(durationMs)
+    ? Math.max(0, Math.round(durationMs))
+    : null
+);
+
 export const splitTraceId = (traceId: string | null): { missionId: string | null; mapId: string | null } => {
   if (!traceId) {
     return { missionId: null, mapId: null };
@@ -240,15 +254,15 @@ const buildAiDebugRefFields = (input: WorkbenchAiDebugEvent, artifactRefs: Local
   imageInputs: input.imageInputs,
   tokenEstimate: input.tokenEstimate,
   createdAt: new Date().toISOString(),
-  durationMs: input.durationMs,
   refs: input.refs,
-  inputRefs: input.refs,
-  outputRefs: input.rawResponseRef ? [input.rawResponseRef] : [],
+  inputRefs: toAiEvidenceRefs(input.refs),
+  outputRefs: input.rawResponseRef ? [toAiEvidenceRef(input.rawResponseRef)] : [],
   evidenceRefs: [],
   proofRefs: [],
-  artifactRefs,
+  artifactRefs: artifactRefs.map((ref) => ref.artifactId),
   actionLogRefs: [],
   dataQualityFlags: input.parserErrors,
+  durationMs: toIntegerDurationMs(input.durationMs),
 });
 
 const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: LocalForensicsArtifactRef[]) => ({

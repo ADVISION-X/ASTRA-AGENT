@@ -1,4 +1,4 @@
-mutationName: debug emitter required mutation
+mutationName: success raw output hash mutation
 classification: PASS
 passed: true
 violationCount: 0

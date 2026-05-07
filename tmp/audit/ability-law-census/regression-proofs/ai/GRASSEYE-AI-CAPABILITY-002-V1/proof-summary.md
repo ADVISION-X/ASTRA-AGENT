@@ -1,15 +1,15 @@
 # GRASSEYE-AI-CAPABILITY-002-V1 Proof Summary
 
-scenarioId: debug-emitter-required-mutation
-mutationName: debug emitter required mutation
-mutatedFile: src/capabilities/ai/ability-group.ts
-coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1
+scenarioId: success-raw-output-hash-mutation
+mutationName: success raw output hash mutation
+mutatedFile: src/capabilities/ai/schema-runtime-success-invariants.ts
+coveredLawIds: GRASSEYE-AI-CAPABILITY-002-V1, GRASSEYE-AI-CAPABILITY-013-V1
 failOutput: tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/inspector-fail-output.txt
 rollbackPassOutput: tmp/audit/ability-law-census/regression-proofs/ai/GRASSEYE-AI-CAPABILITY-002-V1/inspector-pass-output.txt
 
 ## Why This Law Is Covered
 
-The mutation lets ASK AI continue without a structured debug emitter, proving AI_REQUEST_DEBUG is a hard execution precondition.
+The mutation weakens raw response hash enforcement, proving ASK AI success requires rawResponseHash evidence.
 
 ## Result
 

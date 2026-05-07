@@ -165,6 +165,7 @@ const StructuredRuntimeEventSchema = z.object({
   coordinateSpace: nullableString,
   runtimeProofRef: nullableString,
   promptInputRef: nullableString,
+  aiInputStorageRef: nullableString,
   sourceStorageRef: nullableString,
   preparedImageHash: nullableString,
   preparedImageWidth: z.number().positive().nullable().default(null),

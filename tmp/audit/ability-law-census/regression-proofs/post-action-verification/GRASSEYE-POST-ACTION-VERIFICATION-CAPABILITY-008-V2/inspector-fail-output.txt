@@ -1,2 +1,3 @@
+[AUDIT] starting post-action-verification-capability...
 [CODE VIOLATION] post-action-verification-capability: post-action-verification owner inspector found capability-boundary or governance violations
 - FATAL scripts/audit/domains/post-action-verification-capability/inspector.ts:1 Post Action Verification inspector must invoke the negative-proof harness through a nested-skip guard.

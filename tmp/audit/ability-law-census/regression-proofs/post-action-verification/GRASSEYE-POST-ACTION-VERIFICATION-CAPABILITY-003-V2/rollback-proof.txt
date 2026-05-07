@@ -2,7 +2,7 @@ scenarioId: input-schema-missing-capability-call-id
 mutationName: input-schema-missing-capability-call-id
 mutatedFile: src/capabilities/post-action-verification/schema.ts
 rollbackRestoredHash: sha256:d33661870eb30678d6ce8905b2e2e8e0e2990596413cb7407a5bb6305ed4f421
-startedAt: 2026-05-06T06:18:28.389Z
-endedAt: 2026-05-06T06:18:35.136Z
+startedAt: 2026-05-07T02:00:11.290Z
+endedAt: 2026-05-07T02:00:17.705Z
 
 Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

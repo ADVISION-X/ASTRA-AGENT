@@ -49,6 +49,7 @@ const ACTIVE_RECORD_REQUIRED_FIELDS = [
 ] as const;
 const BUILTIN_INDEX_PATH = `${ROOT}/builtins/index.ts`;
 const BUILTIN_PARSER_PATH = `${ROOT}/builtin-loader/builtin-map-package-parser.ts`;
+const MIN_SEEDING_VIDEO_VISION_AI_STEP_TIMEOUT_MS = 75_000;
 
 const collectMissingTypeFieldFindings = (input: {
   fieldSet: Set<string>;
@@ -107,6 +108,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && judge?.stepKind === "ai"
     && judge.inputRefs.includes("promptInputRef")
     && judge.promptContractId === "vision.productPresence.v1"
+    && judge.timeoutPolicy.maxDurationMs >= MIN_SEEDING_VIDEO_VISION_AI_STEP_TIMEOUT_MS
     && promptBinding?.requiredInputRefs.includes("promptInputRef") === true
     && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1";
 
@@ -117,7 +119,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must wire capture-video-viewport screenshotEvidenceRef into prepare-ai-input promptInputRef and judge-seeding-video AI prompt bindings.",
+      message: "Seeding video map packages must wire capture-video-viewport screenshotEvidenceRef into prepare-ai-input promptInputRef, bind judge-seeding-video to the product-presence prompt, and give the governed vision AI step enough timeout budget for local model latency.",
     })];
 };
 

@@ -1,7 +1,7 @@
-mutationName: debug emitter required mutation
+mutationName: success raw output hash mutation
 classification: LAW-SCRIPT DRIFT
 passed: false
 violationCount: 1
 summary: AI negative-proof harness was skipped for nested inspector execution.
 
-FATAL GRASSEYE-AI-CAPABILITY-002-V1 src/capabilities/ai/runtime/ai-executor.ts:1 AI runtime must emit AI_REQUEST_DEBUG before pre-runtime health gates, preserve the Workbench AI AbortSignal, and relay AI debug events into structured terminal/runtime logging.
+FATAL GRASSEYE-AI-CAPABILITY-006-V1 src/capabilities/ai/schema-runtime.schema.ts:1 AI runtime/result schemas must require raw output references and hashes for governed success paths.

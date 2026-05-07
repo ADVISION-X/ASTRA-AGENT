@@ -37,6 +37,14 @@ const logBackgroundMissionFailure = (error: unknown) => {
   console.error("[grasseye:mission-background]", error instanceof Error ? error.message : "Unknown mission execution failure");
 };
 
+const logHumanCommandDebugFailure = (error: unknown) => {
+  console.error("[grasseye:human-command-debug]", error instanceof Error ? error.message : "Unknown human command debug write failure");
+};
+
+const recordHumanCommandDebug = (write: Promise<void>) => {
+  void write.catch(logHumanCommandDebugFailure);
+};
+
 const buildHumanCommandResultEnvelope = (input: {
   envelope: HumanCommandEnvelope;
   status: HumanCommandStatus;
@@ -125,20 +133,20 @@ const handleStartMission = async (
   const activationId = payloadValueToString(payload.activationId) ?? envelope.activationId;
   const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef) ?? envelope.activationSnapshotRef;
   const taskTemplateId = payloadValueToString(payload.taskTemplateId);
-  await recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId });
-  await recordMissionActivationSnapshotFrozen(runtime, {
+  recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId }));
+  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, {
     envelope,
     selectedMapId: parsedSelectedMapId,
     taskTemplateId,
     activationSnapshotRef,
-  });
-  await recordCommandAccepted(runtime, {
+  }));
+  recordHumanCommandDebug(recordCommandAccepted(runtime, {
     envelope,
     selectedMapId: parsedSelectedMapId,
     taskTemplateId,
     activationSnapshotRef,
-  });
-  const missionStartPromise = runtime.orchestrationAbilityGroup.startMission({
+  }));
+  const startMission = () => runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     runId: envelope.runId,
     humanGoal: payloadValueToString(payload.humanGoal) ?? DEFAULT_START_MISSION_GOAL,
@@ -150,7 +158,9 @@ const handleStartMission = async (
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
-  void missionStartPromise.catch(logBackgroundMissionFailure);
+  queueMicrotask(() => {
+    void startMission().catch(logBackgroundMissionFailure);
+  });
   return buildHumanCommandResultEnvelope({
     envelope,
     status: "success",

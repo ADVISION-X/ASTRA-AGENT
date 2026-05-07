@@ -1,7 +1,7 @@
 diff --git a/src/lib/local-runtime/workbench-ai-debug-support.ts b/src/lib/local-runtime/workbench-ai-debug-support.ts
 --- a/src/lib/local-runtime/workbench-ai-debug-support.ts
 +++ b/src/lib/local-runtime/workbench-ai-debug-support.ts
-@@ -158,10 +158,7 @@
+@@ -172,10 +172,7 @@
    traceId: input.traceId,
    spanId: input.spanId,
    attemptId: input.attemptId,

@@ -8,6 +8,7 @@ import { ORCHESTRATION_TO_COMMANDER_CHILD } from "./children/orchestration-to-co
 
 const DEFAULT_MAX_DURATION_MS = 15_000;
 const DEFAULT_MAX_ENVELOPE_AGE_MS = 120_000;
+const AI_TRANSPORT_MAX_DURATION_MS = 75_000;
 
 export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
   "commander-to-orchestration": Object.freeze({
@@ -84,7 +85,7 @@ export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
     requiresPayloadRef: true,
     requiresIdempotencyKey: true,
     requiresExpiry: true,
-    maxDurationMs: DEFAULT_MAX_DURATION_MS,
+    maxDurationMs: AI_TRANSPORT_MAX_DURATION_MS,
     maxEnvelopeAgeMs: DEFAULT_MAX_ENVELOPE_AGE_MS,
     sequencePolicy: "strict_monotonic",
     retryPolicy: "none",
@@ -100,7 +101,7 @@ export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
     requiresPayloadRef: true,
     requiresIdempotencyKey: true,
     requiresExpiry: true,
-    maxDurationMs: DEFAULT_MAX_DURATION_MS,
+    maxDurationMs: AI_TRANSPORT_MAX_DURATION_MS,
     maxEnvelopeAgeMs: DEFAULT_MAX_ENVELOPE_AGE_MS,
     sequencePolicy: "strict_monotonic",
     retryPolicy: "none",

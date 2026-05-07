@@ -1,6 +1,7 @@
 export type AiInputProofSummary = {
   promptInputRef: string;
   aiInputArtifactRef: string;
+  aiInputStorageRef: string;
   sourceScreenshotEvidenceId: string;
   sourceStorageRef: string;
   preparedImageHash: string;

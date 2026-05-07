@@ -129,6 +129,7 @@ const buildEventProofPayload = (entry: StructuredRuntimeEvent): Record<string, u
   coordinateSpace: entry.coordinateSpace,
   runtimeProofRef: entry.runtimeProofRef,
   promptInputRef: entry.promptInputRef,
+  aiInputStorageRef: entry.aiInputStorageRef,
   sourceStorageRef: entry.sourceStorageRef,
   preparedImageHash: entry.preparedImageHash,
   preparedImageWidth: entry.preparedImageWidth,

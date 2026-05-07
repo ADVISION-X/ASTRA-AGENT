@@ -2,7 +2,7 @@ scenarioId: external-imports-runtime-path
 mutationName: external-imports-runtime-path
 mutatedFile: src/lib/local-runtime/workbench-post-action-runtime.ts
 rollbackRestoredHash: sha256:ff639a2c67ff8f6bf9fe64229b2355b3ff69bb52463b79820a83b406f6472110
-startedAt: 2026-05-06T06:19:10.418Z
-endedAt: 2026-05-06T06:19:17.606Z
+startedAt: 2026-05-07T02:00:49.901Z
+endedAt: 2026-05-07T02:00:56.322Z
 
 Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

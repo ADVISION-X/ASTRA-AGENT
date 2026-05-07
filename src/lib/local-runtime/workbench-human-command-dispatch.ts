@@ -191,6 +191,7 @@ const buildHumanCommandEnvelope = (
   chain: HumanCommandChain,
 ) => {
   const envelopeId = `commander-console:${command.commandId}`;
+  const expiresAt = new Date(Date.now() + Math.max(command.timeoutMs, 30_000)).toISOString();
   return {
     ...buildTransportEnvelopeBase({
       channelId: "commander-to-orchestration",
@@ -215,7 +216,7 @@ const buildHumanCommandEnvelope = (
       tags: ["commander-console", command.commandType],
       sequenceNo: chain.sequenceNo,
       idempotencyKey: command.idempotencyKey,
-      expiresAt: new Date(Date.now() + command.timeoutMs).toISOString(),
+      expiresAt,
     }),
     commandId: command.commandId,
     envelopeKind: "human_command" as const,

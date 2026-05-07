@@ -56,6 +56,7 @@ type RuntimeEventProofSummary = Partial<Pick<
   | "runtimeProofRef"
   | "promptInputRef"
   | "aiInputArtifactRef"
+  | "aiInputStorageRef"
   | "sourceScreenshotEvidenceId"
   | "sourceStorageRef"
   | "preparedImageHash"

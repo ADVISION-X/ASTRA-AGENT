@@ -132,6 +132,7 @@ const evaluateAiRuntimeDecisions = (
   const qualityDecision = evaluateAiQualityGate({
     request: plan.request,
     confidence: runtimeResult.confidence,
+    output: runtimeResult.output,
     schemaIssues: schemaIssues.valid ? [] : schemaIssues.issues,
     policyReason: boundaryDecision.reason ?? safetyDecision.reason ?? terminalRuntimeFailure,
   });

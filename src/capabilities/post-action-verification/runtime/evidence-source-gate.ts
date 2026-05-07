@@ -70,7 +70,13 @@ function resolveObservationEntryFailure(request: ParsedPostActionVerificationAbi
 }
 
 function resolveBeforeAfterEvidenceFailure(request: ParsedPostActionVerificationAbilityInput, nowMs: number) {
-  for (const evidence of [request.beforeAfterEvidence.beforeEvidence, request.beforeAfterEvidence.afterEvidence]) {
+  const actionStartedAtMs = parsePostActionTimestampMs(request.actionProof.startedAt);
+  const evidenceFreshnessChecks = [
+    { evidence: request.beforeAfterEvidence.beforeEvidence, comparisonMs: actionStartedAtMs },
+    { evidence: request.beforeAfterEvidence.afterEvidence, comparisonMs: nowMs },
+  ];
+
+  for (const { evidence, comparisonMs } of evidenceFreshnessChecks) {
     if (evidence === null) continue;
 
     if (evidence.sessionId !== request.sessionId || evidence.roundId !== request.roundId || evidence.videoVisitId !== request.videoVisitId) {
@@ -86,7 +92,7 @@ function resolveBeforeAfterEvidenceFailure(request: ParsedPostActionVerification
       );
     }
 
-    if (Math.abs(nowMs - parsePostActionTimestampMs(evidence.capturedAt)) > POST_ACTION_EVIDENCE_MAX_AGE_MS) {
+    if (Math.abs(comparisonMs - parsePostActionTimestampMs(evidence.capturedAt)) > POST_ACTION_EVIDENCE_MAX_AGE_MS) {
       return createEvidenceSourceFailure(
         {
           status: "review_required",

@@ -63,7 +63,7 @@ const executeRuntimeAbilityCommand = async (
 ): Promise<WorkbenchAbilityExecutionResult> => {
   switch (envelope.to) {
     case "post-action-verification":
-      return runtime.postActionVerificationAbilityGroup.execute(buildPostActionVerificationInput(runtime, envelope, inputPayload));
+      return runtime.postActionVerificationAbilityGroup.execute(await buildPostActionVerificationInput(runtime, envelope, inputPayload));
     case "forensics-persistence":
       return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
     case "page-state":

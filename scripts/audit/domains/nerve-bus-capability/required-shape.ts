@@ -26,6 +26,7 @@ const SCHEMA_SOURCE_PATHS = [
 const SHARED_CHANNEL_PATH = `${PATHS.ROOT}/shared/nerve-bus-channel.ts`;
 const TRANSPORT_DISPATCH_PATH = `${PATHS.ROOT}/ability-group-transport-dispatch.ts`;
 const ORCHESTRATION_TO_AI_CHILD_PATH = `${PATHS.ROOT}/children/orchestration-to-ai/implementation.ts`;
+const AI_RUNTIME_POLICY_PATH = "src/capabilities/ai/runtime/local-ai-runtime-policy.ts";
 
 const REQUIRED_SCHEMA_FIELDS = [
   "runId",
@@ -68,6 +69,73 @@ const getPropertyNames = (sourceTextOwner: NonNullable<ReturnType<typeof getSour
       return [];
     }),
   );
+};
+
+const readNumericInitializer = (
+  sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>,
+  initializer: import("ts-morph").Expression | undefined,
+): number | null => {
+  if (!initializer) {
+    return null;
+  }
+  if (Node.isNumericLiteral(initializer)) {
+    return Number(initializer.getLiteralText());
+  }
+  if (Node.isIdentifier(initializer)) {
+    const declaration = sourceTextOwner.getVariableDeclaration(initializer.getText());
+    const declarationInitializer = declaration?.getInitializer();
+    return readNumericInitializer(sourceTextOwner, declarationInitializer);
+  }
+  return null;
+};
+
+const readObjectLiteralNumberProperty = (
+  sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>,
+  objectLiteral: import("ts-morph").ObjectLiteralExpression,
+  propertyName: string,
+): number | null => {
+  const property = objectLiteral.getProperty(propertyName);
+  return Node.isPropertyAssignment(property)
+    ? readNumericInitializer(sourceTextOwner, property.getInitializer())
+    : null;
+};
+
+const readRegistryChannelObject = (
+  sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>,
+  channelId: string,
+): import("ts-morph").ObjectLiteralExpression | null => {
+  const registry = sourceTextOwner.getVariableDeclaration("NERVE_BUS_CHANNEL_REGISTRY");
+  const initializer = registry?.getInitializer();
+  if (!Node.isCallExpression(initializer)) {
+    return null;
+  }
+  const registryObject = initializer.getArguments().find(Node.isObjectLiteralExpression);
+  const channelProperty = registryObject?.getProperty(`"${channelId}"`);
+  if (!Node.isPropertyAssignment(channelProperty)) {
+    return null;
+  }
+  const channelInitializer = channelProperty.getInitializer();
+  if (!Node.isCallExpression(channelInitializer)) {
+    return null;
+  }
+  return channelInitializer.getArguments().find(Node.isObjectLiteralExpression) ?? null;
+};
+
+const readMaxAiRuntimeTimeoutMs = (sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>): number | null => {
+  const timeoutRecord = sourceTextOwner.getVariableDeclaration("AI_RUNTIME_TIMEOUT_BY_TASK_MS");
+  const initializer = timeoutRecord?.getInitializer();
+  if (!Node.isObjectLiteralExpression(initializer)) {
+    return null;
+  }
+
+  const values = initializer.getProperties().flatMap((property) => {
+    if (!Node.isPropertyAssignment(property)) {
+      return [];
+    }
+    const value = readNumericInitializer(sourceTextOwner, property.getInitializer());
+    return value === null ? [] : [value];
+  });
+  return values.length > 0 ? Math.max(...values) : null;
 };
 
 const sourceHasProperties = (sourceTextOwner: ReturnType<typeof getSourceFile>, propertyNames: readonly string[]): boolean => {
@@ -314,6 +382,33 @@ function collectChannelAndRegistryFindings(project: ReturnType<typeof makeProjec
       if (!registrySource.getFullText().includes(`"${channelId}"`)) {
         findings.push(createFinding({ lawId: LAW_IDS.CHANNELS, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: `Nerve Bus registry is missing channel ${channelId}.` }));
       }
+    }
+  }
+
+  const aiRuntimePolicySource = getSourceFile(project, AI_RUNTIME_POLICY_PATH);
+  if (!registrySource || !aiRuntimePolicySource) {
+    findings.push(createFinding({ lawId: LAW_IDS.AI, file: PATHS.REGISTRY, line: 1, severity: "fatal", message: "Nerve Bus AI transport timeout audit requires both the channel registry and AI runtime timeout policy source." }));
+  } else {
+    const maxAiRuntimeTimeoutMs = readMaxAiRuntimeTimeoutMs(aiRuntimePolicySource);
+    const orchestrationToAi = readRegistryChannelObject(registrySource, "orchestration-to-ai");
+    const aiToOrchestration = readRegistryChannelObject(registrySource, "ai-to-orchestration");
+    const orchestrationToAiMaxDurationMs = orchestrationToAi ? readObjectLiteralNumberProperty(registrySource, orchestrationToAi, "maxDurationMs") : null;
+    const aiToOrchestrationMaxDurationMs = aiToOrchestration ? readObjectLiteralNumberProperty(registrySource, aiToOrchestration, "maxDurationMs") : null;
+    const requiredAiTransportDurationMs = maxAiRuntimeTimeoutMs === null ? null : maxAiRuntimeTimeoutMs + 15_000;
+    if (
+      requiredAiTransportDurationMs === null
+      || orchestrationToAiMaxDurationMs === null
+      || aiToOrchestrationMaxDurationMs === null
+      || orchestrationToAiMaxDurationMs < requiredAiTransportDurationMs
+      || aiToOrchestrationMaxDurationMs < requiredAiTransportDurationMs
+    ) {
+      findings.push(createFinding({
+        lawId: LAW_IDS.AI,
+        file: PATHS.REGISTRY,
+        line: 1,
+        severity: "fatal",
+        message: "Nerve Bus AI channels must have maxDurationMs at least 15000ms above the longest governed AI runtime timeout, so map execution cannot abort before local AI emits request/response/error debug proof.",
+      }));
     }
   }
 

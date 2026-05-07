@@ -101,6 +101,15 @@ const resolveProductPresenceDecision = (input: {
   if (input.status === "failed") {
     return buildProductPresenceFailedDecision({ isProductVideo, mustReview });
   }
+  if (isProductVideo === false && mustReview === false) {
+    return {
+      status: "success" as const,
+      decision: "product_no",
+      reviewRequiredReason: null,
+      isProductVideo,
+      mustReview,
+    };
+  }
   if (input.status === "review_required" || mustReview || lowConfidence || isProductVideo === null) {
     return buildProductPresenceReviewDecision({
       reviewRequiredReason: input.reviewRequiredReason,

@@ -34,6 +34,7 @@ type CurrentChromeBrowserControllerOptions = {
 
 export class CurrentChromeBrowserController implements BrowserController {
   private snapshot: BrowserStateSnapshot;
+  private lastWindowState: Awaited<ReturnType<typeof readFrontChromeWindowState>> | null = null;
 
   constructor(private readonly options: CurrentChromeBrowserControllerOptions) {
     if (options.headlessRequested === true) {
@@ -95,12 +96,11 @@ export class CurrentChromeBrowserController implements BrowserController {
   }
 
   async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
-    const geometry = await this.getGeometrySnapshot();
-    await activateChrome();
+    const geometry = this.lastWindowState ?? await this.refreshSnapshot();
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
     const anchorPoint = input.anchorPoint ?? {
-      x: Math.round(geometry.viewportWidth / 2),
-      y: Math.round(geometry.viewportHeight / 2),
+      x: Math.round(geometry.width / 2),
+      y: Math.round(geometry.height / 2),
     };
     const scrollX = coordinateSpace === "desktopScreen" ? anchorPoint.x : geometry.windowX + anchorPoint.x;
     const scrollY = coordinateSpace === "desktopScreen" ? anchorPoint.y : geometry.windowY + anchorPoint.y;
@@ -113,7 +113,7 @@ export class CurrentChromeBrowserController implements BrowserController {
       deltaX: input.deltaX,
       deltaY: input.deltaY,
     });
-    await this.wait(1200);
+    await this.wait(300);
     return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
@@ -182,6 +182,7 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   private async refreshSnapshot() {
     const state = await readFrontChromeWindowState();
+    this.lastWindowState = state;
     const loginState = resolveChromeLoginState(state.currentUrl, state.currentTitle);
     this.snapshot = {
       ...this.snapshot,

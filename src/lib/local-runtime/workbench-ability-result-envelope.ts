@@ -147,6 +147,7 @@ function buildPrepareAiInputProofSummary(input: {
     ?? readString(sourceArtifactRef, "evidenceId");
   const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(sourceProof, "sourceStorageRef") ?? readString(scaleMapping, "sourceStorageRef");
   const aiInputArtifactRef = readString(artifactRef, "artifactId");
+  const aiInputStorageRef = readString(artifactRef, "storageRef");
   const preparedImageHash = readString(output, "outputHash") ?? readString(artifactRef, "sha256");
   const preparedImageWidth = readNumber(output, "width") ?? readNumber(runtimeProof, "outputWidth");
   const preparedImageHeight = readNumber(output, "height") ?? readNumber(runtimeProof, "outputHeight");
@@ -155,6 +156,7 @@ function buildPrepareAiInputProofSummary(input: {
     ...screenshotSummary,
     promptInputRef: input.outputRef,
     aiInputArtifactRef,
+    aiInputStorageRef,
     sourceScreenshotEvidenceId,
     sourceStorageRef,
     preparedImageHash,
@@ -163,10 +165,11 @@ function buildPrepareAiInputProofSummary(input: {
     coordinateSpace,
   };
 
-  if (aiInputArtifactRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace === "ai_input_pixels") {
+  if (aiInputArtifactRef && aiInputStorageRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace === "ai_input_pixels") {
     recordAiInputProofSummary({
       promptInputRef: input.outputRef,
       aiInputArtifactRef,
+      aiInputStorageRef,
       sourceScreenshotEvidenceId,
       sourceStorageRef,
       preparedImageHash,
@@ -179,11 +182,37 @@ function buildPrepareAiInputProofSummary(input: {
   return prepareSummary;
 }
 
+function buildMouseScrollProofSummary(input: {
+  result: WorkbenchAbilityExecutionResult;
+}): Record<string, string | number | boolean | null> {
+  if (input.result.abilityGroupId !== "mouse-scroll" || input.result.status !== "success" || !isObject(input.result.output) || !isObject(input.result.runtimeProof)) {
+    return {};
+  }
+
+  const output = input.result.output;
+  const runtimeProof = input.result.runtimeProof;
+  return {
+    scrollExecutionRef: readString(output, "scrollExecutionRef") ?? readString(runtimeProof, "scrollExecutionRef"),
+    postActionVerificationHandoffRef: readString(output, "postActionVerificationHandoffRef") ?? readString(runtimeProof, "postActionVerificationHandoffRef"),
+    sourceEvidenceRef: readString(runtimeProof, "sourceEvidenceRef"),
+    sourceTargetRef: readString(runtimeProof, "sourceTargetRef"),
+    sourceCoordinateProofRef: readString(runtimeProof, "sourceCoordinateProofRef"),
+    primitiveStartedAt: readString(runtimeProof, "primitiveStartedAt"),
+    primitiveEndedAt: readString(runtimeProof, "primitiveEndedAt"),
+    startedAt: readString(runtimeProof, "startedAt"),
+    endedAt: readString(runtimeProof, "endedAt"),
+    durationMs: readNumber(runtimeProof, "durationMs"),
+  };
+}
+
 function buildAbilityResultProofSummary(input: {
   outputRef: string;
   result: WorkbenchAbilityExecutionResult;
 }): Record<string, string | number | boolean | null> {
-  const summary = buildPrepareAiInputProofSummary(input);
+  const summary = {
+    ...buildPrepareAiInputProofSummary(input),
+    ...buildMouseScrollProofSummary(input),
+  };
   if (Object.keys(summary).length > 0) {
     recordAbilityResultProofSummary(input.outputRef, summary);
   }

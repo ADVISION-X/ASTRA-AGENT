@@ -43,12 +43,15 @@ const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope): (typeof SUPPOR
 const buildWorkbenchAiInputRefs = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
-) => envelope.aiInputRefs.map((ref) => ({
-  id: ref,
-  kind: "video-screenshot" as const,
-  summary: inputPayload.summary,
-  ...(resolveAiInputProofSummary(ref)?.sourceStorageRef ? { filePath: resolveAiInputProofSummary(ref)?.sourceStorageRef } : {}),
-}));
+) => envelope.aiInputRefs.map((ref) => {
+  const proof = resolveAiInputProofSummary(ref);
+  return {
+    id: ref,
+    kind: "video-screenshot" as const,
+    summary: inputPayload.summary,
+    ...(proof?.aiInputStorageRef ? { filePath: proof.aiInputStorageRef } : {}),
+  };
+});
 
 const requireChainField = (value: string | null | undefined): string => {
   if (!value) {
@@ -111,16 +114,18 @@ function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): 
 
   const summary = resolveAbilityResultProofSummary(promptInputRef);
   const aiInputArtifactRef = payloadValueToString(summary?.aiInputArtifactRef);
+  const aiInputStorageRef = payloadValueToString(summary?.aiInputStorageRef) ?? payloadValueToString(summary?.artifactStorageRef);
   const sourceScreenshotEvidenceId = payloadValueToString(summary?.sourceScreenshotEvidenceId);
   const sourceStorageRef = payloadValueToString(summary?.sourceStorageRef);
   const preparedImageHash = payloadValueToString(summary?.preparedImageHash);
   const preparedImageWidth = typeof summary?.preparedImageWidth === "number" ? summary.preparedImageWidth : null;
   const preparedImageHeight = typeof summary?.preparedImageHeight === "number" ? summary.preparedImageHeight : null;
   const coordinateSpace = summary?.coordinateSpace === "ai_input_pixels" ? summary.coordinateSpace : null;
-  if (aiInputArtifactRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace) {
+  if (aiInputArtifactRef && aiInputStorageRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace) {
     recordAiInputProofSummary({
       promptInputRef,
       aiInputArtifactRef,
+      aiInputStorageRef,
       sourceScreenshotEvidenceId,
       sourceStorageRef,
       preparedImageHash,

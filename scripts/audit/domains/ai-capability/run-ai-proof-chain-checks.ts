@@ -120,6 +120,7 @@ function hasAiInputProofDebugChain(input: {
   inputGateSource: SourceFile;
   executorSource: SourceFile;
   registrySource: SourceFile;
+  workbenchRequestSource: SourceFile;
 }): boolean {
   return hasImportModuleSpecifier(input.requestDebugSource, "ai-input-proof-registry")
     && hasImportModuleSpecifier(input.inputDebugSource, "ai-input-proof-registry")
@@ -127,8 +128,11 @@ function hasAiInputProofDebugChain(input: {
     && hasCallExpressionNamed(input.inputDebugSource, "resolveAiInputProofSummary")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "sourceScreenshotEvidenceId", "proof?.sourceScreenshotEvidenceId")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "aiInputArtifactRef", "proof?.aiInputArtifactRef")
+    && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "filePath", "proof.aiInputStorageRef")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "sourceScreenshotEvidenceId", "proof?.sourceScreenshotEvidenceId")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "aiInputArtifactRef", "proof?.aiInputArtifactRef")
+    && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "filePath", "proof.aiInputStorageRef")
+    && hasPropertyUsingText(input.workbenchRequestSource, "buildWorkbenchAiInputRefs", "filePath", "proof.aiInputStorageRef")
     && hasImportModuleSpecifier(input.inputGateSource, "ai-input-proof-registry")
     && hasCallExpressionNamed(input.inputGateSource, "resolveAiInputProofSummary")
     && hasStringLiteral(input.inputGateSource, "ai_input_ref_missing")
@@ -137,6 +141,7 @@ function hasAiInputProofDebugChain(input: {
     && hasCallExpressionNamed(input.executorSource, "buildRejectedInputDebug")
     && hasStringLiteral(input.rejectedDebugSource, "AI_INPUT_DEBUG_REJECTED")
     && Boolean(input.registrySource.getTypeAlias("AiInputProofSummary"))
+    && input.registrySource.getTypeAlias("AiInputProofSummary")?.getText().includes("aiInputStorageRef") === true
     && Boolean(input.registrySource.getFunction("recordAiInputProofSummary"))
     && Boolean(input.registrySource.getFunction("resolveAiInputProofSummary"));
 }
@@ -175,7 +180,7 @@ export function findProofChainViolations(project: Project): Finding[] {
   if (!hasAiDebugTraceStepSafeAssignment(aiDebugSupportSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_SUPPORT_FILE, line: 1, severity: "fatal", message: "AI debug trace builder must use the computed RoundLifecycleStep-safe step value for the structured-event step field; using input.stepId directly causes StructuredRuntimeEventSchema Zod parse failures for orchestration step IDs and silently suppresses AI_REQUEST_DEBUG." }));
   }
-  if (!hasAiInputProofDebugChain({ requestDebugSource, inputDebugSource, rejectedDebugSource, inputGateSource, executorSource, registrySource })) {
+  if (!hasAiInputProofDebugChain({ requestDebugSource, inputDebugSource, rejectedDebugSource, inputGateSource, executorSource, registrySource, workbenchRequestSource })) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: AI_REQUEST_DEBUG_FILE, line: 1, severity: "fatal", message: "AI request debug must resolve promptInputRef through the governed AI input proof registry, emit sourceScreenshotEvidenceId and aiInputArtifactRef, and reject missing prompt/artifact proof with AI_INPUT_DEBUG_REJECTED before runtime success." }));
   }
 

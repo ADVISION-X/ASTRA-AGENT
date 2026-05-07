@@ -1,4 +1,5 @@
 import type { VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
+import { hashVisualTargetPayload } from "../shared/visual-target-types.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
 import {
@@ -38,7 +39,8 @@ function scoreCandidate(input: {
     : input.candidate.candidateKind === "heuristic_profile"
       ? 2
       : 1;
-  const tieBreakKey = `${candidateKindPriority}:${input.candidate.candidateRef}:${input.candidate.sourceProofRef}`;
+  const sourceProofHash = hashVisualTargetPayload(input.candidate.sourceProofRef).slice(0, 16);
+  const tieBreakKey = `${candidateKindPriority}:${input.candidate.candidateRef}:${sourceProofHash}`;
 
   return {
     candidateRef: input.candidate.candidateRef,

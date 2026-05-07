@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T22:04:52.113Z",
+  "generatedAt": "2026-05-06T22:44:13.677Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -3981,6 +3981,20 @@
           "checkFunction": "collectAiSignalChainFindings",
           "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
           "targetSymbol": "collectAiSignalChainFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChannelAndRegistryFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectChannelAndRegistryFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectChannelAndRegistryFindings",
+          "sourceFile": "scripts/audit/domains/nerve-bus-capability/required-shape.ts",
+          "targetSymbol": "collectChannelAndRegistryFindings",
           "checkKind": "required-shape"
         }
       ],

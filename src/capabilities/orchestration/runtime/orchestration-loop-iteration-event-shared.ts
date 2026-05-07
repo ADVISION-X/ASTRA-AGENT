@@ -73,6 +73,7 @@ function collectLastResultRefs(lastResult: StepResultRecord): string[] {
     "runtimeProofRef",
     "promptInputRef",
     "aiInputArtifactRef",
+    "aiInputStorageRef",
     "sourceScreenshotEvidenceId",
     "sourceStorageRef",
     "preparedImageHash",

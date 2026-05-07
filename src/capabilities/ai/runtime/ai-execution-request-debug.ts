@@ -100,7 +100,7 @@ const buildRequestDebugOutput = (
     imageInputs: proof ? [{
       refId: proof.promptInputRef,
       artifactRef: proof.aiInputArtifactRef,
-      filePath: proof.sourceStorageRef,
+      filePath: proof.aiInputStorageRef,
       hash: proof.preparedImageHash,
       bytes: null,
       width: proof.preparedImageWidth,

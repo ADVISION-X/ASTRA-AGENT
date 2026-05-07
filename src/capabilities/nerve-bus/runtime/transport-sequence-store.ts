@@ -4,7 +4,19 @@ import type {
   NerveBusSequenceScope,
 } from "../ports/nerve-bus-sequence-port.js";
 
-const buildSequenceScopeKey = (scope: NerveBusSequenceScope) => `${scope.missionId}:${scope.mapId}:${scope.channelId}`;
+const ORCHESTRATION_OUTBOUND_CHANNELS = new Set([
+  "orchestration-to-ability",
+  "orchestration-to-ai",
+  "orchestration-to-commander",
+]);
+
+const resolveSequenceChannelScope = (channelId: string) =>
+  ORCHESTRATION_OUTBOUND_CHANNELS.has(channelId)
+    ? "orchestration-outbound"
+    : channelId;
+
+const buildSequenceScopeKey = (scope: NerveBusSequenceScope) =>
+  `${scope.missionId}:${scope.mapId}:${resolveSequenceChannelScope(scope.channelId)}`;
 
 const acceptSequence = (lastSequenceByScope: Map<string, number>, key: string, sequenceNo: number) => {
   lastSequenceByScope.set(key, sequenceNo);

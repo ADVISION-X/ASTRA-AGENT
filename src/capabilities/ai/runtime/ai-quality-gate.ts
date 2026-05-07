@@ -15,6 +15,30 @@ function buildReviewOrBlockedDecision(input: {
   } as const;
 }
 
+function isDefinitiveNonProductOutput(output: unknown): boolean {
+  if (typeof output !== "object" || output === null || Array.isArray(output)) {
+    return false;
+  }
+
+  const candidate = output as {
+    decision?: unknown;
+    mustReview?: unknown;
+    visibleProductTypes?: unknown;
+    uncertainty?: unknown;
+    suggestedNextAction?: unknown;
+  };
+  const visibleProductTypes = Array.isArray(candidate.visibleProductTypes) ? candidate.visibleProductTypes : [];
+  const uncertainty = Array.isArray(candidate.uncertainty) ? candidate.uncertainty : [];
+  const onlyFrameCoverageUncertainty = uncertainty.every((entry) =>
+    entry === "single_frame_fallback" || entry === "reduced_frame_coverage"
+  );
+  return candidate.decision === "product_no"
+    && candidate.mustReview === false
+    && visibleProductTypes.length === 0
+    && candidate.suggestedNextAction === "scroll_next"
+    && onlyFrameCoverageUncertainty;
+}
+
 function resolveSchemaIssueDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
   if (input.schemaIssues.length === 0) {
     return null;
@@ -46,6 +70,9 @@ function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGat
   if (minimumConfidence === null) {
     return null;
   }
+  if (isDefinitiveNonProductOutput(input.output)) {
+    return null;
+  }
   if (input.confidence === null) {
     return buildReviewOrBlockedDecision({
       request: input.request,
@@ -70,6 +97,7 @@ function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGat
 export function evaluateAiQualityGate(input: {
   request: ParsedAiAbilityInput;
   confidence: number | null;
+  output: unknown;
   schemaIssues: string[];
   policyReason: string | null;
 }): { decision: "pass" | "review_required" | "blocked"; reason: string | null; schemaValidationStatus: "valid" | "invalid" | "not_applicable"; flags: string[] } {

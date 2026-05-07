@@ -46,9 +46,9 @@ const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
     observations: ["one short frame-level observation"],
   }],
   aggregateReason: "one sentence summarizing all sampled frames together",
-  suggestedNextAction: "skip_or_operator_review",
-  uncertainty: ["use this only when visibility is partial or ambiguous"],
-  mustReview: true,
+  suggestedNextAction: "scroll_next",
+  uncertainty: [],
+  mustReview: false,
 });
 
 export const buildVisionPromptParts = (request: VisionProductPresenceRequest): VisionPromptParts => {
@@ -57,6 +57,12 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
   const userPrompt = [
     "Every key in the required schema is mandatory. If uncertain, keep the key and use null, [], or review_required-compatible values instead of omitting fields.",
     "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
+    "Reserve confidence around 0.5 only for genuine visual ambiguity. If your reason is decisive, use a confidence above 0.6.",
+    "If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, or presented, return isProductVideo=false, decision=product_no, suggestedNextAction=scroll_next, uncertainty=[], and mustReview=false.",
+    "For decision=product_no, isProductVideo must be false. For decision=product_yes, isProductVideo must be true. For decision=product_uncertain, isProductVideo may be null.",
+    "Do not set mustReview=true when decision=product_no and uncertainty=[].",
+    "Use product_uncertain, review_required, or mustReview=true only when the sampled evidence is genuinely ambiguous, blocked, unsafe, or too partial to decide.",
+    "Never copy instructional placeholder text into uncertainty, evidenceObservations, reason, aggregateReason, or frameLevelObservations.",
     `frameLevelObservations[].frameLabel must use only these labels: ${expectedFrameLabels.join(", ")}.`,
     "frameLevelObservations[].hasVisibleProduct must be true, false, or null.",
     `Return JSON matching this schema: ${JSON.stringify(contract.requiredOutputSchema)}`,

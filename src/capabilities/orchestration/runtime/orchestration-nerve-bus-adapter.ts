@@ -34,6 +34,7 @@ const PROOF_SUMMARY_REF_KEYS = [
   "runtimeProofRef",
   "promptInputRef",
   "aiInputArtifactRef",
+  "aiInputStorageRef",
   "sourceScreenshotEvidenceId",
   "sourceStorageRef",
   "preparedImageHash",

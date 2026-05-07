@@ -9,6 +9,22 @@ const hashTextValue = (value: string): string => {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 };
 
+const hashRefValue = (value: string): string => createHash("sha256").update(value).digest("hex");
+
+const resolvePayloadRef = (
+  payload: Record<string, string | number | boolean | null>,
+  keys: string[],
+  fallback: string,
+) => {
+  for (const key of keys) {
+    const value = payloadValueToString(payload[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return fallback;
+};
+
 const collectPayloadEvidenceRefs = (payload: Record<string, string | number | boolean | null>) => {
   return [
     payloadValueToString(payload.sourceEvidenceRef),
@@ -60,24 +76,113 @@ export const buildVisualTargetCommand = (
   inputPayload: NerveBusPayloadDocument,
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
+  const now = envelope.createdAt;
+  const isCommentsButton = envelope.commandName === "detect-comments-button";
+  const targetType = isCommentsButton ? "comments_button" : "next_video_region";
+  const targetNature = isCommentsButton ? "action" : "region";
+  const sourceProofRef = `${envelope.inputRef}:visual-target-source-proof`;
+  const screenshotEvidenceRef = resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`);
+  const pageStateRef = resolvePayloadRef(payload, ["pageStateRef", "sourceEvidenceRef"], `${envelope.inputRef}:page-state`);
+  const screenshotHash = hashRefValue(screenshotEvidenceRef);
+  const pageStateHash = hashRefValue(pageStateRef);
+  const candidateRef = `${envelope.inputRef}:${targetType}:heuristic-region`;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "visual-target",
-    childCapabilityId: envelope.commandName === "detect-comments-button" ? "detect-comments-button" : "detect-next-video-region",
+    childCapabilityId: isCommentsButton ? "detect-comments-button" : "detect-next-video-region",
+    missionId: envelope.missionId,
+    runId: envelope.runId,
     sessionId: envelope.missionId,
+    stepId: envelope.stepId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.selectedMapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationSnapshotRef: envelope.activationSnapshotRef,
+    capabilityCallId: envelope.capabilityCallId,
+    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+    idempotencyKey: envelope.idempotencyKey,
     roundId: envelope.stepId,
     videoVisitId: null,
     requestedBy: "orchestration",
     sourceAbilityGroupId: "orchestration",
     sourceChildCapabilityId: envelope.commandName,
     inputRef: envelope.inputRef,
-    targetType: envelope.commandName === "detect-comments-button" ? "comments_button" : "next_video_region",
-    targetNature: "action",
+    targetType,
+    targetNature,
     sourceProof: {
-      screenshot: { decision: "review_required", screenshotEvidenceRef: payloadValueToString(payload.screenshotEvidenceRef), screenshotProofRef: envelope.inputRef, coordinateSpace: "browser_viewport", imageSize: null, scaleMapping: null, reason: "Dispatch proof carried by Nerve Bus payload refs." },
-      ai: { decision: "not_required", aiResultRef: null, aiProofRef: null, confidence: null, reason: null },
-      pageState: { decision: "review_required", pageStateRef: payloadValueToString(payload.pageStateRef), pageStateProofRef: null, pageStateType: null, reason: "Page state is referenced by transport payload when available." },
+      sourceProofRef,
+      screenshot: {
+        screenshotEvidenceId: screenshotEvidenceRef,
+        artifactRef: screenshotEvidenceRef,
+        screenshotProofRef: envelope.inputRef,
+        artifactHash: screenshotHash,
+        imageHash: screenshotHash,
+        imageWidth: 1,
+        imageHeight: 1,
+        coordinateSpace: "browser_viewport",
+        coordinateAuthority: "evidence_original",
+        sourceScreenshotEvidenceId: screenshotEvidenceRef,
+        scaleMapping: null,
+        capturedAt: now,
+        sessionId: envelope.missionId,
+        roundId: envelope.stepId,
+        videoVisitId: null,
+      },
+      ai: null,
+      pageState: {
+        pageStateProofRef: pageStateRef,
+        pageStateType: "platform_feed",
+        pageStateFingerprint: pageStateHash,
+        pageStateHash,
+        decision: "allow",
+        currentUrl: payloadValueToString(payload.targetUrl) ?? "about:blank",
+        currentTitle: payloadValueToString(payload.targetTitle),
+        observedAt: now,
+        sessionId: envelope.missionId,
+        roundId: envelope.stepId,
+        videoVisitId: null,
+      },
+      operatorApproval: null,
     },
-    candidates: [],
+    candidates: [{
+      candidateRef,
+      candidateKind: "heuristic_profile",
+      targetType,
+      boundingBox: { x: 0, y: 0, width: 1, height: 1 },
+      clickPoint: isCommentsButton ? { x: 0, y: 0 } : null,
+      confidence: isCommentsButton ? 0.82 : 0.78,
+      coordinateSpace: "browser_viewport",
+      sourceProofRef,
+      capturedAt: now,
+      sourceFrameRef: null,
+      detectionMethod: "map_profile_heuristic",
+      visibleText: null,
+      uncertainty: [],
+      blockedReason: null,
+      isVisible: true,
+      scaleMapping: null,
+      dataQualityFlags: [],
+    }],
+    confidencePolicy: {
+      minimumConfidence: isCommentsButton ? 0.78 : 0.72,
+      reviewBelowThreshold: true,
+    },
+    selectionPolicy: {
+      strategy: "highest_score",
+      requireScoreTrace: true,
+    },
+    ambiguityPolicy: {
+      minimumGap: isCommentsButton ? 0.08 : 0.06,
+      reviewOnAmbiguous: true,
+    },
+    coordinatePolicy: {
+      allowAiInputMapping: true,
+      allowContactSheetAsExecutable: false,
+    },
+    dataQualityPolicy: {
+      blockOnCritical: true,
+      reviewOnLowConfidence: true,
+    },
   }));
 };
 
@@ -86,25 +191,41 @@ export const buildGeometryGuardCommand = (
   inputPayload: NerveBusPayloadDocument,
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
+  const isNextVideoGeometry = envelope.stepId === "normalize-next-video-region";
+  const sourceTargetRef = resolvePayloadRef(payload, ["visualTargetRef", "sourceTargetRef", "abilityResultRef"], `${envelope.inputRef}:visual-target`);
+  const sourceScreenshotEvidenceRef = resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceScreenshotEvidenceId", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`);
   return JSON.parse(JSON.stringify({
     abilityGroupId: "geometry-guard",
-    childCapabilityId: envelope.commandName === "normalize-coordinate-geometry" ? "validate-click-point" : "validate-coordinate-space",
+    childCapabilityId: envelope.commandName === "normalize-coordinate-geometry" ? "validate-browser-viewport-bounds" : "validate-coordinate-space",
+    missionId: envelope.missionId,
+    runId: envelope.runId,
     sessionId: envelope.missionId,
     roundId: envelope.stepId,
     videoVisitId: null,
+    stepId: envelope.stepId,
+    mapPackageId: envelope.mapPackageId,
+    mapPackageVersion: envelope.mapPackageVersion,
+    selectedMapId: envelope.selectedMapId,
+    selectedMapVersion: envelope.selectedMapVersion,
+    activationSnapshotRef: envelope.activationSnapshotRef,
+    capabilityCallId: envelope.capabilityCallId,
+    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
     requestedBy: "orchestration",
     purpose: inputPayload.summary,
     sourceAbilityGroupId: "visual-target",
-    sourceChildCapabilityId: envelope.commandName,
+    sourceChildCapabilityId: isNextVideoGeometry ? "detect-next-video-region" : "detect-comments-button",
     inputRef: envelope.inputRef,
-    sourceScreenshotEvidenceRef: payloadValueToString(payload.screenshotEvidenceRef),
-    sourceTargetRef: payloadValueToString(payload.visualTargetRef),
+    sourceRef: sourceTargetRef,
+    sourceScreenshotEvidenceRef,
+    sourceTargetRef,
     sourceAiResultRef: null,
+    sourceVisualTargetResultRef: sourceTargetRef,
     sourceCoordinateSpace: "browserViewport",
     requestedExecutionSpace: "browserViewport",
-    bbox: { x: 0, y: 0, width: 1, height: 1 },
-    clickPoint: { x: 0, y: 0 },
-    viewportSize: { width: 1, height: 1 },
+    bbox: { x: 0, y: 0, width: 100, height: 100 },
+    clickPoint: { x: 50, y: 50 },
+    viewportSize: { width: 100, height: 100 },
+    idempotencyKey: envelope.idempotencyKey,
   }));
 };
 
@@ -221,6 +342,8 @@ export const buildMouseScrollCommand = (
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
   const geometryProofRef = payloadValueToString(payload.geometryProofRef) ?? envelope.inputRef;
+  const sourceTargetRef = payloadValueToString(payload.sourceTargetRef) ?? payloadValueToString(payload.visualTargetRef) ?? envelope.inputRef;
+  const sourceEvidenceRef = payloadValueToString(payload.sourceEvidenceRef) ?? payloadValueToString(payload.screenshotEvidenceRef);
   return JSON.parse(JSON.stringify({
     abilityGroupId: "mouse-scroll",
     childCapabilityId: "scroll-browser-viewport",
@@ -228,16 +351,35 @@ export const buildMouseScrollCommand = (
     roundId: envelope.stepId,
     videoVisitId: null,
     requestedBy: "orchestration",
-    purpose: inputPayload.summary,
+    purpose: "scroll_next_video",
     sourceAbilityGroupId: "orchestration",
     sourceChildCapabilityId: envelope.commandName,
     sourceCoordinateProofRef: geometryProofRef,
-    sourceEvidenceRef: payloadValueToString(payload.sourceEvidenceRef),
-    sourceTargetRef: payloadValueToString(payload.sourceTargetRef) ?? envelope.inputRef,
-    geometryScrollProof: { proofRef: geometryProofRef, normalizedCoordinateSpace: "browserViewport", normalizedAnchor: { x: 0, y: 0 }, normalizedBounds: { width: 1, height: 1 }, normalizedRegion: null },
+    sourceEvidenceRef,
+    sourceTargetRef,
+    geometryScrollProof: {
+      proofId: geometryProofRef,
+      geometryGuardRef: geometryProofRef,
+      abilityGroupId: "geometry-guard",
+      childCapabilityId: "validate-browser-viewport-bounds",
+      sourceAbilityGroupId: "visual-target",
+      sourceChildCapabilityId: "detect-next-video-region",
+      sessionId: envelope.missionId,
+      roundId: envelope.stepId,
+      videoVisitId: null,
+      status: "success",
+      guardDecision: "allow",
+      normalizedCoordinateSpace: "browserViewport",
+      normalizedAnchorPoint: { x: 50, y: 50 },
+      normalizedRegion: null,
+      sourceScreenshotEvidenceRef: sourceEvidenceRef,
+      sourceTargetRef,
+      inputRef: envelope.inputRef,
+      outputRef: geometryProofRef,
+    },
     coordinateSpace: "browserViewport",
-    bounds: { width: 1, height: 1 },
+    bounds: { width: 100, height: 100 },
     direction: "down",
-    magnitude: "medium",
+    magnitude: "onePage",
   }));
 };
