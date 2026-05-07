@@ -24,13 +24,11 @@ function isDefinitiveNonProductOutput(output: unknown): boolean {
     decision?: unknown;
     mustReview?: unknown;
     visibleProductTypes?: unknown;
-    suggestedNextAction?: unknown;
   };
   const visibleProductTypes = Array.isArray(candidate.visibleProductTypes) ? candidate.visibleProductTypes : [];
   return candidate.decision === "product_no"
     && candidate.mustReview === false
-    && visibleProductTypes.length === 0
-    && candidate.suggestedNextAction === "scroll_next";
+    && visibleProductTypes.length === 0;
 }
 
 function isBinaryProductPresenceOutput(output: unknown): boolean {

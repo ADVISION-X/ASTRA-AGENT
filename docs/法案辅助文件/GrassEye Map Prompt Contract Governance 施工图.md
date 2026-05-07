@@ -491,10 +491,12 @@ For product-presence binary routing:
 ```txt
 decision: product_yes | product_no
 routeLabel: selected userRequirement.binaryOutcomePolicy route label
-nextIntent: short explanation of the selected route label
+reason: evidence-backed explanation
+confidence: model-owned confidence
+nonExecutableSummary: log-only summary, never an action instruction
 ```
 
-Orchestration must not infer routes from `product_yes` or `product_no`. It may only match `routeLabel` mechanically against map route labels.
+Orchestration must not infer routes from `product_yes`, `product_no`, `reason`, `confidence`, or `nonExecutableSummary`. It may only match `routeLabel` mechanically against Route Plan labels.
 
 ## E. Forensics Proof Requirements
 

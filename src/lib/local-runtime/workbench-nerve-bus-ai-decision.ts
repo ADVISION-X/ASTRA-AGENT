@@ -24,7 +24,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const isProductPresenceOutput = (
   value: unknown,
-): value is { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string } => (
+): value is { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string } => (
   isRecord(value)
   && "isProductVideo" in value
   && (typeof value.isProductVideo === "boolean" || value.isProductVideo === null)
@@ -68,7 +68,7 @@ const buildDefaultDecision = (input: {
     isProductVideo: null,
     mustReview: null,
     routeLabel: null,
-    nextIntent: null,
+    nonExecutableSummary: null,
   };
 };
 
@@ -77,16 +77,16 @@ const resolveProductPresenceRouteLabel = (output: { routeLabel?: string; isProdu
     ? output.routeLabel
     : (output.isProductVideo === true ? PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL : PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL);
 
-const resolveProductPresenceNextIntent = (output: { nextIntent?: string; routeLabel?: string; isProductVideo: boolean | null }) => {
-  if (typeof output.nextIntent === "string" && output.nextIntent.length > 0) {
-    return output.nextIntent;
+const resolveProductPresenceNonExecutableSummary = (output: { nonExecutableSummary?: string; routeLabel?: string; isProductVideo: boolean | null }) => {
+  if (typeof output.nonExecutableSummary === "string" && output.nonExecutableSummary.length > 0) {
+    return output.nonExecutableSummary;
   }
   return resolveProductPresenceRouteLabel(output) === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
-    ? "读取评论并保存当前视频的选品证据。"
-    : "跳过当前视频并继续自动发现。";
+    ? "当前证据支持产品展示，选择产品证据路线标签。"
+    : "当前证据未证明产品展示，选择非产品路线标签。";
 };
 
-const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string }) => {
+const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string }) => {
   return {
     status: "failed" as const,
     decision: "product_presence_failed",
@@ -94,7 +94,7 @@ const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | 
     isProductVideo: output.isProductVideo,
     mustReview: output.mustReview,
     routeLabel: resolveProductPresenceRouteLabel(output),
-    nextIntent: resolveProductPresenceNextIntent(output),
+    nonExecutableSummary: resolveProductPresenceNonExecutableSummary(output),
   };
 };
 
@@ -111,7 +111,7 @@ const buildProductPresenceReviewDecision = (input: {
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
     routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-    nextIntent: "跳过当前视频并继续自动发现。",
+    nonExecutableSummary: "当前证据未证明产品展示，选择非产品路线标签。",
   };
 };
 
@@ -119,7 +119,7 @@ const resolveProductPresenceDecision = (input: {
   status: "success" | "failed" | "review_required";
   confidence: number | null;
   reviewRequiredReason: string | null | undefined;
-  output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string };
+  output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string };
 }) => {
   const lowConfidence = input.confidence === null || input.confidence < PRODUCT_PRESENCE_MIN_CONFIDENCE;
   const { isProductVideo, mustReview } = input.output;
@@ -134,7 +134,7 @@ const resolveProductPresenceDecision = (input: {
       isProductVideo,
       mustReview,
       routeLabel: resolveProductPresenceRouteLabel(input.output),
-      nextIntent: resolveProductPresenceNextIntent(input.output),
+      nonExecutableSummary: resolveProductPresenceNonExecutableSummary(input.output),
     };
   }
   return {
@@ -144,7 +144,7 @@ const resolveProductPresenceDecision = (input: {
     isProductVideo: isProductVideo === true,
     mustReview: false,
     routeLabel: resolveProductPresenceRouteLabel(input.output),
-    nextIntent: resolveProductPresenceNextIntent(input.output),
+    nonExecutableSummary: resolveProductPresenceNonExecutableSummary(input.output),
   };
 };
 

@@ -101,7 +101,7 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       branchFieldValues: {
         decision: transport.responseEnvelope.decision ?? null,
         routeLabel: transport.responseEnvelope.routeLabel ?? null,
-        nextIntent: transport.responseEnvelope.nextIntent ?? null,
+        nonExecutableSummary: transport.responseEnvelope.nonExecutableSummary ?? null,
         confidence: transport.responseEnvelope.confidence ?? null,
         implementationStatus: transport.responseEnvelope.implementationStatus ?? null,
         runtimeCallId: transport.responseEnvelope.runtimeCallId ?? null,

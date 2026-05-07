@@ -2,6 +2,8 @@ import { AiForbiddenActionOutputFieldSchema } from "../schema.js";
 
 const FORBIDDEN_ACTION_FIELDS = [
   "actionIntent",
+  "nextIntent",
+  "suggestedNextAction",
   "platformAction",
   "executableCoordinate",
   "clickCommand",
@@ -17,6 +19,8 @@ const FORBIDDEN_ACTION_FIELDS = [
 
 const FORBIDDEN_ACTION_ALIASES = [
   "action_intent",
+  "next_intent",
+  "suggested_next_action",
   "platform_action",
   "executable_coordinate",
   "click_command",

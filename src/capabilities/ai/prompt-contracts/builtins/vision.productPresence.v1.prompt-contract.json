@@ -60,9 +60,9 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:0310dbae815d6b0c98ff9554324388fd847ce5b178657d1b293697f2ce91954c",
+  "promptHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:0310dbae815d6b0c98ff9554324388fd847ce5b178657d1b293697f2ce91954c",
+  "promptContractHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
   "dataPolicy": {
     "productPresenceDecisionMode": "binary_yes_no",
     "ambiguousEvidenceRouting": "product_no",
@@ -75,14 +75,13 @@
     "schemaVersion": "vision.productPresence.schema.v1",
     "decision": "product_yes | product_no only",
     "routeLabel": "product_yes => read-comments-and-save-evidence | product_no => skip-current-video",
-    "nextIntent": "short human-readable intent for the selected routeLabel",
+    "nonExecutableSummary": "short human-readable summary for logging only; not an action instruction",
     "isProductVideo": "boolean; true iff decision=product_yes",
     "confidence": "number 0..1; never used to request human review for this binary route",
     "visibleProductTypes": "string[]; empty when decision=product_no unless a visible object is mentioned as insufficient evidence",
     "evidenceObservations": "string[] based only on sampled frames",
     "reason": "one precise sentence explaining YES/NO decision",
     "aggregateReason": "one sentence summarizing all sampled frames",
-    "suggestedNextAction": "collect_metrics_like_marker_open_comments | scroll_next | click_not_interested_or_scroll_next",
     "uncertainty": "string[] allowed only as explanation for product_no; never a third branch",
     "mustReview": false
   }

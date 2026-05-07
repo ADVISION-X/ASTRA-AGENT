@@ -3,6 +3,10 @@ import { z } from "zod";
 const forbiddenActionKeys = [
   "actionIntent",
   "action_intent",
+  "nextIntent",
+  "next_intent",
+  "suggestedNextAction",
+  "suggested_next_action",
   "platformAction",
   "platform_action",
   "executableCoordinate",
@@ -60,6 +64,10 @@ const forbiddenActionKeys = [
 const AiForbiddenActionOutputFieldSchema = z.object({
   actionIntent: z.never().optional(),
   action_intent: z.never().optional(),
+  nextIntent: z.never().optional(),
+  next_intent: z.never().optional(),
+  suggestedNextAction: z.never().optional(),
+  suggested_next_action: z.never().optional(),
   platformAction: z.never().optional(),
   platform_action: z.never().optional(),
   executableCoordinate: z.never().optional(),

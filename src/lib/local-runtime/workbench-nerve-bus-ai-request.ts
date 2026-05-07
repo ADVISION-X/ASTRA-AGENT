@@ -78,7 +78,7 @@ const buildAiOutputPayload = (input: {
   aiTaskType: string;
   decision: string;
   routeLabel: string | null;
-  nextIntent: string | null;
+  nonExecutableSummary: string | null;
   confidence: number | null;
   failureReason: string | null;
   reviewRequiredReason: string | null;
@@ -95,7 +95,7 @@ const buildAiOutputPayload = (input: {
     aiTaskType: input.aiTaskType,
     decision: input.decision,
     routeLabel: input.routeLabel,
-    nextIntent: input.nextIntent,
+    nonExecutableSummary: input.nonExecutableSummary,
     status: input.status,
     confidence: input.confidence,
     failureReason: input.failureReason,
@@ -147,7 +147,7 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     status: input.resolvedDecision.status,
     decision: input.resolvedDecision.decision,
     routeLabel: input.resolvedDecision.routeLabel,
-    nextIntent: input.resolvedDecision.nextIntent,
+    nonExecutableSummary: input.resolvedDecision.nonExecutableSummary,
     confidence: input.confidence,
     implementationStatus: input.diagnostics.implementationStatus,
     runtimeCallId: input.diagnostics.runtimeCallId,
@@ -198,7 +198,7 @@ const buildWorkbenchAiResponse = (input: {
     aiTaskType,
     decision: resolvedDecision.decision,
     routeLabel: resolvedDecision.routeLabel,
-    nextIntent: resolvedDecision.nextIntent,
+    nonExecutableSummary: resolvedDecision.nonExecutableSummary,
     confidence,
     failureReason,
     reviewRequiredReason: resolvedDecision.reviewRequiredReason,

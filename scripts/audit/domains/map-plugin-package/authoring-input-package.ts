@@ -172,6 +172,7 @@ const inspectPromptTemplateHardcoding = (project: Project): Finding[] => {
     !sourceText.includes("UserRequirement.binaryOutcomePolicy is mandatory source truth")
     || !sourceText.includes("decision plus routeLabel")
     || !sourceText.includes("Orchestration may only match the routeLabel mechanically")
+    || !sourceText.includes("must not include nextIntent, suggestedNextAction, actionIntent, or action_intent")
   ) {
     findings.push(createAuthoringFinding(
       MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,

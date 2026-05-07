@@ -22,7 +22,6 @@ type VisionResultInput = {
   reason: string;
   frameLevelObservations: VisionFrameLevelObservation[];
   aggregateReason: string;
-  suggestedNextAction: "collect_metrics_like_marker_open_comments" | "click_not_interested_or_scroll_next" | "skip_or_operator_review" | "review_required" | "scroll_next";
   uncertainty: string[];
   mustReview: boolean;
 };
@@ -50,7 +49,6 @@ const createVisionResultPayload = (request: VisionProductPresenceRequest, input:
   reason: input.reason,
   frameLevelObservations: input.frameLevelObservations,
   aggregateReason: input.aggregateReason,
-  suggestedNextAction: input.suggestedNextAction,
   uncertainty: input.uncertainty,
   mustReview: input.mustReview,
 });

@@ -388,7 +388,6 @@ const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[]
     !qualityGateText.includes("isDefinitiveNonProductOutput(input.output)")
     || !qualityGateText.includes('candidate.decision === "product_no"')
     || !qualityGateText.includes("candidate.mustReview === false")
-    || !qualityGateText.includes('candidate.suggestedNextAction === "scroll_next"')
     || !qualityGateText.includes("visibleProductTypes.length === 0")
   ) {
     findings.push(createFinding({
@@ -396,7 +395,17 @@ const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[]
       file: `${AI_ROOT}/runtime/ai-quality-gate.ts`,
       line: 1,
       severity: "fatal",
-      message: "AI quality gate must not let a numeric confidence threshold override a model-owned definitive non-product scroll decision with mustReview=false and no visible product evidence.",
+      message: "AI quality gate must not let a numeric confidence threshold override a model-owned definitive non-product decision with mustReview=false and no visible product evidence. Route Plan, not AI action fields, owns the next action.",
+    }));
+  }
+
+  if (qualityGateText.includes("suggestedNextAction") || qualityGateText.includes("nextIntent")) {
+    findings.push(createFinding({
+      lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+      file: `${AI_ROOT}/runtime/ai-quality-gate.ts`,
+      line: 1,
+      severity: "fatal",
+      message: "AI quality gate must not consume nextIntent or suggestedNextAction; only routeLabel may drive routing.",
     }));
   }
 

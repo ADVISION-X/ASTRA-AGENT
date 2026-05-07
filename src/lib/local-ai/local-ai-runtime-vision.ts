@@ -166,37 +166,33 @@ const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | n
 const resolveRouteLabelForDecision = (decision: "product_yes" | "product_no") =>
   decision === "product_yes" ? PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL : PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL;
 
-const resolveNextIntentForRouteLabel = (routeLabel: string) =>
+const resolveNonExecutableSummaryForRouteLabel = (routeLabel: string) =>
   routeLabel === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
-    ? "读取评论并保存当前视频的选品证据。"
-    : "跳过当前视频并继续自动发现。";
+    ? "当前证据支持产品展示，选择产品证据路线标签。"
+    : "当前证据未证明产品展示，选择非产品路线标签。";
 
 const normalizeDecisionConsistency = (input: {
   decision: "product_yes" | "product_no";
   isProductVideo: boolean | null;
   visibleProductTypes: string[];
   uncertainty: string[];
-  suggestedNextAction: unknown;
   mustReview: unknown;
 }) => {
   if (input.decision === "product_no" && input.visibleProductTypes.length === 0 && input.uncertainty.length === 0) {
     return {
       isProductVideo: false,
-      suggestedNextAction: "scroll_next",
       mustReview: false,
     } as const;
   }
   if (input.decision === "product_yes" && input.visibleProductTypes.length > 0) {
     return {
       isProductVideo: true,
-      suggestedNextAction: input.suggestedNextAction,
       mustReview: input.mustReview,
     } as const;
   }
 
   return {
     isProductVideo: input.decision === "product_yes" ? input.isProductVideo : false,
-    suggestedNextAction: input.decision === "product_yes" ? input.suggestedNextAction : "scroll_next",
     mustReview: false,
   } as const;
 };
@@ -216,16 +212,15 @@ const normalizeVisionRuntimeOutput = (
   const rootIsProductVideo = normalizedRootIsProductVideo === undefined ? null : normalizedRootIsProductVideo;
   const decision = normalizeProductDecision(value, rootIsProductVideo);
   const routeLabel = resolveRouteLabelForDecision(decision);
-  const nextIntent = typeof value.nextIntent === "string" && value.nextIntent.length > 0
-    ? value.nextIntent
-    : resolveNextIntentForRouteLabel(routeLabel);
+  const nonExecutableSummary = typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0
+    ? value.nonExecutableSummary
+    : resolveNonExecutableSummaryForRouteLabel(routeLabel);
   const uncertainty = toStringArray(value.uncertainty);
   const consistentDecision = normalizeDecisionConsistency({
     decision,
     isProductVideo: rootIsProductVideo,
     visibleProductTypes,
     uncertainty,
-    suggestedNextAction: value.suggestedNextAction,
     mustReview: value.mustReview,
   });
   const isProductVideo = consistentDecision.isProductVideo;
@@ -245,11 +240,10 @@ const normalizeVisionRuntimeOutput = (
   return {
     adjusted: normalizedRootIsProductVideo !== value.isProductVideo
       || consistentDecision.isProductVideo !== rootIsProductVideo
-      || consistentDecision.suggestedNextAction !== value.suggestedNextAction
       || consistentDecision.mustReview !== value.mustReview
       || decision !== value.decision
       || routeLabel !== value.routeLabel
-      || typeof value.nextIntent !== "string"
+      || typeof value.nonExecutableSummary !== "string"
       || normalizedFrameObservations.adjusted
       || value.taskType !== "vision.productPresence"
       || value.promptId !== "vision.productPresence.v1"
@@ -265,14 +259,13 @@ const normalizeVisionRuntimeOutput = (
       isProductVideo,
       decision,
       routeLabel,
-      nextIntent,
+      nonExecutableSummary,
       reason: typeof value.reason === "string" && value.reason.length > 0
         ? value.reason
         : (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0
           ? value.aggregateReason
           : "Local vision model did not provide a separate reason field; aggregateReason was unavailable."),
       frameLevelObservations: normalizedFrameObservations.observations,
-      suggestedNextAction: consistentDecision.suggestedNextAction,
       uncertainty,
       mustReview: consistentDecision.mustReview,
     },

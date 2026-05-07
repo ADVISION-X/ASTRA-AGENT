@@ -70,11 +70,6 @@ const buildVisionEvidenceObservations = (summary: string) => {
 const resolveVisionUncertainty = (summary: string) =>
   summary.includes("uncertain") || summary.includes("maybe");
 
-const resolveSuggestedVisionAction = (input: { isUncertain: boolean; isProduct: boolean }) =>
-  input.isUncertain
-    ? "skip_or_operator_review"
-    : (input.isProduct ? "collect_metrics_like_marker_open_comments" : "click_not_interested_or_scroll_next");
-
 const resolveVisionDecision = (summary: string, tags: string[]) => {
   const isUncertain = resolveVisionUncertainty(summary);
   const isProduct = resolveVisionClassification(summary, tags);
@@ -83,7 +78,6 @@ const resolveVisionDecision = (summary: string, tags: string[]) => {
     isProductVideo: isUncertain ? null : isProduct,
     decision: isUncertain ? "product_uncertain" : (isProduct ? "product_yes" : "product_no"),
     reason: isProduct ? "summary contains product usage and utility hints" : "summary lacks product utility hints",
-    suggestedNextAction: resolveSuggestedVisionAction({ isUncertain, isProduct }),
     visibleProductTypes: resolveVisibleProductTypes(isProduct, tags),
     evidenceObservations: buildVisionEvidenceObservations(summary),
     uncertainty: isUncertain ? ["product visibility is uncertain in the current screenshot"] : [],
@@ -107,7 +101,6 @@ const buildNoValidFrameVisionResult = (input: {
     reason: "no valid frames available for product-presence classification",
     frameLevelObservations: input.frameLevelObservations,
     aggregateReason: "no valid frames available for product-presence classification",
-    suggestedNextAction: "review_required",
     uncertainty: ["no_valid_frames"],
     mustReview: true,
   });
@@ -144,7 +137,6 @@ const buildValidFrameVisionResult = (input: {
     reason: aggregateReason,
     frameLevelObservations: input.frameLevelObservations,
     aggregateReason,
-    suggestedNextAction: coverage.singleFramePositiveFallback ? "skip_or_operator_review" : input.decision.suggestedNextAction,
     uncertainty: [...new Set(coverage.uncertainty)],
     mustReview: input.decision.mustReview,
   });

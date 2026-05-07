@@ -8,7 +8,8 @@ Route Plan 是调度肌肉记忆的唯一来源。
 - 生产自动化地图必须使用 `routePlanBoundMap`，只保留入口脊柱和 AI 交付，不拥有 routeLabel 动作链。
 - `genericDiagnosticMap` 只能服务隔离诊断，不得绑定 Route Plan，不得进入生产自动化主链。
 - 地图禁止复制 Route Plan 已经接管的步骤、transition、routeLabel 或动作链。
-- Prompt Contract 决定 AI 输出 `decision + routeLabel + nextIntent`。
+- Prompt Contract 决定 AI 输出 `decision + routeLabel + reason + confidence + nonExecutableSummary`。
+- `nonExecutableSummary` 只能记账，不能调度；禁止 `nextIntent`、`suggestedNextAction`、`actionIntent`、`action_intent` 进入 AI 输出。
 - Orchestration 只能机械匹配 `routeLabel`，不能理解、推断或硬编码 `product_yes/product_no` 的下一步。
 - 自动化地图严禁人工审查动作，严禁 `review_required` 终态。
 

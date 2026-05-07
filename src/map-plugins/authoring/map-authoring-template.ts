@@ -107,6 +107,7 @@ function buildOutputRequirementLines(): string[] {
     "- 地图禁止出现任何约束逻辑；一个地图 + 对应 Prompt Contract，才是完整地图。",
     "- UserRequirement.binaryOutcomePolicy is mandatory source truth: product_yes must use selectedPositiveRouteLabel and product_no must use selectedNegativeRouteLabel.",
     "- Runtime Prompt Contracts for binary product decisions must require AI to output decision plus routeLabel. Orchestration may only match the routeLabel mechanically; it must not infer next actions from product_yes/product_no.",
+    "- AI output must not include nextIntent, suggestedNextAction, actionIntent, or action_intent. Non-routing explanation must use reason or nonExecutableSummary only, and only routeLabel may be used for branching.",
     "- Map transitions must not expose or own route labels; selected/default binary options in the Prompt Contract decide which routeLabel AI returns, and Route Plan owns the matching action chain.",
     "- Do not emit map constraint fields: policy, proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition, allowedAbilityGroups, failureBranches, reviewBranches, or sequencePolicy.",
     "- Do not invent abilityGroupId, childCapabilityId, promptContractId, requiredInputRefs, outputSchemaRef, or branch fields that are not declared by the governed catalogs.",

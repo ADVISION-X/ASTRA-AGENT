@@ -149,7 +149,7 @@ export const AiResponseEnvelopeSchema = ResultEnvelopeBaseCoreSchema.extend({
   to: z.literal("orchestration"),
   decision: z.string().min(1),
   routeLabel: z.string().min(1).nullable().default(null),
-  nextIntent: z.string().min(1).nullable().default(null),
+  nonExecutableSummary: z.string().min(1).nullable().default(null),
   confidence: z.number().min(0).max(1).nullable().default(null),
   implementationStatus: z.string().min(1).nullable().default(null),
   runtimeCallId: z.string().min(1).nullable().default(null),

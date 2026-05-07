@@ -42,16 +42,14 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     decision: "product_yes | product_no",
     routeLabel:
       `product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL} | product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
-    nextIntent:
-      "short human-readable intent for the selected routeLabel; never an instruction for Orchestration to invent a route",
+    nonExecutableSummary:
+      "short human-readable summary of why the selected routeLabel applies; never an action instruction",
     confidence: "0..1",
     visibleProductTypes: "string[]",
     evidenceObservations: "string[]",
     reason: "string",
     frameLevelObservations: "FrameObservation[]",
     aggregateReason: "string",
-    suggestedNextAction:
-      "collect_metrics_like_marker_open_comments | scroll_next | click_not_interested_or_scroll_next",
     uncertainty: "string[]",
     mustReview: "false",
   },
@@ -60,7 +58,7 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "Your job is binary routing only: decide whether the sampled frames from one video provide enough visible evidence to treat the video as product-presenting content.",
     "Return exactly one product-presence decision: product_yes or product_no.",
     `Return routeLabel from the selected binary outcome options: for product_yes use ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; for product_no use ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
-    "Return nextIntent as a short explanation of the selected routeLabel; do not ask Orchestration to infer the route from product_yes or product_no.",
+    "Return nonExecutableSummary as a short explanation of the selected routeLabel; it is for logging only and must never instruct Orchestration to click, scroll, type, choose, or infer a route.",
     "Never return product_uncertain, review_required, null, maybe, unknown, or a human-review decision.",
     "Use only what is visible in the sampled frame evidence; do not use hidden page state or outside assumptions.",
     "Treat contact sheet input as one governed multi-frame task, not separate decisions.",
