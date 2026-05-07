@@ -320,6 +320,7 @@ const buildVideoIdentityEvidencePair = async (input: {
   const beforeProofRef = readSummaryString(beforeProofSummary, "sourceScreenshotEvidenceId")
     ?? screenshotEvidenceRef
     ?? promptInputRef;
+  const beforeVideoId = readSummaryString(beforeProofSummary, "pageUrl");
 
   if (beforeSignature === null || beforeProofRef === null) {
     return null;
@@ -380,7 +381,7 @@ const buildVideoIdentityEvidencePair = async (input: {
         payload: {
           kind: "video_identity" as const,
           role: "before" as const,
-          videoId: null,
+          videoId: beforeVideoId,
           visualSignature: beforeSignature,
           confirmed: true,
         },

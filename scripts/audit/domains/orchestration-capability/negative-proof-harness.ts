@@ -118,6 +118,18 @@ const MUTATIONS: Mutation[] = [
     replace: "      videoVisitId: null,\n",
   },
   {
+    name: "video visit id dropped from mission runtime event mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
+    search: "    videoVisitId: resolveVideoVisitId(input.state),\n",
+    replace: "    videoVisitId: null,\n",
+  },
+  {
+    name: "video visit id dropped from mission payload mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts",
+    search: "    videoVisitId: resolveVideoVisitId(input.state),\n",
+    replace: "    videoVisitId: null,\n",
+  },
+  {
     name: "verified next-video round boundary removal mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
     search: "  const verifiedNextVideoAndReturnedToCapture = input.currentStepId === \"verify-video-changed-after-scroll\"\n    && input.nextStepId === \"capture-video-viewport\";\n\n  return returnedToInitialStep || verifiedNextVideoAndReturnedToCapture\n",

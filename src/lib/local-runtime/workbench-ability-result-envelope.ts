@@ -116,6 +116,8 @@ function buildScreenshotProofSummary(input: {
     screenshotEvidenceId: readString(output, "evidenceId") ?? readString(runtimeProof, "screenshotEvidenceId"),
     artifactRef: readString(artifactRef, "artifactId"),
     artifactStorageRef: readString(artifactRef, "storageRef"),
+    pageUrl: readString(output, "pageUrl") ?? readString(runtimeProof, "pageUrl"),
+    pageTitle: readString(output, "pageTitle") ?? readString(runtimeProof, "pageTitle"),
     outputHash: readString(output, "outputHash") ?? readString(runtimeProof, "outputHash"),
     artifactHash: readString(output, "artifactHash") ?? readString(runtimeProof, "artifactHash") ?? readString(artifactRef, "sha256"),
     byteSize: readNumber(output, "byteSize") ?? readNumber(runtimeProof, "byteSize"),

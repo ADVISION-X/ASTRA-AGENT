@@ -118,9 +118,13 @@ const collectLoopStateFindings = (input: {
   const guardsVerifiedNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-video-changed-after-scroll")
     && input.roundBoundaryText.includes("capture-video-viewport");
   const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
+  const recorderText = input.stepTraceRecorderSource.getFullText();
 
   if (!hasCallExpressionPath(input.loopIterationSource, ["recordPostActionVerificationActionLog"])) {
     findings.push(createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Mission loop must record governed action logs when post-action verification closes an action step." }));
+  }
+  if (recorderText.includes("videoVisitId: null") || !recorderText.includes("resolveVideoVisitId") || !recorderText.includes("video-visit") || !recorderText.includes("state.currentRoundIndex")) {
+    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Mission-loop structured runtime events must bind videoVisitId from missionId and currentRoundIndex; null/no-video trace records hide same-video loops from Forensics and audit." }));
   }
   if (!hasCallExpressionPath(input.stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredRuntimeEvent"])) {
     findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured runtime events through the governed Forensics writer." }));

@@ -128,6 +128,7 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   recordAbilityResultProofSummary("prompt-input-ref-1", {
     preparedImageHash: "before-video-frame-hash",
     sourceScreenshotEvidenceId: "screenshot-evidence-ref-1",
+    pageUrl: "https://www.facebook.com/reel/before-video",
   });
   recordAbilityResultProofSummary("scroll-result-ref-1", {
     scrollExecutionRef: "scroll-execution-ref-1",
@@ -135,7 +136,8 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
     primitiveEndedAt: new Date(now - 1_000).toISOString(),
   });
 
-  const videoInput = await buildPostActionVerificationInput(runtime, createVideoChangedEnvelope(), createVideoChangedPayload());
+  const videoRuntime = createFixtureRuntime("https://www.facebook.com/reel/after-video", "logged_in");
+  const videoInput = await buildPostActionVerificationInput(videoRuntime, createVideoChangedEnvelope(), createVideoChangedPayload());
   const videoIdentityObservations = videoInput.observationSet.observations.filter((observation: { kind: string }) => observation.kind === "video_identity");
   assertCondition(videoIdentityObservations.length === 2, "Video-changed builder must emit governed before/after video_identity observations.");
   assertCondition(videoInput.beforeAfterEvidence.beforeEvidence?.evidenceKind === "video_identity", "Video-changed builder must emit before video_identity evidence.");
@@ -177,4 +179,33 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
     },
   });
   assertCondition(unchangedVideoResult.status === "failed" && unchangedVideoResult.verificationDecision === "failed", "Video-changed verification must fail same-video perceptual frame drift instead of treating raw image variation as a new video.");
+
+  const rawSignatureDriftResult = await abilityGroup.execute({
+    ...videoInput,
+    observationSet: {
+      observations: [
+        {
+          ...beforeVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "before",
+            videoId: null,
+            visualSignature: "sha256:before-frame-drift",
+            confirmed: true,
+          },
+        },
+        {
+          ...afterVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "after",
+            videoId: null,
+            visualSignature: "sha256:after-frame-drift",
+            confirmed: true,
+          },
+        },
+      ],
+    },
+  });
+  assertCondition(rawSignatureDriftResult.status === "review_required" && rawSignatureDriftResult.verificationDecision === "review_required", "Video-changed verification must not pass raw frame-signature drift without governed before/after video identity.");
 }

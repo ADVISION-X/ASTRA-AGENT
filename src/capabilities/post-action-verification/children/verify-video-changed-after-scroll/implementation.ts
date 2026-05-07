@@ -177,8 +177,7 @@ function hammingDistance(left: string, right: string): number {
 }
 
 type PerceptualVideoChangeDecision = "changed" | "unchanged" | "unknown";
-
-const isVideoChangedDecision = (decision: PerceptualVideoChangeDecision) => decision === "changed";
+type VideoChangedDecision = "changed" | "unchanged" | "unknown";
 
 function resolvePerceptualSignatureChange(
   beforeSignature: string | null | undefined,
@@ -203,23 +202,26 @@ function resolvePerceptualSignatureChange(
 function resolveVideoChangedDecision(input: {
   beforeObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["beforeObservation"]>;
   afterObservation: NonNullable<ReturnType<typeof resolveVideoChangedAfterScrollObservationPair>["afterObservation"]>;
-}) {
+}): VideoChangedDecision {
   const beforeVideoId = input.beforeObservation.payload.videoId;
   const afterVideoId = input.afterObservation.payload.videoId;
   const beforeSignature = input.beforeObservation.payload.visualSignature ?? null;
   const afterSignature = input.afterObservation.payload.visualSignature ?? null;
 
   if (beforeVideoId !== null && afterVideoId !== null) {
-    return beforeVideoId !== afterVideoId;
+    return beforeVideoId !== afterVideoId ? "changed" : "unchanged";
+  }
+  if (beforeVideoId !== afterVideoId) {
+    return "unknown";
   }
   const perceptualChange = resolvePerceptualSignatureChange(beforeSignature, afterSignature);
-  if (perceptualChange !== "unknown") {
-    return isVideoChangedDecision(perceptualChange);
+  if (perceptualChange === "unchanged") {
+    return "unchanged";
   }
-  if (beforeSignature !== null && afterSignature !== null) {
-    return beforeSignature !== afterSignature;
+  if (perceptualChange === "changed") {
+    return "unknown";
   }
-  return null;
+  return "unknown";
 }
 
 function resolveVideoChangedAfterScrollOutcome(input: {
@@ -239,9 +241,9 @@ function resolveVideoChangedAfterScrollOutcome(input: {
     });
   }
 
-  const changed = resolveVideoChangedDecision(input);
+  const changedDecision = resolveVideoChangedDecision(input);
 
-  if (changed === null) {
+  if (changedDecision === "unknown") {
     return buildVideoChangedAfterScrollUnknownResult({
       beforeRef: input.beforeObservation.ref,
       afterRef: input.afterObservation.ref,
@@ -250,6 +252,7 @@ function resolveVideoChangedAfterScrollOutcome(input: {
     });
   }
 
+  const changed = changedDecision === "changed";
   if (changed && input.afterObservation.payload.confirmed === false) {
     return buildVideoChangedAfterScrollUnconfirmedResult({
       beforeRef: input.beforeObservation.ref,

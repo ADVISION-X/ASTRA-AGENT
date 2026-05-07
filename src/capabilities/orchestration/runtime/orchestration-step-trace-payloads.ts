@@ -99,6 +99,10 @@ const resolveRunId = (state: MissionState): string => state.activeTaskRunId ?? `
 
 const resolveRoundId = (state: MissionState): string => String(state.currentRoundIndex);
 
+const resolveVideoVisitId = (state: MissionState): string | null => state.missionId
+  ? `${state.missionId}:video-visit:${state.currentRoundIndex}`
+  : null;
+
 const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {
   const payloadKey = key as keyof MissionState["payloadRefs"];
   const value = payloadRefs[payloadKey];
@@ -148,7 +152,7 @@ export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) => {
     owner: "Orchestration",
     abilityGroupId: "orchestration",
     childCapabilityId: input.step.childCapabilityId,
-    videoVisitId: null,
+    videoVisitId: resolveVideoVisitId(input.state),
     stepId: input.step.stepId,
     taskTemplateId: null,
     spanId: input.capabilityCallId ?? null,
@@ -205,7 +209,7 @@ export const buildStructuredActionLog = (
     skillCategory: null,
     sessionId: resolveSessionId(input.state),
     roundId: resolveRoundId(input.state),
-    videoVisitId: null,
+    videoVisitId: resolveVideoVisitId(input.state),
     browserProfileRef: null,
     loginState: null,
     step: runtimeStep,
@@ -248,7 +252,7 @@ export const buildStructuredActionLogWriteInput = (input: {
   runId: resolveRunId(input.actionLogInput.state),
   sessionId: resolveSessionId(input.actionLogInput.state),
   roundId: resolveRoundId(input.actionLogInput.state),
-  videoVisitId: null,
+  videoVisitId: resolveVideoVisitId(input.actionLogInput.state),
   stepId: input.actionLogInput.step.stepId,
   mapPackageId: input.mapChain.mapPackageId,
   mapPackageVersion: input.mapChain.mapPackageVersion,

@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-07T11:37:13.863Z",
+  "generatedAt": "2026-05-07T12:06:54.706Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
     "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+    "scripts/audit/domains/post-action-verification-capability/governed-runtime-fixtures.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
@@ -13,7 +13,10 @@
     "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
-    "src/capabilities/orchestration/runtime/step-dispatch-shared.ts"
+    "src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts",
+    "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
+    "src/capabilities/post-action-verification/children/verify-video-changed-after-scroll/implementation.ts",
+    "src/lib/local-runtime/workbench-ability-result-envelope.ts",
+    "src/lib/local-runtime/workbench-post-action-dispatch-input.ts"
   ]
 }

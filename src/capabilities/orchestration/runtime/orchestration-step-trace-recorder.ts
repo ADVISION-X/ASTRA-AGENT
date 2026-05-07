@@ -34,6 +34,12 @@ function resolveRoundId(state: MissionState): string {
   return String(state.currentRoundIndex);
 }
 
+function resolveVideoVisitId(state: MissionState): string | null {
+  return state.missionId
+    ? `${state.missionId}:video-visit:${state.currentRoundIndex}`
+    : null;
+}
+
 function resolvePayloadRefValue(payloadRefs: MissionState["payloadRefs"], key: string): string | null {
   const payloadKey = key as keyof MissionState["payloadRefs"];
   const value = payloadRefs[payloadKey];
@@ -77,7 +83,7 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
     runId: resolveRunId(input.state),
     sessionId: resolveSessionId(input.state),
     roundId: resolveRoundId(input.state),
-    videoVisitId: null,
+    videoVisitId: resolveVideoVisitId(input.state),
     stepId: input.step.stepId,
     mapPackageId: mapChain.mapPackageId,
     mapPackageVersion: mapChain.mapPackageVersion,

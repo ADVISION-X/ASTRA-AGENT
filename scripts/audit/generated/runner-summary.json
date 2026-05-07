@@ -1,14 +1,374 @@
 {
-  "generatedAt": "2026-05-07T11:26:13.352Z",
+  "generatedAt": "2026-05-07T11:53:13.543Z",
   "phase": "phase-04-full-enforcement",
   "passed": true,
   "totals": {
-    "inspectors": 1,
-    "passed": 1,
+    "inspectors": 20,
+    "passed": 20,
     "failed": 0,
     "blocking": 0
   },
   "results": [
+    {
+      "inspector": "GrassEye Type Safety Owner Inspector",
+      "inspectorId": "type-safety-owner",
+      "capabilityDomain": "type-safety",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "typescript-strictness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "tsconfig strict mode is enabled and explicit any was not found."
+        }
+      ],
+      "summary": "strict tsconfig and explicit-any scan are clean",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Map Plugin Package Governance Inspector",
+      "inspectorId": "map-plugin-package-governance",
+      "capabilityDomain": "map-plugin-package",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest and generated matrix align for the standalone non-phase-gated map package inspector."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package schema, quarantine lifecycle, builtin payloads, and registry bootstrap are present."
+        },
+        {
+          "name": "authoring-input-package",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map Authoring Input Package schema, builder, prompt builder, and AI input boundary are governed and owner-local."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package builtins remain declarative JSON and the package layer has no executable escape surfaces."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package enforcement closes through a real inspector, full audit support files, and a direct runner entry."
+        },
+        {
+          "name": "scorecard-gate",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package scorecard remains explicit, provisional, and aligned with the governed closeout gate."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map-plugin integration required schema, registry, task-template, and proof shape are established."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forbidden reverse-schema imports, platform fallback paths, ordinary mapBinding surfaces, and legacy static maps are gone."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Schema ownership, active map resolution, and ordinary task-template launch boundaries are enforced through the right seams."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map package negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Debug Loop Boundary Owner Inspector",
+      "inspectorId": "debug-loop-boundary-owner",
+      "capabilityDomain": "debug-loop-boundary",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "debug-loop remains an operator harness and is blocked from becoming a second Agent runtime."
+        },
+        {
+          "name": "debug-loop-identity",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "debug-loop stays local tooling and never becomes an active owner."
+        },
+        {
+          "name": "debug-loop-runtime-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mission-runtime starts via Commander and observes through governed read models only."
+        },
+        {
+          "name": "debug-loop-scenario-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "scenario JSON stays declarative and non-executable."
+        },
+        {
+          "name": "debug-loop-artifact-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Capability Group Governance Owner Inspector",
+      "inspectorId": "capability-group-governance-owner",
+      "capabilityDomain": "capability-group-governance",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "capability-group-governance owner surface enforces constitutional boundaries and topology checks"
+        },
+        {
+          "name": "package-audit-entrypoints",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "package.json only exposes constitutional owner audit entrypoints plus governed audit utility commands."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Ability groups stay isolated from retired support roots."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No import or export path lets retired roots bypass ability-group governance."
+        },
+        {
+          "name": "ability-group-contracts",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Active ability groups expose stable public contract roots and referenced abilityGroupId constants."
+        },
+        {
+          "name": "boundary-imports",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Cross-group imports stay on public capability indexes or contracts."
+        },
+        {
+          "name": "forbidden-owner-literals",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Governed source no longer emits retired owner literals."
+        },
+        {
+          "name": "runtime-proof-minimums",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime proof types carry the shared minimum constitutional fields."
+        },
+        {
+          "name": "negative-proof-wiring",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Capability-group-governance inspector imports, invokes, and reports its negative-proof harness."
+        },
+        {
+          "name": "canonical-doc-paths",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical phase-document directories exist."
+        },
+        {
+          "name": "root-and-runtime-hygiene",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Root docs and runtime data hygiene are clean."
+        },
+        {
+          "name": "source-topology",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Canonical src, docs, and startup directories stay within the governed topology."
+        },
+        {
+          "name": "route-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Route entry stays off browser automation, platform adapter, local AI, and data-store truth imports."
+        },
+        {
+          "name": "domain-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Domain-neutral browser infrastructure and restricted feature domains stay on canonical ownership boundaries."
+        },
+        {
+          "name": "type-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Workbench stays free of retired platform-adapter topology and concrete TikTok runtime owners."
+        },
+        {
+          "name": "historical-owner-removal",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Deleted historical owner paths are absent from active import and export graphs."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Topology-sensitive files avoid dynamic import, require(), and re-export laundering."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Capability-group-governance negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Capability-group-governance negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye AI Capability Owner Inspector",
+      "inspectorId": "ai-capability-owner",
+      "capabilityDomain": "ai-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates"
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "AI negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "AI negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Nerve Bus Capability Owner Inspector",
+      "inspectorId": "nerve-bus-capability-owner",
+      "capabilityDomain": "nerve-bus-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "nerve-bus-capability is implemented as a schema-first governed transport spine with AST-backed enforcement"
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus V2 transport contract, six channels, full-chain envelope fields, and governed builders are present."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus avoids raw prompt keys, default injection, direct commander bypass, and boundary escapes."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus runtime, child, and port internals stay behind the owning public boundary."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus resists gate bypass, proof dropping, timeout relabeling, and handler-access laundering."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Nerve Bus negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Nerve Bus negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
     {
       "inspector": "GrassEye Page State Capability Owner Inspector",
       "inspectorId": "page-state-capability-owner",
@@ -67,6 +427,1002 @@
       "summary": "page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases",
       "passed": true,
       "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Post-action Verification Capability Owner Inspector",
+      "inspectorId": "post-action-verification-capability-owner",
+      "capabilityDomain": "post-action-verification-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "law-baseline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification active laws remain machine-blocking, P0, and negative-proof backed."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification canonical package shape is present."
+        },
+        {
+          "name": "local-runtime-route",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Local runtime routes post-action verification through the governed builder with runtime session access."
+        },
+        {
+          "name": "governed-runtime-fixtures",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Governed PAV fixtures prove builder/schema parity, invalid-input fallback integrity, and observation-only page-open verification success."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification forbidden shapes are absent."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification owner boundary is isolated."
+        },
+        {
+          "name": "truth-ownership",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification remains the only owner of verificationDecision truth."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification anti-escape checks are closed."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Post Action Verification negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, anti-escape, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Orchestration Capability Owner Inspector",
+      "inspectorId": "orchestration-capability-owner",
+      "capabilityDomain": "orchestration-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch"
+        },
+        {
+          "name": "orchestration-standard-package-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration root matches the standard package shape and old runtime files are gone."
+        },
+        {
+          "name": "orchestration-schema-registry-truth",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Schema ids and runtime wiring match the canonical orchestration child set plus governed map package registry truth."
+        },
+        {
+          "name": "orchestration-nerve-bus-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Ability-group dispatches through Nerve Bus only and orchestration root avoids forbidden owners."
+        },
+        {
+          "name": "orchestration-private-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "External code does not reach into orchestration private internals."
+        },
+        {
+          "name": "governed-public-surface",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration public execute surface is typed and the ability-group no longer bypasses the governed execute pipeline."
+        },
+        {
+          "name": "frozen-activation-snapshot",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mission state and runtime proof both freeze activation snapshot state, and resume avoids floating active-map lookup."
+        },
+        {
+          "name": "unified-child-envelope",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "All orchestration children share one governed output envelope."
+        },
+        {
+          "name": "runtime-proof-runid-chain",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration runtime proof schema and builder preserve runId."
+        },
+        {
+          "name": "typed-failure-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration public and child boundaries convert failures into typed results without naked throws."
+        },
+        {
+          "name": "post-action-verification-chain",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration validates and dispatches post-action verification for state-changing action steps."
+        },
+        {
+          "name": "round-video-visit-chain",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration binds non-null per-round videoVisitId and advances rounds after verified next-video scroll."
+        },
+        {
+          "name": "ai-step-timeout-chain",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration applies governed step timeoutPolicy to AI dispatch and timeout terminal failure."
+        },
+        {
+          "name": "ai-prompt-contract-tasktype-dispatch",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration resolves AI taskType from Prompt Contract Registry and transports it separately from promptContractId."
+        },
+        {
+          "name": "start-mission-command-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Human command start preserves envelope.runId, emits start-boundary logs, and preflight dry-runs MissionCommandSchema before dispatch."
+        },
+        {
+          "name": "forensics-retention-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration law and blueprint both describe screenshot retention refs, promotion routing, and quota/backpressure propagation at the Forensics boundary."
+        },
+        {
+          "name": "negative-proof-readiness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration owner-local negative-proof harness exists and can be executed by the inspector."
+        },
+        {
+          "name": "mission-loop-event-semantics",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mission loop traceability, round semantics, and PAV start events remain explicitly enforced after the file split."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Orchestration negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Screenshot Capability Owner Inspector",
+      "inspectorId": "screenshot-capability-owner",
+      "capabilityDomain": "screenshot-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "law-baseline-check",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot law baseline remains machine-blocking, P0, negative-proof-backed, and inspector-wired."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot canonical package, thin entrypoint, and governed runtime chain are present."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot forbidden barrels, runtime leaks, and direct primitive escapes are blocked."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot owner boundary is isolated to the public execute surface and composition-root adapters."
+        },
+        {
+          "name": "child-runtime-check",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot child capabilities stay narrow, BrowserController-free, sibling-isolated, and governed by the unified runtime plan flow."
+        },
+        {
+          "name": "ownership-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot ownership remains isolated to the Screenshot ability group and its governed capture adapter."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot anti-escape checks are closed over payload, output boundary, abort, and proof rules."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Screenshot negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, ownership-boundary, anti-escape, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Geometry Guard Capability Owner Inspector",
+      "inspectorId": "geometry-guard-capability-owner",
+      "capabilityDomain": "geometry-guard-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "law-baseline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard active laws remain machine-blocking, P0, and negative-proof backed."
+        },
+        {
+          "name": "geometry-guard-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard exposes the rebuilt schema, executor chain, clock, proof builder, and thin child delegates."
+        },
+        {
+          "name": "geometry-guard-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard no longer carries old shared files, child leaks, or cross-group execution imports."
+        },
+        {
+          "name": "geometry-guard-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard keeps one canonical contract boundary and one shared executor chain."
+        },
+        {
+          "name": "geometry-guard-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard has no throw escape, Date escape, clamp escape, type escape, or compat drift."
+        },
+        {
+          "name": "law-001-ownership",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard law 001 ownership remains exclusive to guarded geometry safety gating."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Geometry Guard negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "geometry-guard-capability owner inspector passed owner-foundation, law-baseline, required-shape, forbidden-shape, boundary, anti-escape, law-001-ownership, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Mouse Click Capability Owner Inspector",
+      "inspectorId": "mouse-click-capability-owner",
+      "capabilityDomain": "mouse-click-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mouse-click-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement"
+        },
+        {
+          "name": "law-baseline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click active laws remain machine-blocking, P0, and negative-proof backed."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click required package, runtime chain, and governed schema/result surfaces exist."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click avoids export laundering, direct primitive leaks, wall-clock drift, and escape tokens."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click runtime and child internals stay behind the owning boundary and composition root."
+        },
+        {
+          "name": "click-ownership-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click ownership stays isolated to primitive click execution and post-action handoff only."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click resists gate bypass, proof dropping, and primitive wrapper escape patterns."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Click negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Mouse Click negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Text Input Capability Owner Inspector",
+      "inspectorId": "text-input-capability-owner",
+      "capabilityDomain": "text-input-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "text-input-capability is implemented as a governed schema-first writing execution owner with AST-backed enforcement"
+        },
+        {
+          "name": "law-baseline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input active laws remain machine-blocking, P0, and negative-proof backed."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input required package, chain fields, gates, proof/result parity, and enforcement surfaces exist."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input avoids escape hatches, forbidden result claims, raw text leaks, and primitive bypass paths."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input runtime and child internals stay behind the owning boundary and composition root."
+        },
+        {
+          "name": "write-ownership-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input ownership stays isolated to governed write execution behind TextInputExecutionPort and ClipboardPort adapters."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input resists gate bypass, proof dropping, and primitive adapter escape patterns."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Text Input negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Text Input negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Mouse Scroll Capability Owner Inspector",
+      "inspectorId": "mouse-scroll-capability-owner",
+      "capabilityDomain": "mouse-scroll-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mouse-scroll-capability is implemented as a governed schema-first primitive execution owner with AST-backed enforcement"
+        },
+        {
+          "name": "law-baseline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll active laws remain machine-blocking, P0, and negative-proof backed."
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll required package, runtime chain, and governed schema/result surfaces exist."
+        },
+        {
+          "name": "forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll avoids export laundering, direct primitive leaks, wall-clock drift, and escape tokens."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll runtime and child internals stay behind the owning boundary and composition root."
+        },
+        {
+          "name": "scroll-ownership-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll ownership stays isolated to governed primitive scroll execution and post-action handoff only."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll resists gate bypass, proof dropping, and primitive wrapper escape patterns."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Mouse Scroll negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Mouse Scroll negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Visual Target Capability Owner Inspector",
+      "inspectorId": "visual-target-capability-owner",
+      "capabilityDomain": "visual-target-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "required-shape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target required-shape is present: standard package files, child triplets, execute-only contract, and governed schemas all exist."
+        },
+        {
+          "name": "forbidden-shape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target forbidden legacy files, foreign-owner imports, capability-check shims, and barrel exports are absent."
+        },
+        {
+          "name": "boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target ownership boundary holds: consumers stay on contract/index, workbench owns creation, and no duplicate owner surfaces exist."
+        },
+        {
+          "name": "anti-escape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target anti-escape guard is clean: no any, no double-cast escapes, no dynamic loading, and no scattered Date parsing."
+        },
+        {
+          "name": "generated-chain-check",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target stays connected to the generated audit chain with all active V2 laws preserved in registry, matrix, and audit plan."
+        },
+        {
+          "name": "manifest-check",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target manifest points at the canonical owner inspector and preserves the expected law binding set."
+        },
+        {
+          "name": "pipeline-truth-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target runtime keeps the fixed gate pipeline, real chain propagation, and non-executable Geometry Guard handoff truth."
+        },
+        {
+          "name": "runner-fail-power-check",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target inspector retains explicit attack-function structure, so audit failures remain attributable and reviewable."
+        },
+        {
+          "name": "truth-ownership-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target remains the only owner of governed target normalization and target-truth helper declarations."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Visual Target negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "visual-target owner inspector passed required, forbidden, boundary, anti-escape, generated-chain, manifest, pipeline-truth, runner-fail-power, truth-ownership, and negative-proof phases",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "forensics-persistence-owner",
+      "inspectorId": "forensics-persistence-owner",
+      "capabilityDomain": "forensics-persistence-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "implemented owner surface exists and is ready for direct checks"
+        },
+        {
+          "name": "required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics root shape, child parity, and forbidden directories are aligned with the final law."
+        },
+        {
+          "name": "contract-native",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics public contract is native, chain-complete, and free of legacy business type leakage."
+        },
+        {
+          "name": "runtime-pipeline",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics executor, write gate, and storage ports follow the unified generic pipeline."
+        },
+        {
+          "name": "enforcement-coverage",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics active law coverage is wired into manifest-owned enforcement."
+        },
+        {
+          "name": "anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics source and inspector are free of comment escapes, casts, dynamic imports, and test-path laundering."
+        },
+        {
+          "name": "structured-debug-transparency",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Structured logging DEBUG transparency, AI I/O debug, command flow, health layering, and service exit classification are wired through Forensics-owned runtime events."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forensics negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Forensics negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Open Capability Owner Inspector",
+      "inspectorId": "open-capability-owner",
+      "capabilityDomain": "open-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "open-capability exposes one governed package with metadata registry, runtime gates, child-local contracts, and negative proof enforcement"
+        },
+        {
+          "name": "open-required-shape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open standard package shape, metadata registry, child-local contracts, and negative proof harness are present."
+        },
+        {
+          "name": "open-forbidden-shape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open forbids fake allow decisions, fake target profiles, export-star barrels, forbidden imports, and cookie access."
+        },
+        {
+          "name": "open-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open child implementations stay private and workbench wiring stays on the public surface."
+        },
+        {
+          "name": "open-anti-escape-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open avoids any, unknown-as, comment directives, dynamic import, require, and unmanaged time APIs."
+        },
+        {
+          "name": "platform-profile-root-removal",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Retained platform material no longer depends on a surviving platform-action root."
+        },
+        {
+          "name": "platform-profile-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Platform action ownership methods are absent from the old boundary."
+        },
+        {
+          "name": "platform-profile-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Action execution no longer routes through the retired platform-action import graph."
+        },
+        {
+          "name": "platform-profile-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No verify-script escape hatch is present for platform-action retirement."
+        },
+        {
+          "name": "local-browser-session-law",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Local browser session law defines persistent-profile and cookie privacy boundaries."
+        },
+        {
+          "name": "local-browser-session-blueprint",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Blueprint defines current-Chrome handoff, persistent-profile proof, and anti-regression boundaries for the removed downgrade path."
+        },
+        {
+          "name": "local-browser-session-type-contract",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Browser and runtime types expose governed profile metadata without raw cookie fields."
+        },
+        {
+          "name": "local-browser-session-runtime-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runtime uses CurrentChromeBrowserController, browserProfileDirectory, and current-browser fixed-page handoff only."
+        },
+        {
+          "name": "local-browser-session-exclusionary-ast-guard",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Governed browser session code blocks Playwright downgrade paths, cookie persistence APIs, and forbidden env threading through AST-level checks."
+        },
+        {
+          "name": "local-browser-session-repo-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Repository excludes test artifacts, committed browser profiles, and the removed Playwright browser controller file."
+        },
+        {
+          "name": "open-enforcement-coverage",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open FINAL law, manifest, matrix, audit-plan, and runner-summary are aligned."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Open negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Open negative-proof harness was skipped for nested inspector execution.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Audit System Owner Inspector",
+      "inspectorId": "audit-system-owner",
+      "capabilityDomain": "audit-system",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "law-home",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Active law home is parseable and metadata-complete."
+        },
+        {
+          "name": "manifest-ownership",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Each active capabilityDomain resolves to one manifest owner."
+        },
+        {
+          "name": "generated-artifacts",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Generated registry, matrix, plan, and conflicts artifacts are present, readable, and rebuild-faithful."
+        },
+        {
+          "name": "ci-full-topology",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "CI full runs foundation first with code-purity as gate one, then map, then the 14 ability groups."
+        },
+        {
+          "name": "static-clause-coverage",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "static-clause-coverage is generated, clause-complete, and bound to the current global enforcement chain."
+        },
+        {
+          "name": "required-phase-domains",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Current phase gate and generated plan include every frozen owner and every active law domain from docs/法案辅助文件/GrassEye 法案冻结基线.md."
+        },
+        {
+          "name": "runner-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Runner stays on the generated-plan boundary."
+        },
+        {
+          "name": "owner-evidence",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Every owner inspector exposes shared owner evidence and static registry alignment."
+        },
+        {
+          "name": "audit-quality-authority",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit system remains the only repository quality gate authority."
+        },
+        {
+          "name": "owned-law-execution",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
+        },
+        {
+          "name": "production-path-simulation-ban",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Production startup and runtime paths are free of fixture/demo simulation markers."
+        },
+        {
+          "name": "negative-proof-wiring",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit-system inspector imports, invokes, and reports its negative-proof harness."
+        },
+        {
+          "name": "negative-proof-runtime-topology",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "All spawned negative-proof harnesses avoid unbounded full-inspector replay."
+        },
+        {
+          "name": "code-purity-nested-skip",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Code-purity scan is skipped for nested audit-system negative-proof execution."
+        },
+        {
+          "name": "negative-proof-harness",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Audit-system negative-proof harness was skipped for nested inspector execution."
+        }
+      ],
+      "summary": "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced",
+      "passed": true,
+      "classification": "PASS",
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Security Privacy Owner Inspector",
+      "inspectorId": "security-privacy-owner",
+      "capabilityDomain": "security-privacy",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "security and privacy boundaries are enforced across local host binding, local data, and no secret export paths"
+        },
+        {
+          "name": "local-security-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Local host binding and local evidence storage stay inside the authorized local environment."
+        },
+        {
+          "name": "sensitive-surface-scan",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "No obvious sensitive export or public exposure pattern was found in source files."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "No obvious sensitive export or public exposure pattern was found in source files.",
+      "passed": true,
+      "violationCount": 0
+    },
+    {
+      "inspector": "GrassEye Commander Console Capability Owner Inspector",
+      "inspectorId": "commander-console-capability-owner",
+      "capabilityDomain": "commander-console-capability",
+      "findings": [],
+      "phases": [
+        {
+          "name": "owner-foundation",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Manifest, generated matrix, and generated audit plan agree on this owner."
+        },
+        {
+          "name": "implementation-window",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner"
+        },
+        {
+          "name": "commander-required-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Required Commander production shape passed: package, child modules, strict gates, proof, and harness all exist."
+        },
+        {
+          "name": "commander-forbidden-shape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Forbidden residue checks passed."
+        },
+        {
+          "name": "commander-boundary-attack",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Boundary checks passed: shell stays render-only and startup stays bootstrap-only."
+        },
+        {
+          "name": "commander-anti-escape",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Anti-escape checks passed."
+        },
+        {
+          "name": "commander-startup-readiness-gate",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup local-AI readiness gate remains enforced through Commander owner audit."
+        },
+        {
+          "name": "commander-startup-exit-classification",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Startup exit classification remains governed and rejects controlled-shutdown regressions."
+        }
+      ],
+      "classification": "PASS",
+      "summary": "Startup exit classification remains governed and rejects controlled-shutdown regressions.",
+      "passed": true,
       "violationCount": 0
     }
   ]
