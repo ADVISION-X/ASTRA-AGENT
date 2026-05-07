@@ -3,22 +3,33 @@ import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
 
-const buildCommanderMapChain = (mapId: string | null | undefined) => {
-  if (!mapId) {
+const buildCommanderMapChain = (input: {
+  mapId?: string | null | undefined;
+  taskTemplateId?: string | null | undefined;
+}) => {
+  const registry = getDevelopmentMapPluginRegistry().active;
+  const record = input.mapId
+    ? registry.getActiveOperationalMapRecord(input.mapId)
+    : input.taskTemplateId
+      ? registry.getActiveOperationalMapRecordByTaskTemplateId(input.taskTemplateId)
+      : null;
+
+  if (!record) {
     return {
       mapPackageId: null,
       mapPackageVersion: null,
+      selectedMapId: input.mapId ?? null,
       selectedMapVersion: null,
       activationSnapshotRef: null,
     };
   }
 
-  const record = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
   return {
-    mapPackageId: record?.packageId ?? null,
-    mapPackageVersion: record?.packageVersion ?? null,
-    selectedMapVersion: record?.mapVersion ?? null,
-    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+    mapPackageId: record.packageId,
+    mapPackageVersion: record.packageVersion,
+    selectedMapId: record.mapId,
+    selectedMapVersion: record.mapVersion,
+    activationSnapshotRef: record.activationSnapshotRef,
   };
 };
 
@@ -158,7 +169,7 @@ export const recordCommanderDebugEvent = async (
   },
 ): Promise<void> => {
   const structuredRuntimeEvent = buildCommanderDebugStructuredRuntimeEvent(runtime, input);
-  const mapChain = buildCommanderMapChain(input.mapId);
+  const mapChain = buildCommanderMapChain({ mapId: input.mapId, taskTemplateId: input.taskTemplateId });
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
@@ -174,7 +185,7 @@ export const recordCommanderDebugEvent = async (
     stepId: "task_start",
     mapPackageId: mapChain.mapPackageId,
     mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapId: input.mapId ?? null,
+    selectedMapId: mapChain.selectedMapId,
     selectedMapVersion: mapChain.selectedMapVersion,
     activationSnapshotRef: mapChain.activationSnapshotRef,
     capabilityCallId: input.spanId,

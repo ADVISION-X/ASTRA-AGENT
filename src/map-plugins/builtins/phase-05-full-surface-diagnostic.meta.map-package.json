@@ -28,7 +28,7 @@
     "maxAllowedRunLimit": { "maxRounds": 1, "maxMinutes": 15 },
     "safetyLevel": "dry-run-diagnostic",
     "userVisibleCapabilities": ["Open local workbench", "Capture page state", "Exercise dry-run click, scroll, and text input", "Persist diagnostic proof"],
-    "availabilityPolicy": "draft",
+    "availabilityPolicy": "active",
     "requestedPlatformId": "macos-local",
     "platformProfileRef": "macos-local:diagnostic-sandbox",
     "targetProfileRef": "macos-local:diagnostic-sandbox",
@@ -46,7 +46,7 @@
       { "stepId": "detect-diagnostic-page-kind", "capabilityId": "orchestration", "childCapabilityId": "detect-platform-page-kind", "stepKind": "ability", "targetAbilityGroupId": "page-state", "inputRefs": ["requestedPlatformId", "targetUrl", "sourceEvidenceRef"], "outputRefPolicy": { "storeAs": ["pageStateRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-diagnostic-page-kind:failed", "reviewBranch": "detect-diagnostic-page-kind:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
       { "stepId": "capture-diagnostic-viewport", "capabilityId": "orchestration", "childCapabilityId": "capture-browser-viewport", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["targetUrl", "targetTitle", "pageStateRef"], "outputRefPolicy": { "storeAs": ["screenshotEvidenceRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "capture-diagnostic-viewport:failed", "reviewBranch": "capture-diagnostic-viewport:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
       { "stepId": "prepare-diagnostic-ai-input", "capabilityId": "orchestration", "childCapabilityId": "prepare-ai-input", "stepKind": "ability", "targetAbilityGroupId": "screenshot", "inputRefs": ["screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["promptInputRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "prepare-diagnostic-ai-input:failed", "reviewBranch": "prepare-diagnostic-ai-input:review", "timeoutPolicy": { "maxDurationMs": 10000 }, "proofPolicy": { "requiresRuntimeProof": true } },
-      { "stepId": "diagnostic-schema-validation-ai-dry-run", "capabilityId": "orchestration", "childCapabilityId": "product-presence-judgment", "stepKind": "ai", "targetAbilityGroupId": "ai", "inputRefs": ["promptInputRef"], "outputRefPolicy": { "storeAs": ["aiResultRef"] }, "promptContractId": "vision.productPresence.v1", "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "diagnostic-schema-validation-ai-dry-run:failed", "reviewBranch": "diagnostic-schema-validation-ai-dry-run:review", "timeoutPolicy": { "maxDurationMs": 75000 }, "proofPolicy": { "requiresRuntimeProof": true } },
+      { "stepId": "diagnostic-schema-validation-ai-dry-run", "capabilityId": "orchestration", "childCapabilityId": "schema-validation-only", "stepKind": "ai", "targetAbilityGroupId": "ai", "inputRefs": ["promptInputRef"], "outputRefPolicy": { "storeAs": ["aiResultRef"] }, "promptContractId": "ai.schema_validation_only.internal", "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "diagnostic-schema-validation-ai-dry-run:failed", "reviewBranch": "diagnostic-schema-validation-ai-dry-run:review", "timeoutPolicy": { "maxDurationMs": 75000 }, "proofPolicy": { "requiresRuntimeProof": true } },
       { "stepId": "detect-diagnostic-control-target", "capabilityId": "orchestration", "childCapabilityId": "detect-comments-button", "stepKind": "ability", "targetAbilityGroupId": "visual-target", "inputRefs": ["screenshotEvidenceRef"], "outputRefPolicy": { "storeAs": ["visualTargetRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "detect-diagnostic-control-target:failed", "reviewBranch": "detect-diagnostic-control-target:review", "timeoutPolicy": { "maxDurationMs": 8000 }, "proofPolicy": { "requiresRuntimeProof": true } },
       { "stepId": "normalize-diagnostic-control-geometry", "capabilityId": "orchestration", "childCapabilityId": "normalize-coordinate-geometry", "stepKind": "ability", "targetAbilityGroupId": "geometry-guard", "inputRefs": ["visualTargetRef"], "outputRefPolicy": { "storeAs": ["geometryProofRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "normalize-diagnostic-control-geometry:failed", "reviewBranch": "normalize-diagnostic-control-geometry:review", "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
       { "stepId": "mouse-click-local-sandbox-noop", "capabilityId": "orchestration", "childCapabilityId": "click-browser-coordinate", "stepKind": "ability", "targetAbilityGroupId": "mouse-click", "inputRefs": ["visualTargetRef", "geometryProofRef"], "outputRefPolicy": { "storeAs": ["abilityResultRef"] }, "promptContractId": null, "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }, "failureBranch": "mouse-click-local-sandbox-noop:failed", "reviewBranch": "mouse-click-local-sandbox-noop:review", "postActionVerification": { "required": true, "verificationKind": "result-signal", "expectedSignal": "local-sandbox-click-noop", "timeoutMs": 5000, "onPassTransitionId": "verify-click-noop:success", "onFailTransitionId": "verify-click-noop:failed", "onAmbiguousTransitionId": "verify-click-noop:review" }, "timeoutPolicy": { "maxDurationMs": 5000 }, "proofPolicy": { "requiresRuntimeProof": true } },
@@ -117,8 +117,8 @@
   },
   "dependencies": {
     "requiredCapabilities": ["open", "page-state", "screenshot", "ai", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "post-action-verification", "forensics-persistence"],
-    "requiredChildCapabilities": ["open-local-workbench", "detect-platform-page-kind", "capture-browser-viewport", "prepare-ai-input", "product-presence-judgment", "detect-comments-button", "normalize-coordinate-geometry", "click-browser-coordinate", "type-text", "scroll-browser-viewport", "verify-page-opened", "verify-action-result", "verify-target-state-changed", "write-evidence-record", "request-human-review"],
-    "requiredPromptContracts": ["vision.productPresence.v1"],
+    "requiredChildCapabilities": ["open-local-workbench", "detect-platform-page-kind", "capture-browser-viewport", "prepare-ai-input", "schema-validation-only", "detect-comments-button", "normalize-coordinate-geometry", "click-browser-coordinate", "type-text", "scroll-browser-viewport", "verify-page-opened", "verify-action-result", "verify-target-state-changed", "write-evidence-record", "request-human-review"],
+    "requiredPromptContracts": ["ai.schema_validation_only.internal"],
     "requiredPlatformProfiles": ["macos-local:diagnostic-sandbox"],
     "requiredForensicsRecords": ["structured_runtime_event", "evidence_record"]
   },
@@ -126,11 +126,11 @@
     "requiresGrassEye": "0.1.0",
     "requiresMapSchema": "1",
     "requiresCapabilityRegistry": ["open", "page-state", "screenshot", "ai", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "post-action-verification", "forensics-persistence"],
-    "requiresPromptRegistry": ["vision.productPresence.v1"],
+    "requiresPromptRegistry": ["ai.schema_validation_only.internal"],
     "requiresPlatformProfileRegistry": ["macos-local:diagnostic-sandbox"]
   },
   "policy": {
-    "safetyPolicy": "Diagnostic map is draft-only and local-workbench only. Mouse click is a sandbox no-op, text input is dry-run local sandbox only, and no social platform account write, comment, post, purchase, delete, submit, or external transmission is allowed.",
+    "safetyPolicy": "Diagnostic map is active only for local-workbench diagnostics. Mouse click is a sandbox no-op, text input is dry-run local sandbox only, and no social platform account write, comment, post, purchase, delete, submit, or external transmission is allowed.",
     "runLimitPolicy": { "defaultMaxRounds": 1, "maxAllowedMaxRounds": 1, "maxAllowedMaxMinutes": 15 },
     "reviewPolicy": "Always end in human review after diagnostic evidence persistence.",
     "exportPolicy": "runtime proof refs only",
@@ -138,9 +138,9 @@
   },
   "promptBindings": {
     "bindings": [
-      { "stepId": "diagnostic-schema-validation-ai-dry-run", "promptContractId": "vision.productPresence.v1", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.product_presence_judgment.v1", "confidencePolicy": "review-on-low-confidence", "reviewPolicy": "handoff", "failureBranch": "diagnostic-schema-validation-ai-dry-run:failed" }
+      { "stepId": "diagnostic-schema-validation-ai-dry-run", "promptContractId": "ai.schema_validation_only.internal", "requiredInputRefs": ["promptInputRef"], "outputSchemaRef": "ai.schema_validation_only.v1", "confidencePolicy": "internal-schema-pass", "reviewPolicy": "diagnostic-no-early-review", "failureBranch": "diagnostic-schema-validation-ai-dry-run:failed" }
     ]
   },
-  "changelog": "Initial draft-only phase-05 diagnostic map for governed full-surface runtime evidence.",
+  "changelog": "Phase-05 diagnostic map is active for local-only governed full-surface runtime evidence and uses deterministic schema-validation AI dry-run.",
   "signature": null
 }

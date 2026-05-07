@@ -96,14 +96,40 @@ const buildProductPresenceInputPayload = (
   };
 };
 
+const buildSchemaValidationInputPayload = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+) => ({
+  candidate: {
+    diagnostic: true,
+    status: "success",
+    sourceSummary: inputPayload.summary,
+    promptContractId: envelope.promptContractId,
+    expectedOutputSchema: envelope.outputSchemaRef,
+    inputRefs: envelope.aiInputRefs,
+  },
+  sourceRef: envelope.aiInputRefs[0] ?? inputPayload.documentRef,
+  validationContextRef: `${envelope.envelopeId}:schema-validation-only`,
+});
+
 const buildWorkbenchAiInputPayload = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
 ) => {
-  return envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
+  return envelope.taskType === "schema_validation_only"
+    ? buildSchemaValidationInputPayload(envelope, inputPayload)
+    : envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
     ? buildProductPresenceInputPayload(envelope, inputPayload)
     : buildDefaultAiInputPayload(inputPayload);
 };
+
+const resolveWorkbenchAiInputModality = (taskType: SupportedWorkbenchAiTaskType) =>
+  taskType === "schema_validation_only" ? "structured_record" as const : "image_collection" as const;
+
+const resolveWorkbenchAiProviderPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
+  taskType === "schema_validation_only"
+    ? { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["internal-schema-validator"], operatorApprovalRef: null }
+    : { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null };
 
 function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): void {
   const payload = payloadDocumentToObject(inputPayload);
@@ -154,7 +180,7 @@ export const buildWorkbenchAiAbilityRequest = (
     abilityGroupId: "ai" as const,
     missionId: envelope.missionId,
     taskType,
-    inputModality: "image_collection" as const,
+    inputModality: resolveWorkbenchAiInputModality(taskType),
     inputRefs: buildWorkbenchAiInputRefs(envelope, inputPayload),
     promptContractId: envelope.promptContractId,
     expectedOutputSchema: envelope.outputSchemaRef,
@@ -174,7 +200,7 @@ export const buildWorkbenchAiAbilityRequest = (
     activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
     promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
     qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
-    providerPolicy: { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null },
+    providerPolicy: resolveWorkbenchAiProviderPolicy(taskType),
     costPolicy: { maxEstimatedCost: 0 },
     dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
     safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },

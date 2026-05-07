@@ -4,7 +4,8 @@ export type MapPluginAiTaskType =
   | "product_presence_judgment"
   | "ocr_cleanup"
   | "comment_signal_summary"
-  | "product_signal_summary";
+  | "product_signal_summary"
+  | "schema_validation_only";
 export type MapPluginPromptContractCatalogEntry = NonNullable<
   ReturnType<typeof findAiPromptContractCatalogEntry>
 >;

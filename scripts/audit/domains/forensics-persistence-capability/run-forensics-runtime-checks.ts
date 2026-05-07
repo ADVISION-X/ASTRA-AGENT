@@ -100,6 +100,22 @@ const hasStructuredStorageRefs = (project: import("ts-morph").Project): boolean 
     && sourceHasCallPath(actionStorageSource, ["buildEvidenceStoreStorageRef"]);
 };
 
+const hasDurableStateStoreWriteProbe = (project: import("ts-morph").Project): boolean => {
+  const jsonStateStoreSource = getSourceFileOrThrow(project, "src/lib/storage/json-state-store.ts");
+  const evidenceStoreSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/evidence-store-service.ts");
+  const jsonStateStoreText = jsonStateStoreSource.getFullText();
+  const evidenceStoreText = evidenceStoreSource.getFullText();
+  return sourceHasCallPath(jsonStateStoreSource, ["mkdir"])
+    && sourceHasCallPath(jsonStateStoreSource, ["writeFile"])
+    && sourceHasCallPath(jsonStateStoreSource, ["rename"])
+    && jsonStateStoreText.includes("ENOENT")
+    && sourceHasCallPath(evidenceStoreSource, ["internals.init"])
+    && sourceHasCallPath(evidenceStoreSource, ["internals.listState"])
+    && sourceHasCallPath(evidenceStoreSource, ["internals.stateStore.write"])
+    && evidenceStoreText.includes("durable_write_probe=passed")
+    && evidenceStoreText.includes("forensics_storage_write_failed");
+};
+
 const collectDurabilityFindings = (project: import("ts-morph").Project): Finding[] => {
   const findings: Finding[] = [];
   if (!hasDurableModeGate(project)) {
@@ -107,6 +123,9 @@ const collectDurabilityFindings = (project: import("ts-morph").Project): Finding
   }
   if (!hasStructuredStorageRefs(project)) {
     findings.push(createFinding({ lawId: LAW_STORAGE, file: "src/lib/storage/evidence-store/forensics-record-storage-runtime.ts", line: 1, severity: "fatal", message: "Structured runtime/action records must return storageRef-backed persisted records instead of remaining memory_only." }));
+  }
+  if (!hasDurableStateStoreWriteProbe(project)) {
+    findings.push(createFinding({ lawId: LAW_STORAGE, file: "src/lib/storage/evidence-store/evidence-store-service.ts", line: 1, severity: "fatal", message: "Forensics evidence store health must create the state directory, recover missing state.json, and perform a durable write probe so storage_write_failed cannot pass mission readiness." }));
   }
   return findings;
 };

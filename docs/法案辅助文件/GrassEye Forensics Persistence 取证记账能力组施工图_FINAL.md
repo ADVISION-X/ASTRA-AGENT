@@ -782,3 +782,9 @@ durabilityMode=durable or memory_only
 - A pending request must terminate as `FORENSICS_RECORD_WRITTEN` or `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED`. Failed child results must still produce a terminal boundary event with `forensicsResultStatus`, `recordId`, `recordRef`, `idempotencyKey`, `dedupeDecision`, `durabilityMode`, and `storageRef` so runtime logs can distinguish storage failure from pending acceptance.
 - `review_required` is reserved for memory-only storage, missing chain refs under an explicit review policy, artifact write downgrade, or other durability conditions requiring human review.
 - Boundary refs must continue to include `sourceEventId`, `sourceEventType`, `sourceOwner`, `recordKind`, `recordId`, `recordRef`, `idempotencyKey`, `dedupeDecision`, `storageRef`, and `durabilityMode`.
+
+## Storage Health Probe Addendum
+
+- Durable Forensics storage must initialize the parent data directory and `state.json` before any structured runtime write. `ENOENT` for `state.json` is a storage implementation failure, not a valid review state.
+- Evidence store health must execute a real durable write probe against the governed state store. If that probe fails, the health result must be `ok=false` with a typed reason such as `forensics_storage_write_failed`.
+- Commander mission readiness and mission start preflight must consume this Forensics health result. A failed durable write probe must block executable mission dispatch instead of allowing later proof events to degrade into `storageRef=MISSING`.

@@ -87,6 +87,27 @@
       ]
     },
     {
+      "abilityGroupId": "ai",
+      "childCapabilityId": "schema-validation-only",
+      "description": "Execute governed AI child schema validation only for governed tasks.",
+      "inputSchemaRef": "ai.schema-validation-only.input",
+      "outputSchemaRef": "ai.schema-validation-only.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresReviewGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute browser actions",
+        "invent prompt text",
+        "read credentials or cookies"
+      ]
+    },
+    {
       "abilityGroupId": "forensics-persistence",
       "childCapabilityId": "finalize-browse-ledger",
       "description": "Persist governed forensic record for finalize browse ledger.",

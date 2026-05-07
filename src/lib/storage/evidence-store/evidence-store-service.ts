@@ -36,11 +36,22 @@ function createEvidenceStoreService(dataDir: string, structuredLogBus?: Structur
   const internals = createEvidenceStoreInternals(dataDir, structuredLogBus);
   const recordsContext = createEvidenceStoreRecordsContext(internals);
   const maintenanceContext = createEvidenceStoreMaintenanceContext(internals);
+  const getHealth = async () => {
+    try {
+      await internals.init();
+      const state = await internals.listState();
+      await internals.stateStore.write(state);
+      return { ok: true, detail: `local evidence store ready at ${internals.dataDir}; durable_write_probe=passed` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown evidence store health failure";
+      return { ok: false, detail: `forensics_storage_write_failed: ${message}` };
+    }
+  };
 
   return {
     init: internals.init,
     getDataDir: () => internals.dataDir,
-    getHealth: async () => ({ ok: true, detail: `local evidence store ready at ${internals.dataDir}` }),
+    getHealth,
     listState: internals.listState,
     createTaskRun: createTaskRunRecord.bind(null, recordsContext),
     updateTaskRunStatus: updateTaskRunRecord.bind(null, recordsContext),

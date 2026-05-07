@@ -7,6 +7,7 @@ const AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID: Record<MapPluginAiChildCapabilityId, 
   "comment-text-cleanup": "ocr_cleanup",
   "comment-intent-analysis": "comment_signal_summary",
   "product-signal-summary": "product_signal_summary",
+  "schema-validation-only": "schema_validation_only",
 };
 
 export const getExpectedPromptTaskType = (childCapabilityId: string): AiTaskType | null =>

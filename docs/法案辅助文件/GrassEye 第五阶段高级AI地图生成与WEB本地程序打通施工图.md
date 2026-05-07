@@ -165,3 +165,10 @@ durabilityMode=durable 或 memory_only
 - AI `runtimeCallId` is an AI runtime-internal call identifier. It must never replace the governed `capabilityCallId`, which remains the Orchestration step invocation id. `traceId` remains observability-only and must not become governance chain truth.
 - Terminal visible AI debug logs should de-duplicate repeated human-readable lines by bounded keys such as `runtimeCallId`, `eventType`, `implementationStatus`, and `diagnosticPayloadRef`; the Forensics ledger must still retain the underlying proof events.
 - Business Facebook/TikTok maps may stop at governed review gates. The `builtin.phase-05-full-surface-diagnostic` map is the acceptance surface for all 14 ability-group evidence paths, with text input and click actions constrained to local sandbox, dry-run, no-op, or explicit review gates.
+
+## Phase-05 Forensics Durability Gate Addendum
+
+- Forensics storage health is a mission preflight hard gate. A preflight cannot emit `MISSION_PREFLIGHT_PASSED` or `COMMAND_DISPATCH_READY` when the evidence store reports `storage_write_failed`, `integrity_violation`, `storageRef=MISSING`, or an unavailable durable write probe.
+- The local evidence store must create its state directory before any `state.json` write and must recover a missing `state.json` by initializing governed state, not by returning `memory_only`.
+- Mission readiness and start preflight must surface Forensics health as blocked/degraded with an actionable storage reason. Local AI readiness alone is not sufficient for phase-05 mission readiness.
+- The phase-05 diagnostic map must be runnable as the governed diagnostic acceptance surface and must use deterministic internal schema validation for its AI coverage. It must not reuse business product-presence uncertainty as a branch that can stop visual-target, geometry-guard, click, text-input, scroll, PAV, or evidence-record coverage.

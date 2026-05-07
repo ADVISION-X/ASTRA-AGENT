@@ -20,13 +20,24 @@ export class JsonStateStore<TState> {
 
   async read(): Promise<TState> {
     await this.writeQueue;
-    const raw = await readFile(this.filePath, "utf8");
+    let raw: string;
+    try {
+      raw = await readFile(this.filePath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+      await this.init();
+      await this.writeQueue;
+      raw = await readFile(this.filePath, "utf8");
+    }
     return JSON.parse(raw) as TState;
   }
 
   async write(state: TState): Promise<void> {
     this.writeQueue = this.writeQueue.then(async () => {
       const tempFilePath = `${this.filePath}.tmp`;
+      await mkdir(path.dirname(this.filePath), { recursive: true });
       await writeFile(tempFilePath, JSON.stringify(state, null, 2), "utf8");
       await rename(tempFilePath, this.filePath);
     });
