@@ -99,11 +99,11 @@ function buildTransitionSuccessRoutingFields(details: TransitionSuccessProofDeta
 }
 
 function buildTransitionSuccessStatusFields(details: TransitionSuccessProofDetails) {
-  const nextStatus = details.transition.finalStatus;
+  const nextStatus = details.transition.finalStatus === "review_required" ? "failed" : details.transition.finalStatus;
   return {
     status: toRuntimeProofStatus(nextStatus),
-    failureReason: nextStatus === "failed" ? (details.lastResult.failureReason ?? "transition_invalid") : null,
-    reviewRequiredReason: nextStatus === "review_required" ? (details.lastResult.reviewRequiredReason ?? "review required") : null,
+    failureReason: nextStatus === "failed" ? (details.lastResult.failureReason ?? details.lastResult.reviewRequiredReason ?? "transition_invalid") : null,
+    reviewRequiredReason: null,
   };
 }
 
@@ -114,7 +114,7 @@ function toTransitionDecision(finalStatus: MatchedTransitionRecord["finalStatus"
   if (finalStatus === "completed" || finalStatus === "stopped") {
     return "finalize";
   }
-  return finalStatus === "review_required" ? "review_required" : "failed";
+  return "failed";
 }
 
 function toStateDecision(finalStatus: MatchedTransitionRecord["finalStatus"]): BuildProofInput["stateDecision"] {

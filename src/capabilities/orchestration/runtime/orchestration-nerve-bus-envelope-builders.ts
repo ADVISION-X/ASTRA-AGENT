@@ -2,11 +2,10 @@ import type { OrchestrationNerveBusPort } from "../ports/orchestration-nerve-bus
 
 type SendAbilityInput = Parameters<OrchestrationNerveBusPort["sendCommandToAbility"]>[0];
 type SendAiInput = Parameters<OrchestrationNerveBusPort["sendRequestToAi"]>[0];
-type SendReviewInput = Parameters<OrchestrationNerveBusPort["sendReviewRequestToCommander"]>[0];
 
 type DispatchPayloadRefs = SendAbilityInput["payloadRefs"];
-type SharedChannelId = "orchestration-to-ability" | "orchestration-to-ai" | "orchestration-to-commander";
-type SharedEnvelopeInput = SendAbilityInput | SendAiInput | SendReviewInput;
+type SharedChannelId = "orchestration-to-ability" | "orchestration-to-ai";
+type SharedEnvelopeInput = SendAbilityInput | SendAiInput;
 
 const MAX_TRANSPORT_SUMMARY_LENGTH = 400;
 
@@ -122,24 +121,6 @@ function buildAiEnvelopeFields(input: SendAiInput, capabilityCallId: string) {
     aiInputRefs: input.aiInputRefs,
     modelPolicyRef: null,
     providerPolicyRef: input.providerPolicyRef,
-  };
-}
-
-function buildCommanderReviewEnvelopeFields(input: SendReviewInput, capabilityCallId: string, envelopeId: string, inputRef: string) {
-  return {
-    envelopeKind: "human_command_result" as const,
-    resultId: capabilityCallId,
-    from: "orchestration" as const,
-    to: "commander-console" as const,
-    correlationEnvelopeId: envelopeId,
-    correlationCapabilityCallId: capabilityCallId,
-    correlationInputRef: inputRef,
-    status: "review_required" as const,
-    outputRef: null,
-    diagnosticPayloadRef: inputRef,
-    proofRef: `${envelopeId}:proof`,
-    failureReason: null,
-    reviewRequiredReason: input.reason,
   };
 }
 
@@ -261,38 +242,6 @@ export function buildAiDispatchDocument(input: SendAiInput) {
     documentType: "orchestration.ai_dispatch" as const,
     documentRef: `${input.missionId}:${input.stepId}:ai-input`,
     summary: clampTransportSummary(`Request AI prompt ${input.promptContractId}`),
-    entityRefs: [],
-    evidenceRefs: [],
-    contentBlocks: Object.entries(buildDispatchDocumentContent(input.payloadRefs)).map(([key, value]) => ({ key, value })),
-  };
-}
-
-export function buildCommanderReviewEnvelope(input: SendReviewInput, envelopeId: string, createdAt: string, expiresAt: string) {
-  const inputRef = `${input.missionId}:${input.stepId}:review-input`;
-  const capabilityCallId = buildCapabilityCallId(input, "commander-review");
-  const payloadRefs = collectPayloadRefs(input.payloadRefs, inputRef);
-  return {
-    ...buildOrchestrationSharedEnvelope({
-      transportInput: input,
-      channelId: "orchestration-to-commander",
-      envelopeId,
-      inputRef,
-      capabilityCallId,
-      payloadRefs,
-      summary: input.reason,
-      tags: ["review", input.stepId],
-      createdAt,
-      expiresAt,
-    }),
-    ...buildCommanderReviewEnvelopeFields(input, capabilityCallId, envelopeId, inputRef),
-  };
-}
-
-export function buildCommanderReviewDocument(input: SendReviewInput) {
-  return {
-    documentType: "orchestration.review_dispatch" as const,
-    documentRef: `${input.missionId}:${input.stepId}:review-input`,
-    summary: clampTransportSummary(input.reason),
     entityRefs: [],
     evidenceRefs: [],
     contentBlocks: Object.entries(buildDispatchDocumentContent(input.payloadRefs)).map(([key, value]) => ({ key, value })),

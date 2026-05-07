@@ -18,6 +18,7 @@ import {
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
 import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
+import { ensurePostActionVerificationDispatchGate } from "./orchestration-post-action-verification.js";
 
 function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
   if (!input.step.targetAbilityGroupId || input.step.targetAbilityGroupId === "ai") {
@@ -76,6 +77,10 @@ async function dispatchAbilityStep(input: AbilityDispatchInput): Promise<StepDis
   const failureReason = validateAbilityDispatch(input);
   if (failureReason) {
     return { dispatched: false, failureReason };
+  }
+  const postActionVerificationReason = ensurePostActionVerificationDispatchGate(input.map, input.step.stepId);
+  if (postActionVerificationReason) {
+    return { dispatched: false, failureReason: postActionVerificationReason };
   }
 
   const timeoutResult = await sendAbilityDispatch(input, input.step.targetAbilityGroupId as AbilityDispatchTarget);

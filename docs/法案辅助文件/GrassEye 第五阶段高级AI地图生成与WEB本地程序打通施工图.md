@@ -1,5 +1,7 @@
 # GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图
 
+status: future-draft / inactive until `.github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md` upgrades Current phase to phase-five.
+
 ## 1. 施工边界
 
 本施工图只补第五阶段建设细节，不新增 lawId，不修改冻结法案。若本文与 `.github/instructions/cursor-rules/**` 冲突，以冻结法案为准。

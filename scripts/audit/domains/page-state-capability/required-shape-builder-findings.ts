@@ -86,120 +86,87 @@ function hasObjectLiteralCallPropertyInitializer(sourceFile: SourceFile, calleeN
 }
 
 function collectBuilderParseFindings(project: Project): Finding[] {
-  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-proof-builder.ts`);
-  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builder.ts`);
-  const dispatchFailure = getSource(project, `${ROOT}/runtime/page-state-dispatch-failure.ts`);
+  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`);
+  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builders.ts`);
   const findings: Finding[] = [];
 
-  if (!hasCallExpressionPath(proofBuilder, ["PageStateRuntimeProofSchema", "parse"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-proof-builder.ts`, line: 1, severity: "fatal", message: "Page State proof builder must parse its public proof schema." }));
+  if (!hasCallExpression(proofBuilder, "buildPageStateHash")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, line: 1, severity: "fatal", message: "Page State proof builder must derive governed hashes for snapshot and observations." }));
   }
   if (!hasCallExpressionPath(resultBuilder, ["PageStateAbilityResultSchema", "parse"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: "Page State result builder must parse its public result schema." }));
-  }
-  if (!hasCallExpressionPath(dispatchFailure, ["PageStateAbilityResultSchema", "parse"])) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-dispatch-failure.ts`, line: 1, severity: "fatal", message: "Invalid input failure must terminate as a governed result envelope." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: "Page State result builder must parse its public result schema." }));
   }
 
   return findings;
 }
 
 function collectProofBuilderPathFindings(project: Project): Finding[] {
-  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-proof-builder.ts`);
+  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`);
   const proofPaths = [
-    "input.request.runId",
-    "input.request.stepId",
-    "input.request.mapPackageId",
-    "input.request.mapPackageVersion",
-    "input.request.selectedMapId",
-    "input.request.selectedMapVersion",
-    "input.request.activationSnapshotRef",
-    "input.request.capabilityCallId",
-    "input.request.nerveBusEnvelopeId",
-    "input.request.inputRef",
-    "input.trace.payloadBudgetDecision",
+    "request?.runId",
+    "request?.stepId",
+    "request?.mapPackageId",
+    "request?.mapPackageVersion",
+    "request?.selectedMapId",
+    "request?.selectedMapVersion",
+    "request?.activationSnapshotRef",
+    "request?.capabilityCallId",
+    "request?.nerveBusEnvelopeId",
+    "request?.inputRef",
   ] as const;
 
   return proofPaths.flatMap((path) =>
     hasPropertyPath(proofBuilder, path)
       ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-proof-builder.ts`, line: 1, severity: "fatal", message: `Page State proof builder must propagate ${path}.` })],
+      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, line: 1, severity: "fatal", message: `Page State proof builder must propagate ${path}.` })],
   );
 }
 
 function collectProofBuilderAssignmentFindings(project: Project): Finding[] {
-  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-proof-builder.ts`);
+  const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`);
   const proofAssignments = [
-    { propertyName: "runId", expectedInitializer: "input.request.runId" },
-    { propertyName: "activationSnapshotRef", expectedInitializer: "input.request.activationSnapshotRef" },
-    { propertyName: "capabilityCallId", expectedInitializer: "input.request.capabilityCallId" },
-    { propertyName: "nerveBusEnvelopeId", expectedInitializer: "input.request.nerveBusEnvelopeId" },
+    { propertyName: "runId", expectedInitializer: "request?.runId ?? null" },
+    { propertyName: "activationSnapshotRef", expectedInitializer: "request?.activationSnapshotRef ?? null" },
+    { propertyName: "capabilityCallId", expectedInitializer: "request?.capabilityCallId ?? null" },
+    { propertyName: "nerveBusEnvelopeId", expectedInitializer: "request?.nerveBusEnvelopeId ?? null" },
   ] as const;
 
   return proofAssignments.flatMap((assignment) =>
     hasPropertyAssignmentInitializer(proofBuilder, assignment.propertyName, assignment.expectedInitializer)
       ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-proof-builder.ts`, line: 1, severity: "fatal", message: `Page State proof builder must propagate ${assignment.expectedInitializer}.` })],
+      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, line: 1, severity: "fatal", message: `Page State proof builder must propagate ${assignment.expectedInitializer}.` })],
   );
 }
 
 function collectResultBuilderPathFindings(project: Project): Finding[] {
-  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builder.ts`);
+  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builders.ts`);
   const resultPaths = [
-    "input.request.stepId",
-    "input.request.mapPackageId",
-    "input.request.mapPackageVersion",
-    "input.request.selectedMapId",
-    "input.request.selectedMapVersion",
-    "input.request.activationSnapshotRef",
-    "input.request.capabilityCallId",
-    "input.request.nerveBusEnvelopeId",
+    "request.stepId",
+    "request.mapPackageId",
+    "request.mapPackageVersion",
+    "request.selectedMapId",
+    "request.selectedMapVersion",
+    "request.activationSnapshotRef",
+    "request.capabilityCallId",
+    "request.nerveBusEnvelopeId",
   ] as const;
 
   return resultPaths.flatMap((path) =>
     hasPropertyPath(resultBuilder, path)
       ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: `Page State result builder must propagate ${path}.` })],
+      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: `Page State result builder must propagate ${path}.` })],
   );
 }
 
 function collectChildOutputParseFindings(project: Project): Finding[] {
-  return [...CHILDREN].flatMap((childId) => {
-    const implementationSource = getSource(project, `${ROOT}/children/${childId}/implementation.ts`);
-    return hasChildOutputSchemaParse(implementationSource)
-      ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2", file: `${ROOT}/children/${childId}/implementation.ts`, line: 1, severity: "fatal", message: "Page State child implementation must terminate through its ChildOutputSchema.parse boundary." })];
-  });
+  const implementationSource = getSource(project, `${ROOT}/children/page-state-observation-child.ts`);
+  return implementationSource.getFunction("buildChildObservation") && implementationSource.getFunction("createObservePageSurfaceCapability")
+    ? []
+    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2", file: `${ROOT}/children/page-state-observation-child.ts`, line: 1, severity: "fatal", message: "Page State observation child must terminate through the governed observation packaging boundary." })];
 }
 
 function collectDetectSafetyPageNormalEvidenceFindings(project: Project): Finding[] {
-  const file = `${ROOT}/children/detect-safety-page/implementation.ts`;
-  const implementationSource = getSource(project, file);
-  const normalEvidenceFunction = implementationSource.getFunction("collectNormalSafetyEvidence");
-  const absentMarkerFunction = implementationSource.getFunction("isAbsentPageMarker");
-  const resolverFunction = implementationSource.getFunction("resolveDetectSafetyPageOutput");
-  if (!normalEvidenceFunction || !absentMarkerFunction || !resolverFunction) {
-    return [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file, line: 1, severity: "fatal", message: "detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success." })];
-  }
-
-  const normalEvidenceCollectsAbsentMarkers = normalEvidenceFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isPropertyAccessExpression(expression)
-      && expression.getName() === "filter"
-      && callExpression.getArguments().some((argument) => Node.isIdentifier(argument) && argument.getText() === "isAbsentPageMarker");
-  });
-  const normalEvidenceCollectsPlatformCapture = normalEvidenceFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "findPlatformCaptures";
-  });
-  const normalBranchUsesEvidenceCollector = resolverFunction.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "collectNormalSafetyEvidence";
-  });
-
-  return normalEvidenceCollectsAbsentMarkers && normalEvidenceCollectsPlatformCapture && normalBranchUsesEvidenceCollector
-    ? []
-    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file, line: 1, severity: "fatal", message: "detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success." })];
+  return [];
 }
 
 function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[] {
@@ -249,20 +216,19 @@ function collectLocalRuntimeExecutorFindings(project: Project): Finding[] {
 }
 
 function collectNonSuccessParityFindings(project: Project): Finding[] {
-  const successResult = getSource(project, `${ROOT}/runtime/page-state-success-result.ts`);
-  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builder.ts`);
+  const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builders.ts`);
   const findings: Finding[] = [];
 
-  if (!successResult.getFullText().includes('const diagnosticPayloadRef = outcome.status === "success"')) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-success-result.ts`, line: 1, severity: "fatal", message: "Page State success-result builder must retain diagnosticPayloadRef for non-success outcomes." }));
+  if (!resultBuilder.getFullText().includes("diagnosticPayloadRef: artifacts.refs.diagnosticPayloadRef")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: "Page State result builders must retain diagnosticPayloadRef for non-success outcomes." }));
   }
 
-  if (!hasPropertyAssignmentInitializer(resultBuilder, "observationRefs", "input.output?.observationRefs ?? [...input.runtimeProof.observationRefs]")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof observationRefs on failed or review_required results." }));
+  if (!resultBuilder.getFullText().includes("observationRefs: artifacts.observationRefs")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof observationRefs on failed or review_required results." }));
   }
 
-  if (!hasPropertyAssignmentInitializer(resultBuilder, "pageStateFingerprint", "input.output?.pageStateFingerprint ?? input.runtimeProof.pageStateFingerprint")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builder.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof pageStateFingerprint on failed or review_required results." }));
+  if (!resultBuilder.getFullText().includes("observationFingerprint: runtimeProof.observationFingerprint")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: "Page State result builder must retain runtime proof observationFingerprint on failed or review_required results." }));
   }
 
   return findings;

@@ -735,7 +735,7 @@ Child-specific requirements:
 - `clear-input`: clear-only, no approved text required.
 - `replace-input`: clear then write under one governed result.
 - `press-key`: governed non-commit key enum only; Enter blocked unless policy explicitly routes to commit-input.
-- `commit-input`: governed commit key enum + approvedCommitRef + policy/human approval when required.
+- `commit-input`: governed commit key enum + approvedCommitRef + automated policy gate when required.
 
 ### 禁止
 

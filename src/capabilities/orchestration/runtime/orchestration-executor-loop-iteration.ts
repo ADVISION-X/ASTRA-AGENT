@@ -79,12 +79,12 @@ async function handleDispatchGateFailure(
 async function handleLoopGuardStop(
   input: RunMissionLoopIterationInput,
   step: OperationalStep,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_review_required" | "stop_completed"; nextHopCount: number; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; nextHopCount: number; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> {
   await recordPreconditionCheck(input, step, {
     status: "failed",
     reason: `Loop guard prevented step "${details.currentStepId}" from dispatching.`,
-    failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : "loop guard prevented dispatch",
+    ...(details.loopGuardDecision === "stop_failed" ? { failureReason: "loop_guard_triggered" } : {}),
   });
   const outcome = await buildLoopGuardFailureOutcome(input, {
     currentStepId: details.currentStepId,
@@ -95,7 +95,7 @@ async function handleLoopGuardStop(
     nextHopCount: details.nextHopCount,
     endedAt: details.endedAt,
     failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : null,
-    reviewRequiredReason: details.loopGuardDecision === "stop_review_required" ? "loop guard requested human review" : null,
+    reviewRequiredReason: null,
   });
   await recordTerminalOutcome(input, step, outcome);
   return outcome;

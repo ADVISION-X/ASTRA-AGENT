@@ -21,6 +21,12 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
   if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
     findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Post Action Verification active laws must keep law+inspector+negative-proof evidence mode." }));
   }
+  if (content.includes("No action can be considered verified without a Post-action Verification result or explicit governed review.")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "PAV law must not allow explicit governed review as a substitute for verifying real actions." }));
+  }
+  if (!content.includes("Explicit governed review is not a valid substitute for PAV in production automation.")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "PAV law must explicitly forbid governed review from replacing PAV for production actions." }));
+  }
 
   return {
     findings,

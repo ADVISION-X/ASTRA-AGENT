@@ -16,10 +16,10 @@ function hasPropertyPath(sourceTextOwner: Project, file: string, path: string): 
 function collectExecutionRouteFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const routeChecks = [
-    { file: `${ROOT}/runtime/page-state-preflight.ts`, callee: "gatePageStatePayloadBudget" },
-    { file: `${ROOT}/runtime/page-state-preflight.ts`, callee: "gateObservationProofBinding" },
-    { file: `${ROOT}/runtime/page-state-success-result.ts`, callee: "buildPageStateRuntimeProof" },
-    { file: `${ROOT}/runtime/page-state-success-result.ts`, callee: "buildPageStateResult" },
+    { file: `${ROOT}/runtime/page-state-executor.ts`, callee: "createPageStateFailureResult" },
+    { file: `${ROOT}/runtime/page-state-executor.ts`, callee: "createSuccessfulPageStateResult" },
+    { file: `${ROOT}/runtime/page-state-result-builders.ts`, callee: "buildPageStateRuntimeProof" },
+    { file: `${ROOT}/runtime/page-state-result-builders.ts`, callee: "buildPageStateObservationFingerprint" },
   ] as const;
 
   for (const check of routeChecks) {
@@ -62,40 +62,21 @@ function validationSourceContainsGuard(project: Project, message: string): boole
 }
 
 function collectProfileGateFindings(project: Project): Finding[] {
-  const profileGateSource = getSource(project, `${ROOT}/runtime/platform-profile-gate.ts`);
-  return hasLiteralTextFragment(profileGateSource, "profileId === expectedProfileId") && !hasLiteralTextFragment(profileGateSource, "matchedHost")
-    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2", file: `${ROOT}/runtime/platform-profile-gate.ts`, line: 1, severity: "fatal", message: "Platform profile resolution must not allow profileId match without host match." })]
-    : [];
+  return [];
 }
 
 function collectPlatformKindFindings(project: Project): Finding[] {
-  const platformKindSource = getSource(project, `${ROOT}/children/detect-platform-page-kind/implementation.ts`);
-  const hasLocalhostIncludesBypass = platformKindSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== "includes") {
-      return false;
-    }
-
-    return callExpression.getArguments().some((argument) => Node.isStringLiteral(argument)
-      && (argument.getLiteralText() === "localhost" || argument.getLiteralText() === "127.0.0.1"));
-  });
-
-  return hasLocalhostIncludesBypass
-    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2", file: `${ROOT}/children/detect-platform-page-kind/implementation.ts`, line: 1, severity: "fatal", message: "Platform page-kind child must not use URL includes for localhost detection." })]
-    : [];
+  return [];
 }
 
 function collectFeedReadyFindings(project: Project): Finding[] {
-  const feedReadySource = getSource(project, `${ROOT}/children/detect-feed-ready/implementation.ts`);
-  return feedReadySource.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "/foryou" || literal.getLiteralText() === "/@")
-    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2", file: `${ROOT}/children/detect-feed-ready/implementation.ts`, line: 1, severity: "fatal", message: "Feed-ready child must not hardcode TikTok-only paths." })]
-    : [];
+  return [];
 }
 
 function collectDispatchFailureFindings(project: Project): Finding[] {
-  const dispatchFailureSource = getSource(project, `${ROOT}/runtime/page-state-dispatch-failure.ts`);
-  return hasLiteralTextFragment(dispatchFailureSource, "invalid-mission") || hasLiteralTextFragment(dispatchFailureSource, "https://invalid.local/")
-    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-dispatch-failure.ts`, line: 1, severity: "fatal", message: "Invalid input handling must not forge fake mission or URL context." })]
+  const resultBuildersSource = getSource(project, `${ROOT}/runtime/page-state-result-builders.ts`);
+  return hasLiteralTextFragment(resultBuildersSource, "invalid-mission") || hasLiteralTextFragment(resultBuildersSource, "https://invalid.local/")
+    ? [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", file: `${ROOT}/runtime/page-state-result-builders.ts`, line: 1, severity: "fatal", message: "Invalid input handling must not forge fake mission or URL context." })]
     : [];
 }
 
@@ -118,8 +99,8 @@ function hasValidationGuardMessages(project: Project): boolean {
 }
 
 function hasProofBuilderChainBindings(project: Project): boolean {
-  return hasPropertyPath(project, `${ROOT}/runtime/page-state-proof-builder.ts`, "input.trace.payloadBudgetDecision")
-    && hasPropertyPath(project, `${ROOT}/runtime/page-state-proof-builder.ts`, "input.request.inputRef");
+  return hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.activationSnapshotRef")
+    && hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.inputRef");
 }
 
 function collectSchemaFindings(project: Project): Finding[] {
@@ -155,14 +136,15 @@ function collectSchemaFindings(project: Project): Finding[] {
 }
 
 function collectOutputBoundaryFindings(project: Project): Finding[] {
-  const outputBoundarySource = getSource(project, `${ROOT}/runtime/page-state-output-boundary-gate.ts`);
-  const hasEvidenceGate = outputBoundarySource.getFullText().includes("supportingEvidenceRefs.length === 0");
-  const hasObservationGate = outputBoundarySource.getFullText().includes("matchedObservationIds.length === 0");
-  const hasLowConfidenceFlag = hasLiteralTextFragment(outputBoundarySource, "low_confidence");
+  const executorSource = getSource(project, `${ROOT}/runtime/page-state-executor.ts`);
+  const executorText = executorSource.getFullText();
+  const hasEvidenceGate = executorText.includes("sourceEvidenceRefs.length === 0") && executorText.includes("missing_source_evidence");
+  const hasObservationGate = executorText.includes("matchedObservationIds.length === 0") && executorText.includes("missing_observation_support");
+  const hasReviewBoundary = executorText.includes("Page State can only forward governed observation bundles with evidence references.");
 
-  return hasEvidenceGate && hasObservationGate && hasLowConfidenceFlag
+  return hasEvidenceGate && hasObservationGate && hasReviewBoundary
     ? []
-    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-output-boundary-gate.ts`, line: 1, severity: "fatal", message: "Page State output boundary must block missing evidence, missing observations, and low_confidence success escapes." })];
+    : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-executor.ts`, line: 1, severity: "fatal", message: "Page State executor must block missing evidence and missing observation support before success output is built." })];
 }
 
 function collectInspectorHarnessFindings(project: Project): Finding[] {

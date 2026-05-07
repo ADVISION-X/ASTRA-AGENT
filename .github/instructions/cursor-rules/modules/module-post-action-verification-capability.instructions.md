@@ -21,7 +21,7 @@ Core doctrine:
 - Post-action Verification consumes action refs, before/after evidence refs, observation refs, expected outcome, and verification policy.
 - Post-action Verification returns verified / failed / review_required plus proof.
 - Post-action Verification does not execute actions and does not persist final evidence truth.
-- No action can be considered verified without a Post-action Verification result or explicit governed review.
+- No real action can be considered verified without a Post-action Verification result. Explicit governed review is not a valid substitute for PAV in production automation.
 - No proof, no verification.
 - No before/after or bounded observation support, no verified success.
 - No active PAV law without inspector + runner + negative proof.
@@ -323,7 +323,7 @@ Required:
 - after evidence must be required when `verificationPolicy.requireAfterEvidence = true`.
 - verified result must have supporting evidence/observation/source proof refs.
 - verified result must not rely only on runtime self-report.
-- contradictory observations must produce failed or review_required, not verified.
+- contradictory observations must produce failed or internal review_required, not verified; Orchestration must normalize review_required to failed for production automation routing.
 
 ### 禁止
 

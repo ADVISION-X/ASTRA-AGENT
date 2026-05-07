@@ -34,13 +34,6 @@ export type OrchestrationDispatchResult = {
   payloadRefs: OrchestrationDispatchPayload;
 };
 
-export type OrchestrationReviewDispatchResult = {
-  status: "review_required";
-  reviewDispatchRef: string;
-  failureReason: string | null;
-  payloadRefs: OrchestrationDispatchPayload;
-};
-
 export interface OrchestrationNerveBusPort {
   sendCommandToAbility(input: {
     missionId: string;
@@ -90,22 +83,4 @@ export interface OrchestrationNerveBusPort {
     timeoutMs: number;
     signal?: AbortSignal | undefined;
   }): Promise<OrchestrationDispatchResult>;
-  sendReviewRequestToCommander(input: {
-    missionId: string;
-    mapId: z.output<typeof OperationalMapIdSchema>;
-    stepId: string;
-    runId: string;
-    sessionId: string;
-    roundId: string | null;
-    videoVisitId: string | null;
-    mapPackageId: string;
-    mapPackageVersion: string;
-    selectedMapVersion: string;
-    activationId: string;
-    activationSnapshotRef: string;
-    reason: string;
-    payloadRefs: OrchestrationDispatchPayload;
-    sequenceNo: number;
-    idempotencyKey: string;
-  }): Promise<OrchestrationReviewDispatchResult>;
 }

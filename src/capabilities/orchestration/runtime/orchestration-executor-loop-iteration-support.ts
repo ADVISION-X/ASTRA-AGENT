@@ -73,7 +73,7 @@ type PreparedMissionLoopIteration =
     currentProofContext: OrchestrationLoopProofContext;
     currentStepId: string;
     endedAt: string;
-    loopGuardDecision: "stop_failed" | "stop_review_required" | "stop_completed";
+    loopGuardDecision: "stop_failed" | "stop_completed";
     nextHopCount: number;
     stateHashBefore: string | null;
     stateRevisionBefore: number;
@@ -138,14 +138,22 @@ const buildDispatchGateFailureOutcome = async (
 
 const buildLoopGuardFailureOutcome = async (
   input: RunMissionLoopIterationInput,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_review_required" | "stop_completed"; nextHopCount: number; failureReason: string | null; reviewRequiredReason: string | null; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; nextHopCount: number; failureReason: string | null; reviewRequiredReason: string | null; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> => {
-  const nextStatus = details.loopGuardDecision === "stop_failed" ? "failed" : details.loopGuardDecision === "stop_review_required" ? "review_required" : "completed";
-  const state = toMissionControlState(input.state, details.endedAt, { hopCount: details.nextHopCount, status: nextStatus, failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : null, reviewRequiredReason: details.loopGuardDecision === "stop_review_required" ? "loop guard requested human review" : null, endedAt: details.endedAt });
+  const nextStatus = details.loopGuardDecision === "stop_failed"
+    ? "failed"
+    : "completed";
+  const state = toMissionControlState(input.state, details.endedAt, {
+    hopCount: details.nextHopCount,
+    status: nextStatus,
+    failureReason: details.loopGuardDecision === "stop_failed" ? (details.failureReason ?? "loop_guard_triggered") : null,
+    reviewRequiredReason: null,
+    endedAt: details.endedAt,
+  });
   const proof = buildLoopGuardFailureProof({ context: details.proofContext, currentStepId: details.currentStepId, stateRevisionBefore: details.stateRevisionBefore, stateRevisionAfter: state.stateRevision, stateHashBefore: details.stateHashBefore, stateHashAfter: state.stateHash ?? null, startedAt: details.endedAt, endedAt: details.endedAt, state, loopDecision: details.loopGuardDecision, failureReason: state.failureReason, reviewRequiredReason: state.reviewRequiredReason });
   const runtimeProofId = getRuntimeProofId(proof);
   const persistedState = toMissionControlState(state, details.endedAt, { lastRuntimeProofRef: runtimeProofId, runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId] });
-  const result = buildMissionExecutionResult({ missionState: persistedState, currentStepResult: input.lastResult, runtimeProof: proof });
+  const result = buildMissionExecutionResult({ missionState: persistedState, currentStepResult: input.lastResult, runtimeProof: proof, failureReason: state.failureReason, reviewRequiredReason: null });
   return persistOutcome(input, { state: persistedState, lastResult: input.lastResult, lastProof: proof, result });
 };
 
@@ -177,7 +185,7 @@ const buildTransitionSuccessState = (
   input: RunMissionLoopIterationInput,
   details: { currentStepId: string; startedAt: string; endedAt: string; lastResult: OrchestrationStepResultRecord; transition: MatchedTransitionRecord; nextHopCount: number; },
 ): MissionState => {
-  const nextStatus = details.transition.finalStatus;
+  const nextStatus = details.transition.finalStatus === "review_required" ? "failed" : details.transition.finalStatus;
   const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
   const nextRoundIndex = shouldAdvanceMissionRound({
     currentStepId: details.currentStepId,
@@ -186,7 +194,7 @@ const buildTransitionSuccessState = (
     initialStepId: input.map.initialStepId,
     currentRoundIndex: input.state.currentRoundIndex,
   });
-  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
+  return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: null, failureReason: nextStatus === "failed" ? (details.lastResult.failureReason ?? details.lastResult.reviewRequiredReason ?? "review_required_normalized_to_failed") : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
 };
 
 function shouldAdvanceMissionRound(input: {

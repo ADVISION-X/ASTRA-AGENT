@@ -7,7 +7,7 @@ const INSPECTOR_ENTRY = "scripts/audit/domains/kernel/inspector.ts";
 const main = async (): Promise<void> => {
   if (!process.argv.includes("--skip-build")) {
     process.stdout.write("[AUDIT] building artifacts...\n");
-    await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
+    await buildAuditArtifacts();
   }
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);

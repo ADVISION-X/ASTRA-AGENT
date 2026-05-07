@@ -8,16 +8,13 @@ import {
   buildAbilityDispatchEnvelope,
   buildAiDispatchDocument,
   buildAiDispatchEnvelope,
-  buildCommanderReviewDocument,
-  buildCommanderReviewEnvelope,
 } from "./orchestration-nerve-bus-envelope-builders.js";
 import { resolveAbilityResultProofSummary } from "./ability-result-proof-summary-registry.js";
 
-export type OrchestrationNerveBusTransportSurface = Pick<NerveBusAbilityGroup, "dispatchAbilityCommand" | "dispatchCommanderMessage" | "requestAi">;
+export type OrchestrationNerveBusTransportSurface = Pick<NerveBusAbilityGroup, "dispatchAbilityCommand" | "requestAi">;
 
 type SendAbilityInput = Parameters<OrchestrationNerveBusPort["sendCommandToAbility"]>[0];
 type SendAiInput = Parameters<OrchestrationNerveBusPort["sendRequestToAi"]>[0];
-type SendReviewInput = Parameters<OrchestrationNerveBusPort["sendReviewRequestToCommander"]>[0];
 
 type EnvelopeClock = { now: () => { isoTimestamp: string; monotonicMs: number } };
 
@@ -127,33 +124,11 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
   };
 }
 
-function createCommanderReviewDispatcher(nerveBus: OrchestrationNerveBusTransportSurface, clock: EnvelopeClock) {
-  return async (input: SendReviewInput) => {
-    const envelopeId = randomUUID();
-    const createdAt = clock.now().isoTimestamp;
-    const expiresAt = new Date(Date.now() + 30_000).toISOString();
-    const transport = await nerveBus.dispatchCommanderMessage({
-      envelope: buildCommanderReviewEnvelope(input, envelopeId, createdAt, expiresAt),
-      inputPayload: buildCommanderReviewDocument(input),
-    });
-    return {
-      status: "review_required" as const,
-      reviewDispatchRef: transport.transportedEnvelope.envelopeId,
-      failureReason: transport.reviewRequiredReason ?? transport.failureReason ?? input.reason,
-      payloadRefs: {
-        ...input.payloadRefs,
-        reviewReasonRef: transport.transportedEnvelope.diagnosticPayloadRef,
-      },
-    };
-  };
-}
-
 export function createOrchestrationNerveBusAdapter(nerveBus: OrchestrationNerveBusTransportSurface): OrchestrationNerveBusPort {
   const clock = { now: () => ({ isoTimestamp: new Date().toISOString(), monotonicMs: performance.now() }) };
 
   return {
     sendCommandToAbility: createAbilityCommandDispatcher(nerveBus, clock),
     sendRequestToAi: createAiRequestDispatcher(nerveBus, clock),
-    sendReviewRequestToCommander: createCommanderReviewDispatcher(nerveBus, clock),
   };
 }

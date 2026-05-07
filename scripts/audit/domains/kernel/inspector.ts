@@ -1,9 +1,10 @@
-import { finalizeInspectorResult } from "../../core/result.js";
+import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { InspectorContext } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 
 import { runKernelBoundaryPhaseSuite } from "./kernel-boundary-phase-suite.js";
 import { runKernelGovernancePhaseSuite } from "./kernel-governance-phase-suite.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_KERNEL_NEGATIVE_PROOF";
 
@@ -15,16 +16,29 @@ export async function kernelInspector(_context: InspectorContext) {
   });
   const governance = await runKernelGovernancePhaseSuite();
   const boundaries = await runKernelBoundaryPhaseSuite(process.env[SKIP_NEGATIVE_PROOF_ENV] === "1");
+  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+    ? {
+      findings: [],
+      phase: createPhase(
+        "negative-proof-harness",
+        "PASS",
+        true,
+        "Kernel negative-proof harness skipped for nested inspector execution.",
+      ),
+    }
+    : await runNegativeProofHarness();
 
   const findings = [
     ...base.findings,
     ...governance.findings,
     ...boundaries.findings,
+    ...negativeProof.findings,
   ];
   const phases = [
     ...base.phases,
     ...governance.phases,
     ...boundaries.phases,
+    negativeProof.phase,
   ];
 
   return finalizeInspectorResult({

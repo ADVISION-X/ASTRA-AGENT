@@ -66,8 +66,8 @@ export type BuildProofInput = {
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
   mapDecision: "selected" | "rejected";
-  transitionDecision: "continue" | "finalize" | "review_required" | "failed";
-  loopDecision: "continue" | "stop_completed" | "stop_failed" | "stop_review_required";
+  transitionDecision: "continue" | "finalize" | "failed" | "review_required";
+  loopDecision: "continue" | "stop_completed" | "stop_failed";
   stateDecision: "created" | "updated" | "paused" | "resumed" | "stopped" | "emergency_stopped" | "finalized";
   emergencyDecision: "none" | "latched" | "executed";
   dataQualityFlags?: string[];
@@ -185,18 +185,19 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
   return { ...buildOrchestrationProofIdentityFields(input), ...buildOrchestrationProofStateFields(input), ...buildOrchestrationProofRouteFields(input), ...buildOrchestrationProofArtifactFields(input) };
 }
 
-function buildOrchestrationProofDecisionFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
-  | "startedAt"
-  | "endedAt"
-  | "durationMs"
-  | "status"
-  | "failureReason"
-  | "reviewRequiredReason"
-  | "mapDecision"
-  | "transitionDecision"
-  | "loopDecision"
-  | "stateDecision"
-  | "emergencyDecision"> {
+function buildOrchestrationProofDecisionFields(input: BuildProofInput): {
+  startedAt: BuildProofInput["startedAt"];
+  endedAt: BuildProofInput["endedAt"];
+  durationMs: BuildProofInput["durationMs"];
+  status: BuildProofInput["status"];
+  failureReason: string | null;
+  reviewRequiredReason: string | null;
+  mapDecision: BuildProofInput["mapDecision"];
+  transitionDecision: BuildProofInput["transitionDecision"];
+  loopDecision: BuildProofInput["loopDecision"];
+  stateDecision: BuildProofInput["stateDecision"];
+  emergencyDecision: BuildProofInput["emergencyDecision"];
+} {
   return {
     startedAt: input.startedAt,
     endedAt: input.endedAt,

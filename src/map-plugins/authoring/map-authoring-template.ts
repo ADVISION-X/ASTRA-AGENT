@@ -103,6 +103,7 @@ function buildOutputRequirementLines(): string[] {
     "- Every AI step must have a prompt binding with promptContractId, requiredInputRefs, and outputSchemaRef.",
     "- Production automation maps must be routePlanBoundMap: declare only entry spine, AI handoff, Prompt Contract refs, input/output refs, and routePlanId.",
     "- Route Plan is the only muscle-memory source for routeLabel -> step chain -> ability group/child capability. The map must not duplicate Route Plan-owned steps, transitions, route labels, or AI success routing.",
+    "- Production routePlanBoundMap must not use Branch DSL, schemaFieldRef routing, action chains, review routes, or map-owned branching; only Route Plan routeLabel matching is allowed.",
     "- genericDiagnosticMap is only for isolated diagnostics and must not bind Route Plan or enter production automation execution.",
     "- 地图禁止出现任何约束逻辑；一个地图 + 对应 Prompt Contract，才是完整地图。",
     "- UserRequirement.binaryOutcomePolicy is mandatory source truth: product_yes must use selectedPositiveRouteLabel and product_no must use selectedNegativeRouteLabel.",

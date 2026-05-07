@@ -217,7 +217,8 @@ import
 → platform profile validation
 → compatibility validation
 → dry-run validation
-→ human approval
+→ Commander governed automation gate
+→ activation proof
 → activation
 → active registry
 → rollback if needed
@@ -247,7 +248,7 @@ FORBIDDEN:
 - map package bypassing validation.
 - unvalidated map package becoming active.
 - unapproved map package becoming active.
-- AI generated draft map executing without validation and human approval.
+- AI generated draft map executing without validation and Commander governed automation gate.
 - legacy static TypeScript maps acting as active runtime selection truth.
 - maps becoming platform-specific browse-flow narratives.
 
@@ -362,7 +363,6 @@ Orchestration must dispatch governed work only through Nerve Bus.
 Required:
 - Ability steps dispatch through `OrchestrationNerveBusPort.sendCommandToAbility`.
 - AI steps dispatch through `OrchestrationNerveBusPort.sendRequestToAi`.
-- Review steps dispatch through `OrchestrationNerveBusPort.sendReviewRequestToCommander`.
 - Every dispatch must produce nerveBusEnvelopeId.
 - Every dispatched step proof must record nerveBusEnvelopeId.
 - Every ability input generated from Orchestration must include:
@@ -381,7 +381,7 @@ Required:
   - sourceRef
   - inputRef
   - idempotencyKey
-- Dispatch timeout must return typed failure/review with proof.
+- Dispatch timeout must return typed failed proof.
 - Late Nerve Bus result must not overwrite timeout failure.
 
 ### 禁止
@@ -398,6 +398,7 @@ FORBIDDEN:
 - Nerve Bus dispatch without envelopeId.
 - dispatch result accepted without envelope semantic check.
 - AI prompt dispatch without promptContractId from map step.
+- Any `sendReviewRequestToCommander`, runtime review dispatch, or Commander review request from Orchestration.
 
 Required inspector:
 - Direct cross-group import ban.
@@ -441,12 +442,12 @@ Required:
 - mouse-click step must require visual-target and geometry-guard handoff.
 - mouse-scroll step must require geometry-guard handoff.
 - text-input step must require approved text and verified input target handoff.
-- Any action step must require subsequent post-action-verification step or explicit policy reason.
+- Every real action step, including open, click, scroll, and text-input, must require a subsequent post-action-verification result. No explicit policy reason may replace PAV for real external actions.
 - Evidence output must route to Forensics Persistence through governed request.
 - Transition evaluation must consume only declared output schema fields.
 - AI branch decisions must rely only on declared outputSchemaRef fields.
-- Exactly one transition may match, otherwise review/fail.
-- No transition match must fail/review.
+- Exactly one transition may match, otherwise fail.
+- No transition match must fail.
 - Loop guard must enforce maxRounds/maxMinutes/maxStepCount.
 - Emergency-stop must short-circuit loop and latch state.
 
@@ -463,6 +464,7 @@ FORBIDDEN:
 - transition ambiguity success.
 - no transition treated as success.
 - static browse-flow hardcoded decision tree.
+- runtime review route, human review dispatch, or review-decision route inside production automation.
 
 Required inspector:
 - Precondition gates.
@@ -508,7 +510,7 @@ Required:
 - Orchestration may not concatenate prompt strings.
 - Orchestration may not choose prompt by hardcoded model/task logic.
 - Orchestration may not select prompt from latest prompt catalog during running mission.
-- Prompt contract mismatch must fail/review.
+- Prompt contract mismatch must fail.
 
 ### 禁止
 
@@ -561,7 +563,7 @@ Required:
 - Orchestration owns final round status.
 - Orchestration may build a persistence request.
 - Orchestration may forward only cleaned payload refs, `artifactLifecycleManifestRef`, and `artifactHash` to Forensics.
-- Orchestration must propagate Screenshot quota/backpressure and cleanup-blocker outcomes as typed fail/review, not silent retries.
+- Orchestration must propagate Screenshot quota/backpressure and cleanup-blocker outcomes as typed failed outcomes, not silent retries.
 - Orchestration may request promotion or cleanup only through Forensics public contract / Nerve Bus request.
 - Orchestration must not mark screenshot artifacts as `promoted-evidence` or `legal-hold-evidence`.
 - Forensics returns persistence refs.

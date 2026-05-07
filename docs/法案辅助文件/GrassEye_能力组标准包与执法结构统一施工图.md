@@ -85,7 +85,7 @@ GrassEye 当前法案源头已冻结。
 | local-browser-session | open-capability | 否 | open-capability |
 | local-app-shell | commander-console-capability | 否 | commander-console-capability |
 | startup-entrypoint | commander-console-capability | 否 | commander-console-capability |
-| structured-logging | forensics-persistence-capability / capability-group-governance | 否 | forensics-persistence-capability |
+| structured-logging | forensics-persistence-capability | 否 | forensics-persistence-capability |
 | local-persistence-schema | forensics-persistence-capability | 否 | forensics-persistence-capability |
 | platform-action | open-capability | 否 | open-capability |
 | code-topology | capability-group-governance | 否 | capability-group-governance |

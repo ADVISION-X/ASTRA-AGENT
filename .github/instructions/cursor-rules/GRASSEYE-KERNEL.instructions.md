@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Kernel"
-description: "Use when defining or reviewing GrassEye phase-four full enforcement governance, authority order, canonical paths, active ability groups, and active system boundaries."
+description: "Use when defining or reviewing GrassEye phase-four full enforcement governance, authority order, canonical paths, active ability groups, and active system boundaries. Phase-five files are future-draft unless this Kernel explicitly upgrades current phase."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
@@ -13,7 +13,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 - System nature: local-first visual agent for product discovery research
 - Product form: macOS local desktop workbench with a localhost operator console during the current implementation window
 - Current phase: phase-four full-law enforcement and full active-domain monitoring
-- Core mission: discover evidence-backed product opportunities from social video feeds through governed ability groups, local AI, local browser execution, and operator review
+- Core mission: discover evidence-backed product opportunities from social video feeds through governed ability groups, local AI, local browser execution, and automated Forensics proof
 
 ## Fixed Formula
 
@@ -32,7 +32,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 4. grasseye-index.instructions.md
 5. module-capability-group-governance.instructions.md when ability-group structure or shared contracts are in scope
 6. One path-matched module law file
-7. Operator decision for live execution
+7. Commander governed automation gate before activation; no runtime human review route
 
 One issue has one active owner plus any directly governing shared foundation.
 
@@ -94,7 +94,9 @@ One issue has one active owner plus any directly governing shared foundation.
 - Law blueprints: docs/法案辅助文件
 - Runtime local data: outside repository source truth and gitignored
 
-## Fingerprint Index
+## Core Fingerprint Index
+
+- This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Full coverage belongs to the generated audit matrix and domain inspectors.
 
 - kernel: GRASSEYE-KERNEL.instructions.md
 - router: grasseye-index.instructions.md

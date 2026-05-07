@@ -289,13 +289,27 @@ aiGenerated=true with activationGateStatus=gate_passed at generation time
 
 ## 5. Operational Map Step Model
 
-Each step must contain:
+This model is diagnostic-only. It may be used by `genericDiagnosticMap` for governed debugging surfaces, but it is forbidden as the production action chain for `routePlanBoundMap`.
+
+Production `routePlanBoundMap` may declare only:
+
+```yaml
+mapKind: routePlanBoundMap
+initialStepId: entry spine step
+routePlanId: required
+AI handoff step: promptContractId + inputRefs/outputRefPolicy only
+promptBindings: required
+```
+
+Production `routePlanBoundMap` must not declare action, observation, review, branch, or finalization step chains; Route Plan is the only owner of `routeLabel -> step chain -> abilityGroup/childCapability`.
+
+Diagnostic-only steps must contain:
 
 ```yaml
 stepId: required
 capabilityId: orchestration
 childCapabilityId: required
-stepKind: ai | action | observation | review | branch | finalization
+stepKind: ai | action | observation | branch | finalization
 targetAbilityGroupId: required
 inputRefs: list
 outputRefPolicy: required
@@ -314,7 +328,7 @@ Rules:
 
 ```txt
 AI step must have promptContractId.
-Action step must obey capability catalog PAV/geometry/review requirements.
+Action step must obey capability catalog PAV/geometry requirements.
 Steps may reference only known abilityGroupId/childCapabilityId from capability catalog.
 Map step must not declare timeoutPolicy / timeoutMs / maxDurationMs / primitiveTimeoutMs.
 Map step must not decide wait, retry, polling, or AND THEN fallback behavior.
@@ -359,12 +373,16 @@ prompt text in Orchestration
 
 ## 7. Branch Condition DSL
 
+Branch DSL is diagnostic-only. It is allowed only in `genericDiagnosticMap` and must not enter production `routePlanBoundMap`.
+
+Production `routePlanBoundMap` uses only `routeLabelMatch`: Orchestration reads the AI `routeLabel`, verifies it is declared by the Prompt Contract and allowed by the bound Route Plan, then mechanically executes the Route Plan chain. No arbitrary `schemaFieldRef` Branch DSL, review branch, or map-owned transition branch is allowed in production route-plan-bound automation.
+
 Allowed fields:
 
 ```yaml
 conditionType: comparison
 leftRef: status | schemaFieldRef:<fieldName>
-operator: equals | notEquals | exists | notExists | greaterThan | lessThan | confidenceAbove | confidenceBelow | statusIs | reviewRequired
+operator: equals | notEquals | exists | notExists | greaterThan | lessThan | confidenceAbove | confidenceBelow | statusIs
 rightValue: scalar or null
 onTrue: stepId
 onFalse: stepId
@@ -376,9 +394,9 @@ Validation:
 leftRef=status may reference only allowed status field
 schemaFieldRef:<fieldName> must exist in outputSchemaRef declared fields
 numeric operators require numeric value
-exists/notExists/reviewRequired require null rightValue
-ambiguous transition fails/review
-no transition fails/review
+exists/notExists require null rightValue
+ambiguous transition fails
+no transition fails
 ```
 
 Forbidden:
@@ -1175,12 +1193,14 @@ forbiddenFields: list
 exampleOutput: optional
 ```
 
-地图 branch 只能引用：
+`genericDiagnosticMap` branch 只能引用：
 
 ```txt
 status
 schemaFieldRef:<fieldName> where fieldName ∈ branchableFields
 ```
+
+`routePlanBoundMap` 禁止使用 Branch DSL，只能使用 Prompt Contract 声明的 `routeLabel` 与 Route Plan allowed labels 做机械匹配。
 
 禁止：
 

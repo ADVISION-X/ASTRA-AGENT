@@ -54,10 +54,6 @@ const REQUIRED_SCHEMA_FIELDS = [
   "outputSchemaRef",
   "aiInputRefs",
   "providerPolicyRef",
-  "correlationEnvelopeId",
-  "correlationCapabilityCallId",
-  "correlationInputRef",
-  "proofRef",
 ] as const;
 
 const getPropertyNames = (sourceTextOwner: NonNullable<ReturnType<typeof getSourceFile>>): Set<string> => {
@@ -266,8 +262,8 @@ function collectCommandTransportFindings(project: ReturnType<typeof makeProject>
 
 function collectAdapterTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const adapterSource = getSourceFile(project, PATHS.ORCHESTRATION_ADAPTER);
-  return !adapterSource || !hasCallExpression(adapterSource, "dispatchAbilityCommand") || !hasCallExpression(adapterSource, "requestAi") || !hasCallExpression(adapterSource, "dispatchCommanderMessage")
-    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_ADAPTER, line: 1, severity: "fatal", message: "Orchestration adapter must route ability, AI, and commander review traffic through Nerve Bus." })]
+  return !adapterSource || !hasCallExpression(adapterSource, "dispatchAbilityCommand") || !hasCallExpression(adapterSource, "requestAi") || adapterSource.getFullText().includes("dispatchCommanderMessage")
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_ADAPTER, line: 1, severity: "fatal", message: "Orchestration adapter must route ability and AI traffic through Nerve Bus and must not expose runtime Commander review traffic." })]
     : [];
 }
 
@@ -281,10 +277,8 @@ function collectEnvelopeBuilderTransportFindings(project: ReturnType<typeof make
     "promptContractVersion",
     "outputSchemaRef",
     "aiInputRefs",
-    "correlationEnvelopeId",
-    "proofRef",
   ])
-    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.ORCHESTRATION_ENVELOPE_BUILDERS, line: 1, severity: "fatal", message: "Orchestration envelope builders must preserve full-chain ability, AI, and commander envelope fields." })]
+    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.ORCHESTRATION_ENVELOPE_BUILDERS, line: 1, severity: "fatal", message: "Orchestration envelope builders must preserve full-chain ability and AI envelope fields without runtime Commander review dispatch." })]
     : [];
 }
 
@@ -292,8 +286,8 @@ function collectStepDispatcherTransportFindings(project: ReturnType<typeof makeP
   const findings: Finding[] = [];
   const stepDispatcherSource = getSourceFile(project, PATHS.STEP_DISPATCHER);
   const stepDispatchRequestBuildersSource = getSourceFile(project, PATHS.STEP_DISPATCH_REQUEST_BUILDERS);
-  if (!stepDispatcherSource || !hasCallExpression(stepDispatcherSource, "sendCommandToAbility") || !hasCallExpression(stepDispatcherSource, "sendRequestToAi") || !hasCallExpression(stepDispatcherSource, "sendReviewRequestToCommander")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must use governed Nerve Bus port methods for ability, AI, and review dispatch." }));
+  if (!stepDispatcherSource || !hasCallExpression(stepDispatcherSource, "sendCommandToAbility") || !hasCallExpression(stepDispatcherSource, "sendRequestToAi") || stepDispatcherSource.getFullText().includes("sendReviewRequestToCommander")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must use governed Nerve Bus port methods for ability and AI dispatch only; runtime review dispatch is forbidden." }));
   }
   if (!sourceHasProperties(stepDispatchRequestBuildersSource, ["runId", "activationSnapshotRef", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
     findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCH_REQUEST_BUILDERS, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve frozen activation chain and AI prompt binding refs." }));
@@ -303,8 +297,8 @@ function collectStepDispatcherTransportFindings(project: ReturnType<typeof makeP
 
 function collectRuntimeContextTransportFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const runtimeContextSource = getSourceFile(project, PATHS.ORCHESTRATION_RUNTIME_CONTEXT);
-  return !runtimeContextSource || !hasCallExpression(runtimeContextSource, "dispatchCommanderMessage")
-    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_RUNTIME_CONTEXT, line: 1, severity: "fatal", message: "Orchestration runtime context must expose Nerve Bus commander-message transport surface." })]
+  return !runtimeContextSource || runtimeContextSource.getFullText().includes("dispatchCommanderMessage")
+    ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ORCHESTRATION_RUNTIME_CONTEXT, line: 1, severity: "fatal", message: "Orchestration runtime context must not expose Nerve Bus commander-message review transport surface." })]
     : [];
 }
 

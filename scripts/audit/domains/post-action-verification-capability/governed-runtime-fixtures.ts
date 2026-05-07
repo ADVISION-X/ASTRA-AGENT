@@ -15,19 +15,19 @@ function createFixtureRuntime(currentUrl: string, loginState: "logged_in" | "log
 
 function createFixtureEnvelope(): Parameters<typeof buildPostActionVerificationInput>[1] {
   return {
-    commandName: "verify-page-opened",
+    commandName: "observe-page-open-attempt",
     missionId: "mission-1",
     runId: "run-1",
     sessionId: "mission-1",
     roundId: "0",
     videoVisitId: null,
-    stepId: "verify-page-opened",
+    stepId: "observe-page-open-attempt",
     mapPackageId: "builtin.tiktok-seeding-video-discovery",
     mapPackageVersion: "1.0.0",
     selectedMapId: "tiktok.seeding-video.discovery.meta.v1",
     selectedMapVersion: "1.0.0",
     activationSnapshotRef: "activation-snapshot:1",
-    capabilityCallId: "mission-1:verify-page-opened:1:ability",
+    capabilityCallId: "mission-1:observe-page-open-attempt:1:ability",
     nerveBusEnvelopeId: "env-1",
     inputRef: "result-ref-1",
     idempotencyKey: "idem-1",
@@ -59,12 +59,12 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   const abilityGroup = createPostActionRuntime().postActionVerificationAbilityGroup;
 
   assertCondition(input.runId === "run-1", "Builder must preserve runId from the governed envelope.");
-  assertCondition(input.expectedOutcome.expectedUrlHost === "www.tiktok.com", "Builder must align verify-page-opened expectedUrlHost with the canonical platform host.");
-  assertCondition(pageStateObservation?.kind === "page_state", "Builder must emit a page_state observation for verify-page-opened.");
+  assertCondition(input.expectedOutcome.expectedUrlHost === "www.tiktok.com", "Builder must align observe-page-open-attempt expectedUrlHost with the canonical platform host.");
+  assertCondition(pageStateObservation?.kind === "page_state", "Builder must emit a page_state observation for observe-page-open-attempt.");
   assertCondition(pageStateObservation?.source.sourceProofRef === input.actionProof.sourceRuntimeProofRef, "Builder must bind page-state observation back to the governed source proof ref.");
 
   const verificationResult = await abilityGroup.execute(input);
-  assertCondition(verificationResult.status === "success" && verificationResult.output !== null, "verify-page-opened fixture must reach governed success for a ready TikTok feed URL.");
+  assertCondition(verificationResult.status === "success" && verificationResult.output !== null, "observe-page-open-attempt fixture must reach governed success for a ready TikTok feed URL.");
 
   const invalidInputResult = await abilityGroup.execute({
     ...input,

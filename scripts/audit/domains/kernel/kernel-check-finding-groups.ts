@@ -37,6 +37,10 @@ const {
   REQUIREMENT_ID_BLUEPRINT_002_004,
   SUPPORT_GOVERNANCE_DOMAINS,
 } = kernelInspectionConstants;
+const PHASE_FIVE_DRAFT_FILES = [
+  "docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md",
+  "docs/项目方案/GrassEye_第五阶段建设目标方案.md",
+] as const;
 
 const collectRequiredSectionLineFindings = (input: {
   requirementId: string;
@@ -166,15 +170,26 @@ const collectCapabilityRootFindings = async (): Promise<Finding[]> => {
 };
 
 const collectSupportLawBoundaryFindings = (kernelSections: Map<string, MarkdownSection>): Finding[] => {
-  return collectRequiredSectionLineFindings({
-    requirementId: REQUIREMENT_ID_001,
-    file: KERNEL_FILE,
-    heading: "Fixed Formula",
-    sections: kernelSections,
-    expectedLine: "Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.",
-    missingMessage: "Kernel must declare the Fixed Formula section.",
-    driftMessage: "Kernel support-law boundary must forbid creating a second runtime chain.",
-  });
+  return [
+    ...collectRequiredSectionLineFindings({
+      requirementId: REQUIREMENT_ID_001,
+      file: KERNEL_FILE,
+      heading: "Fixed Formula",
+      sections: kernelSections,
+      expectedLine: "Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.",
+      missingMessage: "Kernel must declare the Fixed Formula section.",
+      driftMessage: "Kernel support-law boundary must forbid creating a second runtime chain.",
+    }),
+    ...collectRequiredSectionLineFindings({
+      requirementId: REQUIREMENT_ID_001,
+      file: KERNEL_FILE,
+      heading: "Core Fingerprint Index",
+      sections: kernelSections,
+      expectedLine: "This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Full coverage belongs to the generated audit matrix and domain inspectors.",
+      missingMessage: "Kernel must declare Core Fingerprint Index as a core index, not a full inventory.",
+      driftMessage: "Kernel fingerprint index must be explicitly scoped as core-only to avoid full-index drift.",
+    }),
+  ];
 };
 
 const collectFrozenConclusionFindings = (blueprintSections: Map<string, MarkdownSection>): Finding[] => {
@@ -216,6 +231,34 @@ const collectFrozenConclusionFindings = (blueprintSections: Map<string, Markdown
       driftMessage: "Frozen baseline conclusion must declare parent-owner child-contract law files.",
     }),
   ];
+};
+
+const collectFrozenOwnerWordingFindings = (blueprintContent: string): Finding[] =>
+  blueprintContent.includes("structured-logging | forensics-persistence-capability / capability-group-governance")
+    ? [createFinding({
+      lawId: REQUIREMENT_ID_BLUEPRINT_002_004,
+      file: BLUEPRINT_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Frozen baseline must not express structured-logging with dual parent owner wording; use forensics-persistence-capability owner plus governedBy separately.",
+    })]
+    : [];
+
+const collectPhaseFiveDraftStatusFindings = async (): Promise<Finding[]> => {
+  const findings: Finding[] = [];
+  for (const file of PHASE_FIVE_DRAFT_FILES) {
+    const content = await readTextFile(pathFromRepoRoot(file));
+    if (!content.includes("status: future-draft / inactive")) {
+      findings.push(createFinding({
+        lawId: REQUIREMENT_ID_001,
+        file,
+        line: 1,
+        severity: "fatal",
+        message: "Phase-five documents must be marked future-draft/inactive until Kernel Current phase upgrades to phase-five.",
+      }));
+    }
+  }
+  return findings;
 };
 
 const collectAbilityGroupBaselineFindings = (kernelSections: Map<string, MarkdownSection>, blueprintSections: Map<string, MarkdownSection>) => {
@@ -312,8 +355,14 @@ export async function loadKernelCheckFindingGroups(): Promise<KernelCheckFinding
   const abilityGroupBaseline = collectAbilityGroupBaselineFindings(kernelSections, blueprintSections);
 
   return {
-    supportLawBoundaryFindings: collectSupportLawBoundaryFindings(kernelSections),
-    frozenConclusionFindings: collectFrozenConclusionFindings(blueprintSections),
+    supportLawBoundaryFindings: [
+      ...collectSupportLawBoundaryFindings(kernelSections),
+      ...(await collectPhaseFiveDraftStatusFindings()),
+    ],
+    frozenConclusionFindings: [
+      ...collectFrozenConclusionFindings(blueprintSections),
+      ...collectFrozenOwnerWordingFindings(blueprintContent),
+    ],
     kernelListFindings: abilityGroupBaseline.kernelListFindings,
     blueprintListFindings: abilityGroupBaseline.blueprintListFindings,
     foundationLawFindings: collectFoundationLawBaselineFindings(kernelSections, blueprintSections),

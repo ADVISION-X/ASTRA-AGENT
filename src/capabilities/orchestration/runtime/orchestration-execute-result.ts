@@ -55,15 +55,15 @@ function resolveExecuteStatus(state: MissionState, failureReason: string | null 
   if (failureReason) {
     return "failed";
   }
+  if (state.status === "review_required") {
+    return "failed";
+  }
   return state.status === "idle" || state.status === "pending" ? "failed" : state.status;
 }
 
-function resolveTransitionDecision(status: ResultStatus): "continue" | "finalize" | "review_required" | "failed" {
-  if (status === "failed") {
+function resolveTransitionDecision(status: ResultStatus): "continue" | "finalize" | "failed" {
+  if (status === "failed" || status === "review_required") {
     return "failed";
-  }
-  if (status === "review_required") {
-    return "review_required";
   }
   if (status === "completed" || status === "stopped") {
     return "finalize";

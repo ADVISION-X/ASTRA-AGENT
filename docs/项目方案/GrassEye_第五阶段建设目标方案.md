@@ -1,5 +1,7 @@
 # GrassEye 第五阶段建设目标方案
 
+status: future-draft / inactive until `.github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md` upgrades Current phase to phase-five.
+
 ## 1. 阶段定位
 
 第五阶段目标是实现高级 AI 生成地图，并打通 WEB 平台与本地程序 / iPhone Mirroring / macOS local 的统一执行链路。
@@ -11,7 +13,7 @@
 - 1 个 support governance domain：map-plugin-package。
 - 不新增 owner，不修改 `.github/instructions/cursor-rules/**` 法案文件。
 
-`local-ai-runtime` 仍归 AI，`local-browser-session` 仍归 Open，`local-app-shell` 仍归 Commander Console，`structured-logging` 仍归 Forensics / governance。第五阶段不是新增 runtime，而是把既有能力组按证据链打通。
+`local-ai-runtime` 仍归 AI，`local-browser-session` 仍归 Open，`local-app-shell` 仍归 Commander Console，`structured-logging` 父 owner 仍归 Forensics，并由 governance 约束。第五阶段不是新增 runtime，而是把既有能力组按证据链打通。
 
 ## 2. 正确主链
 
@@ -22,7 +24,7 @@ Human / Operator
 → AI structured draft output
 → map authoring normalizer
 → map-plugin-package import
-→ quarantine / validation / compatibility / human approval
+→ quarantine / validation / compatibility / Commander governed automation gate
 → active registry
 → Orchestration freeze activation snapshot
 → Nerve Bus dispatch
@@ -42,7 +44,7 @@ Human / Operator
 
 ## 4. 高级 AI 生成地图边界
 
-Map Lab 是 Commander Console / AI / map-plugin-package support domain 的组合入口。AI 只生成结构化 draft map；normalizer 负责把 AI 输出收敛为声明式 package；registry `importPackage()` 负责 quarantine、validation、compatibility proof 和 review-required 结果。激活只能发生在 human approval 之后，由 map-plugin-package 生命周期和 Orchestration activation snapshot 证明。
+Map Lab 是 Commander Console / AI / map-plugin-package support domain 的组合入口。AI 只生成结构化 draft map；normalizer 负责把 AI 输出收敛为声明式 package；registry `importPackage()` 负责 quarantine、validation、compatibility proof 和 blocked/failed 结果。激活只能发生在 Commander governed automation gate 之后，由 map-plugin-package 生命周期和 Orchestration activation snapshot 证明。
 
 当前生产方向以 `generateMapLabDraft()` 为准：`buildMapAuthoringAiRequest()` 构造 AI request，`aiAbilityGroup.execute()` 返回结构化结果，`normalizeMapLabDraft()` 归一化，最后 `registry.importPackage()` 导入。非 success、dry-run captured、validation issues 都不得直接 active。
 

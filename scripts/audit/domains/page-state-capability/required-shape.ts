@@ -34,7 +34,6 @@ const RUNTIME_PROOF_CHAIN_FIELDS = [
   "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
-  "payloadBudgetDecision",
 ] as const;
 
 const RESULT_CHAIN_FIELDS = [
@@ -49,18 +48,11 @@ const RESULT_CHAIN_FIELDS = [
 ] as const;
 
 const EXECUTION_ROUTE_SOURCES = {
-  gatePageStateInput: `${ROOT}/runtime/page-state-preflight.ts`,
-  gatePageStatePayloadBudget: `${ROOT}/runtime/page-state-preflight.ts`,
-  gateObservationSources: `${ROOT}/runtime/page-state-preflight.ts`,
-  gateObservationProofBinding: `${ROOT}/runtime/page-state-preflight.ts`,
-  gateSnapshotFreshness: `${ROOT}/runtime/page-state-preflight.ts`,
-  gatePlatformProfile: `${ROOT}/runtime/page-state-preflight.ts`,
-  gatePageStateOutputBoundary: `${ROOT}/runtime/state-classification-gate.ts`,
-  classifyPageState: `${ROOT}/runtime/page-state-success-result.ts`,
-  decideProceed: `${ROOT}/runtime/page-state-success-result.ts`,
-  createPageStateFingerprint: `${ROOT}/runtime/page-state-success-result.ts`,
-  buildPageStateRuntimeProof: `${ROOT}/runtime/page-state-success-result.ts`,
-  buildPageStateResult: `${ROOT}/runtime/page-state-success-result.ts`,
+  createPageStateFailureResult: `${ROOT}/runtime/page-state-executor.ts`,
+  createSuccessfulPageStateResult: `${ROOT}/runtime/page-state-executor.ts`,
+  buildPageStateRuntimeProof: `${ROOT}/runtime/page-state-result-builders.ts`,
+  buildPageStateObservationFingerprint: `${ROOT}/runtime/page-state-result-builders.ts`,
+  buildPageStateDebugRefs: `${ROOT}/runtime/page-state-result-builders.ts`,
 } as const;
 
 function resolveZodObjectLiteral(node: Node | undefined): ObjectLiteralExpression | null {
@@ -164,8 +156,9 @@ const inspectSchemaShape = (project: Project): Finding[] => {
 function inspectExecutorEntry(project: Project): Finding[] {
   const executorSource = getSource(project, `${ROOT}/runtime/page-state-executor.ts`);
   const executorRoutes = [
-    { callee: "runPageStatePreflight", message: "Page State executor must route through runPageStatePreflight." },
-    { callee: "buildPageStateSuccessResult", message: "Page State executor must route through buildPageStateSuccessResult." },
+    { callee: "execute", message: "Page State executor must route through the child capability execute contract." },
+    { callee: "createPageStateFailureResult", message: "Page State executor must route through createPageStateFailureResult." },
+    { callee: "createSuccessfulPageStateResult", message: "Page State executor must route through createSuccessfulPageStateResult." },
   ] as const;
 
   return executorRoutes.flatMap((route) =>

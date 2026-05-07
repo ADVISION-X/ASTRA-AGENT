@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T19:48:45.629Z",
+  "generatedAt": "2026-05-07T20:32:23.826Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -5225,13 +5225,6 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
-          "checkPhase": "anti-escape",
-          "checkFunction": "collectProfileGateFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/anti-escape.ts",
-          "targetSymbol": "collectProfileGateFindings",
-          "checkKind": "anti-escape"
-        },
-        {
           "checkPhase": "enforcement-coverage",
           "checkFunction": "collectActiveLawMetadataFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
@@ -5325,20 +5318,6 @@
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "anonymous",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape-builder-findings",
-          "checkFunction": "collectDetectSafetyPageNormalEvidenceFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
-          "targetSymbol": "collectDetectSafetyPageNormalEvidenceFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape-builder-findings",
-          "checkFunction": "collectDetectSafetyPageNormalEvidenceFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
-          "targetSymbol": "collectDetectSafetyPageNormalEvidenceFindings",
           "checkKind": "required-shape"
         },
         {
@@ -5460,13 +5439,6 @@
         },
         {
           "checkPhase": "required-shape-builder-findings",
-          "checkFunction": "collectBuilderParseFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
-          "targetSymbol": "collectBuilderParseFindings",
-          "checkKind": "required-shape"
-        },
-        {
-          "checkPhase": "required-shape-builder-findings",
           "checkFunction": "anonymous",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
           "targetSymbol": "anonymous",
@@ -5527,20 +5499,6 @@
       "globalChainPassed": false,
       "sourceEvidence": [
         {
-          "checkPhase": "anti-escape",
-          "checkFunction": "collectPlatformKindFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/anti-escape.ts",
-          "targetSymbol": "collectPlatformKindFindings",
-          "checkKind": "anti-escape"
-        },
-        {
-          "checkPhase": "anti-escape",
-          "checkFunction": "collectFeedReadyFindings",
-          "sourceFile": "scripts/audit/domains/page-state-capability/anti-escape.ts",
-          "targetSymbol": "collectFeedReadyFindings",
-          "checkKind": "anti-escape"
-        },
-        {
           "checkPhase": "enforcement-coverage",
           "checkFunction": "collectActiveLawMetadataFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/enforcement-coverage.ts",
@@ -5549,9 +5507,9 @@
         },
         {
           "checkPhase": "required-shape-builder-findings",
-          "checkFunction": "anonymous",
+          "checkFunction": "collectChildOutputParseFindings",
           "sourceFile": "scripts/audit/domains/page-state-capability/required-shape-builder-findings.ts",
-          "targetSymbol": "anonymous",
+          "targetSymbol": "collectChildOutputParseFindings",
           "checkKind": "required-shape"
         },
         {
@@ -6228,6 +6186,20 @@
           "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
           "targetSymbol": "collectInspectorFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "run-law-baseline-check",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/run-law-baseline-check.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-law-baseline-check",
+          "checkFunction": "runLawBaselineCheck",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/run-law-baseline-check.ts",
+          "targetSymbol": "runLawBaselineCheck",
+          "checkKind": "runtime-proof"
         },
         {
           "checkPhase": "run-law-baseline-check",

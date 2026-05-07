@@ -867,7 +867,9 @@ Allowed conditionType:
 comparison
 ```
 
-Allowed operators:
+Branch DSL is diagnostic-only for `genericDiagnosticMap`. Production `routePlanBoundMap` must not use Branch DSL; it may only bind Prompt Contract `routeLabel` to the Route Plan allowed labels.
+
+Allowed diagnostic operators:
 
 ```txt
 equals
@@ -879,7 +881,6 @@ lessThan
 confidenceAbove
 confidenceBelow
 statusIs
-reviewRequired
 ```
 
 Required:
@@ -887,10 +888,10 @@ Required:
 - `leftRef=status` may reference only allowed status fields.
 - `leftRef=schemaFieldRef:<fieldName>` must reference a field declared by the relevant outputSchemaRef.
 - numeric operators require numeric rightValue.
-- exists/notExists/reviewRequired require rightValue=null.
+- exists/notExists require rightValue=null.
 - exactly one transition may match during Orchestration evaluation.
-- ambiguous transition must fail/review.
-- no transition must fail/review.
+- ambiguous transition must fail.
+- no transition must fail.
 - branch DSL must be validated at map-validation time.
 - branch runtime evaluation belongs to Orchestration, not Map Plugin Package.
 

@@ -3,6 +3,7 @@ import type { OperationalMap } from "../contract.js";
 const STATE_CHANGING_ABILITY_GROUP_IDS = new Set([
   "open",
   "mouse-click",
+  "mouse-scroll",
   "text-input",
 ]);
 

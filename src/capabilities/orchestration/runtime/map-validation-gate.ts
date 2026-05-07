@@ -1,5 +1,6 @@
 import type { OperationalMap } from "../contract.js";
 import { OperationalMapSchema } from "../schema.js";
+import { ensurePostActionVerificationPolicy } from "./orchestration-post-action-verification.js";
 
 const FORBIDDEN_OWNER_VALUES = ["local-ai-decision"];
 
@@ -124,7 +125,9 @@ function validateOperationalMapStructure(map: OperationalMap): string | null {
     return reachableReason;
   }
 
-  return checkForbiddenStepOwnerValues(map) ?? checkForbiddenTransitionOwnerValues(map);
+  return checkForbiddenStepOwnerValues(map)
+    ?? checkForbiddenTransitionOwnerValues(map)
+    ?? ensurePostActionVerificationPolicy(map);
 }
 
 export type MapValidationResult =

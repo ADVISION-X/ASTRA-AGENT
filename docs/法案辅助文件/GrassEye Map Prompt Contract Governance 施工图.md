@@ -84,7 +84,7 @@ Minimum contracts：
 
 ```txt
 map-authoring-from-user-requirement-v1
-product-video-classification-v1
+vision.productPresence.v1
 visual-target-identification-v1
 page-state-understanding-v1
 post-action-verification-v1
@@ -226,7 +226,13 @@ forbiddenFields: list
 exampleOutput: optional
 ```
 
-Branch DSL may read only：
+Production `routePlanBoundMap` may read only:
+
+```txt
+AI-provided routeLabel where routeLabel is declared by Prompt Contract output schema and allowed by the bound Route Plan
+```
+
+`genericDiagnosticMap` Branch DSL may read only:
 
 ```txt
 status
@@ -479,12 +485,13 @@ forbiddenFields
 exampleOutput
 ```
 
-Branch DSL may read only:
+Production `routePlanBoundMap` may read only:
 
 ```txt
-status
 AI-provided routeLabel where routeLabel is declared by Prompt Contract output schema
 ```
+
+`genericDiagnosticMap` Branch DSL may read status/schemaFieldRef only for diagnostic maps and must not route production automation.
 
 For product-presence binary routing:
 

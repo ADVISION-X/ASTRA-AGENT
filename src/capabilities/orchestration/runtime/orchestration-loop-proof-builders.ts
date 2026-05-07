@@ -24,7 +24,7 @@ type LoopDecisionState = {
   status: MissionState["status"];
   failureReason: string | null;
   reviewRequiredReason: string | null;
-  loopDecision: "stop_failed" | "stop_review_required" | "stop_completed" | "continue";
+  loopDecision: "stop_failed" | "stop_completed" | "continue";
   stateDecision: "updated" | "finalized";
   emergencyDecision: "latched" | "none";
 };
@@ -109,13 +109,13 @@ export function buildLoopGuardFailureProof(input: {
   startedAt: string;
   endedAt: string;
   state: MissionState;
-  loopDecision: "stop_failed" | "stop_review_required" | "stop_completed";
+  loopDecision: "stop_failed" | "stop_completed";
   failureReason: string | null;
   reviewRequiredReason: string | null;
 }) {
   return buildFailureProof(
     input.context,
-    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: "loop-guard", failureReason: input.failureReason ?? "loop_guard_triggered", loopDecision: input.loopDecision, stateDecision: "finalized", dataQualityFlags: input.loopDecision === "stop_completed" ? [] : ["loop_guard_triggered"], extra: { sequenceNo: input.state.sequenceNo, status: toRuntimeProofStatus(input.state.status), reviewRequiredReason: input.reviewRequiredReason, transitionDecision: input.state.status === "failed" ? "failed" : input.state.status === "review_required" ? "review_required" : "finalize", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none" } },
+    { timing: { startedAt: input.startedAt, endedAt: input.endedAt, durationMs: 0 }, stateRevisionBefore: input.stateRevisionBefore, stateRevisionAfter: input.stateRevisionAfter, stateHashBefore: input.stateHashBefore, stateHashAfter: input.stateHashAfter, currentStepId: input.currentStepId, childCapabilityId: "loop-guard", failureReason: input.failureReason ?? "loop_guard_triggered", loopDecision: input.loopDecision, stateDecision: "finalized", dataQualityFlags: input.loopDecision === "stop_failed" ? ["loop_guard_triggered"] : [], extra: { sequenceNo: input.state.sequenceNo, status: toRuntimeProofStatus(input.state.status), reviewRequiredReason: null, transitionDecision: input.state.status === "failed" || input.state.status === "review_required" ? "failed" : "finalize", emergencyDecision: input.state.emergencyStopLatched ? "latched" : "none" } },
   );
 }
 

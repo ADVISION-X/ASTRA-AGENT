@@ -50,7 +50,7 @@
 | local-browser-session | open-capability | 否 | open-capability |
 | local-app-shell | commander-console-capability | 否 | commander-console-capability |
 | startup-entrypoint | commander-console-capability | 否 | commander-console-capability |
-| structured-logging | forensics-persistence-capability / capability-group-governance | 否 | forensics-persistence-capability |
+| structured-logging | forensics-persistence-capability | 否 | forensics-persistence-capability |
 | local-persistence-schema | forensics-persistence-capability | 否 | forensics-persistence-capability |
 | platform-action | open-capability | 否 | open-capability |
 | code-topology | capability-group-governance | 否 | capability-group-governance |
@@ -66,6 +66,8 @@
 - local-app-shell as independent owner
 - startup-entrypoint as independent owner
 - structured-logging as independent owner
+
+structured-logging is governedBy capability-group-governance as a shared law boundary, but its parent owner remains forensics-persistence-capability.
 - local-persistence-schema as independent owner
 - multi-frame-evidence as independent owner
 - code-topology as independent owner

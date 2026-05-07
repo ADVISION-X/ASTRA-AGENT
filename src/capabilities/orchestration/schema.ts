@@ -73,9 +73,9 @@ const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
 const TransitionConditionSourceSchema = z.string().min(1);
 const TransitionConditionValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const BranchFieldValuesSchema = z.record(TransitionConditionValueSchema).default({});
-const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
+const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed"]);
 const MapDecisionSchema = z.enum(["selected", "rejected"]);
-const TransitionDecisionSchema = z.enum(["continue", "finalize", "review_required", "failed"]);
+const TransitionDecisionSchema = z.enum(["continue", "finalize", "failed"]);
 const StateDecisionSchema = z.enum(["created", "updated", "paused", "resumed", "stopped", "emergency_stopped", "finalized"]);
 const EmergencyDecisionSchema = z.enum(["none", "latched", "executed"]);
 const AbortDecisionSchema = z.enum(["none", "timed_out", "emergency_stopped"]);
@@ -144,8 +144,8 @@ const MissionControlCommandSchema = z.object({
 const OrchestrationSequencePolicySchema = z.object({
   maxHops: z.number().int().positive(),
   maxRetriesPerStep: z.number().int().nonnegative(),
-  loopDecisionOnLimit: z.enum(["failed", "review_required"]),
-  branchPolicy: z.enum(["strict", "allow_review_handoff"]),
+  loopDecisionOnLimit: z.literal("failed"),
+  branchPolicy: z.literal("strict"),
 }).strict();
 const ProofPolicySchema = z.object({
   requiresRuntimeProof: z.literal(true),

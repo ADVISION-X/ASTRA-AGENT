@@ -482,7 +482,7 @@ npm run audit:debug-loop-boundary
 6. mission-runtime 禁止 browser controller / page action API。
 7. browser controller 只能在 platform-auth-check/environment-preflight 使用。
 8. scenario JSON 禁止 executable fields。
-9. scenario JSON 高风险动作必须有 human approval policy。
+9. scenario JSON 高风险动作必须有 automated gate policy。
 10. debug-loop 禁止写 active registry / activation snapshot。
 11. debug-loop 禁止 import Forensics production writers。
 12. repair packet 禁止 raw secret/cookie/prompt/sensitive text。

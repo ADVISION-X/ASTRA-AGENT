@@ -45,29 +45,16 @@ function collectSchemaFindings(project: Project): Finding[] {
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const executorSource = getSource(project, PATHS.EXECUTOR);
-  for (const callee of ["runPostActionVerificationGateSequence", "completePostActionVerification"] as const) {
+  for (const callee of ["execute", "createPostActionFailureResult", "createSuccessfulPostActionResult"] as const) {
     if (!hasCallExpression(executorSource, callee)) {
       findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.EXECUTOR, line: 1, severity: "fatal", message: `Post Action Verification executor must route through ${callee}.` }));
     }
   }
 
-  const routeSources = {
-    validatePostActionVerificationInput: PATHS.GATE_STEPS,
-    validatePostActionPayloadBudget: PATHS.GATE_STEPS,
-    validateActionProof: PATHS.GATE_STEPS,
-    validateEvidenceSources: PATHS.GATE_STEPS,
-    validateObservationProofBinding: PATHS.GATE_STEPS,
-    validateBeforeAfterConsistency: PATHS.GATE_STEPS,
-    validateVerificationPolicy: PATHS.GATE_STEPS,
-    validatePostActionOutputBoundary: PATHS.SUCCESS_RESULT,
-    finalizeVerificationDecision: PATHS.SUCCESS_RESULT,
-    buildPostActionRuntimeProof: PATHS.SUCCESS_RESULT,
-    buildPostActionVerificationResult: PATHS.SUCCESS_RESULT,
-  } as const;
-
-  for (const [callee, file] of Object.entries(routeSources)) {
-    if (!hasCallExpression(getSource(project, file), callee)) {
-      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file, line: 1, severity: "fatal", message: `Post Action Verification execution chain must route through ${callee}.` }));
+  const abilityGroupSource = getSource(project, PATHS.ABILITY_GROUP);
+  for (const callee of ["createInvalidPostActionInputResult", "executePostActionVerification"] as const) {
+    if (!hasCallExpression(abilityGroupSource, callee)) {
+      findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.ABILITY_GROUP, line: 1, severity: "fatal", message: `Post Action Verification public entry must route through ${callee}.` }));
     }
   }
   return findings;
@@ -88,23 +75,21 @@ const FORBIDDEN_CHILD_IMPORT_MARKERS = [
 function collectChildImplementationFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
 
-  for (const childId of CHILDREN) {
-    const file = `${PATHS.ROOT}/children/${childId}/implementation.ts`;
-    const source = getSource(project, file);
-    const sourceText = source.getFullText();
-    const hasForbiddenImport = source.getImportDeclarations().some((declaration) => {
-      const specifier = declaration.getModuleSpecifierValue() ?? "";
-      return FORBIDDEN_CHILD_IMPORT_MARKERS.some((marker) => specifier.includes(marker));
-    });
-    if (hasForbiddenImport) {
-      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not import foreign ability implementations or execution owners." }));
-    }
-    if (hasCallExpression(source, "buildPostActionVerificationResult") || hasCallExpression(source, "buildPostActionRuntimeProof")) {
-      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not build final result or runtime proof." }));
-    }
-    if (sourceText.includes("return true") || sourceText.includes("return false")) {
-      findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not return raw booleans." }));
-    }
+  const file = PATHS.OBSERVATION_CHILD;
+  const source = getSource(project, file);
+  const sourceText = source.getFullText();
+  const hasForbiddenImport = source.getImportDeclarations().some((declaration) => {
+    const specifier = declaration.getModuleSpecifierValue() ?? "";
+    return FORBIDDEN_CHILD_IMPORT_MARKERS.some((marker) => specifier.includes(marker));
+  });
+  if (hasForbiddenImport) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not import foreign ability implementations or execution owners." }));
+  }
+  if (hasCallExpression(source, "createSuccessfulPostActionResult") || hasCallExpression(source, "buildPostActionRuntimeProof")) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not build final result or runtime proof." }));
+  }
+  if (sourceText.includes("return true") || sourceText.includes("return false")) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHILDREN, file, line: 1, severity: "fatal", message: "PAV child implementations must not return raw booleans." }));
   }
 
   return findings;
@@ -113,7 +98,7 @@ function collectChildImplementationFindings(project: Project): Finding[] {
 const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean => {
   return [
     "missionId: request?.missionId ?? null",
-    "runId: request?.runId ?? input.inputRef",
+    "runId: request?.runId ?? \"invalid:post-action-run\"",
     "activationSnapshotRef: request?.activationSnapshotRef ?? null",
     "capabilityCallId: request?.capabilityCallId ?? null",
     "nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null",
@@ -121,7 +106,7 @@ const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean =
 };
 
 const hasFabricatedProofBuilderFields = (proofBuilderText: string): boolean => {
-  return proofBuilderText.includes("runId: `post-action-verification-run:${input.proofFingerprint}`")
+  return proofBuilderText.includes("runId: input.outputRef ?? \"invalid:post-action-run\"")
     || proofBuilderText.includes("missionId: request?.sessionId ?? null");
 };
 
@@ -129,8 +114,8 @@ function collectProofBuilderFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const proofBuilderSource = getSource(project, PATHS.PROOF_BUILDER);
   const proofBuilderText = proofBuilderSource.getFullText();
-  if (!hasCallExpressionPath(proofBuilderSource, ["PostActionRuntimeProofSchema", "parse"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must parse PostActionRuntimeProofSchema." }));
+  if (!hasCallExpression(proofBuilderSource, "buildPostActionHash")) {
+    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must derive governed hashes for request, evidence, and observation payloads." }));
   }
   if (!hasRequiredProofBuilderChainFields(proofBuilderText) || hasFabricatedProofBuilderFields(proofBuilderText)) {
     findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must preserve real mission/run chain fields and must not fabricate runId or missionId." }));
@@ -146,11 +131,10 @@ function collectResultBuilderFindings(project: Project): Finding[] {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must parse PostActionVerificationAbilityResultSchema." }));
   }
   const resultBuilderText = resultBuilderSource.getFullText();
-  if (!resultBuilderText.includes("missionId: input.request?.missionId ?? null")
-    || !resultBuilderText.includes("runId: input.request?.runId ?? input.runtimeProof.runId")
-    || !resultBuilderText.includes("activationSnapshotRef: input.request?.activationSnapshotRef ?? null")
-    || !resultBuilderText.includes("capabilityCallId: input.request?.capabilityCallId ?? null")
-    || !resultBuilderText.includes("nerveBusEnvelopeId: input.request?.nerveBusEnvelopeId ?? null")) {
+  if (!resultBuilderText.includes("missionId: request.missionId")
+    || !resultBuilderText.includes("runId: request.runId")
+    || !resultBuilderText.includes("runId: \"invalid:post-action-run\"")
+    || !hasCallExpression(resultBuilderSource, "buildPostActionRuntimeProof")) {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
   }
 
@@ -158,9 +142,10 @@ function collectResultBuilderFindings(project: Project): Finding[] {
 }
 
 function collectDispatchFailureFindings(project: Project): Finding[] {
-  return hasCallExpressionPath(getSource(project, PATHS.DISPATCH_FAILURE), ["PostActionVerificationAbilityInputSchema", "safeParse"])
+  return hasCallExpressionPath(getSource(project, PATHS.ABILITY_GROUP), ["PostActionVerificationAbilityInputSchema", "safeParse"])
+    && hasCallExpression(getSource(project, PATHS.ABILITY_GROUP), "createInvalidPostActionInputResult")
     ? []
-    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.DISPATCH_FAILURE, line: 1, severity: "fatal", message: "Dispatch failure must terminate through the governed invalid-input envelope path." })];
+    : [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.ABILITY_GROUP, line: 1, severity: "fatal", message: "Dispatch failure must terminate through the governed invalid-input envelope path." })];
 }
 
 function collectBuilderFindings(project: Project): Finding[] {

@@ -38,7 +38,7 @@ function buildEmptyPostActionRequestFields() {
   return {
     childCapabilityId: null,
     missionId: null,
-    runId: null,
+    runId: "invalid:post-action-run",
     sessionId: null,
     roundId: null,
     videoVisitId: null,

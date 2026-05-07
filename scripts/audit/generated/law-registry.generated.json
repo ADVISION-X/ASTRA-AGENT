@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T19:48:43.375Z",
+  "generatedAt": "2026-05-07T20:32:21.868Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -934,7 +934,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 926
+      "line": 927
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -945,7 +945,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1024
+      "line": 1025
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -956,7 +956,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1125
+      "line": 1126
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
@@ -967,7 +967,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1195
+      "line": 1196
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
@@ -978,7 +978,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1373
+      "line": 1374
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
@@ -989,7 +989,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1494
+      "line": 1495
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
@@ -1000,7 +1000,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1600
+      "line": 1601
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
@@ -1011,7 +1011,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1696
+      "line": 1697
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
@@ -1022,7 +1022,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1792
+      "line": 1793
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -1451,7 +1451,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration must freeze map activation snapshot and must not reselect latest map during mission execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 269
+      "line": 270
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3",
@@ -1462,7 +1462,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration dispatches only through Nerve Bus envelopes and public ability group contracts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 344
+      "line": 345
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3",
@@ -1473,7 +1473,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition closure.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 418
+      "line": 419
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3",
@@ -1484,7 +1484,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Prompt selection is map-owned and frozen; Orchestration must not build raw prompts or hardcode prompt selection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 484
+      "line": 486
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3",
@@ -1495,7 +1495,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration may request persistence but must not hide finalization, branch, candidate, or delivery-state ownership under Forensics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 539
+      "line": 541
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
@@ -1506,7 +1506,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration result and runtime proof must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency, and finalization chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 601
+      "line": 603
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3",
@@ -1517,7 +1517,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration children are mission lifecycle and transition actions only and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 745
+      "line": 747
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
@@ -1528,7 +1528,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 814
+      "line": 816
     },
     {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",

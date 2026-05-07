@@ -217,12 +217,14 @@ forbiddenFields: list
 exampleOutput: optional
 ```
 
-Branch DSL may read only:
+Production `routePlanBoundMap` may read only Prompt Contract `routeLabel` through Route Plan matching. `genericDiagnosticMap` Branch DSL may read only:
 
 ```txt
 status
 schemaFieldRef:<fieldName> where fieldName ∈ branchableFields
 ```
+
+Branch DSL must not enter production route-plan-bound automation.
 
 ---
 

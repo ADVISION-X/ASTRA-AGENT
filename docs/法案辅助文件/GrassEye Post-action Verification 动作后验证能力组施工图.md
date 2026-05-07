@@ -247,7 +247,7 @@ selfReportedOnly = true → cannot verified
 missing actionLogRef/actionRecordRef → cannot verified
 missing sourceRuntimeProofRef → cannot verified
 forbidden source ability → failed
-action failed → failed or review_required
+action failed → failed or internal review_required; Orchestration production routing must normalize review_required to failed
 ```
 
 ---
@@ -341,9 +341,9 @@ PostActionConfidencePolicy:
 Rules:
 
 ```txt
-confidence < minimumConfidence → review_required or failed
+confidence < minimumConfidence → internal review_required or failed; Orchestration production routing must normalize review_required to failed
 critical data quality flag → not success
-ambiguous/contradictory evidence → review_required or failed
+ambiguous/contradictory evidence → internal review_required or failed; Orchestration production routing must normalize review_required to failed
 ```
 
 ---

@@ -149,7 +149,7 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     kind: "create-file",
     name: "external-import-of-child-implementation",
     file: "src/app/visual-target-private-import-probe.ts",
-    content: 'import "../capabilities/visual-target/children/detect-comments-button/implementation.js";\nexport const probe = true;\n',
+    content: 'import "../capabilities/visual-target/children/observe-comments-button/implementation.js";\nexport const probe = true;\n',
     expectedNeedle: "External code must not import Visual Target internal surface",
   },
   {

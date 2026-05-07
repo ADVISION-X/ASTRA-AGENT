@@ -225,7 +225,7 @@ legacy browse-flow helpers
 OrchestrationAbilityInput:
   abilityGroupId: orchestration
   childCapabilityId: required
-  commandKind: start-mission | pause-mission | resume-mission | stop-mission | emergency-stop | submit-review-decision
+  commandKind: start-mission | pause-mission | resume-mission | stop-mission | emergency-stop
   requestedBy: commander-console | nerve-bus
   missionId: required
   runId: required
@@ -318,7 +318,8 @@ import
 → platform profile validation
 → compatibility validation
 → dry-run validation
-→ human approval
+→ Commander governed automation gate
+→ activation proof
 → activation
 → active registry
 → rollback
@@ -401,7 +402,7 @@ All step dispatches go through OrchestrationNerveBusPort：
 ```txt
 sendCommandToAbility
 sendRequestToAi
-sendReviewRequestToCommander
+No runtime review dispatch is allowed. Orchestration must not expose or call `sendReviewRequestToCommander`; Commander participates only in the governed automation gate before activation, not in map runtime review.
 ```
 
 Dispatch payload 必须包含：
@@ -556,7 +557,7 @@ maxMinutes
 maxStepCount
 maxDispatchTimeoutMs
 emergencyStopLatched
-reviewRequired
+reviewRequired is not routable by production automation maps. AI/PAV may use `review_required` internally to mean insufficient evidence, but Orchestration must normalize it to failed/blocked terminal with Forensics proof.
 failed state
 completed state
 ```
@@ -582,7 +583,7 @@ send cleaned payload refs to Forensics through Nerve Bus/public contract
 consume persistence refs
 forward screenshot artifactLifecycleManifestRef / artifactHash as cleaned refs only
 request promotion / cleanup through Forensics public contract only
-surface screenshot quota/backpressure as typed fail/review outcomes
+surface screenshot quota/backpressure as typed failed outcomes
 ```
 
 Orchestration 不可：

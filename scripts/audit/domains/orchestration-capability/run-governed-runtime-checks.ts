@@ -16,6 +16,8 @@ const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispat
 const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
 const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
 const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
+const NERVE_BUS_PORT_PATH = "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts";
+const NERVE_BUS_ENVELOPE_BUILDERS_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts";
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
 const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
 const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
@@ -103,6 +105,9 @@ function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProj
   const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
   const registrySource = getSourceFileOrThrow(project, config.REGISTRY_PATH);
   const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
+  const nerveBusPortSource = getSourceFileOrThrow(project, NERVE_BUS_PORT_PATH);
+  const nerveBusAdapterSource = getSourceFileOrThrow(project, NERVE_BUS_ADAPTER_PATH);
+  const nerveBusEnvelopeBuildersSource = getSourceFileOrThrow(project, NERVE_BUS_ENVELOPE_BUILDERS_PATH);
   const findings: Finding[] = [];
 
   const executeMethod = contractSource.getInterface("OrchestrationAbilityGroup")?.getMethod("execute");
@@ -136,14 +141,18 @@ function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProj
     { file: EXECUTOR_PATH, text: executorSource.getFullText() },
     { file: config.CONTRACT_PATH, text: contractSource.getFullText() },
     { file: config.ABILITY_GROUP_PATH, text: abilityGroupSource.getFullText() },
+    { file: NERVE_BUS_PORT_PATH, text: nerveBusPortSource.getFullText() },
+    { file: NERVE_BUS_ADAPTER_PATH, text: nerveBusAdapterSource.getFullText() },
+    { file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, text: nerveBusEnvelopeBuildersSource.getFullText() },
   ];
   for (const source of forbiddenSources) {
-    if (source.text.includes("request-human-review") || source.text.includes("RequestHumanReview") || source.text.includes("submitReviewDecision") || source.text.includes("submitMissionReviewDecision")) {
+    const forbiddenMarker = ["request-human-review", "RequestHumanReview", "submitReviewDecision", "submitMissionReviewDecision", "sendReviewRequestToCommander"].find((marker) => source.text.includes(marker));
+    if (forbiddenMarker) {
       findings.push(createFatalFinding({
         lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
         file: source.file,
-        line: collectLineNumber(source.text, "request-human-review"),
-        message: "Orchestration must not expose request-human-review or review-decision routing. Automation failures must terminate as failed, not route to a human review child.",
+        line: collectLineNumber(source.text, forbiddenMarker),
+        message: "Orchestration must not expose request-human-review, sendReviewRequestToCommander, or review-decision routing. Automation failures must terminate as failed, not route to runtime human review.",
       }));
     }
   }
@@ -288,11 +297,15 @@ function inspectPostActionVerificationChain(project: ReturnType<typeof createAud
   const mapValidationSource = getSourceFileOrThrow(project, MAP_VALIDATION_GATE_PATH);
   const stepDispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
   const findings: Finding[] = [];
+  const hasMapValidationCall = mapValidationSource.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => callExpression.getExpression().getText() === "ensurePostActionVerificationPolicy");
+  const hasStepDispatchCall = stepDispatcherSource.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => callExpression.getExpression().getText() === "ensurePostActionVerificationDispatchGate");
 
-  if (!hasCallExpressionPath(mapValidationSource, ["ensurePostActionVerificationPolicy"])) {
+  if (!hasMapValidationCall) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: MAP_VALIDATION_GATE_PATH, line: 1, message: "Map validation gate must enforce postActionVerification policy on state-changing action steps." }));
   }
-  if (!hasCallExpressionPath(stepDispatcherSource, ["ensurePostActionVerificationDispatchGate"])) {
+  if (!hasStepDispatchCall) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "Step dispatcher must force post-action verification after state-changing action steps." }));
   }
 

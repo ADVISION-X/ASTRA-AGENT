@@ -17,7 +17,7 @@ const EXPECTED_CHILD_CONTRACT_ROWS: ChildContractRow[] = [
   { childContract: "local-browser-session", parentOwner: "open-capability", activeOwner: "否", inspectorOwner: "open-capability" },
   { childContract: "local-app-shell", parentOwner: "commander-console-capability", activeOwner: "否", inspectorOwner: "commander-console-capability" },
   { childContract: "startup-entrypoint", parentOwner: "commander-console-capability", activeOwner: "否", inspectorOwner: "commander-console-capability" },
-  { childContract: "structured-logging", parentOwner: "forensics-persistence-capability / capability-group-governance", activeOwner: "否", inspectorOwner: "forensics-persistence-capability" },
+  { childContract: "structured-logging", parentOwner: "forensics-persistence-capability", activeOwner: "否", inspectorOwner: "forensics-persistence-capability" },
   { childContract: "local-persistence-schema", parentOwner: "forensics-persistence-capability", activeOwner: "否", inspectorOwner: "forensics-persistence-capability" },
   { childContract: "platform-action", parentOwner: "open-capability", activeOwner: "否", inspectorOwner: "open-capability" },
   { childContract: "code-topology", parentOwner: "capability-group-governance", activeOwner: "否", inspectorOwner: "capability-group-governance" },

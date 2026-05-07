@@ -173,6 +173,7 @@ const inspectPromptTemplateHardcoding = (project: Project): Finding[] => {
     || !sourceText.includes("decision plus routeLabel")
     || !sourceText.includes("Orchestration may only match the routeLabel mechanically")
     || !sourceText.includes("must not include nextIntent, suggestedNextAction, actionIntent, or action_intent")
+    || !sourceText.includes("Production routePlanBoundMap must not use Branch DSL, schemaFieldRef routing, action chains, review routes, or map-owned branching")
   ) {
     findings.push(createAuthoringFinding(
       MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,

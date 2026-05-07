@@ -467,13 +467,13 @@ autoPurchase
 Required:
 - scenario may express desired task outcome, not how to execute page operations.
 - scenario may require production Agent to produce artifacts, not produce artifacts itself.
-- high-risk desired actions must require human approval in scenario policy.
+- high-risk desired actions must require automated policy gates in scenario policy.
 
 Required inspector:
 - JSON traversal of scenario files.
 - forbidden executable fields blocked.
 - scenarioKind controls allowed preflight fields.
-- high-risk action scenario must include human approval requirement.
+- high-risk action scenario must include automated gate requirement.
 
 Required negative proof:
 - scenario contains clickSelector → FAIL.

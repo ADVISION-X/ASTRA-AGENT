@@ -4,7 +4,7 @@ import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createAuditProject, getSourceFileOrThrow } from "../_shared/ast-helpers.js";
 
-import { CANONICAL_FILES, CHILDREN, PATHS } from "./config.js";
+import { CANONICAL_FILES, PATHS } from "./config.js";
 
 export function createPostActionAuditProject(): Project {
   return createAuditProject();
@@ -19,14 +19,6 @@ export async function missingCanonicalFiles(): Promise<string[]> {
   for (const filePath of CANONICAL_FILES) {
     if (!(await fileExists(pathFromRepoRoot(filePath)))) {
       missing.push(filePath);
-    }
-  }
-  for (const childId of CHILDREN) {
-    for (const suffix of ["contract.ts", "schema.ts", "implementation.ts"]) {
-      const filePath = `${PATHS.ROOT}/children/${childId}/${suffix}`;
-      if (!(await fileExists(pathFromRepoRoot(filePath)))) {
-        missing.push(filePath);
-      }
     }
   }
   return missing;
