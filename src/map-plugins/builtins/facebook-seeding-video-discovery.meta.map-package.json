@@ -100,7 +100,7 @@
           "onAmbiguousTransitionId": "verify-facebook-reels-open:review"
         },
         "timeoutPolicy": {
-          "maxDurationMs": 10000
+          "maxDurationMs": 30000
         },
         "proofPolicy": {
           "requiresRuntimeProof": true
@@ -610,7 +610,7 @@
           "onAmbiguousTransitionId": "verify-video-changed-after-scroll:review"
         },
         "timeoutPolicy": {
-          "maxDurationMs": 5000
+          "maxDurationMs": 20000
         },
         "proofPolicy": {
           "requiresRuntimeProof": true

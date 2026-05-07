@@ -69,6 +69,7 @@ interface BrowserController {
     coordinateSpace?: BrowserScrollCoordinateSpace;
     anchorPoint?: { x: number; y: number };
     fallbackUsed?: boolean;
+    abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   click(input: {
     targetLabel: string;

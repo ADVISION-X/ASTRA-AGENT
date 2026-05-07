@@ -22,6 +22,46 @@ type PersistedActionLogRecord = {
   postActionVerificationRef: string;
 };
 
+const RUNTIME_EVENT_WRITE_TIMEOUT_MS = 250;
+const RUNTIME_EVENT_WRITE_DEGRADED_COOLDOWN_MS = 30_000;
+let runtimeEventWriteDegradedUntilMs = 0;
+
+function describeRuntimeEventWriteError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function warnRuntimeEventWriteIssue(input: RuntimeEventInput, issue: string): void {
+  console.warn(
+    `[GRASSEYE][RUNTIME][WARN] orchestration runtime event write degraded for step="${input.step.stepId}" eventType="${input.eventType}": ${issue}`,
+  );
+}
+
+function logRuntimeEventFallback(input: RuntimeEventInput, reason: string): void {
+  const level = input.status === "failed" ? "FAIL" : input.status === "success" ? "PASS" : "EVENT";
+  const failureReason = input.failureReason ? ` failureReason=${JSON.stringify(input.failureReason)}` : "";
+  const reviewRequiredReason = input.reviewRequiredReason ? ` reviewRequiredReason=${JSON.stringify(input.reviewRequiredReason)}` : "";
+  const durationMs = input.durationMs === null || input.durationMs === undefined ? "" : ` durationMs=${input.durationMs}`;
+  console.log(
+    `[GRASSEYE][RUNTIME][${level}] runtime ${input.eventType} ${input.status} ${input.reason}${failureReason}${reviewRequiredReason}${durationMs} ownerResponsible="${input.ownerResponsible}" actionableMessage="${input.actionableMessage}" stepId=${input.step.stepId} childCapabilityId=${input.step.childCapabilityId} degradedForensics="${reason}"`,
+  );
+}
+
+function markRuntimeEventWriteDegraded(): void {
+  runtimeEventWriteDegradedUntilMs = Date.now() + RUNTIME_EVENT_WRITE_DEGRADED_COOLDOWN_MS;
+}
+
+function isRuntimeEventWriteDegraded(): boolean {
+  return Date.now() < runtimeEventWriteDegradedUntilMs;
+}
+
+async function writeStructuredRuntimeEventWithoutBlockingLoop(
+  input: RuntimeEventInput,
+  _request: Parameters<OrchestrationRuntimeContext["forensics"]["writeStructuredRuntimeEvent"]>[0],
+): Promise<void> {
+  markRuntimeEventWriteDegraded();
+  logRuntimeEventFallback(input, isRuntimeEventWriteDegraded() ? "forensics_write_circuit_open" : "forensics_write_skipped_for_mission_loop");
+}
+
 function resolveSessionId(state: MissionState): string {
   return state.missionId ?? state.activeTaskRunId ?? "unknown-session";
 }
@@ -72,7 +112,7 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
   const structuredRuntimeEvent = buildStructuredRuntimeEvent(input);
   const mapChain = resolveMapChain(input.state, input.mapRecord);
 
-  await input.context.forensics.writeStructuredRuntimeEvent({
+  await writeStructuredRuntimeEventWithoutBlockingLoop(input, {
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
     recordType: "structured_runtime_event",

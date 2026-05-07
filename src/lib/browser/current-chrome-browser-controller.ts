@@ -96,7 +96,7 @@ export class CurrentChromeBrowserController implements BrowserController {
     return this.createActionResult({ message: `opened ${input.url} in current Chrome session` });
   }
 
-  async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
+  async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
     const geometry = this.lastWindowState ?? await this.refreshSnapshot();
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
     const anchorPoint = input.anchorPoint ?? {
@@ -108,19 +108,26 @@ export class CurrentChromeBrowserController implements BrowserController {
     if (input.deltaX === 0 && input.deltaY === 0) {
       return this.createActionResult({ message: `skipped zero scroll for ${input.targetLabel}`, ok: false, fallbackUsed: input.fallbackUsed ?? false });
     }
-    await activateChrome();
+    await activateChrome(input.abortSignal);
     await scrollAt({
       x: Math.round(scrollX),
       y: Math.round(scrollY),
       deltaX: input.deltaX,
       deltaY: input.deltaY,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
+    let auxiliaryKeyMessage = "";
     if (input.targetLabel.includes("scroll_next_video") && input.deltaY > 0) {
       await this.wait(120);
-      await pressBrowserKey(125);
+      try {
+        await pressBrowserKey(125, input.abortSignal);
+        auxiliaryKeyMessage = " with ArrowDown assist";
+      } catch (error) {
+        auxiliaryKeyMessage = `; ArrowDown assist skipped: ${error instanceof Error ? error.message : "unknown key dispatch error"}`;
+      }
     }
     await this.wait(300);
-    return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}`, fallbackUsed: input.fallbackUsed ?? false });
+    return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
   async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: "browserViewport" | "desktopScreen"; button?: "left" | "right" | "middle"; clickCount?: 1 | 2; fallbackUsed?: boolean }): Promise<BrowserActionResult> {

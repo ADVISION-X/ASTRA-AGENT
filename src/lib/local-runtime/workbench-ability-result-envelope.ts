@@ -29,6 +29,11 @@ const readObject = (value: JsonObject | null | undefined, key: string): JsonObje
   return isObject(candidate) ? candidate : null;
 };
 
+const readFirstObjectInArray = (value: JsonObject | null | undefined, key: string): JsonObject | null => {
+  const candidate = value?.[key];
+  return Array.isArray(candidate) && isObject(candidate[0]) ? candidate[0] : null;
+};
+
 const describeAbilityFailure = (
   failure: WorkbenchAbilityExecutionResult["failureReason"],
 ): string | null => {
@@ -143,16 +148,17 @@ function buildPrepareAiInputProofSummary(input: {
   const sourceArtifactRef = isObject(runtimeProof.sourceArtifactRef) ? runtimeProof.sourceArtifactRef : null;
   const sourceProof = isObject(runtimeProof.sourceProof) ? runtimeProof.sourceProof : null;
   const scaleMapping = readObject(output, "scaleMapping") ?? readObject(runtimeProof, "scaleMapping");
+  const firstImageInput = readFirstObjectInArray(output, "imageInputs") ?? readFirstObjectInArray(runtimeProof, "imageInputs");
   const sourceScreenshotEvidenceId = readString(output, "sourceScreenshotEvidenceId")
     ?? readString(scaleMapping, "sourceScreenshotEvidenceId")
     ?? readString(sourceProof, "sourceScreenshotEvidenceId")
     ?? readString(sourceArtifactRef, "evidenceId");
   const sourceStorageRef = readString(sourceArtifactRef, "storageRef") ?? readString(sourceProof, "sourceStorageRef") ?? readString(scaleMapping, "sourceStorageRef");
-  const aiInputArtifactRef = readString(artifactRef, "artifactId");
-  const aiInputStorageRef = readString(artifactRef, "storageRef");
-  const preparedImageHash = readString(output, "outputHash") ?? readString(artifactRef, "sha256");
-  const preparedImageWidth = readNumber(output, "width") ?? readNumber(runtimeProof, "outputWidth");
-  const preparedImageHeight = readNumber(output, "height") ?? readNumber(runtimeProof, "outputHeight");
+  const aiInputArtifactRef = readString(artifactRef, "artifactId") ?? readString(firstImageInput, "artifactRef");
+  const aiInputStorageRef = readString(artifactRef, "storageRef") ?? readString(firstImageInput, "filePath");
+  const preparedImageHash = readString(output, "outputHash") ?? readString(artifactRef, "sha256") ?? readString(firstImageInput, "hash");
+  const preparedImageWidth = readNumber(output, "width") ?? readNumber(runtimeProof, "outputWidth") ?? readNumber(firstImageInput, "width");
+  const preparedImageHeight = readNumber(output, "height") ?? readNumber(runtimeProof, "outputHeight") ?? readNumber(firstImageInput, "height");
   const coordinateSpace = readString(output, "coordinateSpace") ?? readString(runtimeProof, "coordinateSpace");
   const prepareSummary = {
     ...screenshotSummary,

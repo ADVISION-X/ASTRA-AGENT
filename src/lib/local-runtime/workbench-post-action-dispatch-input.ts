@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
@@ -308,16 +309,23 @@ const buildVideoIdentityEvidencePair = async (input: {
 }) => {
   const promptInputRef = payloadValueToString(input.payload.promptInputRef);
   const screenshotEvidenceRef = payloadValueToString(input.payload.screenshotEvidenceRef);
+  const aiInputProofSummary = resolveAiInputProofSummary(promptInputRef);
   const beforeProofSummary = resolveAbilityResultProofSummary(promptInputRef) ?? resolveAbilityResultProofSummary(screenshotEvidenceRef);
-  const beforeStorageRef = readSummaryString(beforeProofSummary, "aiInputStorageRef")
+  const beforeStorageRef = readSummaryString(beforeProofSummary, "sourceStorageRef")
+    ?? aiInputProofSummary?.sourceStorageRef
+    ?? readSummaryString(beforeProofSummary, "aiInputStorageRef")
     ?? readSummaryString(beforeProofSummary, "artifactStorageRef")
-    ?? readSummaryString(beforeProofSummary, "sourceStorageRef");
+    ?? aiInputProofSummary?.aiInputStorageRef
+    ?? null;
   const beforeSignature = beforeStorageRef
     ? await buildImageIdentitySignature(beforeStorageRef)
     : readSummaryString(beforeProofSummary, "preparedImageHash")
     ?? readSummaryString(beforeProofSummary, "outputHash")
-    ?? readSummaryString(beforeProofSummary, "artifactHash");
+    ?? readSummaryString(beforeProofSummary, "artifactHash")
+    ?? aiInputProofSummary?.preparedImageHash
+    ?? null;
   const beforeProofRef = readSummaryString(beforeProofSummary, "sourceScreenshotEvidenceId")
+    ?? aiInputProofSummary?.sourceScreenshotEvidenceId
     ?? screenshotEvidenceRef
     ?? promptInputRef;
   const beforeVideoId = readSummaryString(beforeProofSummary, "pageUrl");

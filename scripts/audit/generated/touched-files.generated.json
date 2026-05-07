@@ -1,16 +1,31 @@
 {
-  "generatedAt": "2026-05-07T12:20:24.196Z",
+  "generatedAt": "2026-05-07T15:06:11.215Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/post-action-verification-capability/governed-runtime-fixtures.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
+    "scripts/audit/generated/audit-coverage-summary.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
+    "scripts/audit/generated/enforcement-strength.generated.json",
+    "scripts/audit/generated/inspector-coverage-matrix.generated.json",
+    "scripts/audit/generated/law-blueprint-requirement-census.generated.json",
     "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/generated/negative-proof-coverage.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
+    "scripts/audit/generated/uncovered-requirements.generated.json",
+    "src/capabilities/mouse-scroll/runtime/primitive-scroll-port-call.ts",
+    "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
     "src/capabilities/post-action-verification/children/verify-video-changed-after-scroll/implementation.ts",
-    "src/lib/browser/current-chrome-browser-controller.ts"
+    "src/lib.zip",
+    "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+    "src/lib/browser/current-chrome-browser-controller.ts",
+    "src/lib/browser/mouse-scroll-primitive-port.ts",
+    "src/lib/local-runtime/workbench-ability-result-envelope.ts",
+    "src/lib/local-runtime/workbench-action-dispatch-inputs.ts",
+    "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
+    "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json"
   ]
 }

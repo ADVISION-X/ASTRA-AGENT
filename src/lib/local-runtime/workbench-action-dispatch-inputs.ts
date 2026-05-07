@@ -384,5 +384,9 @@ export const buildMouseScrollCommand = async (
     bounds: { width: geometry.viewportWidth, height: geometry.viewportHeight },
     direction: "down",
     magnitude: "onePage",
+    safetyPolicy: {
+      primitiveTimeoutMs: 12000,
+      maxDurationMs: 15000,
+    },
   }));
 };

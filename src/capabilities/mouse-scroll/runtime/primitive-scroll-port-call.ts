@@ -7,12 +7,9 @@ export async function runPrimitivePortCall(input: {
   setTimeoutHandle(handle: ReturnType<typeof setTimeout>): void;
   markTimeoutTriggered(): void;
 }): Promise<PrimitivePortResult> {
-  input.setTimeoutHandle(setTimeout(() => {
-    input.markTimeoutTriggered();
-    input.abortController.abort(new Error(`Mouse Scroll primitive timed out after ${input.input.timeoutMs}ms.`));
-  }, input.input.timeoutMs));
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
-  return input.input.context.primitivePort.scroll({
+  const primitiveCall = input.input.context.primitivePort.scroll({
     attemptRef: input.input.attemptRef,
     scrollExecutionRef: input.input.scrollExecutionRef,
     idempotencyKey: input.input.idempotencyKey,
@@ -33,5 +30,20 @@ export async function runPrimitivePortCall(input: {
     postActionVerificationRequired: true,
     operatorApprovalRef: input.input.operatorApprovalRef,
     abortSignal: input.abortController.signal,
+  });
+
+  const timeoutCall = new Promise<PrimitivePortResult>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      input.markTimeoutTriggered();
+      input.abortController.abort(new Error(`Mouse Scroll primitive timed out after ${input.input.timeoutMs}ms.`));
+      reject(new Error(`Mouse Scroll primitive timed out after ${input.input.timeoutMs}ms.`));
+    }, input.input.timeoutMs);
+    input.setTimeoutHandle(timeoutHandle);
+  });
+
+  return Promise.race([primitiveCall, timeoutCall]).finally(() => {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
   });
 }

@@ -1,0 +1,81 @@
+STRUCTURED_ACTION_LOG
+{
+  "actionLogId": "cea3d441-14bd-42a3-8d2f-4a86427259da",
+  "abilityGroupId": "orchestration",
+  "childCapabilityId": "verify-video-changed-after-scroll",
+  "skillId": null,
+  "skillCategory": null,
+  "sessionId": "commander_command_65030661-1407-4483-8b93-dec6f3487b14",
+  "roundId": "0",
+  "videoVisitId": "commander_command_65030661-1407-4483-8b93-dec6f3487b14:video-visit:0",
+  "browserProfileRef": null,
+  "loginState": null,
+  "step": "scroll_next_video",
+  "actionType": "scroll_next_video",
+  "actionPurpose": "continue_discovery",
+  "triggerSource": "runtime_policy",
+  "inputRefs": [],
+  "outputRefs": [],
+  "beforeEvidenceId": null,
+  "afterEvidenceId": null,
+  "targetDescriptor": "verify-video-changed-after-scroll",
+  "visualTargetId": null,
+  "targetType": null,
+  "boundingBox": null,
+  "confidence": null,
+  "geometryStatus": null,
+  "verificationResult": null,
+  "result": "review_required",
+  "failureReason": "Video-change verification could not establish before/after identity.",
+  "reviewRequiredReason": "Video-change verification could not establish before/after identity.",
+  "evidenceRefs": [],
+  "createdAt": "2026-05-07T14:33:07.071Z",
+  "durationMs": 1616
+}
+STRUCTURED_RUNTIME_EVENT
+{
+  "eventType": "FORENSICS_RECORD_WRITE_REQUESTED",
+  "promptInputRef": null,
+  "sourceScreenshotEvidenceId": null,
+  "aiInputStorageRef": null,
+  "preparedImageHash": null,
+  "imageInputs": [],
+  "inputRefs": [],
+  "outputRefs": [],
+  "refs": [
+    "recordType=structured_action_log",
+    "recordKind=structured_action_log",
+    "sourceEventId=cea3d441-14bd-42a3-8d2f-4a86427259da",
+    "sourceEventType=structured_action_log",
+    "sourceOwner=orchestration",
+    "sourceAbilityGroupId=orchestration",
+    "sourceChildCapabilityId=verify-video-changed-after-scroll",
+    "pendingRecordId=structured_action_log:write-structured-action-log:structured_action_log:commander_command_65030661-1407-4483-8b93-dec6f3487b14:0:commander_command_65030661-1407-4483-8b93-dec6f3487b14:video-visit:0:orchestration:verify-video-changed-after-scroll:cea3d441-14bd-42a3-8d2f-4a86427259da",
+    "idempotencyKey=write-structured-action-log:structured_action_log:commander_command_65030661-1407-4483-8b93-dec6f3487b14:0:commander_command_65030661-1407-4483-8b93-dec6f3487b14:video-visit:0:orchestration:verify-video-changed-after-scroll:cea3d441-14bd-42a3-8d2f-4a86427259da",
+    "dedupeDecision=pending"
+  ]
+}
+STRUCTURED_RUNTIME_EVENT
+{
+  "eventType": "FORENSICS_RECORD_WRITTEN",
+  "promptInputRef": null,
+  "sourceScreenshotEvidenceId": null,
+  "aiInputStorageRef": null,
+  "preparedImageHash": null,
+  "imageInputs": [],
+  "inputRefs": [],
+  "outputRefs": [],
+  "refs": [
+    "recordType=structured_action_log",
+    "recordKind=structured_action_log",
+    "sourceEventId=cea3d441-14bd-42a3-8d2f-4a86427259da",
+    "sourceEventType=structured_action_log",
+    "forensicsResultStatus=success",
+    "recordId=structured_action_log:c7a12b1c4c913fd18d95",
+    "recordRef=structured_action_log:c7a12b1c4c913fd18d95",
+    "idempotencyKey=c7a12b1c4c913fd18d95",
+    "dedupeDecision=written",
+    "durabilityMode=durable",
+    "storageRef=/Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement/state.json#/structuredActionLogs/cea3d441-14bd-42a3-8d2f-4a86427259da"
+  ]
+}

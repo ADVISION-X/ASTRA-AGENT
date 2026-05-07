@@ -21,6 +21,7 @@ export function createBrowserControllerMouseScrollPrimitivePort(
           coordinateSpace: value.coordinateSpace,
           anchorPoint: value.anchorPoint,
           fallbackUsed: false,
+          ...(value.abortSignal ? { abortSignal: value.abortSignal } : {}),
         });
 
         return {

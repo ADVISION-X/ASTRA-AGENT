@@ -13,7 +13,9 @@ import {
 const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
 const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
 const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
-const activateChrome = async (): Promise<void> => { await runAppleScript('tell application "Google Chrome" to activate'); };
+const activateChrome = async (abortSignal?: AbortSignal): Promise<void> => {
+  await runAppleScript('tell application "Google Chrome" to activate', abortSignal ? { signal: abortSignal } : undefined);
+};
 const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
 const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
 const toQuartzWheelDelta = (value: number): number => -Math.round(value);
@@ -112,6 +114,7 @@ const scrollAt = async (input: {
   y: number;
   deltaX: number;
   deltaY: number;
+  abortSignal?: AbortSignal;
   _coordinateSpace?: BrowserScrollCoordinateSpace;
 }): Promise<void> => {
   const quartzWheelDeltaY = toQuartzWheelDelta(input.deltaY);
@@ -124,7 +127,7 @@ $.CGEventPost($.kCGHIDEventTap, moveEvent);
 delay(0.02);
 const scrollEvent = $.CGEventCreateScrollWheelEvent(null, $.kCGScrollEventUnitPixel, 2, ${quartzWheelDeltaY}, ${quartzWheelDeltaX});
 $.CGEventPost($.kCGHIDEventTap, scrollEvent);
-`);
+`, input.abortSignal ? { signal: input.abortSignal } : undefined);
 };
 
 export { buildOpenUrlScript, runAppleScript, runJxa, activateChrome, escapeAppleScriptText, readFrontChromeWindowState, BROWSER_TEXT_INPUT_KEY_CODES, clickAt, pressBrowserKey, keystrokeBrowserText, selectAllBrowserText, pasteBrowserText, pressNamedBrowserKey, scrollAt };
