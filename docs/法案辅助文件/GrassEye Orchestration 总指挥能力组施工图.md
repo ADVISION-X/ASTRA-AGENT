@@ -478,6 +478,7 @@ Action step preconditions：
 
 ```txt
 AI vision step 前必须有 prepare-ai-input。
+启动入口脊柱若存在 AI 准备工作步骤，必须位于 capture-browser-viewport -> prepare-ai-input 之后，并且只允许 YES/NO + routeLabel + 描述输出。
 mouse-click 前必须有 visual-target + geometry-guard handoff。
 mouse-scroll 前必须有 geometry-guard handoff。
 text-input 前必须有 approved text + verified input target handoff。
@@ -516,6 +517,7 @@ record branchTaken
 ```txt
 branch reads undeclared payload field
 AI branch uses raw natural-language reasoning
+startup continuation inferred from login/safety/feed heuristics instead of AI routeLabel
 ambiguous transition returns success
 no transition treated as success
 hidden next-step logic outside transition-evaluator

@@ -233,7 +233,7 @@ ScreenshotAbilityInput:
   purpose: required
   source: required
   sourceProof: required-if-transform-or-stored-image
-  pageStateProof: required-when-browser-page-source
+  pageStateProof: required-when-browser-page-source-after-startup-bootstrap
   privacyPolicy: required
   capturePolicy: required
   inputRef: required
@@ -272,9 +272,10 @@ Orchestration AbilityCommandEnvelope
 ```txt
 payload.targetUrl -> source.pageUrl
 payload.targetTitle -> source.pageTitle
-payload.pageStateRef -> pageStateProof.proofRef
-envelope.sessionId/roundId/videoVisitId -> pageStateProof session chain
-envelope.createdAt -> pageStateProof.observedAt
+payload.pageStateRef -> pageStateProof.proofRef when startup bootstrap has already completed
+payload.sourceEvidenceRef + allowFirstCaptureWithoutPageStateProof=true -> governed startup bootstrap capture support
+envelope.sessionId/roundId/videoVisitId -> pageStateProof session chain when pageStateProof exists
+envelope.createdAt -> pageStateProof.observedAt when pageStateProof exists
 envelope.createdAt/expiresAt -> timeoutMs
 ```
 
@@ -285,7 +286,8 @@ envelope.missionId -> sessionId
 envelope.stepId -> roundId
 envelope.mapId -> runId
 drop mapPackageVersion / selectedMapVersion / activationSnapshotRef / capabilityCallId / nerveBusEnvelopeId / inputRef / idempotencyKey / timeoutMs
-capture-browser-viewport enters Screenshot without pageStateProof when payload.pageStateRef exists
+startup bootstrap fabricates fake pageStateProof instead of using governed open support
+capture-browser-viewport enters Screenshot without pageStateProof when payload.pageStateRef exists after startup bootstrap
 ```
 
 ---

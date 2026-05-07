@@ -5,7 +5,6 @@ import { validatePageStateAbilityResult, validatePageStateRuntimeProof } from ".
 
 const MAX_OBSERVATIONS = 50;
 const MAX_EVIDENCE_REFS = 50;
-const MAX_TAGS = 20;
 const MAX_DETAIL_LENGTH = 1000;
 const MAX_SUMMARY_LENGTH = 1000;
 const MAX_SUPPORTING_REASONS = 20;
@@ -87,39 +86,16 @@ const RuntimeSignalObservationPayloadSchema = z.object({
   detail: OptionalLimitedStringSchema,
 });
 
-const PageMarkerObservationPayloadSchema = z.object({
-  marker: z.enum([
-    "login_surface",
-    "captcha",
-    "safety_wall",
-    "feed_shell",
-    "video_player",
-    "comment_panel",
-    "modal_overlay",
-    "abnormal_page",
-  ]),
-  present: z.boolean(),
-  detail: OptionalLimitedStringSchema,
-});
-
-const VisualTargetObservationPayloadSchema = z.object({
-  targetType: z.enum(["feed_card", "video_player", "comment_panel", "modal_overlay", "captcha", "login_form"]),
-  targetCount: z.number().int().min(0),
-  matched: z.boolean(),
-  detail: OptionalLimitedStringSchema,
-});
-
-const PlatformCaptureObservationPayloadSchema = z.object({
-  captureKind: z.enum(["page_snapshot", "viewport_capture", "post_open_capture"]),
-  tags: z.array(LimitedStringSchema).max(MAX_TAGS).default([]),
-  confidence: z.number().min(0).max(1),
-  detail: OptionalLimitedStringSchema,
-});
-
 const PostActionVerificationObservationPayloadSchema = z.object({
   verificationKind: z.enum(["open_handoff", "page_transition", "safety_check"]),
   passed: z.boolean(),
   summary: LimitedStringSchema,
+});
+
+const RawRuntimeSignalObservationPayloadSchema = z.object({
+  signalName: z.string().min(1).max(120),
+  rawValue: z.union([z.string(), z.number(), z.boolean()]).nullable(),
+  detail: OptionalLimitedStringSchema,
 });
 
 const PageStateObservationSchema = z.discriminatedUnion("kind", [
@@ -134,30 +110,12 @@ const PageStateObservationSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     observationId: z.string().min(1),
-    kind: z.literal("page_marker"),
+    kind: z.literal("raw_runtime_signal"),
     capturedAt: z.string().datetime(),
     sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema,
     sourceChildCapabilityId: z.string().min(1),
     sourceProofRef: z.string().min(1),
-    payload: PageMarkerObservationPayloadSchema,
-  }),
-  z.object({
-    observationId: z.string().min(1),
-    kind: z.literal("visual_target"),
-    capturedAt: z.string().datetime(),
-    sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema,
-    sourceChildCapabilityId: z.string().min(1),
-    sourceProofRef: z.string().min(1),
-    payload: VisualTargetObservationPayloadSchema,
-  }),
-  z.object({
-    observationId: z.string().min(1),
-    kind: z.literal("platform_capture"),
-    capturedAt: z.string().datetime(),
-    sourceAbilityGroupId: PageStateSourceAbilityGroupIdSchema,
-    sourceChildCapabilityId: z.string().min(1),
-    sourceProofRef: z.string().min(1),
-    payload: PlatformCaptureObservationPayloadSchema,
+    payload: RawRuntimeSignalObservationPayloadSchema,
   }),
   z.object({
     observationId: z.string().min(1),

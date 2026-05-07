@@ -21,7 +21,9 @@ Future architecture: Pluggable Capability Architecture. Future plugin capability
 Core doctrine:
 - AI is the brain, not the emperor.
 - AI reasons; it does not act.
+- AI is the only owner of visual, page, blocker, readiness, target-identity, comment-understanding, product/business, and routeLabel interpretation.
 - Prompt Contract Registry is the single prompt truth.
+- Startup page-preparation yes/no judgment belongs to AI Prompt Contract execution, not Page State or runtime heuristics.
 - Maps reference Prompt Contracts; maps do not contain prompt bodies.
 - Orchestration controls flow; AI does not advance steps.
 - Nerve Bus transports requests; AI does not dispatch Nerve Bus envelopes.
@@ -85,6 +87,18 @@ input schema gate
 ```
 
 No child implementation may bypass this pipeline.
+
+Startup doctrine:
+- AI must own the startup page-preparation judgment that decides whether the entry spine may continue.
+- The governed startup preparation prompt must return binary yes/no semantics plus routeLabel and nonExecutableSummary for logging.
+- Non-AI code must not substitute login, safety, captcha, or feed-ready heuristics for that startup judgment.
+- Startup visual/page checks must use one governed evidence bundle from screenshot/raw runtime refs and one AI Prompt Contract judgment. Page State, PAV, Visual Target, Workbench, DOM, URL, hash, or runtime heuristics must not split startup page meaning into pre-AI checks.
+
+AI-only interpretation boundary:
+- AI-only judgments include current page correctness, login/captcha/safety/abnormal blockers, feed/video/comment-surface meaning, page readiness, semantic stability, product-seeding judgment, visible UI target identity, comment content/intent, and routeLabel after visual/page/business interpretation.
+- Non-AI capability groups may only open targets, capture screenshots, package raw observations, transport envelopes, validate schemas, validate coordinates, execute click/scroll/type/open primitives, verify mechanical post-action effects, and persist evidence refs/proofs.
+- Forbidden outside AI: `feedReady`, `pageReady`, `pageCorrect`, `safetyWallPresent/Absent`, `captchaPresent/Absent`, `loginSurfacePresent`, `pageStateType = platform_feed`, semantic `decision = allow`, heuristic visual target candidate generation, and confidence scores for page/video/target meaning.
+- AI may return structured `routeLabel`, nonExecutableSummary, confidence, and targetCandidates. AI still must not click, scroll, type, open, dispatch Nerve Bus, write Forensics, or advance the mission.
 
 ### Required AI Result Status
 

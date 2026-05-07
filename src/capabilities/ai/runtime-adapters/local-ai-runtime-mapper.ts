@@ -1,4 +1,5 @@
 import {
+  AiPagePreparationRequestInputSchema,
   AiCommentSignalSummaryInputSchema,
   AiOcrCleanupInputSchema,
   AiProductSignalSummaryInputSchema,
@@ -8,12 +9,14 @@ import {
 import {
   CommentSignalTaskRequestSchema,
   OcrTaskRequestSchema,
+  PagePreparationTaskRequestSchema,
   ProductSignalTaskRequestSchema,
   VisionTaskRequestSchema,
   type LocalAiHealth,
   type LocalAiTaskRequest,
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
+import { VisionPagePreparationRequestInputSchema } from "../../../types/vision-page-preparation.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
 import {
   resolvePromptContractCatalogEntryByLocalTaskType,
@@ -23,12 +26,14 @@ import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contr
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 
 const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
+  "vision.pagePreparation": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
   "comments.ocr_cleanup": "ocr_cleanup",
   "comments.intent_analysis": "comment_signal_summary",
   "product.signal_summary": "product_signal_summary",
 };
 
+type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
 type VisionBridgeInput = Extract<
   ParsedAiAbilityInput,
   { taskType: "product_presence_judgment" | "visual_observation" | "visual_target_candidate_analysis" }
@@ -66,6 +71,21 @@ function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: Prompt
     schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
+  });
+}
+
+function buildPagePreparationTaskRequest(
+  input: PagePreparationBridgeInput,
+  promptContract: PromptContractCatalogEntry,
+): LocalAiTaskRequest {
+  return PagePreparationTaskRequestSchema.parse({
+    id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
+    taskType: "vision.pagePreparation",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
+    evidenceRefs: input.inputRefs,
+    input: VisionPagePreparationRequestInputSchema.parse(AiPagePreparationRequestInputSchema.parse(input.input)),
   });
 }
 
@@ -182,6 +202,10 @@ function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolu
   return resolveLocalAiPromptRequest("vision.productPresence", (promptContract) => buildVisionTaskRequest(input, promptContract));
 }
 
+function toPagePreparationTaskRequest(input: PagePreparationBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("vision.pagePreparation", (promptContract) => buildPagePreparationTaskRequest(input, promptContract));
+}
+
 function toOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("comments.ocr_cleanup", (promptContract) => buildOcrTaskRequest(input, promptContract));
 }
@@ -219,6 +243,8 @@ function toProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTas
 
 function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution {
   switch (input.taskType) {
+    case "page_preparation_judgment":
+      return toPagePreparationTaskRequest(input);
     case "product_presence_judgment":
     case "visual_observation":
     case "visual_target_candidate_analysis":

@@ -73,7 +73,8 @@ function evaluateProductSignalPayloadBudget(request: ParsedAiAbilityInput): Payl
 }
 
 function evaluateObservationTaskPayloadBudget(request: ParsedAiAbilityInput): PayloadBudgetDecision | null {
-  return request.taskType === "product_presence_judgment"
+  return request.taskType === "page_preparation_judgment"
+    || request.taskType === "product_presence_judgment"
     || request.taskType === "visual_observation"
     || request.taskType === "visual_target_candidate_analysis"
     ? evaluateVisionPayloadBudget(request)

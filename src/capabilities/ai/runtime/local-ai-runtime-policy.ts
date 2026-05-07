@@ -8,6 +8,7 @@ export const AI_LOCAL_RUNTIME_POLICY = {
 } as const;
 
 const AI_RUNTIME_TIMEOUT_BY_TASK_MS: Record<ParsedAiAbilityInput["taskType"], number> = {
+  page_preparation_judgment: 60_000,
   product_presence_judgment: 60_000,
   visual_observation: 60_000,
   visual_target_candidate_analysis: 60_000,

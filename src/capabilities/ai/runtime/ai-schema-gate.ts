@@ -5,12 +5,14 @@ import {
   AiEvidencePacketAnalysisOutputSchema,
   AiMapAuthoringOutputSchema,
   AiOcrCleanupOutputSchema,
+  AiPagePreparationOutputSchema,
   AiProductSignalSummaryOutputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
 } from "../schema.js";
 
 const SCHEMA_BY_TASK_TYPE = {
+  page_preparation_judgment: { schemaId: "ai.page_preparation_judgment.v1", schema: AiPagePreparationOutputSchema },
   product_presence_judgment: { schemaId: "ai.product_presence_judgment.v1", schema: AiVisualOutputSchema },
   visual_observation: { schemaId: "ai.visual_observation.v1", schema: AiVisualOutputSchema },
   visual_target_candidate_analysis: { schemaId: "ai.visual_target_candidate_analysis.v1", schema: AiVisualOutputSchema },

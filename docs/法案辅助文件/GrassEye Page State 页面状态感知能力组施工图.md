@@ -1,5 +1,5 @@
 -
-# GrassEye Page State 页面状态感知能力组施工图 FINAL
+# GrassEye Page State 页面原始观察打包能力组施工图 FINAL
 
 ## 0. 文件身份
 
@@ -29,17 +29,23 @@ mustNotCreate:
 
 ## 1. 定位
 
-Page State 是当前页面状态感知能力组。
+Page State 是当前页面原始观察打包能力组。
 
 它负责回答：
 
 ```txt
-当前页面此刻处于什么状态？
+当前页面/运行时有哪些原始证据已经被治理打包？
 ```
+
+它不拥有启动入口脊柱的“准备工作” YES/NO 继续判断；该判断属于 AI Prompt Contract。
+它也不拥有页面是否正确、是否登录、是否安全墙、是否 Feed、是否视频页、是否可继续、目标按钮语义等判断。
 
 它不回答：
 
 ```txt
+当前页面是什么页面？
+有没有登录墙 / 验证码 / 安全墙？
+是不是 Feed / 视频 / 评论区？
 刚才动作是否成功？
 下一步怎么走？
 这个产品是否值得研究？
@@ -50,7 +56,7 @@ Page State 是当前页面状态感知能力组。
 一句话：
 
 ```txt
-Page State 是当前状态，不是动作结果验证。
+Page State 是原始证据打包器，不是页面状态判断器。
 ```
 
 ---
@@ -61,13 +67,23 @@ Page State 是当前状态，不是动作结果验证。
 Open / Screenshot / Visual Target / Runtime Signal / PAV observation
 → governed snapshot + observations + evidence refs
 → Page State
-→ current-page state classification
-→ Orchestration / PAV / Commander / Forensics consume result
+→ raw observation package
+→ AI / Orchestration / PAV / Commander / Forensics consume raw proof
 ```
 
-Page State 可给 PAV 提供“现在页面状态”的观察。
-PAV 再判断“动作是否达成预期”。
-二者不能互相替代。
+启动入口脊柱的页面准备判断链路必须是：
+
+```txt
+Open
+→ capture-browser-viewport
+→ prepare-ai-input
+→ AI 准备工作 YES/NO + routeLabel + 描述
+→ Orchestration 机械消费 routeLabel
+```
+
+Page State 可给 AI/PAV 提供 raw observation refs。
+PAV 只能验证机械动作结果，不能解释页面语义。
+页面语义解释只能交给 AI。
 
 ---
 
@@ -100,22 +116,30 @@ src/capabilities/page-state/
 │   ├── observation-proof-binding-gate.ts
 │   ├── snapshot-freshness-gate.ts
 │   ├── platform-profile-gate.ts
-│   ├── state-classification-gate.ts
-│   ├── proceed-decision-gate.ts
+│   ├── raw-observation-packaging-gate.ts
 │   ├── page-state-output-boundary-gate.ts
 │   ├── page-state-proof-builder.ts
 │   ├── page-state-result-builder.ts
 │   ├── page-state-success-result.ts
 │   └── page-state-dispatch-failure.ts
 └── children/
-    ├── detect-login-state/
-    ├── detect-safety-page/
-    ├── detect-feed-ready/
-    ├── detect-video-stable/
-    ├── detect-comment-panel-state/
-    ├── detect-modal-overlay-state/
-    ├── detect-page-abnormality/
-    └── detect-platform-page-kind/
+    └── package-raw-page-observation/
+```
+
+禁止建设或恢复：
+
+```txt
+detect-login-state
+detect-safety-page
+detect-feed-ready
+detect-video-stable
+detect-comment-panel-state
+detect-modal-overlay-state
+detect-page-abnormality
+detect-platform-page-kind
+feedReady / pageReady / pageCorrect
+safety_wall/captcha/feed_shell 等 present/absent 语义 marker
+页面语义 confidence
 ```
 
 ---

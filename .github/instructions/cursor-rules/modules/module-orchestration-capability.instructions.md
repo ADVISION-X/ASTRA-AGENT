@@ -192,8 +192,9 @@ Operational maps are governed declarative map packages. Orchestration remains th
 Required:
 - Map package must be data-only.
 - Production automation maps must be `routePlanBoundMap`.
-- `routePlanBoundMap` may declare only the deterministic entry spine, AI handoff, Prompt Contract refs, input/output refs, platform/profile constraints, dependency refs, and `routePlanId`.
-- Route Plan is the single source for routeLabel action chains and owns `routeLabel -> step chain -> ability group/child capability`.
+- `routePlanBoundMap` may declare only the deterministic entry spine, including one AI-owned startup preparation step and its fail-closed local routeLabel transitions before Route Plan takeover, AI handoff, Prompt Contract refs, input/output refs, platform/profile constraints, dependency refs, and `routePlanId`.
+- Route Plan is the single source for post-startup routeLabel action chains and owns `routeLabel -> step chain -> ability group/child capability` after the startup preparation gate has passed.
+- Orchestration may mechanically consume the startup preparation routeLabel and Route Plan labels only; it must not infer readiness from login, safety, captcha, or feed heuristics, and it must not branch from AI free text.
 - Generic diagnostic maps may declare diagnostic steps and transitions, but they must not bind Route Plan or enter production automation execution.
 - Map package must not execute code.
 - Map package must not import TypeScript modules.

@@ -8,6 +8,7 @@ import {
 } from "./policy-schema.js";
 
 export const PromptContractCatalogTaskTypeSchema = z.enum([
+  "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
   "visual_target_candidate_analysis",
@@ -33,6 +34,7 @@ export const PromptContractCatalogModelRoleSchema = z.enum([
 const Sha256HashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
 export const PromptContractCatalogLegacyTaskTypeSchema = z.enum([
+  "vision.pagePreparation",
   "vision.productPresence",
   "comments.ocr_cleanup",
   "comments.intent_analysis",

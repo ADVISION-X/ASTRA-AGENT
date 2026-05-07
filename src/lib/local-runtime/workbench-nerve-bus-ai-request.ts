@@ -30,6 +30,11 @@ type AiRuntimeProofRecord = {
   dataQualityFlags?: string[];
 };
 
+const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
+
+const resolveMinimumConfidence = (aiTaskType: string): number | null =>
+  aiTaskType === PAGE_PREPARATION_TASK_TYPE ? null : 0.6;
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 
 const readString = (value: unknown): string | null => typeof value === "string" && value.length > 0 ? value : null;
@@ -111,7 +116,7 @@ const buildAiOutputPayload = (input: {
     qualityDecision: input.diagnostics.qualityDecision,
     qualityDecisionReason: input.diagnostics.qualityDecisionReason,
     outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
-    minimumConfidence: 0.6,
+    minimumConfidence: resolveMinimumConfidence(input.aiTaskType),
     dataQualityFlags: input.diagnostics.dataQualityFlags.join(",") || null,
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
@@ -159,7 +164,7 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     qualityDecision: input.diagnostics.qualityDecision,
     qualityDecisionReason: input.diagnostics.qualityDecisionReason,
     outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
-    minimumConfidence: 0.6,
+    minimumConfidence: resolveMinimumConfidence(input.aiTaskType),
     dataQualityFlags: input.diagnostics.dataQualityFlags,
     parsedDecision: input.resolvedDecision.decision,
     outputRef: input.resolvedDecision.status === "success" ? input.outputPayload.documentRef : null,

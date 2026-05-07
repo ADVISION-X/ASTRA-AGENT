@@ -5,13 +5,31 @@ import type {
   AiCommentSignalSummaryOutput,
   AiEvidencePacketAnalysisOutput,
   AiOcrCleanupOutput,
+  AiPagePreparationOutput,
   AiProductSignalSummaryOutput,
   AiSchemaValidationOnlyOutput,
   AiVisualOutput,
 } from "../contract.js";
 import type { MapAuthoringFallbackOutput } from "./ai-map-authoring-fallback.js";
 import { buildMapAuthoringFallback } from "./ai-map-authoring-fallback.js";
+import {
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+} from "../../../map-plugins/shared/startup-preparation.constants.js";
 import { PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL } from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+
+function buildPagePreparationFallback(reason: string): AiPagePreparationOutput {
+  return {
+    decision: "no",
+    routeLabel: STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+    nonExecutableSummary: "当前页面准备工作未完成，必须 fail-closed。",
+    confidence: 0,
+    reason,
+    evidenceObservations: [],
+    readinessSignals: [],
+    blockingSignals: [reason],
+    mustReview: false,
+  };
+}
 
 function buildVisualFallback(reason: string): AiVisualOutput {
   return {
@@ -42,6 +60,7 @@ function buildVisualFallback(reason: string): AiVisualOutput {
 
 function buildFallbackByTaskType(reason: string) {
   return {
+    page_preparation_judgment: buildPagePreparationFallback(reason),
     product_presence_judgment: buildVisualFallback(reason),
     visual_observation: buildVisualFallback(reason),
     visual_target_candidate_analysis: buildVisualFallback(reason),
@@ -54,6 +73,6 @@ function buildFallbackByTaskType(reason: string) {
   } as const;
 }
 
-export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiVisualOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
+export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiPagePreparationOutput | AiVisualOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
   return buildFallbackByTaskType(reason)[taskType];
 }

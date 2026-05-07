@@ -61,11 +61,50 @@ function buildScreenshotPageStateProof(
   };
 }
 
+function buildBootstrapCapturePolicy(input: {
+  envelope: AbilityCommandEnvelope;
+  payload: Record<string, string | number | boolean | null>;
+  pageStateProof: ReturnType<typeof buildScreenshotPageStateProof>;
+}) {
+  if (input.pageStateProof) {
+    return undefined;
+  }
+
+  const hasOpenHandoff = Boolean(
+    payloadValueToString(input.payload.sourceEvidenceRef)
+    ?? payloadValueToString(input.payload.abilityResultRef)
+    ?? input.envelope.inputRef,
+  );
+  if (!hasOpenHandoff) {
+    return undefined;
+  }
+
+  return {
+    allowMissingRoundId: true,
+    allowMissingVideoVisitId: true,
+    allowFirstCaptureWithoutPageStateProof: true,
+    maxContentLines: 12,
+    contentLineMaxLength: 200,
+    maxAiWidth: 1440,
+    preservePixels: true,
+    evidencePolicy: "evidence_original",
+    artifactBudget: {
+      maxArtifactsPerRun: 200,
+      maxBytesPerRun: 52428800,
+      maxArtifactAgeHours: 168,
+      cleanupMode: "oldest_first",
+    },
+    maxDurationMs: 60000,
+    onTimeoutStatus: "failed",
+  };
+}
+
 function buildCaptureBrowserViewportCommand(
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
   payload: Record<string, string | number | boolean | null>,
 ) {
+  const pageStateProof = buildScreenshotPageStateProof(envelope, payload);
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
     childCapabilityId: "capture-browser-viewport",
@@ -75,7 +114,10 @@ function buildCaptureBrowserViewportCommand(
       pageTitle: payloadValueToString(payload.targetTitle),
       browserSessionRef: null,
     },
-    pageStateProof: buildScreenshotPageStateProof(envelope, payload),
+    pageStateProof,
+    ...(buildBootstrapCapturePolicy({ envelope, payload, pageStateProof })
+      ? { capturePolicy: buildBootstrapCapturePolicy({ envelope, payload, pageStateProof }) }
+      : {}),
   };
 }
 

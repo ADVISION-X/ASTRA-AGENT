@@ -32,7 +32,8 @@ Map/Prompt Contract boundary:
 - 一个地图 + 对应 Prompt Contract，才是完整地图。
 - 地图只引用 Prompt Contract；Prompt Contract 定义 AI 问题、输入、输出结构、二元判断语义和可分支输出字段。
 - 自动化地图严厉禁止加入任何人工审查的动作，必须自动化完成。
-- Prompt Contract 输出 `routeLabel`；Route Plan 负责 `routeLabel -> step chain`。地图不得写 IF/ELSE，也不得复制 Route Plan 步骤、transition、routeLabel 或动作链。
+- 启动入口脊柱允许一个 AI“准备工作”步骤输出 YES/NO + `routeLabel` + `nonExecutableSummary`，地图只可在入口脊柱内做 fail-closed 本地 transition；Route Plan 仍然独占启动通过后的 `routeLabel -> step chain`。
+- Prompt Contract 输出 `routeLabel`；Route Plan 负责启动通过后的 `routeLabel -> step chain`。地图不得写 IF/ELSE，也不得复制 Route Plan 步骤、transition、routeLabel 或动作链。
 - 生产代码负责超时、重试、JSON 无效、证据交付、后动作验证和失败终止。
 Map Plugin Package references promptContractId.
 Map Plugin Package validates promptContractId/outputSchemaRef references.

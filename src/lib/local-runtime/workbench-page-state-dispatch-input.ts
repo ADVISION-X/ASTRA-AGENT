@@ -1,5 +1,4 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolvePageStatePlatformProfile as resolveObservationPlatformProfile, urlMatchesFeedPath } from "../../capabilities/page-state/shared/page-state-profile.js";
 import type { RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
@@ -71,6 +70,7 @@ type ObservationBuildInput = {
   currentUrl: string;
   loginState: BrowserLoginState;
   platformProfileId: RequestedPlatformId;
+  currentTitle: string;
   sourceProofRef: string;
   capturedAt: string;
 };
@@ -93,81 +93,36 @@ const buildObservationSource = (sourceProofRef: string) => ({
   sourceProofRef,
 });
 
-const buildFeedReady = (currentUrl: string, platformProfileId: RequestedPlatformId): boolean => {
-  const resolvedProfile = resolveObservationPlatformProfile(platformProfileId);
-  return Boolean(resolvedProfile && URL.canParse(currentUrl) && urlMatchesFeedPath(currentUrl, resolvedProfile));
-};
-
-const buildCaptchaObservation = (input: ObservationBuildInput) => ({
-  observationId: `${input.envelope.inputRef}:captcha-marker`,
-  kind: "page_marker" as const,
+const buildRawRuntimeObservation = (
+  input: ObservationBuildInput,
+  signalName: string,
+  rawValue: string | number | boolean | null,
+) => ({
+  observationId: `${input.envelope.inputRef}:raw:${signalName}`,
+  kind: "raw_runtime_signal" as const,
   capturedAt: input.capturedAt,
   ...buildObservationSource(input.sourceProofRef),
   payload: {
-    marker: "captcha" as const,
-    present: input.loginState === "review_required",
-    detail: input.loginState === "review_required" ? "Browser session requires review." : "No captcha review signal is active.",
+    signalName,
+    rawValue,
+    detail: "Raw runtime evidence only. AI owns page, visual, blocker, readiness, and business interpretation.",
   },
 });
-
-const buildSafetyWallObservation = (input: ObservationBuildInput) => ({
-  observationId: `${input.envelope.inputRef}:safety-wall-marker`,
-  kind: "page_marker" as const,
-  capturedAt: input.capturedAt,
-  ...buildObservationSource(input.sourceProofRef),
-  payload: {
-    marker: "safety_wall" as const,
-    present: false,
-    detail: "No governed safety-wall marker is present in the runtime session snapshot.",
-  },
-});
-
-const buildFeedShellObservation = (input: ObservationBuildInput) => {
-  const feedReady = buildFeedReady(input.currentUrl, input.platformProfileId);
-
-  return {
-    observationId: `${input.envelope.inputRef}:feed-shell-marker`,
-    kind: "page_marker" as const,
-    capturedAt: input.capturedAt,
-    ...buildObservationSource(input.sourceProofRef),
-    payload: {
-      marker: "feed_shell" as const,
-      present: feedReady,
-      detail: feedReady ? `Current URL matches ${input.platformProfileId} feed path.` : "Current URL does not confirm feed-shell readiness.",
-    },
-  };
-};
-
-const buildPostOpenCaptureObservation = (input: ObservationBuildInput) => {
-  const feedReady = buildFeedReady(input.currentUrl, input.platformProfileId);
-
-  return {
-    observationId: `${input.envelope.inputRef}:post-open-capture`,
-    kind: "platform_capture" as const,
-    capturedAt: input.capturedAt,
-    ...buildObservationSource(input.sourceProofRef),
-    payload: {
-      captureKind: "post_open_capture" as const,
-      tags: feedReady ? ["feed-shell", "feed-ready"] : [],
-      confidence: feedReady ? 0.84 : 0.51,
-      detail: feedReady ? "Runtime session URL and platform profile indicate feed readiness." : "Runtime session capture does not yet prove feed readiness.",
-    },
-  };
-};
 
 const buildPageStateObservations = (input: {
   envelope: AbilityCommandEnvelope;
   currentUrl: string;
   loginState: ReturnType<WorkbenchRuntime["browserController"]["getSessionState"]>["loginState"];
   platformProfileId: RequestedPlatformId;
+  currentTitle: string;
   sourceProofRef: string;
   capturedAt: string;
 }) => {
   return [
-    buildCaptchaObservation(input),
-    buildSafetyWallObservation(input),
-    buildFeedShellObservation(input),
-    buildPostOpenCaptureObservation(input),
+    buildRawRuntimeObservation(input, "currentUrl", input.currentUrl),
+    buildRawRuntimeObservation(input, "currentTitle", input.currentTitle),
+    buildRawRuntimeObservation(input, "browserLoginState", input.loginState),
+    buildRawRuntimeObservation(input, "platformProfileHint", input.platformProfileId),
   ];
 };
 
@@ -259,6 +214,7 @@ export const buildPageStateDispatchInput = async (
     currentUrl,
     loginState: session.loginState,
     platformProfileId,
+    currentTitle: session.currentTitle ?? "",
     sourceProofRef: openProofRef,
     capturedAt,
   });

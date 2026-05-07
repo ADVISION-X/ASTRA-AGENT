@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+
 import type { InspectorContext, InspectorResult } from "../../core/schema.js";
-import { finalizeInspectorResult } from "../../core/result.js";
+import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createPageStateAuditProject } from "./audit-project.js";
 import { runAntiEscape } from "./anti-escape.js";
@@ -22,6 +24,26 @@ const TARGET_NEGATIVE_PROOF_PHASES = [
 ] as const;
 
 type TargetNegativeProofPhase = (typeof TARGET_NEGATIVE_PROOF_PHASES)[number];
+
+const AI_ONLY_PAGE_STATE_FILES = [
+  "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
+  "src/capabilities/page-state/schema.ts",
+  "src/capabilities/page-state/shared/page-state-profile.ts",
+] as const;
+
+const AI_ONLY_PAGE_STATE_FORBIDDEN = [
+  "feedReady",
+  "pageReady",
+  "pageCorrect",
+  "urlMatchesFeedPath",
+  "feed-shell",
+  "feed-ready",
+  "safety_wall",
+  "captcha-marker",
+  "feed-shell-marker",
+  "Current URL matches",
+  "Runtime session URL and platform profile indicate feed readiness",
+] as const;
 
 function createSkippedNegativeProofPhase() {
   return {
@@ -46,6 +68,33 @@ function resolveTargetNegativeProofPhase(): TargetNegativeProofPhase | null {
   return TARGET_NEGATIVE_PROOF_PHASES.includes(value as TargetNegativeProofPhase)
     ? value as TargetNegativeProofPhase
     : null;
+}
+
+function runAiOnlyPageStateBoundary() {
+  const findings = AI_ONLY_PAGE_STATE_FILES.flatMap((file) => {
+    const text = readFileSync(file, "utf8");
+    return AI_ONLY_PAGE_STATE_FORBIDDEN
+      .filter((token) => text.includes(token))
+      .map((token) => createFinding({
+        lawId: "GRASSEYE-PAGE-STATE-AI-ONLY-INTERPRETATION-BOUNDARY-V1",
+        file,
+        line: 1,
+        severity: "fatal" as const,
+        message: `Page State and Workbench raw-observation paths must not contain non-AI page interpretation token "${token}".`,
+      }));
+  });
+
+  return {
+    findings,
+    phase: createPhase(
+      "ai-only-page-state-boundary",
+      findings.length === 0 ? "PASS" : "CODE VIOLATION",
+      findings.length === 0,
+      findings.length === 0
+        ? "Page State raw-observation boundary contains no forbidden page interpretation tokens."
+        : "Page State raw-observation boundary still contains forbidden non-AI interpretation tokens.",
+    ),
+  };
 }
 
 async function runTargetedProjectPhase(phase: Exclude<TargetNegativeProofPhase, "enforcement-coverage">) {
@@ -92,6 +141,7 @@ function collectInspectorFindings(input: {
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
   truthOwnership: ReturnType<typeof runTruthOwnership>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
+  aiOnlyBoundary: ReturnType<typeof runAiOnlyPageStateBoundary>;
   enforcementCoverage: Awaited<ReturnType<typeof runEnforcementCoverage>>;
   negativeProofFindings: Awaited<ReturnType<typeof resolveNegativeProofPhase>>["findings"];
 }) {
@@ -102,6 +152,7 @@ function collectInspectorFindings(input: {
     ...input.boundary.findings,
     ...input.truthOwnership.findings,
     ...input.antiEscape.findings,
+    ...input.aiOnlyBoundary.findings,
     ...input.enforcementCoverage.findings,
     ...input.negativeProofFindings,
   ];
@@ -114,6 +165,7 @@ function collectInspectorPhases(input: {
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
   truthOwnership: ReturnType<typeof runTruthOwnership>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
+  aiOnlyBoundary: ReturnType<typeof runAiOnlyPageStateBoundary>;
   enforcementCoverage: Awaited<ReturnType<typeof runEnforcementCoverage>>;
   negativeProofPhase: Awaited<ReturnType<typeof resolveNegativeProofPhase>>["phase"];
 }) {
@@ -124,6 +176,7 @@ function collectInspectorPhases(input: {
     input.boundary.phase,
     input.truthOwnership.phase,
     input.antiEscape.phase,
+    input.aiOnlyBoundary.phase,
     input.enforcementCoverage.phase,
     input.negativeProofPhase,
   ];
@@ -146,12 +199,13 @@ export async function inspectPageStateCapability(context: InspectorContext): Pro
   const boundary = await runBoundaryAttack(project);
   const truthOwnership = runTruthOwnership(project);
   const antiEscape = await runAntiEscape(project);
+  const aiOnlyBoundary = runAiOnlyPageStateBoundary();
   const enforcementCoverage = await runEnforcementCoverage(context);
   const negativeProof = await resolveNegativeProofPhase();
   const negativeProofFindings = negativeProof.findings;
   const negativeProofPhase = negativeProof.phase;
-  const findings = collectInspectorFindings({ base, required, forbidden, boundary, truthOwnership, antiEscape, enforcementCoverage, negativeProofFindings });
-  const phases = collectInspectorPhases({ base, required, forbidden, boundary, truthOwnership, antiEscape, enforcementCoverage, negativeProofPhase });
+  const findings = collectInspectorFindings({ base, required, forbidden, boundary, truthOwnership, antiEscape, aiOnlyBoundary, enforcementCoverage, negativeProofFindings });
+  const phases = collectInspectorPhases({ base, required, forbidden, boundary, truthOwnership, antiEscape, aiOnlyBoundary, enforcementCoverage, negativeProofPhase });
 
   return finalizeInspectorResult({
     inspector: "GrassEye Page State Capability Owner Inspector",

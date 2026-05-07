@@ -10,8 +10,6 @@ const hashTextValue = (value: string): string => {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 };
 
-const hashRefValue = (value: string): string => createHash("sha256").update(value).digest("hex");
-
 const resolvePayloadRef = (
   payload: Record<string, string | number | boolean | null>,
   keys: string[],
@@ -77,94 +75,15 @@ export const buildVisualTargetCommand = (
   inputPayload: NerveBusPayloadDocument,
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
-  const now = envelope.createdAt;
   const isCommentsButton = envelope.commandName === "observe-comments-button";
   const targetType = isCommentsButton ? "comments_button" : "next_video_region";
-  const targetNature = isCommentsButton ? "action" : "region";
-  const sourceProofRef = `${envelope.inputRef}:visual-target-source-proof`;
-  const screenshotEvidenceRef = resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`);
-  const pageStateRef = resolvePayloadRef(payload, ["pageStateRef", "sourceEvidenceRef"], `${envelope.inputRef}:page-state`);
-  const screenshotHash = hashRefValue(screenshotEvidenceRef);
-  const pageStateHash = hashRefValue(pageStateRef);
-  const candidateRef = `${envelope.inputRef}:${targetType}:heuristic-region`;
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "visual-target",
-    childCapabilityId: isCommentsButton ? "observe-comments-button" : "observe-next-video-region",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.missionId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    idempotencyKey: envelope.idempotencyKey,
-    roundId: envelope.stepId,
-    videoVisitId: null,
-    requestedBy: "orchestration",
-    sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: envelope.commandName,
-    inputRef: envelope.inputRef,
-    targetType,
-    targetNature,
-    sourceProof: {
-      sourceProofRef,
-      screenshot: {
-        screenshotEvidenceId: screenshotEvidenceRef,
-        artifactRef: screenshotEvidenceRef,
-        screenshotProofRef: envelope.inputRef,
-        artifactHash: screenshotHash,
-        imageHash: screenshotHash,
-        imageWidth: 1,
-        imageHeight: 1,
-        coordinateSpace: "browser_viewport",
-        coordinateAuthority: "evidence_original",
-        sourceScreenshotEvidenceId: screenshotEvidenceRef,
-        scaleMapping: null,
-        capturedAt: now,
-        sessionId: envelope.missionId,
-        roundId: envelope.stepId,
-        videoVisitId: null,
-      },
-      ai: null,
-      pageState: {
-        pageStateProofRef: pageStateRef,
-        pageStateType: "platform_feed",
-        pageStateFingerprint: pageStateHash,
-        pageStateHash,
-        decision: "allow",
-        currentUrl: payloadValueToString(payload.targetUrl) ?? "about:blank",
-        currentTitle: payloadValueToString(payload.targetTitle),
-        observedAt: now,
-        sessionId: envelope.missionId,
-        roundId: envelope.stepId,
-        videoVisitId: null,
-      },
-      operatorApproval: null,
-    },
-    candidates: [{
-      candidateRef,
-      candidateKind: "heuristic_profile",
-      targetType,
-      boundingBox: { x: 0, y: 0, width: 1, height: 1 },
-      clickPoint: isCommentsButton ? { x: 0, y: 0 } : null,
-      confidence: isCommentsButton ? 0.82 : 0.78,
-      coordinateSpace: "browser_viewport",
-      sourceProofRef,
-      capturedAt: now,
-      sourceFrameRef: null,
-      detectionMethod: "map_profile_heuristic",
-      visibleText: null,
-      uncertainty: [],
-      blockedReason: null,
-      isVisible: true,
-      scaleMapping: null,
-      dataQualityFlags: [],
-    }],
-  }));
+  const aiTargetCandidateRef = payloadValueToString(payload.aiTargetCandidateRef)
+    ?? payloadValueToString(payload.targetCandidateRef)
+    ?? payloadValueToString(payload.sourceAiResultRef);
+  if (!aiTargetCandidateRef) {
+    throw new Error(`Visual Target dispatch for ${targetType} requires an AI target candidate ref. Heuristic target generation is forbidden.`);
+  }
+  throw new Error(`Visual Target AI candidate dispatch is not wired for ${targetType}; Route Plan must pass structured AI candidate geometry before this non-AI ability can run.`);
 };
 
 export const buildGeometryGuardCommand = (

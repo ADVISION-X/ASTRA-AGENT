@@ -1,6 +1,7 @@
 import type { AiChildCapabilityId, AiTaskType } from "./contract.js";
 
 const AI_TASK_ROUTING: Record<AiTaskType, AiChildCapabilityId | null> = {
+  page_preparation_judgment: "local-vision-ai",
   product_presence_judgment: "local-vision-ai",
   visual_observation: "local-vision-ai",
   visual_target_candidate_analysis: "local-vision-ai",

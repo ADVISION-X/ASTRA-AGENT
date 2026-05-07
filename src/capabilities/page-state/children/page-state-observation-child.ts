@@ -2,18 +2,18 @@ import type { PageStateAbilityInput, PageStateChildCapabilityId, PageStateChildO
 import type { PageStateChildCapability } from "../runtime/page-state-child-contract.js";
 
 const PAGE_STATE_PACKAGE_LABELS: Record<PageStateChildCapabilityId, string> = {
-  "observe-login-surface": "login surface observation bundle",
-  "observe-safety-surface": "safety surface observation bundle",
-  "observe-feed-surface": "feed surface observation bundle",
-  "observe-video-surface": "video surface observation bundle",
-  "observe-comment-panel-surface": "comment panel observation bundle",
-  "observe-modal-overlay-surface": "modal overlay observation bundle",
-  "observe-page-abnormality-surface": "page abnormality observation bundle",
-  "observe-platform-surface": "platform surface observation bundle",
+  "observe-login-surface": "raw page observation bundle",
+  "observe-safety-surface": "raw page observation bundle",
+  "observe-feed-surface": "raw page observation bundle",
+  "observe-video-surface": "raw page observation bundle",
+  "observe-comment-panel-surface": "raw page observation bundle",
+  "observe-modal-overlay-surface": "raw page observation bundle",
+  "observe-page-abnormality-surface": "raw page observation bundle",
+  "observe-platform-surface": "raw page observation bundle",
 };
 
 function buildObservationSummary(input: PageStateAbilityInput, childCapabilityId: PageStateChildCapabilityId): string {
-  return `${PAGE_STATE_PACKAGE_LABELS[childCapabilityId]} packaged from ${input.observations.length} governed observations. AI owns readiness, safety, stability, and page-kind interpretation.`;
+  return `${PAGE_STATE_PACKAGE_LABELS[childCapabilityId]} packaged from ${input.observations.length} governed raw observations. AI owns readiness, safety, stability, page-kind, blocker, and business interpretation.`;
 }
 
 function buildChildObservation(input: PageStateAbilityInput, childCapabilityId: PageStateChildCapabilityId): PageStateChildObservation {

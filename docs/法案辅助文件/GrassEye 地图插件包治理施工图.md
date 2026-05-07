@@ -39,12 +39,13 @@ map-plugins 是“路线图系统”。
 地图插件包治理红线：
 
 - 生产自动化地图必须是 `routePlanBoundMap`。
-- `routePlanBoundMap` 只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`。
+- `routePlanBoundMap` 只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`；入口脊柱允许一个 AI“准备工作”步骤与其 fail-closed 本地 transition。
 - Route Plan 是肌肉记忆唯一来源，独占 `routeLabel -> 步骤链 -> 能力组/子能力`。
 - `genericDiagnosticMap` 只能用于隔离诊断，可以写诊断步骤和 transitions，但不得绑定 Route Plan，也不得进入生产自动化主链。
 - 地图禁止写任何约束逻辑、判断逻辑、超时策略、重试策略、证据保留策略、后动作验证策略、人工审核动作。
 - 一个地图 + 对应 Prompt Contract，才是完整地图。
 - AI 判断语义必须进入 Prompt Contract 和 Output Schema；生产代码只负责运行边界、超时兜底、证据交付和失败终止。
+- 启动阶段 login/safety/captcha/feed-ready 的 YES/NO 继续判断必须进入 AI Prompt Contract，不得由 page-state step 担任入口脊柱 owner。
 - 自动化地图严厉禁止 request-human-review、human-review、manual-review、operator-review、review_required 终态或任何等待人的步骤。
 - Route Plan 是调度肌肉记忆的唯一来源。地图只能引用 `routePlanId`，不得复制 Route Plan 已经拥有的步骤、transition、routeLabel 或动作链。
 Orchestration 是“按路线图调度工具的人”。

@@ -13,7 +13,7 @@ export function parseAiExecutorInput(input: ParsedAiAbilityInput, childCapabilit
     return { ok: false, reason: "task_type_mismatch" };
   }
 
-  if (parsed.data.taskType === "product_presence_judgment") {
+  if (parsed.data.taskType === "page_preparation_judgment" || parsed.data.taskType === "product_presence_judgment") {
     const promptInputRef = parsed.data.inputRefs[0]?.id ?? null;
     if (!promptInputRef) {
       return { ok: false, reason: "ai_input_ref_missing" };

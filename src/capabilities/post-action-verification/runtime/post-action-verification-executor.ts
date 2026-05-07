@@ -16,9 +16,9 @@ export async function executePostActionVerification(input: {
     return createPostActionFailureResult({
       request: input.request,
       context: input.context,
-      status: "review_required",
+      status: "failed",
       failureReason: "missing_observation_support",
-      reviewRequiredReason: childObservation.reviewRequiredReason ?? "Post Action Verification can only forward governed observation bundles with supporting observations.",
+      reviewRequiredReason: null,
       statusMessage: childObservation.statusMessage,
     });
   }

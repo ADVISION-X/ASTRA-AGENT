@@ -60,6 +60,7 @@ local-ai → browser/action ability
 
 ```txt
 执行本地视觉判断
+执行本地启动准备判断
 执行本地文本总结
 执行本地 OCR 清洗
 返回 raw runtime output
@@ -80,6 +81,13 @@ local-ai → browser/action ability
 选择 paid/future provider
 写 Forensics
 执行浏览器动作
+```
+
+当前本地视觉 Prompt Contract 必须覆盖两类受治理任务：
+
+```txt
+vision.pagePreparation
+vision.productPresence
 ```
 
 ---

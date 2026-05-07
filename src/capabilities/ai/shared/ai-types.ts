@@ -11,6 +11,7 @@ const AI_CHILD_CAPABILITY_IDS = [
 ] as const;
 
 const AI_TASK_TYPES = [
+  "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
   "visual_target_candidate_analysis",

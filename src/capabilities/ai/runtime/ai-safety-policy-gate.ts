@@ -3,6 +3,7 @@ import type { ParsedAiAbilityInput } from "../contract.js";
 import { collectForbiddenActionTerms } from "../shared/ai-policy.js";
 
 const STRUCTURED_VISION_TASK_TYPES = new Set<ParsedAiAbilityInput["taskType"]>([
+  "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
   "visual_target_candidate_analysis",

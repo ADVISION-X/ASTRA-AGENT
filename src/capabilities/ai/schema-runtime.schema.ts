@@ -14,6 +14,7 @@ import {
   AiMapAuthoringOutputSchema,
   AiModelRoleSchema,
   AiOcrCleanupOutputSchema,
+  AiPagePreparationOutputSchema,
   AiOutputAuthoritySchema,
   AiOutputBoundaryDecisionSchema,
   AiProductSignalSummaryOutputSchema,
@@ -212,6 +213,12 @@ function createAiReviewRequiredResultSchema<TTaskType extends z.infer<typeof AiT
   }).strict();
 }
 
+const PagePreparationJudgmentResultSchema = z.union([
+  createAiSuccessResultSchema("page_preparation_judgment", AiPagePreparationOutputSchema),
+  createAiFailedResultSchema("page_preparation_judgment"),
+  createAiReviewRequiredResultSchema("page_preparation_judgment"),
+]);
+
 const ProductPresenceJudgmentResultSchema = z.union([
   createAiSuccessResultSchema("product_presence_judgment", AiVisualOutputSchema),
   createAiFailedResultSchema("product_presence_judgment"),
@@ -302,6 +309,7 @@ const validateAiResultOutput = (
 };
 
 const AiResultSchema = z.union([
+  PagePreparationJudgmentResultSchema,
   ProductPresenceJudgmentResultSchema,
   VisualObservationResultSchema,
   VisualTargetCandidateAnalysisResultSchema,
@@ -451,6 +459,7 @@ export {
   AiRuntimeProofSchema,
   AiRuntimeExecutionOutputSchema,
   AiForbiddenActionOutputFieldSchema,
+  PagePreparationJudgmentResultSchema,
   ProductPresenceJudgmentResultSchema,
   VisualObservationResultSchema,
   VisualTargetCandidateAnalysisResultSchema,

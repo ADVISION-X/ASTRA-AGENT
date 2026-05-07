@@ -216,7 +216,7 @@ export const emitAiExecutionInputDebug = async (context: AiExecutionContext, inp
     await context.emitDebugEvent(buildRejectedInputDebug(inputValue));
     return;
   }
-  if (fields.taskType === "product_presence_judgment" && (!fields.refs[0] || !resolveAiInputProofSummary(fields.refs[0]))) {
+  if ((fields.taskType === "page_preparation_judgment" || fields.taskType === "product_presence_judgment") && (!fields.refs[0] || !resolveAiInputProofSummary(fields.refs[0]))) {
     await context.emitDebugEvent(buildRejectedInputDebug(inputValue, fields.refs[0] ? "ai_input_artifact_missing" : "ai_input_ref_missing"));
     return;
   }

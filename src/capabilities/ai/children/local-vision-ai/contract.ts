@@ -5,7 +5,7 @@ import { AI_ABILITY_GROUP_ID } from "../../contract.js";
 import { LocalVisionAiChildExecutionPolicySchema, LocalVisionAiChildInputSchema, LocalVisionAiChildResultSchema } from "./schema.js";
 
 export const LOCAL_VISION_AI_CHILD_ID = "local-vision-ai";
-export const LOCAL_VISION_AI_SUPPORTED_TASK_TYPES = ["product_presence_judgment", "visual_observation", "visual_target_candidate_analysis"] as const;
+export const LOCAL_VISION_AI_SUPPORTED_TASK_TYPES = ["page_preparation_judgment", "product_presence_judgment", "visual_observation", "visual_target_candidate_analysis"] as const;
 export const LocalVisionAiChildExecutionPolicy = LocalVisionAiChildExecutionPolicySchema.parse({
   providerKind: "local",
   allowedTaskTypes: [...LOCAL_VISION_AI_SUPPORTED_TASK_TYPES],

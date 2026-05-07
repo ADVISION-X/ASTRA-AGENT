@@ -85,21 +85,6 @@ function createAcceptedCandidateSourceInspection(candidate: VisualTargetCandidat
   return { acceptedCandidate: candidate, rejectedCandidateRef: null, dataQualityFlag: null, failure: null };
 }
 
-function createOperatorApprovalInspection(candidateRef: string): CandidateSourceInspection {
-  return {
-    acceptedCandidate: null,
-    rejectedCandidateRef: null,
-    dataQualityFlag: null,
-    failure: createCandidateSourceReview({
-      failureReason: "operator_approval_required",
-      statusMessage: "operator_manual candidate requires operator approval proof.",
-      reviewRequiredReason: "Visual Target requires operator approval proof for operator_manual candidate sources.",
-      rejectedCandidateRefs: [candidateRef],
-      dataQualityFlags: ["operator_manual_review_required"],
-    }),
-  };
-}
-
 function findCandidateSourceBindingInspection(input: {
   request: ParsedVisualTargetAbilityInput;
   profile: ResolvedVisualTargetProfile;
@@ -114,23 +99,6 @@ function findCandidateSourceBindingInspection(input: {
   }
   return candidate.candidateKind === "ai_candidate" && !candidate.sourceFrameRef
     ? createRejectedCandidateSourceInspection(candidate.candidateRef, "candidate_source_frame_missing")
-    : null;
-}
-
-function findOperatorManualInspection(input: {
-  request: ParsedVisualTargetAbilityInput;
-  profile: ResolvedVisualTargetProfile;
-  candidate: VisualTargetCandidate;
-}): CandidateSourceInspection | null {
-  const { candidate } = input;
-  if (candidate.candidateKind !== "operator_manual") {
-    return null;
-  }
-  if (!input.profile.allowOperatorManual) {
-    return createRejectedCandidateSourceInspection(candidate.candidateRef, "operator_manual_review_required");
-  }
-  return !input.request.sourceProof.operatorApproval
-    ? createOperatorApprovalInspection(candidate.candidateRef)
     : null;
 }
 
@@ -156,10 +124,6 @@ function inspectCandidateSourceCandidate(input: {
   const bindingInspection = findCandidateSourceBindingInspection(input);
   if (bindingInspection) {
     return bindingInspection;
-  }
-  const operatorManualInspection = findOperatorManualInspection(input);
-  if (operatorManualInspection) {
-    return operatorManualInspection;
   }
   const readinessInspection = findCandidateSourceReadinessInspection({
     candidate: input.candidate,

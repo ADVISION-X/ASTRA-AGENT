@@ -11,7 +11,7 @@ function buildConfiguredEntries(config: LocalAiModelConfig): AiModelRosterEntry[
     {
       childCapabilityId: "local-vision-ai",
       providerKind: "local",
-      taskTypes: ["product_presence_judgment", "visual_observation", "visual_target_candidate_analysis"],
+      taskTypes: ["page_preparation_judgment", "product_presence_judgment", "visual_observation", "visual_target_candidate_analysis"],
       modelRole: "vision",
       runtime: config.roles.vision.runtime,
       modelOrTool: config.roles.vision.model,

@@ -34,6 +34,7 @@ import {
   AiRuntimeHealthSchema,
   AiRuntimeProofSchema,
   AiSafetyPolicySchema,
+  AiPagePreparationOutputSchema,
   AiSchemaValidationOnlyInputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
@@ -55,6 +56,8 @@ import {
   PaidAnalysisAiResultSchema,
   PaidVisionAiInputSchema,
   PaidVisionAiResultSchema,
+  PagePreparationJudgmentInputSchema,
+  PagePreparationJudgmentResultSchema,
   ProductPresenceJudgmentInputSchema,
   ProductPresenceJudgmentResultSchema,
   ProductSignalSummaryInputSchema,
@@ -90,6 +93,7 @@ type AiModelRosterEntry = z.output<typeof AiModelRosterEntrySchema>;
 type AiRuntimeExecutionOutput = z.output<typeof AiRuntimeExecutionOutputSchema>;
 type AiChildReadiness = z.output<typeof AiChildReadinessSchema>;
 
+type PagePreparationJudgmentInput = z.output<typeof PagePreparationJudgmentInputSchema>;
 type ProductPresenceJudgmentInput = z.output<typeof ProductPresenceJudgmentInputSchema>;
 type VisualObservationInput = z.output<typeof VisualObservationInputSchema>;
 type VisualTargetCandidateAnalysisInput = z.output<typeof VisualTargetCandidateAnalysisInputSchema>;
@@ -99,6 +103,7 @@ type ProductSignalSummaryInput = z.output<typeof ProductSignalSummaryInputSchema
 type EvidencePacketAnalysisInput = z.output<typeof EvidencePacketAnalysisInputSchema>;
 type SchemaValidationOnlyInput = z.output<typeof SchemaValidationOnlyInputSchema>;
 
+type AiPagePreparationOutput = z.output<typeof AiPagePreparationOutputSchema>;
 type AiVisualOutput = z.output<typeof AiVisualOutputSchema>;
 type AiOcrCleanupInput = z.output<typeof AiOcrCleanupInputSchema>;
 type AiOcrCleanupOutput = z.output<typeof OcrCleanupResultSchema>["output"];
@@ -222,6 +227,7 @@ export type {
   AiModelRosterEntry,
   AiRuntimeExecutionOutput,
   AiChildReadiness,
+  PagePreparationJudgmentInput,
   ProductPresenceJudgmentInput,
   VisualObservationInput,
   VisualTargetCandidateAnalysisInput,
@@ -230,6 +236,7 @@ export type {
   ProductSignalSummaryInput,
   EvidencePacketAnalysisInput,
   SchemaValidationOnlyInput,
+  AiPagePreparationOutput,
   AiVisualOutput,
   AiOcrCleanupInput,
   AiOcrCleanupOutput,

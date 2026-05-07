@@ -34,13 +34,11 @@ function resolvePageStateHandoffGate(input: {
   const pageStateProof = input.request.pageStateProof;
   if (!pageStateProof) {
     if (input.request.capturePolicy.allowFirstCaptureWithoutPageStateProof) {
-      return buildPageStateHandoffFailure({
-        status: "review_required",
-        reason: "bootstrap_capture_without_page_state_proof",
-        code: "page_state_missing",
-        message: "Screenshot bootstrap capture without pageStateProof is review_required and non-authoritative.",
+      return {
+        decision: { status: "passed" as const, reason: "bootstrap_capture_page_state_proof_deferred" },
         pageStateProofRef: null,
-      });
+        failure: null,
+      };
     }
 
     return buildPageStateHandoffFailure({

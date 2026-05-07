@@ -3,7 +3,6 @@ export { createDefaultPageStateRuntimeContext } from "./runtime/page-state-runti
 export { PAGE_STATE_ABILITY_GROUP_ID } from "./contract.js";
 export {
 	resolvePageStatePlatformProfile,
-	urlMatchesFeedPath,
 } from "./shared/page-state-profile.js";
 export {
 	PageStateAbilityInputSchema,

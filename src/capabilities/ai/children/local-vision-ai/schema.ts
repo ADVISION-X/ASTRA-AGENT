@@ -7,6 +7,7 @@ export const LocalVisionAiChildResultSchema = LocalVisionAiResultSchema.describe
 export const LocalVisionAiChildExecutionPolicySchema = z.object({
   providerKind: z.literal("local"),
   allowedTaskTypes: z.tuple([
+    z.literal("page_preparation_judgment"),
     z.literal("product_presence_judgment"),
     z.literal("visual_observation"),
     z.literal("visual_target_candidate_analysis"),

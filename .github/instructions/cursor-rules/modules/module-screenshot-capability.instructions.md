@@ -242,6 +242,10 @@ idempotencyKey
 timeoutMs or capturePolicy.maxDurationMs
 ```
 
+Startup bootstrap exception:
+- AI-first startup browser viewport capture may omit `pageStateProof` only for the first governed bootstrap capture when `capturePolicy.allowFirstCaptureWithoutPageStateProof = true` and the request carries governed open-handoff support.
+- Screenshot must not fabricate or backfill fake `pageStateProof` just to satisfy startup bootstrap.
+
 Source proof for transformed artifacts must include:
 
 ```txt

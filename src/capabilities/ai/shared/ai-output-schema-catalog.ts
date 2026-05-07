@@ -5,6 +5,7 @@ import {
   AiEvidencePacketAnalysisOutputSchema,
   AiMapAuthoringOutputSchema,
   AiOcrCleanupOutputSchema,
+  AiPagePreparationOutputSchema,
   AiProductSignalSummaryOutputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
@@ -16,6 +17,7 @@ type AiOutputSchemaDescriptor = {
 };
 
 const AI_OUTPUT_SCHEMA_BY_TASK_TYPE: Record<string, AiOutputSchemaDescriptor> = {
+  page_preparation_judgment: { schemaVersion: "ai.page_preparation_judgment.v1", schema: AiPagePreparationOutputSchema },
   product_presence_judgment: { schemaVersion: "ai.product_presence_judgment.v1", schema: AiVisualOutputSchema },
   ocr_cleanup: { schemaVersion: "ai.ocr_cleanup.v1", schema: AiOcrCleanupOutputSchema },
   comment_signal_summary: { schemaVersion: "ai.comment_signal_summary.v1", schema: AiCommentSignalSummaryOutputSchema },

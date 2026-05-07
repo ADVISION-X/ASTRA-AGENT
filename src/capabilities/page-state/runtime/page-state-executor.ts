@@ -18,8 +18,8 @@ export async function executePageState(input: {
     return createPageStateFailureResult({
       request: input.request,
       failureReason: "missing_source_evidence",
-      reviewRequiredReason: "Page State can only forward governed observation bundles with evidence references.",
-      status: "review_required",
+      reviewRequiredReason: null,
+      status: "failed",
       clock: input.clock,
     });
   }
@@ -28,8 +28,8 @@ export async function executePageState(input: {
     return createPageStateFailureResult({
       request: input.request,
       failureReason: "missing_observation_support",
-      reviewRequiredReason: childObservation.reviewRequiredReason ?? "No governed observations were packaged for AI review.",
-      status: "review_required",
+      reviewRequiredReason: null,
+      status: "failed",
       clock: input.clock,
     });
   }

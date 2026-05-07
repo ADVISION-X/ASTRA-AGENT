@@ -1,26 +1,26 @@
 ---
 name: "GrassEye Page State Capability"
-description: "Use when governing the independent Page State Ability Group, current-page state classification, page readiness, login wall, safety page, modal overlay, comment panel state, feed/video stability, platform page kind, and the boundary that prevents open/platform/runtime/PAV from claiming current-page state truth."
+description: "Use when governing the independent Page State Ability Group as raw page/runtime observation packaging only, and the boundary that prevents Page State, open, runtime, PAV, Screenshot, Visual Target, or adapters from claiming visual/page/business interpretation."
 applyTo: ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md, src/capabilities/page-state/**, docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md, scripts/audit/domains/page-state-capability/**"
 ---
 
 # GrassEye Page State Capability FINAL
 
-Scope: governs the independent Page State Ability Group, current-page state classification, page readiness, login-state classification, safety-page detection, feed/video stability detection, modal/comment panel state classification, page abnormality classification, platform page-kind classification, evidence-backed state output, and page-state runtime proof.
+Scope: governs the independent Page State Ability Group, raw current-page/runtime observation packaging, evidence-backed observation output, and page-state runtime proof. Page State no longer owns current-page classification, page readiness, login-state classification, safety-page detection, feed/video stability detection, modal/comment panel state classification, page abnormality classification, or platform page-kind classification.
 
-Boundary: this module governs only the question: **what state is the current page in right now**. It does not govern action execution, action-result verification, screenshot capture, AI execution, visual-target detection, comment extraction, product classification, evidence finalization, map branching, or mission progression.
+Boundary: this module governs only the question: **what raw evidence about the page/runtime has been packaged for AI or downstream proof**. It does not govern page meaning, blocker meaning, action execution, action-result semantic verification, screenshot capture, AI execution, visual-target detection, comment extraction, product classification, evidence finalization, map branching, or mission progression.
 
 Authority: this file is authoritative only for the `page-state-capability` domain.
 
 Architecture phase: `Static Capability Package Architecture`.
 
 Core doctrine:
-- Page State is current-state perception, not action-result verification.
-- Page State consumes governed snapshots, observations, open handoff refs, and evidence refs.
-- Page State returns a structured current-page classification with proof.
+- Page State is raw observation packaging, not perception, classification, or action-result verification.
+- Page State consumes governed snapshots, raw runtime observations, open handoff refs, and evidence refs.
+- Page State returns a structured raw observation package with proof.
 - Page State does not capture screenshots, call AI, run visual target detection, click, scroll, type, open pages, query DOM/BOM, write Forensics, or choose the next step.
-- Open/action abilities may say “I attempted/did an action”; Page State may say “the page now looks like X”; Post-action Verification decides whether the action achieved its expected result.
-- No observation support, no confident page-state success.
+- Open/action abilities may say “I attempted/did an action”; Page State may only say “these raw fields/evidence refs were packaged”; AI decides what the page looks like and what it means.
+- No observation support, no page-state success.
 - No source proof, no governed observation.
 - No chain fields, no production-ready Page State result.
 - No active Page State law without inspector + runner + negative proof.
@@ -83,17 +83,17 @@ capabilityDomain: page-state-capability
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: Page State is the only owner of governed current-page state classification.
+summary: Page State is raw observation packaging only; AI owns all visual/page/business interpretation.
 
 ### 主题
 
-当前页面状态主权唯一
+页面原始观察打包边界唯一
 
 ### 法条
 
-Page State Ability Group is the only owner of governed current-page state classification.
+Page State Ability Group is the owner of governed raw page/runtime observation packaging only. AI Capability is the only owner of governed current-page, visual, blocker, readiness, target-identity, and business interpretation.
 
-Current-page state classifications include:
+AI-only interpretations include:
 
 ```txt
 logged_in
@@ -119,28 +119,32 @@ local_workbench
 ```
 
 Required:
-- All governed current-page state classification flows through Page State public interface.
-- Open, platform adapters, local runtime, workbench, Orchestration, PAV, Screenshot, Visual Target, and AI may consume Page State result but must not own final page-state truth.
-- Page State classifies the current page as it exists now.
+- All visual/page/business interpretation flows through AI Prompt Contract execution.
+- Open, platform adapters, local runtime, workbench, Orchestration, PAV, Screenshot, Visual Target, and Page State may carry raw evidence but must not own final page-state truth.
+- Page State packages currentUrl, currentTitle, browserLoginState, source refs, open handoff refs, and raw runtime signals only.
+- Page State must not classify the current page as login, captcha, safety wall, feed, video, comment panel, abnormal, normal, correct, ready, stable, or wrong domain.
 - Page State must not judge whether an action succeeded.
-- Page State result may be consumed by Orchestration, PAV, Commander, and Forensics as a state observation/result.
+- Page State result may be consumed by AI, Orchestration, PAV, Commander, and Forensics as raw observation/proof only.
 
 Forbidden:
-- Open deciding feed-ready/login-wall/safety-page truth by itself.
+- Page State, Open, platform adapter, local runtime, Workbench, Orchestration, PAV, Screenshot, or Visual Target deciding feed-ready/login-wall/safety-page/captcha/page-kind/page-correct/page-stable truth by itself.
+- URL helpers deriving feed-ready/page-correct/platform-feed truth.
+- `feedReady`, `pageReady`, `pageStateType = platform_feed`, `safety_wall present/absent`, `captcha present/absent`, `decision = allow` from page meaning, or confidence scores for page meaning outside AI.
 - Platform adapter owning login/safety/feed-ready summary helpers.
 - Agent runtime owning current-page classification truth.
-- PAV replacing Page State current-state classification.
+- PAV replacing AI current-state interpretation.
 - Action completion used as page-state proof.
+- Page State owning startup entry-spine yes/no continuation for login-wall, safety-wall, captcha, or feed-ready routing.
 - Duplicate page-state helpers outside Page State Ability Group.
 
 Required inspector:
-- Search forbidden state-truth symbols outside Page State.
+- Search forbidden state-truth symbols outside AI.
 - Import graph check for duplicate page-state helpers.
-- Open/platform/runtime state-truth ownership ban.
+- Open/platform/runtime/Page State/PAV/Screenshot/Visual Target state-truth ownership ban.
 - Action completion as page-state proof ban.
 
 Required negative proof:
-- Add feed-ready classifier in open ability → FAIL.
+- Add feed-ready classifier in any non-AI file → FAIL.
 - Add login-wall truth helper in platform adapter → FAIL.
 - Use actionCompletion as page-state evidence → FAIL.
 
@@ -154,7 +158,7 @@ capabilityDomain: page-state-capability
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: Page State boundary is pure and may only classify from governed inputs.
+summary: Page State boundary is pure and may only package raw governed inputs.
 
 ### 主题
 
@@ -162,7 +166,7 @@ summary: Page State boundary is pure and may only classify from governed inputs.
 
 ### 法条
 
-Page State only classifies, summarizes, records proof, and returns current-page state.
+Page State only packages raw observations, summarizes packaging, records proof, and returns raw observation refs.
 
 Allowed:
 - Consume governed snapshot.
@@ -172,7 +176,7 @@ Allowed:
 - Resolve platform profile through injected profile port.
 - Check freshness.
 - Check source binding.
-- Classify current-page state.
+- Preserve raw currentUrl/currentTitle/browserLoginState/sourceEvidenceRefs/openHandoff/runtimeSignalRefs without deriving page meaning.
 - Produce runtime proof and structured result.
 
 Forbidden:

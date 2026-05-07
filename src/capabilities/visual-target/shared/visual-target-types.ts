@@ -30,7 +30,7 @@ const VISUAL_TARGET_TYPES = [
 
 const VISUAL_TARGET_NATURES = ["action", "region", "metric"] as const;
 
-const VISUAL_TARGET_CANDIDATE_KINDS = ["ai_candidate", "heuristic_profile", "operator_manual"] as const;
+const VISUAL_TARGET_CANDIDATE_KINDS = ["ai_candidate"] as const;
 
 const VISUAL_TARGET_COORDINATE_SPACES = [
   "browser_viewport",

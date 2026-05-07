@@ -20,7 +20,7 @@
   "taskTemplate": {
     "taskTemplateId": "tiktok-seeding-video-discovery",
     "displayName": "TikTok 种草视频挖掘",
-    "description": "Open TikTok feed, verify public page safety, judge product-seeding video evidence, capture visible comments, summarize comment intent, scroll to the next video, and persist governed evidence.",
+    "description": "Open TikTok feed, judge product-seeding video evidence, capture visible comments, summarize comment intent, scroll to the next video, and persist governed evidence.",
     "recommended": true,
     "taskCategory": "product-discovery",
     "version": "1.0.0",
@@ -44,7 +44,7 @@
     "requestedPlatformId": "tiktok-web",
     "platformProfileRef": "tiktok-web:persistent-local-profile",
     "targetProfileRef": "open-target-profile:open-tiktok",
-    "defaultHumanGoal": "Browse TikTok feed, identify product-seeding candidates, capture public evidence, and preserve candidate summaries for review."
+    "defaultHumanGoal": "Browse TikTok feed, identify product-seeding candidates, capture public evidence, and preserve candidate summaries."
   },
   "operationalMap": {
     "mapKind": "routePlanBoundMap",
@@ -73,60 +73,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "observe-login-surface",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-login-surface",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "page-state",
-        "inputRefs": [
-          "requestedPlatformId",
-          "targetUrl",
-          "sourceEvidenceRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "pageStateRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "observe-safety-surface",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-safety-surface",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "page-state",
-        "inputRefs": [
-          "requestedPlatformId",
-          "targetUrl",
-          "sourceEvidenceRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "pageStateRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "observe-feed-surface",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-feed-surface",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "page-state",
-        "inputRefs": [
-          "requestedPlatformId",
-          "targetUrl",
-          "sourceEvidenceRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "pageStateRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "capture-video-viewport",
         "capabilityId": "orchestration",
         "childCapabilityId": "capture-browser-viewport",
@@ -134,8 +80,7 @@
         "targetAbilityGroupId": "screenshot",
         "inputRefs": [
           "targetUrl",
-          "targetTitle",
-          "pageStateRef"
+          "targetTitle"
         ],
         "outputRefPolicy": {
           "storeAs": [
@@ -182,54 +127,12 @@
         "transitionId": "open-tiktok-feed:success",
         "fromStepId": "open-tiktok-feed",
         "onStatus": "success",
-        "toStepId": "observe-login-surface",
+        "toStepId": "capture-video-viewport",
         "finalStatus": null
       },
       {
         "transitionId": "open-tiktok-feed:failed",
         "fromStepId": "open-tiktok-feed",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "observe-login-surface:success",
-        "fromStepId": "observe-login-surface",
-        "onStatus": "success",
-        "toStepId": "observe-safety-surface",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "observe-login-surface:failed",
-        "fromStepId": "observe-login-surface",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "observe-safety-surface:success",
-        "fromStepId": "observe-safety-surface",
-        "onStatus": "success",
-        "toStepId": "observe-feed-surface",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "observe-safety-surface:failed",
-        "fromStepId": "observe-safety-surface",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "observe-feed-surface:success",
-        "fromStepId": "observe-feed-surface",
-        "onStatus": "success",
-        "toStepId": "capture-video-viewport",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "observe-feed-surface:failed",
-        "fromStepId": "observe-feed-surface",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -285,7 +188,6 @@
   "dependencies": {
     "requiredCapabilities": [
       "open",
-      "page-state",
       "screenshot",
       "ai",
       "visual-target",
@@ -297,9 +199,6 @@
     ],
     "requiredChildCapabilities": [
       "open-tiktok",
-      "observe-login-surface",
-      "observe-safety-surface",
-      "observe-feed-surface",
       "capture-browser-viewport",
       "prepare-ai-input",
       "product-presence-judgment",
@@ -330,7 +229,6 @@
     "requiresMapSchema": "1",
     "requiresCapabilityRegistry": [
       "open",
-      "page-state",
       "screenshot",
       "ai",
       "visual-target",

@@ -1,0 +1,7 @@
+export const STARTUP_PREPARATION_READY_ROUTE_LABEL = "startup-ready-for-seeding-judgment";
+export const STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL = "startup-fail-closed";
+
+export const STARTUP_PREPARATION_ROUTE_LABELS = [
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+] as const;

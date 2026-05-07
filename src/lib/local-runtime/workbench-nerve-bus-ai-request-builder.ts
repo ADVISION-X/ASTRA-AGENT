@@ -14,8 +14,10 @@ type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
 type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").WorkbenchRuntime["aiAbilityGroup"]["execute"]>[0];
 
+const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
 const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
+  "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
   "visual_target_candidate_analysis",
@@ -65,7 +67,7 @@ const buildDefaultAiInputPayload = (inputPayload: WorkbenchAiPayloadDocument) =>
   return payloadDocumentToObject(inputPayload);
 };
 
-const buildProductPresenceInputPayload = (
+const buildVisionImageCollectionInputPayload = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
 ) => {
@@ -118,8 +120,8 @@ const buildWorkbenchAiInputPayload = (
 ) => {
   return envelope.taskType === "schema_validation_only"
     ? buildSchemaValidationInputPayload(envelope, inputPayload)
-    : envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
-    ? buildProductPresenceInputPayload(envelope, inputPayload)
+    : envelope.taskType === PAGE_PREPARATION_TASK_TYPE || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
+    ? buildVisionImageCollectionInputPayload(envelope, inputPayload)
     : buildDefaultAiInputPayload(inputPayload);
 };
 
@@ -132,12 +134,12 @@ const resolveWorkbenchAiProviderPolicy = (taskType: SupportedWorkbenchAiTaskType
     : { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null };
 
 const resolveWorkbenchAiQualityPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PRODUCT_PRESENCE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE
     ? { minimumConfidence: null, requireSchemaValidation: true }
     : { minimumConfidence: 0.6, requireSchemaValidation: true };
 
 const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PRODUCT_PRESENCE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE
     ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
     : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
 

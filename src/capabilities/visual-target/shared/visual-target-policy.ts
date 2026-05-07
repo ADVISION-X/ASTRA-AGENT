@@ -36,8 +36,8 @@ export type VisualTargetChildProfile = {
   requiredObservationKinds: readonly string[];
 };
 
-const ACTION_CANDIDATE_KINDS = ["ai_candidate", "heuristic_profile"] as const;
-const METRIC_CANDIDATE_KINDS = ["ai_candidate", "heuristic_profile"] as const;
+const ACTION_CANDIDATE_KINDS = ["ai_candidate"] as const;
+const METRIC_CANDIDATE_KINDS = ["ai_candidate"] as const;
 const ACTION_COORDINATE_SPACES = ["browser_viewport", "desktop_screen", "source_image", "ai_input"] as const;
 const REGION_COORDINATE_SPACES = ["browser_viewport", "desktop_screen", "source_image", "ai_input"] as const;
 const METRIC_COORDINATE_SPACES = ["browser_viewport", "source_image", "ai_input"] as const;

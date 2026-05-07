@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { EvidenceRefSchema } from "../../types/evidence.js";
 import {
+  VisionPagePreparationPayloadSchema,
+  VisionPagePreparationRequestInputSchema,
+} from "../../types/vision-page-preparation.js";
+import {
   VisionProductPresenceMissingFrameSchema,
   VisionProductPresencePayloadSchema,
   VisionProductPresenceRequestInputSchema,
@@ -115,6 +119,8 @@ const AiVisionRequestInputSchema = VisionProductPresenceRequestInputSchema.exten
   tags: z.array(z.string().min(1).max(MAX_AI_SHORT_TEXT)).max(MAX_AI_NOTES).default([]),
 }).strict();
 
+const AiPagePreparationRequestInputSchema = VisionPagePreparationRequestInputSchema;
+
 const AiOcrCleanupInputSchema = z.object({
   rawCommentBlocks: z.array(z.string().min(1).max(MAX_AI_COMMENT_LENGTH)).min(1).max(MAX_AI_COMMENT_BLOCKS),
 }).strict();
@@ -197,6 +203,13 @@ const AiVisualOutputSchema = VisionProductPresencePayloadSchema.omit({
   schemaVersion: true,
 }).strict();
 
+const AiPagePreparationOutputSchema = VisionPagePreparationPayloadSchema.omit({
+  taskType: true,
+  promptId: true,
+  promptVersion: true,
+  schemaVersion: true,
+}).strict();
+
 const AiBaseInputSchema = z.object({
   abilityGroupId: AiAbilityGroupIdSchema.default(AI_ABILITY_GROUP_ID),
   missionId: z.string().min(1).nullable().default(null),
@@ -221,6 +234,13 @@ const AiBaseInputSchema = z.object({
   costPolicy: AiCostPolicySchema.default(() => ({ ...DEFAULT_AI_COST_POLICY })),
   dataPolicy: AiDataPolicySchema.default(() => ({ ...DEFAULT_AI_DATA_POLICY })),
   safetyPolicy: AiSafetyPolicySchema.default(() => ({ ...DEFAULT_AI_SAFETY_POLICY })),
+}).strict();
+
+const PagePreparationJudgmentInputSchema = AiBaseInputSchema.extend({
+  taskType: z.literal("page_preparation_judgment"),
+  inputModality: z.literal("image_collection"),
+  inputRefs: z.array(EvidenceRefSchema).min(1).max(MAX_AI_INPUT_REFS),
+  input: AiPagePreparationRequestInputSchema,
 }).strict();
 
 const ProductPresenceJudgmentInputSchema = AiBaseInputSchema.extend({
@@ -278,6 +298,7 @@ const SchemaValidationOnlyInputSchema = AiBaseInputSchema.extend({
 }).strict();
 
 const LocalVisionAiInputSchema = z.union([
+  PagePreparationJudgmentInputSchema,
   ProductPresenceJudgmentInputSchema,
   VisualObservationInputSchema,
   VisualTargetCandidateAnalysisInputSchema,
@@ -322,6 +343,7 @@ export {
   AiSafetyPolicySchema,
   AiPromptContractSchema,
   AiVisionRequestInputSchema,
+  AiPagePreparationRequestInputSchema,
   AiOcrCleanupInputSchema,
   AiCommentSignalSummaryInputSchema,
   AiCommentSignalSummaryOutputSchema,
@@ -343,8 +365,10 @@ export {
   EvidencePacketAnalysisInputSchema,
   SchemaValidationOnlyInputSchema,
   LocalVisionAiInputSchema,
+  AiPagePreparationOutputSchema,
   LocalTextAiInputSchema,
   LocalOcrAiInputSchema,
+  PagePreparationJudgmentInputSchema,
   InternalSchemaValidatorInputSchema,
   PaidVisionAiInputSchema,
   FutureApiAiInputSchema,

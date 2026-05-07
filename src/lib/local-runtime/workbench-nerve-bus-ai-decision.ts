@@ -2,7 +2,12 @@ import {
   PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
 } from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+import {
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+} from "../../map-plugins/shared/startup-preparation.constants.js";
 
+const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
 const PRODUCT_PRESENCE_MIN_CONFIDENCE = 0.6;
 
@@ -30,6 +35,14 @@ const isProductPresenceOutput = (
   && (typeof value.isProductVideo === "boolean" || value.isProductVideo === null)
   && "mustReview" in value
   && typeof value.mustReview === "boolean"
+);
+
+const isPagePreparationOutput = (
+  value: unknown,
+): value is { decision: "yes" | "no"; routeLabel?: string; nonExecutableSummary?: string } => (
+  isRecord(value)
+  && "decision" in value
+  && (value.decision === "yes" || value.decision === "no")
 );
 
 const resolveProductPresenceReviewReason = (input: {
@@ -85,6 +98,33 @@ const resolveProductPresenceNonExecutableSummary = (output: { nonExecutableSumma
     ? "当前证据支持产品展示，选择产品证据路线标签。"
     : "当前证据未证明产品展示，选择非产品路线标签。";
 };
+
+const resolvePagePreparationRouteLabel = (output: { routeLabel?: string; decision: "yes" | "no" }) =>
+  typeof output.routeLabel === "string" && output.routeLabel.length > 0
+    ? output.routeLabel
+    : (output.decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
+
+const resolvePagePreparationNonExecutableSummary = (output: { nonExecutableSummary?: string; routeLabel?: string; decision: "yes" | "no" }) => {
+  if (typeof output.nonExecutableSummary === "string" && output.nonExecutableSummary.length > 0) {
+    return output.nonExecutableSummary;
+  }
+  return resolvePagePreparationRouteLabel(output) === STARTUP_PREPARATION_READY_ROUTE_LABEL
+    ? "当前页面准备工作已完成，可以继续产品判断。"
+    : "当前页面准备工作未完成，必须 fail-closed。";
+};
+
+const resolvePagePreparationDecision = (input: {
+  status: "success" | "failed" | "review_required";
+  output: { decision: "yes" | "no"; routeLabel?: string; nonExecutableSummary?: string };
+}) => ({
+  status: input.status,
+  decision: input.output.decision,
+  reviewRequiredReason: input.status === "review_required" ? "page_preparation_review_required" : null,
+  isProductVideo: null,
+  mustReview: false,
+  routeLabel: resolvePagePreparationRouteLabel(input.output),
+  nonExecutableSummary: resolvePagePreparationNonExecutableSummary(input.output),
+});
 
 const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string }) => {
   return {
@@ -156,6 +196,13 @@ export const resolveWorkbenchAiDecision = (input: {
   reviewRequiredReason: string | null | undefined;
   output: unknown;
 }) => {
+  if (input.aiTaskType === PAGE_PREPARATION_TASK_TYPE && isPagePreparationOutput(input.output)) {
+    return resolvePagePreparationDecision({
+      status: input.status,
+      output: input.output,
+    });
+  }
+
   if (input.aiTaskType !== PRODUCT_PRESENCE_TASK_TYPE || !isProductPresenceOutput(input.output)) {
     return buildDefaultDecision(input);
   }

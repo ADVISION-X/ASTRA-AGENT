@@ -128,12 +128,13 @@ Required:
 
 - map packages must remain JSON/data-only.
 - map packages must declare one operational map kind: `routePlanBoundMap` for production automation or `genericDiagnosticMap` for isolated diagnostics.
-- `routePlanBoundMap` may declare only the deterministic entry spine, AI handoff, Prompt Contract refs, input refs, output refs, and `routePlanId`.
-- `routePlanBoundMap` must not own routeLabel action-chain steps or AI success routing; Route Plan is the only owner of `routeLabel -> step chain -> ability group/child capability`.
+- `routePlanBoundMap` may declare only the deterministic entry spine, including one AI-owned startup preparation step and its fail-closed local routeLabel transitions before Route Plan takeover, AI handoff, Prompt Contract refs, input refs, output refs, and `routePlanId`.
+- `routePlanBoundMap` must not own post-startup routeLabel action-chain steps or duplicate Route Plan AI success routing; Route Plan is the only owner of `routeLabel -> step chain -> ability group/child capability` after the startup preparation gate.
 - `genericDiagnosticMap` may declare diagnostic steps and transitions, but it must not bind a Route Plan or enter the production automation main chain.
 - operational maps must not define constraint logic: policy, proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition, allowedAbilityGroups, failureBranches, reviewBranches, sequencePolicy, timeout, retry, or human-review routing are forbidden.
 - one map plus the referenced Prompt Contract is the complete map; AI branch semantics belong to Prompt Contract output and production runtime consumption, not map condition DSL.
 - Route Plan is the single source of muscle-memory action chains. Maps may declare `routePlanId`, but must not duplicate Route Plan-owned steps, transitions, route labels, or branch semantics.
+- Startup entry-spine page-preparation judgment must be AI-owned; map packages must not use page-state steps as the yes/no owner for startup continuation.
 - automation maps must strictly forbid request-human-review, human-review, manual-review, operator-review, review_required terminal routing, or any step that waits for a person.
 - map packages must not expand the frozen ability-group constitution.
 - registry governs import, quarantine, validation, automation gate, activation, rollback, and active-read access only.
