@@ -157,3 +157,11 @@ durabilityMode=durable 或 memory_only
 - `capabilityCallId` is the step invocation id across selected/precondition/dispatch/started/completed/transition lifecycle events. Result envelope ids must be emitted as `resultEnvelopeRef` or equivalent refs, not substituted into `capabilityCallId`.
 - `durabilityMode=durable` plus `status=review_required` is not a ready state. If storage, record ref, runtime proof, idempotency, and chain fields are complete, Forensics should emit `FORENSICS_RECORD_WRITTEN status=success`.
 - Business maps must stay business-shaped. Full phase-05 coverage belongs in a dedicated draft/local diagnostic map, with social-platform text input and destructive actions forbidden.
+
+## Phase-05 Runtime Closure Addendum
+
+- Forensics structured writes must close for every owner that uses the public `writeStructuredRuntimeEvent` / `writeStructuredActionLog` boundary. `FORENSICS_RECORD_WRITE_REQUESTED` is only an acceptance signal; each request must terminate as `FORENSICS_RECORD_WRITTEN` or `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED`, including Commander, Nerve Bus, Orchestration, Page State, Screenshot, PAV, and AI-originated events.
+- AI `quality_gate_blocked` is not an acceptable sole diagnostic reason. Rejected or review-required AI results must expose the concrete gate reason, including schema decision/status, quality decision reason, output-boundary decision, confidence/minimum confidence, data-quality flags, parsed decision, runtime call id, and diagnostic payload ref.
+- AI `runtimeCallId` is an AI runtime-internal call identifier. It must never replace the governed `capabilityCallId`, which remains the Orchestration step invocation id. `traceId` remains observability-only and must not become governance chain truth.
+- Terminal visible AI debug logs should de-duplicate repeated human-readable lines by bounded keys such as `runtimeCallId`, `eventType`, `implementationStatus`, and `diagnosticPayloadRef`; the Forensics ledger must still retain the underlying proof events.
+- Business Facebook/TikTok maps may stop at governed review gates. The `builtin.phase-05-full-surface-diagnostic` map is the acceptance surface for all 14 ability-group evidence paths, with text input and click actions constrained to local sandbox, dry-run, no-op, or explicit review gates.

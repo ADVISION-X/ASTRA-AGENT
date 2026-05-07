@@ -193,14 +193,14 @@ export async function emitForensicsRecordWritten(
   request: StructuredWriteRequest,
   result: ForensicsPersistenceAbilityResult,
 ): Promise<void> {
-  if (!emitter || result.status === "failed") {
+  if (!emitter) {
     return;
   }
 
-  const reviewRequired = result.status === "review_required";
+  const reviewRequired = result.status === "review_required" || result.status === "failed";
   const eventType = reviewRequired ? "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED" : "FORENSICS_RECORD_WRITTEN";
   const status = reviewRequired ? "review_required" : "success";
-  const dedupeDecision = reviewRequired ? "review_required" : "written";
+  const dedupeDecision = result.status === "failed" ? "failed" : reviewRequired ? "review_required" : "written";
   await emitter.emitRuntimeEvent(
     withBoundaryProofRefs(
       buildBoundaryEvent(
@@ -217,6 +217,8 @@ export async function emitForensicsRecordWritten(
           `recordRef=${result.recordRef.recordId}`,
           `idempotencyKey=${result.policyDecision.idempotencyKey}`,
           `dedupeDecision=${dedupeDecision}`,
+          ...(result.failureReason ? [`failureReason=${result.failureReason.code}`] : []),
+          ...(result.reviewRequiredReason ? [`reviewRequiredReason=${result.reviewRequiredReason}`] : []),
           `durabilityMode=${result.storageRef ? "durable" : "memory_only"}`,
           `storageRef=${result.storageRef ?? "MISSING"}`,
         ],

@@ -25,7 +25,10 @@ function resolveSourceRef(payloadRefs: DispatchPayloadRefs, fallback: string): s
     ?? fallback;
 }
 
-function buildCapabilityCallId(input: { missionId: string; stepId: string; sequenceNo: number }, kind: string) {
+function buildCapabilityCallId(input: { missionId: string; stepId: string; sequenceNo: number; capabilityCallId?: string | null }, kind: string) {
+  if (input.capabilityCallId) {
+    return input.capabilityCallId;
+  }
   return `${input.missionId}:${input.stepId}:${input.sequenceNo}:${kind}`;
 }
 

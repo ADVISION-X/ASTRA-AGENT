@@ -68,6 +68,7 @@ export interface OrchestrationNerveBusPort {
     missionId: string;
     mapId: z.output<typeof OperationalMapIdSchema>;
     stepId: string;
+    capabilityCallId: string;
     runId: string;
     sessionId: string;
     roundId: string | null;

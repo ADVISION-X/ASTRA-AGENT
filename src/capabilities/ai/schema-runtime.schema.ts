@@ -42,7 +42,6 @@ const CircuitBreakerStateSchema = z.enum(["closed", "open", "half_open", "not_ap
 
 const AiBaseRuntimeProofFieldSchemas = {
   proofId: z.string().min(1),
-  runId: z.string().min(1),
   missionId: z.string().min(1).nullable(),
   missionIdSource: z.enum(["explicit", "unavailable"]),
   sessionId: z.string().min(1),

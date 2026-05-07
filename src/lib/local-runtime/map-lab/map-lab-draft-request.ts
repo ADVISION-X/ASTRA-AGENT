@@ -93,6 +93,7 @@ export function buildMapAuthoringAiRequest(
     requestedBy: "commander-console" as const,
     transportedBy: "commander-console" as const,
     sessionId: chainIds.sessionId,
+    runId: chainIds.sessionId,
     roundId: chainIds.roundId,
     videoVisitId: null,
     stepId: "map-authoring-draft",

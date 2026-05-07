@@ -1083,3 +1083,8 @@ Orchestration 根据 AI free text 推进流程
 - `capabilityCallId` is the stable step invocation id for the whole step lifecycle.
 - `MAP_STEP_SELECTED`、`STEP_PRECONDITION_CHECKED`、`STEP_DISPATCH_STARTED`、`CAPABILITY_CALL_STARTED`、`CAPABILITY_CALL_COMPLETED`、`STEP_TRANSITION_EVALUATED` must keep the same `capabilityCallId` for the same step.
 - Ability result envelope ids must be recorded as `resultEnvelopeRef` / `abilityResultRef` / `transportEnvelopeRef` style refs. They must not overwrite `capabilityCallId`.
+
+## AI Review Diagnostic Addendum
+
+- Orchestration must preserve AI rejection diagnostics from the Nerve Bus AI response envelope. `CAPABILITY_CALL_REVIEW_REQUIRED` / `CAPABILITY_CALL_FAILED` for AI should expose or reference `qualityDecisionReason`, `schemaDecision`, `schemaValidationStatus`, `schemaIssueCount`, `outputBoundaryDecision`, `confidence`, `minimumConfidence`, `dataQualityFlags`, `parsedDecision`, `runtimeCallId`, `rawOutputRef/rawOutputHash`, and `diagnosticPayloadRef`.
+- The AI request envelope `capabilityCallId` must remain the Orchestration step invocation id. AI runtime internals use `runtimeCallId` and must not overwrite step lifecycle identity.

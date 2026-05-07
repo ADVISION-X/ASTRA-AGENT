@@ -35,7 +35,7 @@ const buildRequestDebugBase = (
   status: "started",
   sessionId: input.request.sessionId,
   missionId: input.request.missionId,
-  runId: input.request.missionId ?? input.request.sessionId,
+  runId: input.request.runId,
   roundId: input.request.roundId,
   videoVisitId: input.request.videoVisitId,
   stepId: input.request.stepId,

@@ -66,7 +66,10 @@ Page State dispatch 必须传播 `runId`、`sessionId`、`stepId`、map package/
 ## 6. 阶段验收
 
 - AI runtime 失败不能只剩 `runtime_execution_failed`，必须有 `AI_ERROR_DEBUG`、`implementationStatus`、`errorKind`、`runtimeCallId` 或 `diagnosticPayloadRef`。
+- AI review_required 不能只剩 `quality_gate_blocked`。必须能区分 schema、confidence、quality policy、output-boundary、parsed business decision 等原因，并保持 `capabilityCallId` 为 Orchestration step invocation id。
+- Forensics structured write 验收必须覆盖非 AI owner。Commander、Nerve Bus、Orchestration、Page State、Screenshot、PAV 等 runtime event 不能只停在 `FORENSICS_RECORD_WRITE_REQUESTED`。
 - accepted 后不得再出现同一 command/run 的 `COMMAND_REJECTED`；observer timeout 必须降级为 receipt/observer timeout 事件。
 - Forensics write requested/written terminal summary 必须携带 `sourceEventId`、`sourceEventType`、`idempotencyKey`、`dedupeDecision` 和 record refs。
 - Page State local-runtime dispatch inspector 与生产代码事实一致，generated summary 不得 stale。
 - Map Lab 生成地图只进入 import/quarantine/validation/review，不直接 active。
+- Facebook/TikTok 业务地图允许在安全 review gate 停止；14 能力组全覆盖由 `builtin.phase-05-full-surface-diagnostic` 使用 local sandbox / dry-run / no-op / review gate 验收。

@@ -89,18 +89,6 @@ const isLiteralValue = (node: import("ts-morph").Node | undefined, value: string
     && node.getLiteralText() === value;
 };
 
-const matchesStatusComparison = (expression: import("ts-morph").BinaryExpression, operatorKind: SyntaxKind, literal: string): boolean => {
-  if (expression.getOperatorToken().getKind() !== operatorKind) {
-    return false;
-  }
-
-  const leftPath = flattenPropertyAccess(expression.getLeft()).join(".");
-  const rightPath = flattenPropertyAccess(expression.getRight()).join(".");
-
-  return (leftPath === "result.status" && isLiteralValue(expression.getRight(), literal))
-    || (rightPath === "result.status" && isLiteralValue(expression.getLeft(), literal));
-};
-
 const hasBoundaryEventCall = (
   sourceFile: import("ts-morph").SourceFile,
   eventType: "FORENSICS_RECORD_WRITE_REQUESTED" | "FORENSICS_RECORD_WRITTEN" | "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED",
@@ -156,29 +144,25 @@ const hasForensicsWriteProofRefs = (sourceFile: import("ts-morph").SourceFile): 
     && functionHasLiteralFragments(sourceFile, "emitForensicsRecordWritten", writtenRefs);
 };
 
-const hasWrittenBoundaryFailureOnlyGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
+const hasNoFailedWriteSilenceGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
   if (!emitWritten) {
     return false;
   }
 
-  const comparisons = emitWritten.getDescendantsOfKind(SyntaxKind.BinaryExpression);
-  const hasFailedGate = comparisons.some((expression) => matchesStatusComparison(expression, SyntaxKind.EqualsEqualsEqualsToken, "failed"));
-  const hasSuccessOnlyGate = comparisons.some((expression) => {
-    return matchesStatusComparison(expression, SyntaxKind.ExclamationEqualsEqualsToken, "success")
-      || matchesStatusComparison(expression, SyntaxKind.EqualsEqualsEqualsToken, "success");
-  });
-
-  return hasFailedGate && !hasSuccessOnlyGate;
+  const bodyText = emitWritten.getText();
+  return !bodyText.includes('result.status === "failed")')
+    && bodyText.includes('result.status === "review_required" || result.status === "failed"')
+    && bodyText.includes('result.status === "failed" ? "failed"');
 };
 
 const hasReviewRequiredWriteSemantics = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
   const bodyText = emitWritten?.getText() ?? "";
-  return bodyText.includes('result.status === "review_required"')
+  return bodyText.includes('result.status === "review_required" || result.status === "failed"')
     && bodyText.includes("FORENSICS_RECORD_WRITE_REVIEW_REQUIRED")
     && bodyText.includes('status = reviewRequired ? "review_required" : "success"')
-    && bodyText.includes('dedupeDecision = reviewRequired ? "review_required" : "written"')
+    && bodyText.includes('result.status === "failed" ? "failed"')
     && bodyText.includes('durabilityMode=${result.storageRef ? "durable" : "memory_only"}');
 };
 
@@ -244,7 +228,7 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
     hasCallExpression(abilityGroupSource, "emitForensicsRecordWritten"),
     hasPersistedBoundaryEventEmitter(workbenchSource),
     hasBoundaryEmitterAbilityGroupWiring(workbenchSource),
-    hasWrittenBoundaryFailureOnlyGate(boundarySource),
+    hasNoFailedWriteSilenceGate(boundarySource),
     hasReviewRequiredWriteSemantics(boundarySource),
     hasDurableSuccessResultSemantics(project),
     hasLiteralTextFragment(boundarySource, "recordType="),

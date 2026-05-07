@@ -69,8 +69,24 @@ const hasTerminalPayloadRefsRelay = (sourceFile: import("ts-morph").SourceFile):
     && variableInitializerReferencesIdentifier(functionNode, "refs", "payloadRefs");
 };
 
+const hasBoundedAiDebugTerminalDedupe = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const listener = sourceFile.getFunction("createStructuredTerminalLogListener");
+  const dedupeResolver = sourceFile.getFunction("resolveTerminalDedupeKey");
+  const sourceText = sourceFile.getFullText();
+  return !!listener
+    && !!dedupeResolver
+    && dedupeResolver.getText().includes("runtimeCallId")
+    && dedupeResolver.getText().includes("eventType")
+    && dedupeResolver.getText().includes("implementationStatus")
+    && dedupeResolver.getText().includes("diagnosticPayloadRef")
+    && sourceText.includes("MAX_TERMINAL_DEDUPE_KEYS")
+    && listener.getText().includes("mirroredRuntimeDedupeKeys")
+    && listener.getText().includes('eventType.startsWith("AI_")');
+};
+
 export const collectTerminalRelayFinding = (project: import("ts-morph").Project): Finding[] => {
   const terminalSource = getScriptSource(project, TERMINAL_STRUCTURED_LOG_PATH);
+  const localTerminalSource = getSourceFileOrThrow(project, "src/lib/local-runtime/structured-log-terminal.ts");
   const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasObjectProperty(payloadSource, fieldName));
   const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
@@ -85,7 +101,7 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
     "outputSchemaRef",
   ]);
 
-  return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(terminalSource)
+  return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(terminalSource) && hasBoundedAiDebugTerminalDedupe(localTerminalSource)
     ? []
-    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, activationSnapshotRef, payload refs, and AI runtime diagnostic fields for blocking command/runtime events." })];
+    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, activationSnapshotRef, payload refs, AI runtime diagnostic fields, and bounded AI debug terminal de-duplication." })];
 };

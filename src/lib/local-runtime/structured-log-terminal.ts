@@ -93,6 +93,21 @@ const INFO_RUNTIME_EVENT_TYPES = new Set([
   "step_timeout",
 ]);
 
+const MAX_TERMINAL_DEDUPE_KEYS = 500;
+
+function resolveTerminalDedupeKey(entry: StructuredRuntimeEvent): string | null {
+  if (!entry.runtimeCallId && !entry.diagnosticPayloadRef && !entry.eventId) {
+    return null;
+  }
+
+  return [
+    entry.runtimeCallId ?? "no-runtime-call",
+    entry.eventType,
+    entry.implementationStatus ?? "no-implementation-status",
+    entry.diagnosticPayloadRef ?? entry.eventId,
+  ].join("|");
+}
+
 function shouldMirrorRuntimeEvent(entry: StructuredRuntimeEvent, level: StructuredLogLevel): boolean {
   if (level === "debug") {
     return true;
@@ -130,9 +145,27 @@ export function resolveStructuredLogLevel(): StructuredLogLevel {
 }
 
 export function createStructuredTerminalLogListener(level: StructuredLogLevel = resolveStructuredLogLevel()): StructuredLogListener {
+  const mirroredRuntimeDedupeKeys = new Set<string>();
+
   return (logEntry) => {
     if (logEntry.kind === "event" && !shouldMirrorRuntimeEvent(logEntry.entry, level)) {
       return;
+    }
+
+    if (logEntry.kind === "event" && logEntry.entry.eventType.startsWith("AI_")) {
+      const dedupeKey = resolveTerminalDedupeKey(logEntry.entry);
+      if (dedupeKey && mirroredRuntimeDedupeKeys.has(dedupeKey)) {
+        return;
+      }
+      if (dedupeKey) {
+        mirroredRuntimeDedupeKeys.add(dedupeKey);
+        if (mirroredRuntimeDedupeKeys.size > MAX_TERMINAL_DEDUPE_KEYS) {
+          const firstKey = mirroredRuntimeDedupeKeys.values().next().value;
+          if (firstKey) {
+            mirroredRuntimeDedupeKeys.delete(firstKey);
+          }
+        }
+      }
     }
 
     const prefix = resolveTerminalPrefix(logEntry);

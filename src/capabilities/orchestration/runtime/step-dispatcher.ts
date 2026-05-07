@@ -105,6 +105,7 @@ async function dispatchAiStep(input: {
   state: MissionState;
   map: OperationalMap;
   step: AiStep;
+  capabilityCallId: string;
   sequenceNo: number;
   idempotencyKey: string;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
@@ -158,6 +159,7 @@ async function dispatchOperationalStepCore(input: {
   map: OperationalMap;
   step: OperationalStep;
   reason: string | undefined;
+  capabilityCallId: string;
   sequenceNo: number;
   idempotencyKey: string;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
@@ -185,6 +187,7 @@ async function dispatchOperationalStepCore(input: {
       state: input.state,
       map: input.map,
       step: input.step as AiStep,
+      capabilityCallId: input.capabilityCallId,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,
       context: input.context,
@@ -208,6 +211,7 @@ export async function dispatchOperationalStep(input: {
   map: OperationalMap;
   stepId: string;
   reason?: string;
+  capabilityCallId: string;
   sequenceNo: number;
   idempotencyKey: string;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
@@ -230,6 +234,7 @@ export async function dispatchOperationalStep(input: {
     map: input.map,
     step,
     reason: input.reason,
+    capabilityCallId: input.capabilityCallId,
     sequenceNo: input.sequenceNo,
     idempotencyKey: input.idempotencyKey,
     context: input.context,

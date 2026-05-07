@@ -22,8 +22,12 @@ type AiRuntimeProofRecord = {
   rawOutputHash?: string | null;
   runtimeCallId?: string | null;
   schemaIssueCount?: number | null;
+  schemaDecision?: string | null;
+  schemaValidationStatus?: string | null;
   qualityDecision?: string | null;
+  qualityDecisionReason?: string | null;
   outputBoundaryDecision?: string | null;
+  dataQualityFlags?: string[];
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
@@ -44,8 +48,14 @@ const buildAiDiagnosticFields = (aiResult: unknown) => {
   const runtimeCallId = readString(runtimeProof?.runtimeCallId) ?? readString(result.runtimeCallId);
   const implementationStatus = readString(result.implementationStatus);
   const schemaIssueCount = readNumber(runtimeProof?.schemaIssueCount) ?? readNumber(result.schemaIssueCount);
+  const schemaDecision = readString(runtimeProof?.schemaDecision);
+  const schemaValidationStatus = readString(result.schemaValidationStatus);
   const qualityDecision = readString(runtimeProof?.qualityDecision);
+  const qualityDecisionReason = readString(runtimeProof?.qualityDecisionReason);
   const outputBoundaryDecision = readString(runtimeProof?.outputBoundaryDecision);
+  const dataQualityFlags = Array.isArray(runtimeProof?.dataQualityFlags)
+    ? runtimeProof.dataQualityFlags.filter((flag): flag is string => typeof flag === "string" && flag.length > 0)
+    : [];
   return {
     implementationStatus,
     runtimeCallId,
@@ -53,8 +63,12 @@ const buildAiDiagnosticFields = (aiResult: unknown) => {
     rawOutputHash,
     diagnosticPayloadRef: readString(result.diagnosticPayloadRef) ?? rawOutputRef ?? rawOutputHash,
     schemaIssueCount,
+    schemaDecision,
+    schemaValidationStatus,
     qualityDecision,
+    qualityDecisionReason,
     outputBoundaryDecision,
+    dataQualityFlags,
   };
 };
 
@@ -88,8 +102,13 @@ const buildAiOutputPayload = (input: {
     rawOutputHash: input.diagnostics.rawOutputHash,
     diagnosticPayloadRef: input.diagnostics.diagnosticPayloadRef,
     schemaIssueCount: input.diagnostics.schemaIssueCount,
+    schemaDecision: input.diagnostics.schemaDecision,
+    schemaValidationStatus: input.diagnostics.schemaValidationStatus,
     qualityDecision: input.diagnostics.qualityDecision,
+    qualityDecisionReason: input.diagnostics.qualityDecisionReason,
     outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
+    minimumConfidence: 0.6,
+    dataQualityFlags: input.diagnostics.dataQualityFlags.join(",") || null,
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
   },
@@ -129,8 +148,14 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     rawOutputRef: input.diagnostics.rawOutputRef,
     rawOutputHash: input.diagnostics.rawOutputHash,
     schemaIssueCount: input.diagnostics.schemaIssueCount,
+    schemaDecision: input.diagnostics.schemaDecision,
+    schemaValidationStatus: input.diagnostics.schemaValidationStatus,
     qualityDecision: input.diagnostics.qualityDecision,
+    qualityDecisionReason: input.diagnostics.qualityDecisionReason,
     outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
+    minimumConfidence: 0.6,
+    dataQualityFlags: input.diagnostics.dataQualityFlags,
+    parsedDecision: input.resolvedDecision.decision,
     outputRef: input.resolvedDecision.status === "success" ? input.outputPayload.documentRef : null,
     diagnosticPayloadRef: input.resolvedDecision.status === "success" ? null : input.outputPayload.documentRef,
     failureReason: input.resolvedDecision.status === "failed" ? input.failureReason : null,

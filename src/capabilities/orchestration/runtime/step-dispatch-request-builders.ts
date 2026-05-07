@@ -17,6 +17,7 @@ export function buildAiDispatchRequest(input: {
   state: MissionState;
   map: OperationalMap;
   step: AiStep & { promptContractId: string };
+  capabilityCallId: string;
   sequenceNo: number;
   idempotencyKey: string;
   missionId: string;
@@ -33,6 +34,7 @@ export function buildAiDispatchRequest(input: {
     missionId: input.missionId,
     mapId: input.map.mapId,
     stepId: input.step.stepId,
+    capabilityCallId: input.capabilityCallId,
     runId: input.chain.runId,
     sessionId: input.chain.sessionId,
     roundId: input.chain.roundId,

@@ -91,7 +91,7 @@ const buildDebugTraceFields = (args: {
 }) => ({
     sessionId: args.request.sessionId,
     missionId: args.request.missionId,
-    runId: args.request.missionId ?? args.request.sessionId,
+    runId: args.request.runId,
     roundId: args.request.roundId,
     videoVisitId: args.request.videoVisitId,
     stepId: args.request.stepId,

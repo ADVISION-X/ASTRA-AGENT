@@ -158,9 +158,8 @@ const handleStartMission = async (
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
-  queueMicrotask(() => {
-    void startMission().catch(logBackgroundMissionFailure);
-  });
+  const missionStartPromise = startMission();
+  void missionStartPromise.catch(logBackgroundMissionFailure);
   return buildHumanCommandResultEnvelope({
     envelope,
     status: "success",

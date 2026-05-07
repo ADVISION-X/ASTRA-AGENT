@@ -177,7 +177,7 @@ async function runStepDispatch(
   const stepDispatchCallId = input.stepDispatchCallId;
   const stepIdempotencyKey = `${input.idempotencyKey}:step:${currentStepId}:${input.state.sequenceNo}`;
   await recordDispatchStarted(input, step);
-  const stepDispatch = await dispatchOperationalStep({ state: input.state, map: input.map, stepId: currentStepId, sequenceNo: input.state.sequenceNo, idempotencyKey: stepIdempotencyKey, context: input.context });
+  const stepDispatch = await dispatchOperationalStep({ state: input.state, map: input.map, stepId: currentStepId, capabilityCallId: stepDispatchCallId, sequenceNo: input.state.sequenceNo, idempotencyKey: stepIdempotencyKey, context: input.context });
   const endedSnapshot = input.context.clock.now();
   const durationMs = Math.max(0, Math.round(endedSnapshot.monotonicMs - startedSnapshot.monotonicMs));
   return { durationMs, endedSnapshot, startedSnapshot, stepDispatch, stepDispatchCallId, stepIdempotencyKey };

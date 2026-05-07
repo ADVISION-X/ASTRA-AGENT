@@ -169,6 +169,9 @@ const propertyInitializerText = (sourceFile: SourceFile, propertyName: string): 
 const hasInputTraceIdRunIdAuthority = (sourceFile: SourceFile): boolean =>
   propertyInitializerText(sourceFile, "runId").some((initializer) => initializer.includes("input.traceId"));
 
+const hasAiRuntimeCallIdCapabilityAuthority = (sourceFile: SourceFile): boolean =>
+  propertyInitializerText(sourceFile, "capabilityCallId").some((initializer) => initializer.includes("runtimeCallId") || initializer.includes("input.spanId"));
+
 const hasSplitTraceIdMapAuthority = (sourceFile: SourceFile): boolean =>
   propertyInitializerText(sourceFile, "selectedMapId").some((initializer) => initializer.includes("trace.mapId") || initializer.includes("splitTraceId"))
   || propertyInitializerText(sourceFile, "mapId").some((initializer) => initializer === "trace.mapId");
@@ -179,6 +182,7 @@ const hasCanonicalChainResolver = (sourceFile: SourceFile): boolean => {
   const text = resolver.getText();
   return [
     "input.selectedMapId",
+    "input.runId",
     "input.mapPackageId",
     "input.mapPackageVersion",
     "input.selectedMapVersion",
@@ -210,6 +214,9 @@ const collectWorkbenchAiDebugChainFindings = (project: Project): Finding[] => {
   }
   if (!hasCanonicalChainResolver(recorderSource)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "Workbench AI debug recorder must resolve mission/run/map/package/activation/capability/idempotency fields from canonical AI debug event fields." }));
+  }
+  if (hasAiRuntimeCallIdCapabilityAuthority(recorderSource) || hasAiRuntimeCallIdCapabilityAuthority(supportSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "AI debug capabilityCallId must remain the Orchestration step invocation id; runtimeCallId/spanId belong to AI runtime observability fields." }));
   }
   if (!hasTerminalDebugPaths(project)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "AI_REQUEST_DEBUG must have governed terminal AI_RESPONSE_DEBUG or AI_ERROR_DEBUG paths." }));
@@ -393,6 +400,37 @@ const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[]
   return findings;
 };
 
+const findQualityGateDiagnosticReasonViolations = (project: Project): Finding[] => {
+  const qualityGateSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-quality-gate.ts`);
+  const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
+  const qualityGateText = qualityGateSource.getFullText();
+  const runtimeResultText = runtimeResultSource.getFullText();
+  const findings: Finding[] = [];
+
+  if (!qualityGateText.includes("confidence_below_threshold") || qualityGateText.includes('reason: "quality_gate_blocked"')) {
+    findings.push(createFinding({
+      lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+      file: `${AI_ROOT}/runtime/ai-quality-gate.ts`,
+      line: 1,
+      severity: "fatal",
+      message: "AI quality gate must emit a diagnostic reason such as confidence_below_threshold instead of collapsing rejections to quality_gate_blocked.",
+    }));
+  }
+  for (const requiredField of ["qualityDecisionReason", "schemaDecision", "outputBoundaryDecision", "schemaIssueCount", "dataQualityFlags", "runtimeCallId"]) {
+    if (!runtimeResultText.includes(requiredField)) {
+      findings.push(createFinding({
+        lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+        file: `${AI_ROOT}/runtime/ai-runtime-result.ts`,
+        line: 1,
+        severity: "fatal",
+        message: `AI rejected terminal result must preserve diagnostic field ${requiredField}.`,
+      }));
+    }
+  }
+
+  return findings;
+};
+
 export function runAiRuntimeContractChecks(project: Project): Finding[] {
   return [
     ...findRequiredExecutorCalls(project),
@@ -405,6 +443,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findReferenceIntegrityViolations(project),
     ...findModelOwnedConfidenceViolations(project),
     ...findModelOwnedNonProductDecisionViolations(project),
+    ...findQualityGateDiagnosticReasonViolations(project),
     ...findTimeoutCancellationViolations(project),
     ...findPromptGovernanceViolations(project),
     ...findProofChainViolations(project),

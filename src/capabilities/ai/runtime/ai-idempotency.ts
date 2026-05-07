@@ -10,6 +10,7 @@ function hashPayload(value: unknown): string {
 export function buildAiRuntimeCallIdentity(request: ParsedAiAbilityInput): { runtimeCallId: string; requestHash: string } {
   const requestHash = hashPayload({
     sessionId: request.sessionId,
+    runId: request.runId,
     roundId: request.roundId,
     stepId: request.stepId,
     videoVisitId: request.videoVisitId,

@@ -80,8 +80,8 @@ function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGat
     return buildReviewOrBlockedDecision({
       request: input.request,
       reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
-      reason: "quality_gate_blocked",
-      flags: [`confidence:${input.confidence}`],
+      reason: "confidence_below_threshold",
+      flags: [`confidence:${input.confidence}`, `minimumConfidence:${minimumConfidence}`],
       schemaValidationStatus: "valid",
     });
   }

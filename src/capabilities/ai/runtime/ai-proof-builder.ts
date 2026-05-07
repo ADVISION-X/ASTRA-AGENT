@@ -13,6 +13,7 @@ function hashValue(value: unknown): string {
 function buildAiRequestHash(request: ParsedAiAbilityInput): string {
   return hashValue({
     sessionId: request.sessionId,
+    runId: request.runId,
     roundId: request.roundId,
     stepId: request.stepId,
     videoVisitId: request.videoVisitId,
@@ -47,7 +48,7 @@ function buildAiProofIds(input: {
 }) {
   return {
     proofId: buildStableAiRef("ai-proof", [input.request.missionId, input.request.selectedMapId, input.request.stepId, input.childContract.childCapabilityId, input.request.capabilityCallId]),
-    runId: buildStableAiRef("ai-run", [input.request.sessionId, input.request.stepId, input.request.capabilityCallId]),
+    runId: input.request.runId,
   };
 }
 

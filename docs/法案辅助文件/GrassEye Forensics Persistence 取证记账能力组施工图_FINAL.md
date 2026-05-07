@@ -775,5 +775,10 @@ durabilityMode=durable or memory_only
 
 - `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED` is not durable proof, even when a `storageRef` is present in diagnostic refs.
 - When `storageRef`, `recordRef`, runtime proof, idempotency key, and core chain fields are complete, structured writes should emit `FORENSICS_RECORD_WRITTEN status=success` with `durabilityMode=durable`.
+
+## Phase-05 Structured Write Closure Addendum
+
+- The structured write boundary applies to all owners using Forensics public contracts, not only AI debug events. Commander Console, Nerve Bus, Orchestration, Page State, Screenshot, PAV, AI, and other governed callers must not leave durable accounting at `FORENSICS_RECORD_WRITE_REQUESTED`.
+- A pending request must terminate as `FORENSICS_RECORD_WRITTEN` or `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED`. Failed child results must still produce a terminal boundary event with `forensicsResultStatus`, `recordId`, `recordRef`, `idempotencyKey`, `dedupeDecision`, `durabilityMode`, and `storageRef` so runtime logs can distinguish storage failure from pending acceptance.
 - `review_required` is reserved for memory-only storage, missing chain refs under an explicit review policy, artifact write downgrade, or other durability conditions requiring human review.
 - Boundary refs must continue to include `sourceEventId`, `sourceEventType`, `sourceOwner`, `recordKind`, `recordId`, `recordRef`, `idempotencyKey`, `dedupeDecision`, `storageRef`, and `durabilityMode`.

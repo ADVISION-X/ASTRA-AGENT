@@ -32,7 +32,7 @@ const resolveCanonicalAiChain = (input: WorkbenchAiDebugEvent) => {
     selectedMapId,
     selectedMapVersion: input.selectedMapVersion ?? mapChain.selectedMapVersion,
     activationSnapshotRef: input.activationSnapshotRef ?? mapChain.activationSnapshotRef,
-    capabilityCallId: input.capabilityCallId ?? input.spanId ?? input.runtimeCallId ?? input.attemptId,
+    capabilityCallId: input.capabilityCallId ?? null,
     nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null,
     inputRef: input.inputRef ?? input.refs[0] ?? null,
     idempotencyKey: input.idempotencyKey ?? input.runtimeCallId ?? input.spanId ?? input.attemptId,

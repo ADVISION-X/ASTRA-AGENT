@@ -54,7 +54,8 @@ function hasChainFieldSchemaContract(sourceFile: SourceFile): boolean {
 
 function hasWorkbenchChainFields(sourceFile: SourceFile): boolean {
   return hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "stepId", "envelope.stepId")
-    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "capabilityCallId", "envelope.requestId")
+    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "runId", "envelope.runId")
+    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "capabilityCallId", "envelope.capabilityCallId")
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "nerveBusEnvelopeId", "envelope.envelopeId")
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "selectedMapId", "envelope.mapId")
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "activationSnapshotRef", "requireChainField(mapRecord?.activationSnapshotRef)")
