@@ -6,7 +6,7 @@ import sharp from "sharp";
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
-import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
+import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =

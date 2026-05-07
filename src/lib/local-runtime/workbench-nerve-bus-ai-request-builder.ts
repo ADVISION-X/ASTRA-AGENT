@@ -1,8 +1,8 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
-import { recordAiInputProofSummary, resolveAiInputProofSummary } from "../../capabilities/ai/shared/ai-input-proof-registry.js";
-import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
+import { recordAiInputProofSummary, resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
+import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {

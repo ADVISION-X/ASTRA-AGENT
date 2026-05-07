@@ -9,10 +9,20 @@ export type WorkbenchAiDebugEvent = {
   taskType: string;
   sessionId: string;
   missionId?: string | null;
+  runId?: string | null;
   roundId?: string | null;
   attemptId: string;
   videoVisitId: string | null;
   stepId?: string | null;
+  mapPackageId?: string | null;
+  mapPackageVersion?: string | null;
+  selectedMapId?: string | null;
+  selectedMapVersion?: string | null;
+  activationSnapshotRef?: string | null;
+  capabilityCallId?: string | null;
+  nerveBusEnvelopeId?: string | null;
+  inputRef?: string | null;
+  idempotencyKey?: string | null;
   traceId: string | null;
   spanId: string | null;
   failureReason: string | null;
@@ -165,13 +175,16 @@ const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, tra
   skillCategory: null,
   sessionId: input.sessionId,
   missionId: input.missionId ?? trace.missionId,
+  runId: input.runId ?? input.missionId ?? input.sessionId,
   roundId: input.roundId ?? input.attemptId,
   videoVisitId: input.videoVisitId,
-  mapId: trace.mapId,
+  mapId: input.selectedMapId ?? null,
   taskTemplateId: null,
   traceId: input.traceId,
   spanId: input.spanId,
   attemptId: input.attemptId,
+  activationSnapshotRef: input.activationSnapshotRef ?? null,
+  capabilityCallId: input.capabilityCallId ?? input.spanId,
   // Always use the RoundLifecycleStep-safe computed step; input.stepId may be
   // an orchestration map step ID (e.g. "judge-seeding-video") which is NOT a
   // valid RoundLifecycleStepSchema enum value and would throw at parse time.

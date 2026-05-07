@@ -11,6 +11,30 @@ import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
 const { ROOT } = MAP_PLUGIN_PATHS;
 
 const CAPABILITY_CATALOG_GENERATED_PATH = "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json";
+const PHASE_05_DIAGNOSTIC_PACKAGE_ID = "builtin.phase-05-full-surface-diagnostic";
+const PHASE_05_DIAGNOSTIC_MAP_PATH = "src/map-plugins/builtins/phase-05-full-surface-diagnostic.meta.map-package.json";
+const PHASE_05_REQUIRED_ABILITY_SURFACE = [
+  "open",
+  "page-state",
+  "screenshot",
+  "ai",
+  "visual-target",
+  "geometry-guard",
+  "mouse-click",
+  "text-input",
+  "mouse-scroll",
+  "post-action-verification",
+  "forensics-persistence",
+] as const;
+const PHASE_05_REQUIRED_CONTROL_SURFACE = ["commander-console", "orchestration", "nerve-bus"] as const;
+
+const hasForbiddenExecutableKey = (value: unknown): boolean => {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(hasForbiddenExecutableKey);
+  return Object.entries(value).some(([key, item]) =>
+    ["handler", "rawPrompt", "executablePayload"].includes(key) || hasForbiddenExecutableKey(item),
+  );
+};
 
 const createRegistryBootstrapError = (message: string): Finding =>
   createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message });
@@ -146,4 +170,42 @@ export const inspectMapAuthoringCapabilityCatalogGate = (): Finding[] => {
   } catch (error) {
     return [createFinding({ lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: `${ROOT}/authoring/map-authoring-governed-catalogs.ts`, line: 1, severity: "fatal", message: error instanceof Error ? error.message : "Map authoring capability catalog gate failed." })];
   }
+};
+
+export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
+  const diagnosticPackage = loadBuiltinMapPackages().find((mapPackage) => mapPackage.manifest.packageId === PHASE_05_DIAGNOSTIC_PACKAGE_ID);
+  if (!diagnosticPackage) {
+    return [createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 full-surface diagnostic map must be present as a governed builtin map package." })];
+  }
+
+  const map = diagnosticPackage.operationalMap;
+  const abilitySurface = new Set(map.steps.map((step) => step.targetAbilityGroupId).filter((value) => Boolean(value)));
+  const missingAbilitySurface = PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !abilitySurface.has(abilityGroupId));
+  const textInputStep = map.steps.find((step) => step.targetAbilityGroupId === "text-input");
+  const policyText = [
+    diagnosticPackage.policy.safetyPolicy,
+    diagnosticPackage.policy.debugPolicy,
+    diagnosticPackage.taskTemplate.safetyLevel,
+    textInputStep?.stepId ?? "",
+  ].join(" ");
+  const hasDryRunTextInputGate = /dry-run|sandbox/.test(policyText) && /local/.test(policyText);
+  const hasNoExecutablePayload = !hasForbiddenExecutableKey(diagnosticPackage);
+  const hasControlSurface = PHASE_05_REQUIRED_CONTROL_SURFACE.every((surface) => {
+    if (surface === "commander-console") return diagnosticPackage.taskTemplate.taskTemplateId === "phase-05-full-surface-diagnostic-map";
+    if (surface === "orchestration") return map.steps.every((step) => step.capabilityId === "orchestration");
+    return map.steps.some((step) => step.stepKind === "ability" || step.stepKind === "ai");
+  });
+
+  const findings: Finding[] = [];
+  if (missingAbilitySurface.length > 0 || !hasControlSurface) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must cover the full governed evidence surface without adding owners.", detail: [...missingAbilitySurface, ...PHASE_05_REQUIRED_CONTROL_SURFACE.filter((surface) => !hasControlSurface)].join(", ") }));
+  }
+  if (!hasDryRunTextInputGate) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic text-input coverage must be local sandbox dry-run/review-gated only." }));
+  }
+  if (!hasNoExecutablePayload) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map package must not contain executable payloads, handlers, shell commands, or raw prompts." }));
+  }
+
+  return findings;
 };

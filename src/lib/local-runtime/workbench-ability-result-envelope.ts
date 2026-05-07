@@ -4,8 +4,8 @@ import type {
 } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
-import { recordAiInputProofSummary } from "../../capabilities/ai/shared/ai-input-proof-registry.js";
-import { recordAbilityResultProofSummary } from "../../capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
+import { recordAiInputProofSummary } from "../../capabilities/ai/index.js";
+import { recordAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { buildMirroredEnvelopeBase, buildPayloadDocument } from "./workbench-payload.js";
 import { recordScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 

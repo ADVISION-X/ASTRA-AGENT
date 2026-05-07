@@ -182,6 +182,15 @@ const hasReviewRequiredWriteSemantics = (sourceFile: import("ts-morph").SourceFi
     && bodyText.includes('durabilityMode=${result.storageRef ? "durable" : "memory_only"}');
 };
 
+const hasDurableSuccessResultSemantics = (project: import("ts-morph").Project): boolean => {
+  const resultBuilderSource = getSourceFileOrThrow(project, "src/capabilities/forensics-persistence/shared/forensics-result-builder.ts");
+  const resolver = resultBuilderSource.getVariableDeclaration("resolveForensicsResultStatus");
+  const resultBuilderText = resultBuilderSource.getFullText();
+  return !!resolver
+    && resolver.getText().includes("storedRecord?.storageRef")
+    && resultBuilderText.includes('status === "review_required" ? input.reviewRequiredReason : null');
+};
+
 const hasPersistedBoundaryEventEmitter = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const emitterDeclaration = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find((declaration) => declaration.getName() === "boundaryEventEmitter");
   if (!emitterDeclaration) {
@@ -237,6 +246,7 @@ const collectForensicsWriteBoundaryFinding = (project: import("ts-morph").Projec
     hasBoundaryEmitterAbilityGroupWiring(workbenchSource),
     hasWrittenBoundaryFailureOnlyGate(boundarySource),
     hasReviewRequiredWriteSemantics(boundarySource),
+    hasDurableSuccessResultSemantics(project),
     hasLiteralTextFragment(boundarySource, "recordType="),
     hasForensicsWriteProofRefs(boundarySource),
   ];

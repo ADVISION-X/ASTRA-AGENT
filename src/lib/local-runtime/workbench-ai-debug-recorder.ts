@@ -2,7 +2,6 @@ import {
   buildAiDebugArtifactRefs,
   buildAiStructuredRuntimeEvent,
   resolveAiDebugStep,
-  splitTraceId,
   type WorkbenchAiDebugEvent,
   type WorkbenchAiDebugRuntime,
 } from "./workbench-ai-debug-support.js";
@@ -21,12 +20,30 @@ const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"])
   eventType === "AI_REQUEST_DEBUG" || eventType === "AI_INPUT_DEBUG_REJECTED" || eventType === "AI_RESPONSE_DEBUG" || eventType === "AI_ERROR_DEBUG"
 );
 
+const resolveCanonicalAiChain = (input: WorkbenchAiDebugEvent) => {
+  const selectedMapId = input.selectedMapId ?? null;
+  const mapChain = getActiveMapChain(selectedMapId);
+  return {
+    missionId: input.missionId ?? input.sessionId,
+    runId: input.runId ?? input.missionId ?? input.sessionId,
+    stepId: input.stepId ?? input.roundId ?? resolveAiDebugStep(input.taskType),
+    mapPackageId: input.mapPackageId ?? mapChain.mapPackageId,
+    mapPackageVersion: input.mapPackageVersion ?? mapChain.mapPackageVersion,
+    selectedMapId,
+    selectedMapVersion: input.selectedMapVersion ?? mapChain.selectedMapVersion,
+    activationSnapshotRef: input.activationSnapshotRef ?? mapChain.activationSnapshotRef,
+    capabilityCallId: input.capabilityCallId ?? input.spanId ?? input.runtimeCallId ?? input.attemptId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null,
+    inputRef: input.inputRef ?? input.refs[0] ?? null,
+    idempotencyKey: input.idempotencyKey ?? input.runtimeCallId ?? input.spanId ?? input.attemptId,
+  };
+};
+
 export const recordWorkbenchAiDebugEvent = async (
   runtime: WorkbenchAiDebugForensicsRuntime,
   input: WorkbenchAiDebugEvent,
 ): Promise<void> => {
-  const trace = splitTraceId(input.traceId);
-  const mapChain = getActiveMapChain(trace.mapId);
+  const chain = resolveCanonicalAiChain(input);
   const artifactRefs = buildAiDebugArtifactRefs(input);
   const structuredRuntimeEvent = buildAiStructuredRuntimeEvent(runtime, input, artifactRefs);
   runtime.structuredLogBus?.emitRuntimeEvent(structuredRuntimeEvent);
@@ -37,19 +54,19 @@ export const recordWorkbenchAiDebugEvent = async (
     requestedBy: "ai",
     sourceAbilityGroupId: "ai",
     sourceChildCapabilityId: structuredRuntimeEvent.childCapabilityId ?? "local-vision-ai",
-    missionId: input.missionId ?? trace.missionId ?? input.sessionId,
-    runId: input.traceId ?? input.attemptId,
+    missionId: chain.missionId,
+    runId: chain.runId,
     sessionId: input.sessionId,
     roundId: input.roundId ?? input.attemptId,
     videoVisitId: input.videoVisitId,
-    stepId: input.stepId ?? input.roundId ?? resolveAiDebugStep(input.taskType),
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapId: trace.mapId,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
-    capabilityCallId: input.spanId ?? input.attemptId,
-    inputRefs: input.refs,
+    stepId: chain.stepId,
+    mapPackageId: chain.mapPackageId,
+    mapPackageVersion: chain.mapPackageVersion,
+    selectedMapId: chain.selectedMapId,
+    selectedMapVersion: chain.selectedMapVersion,
+    activationSnapshotRef: chain.activationSnapshotRef,
+    capabilityCallId: chain.capabilityCallId,
+    inputRefs: [...new Set([...(chain.inputRef ? [chain.inputRef] : []), ...input.refs])],
     outputRefs: input.rawResponseRef ? [input.rawResponseRef] : [],
     sourceRecordRefs: [],
     parentRefs: [],

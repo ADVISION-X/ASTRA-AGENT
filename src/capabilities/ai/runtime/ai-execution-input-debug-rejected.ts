@@ -5,10 +5,19 @@ import { AI_TASK_TYPES, buildStableAiRef } from "../shared/ai-types.js";
 type InputDebugShapeIssue = {
   sessionId: string | null;
   missionId: string | null;
+  runId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationSnapshotRef: string | null;
   capabilityCallId: string | null;
+  nerveBusEnvelopeId: string | null;
+  inputRef: string | null;
+  idempotencyKey: string | null;
   taskType: AiTaskType | null;
   promptContractId: string | null;
   expectedOutputSchema: string | null;
@@ -77,10 +86,19 @@ const buildInputDebugShapeIssue = (value: unknown): InputDebugShapeIssue => {
   return {
     sessionId,
     missionId: readString(readNestedField(value, "missionId")),
+    runId: readString(readNestedField(value, "runId")),
     roundId: readString(readNestedField(value, "roundId")),
     videoVisitId: readString(readNestedField(value, "videoVisitId")),
     stepId,
+    mapPackageId: readString(readNestedField(value, "mapPackageId")),
+    mapPackageVersion: readString(readNestedField(value, "mapPackageVersion")),
+    selectedMapId: readString(readNestedField(value, "selectedMapId")),
+    selectedMapVersion: readString(readNestedField(value, "selectedMapVersion")),
+    activationSnapshotRef: readString(readNestedField(value, "activationSnapshotRef")),
     capabilityCallId,
+    nerveBusEnvelopeId: readString(readNestedField(value, "nerveBusEnvelopeId")),
+    inputRef: readString(readNestedField(value, "inputRef")),
+    idempotencyKey: readString(readNestedField(value, "idempotencyKey")),
     taskType,
     promptContractId: readString(readNestedField(value, "promptContractId")),
     expectedOutputSchema: readString(readNestedField(value, "expectedOutputSchema")),
@@ -117,16 +135,26 @@ const emptyCatalogFields = () => ({
 const buildRejectedBaseFields = (
   issue: InputDebugShapeIssue,
   identity: ReturnType<typeof buildRejectedIdentity>,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "roundId" | "videoVisitId" | "stepId" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
   return {
     eventType: "AI_INPUT_DEBUG_REJECTED",
     level: "DEBUG",
     status: "review_required",
     sessionId: identity.sessionId,
     missionId: issue.missionId,
+    runId: issue.runId ?? issue.missionId ?? identity.sessionId,
     roundId: issue.roundId,
     videoVisitId: issue.videoVisitId,
     stepId: issue.stepId,
+    mapPackageId: issue.mapPackageId,
+    mapPackageVersion: issue.mapPackageVersion,
+    selectedMapId: issue.selectedMapId,
+    selectedMapVersion: issue.selectedMapVersion,
+    activationSnapshotRef: issue.activationSnapshotRef,
+    capabilityCallId: issue.capabilityCallId,
+    nerveBusEnvelopeId: issue.nerveBusEnvelopeId,
+    inputRef: issue.inputRef ?? issue.refs[0] ?? null,
+    idempotencyKey: issue.idempotencyKey ?? identity.runtimeCallId,
     traceId: issue.capabilityCallId ?? identity.runtimeCallId,
     spanId: identity.runtimeCallId,
     attemptId: `${identity.runtimeCallId}:attempt:0`,

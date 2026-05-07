@@ -135,6 +135,26 @@ const collectLoopStateFindings = (input: {
   return findings;
 };
 
+const collectCapabilityCallIdStabilityFindings = (input: {
+  loopIterationSource: ReturnType<typeof getSourceFileOrThrow>;
+  loopEventsSource: ReturnType<typeof getSourceFileOrThrow>;
+}): Finding[] => {
+  const findings: Finding[] = [];
+  const forbiddenOverride = "lastResult.envelopeId ?? input.stepDispatchCallId";
+  const forbiddenOutcomeOverride = "outcome.lastResult?.envelopeId ?? input.stepDispatchCallId";
+  const eventsText = input.loopEventsSource.getFullText();
+  const iterationText = input.loopIterationSource.getFullText();
+
+  if (eventsText.includes(forbiddenOverride) || eventsText.includes(forbiddenOutcomeOverride) || iterationText.includes(forbiddenOverride)) {
+    findings.push(createFatalFinding({ file: LOOP_EVENTS_PATH, message: "Mission-loop lifecycle events must keep capabilityCallId as the stable stepDispatchCallId; result envelope ids belong in resultEnvelopeRef/output refs, never capabilityCallId." }));
+  }
+  if (!eventsText.includes("resultEnvelopeRef=")) {
+    findings.push(createFatalFinding({ file: LOOP_EVENTS_PATH, message: "Mission-loop result events must expose ability result envelope ids as resultEnvelopeRef without replacing the step invocation capabilityCallId." }));
+  }
+
+  return findings;
+};
+
 export function inspectMissionLoopEventSemantics(project: ReturnType<typeof createAuditProject>): PhaseResult {
   const internalSource = getSourceFileOrThrow(project, INTERNAL_TYPES_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
@@ -153,6 +173,7 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
     ...collectForensicsWiringFindings({ internalSource, abilityGroupSource, workbenchOrchestrationSource }),
     ...collectRuntimeEventCoverageFindings({ loopIterationSource, loopEventsSource, runtimeEventTypes, dispatchStartedText }),
     ...collectLoopStateFindings({ loopIterationSource, loopIterationSupportSource, stepTraceRecorderSource, transitionStateText }),
+    ...collectCapabilityCallIdStabilityFindings({ loopIterationSource, loopEventsSource }),
   ];
 
   return { findings, phase: createSemanticsPhase(findings) };

@@ -33,3 +33,8 @@ export {
   AiResultSchema,
   AiRuntimeProofSchema,
 } from "./schema.js";
+export {
+  recordAiInputProofSummary,
+  resolveAiInputProofSummary,
+  type AiInputProofSummary,
+} from "./shared/ai-input-proof-registry.js";

@@ -9,6 +9,7 @@ export function loadBuiltinMapPackages(): MapPackage[] {
     readBuiltin("iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json"),
     readBuiltin("iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json"),
     readBuiltin("macos-local-program-open-smoke.meta.map-package.json"),
+    readBuiltin("phase-05-full-surface-diagnostic.meta.map-package.json"),
     readBuiltin("tiktok-seeding-video-discovery.meta.map-package.json"),
   ];
 }

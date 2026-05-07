@@ -48,6 +48,9 @@ const INPUT_SCHEMA_DIAGNOSTIC_FORBIDDEN_SNIPPETS = [
   "token",
 ] as const;
 
+const WORKBENCH_AI_DEBUG_RECORDER_PATH = "src/lib/local-runtime/workbench-ai-debug-recorder.ts";
+const WORKBENCH_AI_DEBUG_SUPPORT_PATH = "src/lib/local-runtime/workbench-ai-debug-support.ts";
+
 const findRequiredExecutorCalls = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   for (const { callName, file } of REQUIRED_EXECUTOR_CALLS) {
@@ -154,6 +157,66 @@ const findRuntimeDiagnosticTransparencyViolations = (project: Project): Finding[
   ...collectRuntimeDebugShapeFindings(project),
   ...collectRuntimeFailureReasonFindings(project),
 ];
+
+const isPropertyNamed = (property: import("ts-morph").PropertyAssignment, propertyName: string): boolean =>
+  property.getName() === propertyName;
+
+const propertyInitializerText = (sourceFile: SourceFile, propertyName: string): string[] =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+    .filter((property) => isPropertyNamed(property, propertyName))
+    .map((property) => property.getInitializer()?.getText() ?? "");
+
+const hasInputTraceIdRunIdAuthority = (sourceFile: SourceFile): boolean =>
+  propertyInitializerText(sourceFile, "runId").some((initializer) => initializer.includes("input.traceId"));
+
+const hasSplitTraceIdMapAuthority = (sourceFile: SourceFile): boolean =>
+  propertyInitializerText(sourceFile, "selectedMapId").some((initializer) => initializer.includes("trace.mapId") || initializer.includes("splitTraceId"))
+  || propertyInitializerText(sourceFile, "mapId").some((initializer) => initializer === "trace.mapId");
+
+const hasCanonicalChainResolver = (sourceFile: SourceFile): boolean => {
+  const resolver = sourceFile.getFunction("resolveCanonicalAiChain") ?? sourceFile.getVariableDeclaration("resolveCanonicalAiChain");
+  if (!resolver) return false;
+  const text = resolver.getText();
+  return [
+    "input.selectedMapId",
+    "input.mapPackageId",
+    "input.mapPackageVersion",
+    "input.selectedMapVersion",
+    "input.activationSnapshotRef",
+    "input.capabilityCallId",
+    "input.nerveBusEnvelopeId",
+    "input.idempotencyKey",
+  ].every((snippet) => text.includes(snippet));
+};
+
+const hasTerminalDebugPaths = (project: Project): boolean => {
+  const localDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`);
+  const runtimeFailureSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-failure-debug.ts`);
+  const externalRuntimeSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/external-provider-runtime-execution.ts`);
+  return [localDebugSource, runtimeFailureSource, externalRuntimeSource].some((source) => hasStringLiteral(source, "AI_ERROR_DEBUG"))
+    && [localDebugSource, externalRuntimeSource].some((source) => hasStringLiteral(source, "AI_RESPONSE_DEBUG"));
+};
+
+const collectWorkbenchAiDebugChainFindings = (project: Project): Finding[] => {
+  const recorderSource = getSourceOrThrow(project, WORKBENCH_AI_DEBUG_RECORDER_PATH);
+  const supportSource = getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_PATH);
+  const findings: Finding[] = [];
+
+  if (hasInputTraceIdRunIdAuthority(recorderSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "Workbench AI debug recorder must not use input.traceId as governed runId truth." }));
+  }
+  if (hasSplitTraceIdMapAuthority(recorderSource) || hasSplitTraceIdMapAuthority(supportSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "Workbench AI debug recorder must not derive selectedMapId/mapId from splitTraceId(traceId); use explicit governed chain fields." }));
+  }
+  if (!hasCanonicalChainResolver(recorderSource)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_RECORDER_PATH, line: 1, severity: "fatal", message: "Workbench AI debug recorder must resolve mission/run/map/package/activation/capability/idempotency fields from canonical AI debug event fields." }));
+  }
+  if (!hasTerminalDebugPaths(project)) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "AI_REQUEST_DEBUG must have governed terminal AI_RESPONSE_DEBUG or AI_ERROR_DEBUG paths." }));
+  }
+
+  return findings;
+};
 
 const hasThinAbilityGroup = (sourceFile: SourceFile): boolean => {
   return hasCallExpression(sourceFile, "parseAiInput")
@@ -335,6 +398,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findRequiredExecutorCalls(project),
     ...findRuntimeContractViolations(project),
     ...findRuntimeDiagnosticTransparencyViolations(project),
+    ...collectWorkbenchAiDebugChainFindings(project),
     ...findPublicContractViolations(project),
     ...findFakeLiteralViolations(project),
     ...findDisabledChildExecutionViolations(project),

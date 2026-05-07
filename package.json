@@ -36,7 +36,6 @@
     "audit:map-plugin-package": "tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
     "audit:commander-console": "node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts",
     "audit:forensics-persistence": "tsx scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
-    "audit:runtime-debug-transparency": "tsx scripts/audit/domains/runtime-debug-transparency/run-inspector.ts",
     "audit:debug-loop-boundary": "node --import tsx scripts/audit/domains/debug-loop-boundary/run-inspector.ts",
     "audit:page-state": "node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts",
     "audit:visual-target": "node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts",

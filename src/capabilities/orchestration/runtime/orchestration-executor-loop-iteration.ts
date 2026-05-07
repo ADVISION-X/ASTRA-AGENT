@@ -130,7 +130,7 @@ async function handleTransitionFailure(
       reason: `Transition evaluation failed for step "${details.currentStepId}".`,
       failureReason: details.failureReason,
       proofId: outcome.lastProof.proofId,
-      capabilityCallId: details.lastResult.envelopeId ?? input.stepDispatchCallId,
+      capabilityCallId: input.stepDispatchCallId,
     });
     await recordTerminalOutcome(input, step, outcome);
   }
@@ -152,7 +152,7 @@ async function handleTransitionSuccess(
       decision: details.transition.transitionId,
       reason: `Transition "${details.transition.transitionId}" matched for step "${details.currentStepId}".`,
       proofId: outcome.lastProof.proofId,
-      capabilityCallId: details.lastResult.envelopeId ?? input.stepDispatchCallId,
+      capabilityCallId: input.stepDispatchCallId,
     });
   }
   if (outcome.result) {

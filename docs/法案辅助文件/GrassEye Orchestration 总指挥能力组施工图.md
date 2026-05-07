@@ -1078,3 +1078,8 @@ Orchestration 直接调用 AI runtime/local-ai adapter
 Orchestration 写 raw prompt/raw image/raw response text 到终端
 Orchestration 根据 AI free text 推进流程
 ```
+## Runtime Event Identity Addendum
+
+- `capabilityCallId` is the stable step invocation id for the whole step lifecycle.
+- `MAP_STEP_SELECTED`、`STEP_PRECONDITION_CHECKED`、`STEP_DISPATCH_STARTED`、`CAPABILITY_CALL_STARTED`、`CAPABILITY_CALL_COMPLETED`、`STEP_TRANSITION_EVALUATED` must keep the same `capabilityCallId` for the same step.
+- Ability result envelope ids must be recorded as `resultEnvelopeRef` / `abilityResultRef` / `transportEnvelopeRef` style refs. They must not overwrite `capabilityCallId`.

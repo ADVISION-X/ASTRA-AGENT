@@ -150,3 +150,10 @@ durabilityMode=durable 或 memory_only
 - negative proof 覆盖生产突变和 inspector wiring 突变。
 - generated artifacts 必须可重建，不得手写 `scripts/audit/generated/**`。
 - runner-summary stale 时必须记录 stale root cause，并以重跑 owner inspector 为准。
+## Phase-05 Runtime Proof Hardening Addendum
+
+- AI debug events must never infer `selectedMapId`, `runId`, `mapPackageId`, or `activationSnapshotRef` from `traceId`. `traceId` is observability only; governed chain truth must come from the upstream command envelope, mission context, and active map chain fields.
+- Every `AI_REQUEST_DEBUG` must terminate under the same `runtimeCallId` with exactly one `AI_RESPONSE_DEBUG` or `AI_ERROR_DEBUG` path, and that terminal event must enter the structured runtime event sink.
+- `capabilityCallId` is the step invocation id across selected/precondition/dispatch/started/completed/transition lifecycle events. Result envelope ids must be emitted as `resultEnvelopeRef` or equivalent refs, not substituted into `capabilityCallId`.
+- `durabilityMode=durable` plus `status=review_required` is not a ready state. If storage, record ref, runtime proof, idempotency, and chain fields are complete, Forensics should emit `FORENSICS_RECORD_WRITTEN status=success`.
+- Business maps must stay business-shaped. Full phase-05 coverage belongs in a dedicated draft/local diagnostic map, with social-platform text input and destructive actions forbidden.

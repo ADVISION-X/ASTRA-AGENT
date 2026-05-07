@@ -43,8 +43,11 @@ const resolveForensicsResultStatus = (input: {
   failureReason: ForensicsFailure | null;
   reviewRequiredReason: string | null;
   integrityDecision: ForensicsIntegrityDecision;
+  storedRecord: StoredForensicsRecord | null;
 }) => input.failureReason
   ? "failed"
+  : input.storedRecord?.storageRef
+    ? "success"
   : input.reviewRequiredReason || input.integrityDecision.status === "review_required"
     ? "review_required"
     : "success";
@@ -66,7 +69,9 @@ export function buildForensicsResult(input: {
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     integrityDecision: input.integrityDecision,
+    storedRecord: input.storedRecord,
   });
+  const reviewRequiredReason = status === "review_required" ? input.reviewRequiredReason : null;
 
   return ForensicsResultSchema.parse({
     abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
@@ -78,7 +83,7 @@ export function buildForensicsResult(input: {
     artifactRefs: input.storedRecord?.artifactRefs ?? input.request.artifactRefs,
     output,
     failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
+    reviewRequiredReason,
     runtimeProof: buildForensicsProof({
       request: input.request,
       policyDecision: input.policyDecision,
@@ -87,7 +92,7 @@ export function buildForensicsResult(input: {
       startedAt: input.startedAt,
       endedAt: input.endedAt,
       failureReason: input.failureReason,
-      reviewRequiredReason: input.reviewRequiredReason,
+      reviewRequiredReason,
       clock: input.clock,
     }),
     integrityDecision: input.integrityDecision,

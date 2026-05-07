@@ -1143,3 +1143,8 @@ local adapter -> emitAiErrorDebug(implementationStatus)
 AI runtime result resolver 保留具体 implementationStatus
 unexpected child throw 暴露 implementationStatus/errorKind/diagnosticPayloadRef
 ```
+## AI Debug Chain Truth Addendum
+
+- `traceId` is not governance truth. AI debug code must not derive `runId`, `selectedMapId`, `mapPackageId`, `selectedMapVersion`, or `activationSnapshotRef` from `traceId`.
+- AI debug events must carry explicit chain fields from governed request context: `missionId`, `runId`, `sessionId`, `stepId`, `mapPackageId`, `mapPackageVersion`, `selectedMapId`, `selectedMapVersion`, `activationSnapshotRef`, `capabilityCallId`, `nerveBusEnvelopeId`, `inputRef`, and `idempotencyKey`.
+- Every emitted `AI_REQUEST_DEBUG` must be paired by `runtimeCallId` with one terminal `AI_RESPONSE_DEBUG` or `AI_ERROR_DEBUG`. `AI_ERROR_DEBUG` must include `implementationStatus`, `errorKind`, `failureReason`, `runtimeCallId`, `diagnosticPayloadRef`, `promptContractId`, `outputSchemaRef`, `ownerResponsible`, `actionableMessage`, and `durationMs`.

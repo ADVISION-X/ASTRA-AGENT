@@ -7,6 +7,7 @@ export const BUILTIN_PACKAGE_FILES = [
   `${BUILTINS_ROOT}/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json`,
   `${BUILTINS_ROOT}/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json`,
   `${BUILTINS_ROOT}/macos-local-program-open-smoke.meta.map-package.json`,
+  `${BUILTINS_ROOT}/phase-05-full-surface-diagnostic.meta.map-package.json`,
   `${BUILTINS_ROOT}/tiktok-seeding-video-discovery.meta.map-package.json`,
 ] as const;
 

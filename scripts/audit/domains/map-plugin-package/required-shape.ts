@@ -11,7 +11,7 @@ import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
 import { BUILTIN_PACKAGE_FILES, REQUIRED_SOURCE_FILES } from "./file-lists.js";
 import { inspectAuthoringPromptSources } from "./required-shape-authoring-prompts.js";
-import { inspectCapabilityCatalogGeneratedTruth, inspectMapAuthoringCapabilityCatalogGate, inspectRegistryBootstrap } from "./required-shape-runtime.js";
+import { inspectCapabilityCatalogGeneratedTruth, inspectMapAuthoringCapabilityCatalogGate, inspectPhase05DiagnosticMapSurface, inspectRegistryBootstrap } from "./required-shape-runtime.js";
 
 const { ROOT } = MAP_PLUGIN_PATHS;
 
@@ -299,6 +299,7 @@ export async function runRequiredShape(project: Project): Promise<{ findings: Fi
     ...(await inspectBuiltinRecords()),
     ...(await inspectCapabilityCatalogGeneratedTruth()),
     ...inspectMapAuthoringCapabilityCatalogGate(),
+    ...inspectPhase05DiagnosticMapSurface(),
     ...inspectLifecycleSources(project),
     ...inspectRegistryBootstrap(),
   ];

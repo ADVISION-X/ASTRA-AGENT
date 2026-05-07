@@ -63,8 +63,8 @@ function buildStepResultEventDetails(lastResult: StepResultRecord, input: LoopIt
       : "Inspect the blocking step result and runtime proof before retrying.",
     actionLogRefs: actionLog ? [actionLog.actionLogId] : [],
     actionRef: actionLog?.actionRef ?? null,
-    capabilityCallId: lastResult.envelopeId ?? input.stepDispatchCallId,
-    outputRefs: collectLastResultRefs(lastResult),
+    capabilityCallId: input.stepDispatchCallId,
+    outputRefs: [...collectLastResultRefs(lastResult), ...(lastResult.envelopeId ? [`resultEnvelopeRef=${lastResult.envelopeId}`] : [])],
     proofSummary: lastResult.branchFieldValues,
     ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
       ? "Orchestration / Post-action Verification"
@@ -245,7 +245,8 @@ export async function recordTerminalOutcome(
         ? "Open Commander review flow and resolve the governed review requirement."
         : "Read the mission proof timeline and persisted records for the completed mission.",
     ownerResponsible: "Orchestration",
-    capabilityCallId: outcome.lastResult?.envelopeId ?? input.stepDispatchCallId,
+    capabilityCallId: input.stepDispatchCallId,
     proofRefs: [outcome.lastProof.proofId],
+    outputRefs: outcome.lastResult?.envelopeId ? [`resultEnvelopeRef=${outcome.lastResult.envelopeId}`] : [],
   });
 }
