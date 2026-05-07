@@ -33,17 +33,19 @@ const collectExecutorFindings = (project: import("ts-morph").Project): Finding[]
   const executorPath = `${RUNTIME_ROOT}/forensics-executor.ts`;
   const executorSource = getSourceFileOrThrow(project, executorPath);
   const resultBuilderSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-result-builder.ts`);
+  const proofBuilderSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-proof-builder.ts`);
   const executorValid = sourceHasCallPath(executorSource, ["evaluateForensicsPolicy"])
     && sourceHasCallPath(executorSource, ["evaluateForensicsIntegrity"])
     && sourceHasCallPath(executorSource, ["buildForensicsEnvelope"])
     && sourceHasCallPath(executorSource, ["writeForensicsEnvelope"])
     && sourceHasCallPath(executorSource, ["persistForensicsArtifacts"])
     && sourceHasCallPath(resultBuilderSource, ["buildForensicsProof"])
+    && proofBuilderSource.getFunctionOrThrow("buildForensicsProof").getText().includes("storedRecord?.storageRef")
     && hasExecutorOutputSchemaParse(executorSource);
 
   return executorValid
     ? []
-    : [createFinding({ lawId: LAW_RUNTIME, file: executorPath, line: getFunctionLine(executorSource, "executeForensicsChild"), severity: "fatal", message: "Forensics executor is missing one or more required runtime gates or output-schema enforcement." })];
+    : [createFinding({ lawId: LAW_RUNTIME, file: executorPath, line: getFunctionLine(executorSource, "executeForensicsChild"), severity: "fatal", message: "Forensics executor is missing one or more required runtime gates, durable proof status alignment, or output-schema enforcement." })];
 };
 
 const collectRuntimeReferenceFindings = (project: import("ts-morph").Project): Finding[] => {

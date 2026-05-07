@@ -69,9 +69,11 @@ export function buildForensicsProof(input: {
   const recordId = input.storedRecord?.recordRef.recordId ?? `${input.request.recordType}:${input.policyDecision.idempotencyKey}`;
   const status = input.failureReason
     ? "failed"
-    : input.reviewRequiredReason || input.integrityDecision.status === "review_required"
-      ? "review_required"
-      : "success";
+    : input.storedRecord?.storageRef
+      ? "success"
+      : input.reviewRequiredReason || input.integrityDecision.status === "review_required"
+        ? "review_required"
+        : "success";
 
   return ForensicsRuntimeProofSchema.parse({
     proofId: buildProofId(`${recordId}:${input.endedAt}`),
