@@ -286,6 +286,24 @@ export const MUTATIONS: Mutation[] = [
     search: "  // Always use the RoundLifecycleStep-safe computed step; input.stepId may be\n  // an orchestration map step ID (e.g. \"judge-seeding-video\") which is NOT a\n  // valid RoundLifecycleStepSchema enum value and would throw at parse time.\n  step,\n",
     replace: "  step: input.stepId ?? step,\n",
   },
+  {
+    name: "product presence prompt uncertain mutation",
+    file: "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
+    search: "Never return product_uncertain, review_required, null, maybe, unknown, or a human-review decision.",
+    replace: "Use product_uncertain when visual evidence is ambiguous and request human review.",
+  },
+  {
+    name: "product presence schema uncertain mutation",
+    file: "src/types/vision-product-presence.ts",
+    search: '  "product_no",\n]).nullable().default(null);',
+    replace: '  "product_no",\n  "product_uncertain",\n]).nullable().default(null);',
+  },
+  {
+    name: "product presence low confidence review mutation",
+    file: "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
+    search: "? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }",
+    replace: "? { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }",
+  },
 ];
 
 export const MUTATION_LAW_COVERAGE: Record<string, {
@@ -393,6 +411,24 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
     coveredLawIds: ["GRASSEYE-AI-CAPABILITY-007A-V1"],
     coverageReasonByLawId: {
       "GRASSEYE-AI-CAPABILITY-007A-V1": "The mutation reverts the AI debug trace step field to use input.stepId, which is an orchestration map step ID not in the RoundLifecycleStepSchema enum, causing StructuredRuntimeEventSchema.parse to throw at runtime and silently suppressing AI_REQUEST_DEBUG from the terminal observer. The proof chain inspector must catch this regression.",
+    },
+  },
+  "product presence prompt uncertain mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation reintroduces product_uncertain/human-review wording into the autonomous product-presence prompt, proving binary YES/NO prompt governance is machine-blocking.",
+    },
+  },
+  "product presence schema uncertain mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation reopens product_uncertain as an output-schema value, proving product-presence runtime output stays binary for automated discovery.",
+    },
+  },
+  "product presence low confidence review mutation": {
+    coveredLawIds: ["GRASSEYE-AI-CAPABILITY-002-V1"],
+    coverageReasonByLawId: {
+      "GRASSEYE-AI-CAPABILITY-002-V1": "The mutation restores low-confidence human review for product-presence routing, proving automated discovery cannot be interrupted by a third AI branch.",
     },
   },
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T10:44:27.799Z",
+  "generatedAt": "2026-05-07T11:03:53.675Z",
   "phase": "phase-04-full-enforcement",
   "passed": true,
   "totals": {
@@ -112,9 +112,9 @@
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye AI Capability Owner Inspector",
-      "inspectorId": "ai-capability-owner",
-      "capabilityDomain": "ai-capability",
+      "inspector": "GrassEye Debug Loop Boundary Owner Inspector",
+      "inspectorId": "debug-loop-boundary-owner",
+      "capabilityDomain": "debug-loop-boundary",
       "findings": [],
       "phases": [
         {
@@ -127,17 +127,35 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates"
+          "summary": "debug-loop remains an operator harness and is blocked from becoming a second Agent runtime."
         },
         {
-          "name": "negative-proof-harness",
+          "name": "debug-loop-identity",
           "classification": "PASS",
           "passed": true,
-          "summary": "AI negative-proof harness was skipped for nested inspector execution."
+          "summary": "debug-loop stays local tooling and never becomes an active owner."
+        },
+        {
+          "name": "debug-loop-runtime-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "mission-runtime starts via Commander and observes through governed read models only."
+        },
+        {
+          "name": "debug-loop-scenario-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "scenario JSON stays declarative and non-executable."
+        },
+        {
+          "name": "debug-loop-artifact-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed."
         }
       ],
       "classification": "PASS",
-      "summary": "AI negative-proof harness was skipped for nested inspector execution.",
+      "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed.",
       "passed": true,
       "violationCount": 0
     },
@@ -268,9 +286,9 @@
       "violationCount": 0
     },
     {
-      "inspector": "GrassEye Debug Loop Boundary Owner Inspector",
-      "inspectorId": "debug-loop-boundary-owner",
-      "capabilityDomain": "debug-loop-boundary",
+      "inspector": "GrassEye AI Capability Owner Inspector",
+      "inspectorId": "ai-capability-owner",
+      "capabilityDomain": "ai-capability",
       "findings": [],
       "phases": [
         {
@@ -283,35 +301,17 @@
           "name": "implementation-window",
           "classification": "PASS",
           "passed": true,
-          "summary": "debug-loop remains an operator harness and is blocked from becoming a second Agent runtime."
+          "summary": "ai-capability is rebuilt as a static capability package with ts-morph enforced runtime gates"
         },
         {
-          "name": "debug-loop-identity",
+          "name": "negative-proof-harness",
           "classification": "PASS",
           "passed": true,
-          "summary": "debug-loop stays local tooling and never becomes an active owner."
-        },
-        {
-          "name": "debug-loop-runtime-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "mission-runtime starts via Commander and observes through governed read models only."
-        },
-        {
-          "name": "debug-loop-scenario-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "scenario JSON stays declarative and non-executable."
-        },
-        {
-          "name": "debug-loop-artifact-boundary",
-          "classification": "PASS",
-          "passed": true,
-          "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed."
+          "summary": "AI negative-proof harness was skipped for nested inspector execution."
         }
       ],
       "classification": "PASS",
-      "summary": "repair packets, fake authoring, package wiring, and negative proof remain governed.",
+      "summary": "AI negative-proof harness was skipped for nested inspector execution.",
       "passed": true,
       "violationCount": 0
     },

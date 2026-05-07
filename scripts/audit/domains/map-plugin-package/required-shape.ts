@@ -102,6 +102,12 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
   const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
   const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
+  const judgeTransitions = record.mapPackage.operationalMap.transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
+  const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
+    transition.condition.rightValue === "product_uncertain"
+    || transition.toStepId === "request-human-review"
+    || transition.finalStatus === "review_required",
+  );
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
     && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
     && prepare.outputRefPolicy.storeAs.includes("promptInputRef")
@@ -110,7 +116,10 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && judge.promptContractId === "vision.productPresence.v1"
     && judge.timeoutPolicy.maxDurationMs >= MIN_SEEDING_VIDEO_VISION_AI_STEP_TIMEOUT_MS
     && promptBinding?.requiredInputRefs.includes("promptInputRef") === true
-    && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1";
+    && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1"
+    && promptBinding.confidencePolicy === "binary-no-human-review"
+    && promptBinding.reviewPolicy === "no-human-handoff-for-product-presence"
+    && !hasForbiddenUncertainBranch;
 
   return hasChain
     ? []
@@ -119,7 +128,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must wire capture-video-viewport screenshotEvidenceRef into prepare-ai-input promptInputRef, bind judge-seeding-video to the product-presence prompt, and give the governed vision AI step enough timeout budget for local model latency.",
+      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep product-presence routing binary: product_yes opens evidence capture, product_no scrolls next, and product_uncertain/human-review handoff is forbidden.",
     })];
 };
 

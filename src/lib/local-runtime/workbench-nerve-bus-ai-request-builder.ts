@@ -131,6 +131,16 @@ const resolveWorkbenchAiProviderPolicy = (taskType: SupportedWorkbenchAiTaskType
     ? { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["internal-schema-validator"], operatorApprovalRef: null }
     : { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null };
 
+const resolveWorkbenchAiQualityPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
+  taskType === PRODUCT_PRESENCE_TASK_TYPE
+    ? { minimumConfidence: null, requireSchemaValidation: true }
+    : { minimumConfidence: 0.6, requireSchemaValidation: true };
+
+const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
+  taskType === PRODUCT_PRESENCE_TASK_TYPE
+    ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
+    : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
+
 function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): void {
   const payload = payloadDocumentToObject(inputPayload);
   const promptInputRef = payloadValueToString(payload.promptInputRef);
@@ -199,11 +209,11 @@ export const buildWorkbenchAiAbilityRequest = (
     selectedMapVersion: envelope.selectedMapVersion,
     activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
     promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
-    qualityPolicy: { minimumConfidence: 0.6, requireSchemaValidation: true },
+    qualityPolicy: resolveWorkbenchAiQualityPolicy(taskType),
     providerPolicy: resolveWorkbenchAiProviderPolicy(taskType),
     costPolicy: { maxEstimatedCost: 0 },
     dataPolicy: { allowExternalTransmission: false, redactSensitiveData: true },
-    safetyPolicy: { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true },
+    safetyPolicy: resolveWorkbenchAiSafetyPolicy(taskType),
     input: buildWorkbenchAiInputPayload({ ...envelope, taskType }, inputPayload),
   };
 };

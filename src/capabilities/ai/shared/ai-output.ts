@@ -24,17 +24,17 @@ function buildVisualFallback(reason: string): AiVisualOutput {
     expectedFrameCount: 1,
     fallbackReason: reason,
     missingFrames: [],
-    isProductVideo: null,
-    decision: null,
+    isProductVideo: false,
+    decision: "product_no",
     confidence: 0,
     visibleProductTypes: [],
     evidenceObservations: [],
     reason,
     frameLevelObservations: [],
     aggregateReason: reason,
-    suggestedNextAction: "review_required",
+    suggestedNextAction: "scroll_next",
     uncertainty: [reason],
-    mustReview: true,
+    mustReview: false,
   };
 }
 

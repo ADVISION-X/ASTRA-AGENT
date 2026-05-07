@@ -83,7 +83,7 @@ const buildProductPresenceReviewDecision = (input: {
 }) => {
   return {
     status: "review_required" as const,
-    decision: "product_uncertain",
+    decision: "product_no",
     reviewRequiredReason: resolveProductPresenceReviewReason(input),
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
@@ -110,21 +110,12 @@ const resolveProductPresenceDecision = (input: {
       mustReview,
     };
   }
-  if (input.status === "review_required" || mustReview || lowConfidence || isProductVideo === null) {
-    return buildProductPresenceReviewDecision({
-      reviewRequiredReason: input.reviewRequiredReason,
-      mustReview,
-      lowConfidence,
-      isProductVideo,
-    });
-  }
-
   return {
     status: "success" as const,
     decision: isProductVideo ? "product_yes" : "product_no",
     reviewRequiredReason: null,
-    isProductVideo,
-    mustReview,
+    isProductVideo: isProductVideo === true,
+    mustReview: false,
   };
 };
 

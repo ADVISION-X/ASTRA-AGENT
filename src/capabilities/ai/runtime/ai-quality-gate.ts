@@ -33,6 +33,16 @@ function isDefinitiveNonProductOutput(output: unknown): boolean {
     && candidate.suggestedNextAction === "scroll_next";
 }
 
+function isBinaryProductPresenceOutput(output: unknown): boolean {
+  if (typeof output !== "object" || output === null || Array.isArray(output)) {
+    return false;
+  }
+  const candidate = output as { decision?: unknown; isProductVideo?: unknown; mustReview?: unknown };
+  return (candidate.decision === "product_yes" || candidate.decision === "product_no")
+    && typeof candidate.isProductVideo === "boolean"
+    && candidate.mustReview === false;
+}
+
 function resolveSchemaIssueDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
   if (input.schemaIssues.length === 0) {
     return null;
@@ -62,6 +72,9 @@ function resolvePolicyReasonDecision(input: Parameters<typeof evaluateAiQualityG
 function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
   const minimumConfidence = input.request.qualityPolicy.minimumConfidence;
   if (minimumConfidence === null) {
+    return null;
+  }
+  if (input.request.taskType === "product_presence_judgment" && isBinaryProductPresenceOutput(input.output)) {
     return null;
   }
   if (isDefinitiveNonProductOutput(input.output)) {

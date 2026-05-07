@@ -34,7 +34,7 @@ const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
   fallbackReason: request.input.fallbackReason,
   missingFrames: request.input.missingFrames,
   isProductVideo: null,
-  decision: null,
+  decision: "product_no",
   confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
   visibleProductTypes: [],
   evidenceObservations: ["describe only what is visibly present in the sampled frames"],
@@ -55,13 +55,13 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
   const contract = VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
   const userPrompt = [
-    "Every key in the required schema is mandatory. If uncertain, keep the key and use null, [], or review_required-compatible values instead of omitting fields.",
+    "Every key in the required schema is mandatory. The product-presence route is binary: decision must be product_yes or product_no.",
     "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
-    "Reserve confidence around 0.5 only for genuine visual ambiguity. If your reason is decisive, use a confidence above 0.6.",
-    "If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, or presented, return isProductVideo=false, decision=product_no, suggestedNextAction=scroll_next, uncertainty=[], and mustReview=false.",
-    "For decision=product_no, isProductVideo must be false. For decision=product_yes, isProductVideo must be true. For decision=product_uncertain, isProductVideo may be null.",
-    "Do not set mustReview=true when decision=product_no and uncertainty=[].",
-    "Use product_uncertain, review_required, or mustReview=true only when the sampled evidence is genuinely ambiguous, blocked, unsafe, or too partial to decide.",
+    "Do not reserve confidence around 0.5 to avoid deciding. If evidence is ambiguous, blocked, too partial, text-only, or not enough to prove product presence, choose product_no with lower confidence and describe the limitation.",
+    "If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, worn, held, installed, assembled, displayed for sale, or presented, return isProductVideo=false, decision=product_no, suggestedNextAction=scroll_next, and mustReview=false.",
+    "For decision=product_no, isProductVideo must be false. For decision=product_yes, isProductVideo must be true.",
+    "Never return product_uncertain, review_required, null decision, skip_or_operator_review, or mustReview=true for this automated discovery task.",
+    "Use uncertainty only as explanatory evidence for why a product_no decision was chosen; uncertainty must never request human review.",
     "Never copy instructional placeholder text into uncertainty, evidenceObservations, reason, aggregateReason, or frameLevelObservations.",
     `frameLevelObservations[].frameLabel must use only these labels: ${expectedFrameLabels.join(", ")}.`,
     "frameLevelObservations[].hasVisibleProduct must be true, false, or null.",

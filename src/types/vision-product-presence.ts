@@ -20,14 +20,11 @@ const VisionProductPresenceSuggestedNextActionSchema = z.enum([
   "collect_metrics_like_marker_open_comments",
   "scroll_next",
   "click_not_interested_or_scroll_next",
-  "skip_or_operator_review",
-  "review_required",
 ]);
 
 const VisionProductPresenceDecisionSchema = z.enum([
   "product_yes",
   "product_no",
-  "product_uncertain",
 ]).nullable().default(null);
 
 const VisionProductPresenceRequestInputSchema = z.object({

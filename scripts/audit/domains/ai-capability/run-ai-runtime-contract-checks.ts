@@ -50,6 +50,9 @@ const INPUT_SCHEMA_DIAGNOSTIC_FORBIDDEN_SNIPPETS = [
 
 const WORKBENCH_AI_DEBUG_RECORDER_PATH = "src/lib/local-runtime/workbench-ai-debug-recorder.ts";
 const WORKBENCH_AI_DEBUG_SUPPORT_PATH = "src/lib/local-runtime/workbench-ai-debug-support.ts";
+const VISION_PRODUCT_PRESENCE_PROMPT_PATH = "src/lib/local-ai/prompts/vision-product-presence.v1.ts";
+const VISION_PRODUCT_PRESENCE_SCHEMA_PATH = "src/types/vision-product-presence.ts";
+const WORKBENCH_AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
 
 const findRequiredExecutorCalls = (project: Project): Finding[] => {
   const findings: Finding[] = [];
@@ -400,6 +403,33 @@ const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[]
   return findings;
 };
 
+const findBinaryProductPresenceContractViolations = (project: Project): Finding[] => {
+  const promptSource = getSourceOrThrow(project, VISION_PRODUCT_PRESENCE_PROMPT_PATH);
+  const runtimePromptSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision-prompt.ts");
+  const schemaSource = getSourceOrThrow(project, VISION_PRODUCT_PRESENCE_SCHEMA_PATH);
+  const requestBuilderSource = getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_PATH);
+  const promptText = `${promptSource.getFullText()}\n${runtimePromptSource.getFullText()}`;
+  const schemaText = schemaSource.getFullText();
+  const requestBuilderText = requestBuilderSource.getFullText();
+  const findings: Finding[] = [];
+
+  if (!promptText.includes("Return exactly one product-presence decision: product_yes or product_no.")
+    || !promptText.includes("Never return product_uncertain")
+    || !promptText.includes("choose product_no and explain the limiting visual evidence")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: VISION_PRODUCT_PRESENCE_PROMPT_PATH, line: 1, severity: "fatal", message: "Product-presence prompt must be a detailed binary YES/NO autonomous routing contract; ambiguous evidence must become product_no, not human review." }));
+  }
+  if (schemaText.includes('"product_uncertain"') || schemaText.includes('"review_required"') || schemaText.includes('"skip_or_operator_review"')) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: VISION_PRODUCT_PRESENCE_SCHEMA_PATH, line: 1, severity: "fatal", message: "Product-presence output schema must not allow product_uncertain, review_required, or operator-review action values." }));
+  }
+  if (!requestBuilderText.includes("taskType === PRODUCT_PRESENCE_TASK_TYPE")
+    || !requestBuilderText.includes("minimumConfidence: null")
+    || !requestBuilderText.includes("reviewOnLowConfidence: false")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Workbench product-presence AI request must disable low-confidence human handoff and preserve binary autonomous routing." }));
+  }
+
+  return findings;
+};
+
 const findQualityGateDiagnosticReasonViolations = (project: Project): Finding[] => {
   const qualityGateSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-quality-gate.ts`);
   const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
@@ -443,6 +473,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findReferenceIntegrityViolations(project),
     ...findModelOwnedConfidenceViolations(project),
     ...findModelOwnedNonProductDecisionViolations(project),
+    ...findBinaryProductPresenceContractViolations(project),
     ...findQualityGateDiagnosticReasonViolations(project),
     ...findTimeoutCancellationViolations(project),
     ...findPromptGovernanceViolations(project),

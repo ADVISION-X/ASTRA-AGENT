@@ -16,7 +16,7 @@
   ],
   "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
-  "purpose": "Determine whether the current visual evidence shows a concrete product demonstration before downstream branch selection.",
+  "purpose": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content for binary downstream routing.",
   "forbiddenOutputs": [
     "profitability judgment",
     "supply chain judgment",
@@ -24,7 +24,11 @@
     "winning product claim",
     "advertising decision",
     "fabricated invisible product",
-    "page assumptions outside the sampled frames"
+    "page assumptions outside the sampled frames",
+    "product_uncertain",
+    "human review request",
+    "ambiguous branch decision",
+    "null decision"
   ],
   "prohibitedActions": [
     "click",
@@ -39,17 +43,15 @@
     "hidden_token"
   ],
   "confidencePolicy": {
-    "minConfidence": 0.6,
-    "belowMin": "review_required"
+    "minConfidence": 0,
+    "belowMin": "failed"
   },
   "reviewPolicy": {
-    "requiredWhen": [
-      "low_confidence"
-    ]
+    "requiredWhen": []
   },
   "failurePolicy": {
-    "badJson": "review_required",
-    "schemaMismatch": "review_required",
+    "badJson": "failed",
+    "schemaMismatch": "failed",
     "timeout": "failed",
     "modelUnavailable": "failed"
   },
@@ -57,7 +59,28 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81",
+  "promptHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:aea98c850d5d94f1c9ee0727775ae18517fd461e519b0035af731435fa8bff81"
+  "promptContractHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
+  "dataPolicy": {
+    "productPresenceDecisionMode": "binary_yes_no",
+    "ambiguousEvidenceRouting": "product_no",
+    "humanReviewForProductPresence": false
+  },
+  "outputSchema": {
+    "taskType": "vision.productPresence",
+    "promptId": "vision.productPresence.v1",
+    "promptVersion": "v1",
+    "schemaVersion": "vision.productPresence.schema.v1",
+    "decision": "product_yes | product_no only",
+    "isProductVideo": "boolean; true iff decision=product_yes",
+    "confidence": "number 0..1; never used to request human review for this binary route",
+    "visibleProductTypes": "string[]; empty when decision=product_no unless a visible object is mentioned as insufficient evidence",
+    "evidenceObservations": "string[] based only on sampled frames",
+    "reason": "one precise sentence explaining YES/NO decision",
+    "aggregateReason": "one sentence summarizing all sampled frames",
+    "suggestedNextAction": "collect_metrics_like_marker_open_comments | scroll_next | click_not_interested_or_scroll_next",
+    "uncertainty": "string[] allowed only as explanation for product_no; never a third branch",
+    "mustReview": false
+  }
 }

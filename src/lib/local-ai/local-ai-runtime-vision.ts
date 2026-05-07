@@ -150,20 +150,17 @@ const normalizeFrameObservations = (
 
 const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | null) => {
   const rawDecision = typeof value.decision === "string" ? value.decision : null;
-  if (rawDecision === "product_yes" || rawDecision === "product_no" || rawDecision === "product_uncertain") {
+  if (rawDecision === "product_yes" || rawDecision === "product_no") {
     return rawDecision;
   }
   if (isProductVideo === true) {
     return "product_yes";
   }
-  if (isProductVideo === false) {
-    return "product_no";
-  }
-  return "product_uncertain";
+  return "product_no";
 };
 
 const normalizeDecisionConsistency = (input: {
-  decision: "product_yes" | "product_no" | "product_uncertain";
+  decision: "product_yes" | "product_no";
   isProductVideo: boolean | null;
   visibleProductTypes: string[];
   uncertainty: string[];
@@ -186,9 +183,9 @@ const normalizeDecisionConsistency = (input: {
   }
 
   return {
-    isProductVideo: input.decision === "product_uncertain" ? null : input.isProductVideo,
-    suggestedNextAction: input.suggestedNextAction,
-    mustReview: input.mustReview,
+    isProductVideo: input.decision === "product_yes" ? input.isProductVideo : false,
+    suggestedNextAction: input.decision === "product_yes" ? input.suggestedNextAction : "scroll_next",
+    mustReview: false,
   } as const;
 };
 
