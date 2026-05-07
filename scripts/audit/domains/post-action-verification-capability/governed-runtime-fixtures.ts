@@ -2,9 +2,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { writeFile } from "node:fs/promises";
 
+import sharp from "sharp";
+
 import { createPostActionRuntime } from "../../../../src/lib/local-runtime/workbench-post-action-runtime.js";
 import { buildPostActionVerificationInput } from "../../../../src/lib/local-runtime/workbench-post-action-dispatch-input.js";
 import { recordAbilityResultProofSummary } from "../../../../src/capabilities/orchestration/runtime/ability-result-proof-summary-registry.js";
+
+const changedBeforeSignature = `ahash16:${"0".repeat(256)}`;
 
 function createFixtureRuntime(currentUrl: string, loginState: "logged_in" | "login_required"): Parameters<typeof buildPostActionVerificationInput>[0] {
   return {
@@ -16,7 +20,18 @@ function createFixtureRuntime(currentUrl: string, loginState: "logged_in" | "log
       }),
       screenshotRegion: async () => {
         const sourceFilePath = path.join(tmpdir(), "grasseye-post-action-video-identity-fixture.png");
-        await writeFile(sourceFilePath, Buffer.from("after-video-frame-fixture"));
+        if (currentUrl.includes("after-video")) {
+          await sharp({
+            create: {
+              width: 16,
+              height: 16,
+              channels: 3,
+              background: { r: 255, g: 255, b: 255 },
+            },
+          }).png().toFile(sourceFilePath);
+        } else {
+          await writeFile(sourceFilePath, Buffer.from("after-video-frame-fixture"));
+        }
         return {
           browserActionId: "browser-action-fixture",
           pageUrl: currentUrl,
@@ -126,7 +141,7 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
 
   const now = Date.now();
   recordAbilityResultProofSummary("prompt-input-ref-1", {
-    preparedImageHash: "before-video-frame-hash",
+    preparedImageHash: changedBeforeSignature,
     sourceScreenshotEvidenceId: "screenshot-evidence-ref-1",
     pageUrl: "https://www.facebook.com/reel/before-video",
   });
@@ -208,4 +223,33 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
     },
   });
   assertCondition(rawSignatureDriftResult.status === "review_required" && rawSignatureDriftResult.verificationDecision === "review_required", "Video-changed verification must not pass raw frame-signature drift without governed before/after video identity.");
+
+  const urlOnlyChangeResult = await abilityGroup.execute({
+    ...videoInput,
+    observationSet: {
+      observations: [
+        {
+          ...beforeVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "before",
+            videoId: "https://www.facebook.com/reel/before-video",
+            visualSignature: changedBeforeSignature,
+            confirmed: true,
+          },
+        },
+        {
+          ...afterVideoObservation,
+          payload: {
+            kind: "video_identity",
+            role: "after",
+            videoId: "https://www.facebook.com/reel/after-video",
+            visualSignature: changedBeforeSignature,
+            confirmed: true,
+          },
+        },
+      ],
+    },
+  });
+  assertCondition(urlOnlyChangeResult.status === "failed" && urlOnlyChangeResult.verificationDecision === "failed", "Video-changed verification must fail URL-only changes when perceptual video identity is unchanged.");
 }

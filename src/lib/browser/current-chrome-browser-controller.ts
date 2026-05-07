@@ -15,6 +15,7 @@ import {
   activateChrome,
   buildOpenUrlScript,
   clickAt,
+  pressBrowserKey,
   readFrontChromeWindowState,
   runAppleScript,
   scrollAt,
@@ -114,6 +115,10 @@ export class CurrentChromeBrowserController implements BrowserController {
       deltaX: input.deltaX,
       deltaY: input.deltaY,
     });
+    if (input.targetLabel.includes("scroll_next_video") && input.deltaY > 0) {
+      await this.wait(120);
+      await pressBrowserKey(125);
+    }
     await this.wait(300);
     return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}`, fallbackUsed: input.fallbackUsed ?? false });
   }

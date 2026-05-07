@@ -207,20 +207,20 @@ function resolveVideoChangedDecision(input: {
   const afterVideoId = input.afterObservation.payload.videoId;
   const beforeSignature = input.beforeObservation.payload.visualSignature ?? null;
   const afterSignature = input.afterObservation.payload.visualSignature ?? null;
-
-  if (beforeVideoId !== null && afterVideoId !== null) {
-    return beforeVideoId !== afterVideoId ? "changed" : "unchanged";
-  }
-  if (beforeVideoId !== afterVideoId) {
-    return "unknown";
-  }
   const perceptualChange = resolvePerceptualSignatureChange(beforeSignature, afterSignature);
+
   if (perceptualChange === "unchanged") {
     return "unchanged";
   }
-  if (perceptualChange === "changed") {
-    return "unknown";
+
+  if (beforeVideoId !== null && afterVideoId !== null && beforeVideoId === afterVideoId) {
+    return "unchanged";
   }
+
+  if (beforeVideoId !== null && afterVideoId !== null && beforeVideoId !== afterVideoId && perceptualChange === "changed") {
+    return "changed";
+  }
+
   return "unknown";
 }
 
